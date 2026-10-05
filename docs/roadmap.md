@@ -79,6 +79,14 @@ Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)). Each ro
 
 ## Phase 3 — Mixed media + lazy conversion
 
+**Depends on:** native **project format** ([ADR 0015](adr/0015-native-project-format.md)) — `.unibrow` / `.uni` package with `project.json`, `assets/`, `refs/`, `derived/`; export separate from save.
+
+| Milestone | Deliverable |
+|-----------|-------------|
+| P3.0 | Project container spike (ZIP vs directory); load/save empty canvas |
+| P3.1 | Embed + reference assets; `derived/` preview cache per ADR 0011 |
+| P3.2 | Timeline + heterogeneous clips (video/audio/MIDI/PDF) in one project |
+
 Implement [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) for real:
 
 - **Video** + **Audio** engines on **ffmpeg** (LGPL **T3 sidecar**); proving mods/containers still TBD (e.g. MP4/WebM, WAV/MIDI).

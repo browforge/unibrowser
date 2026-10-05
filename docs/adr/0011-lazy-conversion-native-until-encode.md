@@ -55,6 +55,6 @@ Phase 1 does **not** implement timelines or PDF-on-timeline; this ADR locks the 
 
 ## Open questions
 
-- Single global **asset cache** vs per-project cache directory?
+- Single global **asset cache** vs per-project cache directory? → **Default:** per-project `derived/` inside `.unibrow` / `.uni` ([ADR 0015](0015-native-project-format.md)); global cache optional later.
 - Undo across conversion edges (revert proxy regen when source PDF edits)?
 - Maximum proxy resolution defaults per platform (GPU memory)?

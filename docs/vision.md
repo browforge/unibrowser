@@ -46,7 +46,7 @@ Decision record: [ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md).
 
 - **UI inconsistency**: Every application reinvents toolbars, shortcuts, and command discovery.
 - **Format silos**: PNG, PDF, and spreadsheets in three apps means three undo models and three export flows.
-- **“Wrong format” rejection**: Video editors refuse PDF or MIDI on a timeline; Unibrowser should **mix unusual formats** and convert only when preview or export requires it ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)).
+- **“Wrong format” rejection**: Video editors refuse PDF or MIDI on a timeline; Unibrowser should **mix unusual formats** in a **native project** and convert only when preview or export requires it ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md), [ADR 0015](adr/0015-native-project-format.md)).
 - **File vs web split**: OS defaults and “open with” train users to leave the flow; Unibrowser keeps you in one tabbed environment.
 - **Extension fatigue**: Monolithic suites are hard to maintain; tiny single-purpose apps do not share behaviour.
 
@@ -76,6 +76,12 @@ Unibrowser should **excel at moving between contexts** without feeling like a di
 | [Affinity](https://affinity.serif.com/en-us/whats-new/) | Familiar chrome across personas / unified app |
 | [Blender workspaces](https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html) | Workspaces + operator search; tools do not vanish |
 | [DaVinci Resolve](https://documents.blackmagicdesign.com/UserManuals/DaVinci-Resolve-19-User-Manual.pdf) | Page switching with consistent overall shell |
+
+### Native project format (`.unibrow` / `.uni`)
+
+Mixed-format work needs a **native project**, not another app’s NLE project file. Bear’s analogy: **Illustrator vs JPEG** maps to **`.unibrow` (or `.uni`) vs MP4** — the project is the editable, non-destructive package; MP4/PNG/PDF export is **delivery**, not where ongoing work lives.
+
+You can drop **literally anything** on an infinite canvas or timeline — half-finished PDF, MIDI, notes, diagrams — and save **without flattening** sources by default ([ADR 0015](adr/0015-native-project-format.md), [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)).
 
 ### Lazy conversion / native-until-encode
 

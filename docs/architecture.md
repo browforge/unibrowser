@@ -95,6 +95,45 @@ flowchart TB
 
 **Satellite mods (thin wrappers):** `base-markdown` (mostly **Text**); `base-pdf` is a **multi-engine** mod, not a single-engine lane — see [roadmap.md](roadmap.md).
 
+## Native project format (`.unibrow` / `.uni`)
+
+Mixed-format canvas and timeline work is persisted in a **Unibrowser project package**, not as a Vegas/Premiere-style single-domain project file. **Export** (MP4, flattened PDF, PNG) is a **boundary** out of the project; sources stay native inside the bundle where [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) allows.
+
+| Concern | Approach (sketch) |
+|---------|-------------------|
+| **Container** | Directory bundle and/or ZIP single file; **SQLite** optional for asset index / undo metadata inside the bundle |
+| **`project.json`** | Versioned graph: spatial + temporal nodes, mod-typed clips, engine bindings |
+| **`assets/`** | Embedded files (default for dropped-in media) |
+| **`refs/`** | Optional external `file://` links with relink/collect |
+| **`derived/`** | Regenerable preview proxies; provenance; not source of truth |
+
+```mermaid
+flowchart LR
+  subgraph Project[".unibrow / .uni package"]
+    PJ[project.json]
+    A[assets/]
+    R[refs/]
+    D[derived/]
+  end
+
+  subgraph Shell
+    TAB[Tabs / canvas / timeline UI]
+  end
+
+  subgraph Export
+    OUT[MP4 / PNG / PDF ...]
+  end
+
+  TAB --> PJ
+  PJ --> A
+  PJ --> R
+  PJ --> D
+  PJ -->|export graph| OUT
+  A -.->|native until encode| D
+```
+
+**Mods** serialize their node types; the **host** owns the package layout and asset index ([ADR 0015](adr/0015-native-project-format.md)). Name **`.unibrow` vs `.uni`** remains an open product decision.
+
 ## Layer diagram
 
 ```mermaid
@@ -267,6 +306,7 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0012 Context switching UX benchmarks](adr/0012-context-switching-ux-benchmarks.md)
 - [0013 Dual audience (FOSS and everyday users)](adr/0013-dual-audience-foss-and-everyday-users.md)
 - [0014 VSIX compatibility layer](adr/0014-vsix-compatibility-layer.md)
+- [0015 Native project format](adr/0015-native-project-format.md)
 - [Mod system overview](mod-system.md) (native + VSIX lanes)
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)
