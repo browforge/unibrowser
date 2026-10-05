@@ -1,6 +1,6 @@
 mod commands;
 mod config;
-mod downloads;
+pub mod downloads;
 mod csv_preview;
 mod csv_stub;
 mod epub_preview;
@@ -102,6 +102,12 @@ pub fn run() {
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
             commands::get_preferences,
+            commands::set_auto_save_settings,
+            commands::auto_save_active_document,
+            commands::pick_and_compare,
+            commands::close_file_compare,
+            commands::pin_current_location,
+            commands::begin_file_compare,
             commands::set_ui_theme,
             commands::get_epub_chapter,
             commands::export_unibrow_project,

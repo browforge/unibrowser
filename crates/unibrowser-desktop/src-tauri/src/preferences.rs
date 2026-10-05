@@ -35,6 +35,25 @@ pub struct Preferences {
     /// When true, last tab set is saved on exit and restored on launch.
     #[serde(default)]
     pub restore_session_on_launch: bool,
+    /// Opt-in automatic save for text/SVG (off by default).
+    #[serde(default)]
+    pub auto_save_enabled: bool,
+    /// Seconds between auto-save attempts (clamped 30–600 when enabled).
+    #[serde(default = "default_auto_save_interval")]
+    pub auto_save_interval_secs: u32,
+    #[serde(default)]
+    pub pinned_locations: Vec<PinnedLocation>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PinnedLocation {
+    pub id: String,
+    pub label: String,
+    pub location: String,
+}
+
+fn default_auto_save_interval() -> u32 {
+    120
 }
 
 impl Default for Preferences {
@@ -44,8 +63,31 @@ impl Default for Preferences {
             theme: UiTheme::default(),
             recent_files: Vec::new(),
             restore_session_on_launch: false,
+            auto_save_enabled: false,
+            auto_save_interval_secs: default_auto_save_interval(),
+            pinned_locations: Vec::new(),
         }
     }
+}
+
+pub fn default_pinned_locations(home: &str) -> Vec<PinnedLocation> {
+    vec![
+        PinnedLocation {
+            id: "home".into(),
+            label: "Home".into(),
+            location: format!("file://{}", home),
+        },
+        PinnedLocation {
+            id: "downloads".into(),
+            label: "Downloads".into(),
+            location: format!("file://{}/Downloads", home.trim_end_matches('/')),
+        },
+        PinnedLocation {
+            id: "new-project".into(),
+            label: "New project".into(),
+            location: "unibrowser://action/new-project".into(),
+        },
+    ]
 }
 
 #[cfg(test)]

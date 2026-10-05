@@ -19,6 +19,12 @@ pub struct SplitViewState {
     pub secondary_index: Option<usize>,
 }
 
+#[derive(Debug, Clone)]
+pub struct FileCompareState {
+    pub left_path: String,
+    pub right_path: String,
+}
+
 pub struct AppState {
     pub registry: Mutex<CommandRegistry>,
     pub tabs: Mutex<TabManager>,
@@ -30,6 +36,7 @@ pub struct AppState {
     pub undo_stacks: Mutex<crate::undo_stack::UndoStacks>,
     pub split_view: Mutex<SplitViewState>,
     pub key_sequences: Mutex<KeySequenceMatcher>,
+    pub file_compare: Mutex<Option<FileCompareState>>,
     pub _mod_host: ModHost,
 }
 
@@ -105,6 +112,7 @@ impl AppState {
             undo_stacks: Mutex::new(crate::undo_stack::UndoStacks::default()),
             split_view: Mutex::new(SplitViewState::default()),
             key_sequences: Mutex::new(KeySequenceMatcher::default()),
+            file_compare: Mutex::new(None),
             _mod_host: mod_host,
         }
     }

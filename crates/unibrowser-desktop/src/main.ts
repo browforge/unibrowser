@@ -13,6 +13,9 @@ import { copyText, readClipboardText } from "./clipboard";
 import { t } from "./i18n";
 import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
 import { setViewerZoomListener } from "./viewerZoom";
+import { applyChromeI18n, modsLineText } from "./chromeI18n";
+import { diffEditorView, type DiffViewDto } from "./diffEditor";
+import { configureAutoSave } from "./autoSave";
 
 interface TabDto {
   id: number;
@@ -89,6 +92,14 @@ interface TabContentDto {
   split_status: string | null;
   show_new_tab_page: boolean;
   browse_folder_path: string;
+  diff_view: DiffViewDto | null;
+  pinned_locations: PinnedLocationDto[];
+}
+
+interface PinnedLocationDto {
+  id: string;
+  label: string;
+  location: string;
 }
 
 interface RecentFileDto {
@@ -119,6 +130,8 @@ let lastViewerZoomLabel = "";
 let editorLine = 1;
 let editorCol = 1;
 const modsLine = document.getElementById("mods-line")!;
+const bookmarkBar = document.getElementById("bookmark-bar")!;
+const diffEditorHost = document.getElementById("diff-editor-host")!;
 const palette = document.getElementById("palette")!;
 const paletteQuery = document.getElementById("palette-query") as HTMLInputElement;
 const paletteResults = document.getElementById("palette-results")!;
@@ -245,7 +258,6 @@ function renderTabs(data: TabContentDto) {
   plus.onclick = () => invoke<TabContentDto>("new_tab").then(applyState);
   tabStrip.appendChild(plus);
   omnibox.value = data.omnibox;
-  modsLine.textContent = `Mods: ${data.mods_loaded}`;
 }
 
 function renderFiles(entries: DirEntry[] | null) {
@@ -478,12 +490,64 @@ async function renderSessionOptIn() {
     };
     const label = document.createElement("label");
     label.htmlFor = cb.id;
-    label.textContent = "Restore open tabs on next launch";
+    label.textContent = t("recent.restore");
+    const autoRow = document.createElement("div");
+    autoRow.className = "session-restore-row";
+    const autoCb = document.createElement("input");
+    autoCb.type = "checkbox";
+    autoCb.id = "auto-save-opt-in";
+    const autoLabel = document.createElement("label");
+    autoLabel.htmlFor = autoCb.id;
+    void invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>(
+      "get_preferences",
+    ).then((prefs) => {
+      autoCb.checked = prefs.auto_save_enabled;
+      autoLabel.textContent = t("autosave.label");
+      autoCb.onchange = async () => {
+        const next = await invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>(
+          "set_auto_save_settings",
+          { enabled: autoCb.checked, intervalSecs: prefs.auto_save_interval_secs },
+        );
+        configureAutoSave(next.auto_save_enabled, next.auto_save_interval_secs);
+      };
+      configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs);
+    });
+    autoRow.appendChild(autoCb);
+    autoRow.appendChild(autoLabel);
     row.appendChild(cb);
     row.appendChild(label);
+    row.appendChild(autoRow);
   } catch {
     /* optional */
   }
+}
+
+function renderBookmarkBar(pins: PinnedLocationDto[]) {
+  bookmarkBar.innerHTML = "";
+  pins.forEach((pin) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "bookmark-link";
+    if (pin.id === "home") {
+      btn.textContent = t("bookmark.home");
+    } else if (pin.id === "downloads") {
+      btn.textContent = t("bookmark.downloads");
+    } else if (pin.id === "new-project") {
+      btn.textContent = t("bookmark.project");
+    } else {
+      btn.textContent = pin.label;
+    }
+    btn.title = pin.location;
+    btn.onclick = () => {
+      if (pin.location === "unibrowser://action/new-project") {
+        document.getElementById("btn-new-project")!.click();
+        return;
+      }
+      omnibox.value = pin.location;
+      navigateOmnibox();
+    };
+    bookmarkBar.appendChild(btn);
+  });
 }
 
 function renderRecentFiles(entries: RecentFileDto[]) {
@@ -494,7 +558,7 @@ function renderRecentFiles(entries: RecentFileDto[]) {
   }
   recentPanel.classList.remove("hidden");
   if (!entries.length) {
-    recentPanel.textContent = "No recent files yet.";
+    recentPanel.textContent = t("recent.empty");
     return;
   }
   const list = document.createElement("ul");
@@ -584,6 +648,16 @@ async function applyState(data: TabContentDto) {
   const showViewer = Boolean(data.document_viewer) && !active?.is_http;
   const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
+  modsLine.textContent = modsLineText(data.mods_loaded);
+  renderBookmarkBar(data.pinned_locations ?? []);
+  const showDiff = Boolean(data.diff_view);
+  if (showDiff && data.diff_view) {
+    await diffEditorView.apply(data.diff_view, diffEditorHost);
+    textEditor.hide(textEditorHost);
+    documentViewer.hide(documentViewerHost);
+  } else {
+    diffEditorView.hide(diffEditorHost);
+  }
   if (showHome) {
     filesPanel.classList.add("hidden");
     renderNewTabPage(newTabPageHost, {
@@ -613,16 +687,18 @@ async function applyState(data: TabContentDto) {
   renderDoc(data.document_status, showText, hasPortal, showViewer);
   renderOnboarding(data.show_onboarding);
   renderRecentFiles(data.recent_files ?? []);
-  if (showText && data.text_document) {
-    await textEditor.apply(data.text_document, textEditorHost);
-    documentViewer.hide(documentViewerHost);
-  } else {
-    textEditor.hide(textEditorHost);
-  }
-  if (showViewer && data.document_viewer) {
-    await documentViewer.apply(data.document_viewer, documentViewerHost);
-  } else if (!showText) {
-    documentViewer.hide(documentViewerHost);
+  if (!showDiff) {
+    if (showText && data.text_document) {
+      await textEditor.apply(data.text_document, textEditorHost);
+      documentViewer.hide(documentViewerHost);
+    } else {
+      textEditor.hide(textEditorHost);
+    }
+    if (showViewer && data.document_viewer) {
+      await documentViewer.apply(data.document_viewer, documentViewerHost);
+    } else if (!showText) {
+      documentViewer.hide(documentViewerHost);
+    }
   }
   await applySplitPane(data);
   if (active?.is_http) {
@@ -732,6 +808,31 @@ document.getElementById("btn-demo-download")!.onclick = () =>
   invoke<TabContentDto>("handle_download_url", {
     url: "https://example.com/",
   }).then(applyState);
+
+document.getElementById("btn-compare")!.onclick = () => {
+  void invokeWithToast(
+    () => invoke<TabContentDto>("pick_and_compare"),
+    t("compare.needFile"),
+  ).then((data) => {
+    if (data) {
+      showToast(t("compare.started"), "info");
+      void applyState(data);
+    }
+  });
+};
+
+document.getElementById("btn-pin")!.onclick = () => {
+  void invoke<PinnedLocationDto[]>("pin_current_location").then((pins) => {
+    renderBookmarkBar(pins);
+  });
+};
+
+diffEditorHost.addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  if (target.dataset.action === "close-diff") {
+    void invoke<TabContentDto>("close_file_compare").then((d) => d && applyState(d));
+  }
+});
 
 document.getElementById("btn-mod-portal")!.onclick = () =>
   invoke<TabContentDto>("open_mod_portal", { ext: null }).then(applyState);
@@ -934,7 +1035,15 @@ paletteQuery.addEventListener("input", async () => {
 window.addEventListener("resize", () => syncContentBounds());
 
 listen<string>("unibrowser-download", (event) => {
-  invoke<TabContentDto>("handle_download_url", { url: event.payload }).then(applyState);
+  void invokeWithToast(
+    () => invoke<TabContentDto>("handle_download_url", { url: event.payload }),
+    t("toast.errorDefault"),
+  ).then((data) => {
+    if (data) {
+      showToast(t("download.openedTab"), "info");
+      void applyState(data);
+    }
+  });
 });
 
 window.addEventListener("unibrowser-refresh", (event) => {
@@ -973,8 +1082,12 @@ setViewerZoomListener((_scale, label) => {
   }
 });
 
+applyChromeI18n();
 loadKeybindingHints();
 void loadThemePreference().then(() => {
   themeBtn.textContent = themeButtonLabel();
 });
+void invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>("get_preferences").then(
+  (prefs) => configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs),
+);
 refreshState();

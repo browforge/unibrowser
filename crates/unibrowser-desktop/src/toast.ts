@@ -21,12 +21,14 @@ export function showToast(message: string, kind: "error" | "info" = "error") {
 
 export async function invokeWithToast<T>(
   fn: () => Promise<T>,
-  fallback = "Something went wrong",
+  fallback?: string,
 ): Promise<T | undefined> {
+  const { t } = await import("./i18n");
+  const message = fallback ?? t("toast.errorDefault");
   try {
     return await fn();
   } catch (err) {
-    showToast(String(err) || fallback, "error");
+    showToast(String(err) || message, "error");
     return undefined;
   }
 }

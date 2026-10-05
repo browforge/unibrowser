@@ -8,6 +8,7 @@
   <body>
     <header id="chrome">
       <div id="mods-line" class="mods-line"></div>
+      <div id="bookmark-bar" class="bookmark-bar" aria-label="Pinned places"></div>
       <div id="tab-strip" class="tab-strip" role="tablist" aria-label="Open tabs"></div>
       <div class="nav-row">
         <button type="button" id="btn-back" title="Back">←</button>
@@ -22,6 +23,8 @@
         <button type="button" id="btn-mod-portal" title="Browse and install mods">Mods</button>
         <button type="button" id="btn-new-project" title="Create a .unibrow project folder">New project</button>
         <button type="button" id="btn-theme" title="Cycle light / dark / system theme">Theme</button>
+        <button type="button" id="btn-compare" title="Compare with another file">Compare</button>
+        <button type="button" id="btn-pin" title="Pin this page">Pin</button>
         <button type="button" id="btn-recent" class="muted" title="Recent files (optional)">Recent</button>
         <button type="button" id="btn-demo-download" class="muted" title="Simulate download → new tab">
           Demo download
@@ -58,6 +61,7 @@
       <div id="new-tab-page-host" class="new-tab-page-host hidden" aria-label="Start page"></div>
       <div id="split-primary" class="split-pane">
         <div id="files-panel" class="panel"></div>
+        <div id="diff-editor-host" class="diff-editor-host hidden"></div>
         <div id="text-editor-host" class="text-editor-host hidden"></div>
         <div id="document-viewer-host" class="document-viewer-host hidden"></div>
         <div id="mod-portal-panel" class="panel mod-portal hidden"></div>

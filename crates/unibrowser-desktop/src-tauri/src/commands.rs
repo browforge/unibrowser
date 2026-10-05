@@ -16,8 +16,11 @@ use crate::downloads::apply_download_disposition;
 use crate::state::{AppState, list_dir};
 use crate::mod_portal::{ModSuggestionDto, suggest_mods_for_unknown_path};
 use crate::preferences::{
-    load_preferences, push_recent_file, save_preferences, UiTheme, WindowState,
+    default_pinned_locations, load_preferences, push_recent_file, save_preferences, PinnedLocation,
+    UiTheme, WindowState,
 };
+use crate::state::FileCompareState;
+use unibrowser_mod_api::types::commands::TEXT_SAVE;
 use crate::epub_preview::EpubChapterDto;
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
 use crate::webview::{content_webview_navigate, inject_page_font_scale, sync_content_bounds};
@@ -156,6 +159,24 @@ pub struct TabContentDto {
     pub split_status: Option<String>,
     pub show_new_tab_page: bool,
     pub browse_folder_path: String,
+    pub diff_view: Option<DiffViewDto>,
+    pub pinned_locations: Vec<PinnedLocationDto>,
+}
+
+#[derive(Serialize)]
+pub struct DiffViewDto {
+    pub left_path: String,
+    pub right_path: String,
+    pub left_content: String,
+    pub right_content: String,
+    pub language: String,
+}
+
+#[derive(Serialize)]
+pub struct PinnedLocationDto {
+    pub id: String,
+    pub label: String,
+    pub location: String,
 }
 
 #[derive(Serialize)]
@@ -459,6 +480,13 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
             (None, None, None)
         };
     let prefs = load_preferences();
+    let diff_view = build_diff_view(state)?;
+    let (text_document, document_viewer) = if diff_view.is_some() {
+        (None, None)
+    } else {
+        (text_document, document_viewer)
+    };
+    let pinned_locations = pinned_locations_dto(&prefs);
     Ok(TabContentDto {
         tabs: tabs.tabs().iter().map(build_tab_dto).collect(),
         active_index: tabs.active_index(),
@@ -497,7 +525,52 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         split_status,
         show_new_tab_page,
         browse_folder_path,
+        diff_view,
+        pinned_locations,
     })
+}
+
+fn build_diff_view(state: &AppState) -> Result<Option<DiffViewDto>, String> {
+    let guard = state.file_compare.lock().map_err(|e| e.to_string())?;
+    let cmp = match guard.as_ref() {
+        Some(c) => c,
+        None => return Ok(None),
+    };
+    let left = resolve_open_path(&cmp.left_path, &state.cwd)?;
+    let right = resolve_open_path(&cmp.right_path, &state.cwd)?;
+    let left_content = std::fs::read_to_string(&left).map_err(|e| e.to_string())?;
+    let right_content = std::fs::read_to_string(&right).map_err(|e| e.to_string())?;
+    let language = TextBackend::language_id(&cmp.left_path).into();
+    Ok(Some(DiffViewDto {
+        left_path: cmp.left_path.clone(),
+        right_path: cmp.right_path.clone(),
+        left_content,
+        right_content,
+        language,
+    }))
+}
+
+fn pinned_locations_dto(prefs: &crate::preferences::Preferences) -> Vec<PinnedLocationDto> {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+    let pins = if prefs.pinned_locations.is_empty() {
+        default_pinned_locations(&home)
+    } else {
+        prefs.pinned_locations.clone()
+    };
+    pins.into_iter()
+        .map(|p| PinnedLocationDto {
+            id: p.id,
+            label: p.label,
+            location: p.location,
+        })
+        .collect()
+}
+
+fn active_document_path(state: &AppState) -> Result<String, String> {
+    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab().ok_or("no active tab")?;
+    let doc = tab.document.as_ref().ok_or("no document open")?;
+    Ok(doc.path.clone())
 }
 
 fn touch_recent_file(path: &Path) {
@@ -1144,7 +1217,7 @@ pub fn handle_download_url(
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
-    let disposition = apply_download_disposition(&url, None);
+    let disposition = apply_download_disposition(&url, None, &state.cwd)?;
     match disposition {
         DownloadDisposition::OpenInNewTab { suggested_location } => {
             let (loc, is_dir, doc) = state.resolve_location(suggested_location);
@@ -1177,6 +1250,8 @@ pub struct PreferencesDto {
     pub onboarding_dismissed: bool,
     pub theme: String,
     pub restore_session_on_launch: bool,
+    pub auto_save_enabled: bool,
+    pub auto_save_interval_secs: u32,
 }
 
 #[tauri::command]
@@ -1361,7 +1436,120 @@ pub fn get_preferences() -> PreferencesDto {
         onboarding_dismissed: p.onboarding_dismissed,
         theme: theme_to_str(&p.theme),
         restore_session_on_launch: p.restore_session_on_launch,
+        auto_save_enabled: p.auto_save_enabled,
+        auto_save_interval_secs: p.auto_save_interval_secs,
     }
+}
+
+#[tauri::command]
+pub fn set_auto_save_settings(
+    enabled: bool,
+    interval_secs: u32,
+) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.auto_save_enabled = enabled;
+    p.auto_save_interval_secs = interval_secs.clamp(30, 600);
+    save_preferences(&p)?;
+    Ok(get_preferences())
+}
+
+#[tauri::command]
+pub fn auto_save_active_document(state: State<AppState>) -> Result<String, String> {
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+    if tab.document.is_none() {
+        return Ok(String::new());
+    }
+    let doc = tab.document.as_mut().unwrap();
+    if !doc.backend.is_dirty() {
+        return Ok(String::new());
+    }
+    let backend_id = doc.backend.backend_id();
+    if backend_id != base_text::BACKEND_ID && backend_id != base_svg::BACKEND_ID {
+        return Ok(String::new());
+    }
+    state
+        .registry
+        .lock()
+        .map_err(|e| e.to_string())?
+        .execute(TEXT_SAVE, doc)
+        .map_err(|e| e.to_string())?;
+    Ok("saved".into())
+}
+
+#[tauri::command]
+pub fn begin_file_compare(
+    other_path: String,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let left = active_document_path(&state)?;
+    let right = resolve_open_path(&other_path, &state.cwd)?;
+    if !right.is_file() {
+        return Err("compare target is not a file".into());
+    }
+    {
+        let mut cmp = state.file_compare.lock().map_err(|e| e.to_string())?;
+        *cmp = Some(FileCompareState {
+            left_path: left,
+            right_path: right.to_string_lossy().into_owned(),
+        });
+    }
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub async fn pick_and_compare(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<TabContentDto, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let _ = active_document_path(&state)?;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Compare with file")
+        .blocking_pick_file();
+    let path = picked.map(|p| p.to_string()).ok_or("no file chosen")?;
+    begin_file_compare(path, state)
+}
+
+#[tauri::command]
+pub fn close_file_compare(state: State<AppState>) -> Result<TabContentDto, String> {
+    {
+        let mut cmp = state.file_compare.lock().map_err(|e| e.to_string())?;
+        *cmp = None;
+    }
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn pin_current_location(state: State<AppState>) -> Result<Vec<PinnedLocationDto>, String> {
+    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let omnibox = tabs
+        .active_tab()
+        .map(|t| location_to_omnibox(&t.location))
+        .ok_or("no active tab")?;
+    let label = tabs
+        .active_tab()
+        .map(|t| t.location.display_label())
+        .unwrap_or_else(|| "Pinned".into());
+    let mut prefs = load_preferences();
+    if prefs.pinned_locations.is_empty() {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+        prefs.pinned_locations = default_pinned_locations(&home);
+    }
+    if !prefs.pinned_locations.iter().any(|p| p.location == omnibox) {
+        prefs.pinned_locations.push(PinnedLocation {
+            id: format!("pin-{}", prefs.pinned_locations.len()),
+            label,
+            location: omnibox,
+        });
+        if prefs.pinned_locations.len() > 12 {
+            prefs.pinned_locations.remove(1);
+        }
+        save_preferences(&prefs)?;
+    }
+    Ok(pinned_locations_dto(&prefs))
 }
 
 #[tauri::command]

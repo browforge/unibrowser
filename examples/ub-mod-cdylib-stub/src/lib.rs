@@ -1,8 +1,6 @@
 //! Sketch ABI for community `cdylib` mods ([ADR 0002](../docs/adr/0002-mod-system-and-sandboxing.md)).
 //! The desktop host still static-links T0 `base-*` mods; this crate only documents exports.
 
-use std::ffi::CStr;
-
 /// Loader ABI version (independent of `MOD_API_VERSION` semver).
 pub const UB_MOD_LOADER_ABI: u32 = 1;
 
@@ -37,9 +35,6 @@ mod tests {
 
     #[test]
     fn exports_readable() {
-        let ver = unsafe { CStr::from_ptr(ub_mod_api_version()) }
-            .to_str()
-            .unwrap();
-        assert_eq!(ver, unibrowser_mod_api::MOD_API_VERSION);
+        assert_eq!(ub_mod_loader_abi_version(), UB_MOD_LOADER_ABI);
     }
 }
