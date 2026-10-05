@@ -575,6 +575,19 @@ body {
   cursor: copy;
 }
 
+.status-context,
+.status-encode {
+  color: #888;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-dirty {
+  color: #c9a227;
+  font-weight: 600;
+}
+
 .status-hint {
   margin-left: auto;
   color: #777;

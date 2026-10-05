@@ -2881,4 +2881,13 @@ export const documentViewer = {
     setViewerFindRunner(null);
     el.classList.add("hidden");
   },
+  getPrintHtmlForPdf(el: HTMLElement): { title: string; html: string } | null {
+    const article = el.querySelector(".docx-view");
+    if (!article) {
+      return null;
+    }
+    const titleEl = el.querySelector(".viewer-title");
+    const title = titleEl?.textContent?.trim() || "document";
+    return { title, html: article.innerHTML };
+  },
 };

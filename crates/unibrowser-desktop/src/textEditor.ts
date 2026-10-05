@@ -341,6 +341,24 @@ export const textEditor = {
   },
 };
 
+function escapeForPre(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function getPrintHtmlForPdf(): { title: string; html: string } | null {
+  if (!loadedPath || !editor || !isMarkdownPath(loadedPath)) {
+    return null;
+  }
+  const html =
+    markdownPreview && previewEl
+      ? previewEl.innerHTML
+      : `<pre>${escapeForPre(editor.getValue())}</pre>`;
+  return { title: loadedPath, html };
+}
+
 window.addEventListener("unibrowser-spellcheck-pref", () => {
   if (!hostEl || !editor || !loadedPath) {
     return;

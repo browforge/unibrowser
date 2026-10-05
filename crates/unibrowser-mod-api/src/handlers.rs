@@ -45,3 +45,6 @@ pub const FONT_DECREASE_ID: &str = commands::FONT_SIZE_DECREASE;
 pub const PAGE_ZOOM_INCREASE_ID: &str = commands::PAGE_ZOOM_INCREASE;
 pub const PAGE_ZOOM_DECREASE_ID: &str = commands::PAGE_ZOOM_DECREASE;
 pub const FIND_IN_DOCUMENT_ID: &str = commands::FIND_IN_DOCUMENT;
+pub const DOCUMENT_UNDO_ID: &str = commands::DOCUMENT_UNDO;
+pub const DOCUMENT_REDO_ID: &str = commands::DOCUMENT_REDO;
+pub const EXPORT_PRINT_PDF_ID: &str = commands::EXPORT_PRINT_PDF;

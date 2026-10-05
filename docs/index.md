@@ -21,6 +21,8 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [plugin-sdk.md](plugin-sdk.md) | Hello-world `.ubmod` build and install |
 | [plugin-sdk/README.md](plugin-sdk/README.md) | Native mod SDK ABI and user `mods/` dir |
 | [commands-cross-format.md](commands-cross-format.md) | Font-size, find, and page zoom per viewer |
+| [commands-undo-redo.md](commands-undo-redo.md) | Undo/redo and PDF export matrix |
+| [packaging.md](packaging.md) | Planned MSI/NSIS/AppImage/deb artefacts |
 | [session-restore.md](session-restore.md) | Tabs/windows on launch preference |
 | [split-view.md](split-view.md) | Experimental side-by-side tabs |
 | [security.md](security.md) | Trust model and UI signals |

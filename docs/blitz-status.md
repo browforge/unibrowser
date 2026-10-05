@@ -13,6 +13,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Security | Trust banners, remote-web chrome hint, click-to-play media ([security.md](security.md)) |
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
+| Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt, zoom, encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
+| Undo / PDF | Document undo/redo on text + SVG; export PDF from Markdown/DOCX print HTML (headless Chromium / wkhtmltopdf on Linux); matrix in [commands-undo-redo.md](commands-undo-redo.md) |
+| Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |
 | Commands | Command Manager (dense mode), palette + chords (`Ctrl+Shift+P` default, user override via `keybindings.json`), workspace layout presets, import/export JSON; VSIX commands on **Extensions** tab (stub run) |

@@ -3,7 +3,9 @@ use std::path::Path;
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionSnapshot,
-    handlers::{FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID},
+    handlers::{
+        EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID,
+    },
 };
 
 pub const BACKEND_ID: &str = "base-docx";
@@ -124,6 +126,12 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: font_enable,
         execute: |_doc| Ok("document-find".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: EXPORT_PRINT_PDF_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: |_doc| Ok("export-print-pdf".into()),
     });
 }
 

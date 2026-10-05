@@ -4,7 +4,7 @@ use std::path::Path;
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot, commands,
-    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID},
+    handlers::{DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, FONT_DECREASE_ID, FONT_INCREASE_ID},
 };
 
 pub const BACKEND_ID: &str = "base-svg";
@@ -204,6 +204,18 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: save_enable,
         execute: exec_save,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: DOCUMENT_UNDO_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: |_doc| Ok("document-undo".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: DOCUMENT_REDO_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: |_doc| Ok("document-redo".into()),
     });
 }
 

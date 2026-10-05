@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
-import { commandManager } from "./commandManager";
+import { commandManager, getStatusContextMode } from "./commandManager";
 import { textEditor, type TextDocumentDto, setCursorStatusListener } from "./textEditor";
 import { documentViewer, type DocumentViewerDto } from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
@@ -12,7 +12,15 @@ import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
 import { invokeWithToast, showToast } from "./toast";
-import { bindStatusBar, setPathCopyHandler, setZoomHandler, updateStatusBar } from "./statusBar";
+import {
+  bindStatusBar,
+  patchStatusCursor,
+  setPathCopyHandler,
+  setZoomHandler,
+  updateStatusBar,
+} from "./statusBar";
+import { getEncodeProgress, setEncodeProgress } from "./encodeProgress";
+import { runExportPrintPdf } from "./exportPdf";
 import { copyText, readClipboardText } from "./clipboard";
 import { t } from "./i18n";
 import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
@@ -233,16 +241,40 @@ function refreshStatusBar(
   const cursor = showText && data.text_document ? `Ln ${editorLine}, Col ${editorCol}` : "";
   let zoom = "";
   if (active?.is_http) {
-    zoom = `Web ${webZoomPercent}%`;
+    zoom = t("status.webZoom", { percent: String(webZoomPercent) });
   } else if (showViewer && data.document_viewer) {
     zoom = lastViewerZoomLabel;
   }
+  let font = "";
+  if (showText && data.text_document) {
+    font = t("status.fontPt", { pt: String(data.text_document.font_size_pt) });
+  } else if (showViewer && data.document_viewer?.reader_font_pt) {
+    font = t("status.fontPt", { pt: String(data.document_viewer.reader_font_pt) });
+  }
+  const ctx = getStatusContextMode();
+  const context = ctx
+    ? t("status.commandContext", {
+        tab: ctx.tab,
+        mode: ctx.pinned ? t("status.contextPinned") : t("status.contextAuto"),
+      })
+    : "";
+  const dirty =
+    active?.dirty && !active.is_directory ? t("status.unsaved") : "";
+  const enc = getEncodeProgress();
+  const encode =
+    enc.active
+      ? t("status.encode", { percent: String(enc.percent), stage: enc.stage })
+      : "";
   updateStatusBar({
     path,
     pathHint: path ? t("status.copyPath") : undefined,
+    context,
+    dirty,
     encoding,
     cursor,
+    font,
     zoom,
+    encode,
     hint: data.status.includes("command palette") ? paletteChordHint : data.status,
   });
 }
@@ -771,26 +803,37 @@ async function runPageZoom(commandId: string) {
   if (pct) {
     webZoomPercent = Number(pct[1]);
   }
-  if (msg !== "document-find") {
+  const toast = await handleShellCommandMessage(msg);
+  if (toast) {
     showToast(String(msg), "info");
   }
   await refreshCommandManager();
   await refreshState();
 }
 
-async function runUiCommand(commandId: string) {
-  await textEditor.flush();
-  const msg = await invoke<string>("execute_command", { commandId });
+async function handleShellCommandMessage(msg: string): Promise<boolean> {
   if (msg === "document-find") {
     openDocumentFind();
-    await refreshCommandManager();
-    return;
+    return false;
+  }
+  if (msg === "export-print-pdf") {
+    await runExportPrintPdf(documentViewerHost);
+    return false;
   }
   const pct = msg.match(/(\d+)%/);
   if (pct) {
     webZoomPercent = Number(pct[1]);
   }
-  showToast(String(msg), "info");
+  return true;
+}
+
+async function runUiCommand(commandId: string) {
+  await textEditor.flush();
+  const msg = await invoke<string>("execute_command", { commandId });
+  const toast = await handleShellCommandMessage(msg);
+  if (toast && msg !== "Cancelled") {
+    showToast(String(msg), "info");
+  }
   await refreshCommandManager();
   await refreshState();
 }
@@ -1225,7 +1268,10 @@ async function runKeybindingCommand(commandId: string) {
   if (commandId === "unibrowser.script.demo.hello") {
     appendScriptOutput(String(msg));
   }
-  showToast(String(msg), "info");
+  const toast = await handleShellCommandMessage(msg);
+  if (toast && msg !== "Cancelled" && commandId !== "unibrowser.script.demo.hello") {
+    showToast(String(msg), "info");
+  }
   await refreshCommandManager();
   await refreshState();
 }
@@ -1399,7 +1445,13 @@ listen<DownloadEventPayload | string>("unibrowser-download", (event) => {
 
 listen<{ percent: number; stage: string }>("unibrowser-encode-progress", (event) => {
   const { percent, stage } = event.payload;
-  showToast(t("encode.progress", { percent: String(percent), stage }), "info");
+  if (percent >= 100) {
+    setEncodeProgress(null);
+    showToast(t("encode.done"), "info");
+  } else {
+    setEncodeProgress(percent, stage);
+  }
+  void refreshState();
 });
 
 window.addEventListener("unibrowser-refresh", (event) => {
@@ -1426,6 +1478,7 @@ setPathCopyHandler((path) => {
 setCursorStatusListener((pos) => {
   editorLine = pos.line;
   editorCol = pos.column;
+  patchStatusCursor(`Ln ${editorLine}, Col ${editorCol}`);
 });
 setViewerZoomListener((_scale, label) => {
   lastViewerZoomLabel = label;

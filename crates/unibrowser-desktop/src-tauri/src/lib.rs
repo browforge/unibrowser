@@ -27,6 +27,7 @@ mod content_sniff;
 mod files_listing;
 pub mod file_ops;
 mod batch_images;
+mod pdf_export;
 mod pdf_preview;
 mod pdf_proving;
 mod dir_list;
@@ -228,6 +229,7 @@ pub fn run() {
             commands::sync_svg_document,
             commands::document_undo,
             commands::document_redo,
+            commands::export_print_pdf,
             commands::toggle_split_view,
             commands::set_split_tab,
             commands::omnibox_completions,

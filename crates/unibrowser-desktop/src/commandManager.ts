@@ -82,6 +82,18 @@ function screenPositionFromPointer(e: PointerEvent, offsetX: number, offsetY: nu
 type RunCommand = (commandId: string) => Promise<void>;
 
 let lastSnapshot: CommandManagerDto | null = null;
+
+export function getStatusContextMode(): { tab: string; pinned: boolean } | null {
+  const snapshot = lastSnapshot;
+  if (!snapshot) {
+    return null;
+  }
+  const tab = snapshot.tabs.find((t) => t.id === snapshot.selected_tab);
+  if (!tab) {
+    return null;
+  }
+  return { tab: tab.label, pinned: snapshot.context_pinned };
+}
 let dragCommandId: string | null = null;
 let cmTabButtons: HTMLButtonElement[] = [];
 

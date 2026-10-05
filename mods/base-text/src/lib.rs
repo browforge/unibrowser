@@ -3,7 +3,10 @@ use std::path::Path;
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot, commands,
-    handlers::{FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID},
+    handlers::{
+        DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
+        FONT_DECREASE_ID, FONT_INCREASE_ID,
+    },
 };
 
 pub const BACKEND_ID: &str = "base-text";
@@ -213,6 +216,31 @@ fn exec_save(doc: &mut DocumentSession) -> Result<String, String> {
     Ok("Saved".into())
 }
 
+fn undo_redo_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Wrong backend".into(),
+        };
+    }
+    Enablement::Enabled
+}
+
+fn markdown_export_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Wrong backend".into(),
+        };
+    }
+    let lower = doc.path.to_lowercase();
+    if lower.ends_with(".md") || lower.ends_with(".markdown") {
+        Enablement::Enabled
+    } else {
+        Enablement::Disabled {
+            reason: "PDF export uses the Markdown preview HTML path".into(),
+        }
+    }
+}
+
 pub fn register(registry: &mut CommandRegistry) {
     registry.register_command(unibrowser_mod_api::CommandMeta {
         id: commands::TEXT_SAVE,
@@ -244,6 +272,24 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: font_enable,
         execute: |_doc| Ok("document-find".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: DOCUMENT_UNDO_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: undo_redo_enable,
+        execute: |_doc| Ok("document-undo".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: DOCUMENT_REDO_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: undo_redo_enable,
+        execute: |_doc| Ok("document-redo".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: EXPORT_PRINT_PDF_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: markdown_export_enable,
+        execute: |_doc| Ok("export-print-pdf".into()),
     });
 }
 

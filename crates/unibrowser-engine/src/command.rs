@@ -68,6 +68,27 @@ impl CommandRegistry {
             default_keybinding: Some("Ctrl+F"),
             aliases: &["find", "search document"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::DOCUMENT_UNDO,
+            title: "Undo",
+            icon: "undo",
+            default_keybinding: Some("Ctrl+Alt+Z"),
+            aliases: &["revert change"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::DOCUMENT_REDO,
+            title: "Redo",
+            icon: "redo",
+            default_keybinding: Some("Ctrl+Alt+Y"),
+            aliases: &["repeat change"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::EXPORT_PRINT_PDF,
+            title: "Export PDF (print HTML)",
+            icon: "export",
+            default_keybinding: None,
+            aliases: &["print pdf", "save as pdf"],
+        });
         reg
     }
 
@@ -143,6 +164,22 @@ impl CommandRegistry {
             }
             return Enablement::Disabled {
                 reason: "Page zoom is not available in this view".into(),
+            };
+        }
+        if command_id == commands::DOCUMENT_UNDO || command_id == commands::DOCUMENT_REDO {
+            if self.resolve_handler(command_id, &ctx.backend_id).is_some() {
+                return Enablement::Enabled;
+            }
+            return Enablement::Disabled {
+                reason: "Undo/redo is not available for this document type".into(),
+            };
+        }
+        if command_id == commands::EXPORT_PRINT_PDF {
+            if self.resolve_handler(command_id, &ctx.backend_id).is_some() {
+                return Enablement::Enabled;
+            }
+            return Enablement::Disabled {
+                reason: "PDF export needs printable HTML (Markdown or DOCX preview)".into(),
             };
         }
         // Handlers need full session for precise enable; palette uses snapshot approximation.

@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Status bar**: Command Manager context (pinned/auto), unsaved label, font pt, web/viewer zoom, timeline encode progress (toast on completion only).
+- **Undo/redo** commands in palette with per-backend enablement; text + SVG wired to Rust undo stack; matrix in [commands-undo-redo.md](docs/commands-undo-redo.md).
+- **Export PDF** (`unibrowser.export.printPdf`) from Markdown preview or DOCX Mammoth HTML via save dialog + headless print on Linux.
+- **Packaging** notes for Windows MSI/NSIS and Linux AppImage/deb: [packaging.md](docs/packaging.md).
 - **Split view** documented as experimental vertical split (two tabs, Shift+click); [split-view.md](docs/split-view.md).
 - **Download manager** at `unibrowser://downloads`: recent open/save/fail, retry, clear list.
 - **Security**: trust banners (HTML/script), remote-web chrome label, click-to-play video/audio; [security.md](docs/security.md).

@@ -43,8 +43,8 @@ use crate::webview::{
     sync_content_webview_for_window,
 };
 use unibrowser_mod_api::handlers::{
-    FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID,
-    PAGE_ZOOM_INCREASE_ID,
+    DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
+    FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
 };
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -2246,6 +2246,14 @@ pub fn execute_command(window: tauri::Window,
         let _ = app.emit("unibrowser-script-output", &out);
         return Ok(out);
     }
+    if command_id == DOCUMENT_UNDO_ID {
+        document_undo(window, state)?;
+        return Ok("Undone".into());
+    }
+    if command_id == DOCUMENT_REDO_ID {
+        document_redo(window, state)?;
+        return Ok("Redone".into());
+    }
     {
         let host_cmds = state
             .vsix_host_commands
@@ -2302,6 +2310,17 @@ pub fn execute_command(window: tauri::Window,
             return Err(en.disabled_reason().unwrap_or("disabled").into());
         }
         return Ok("document-find".into());
+    }
+    if command_id == EXPORT_PRINT_PDF_ID {
+        let en = state
+            .registry
+            .lock()
+            .map_err(|e| e.to_string())?
+            .enablement(&command_id, doc);
+        if !en.is_enabled() {
+            return Err(en.disabled_reason().unwrap_or("disabled").into());
+        }
+        return Ok("export-print-pdf".into());
     }
     state
         .registry
@@ -2699,6 +2718,38 @@ pub async fn pick_save_image_path(window: tauri::Window,
         .add_filter("PNG", &["png"])
         .blocking_save_file();
     Ok(picked.map(|p| p.to_string()))
+}
+
+#[tauri::command]
+pub async fn export_print_pdf(
+    app: AppHandle,
+    html_body: String,
+    suggested_title: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+    if html_body.len() > crate::document_limits::MAX_SYNC_TEXT_CHARS {
+        return Err(crate::document_limits::sync_limit_error(html_body.len()));
+    }
+    let suggested = crate::pdf_export::suggest_pdf_path(&suggested_title, &state.cwd);
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export PDF")
+        .set_file_name(
+            suggested
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "document.pdf".into()),
+        )
+        .add_filter("PDF", &["pdf"])
+        .blocking_save_file();
+    let Some(dest) = picked else {
+        return Ok("Cancelled".into());
+    };
+    let dest_path = PathBuf::from(dest.to_string());
+    crate::pdf_export::export_html_to_pdf(&html_body, &dest_path)?;
+    Ok(format!("Saved PDF to {}", dest_path.display()))
 }
 
 #[tauri::command]
