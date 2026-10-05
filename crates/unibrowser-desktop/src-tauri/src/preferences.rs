@@ -256,6 +256,11 @@ pub fn default_pinned_locations(home: &str) -> Vec<PinnedLocation> {
             location: format!("file://{}/Downloads", home.trim_end_matches('/')),
         },
         PinnedLocation {
+            id: "download-manager".into(),
+            label: "Download manager".into(),
+            location: "unibrowser://downloads".into(),
+        },
+        PinnedLocation {
             id: "new-project".into(),
             label: "New project".into(),
             location: "unibrowser://action/new-project".into(),

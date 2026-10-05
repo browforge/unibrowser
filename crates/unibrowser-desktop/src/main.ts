@@ -105,6 +105,16 @@ interface InstalledVsixDto {
   enabled: boolean;
 }
 
+interface DownloadHistoryEntryDto {
+  id: string;
+  url: string;
+  label: string;
+  status: string;
+  error?: string | null;
+  destination?: string | null;
+  at_ms: number;
+}
+
 interface TabContentDto {
   tabs: TabDto[];
   active_index: number;
@@ -137,6 +147,7 @@ interface TabContentDto {
   };
   files_view: FilesViewDto;
   folder_favorites: string[];
+  download_history?: DownloadHistoryEntryDto[];
 }
 
 interface DownloadEventPayload {
@@ -677,6 +688,8 @@ function renderBookmarkBar(pins: PinnedLocationDto[]) {
     btn.className = "bookmark-link";
     if (pin.id === "home") {
       btn.textContent = t("bookmark.home");
+    } else if (pin.id === "download-manager") {
+      btn.textContent = t("bookmark.downloadManager");
     } else if (pin.id === "downloads") {
       btn.textContent = t("bookmark.downloads");
     } else if (pin.id === "new-project") {
@@ -820,7 +833,10 @@ async function applySplitPane(data: TabContentDto) {
     splitTextEditorHost.classList.add("hidden");
     splitTextEditorHost.innerHTML = "";
     splitDocPanel.classList.add("hidden");
-    await documentViewer.apply(data.split_document_viewer, splitDocumentViewerHost);
+    await documentViewer.apply(data.split_document_viewer, splitDocumentViewerHost, {
+      downloadHistory: data.download_history ?? [],
+      onRefreshState: refreshState,
+    });
   } else if (showSplitText && data.split_text_document) {
     documentViewer.hide(splitDocumentViewerHost);
     splitDocPanel.classList.add("hidden");
@@ -851,7 +867,8 @@ async function applyState(data: TabContentDto) {
   const showViewer = Boolean(data.document_viewer) && !active?.is_http;
   const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
-  modsLine.textContent = modsLineText(data.mods_loaded);
+  const remoteHint = active?.is_http ? ` · ${t("trust.remoteWeb")}` : "";
+  modsLine.textContent = modsLineText(data.mods_loaded) + remoteHint;
   renderBookmarkBar(data.pinned_locations ?? []);
   const showDiff = Boolean(data.diff_view);
   if (showDiff && data.diff_view) {
@@ -917,7 +934,10 @@ async function applyState(data: TabContentDto) {
       textEditor.hide(textEditorHost);
     }
     if (showViewer && data.document_viewer) {
-      await documentViewer.apply(data.document_viewer, documentViewerHost);
+      await documentViewer.apply(data.document_viewer, documentViewerHost, {
+        downloadHistory: data.download_history ?? [],
+        onRefreshState: refreshState,
+      });
     } else if (!showText) {
       documentViewer.hide(documentViewerHost);
     }
@@ -1361,6 +1381,10 @@ listen<DownloadEventPayload | string>("unibrowser-download", (event) => {
       t("toast.errorDefault"),
     );
     if (!data) {
+      await invoke("record_download_failure", {
+        url: payload.url,
+        error: t("toast.errorDefault"),
+      });
       return;
     }
     if (!data.chrome_notice) {

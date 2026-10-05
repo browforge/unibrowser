@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Split view** documented as experimental vertical split (two tabs, Shift+click); [split-view.md](docs/split-view.md).
+- **Download manager** at `unibrowser://downloads`: recent open/save/fail, retry, clear list.
+- **Security**: trust banners (HTML/script), remote-web chrome label, click-to-play video/audio; [security.md](docs/security.md).
+- **Performance**: lazy mammoth DOCX load; [perf.md](docs/perf.md) and `scripts/measure-cold-start.sh`.
 - **Session restore v2**: save/restore all windows + geometry; default on until first-run tour/checklist skip; [session-restore.md](docs/session-restore.md).
 - **Find in document**: `unibrowser.find.inDocument` + Ctrl+F bar (Monaco, DOCX HTML, EPUB chapter).
 - **Page zoom** commands for web (CSS zoom per origin), PDF raster scale, and images (separate from font-size).

@@ -1,6 +1,8 @@
 mod commands;
 mod config;
 pub mod downloads;
+mod download_history;
+mod downloads_stub;
 mod csv_preview;
 mod csv_stub;
 mod epub_preview;
@@ -116,6 +118,9 @@ pub fn run() {
             commands::dispatch_key_chord,
             commands::sync_text_document,
             commands::handle_download_url,
+            commands::record_download_failure,
+            commands::clear_download_history,
+            commands::retry_download,
             commands::set_content_bounds,
             commands::read_document_bytes,
             rhai_host::run_rhai_script,

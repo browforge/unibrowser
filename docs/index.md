@@ -22,6 +22,9 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [plugin-sdk/README.md](plugin-sdk/README.md) | Native mod SDK ABI and user `mods/` dir |
 | [commands-cross-format.md](commands-cross-format.md) | Font-size, find, and page zoom per viewer |
 | [session-restore.md](session-restore.md) | Tabs/windows on launch preference |
+| [split-view.md](split-view.md) | Experimental side-by-side tabs |
+| [security.md](security.md) | Trust model and UI signals |
+| [perf.md](perf.md) | Lazy modules and cold-start probe |
 | [ci.md](ci.md) | Local check script and CI on Origin |
 | [ui-commands.md](ui-commands.md) | Command Manager and toolbars |
 | [keybindings.md](keybindings.md) | Chords and overrides |

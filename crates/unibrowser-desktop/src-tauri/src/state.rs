@@ -306,6 +306,13 @@ impl AppState {
                 );
                 return (location, false, Some(doc));
             }
+            if page == "downloads" {
+                let doc = DocumentSession::new(
+                    crate::downloads_stub::LOCATION.to_string(),
+                    crate::downloads_stub::open(),
+                );
+                return (location, false, Some(doc));
+            }
         }
         (location, false, None)
     }

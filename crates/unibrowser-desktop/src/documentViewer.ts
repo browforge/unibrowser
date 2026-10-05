@@ -1,6 +1,8 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import * as mammoth from "mammoth";
 import { loadPdfJs, loadThree } from "./lazyModules";
+import { appendTrustBanner } from "./trustBanner";
+import { mountClickToPlay } from "./mediaPlayGate";
+import { renderDownloadsManager, type DownloadHistoryEntryDto } from "./downloadsPage";
 import { reportViewerZoom } from "./viewerZoom";
 import { bindPreviewLinks } from "./previewLinks";
 import { copyText } from "./clipboard";
@@ -326,6 +328,7 @@ function applyDocxSearchHighlights(article: HTMLElement, query: string): HTMLEle
 }
 
 async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
+  const mammoth = await import("mammoth");
   const bytes = await readBytes(path);
   const result = await mammoth.convertToHtml(
     { arrayBuffer: toArrayBuffer(bytes) },
@@ -430,6 +433,7 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   article.className = "docx-view";
   article.style.fontSize = `${readerFontPt}pt`;
   article.innerHTML = result.value;
+  appendTrustBanner(root, "remote-html");
 
   root.innerHTML = "";
   root.appendChild(banner);
@@ -714,7 +718,7 @@ async function renderVideo(path: string, root: HTMLElement, note?: string) {
   video.className = "media-view";
   video.controls = true;
   video.src = convertFileSrc(path);
-  root.appendChild(video);
+  mountClickToPlay(root, video, "Click to play video");
 
   const scrubWrap = document.createElement("div");
   scrubWrap.className = "video-scrub";
@@ -798,7 +802,9 @@ async function renderAudio(path: string, root: HTMLElement, note?: string) {
   audio.className = "media-view";
   audio.controls = true;
   audio.src = convertFileSrc(path);
-  root.appendChild(audio);
+  const audioWrap = document.createElement("div");
+  root.appendChild(audioWrap);
+  mountClickToPlay(audioWrap, audio, "Click to play audio");
   const canvas = document.createElement("canvas");
   canvas.className = "audio-waveform";
   canvas.width = 640;
@@ -2559,6 +2565,7 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   frame.className = "epub-chapter-frame";
   frame.title = "EPUB chapter";
   frame.sandbox.add("allow-same-origin");
+  appendTrustBanner(root, "remote-html", "EPUB spine HTML preview.");
 
   const note = document.createElement("p");
   note.className = "viewer-note";
@@ -2705,6 +2712,7 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
 
 async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
+  appendTrustBanner(root, "user-script", viewer.path);
   const ta = document.createElement("textarea");
   ta.className = "script-source";
   ta.spellcheck = false;
@@ -2767,8 +2775,17 @@ function viewerCacheKey(viewer: DocumentViewerDto): string {
   return `${viewer.viewer}:${viewer.path}:${scale}:${page}:${font}:${nodeCount}`;
 }
 
+export interface DocumentViewerApplyExtras {
+  downloadHistory?: DownloadHistoryEntryDto[];
+  onRefreshState?: () => void | Promise<void>;
+}
+
 export const documentViewer = {
-  async apply(viewer: DocumentViewerDto | null, el: HTMLElement) {
+  async apply(
+    viewer: DocumentViewerDto | null,
+    el: HTMLElement,
+    extras?: DocumentViewerApplyExtras,
+  ) {
     if (!viewer) {
       el.classList.add("hidden");
       el.innerHTML = "";
@@ -2844,6 +2861,13 @@ export const documentViewer = {
           break;
         case "keys":
           await renderKeys(body);
+          break;
+        case "downloads":
+          await renderDownloadsManager(
+            body,
+            extras?.downloadHistory ?? [],
+            extras?.onRefreshState ?? (() => {}),
+          );
           break;
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;

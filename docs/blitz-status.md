@@ -8,7 +8,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 | Area | What works |
 | --- | --- |
-| Shell | Tauri 2 desktop: tabs, omnibox (`file://`, paths, `https://`, `unibrowser://`), multi-window, split, **session restore** (tabs + extra windows, [session-restore.md](session-restore.md)), downloads (default open in tab) |
+| Shell | Tauri 2 desktop: tabs, omnibox (`file://`, paths, `https://`, `unibrowser://`), multi-window, **split view** (experimental vertical split, [split-view.md](split-view.md)), **session restore** ([session-restore.md](session-restore.md)), downloads (default open in tab) |
+| Downloads UI | `unibrowser://downloads` manager: history, retry failed, clear list |
+| Security | Trust banners, remote-web chrome hint, click-to-play media ([security.md](security.md)) |
+| Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |

@@ -274,6 +274,39 @@ pub struct TabContentDto {
     pub ntp_sections: NtpSectionsDto,
     pub files_view: FilesViewDto,
     pub folder_favorites: Vec<String>,
+    pub download_history: Vec<DownloadHistoryEntryDto>,
+}
+
+#[derive(Serialize)]
+pub struct DownloadHistoryEntryDto {
+    pub id: String,
+    pub url: String,
+    pub label: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub destination: Option<String>,
+    pub at_ms: u64,
+}
+
+fn download_history_dto() -> Vec<DownloadHistoryEntryDto> {
+    crate::download_history::list_entries()
+        .into_iter()
+        .map(|e| DownloadHistoryEntryDto {
+            id: e.id,
+            url: e.url,
+            label: e.label,
+            status: match e.status {
+                crate::download_history::DownloadHistoryStatus::OpenedTab => "opened_tab".into(),
+                crate::download_history::DownloadHistoryStatus::Saved => "saved".into(),
+                crate::download_history::DownloadHistoryStatus::Failed => "failed".into(),
+            },
+            error: e.error,
+            destination: e.destination,
+            at_ms: e.at_ms,
+        })
+        .collect()
 }
 
 #[derive(Serialize)]
@@ -578,6 +611,28 @@ fn document_viewer_dto(
             path: doc.path.clone(),
             viewer: crate::about_stub::VIEWER_KIND.into(),
             title: "About Unibrowser".into(),
+            pdf_scale: None,
+            pdf_page: None,
+            media_note: None,
+            project_nodes: None,
+            open_file_tabs: None,
+            project_clips: None,
+            project_transitions: None,
+            project_markers: None,
+            midi_summary: None,
+            board_snap_to_grid: None,
+            midi_scrub_audio_enabled: None,
+            midi_note_preview: None,
+            pdf_engines: None,
+            reader_font_pt: None,
+            preview_zoom: None,
+        });
+    }
+    if doc.backend.backend_id() == crate::downloads_stub::BACKEND_ID {
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::downloads_stub::VIEWER_KIND.into(),
+            title: "Downloads".into(),
             pdf_scale: None,
             pdf_page: None,
             media_note: None,
@@ -972,6 +1027,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         ntp_sections: ntp_sections_dto(&prefs),
         files_view: files_view_dto(&prefs),
         folder_favorites: prefs.folder_favorites.clone(),
+        download_history: download_history_dto(),
     })
 }
 
@@ -2489,6 +2545,11 @@ pub async fn handle_download_url(window: tauri::Window,
                 tab.document = doc;
             }
             update_content_webview(&app, window.label(), &loc)?;
+            crate::download_history::record_success(
+                &url,
+                crate::download_history::DownloadHistoryStatus::OpenedTab,
+                None,
+            );
             snapshot(&state, window.label())
         }
         DownloadDisposition::SaveToDisk { path } => {
@@ -2522,6 +2583,11 @@ pub async fn handle_download_url(window: tauri::Window,
                 };
                 copy_file_to_path(&source, &dest)?;
             }
+            crate::download_history::record_success(
+                &url,
+                crate::download_history::DownloadHistoryStatus::Saved,
+                Some(dest.to_string_lossy().as_ref()),
+            );
             *ws(&state, &window)?
                 .chrome_notice
                 .lock()
@@ -2529,6 +2595,27 @@ pub async fn handle_download_url(window: tauri::Window,
             snapshot(&state, window.label())
         }
     }
+}
+
+#[tauri::command]
+pub fn record_download_failure(url: String, error: String) {
+    crate::download_history::record_failure(&url, &error);
+}
+
+#[tauri::command]
+pub fn clear_download_history() -> Result<Vec<DownloadHistoryEntryDto>, String> {
+    crate::download_history::clear_entries()?;
+    Ok(download_history_dto())
+}
+
+#[tauri::command]
+pub async fn retry_download(
+    window: tauri::Window,
+    url: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<TabContentDto, String> {
+    handle_download_url(window, url, None, app, state).await
 }
 
 #[tauri::command]
