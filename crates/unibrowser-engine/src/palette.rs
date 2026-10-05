@@ -12,20 +12,38 @@ pub struct PaletteEntry {
 
 /// Subsequence fuzzy match score (higher is better).
 pub fn fuzzy_score(query: &str, target: &str) -> i32 {
-    let q = query.to_lowercase();
+    let q = query.trim().to_lowercase();
     let t = target.to_lowercase();
     if q.is_empty() {
         return 1;
     }
+    if t == q {
+        return 500;
+    }
+    if t.starts_with(&q) {
+        return 300 + (50 - t.len() as i32).max(0);
+    }
     if t.contains(&q) {
-        return 100 + (100 - t.len() as i32);
+        let idx = t.find(&q).unwrap_or(0);
+        let at_word = idx == 0 || t.as_bytes().get(idx - 1) == Some(&b' ');
+        return 150 + if at_word { 40 } else { 0 } + (80 - t.len() as i32).max(0);
     }
     let mut qi = 0;
     let qb: Vec<char> = q.chars().collect();
     let mut score = 0;
+    let mut prev_match: Option<usize> = None;
     for (i, ch) in t.chars().enumerate() {
         if qi < qb.len() && ch == qb[qi] {
-            score += 10 - (i as i32).min(9);
+            score += 12 - (i as i32).min(10);
+            if let Some(prev) = prev_match {
+                if prev + 1 == i {
+                    score += 8;
+                }
+            }
+            if i == 0 || t.as_bytes().get(i - 1) == Some(&b' ') {
+                score += 6;
+            }
+            prev_match = Some(i);
             qi += 1;
         }
     }
@@ -77,5 +95,12 @@ mod tests {
     fn fuzzy_subsequence() {
         assert!(fuzzy_score("inc", "Increase font size") > 0);
         assert_eq!(fuzzy_score("zzz", "Increase font size"), -1);
+    }
+
+    #[test]
+    fn fuzzy_prefix_beats_subsequence() {
+        let prefix = fuzzy_score("save", "Save document");
+        let subseq = fuzzy_score("svd", "Save document");
+        assert!(prefix > subseq);
     }
 }

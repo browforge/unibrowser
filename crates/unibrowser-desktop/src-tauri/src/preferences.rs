@@ -65,6 +65,8 @@ pub struct Preferences {
     /// When true, embedded https webviews may open WebKit/Chromium devtools (advanced).
     #[serde(default)]
     pub advanced_webview_devtools: bool,
+    #[serde(default)]
+    pub files_view: FilesViewPrefs,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -95,6 +97,35 @@ pub struct NtpSectionPrefs {
     pub show_recent: bool,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FilesSortMode {
+    #[default]
+    Name,
+    Date,
+    Size,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FilesViewPrefs {
+    #[serde(default)]
+    pub sort: FilesSortMode,
+    #[serde(default = "default_true")]
+    pub sort_ascending: bool,
+    #[serde(default)]
+    pub show_hidden: bool,
+}
+
+impl Default for FilesViewPrefs {
+    fn default() -> Self {
+        Self {
+            sort: FilesSortMode::Name,
+            sort_ascending: true,
+            show_hidden: false,
+        }
+    }
+}
+
 impl Default for NtpSectionPrefs {
     fn default() -> Self {
         Self {
@@ -121,6 +152,7 @@ impl Default for Preferences {
             crash_recovery_enabled: false,
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,
+            files_view: FilesViewPrefs::default(),
         }
     }
 }

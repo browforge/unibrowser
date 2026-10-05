@@ -296,6 +296,8 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         Some(crate::content_sniff::SniffedFormat::Wav) => "wav",
         Some(crate::content_sniff::SniffedFormat::Mp3) => "mp3",
         Some(crate::content_sniff::SniffedFormat::RiffAvi) => "avi",
+        Some(crate::content_sniff::SniffedFormat::Ogg) => "ogg",
+        Some(crate::content_sniff::SniffedFormat::Flac) => "flac",
         Some(crate::content_sniff::SniffedFormat::Epub) => "epub",
         Some(crate::content_sniff::SniffedFormat::Zip) => ext.as_str(),
         None => ext.as_str(),
@@ -311,7 +313,7 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         "csv" | "tsv" => Some(crate::csv_stub::open_file(path)),
         "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
         "mp4" | "webm" | "avi" => base_video::open_file(path).ok(),
-        "wav" | "mp3" => base_audio::open_file(path).ok(),
+        "wav" | "mp3" | "ogg" | "flac" => base_audio::open_file(path).ok(),
         "mid" | "midi" => crate::midi_stub::open_file(path).ok(),
         "epub" => Some(crate::epub_stub::open_file(path)),
         _ => base_text::open_file(path).ok(),
@@ -320,6 +322,8 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
 }
 
 pub fn list_dir(path: &Path) -> Result<Vec<base_files::DirEntry>, String> {
-    list_directory(path)
+    let prefs = crate::preferences::load_preferences();
+    let entries = list_directory(path)?;
+    Ok(crate::files_listing::apply_files_view(entries, &prefs.files_view))
 }
 

@@ -4,24 +4,68 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 
 **Status:** Phase 1 MVP browser shell on **Tauri 2** (`unibrowser-desktop`). See [docs/vision.md](docs/vision.md) and [docs/roadmap.md](docs/roadmap.md).
 
-## What works today (blitz snapshot)
+## What works today (Wed report draft)
 
-| Area | Working now | Not yet |
-| --- | --- | --- |
-| **Browser** | Tabs, omnibox (`file://` + `https://`), back/forward/reload, home dir browse; **recent files** list (optional, persisted) | WebView2/GTK download hooks |
-| **Editors** | **Lazy-loaded** Monaco text + save, **Ctrl+F find**; Markdown preview on `.md` | Full WYSIWYG markdown |
-| **Viewers** | Lazy pdf.js / three.js; PDF; DOCX; images; DXF layers; **CSV/TSV table** (read-only stub); video/audio; Rhai; SVG; EPUB | Full spreadsheet edit; DXF NURBS |
-| **Shell** | Omnibox autocomplete; **dirty tab •** + close confirm; **session restore** (opt-in); **auto-save** (opt-in, text/SVG); tab search; drag-drop; **status bar**; **bookmark bar** (home, downloads, project + pins); **Compare** (Monaco diff); **en-NZ** chrome strings via `t()`; split view; toasts; `./scripts/smoke-desktop-qa.sh` | Full i18n; Monaco spellcheck |
-| **Downloads** | WebView hook emits URL → `handle_download_url` opens **new tab**; path traversal rejected ([`downloads.rs`](crates/unibrowser-desktop/src-tauri/src/downloads.rs) tests) | Save-to-disk disposition |
-| **Security** | `..` rejected on `open_path`, reads, CSV, drops; `.unibrow` assets confined to `assets/` | Sandboxed mod execution |
-| **Mods API** | Frozen **0.1** surface ([docs/mod-api-stable.md](docs/mod-api-stable.md)); `examples/ub-mod-cdylib-stub` | Runtime cdylib load |
-| **Keys** | Single chords + sketch **Ctrl+K, Ctrl+S** save sequence ([design note](docs/design/key-chord-sequences.md)) | User-defined sequences in JSON |
-| **Projects** | `.unibrow` folder or zip, export zip, asset CRUD, drag-drop | Cloud sync |
-| **Commands** | Command Manager tabs (keyboard roving), floating bars, palette, keybindings | Full audio/image toolbars |
-| **UI** | Light/dark/system theme persisted; optional onboarding tip | — |
-| **Mods** | Bundled `base-*` mods; **Mod portal** with Open VSX search/install, VSIX enable/disable/uninstall, V1 commands + keybindings (user `keybindings.json` wins), palette shows **needs extension host** | VSIX JS execution, `.ubmod` store |
-| **Media** | ffprobe; optional **LGPL sidecar** pool (`UNIBROWSER_MEDIA_USE_SIDECAR=1`) | Bundled ffmpeg in installer |
-| **Scripting** | Rhai sandbox, per-script allowlist, browse-only palette without doc | Script panel UX polish |
+Use this section as the source for weekly status. Last updated during the 36h blitz on `main`.
+
+### Browser and windows
+
+| Capability | Detail |
+| --- | --- |
+| Tabs & omnibox | `file://`, paths, `https://`, internal `unibrowser://` pages; back/forward/reload; dirty tab marker and close confirm |
+| Multi-window | **Per-window** tabs, split view, undo stacks, compare state, chrome notices; shared prefs on disk ([docs/multi-window.md](docs/multi-window.md)) |
+| Home / NTP | Customisable sections (hero, actions, browse folder, recent); plain-text empty states |
+| Recent & session | Recent files list; optional session restore on launch |
+| Downloads | WebView / GTK hook → `handle_download_url`; default open in new tab; path traversal rejected |
+| Web content | Per-window embedded webview; optional **devtools** (Advanced settings); per-origin font zoom |
+
+### Files and formats
+
+| Capability | Detail |
+| --- | --- |
+| Folder browse | List with **sort** (name / date / size), direction toggle, **hidden files** toggle (global prefs) |
+| Magic-byte sniff | Wrong extension still opens correct viewer: PDF, PNG, JPEG, GIF, WebP, ZIP/EPUB, WAV, MP3, OGG, FLAC, RIFF/AVI → video, etc. |
+| Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |
+| Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters |
+| Media | Video (mp4/webm/avi), audio (wav/mp3/ogg/flac) with ffprobe; optional LGPL sidecar pool |
+| 3D / CAD | DXF layers (three.js); `.unibrow` project board, assets, timeline clips, export zip |
+| Images | PNG/JPEG/GIF/WebP viewer |
+
+### Commands, keys, and UI chrome
+
+| Capability | Detail |
+| --- | --- |
+| Command Manager | Context tabs, floating toolbars, import/export JSON layouts, workspace layout presets |
+| Palette | Fuzzy search with improved scoring; **key chord shown** next to each command when bound |
+| Shortcuts | `keybindings.json` + VSIX contributions; `unibrowser://keys` cheatsheet page |
+| Chrome | Bookmark bar, split view, tab search, drag-drop open, status bar, toasts, en-NZ `t()` strings |
+| Compare | Side-by-side text diff (Monaco) for two files |
+| Settings | Theme, downloads, auto-save, board snap, crash recovery backups, NTP sections, advanced webview tools |
+| Themes | Light / dark / system persisted |
+
+### Mods, scripting, security
+
+| Capability | Detail |
+| --- | --- |
+| Bundled mods | `base-*` format handlers; mod portal with Open VSX search/install, VSIX enable/disable |
+| Rhai | Sandboxed scripts, per-script command allowlist |
+| API | Frozen mod API 0.1 ([docs/mod-api-stable.md](docs/mod-api-stable.md)) |
+| Security | `path_security` on open/read/drops; `.unibrow` assets confined under `assets/` |
+
+### Quality and tooling
+
+| Capability | Detail |
+| --- | --- |
+| Tests | `cargo test --workspace` (engine tab stress to 20 tabs, sniff/open-path, downloads, palette fuzzy, files listing) |
+| Desktop build | `npm run build` in `crates/unibrowser-desktop` |
+| Smoke | `./scripts/smoke-desktop-qa.sh` and [docs/qa-desktop.md](docs/qa-desktop.md) |
+
+### Not yet / gaps
+
+- Save-to-disk download disposition UI polish; full VSIX JS extension host
+- Runtime cdylib mod load; cloud sync; full spreadsheet/DXF NURBS
+- Complete i18n beyond en-NZ; Monaco spellcheck
+- Windows installer signing and bundled ffmpeg in installer
 
 ## Licence
 
@@ -119,12 +163,4 @@ Enable targets in `src-tauri/tauri.conf.json` under `bundle.targets` if a format
 
 ## Repository layout
 
-| Path | Purpose |
-| --- | --- |
-| `crates/unibrowser-desktop` | **Tauri 2 browser shell** (product) |
-| `crates/unibrowser-mod-api` | Versioned mod API + `BrowserLocation` |
-| `crates/unibrowser-engine` | Commands, tabs, modes, palette |
-| `crates/unibrowser-mod-host` | `info.json` loader |
-| `crates/unibrowser-app` | egui demo / harness |
-| `mods/*` | Bundled mods (`base-files`, `base-web`, `base-text`, …) |
-| `docs/` | Vision, architecture, ADRs, [downloads](docs/downloads.md) |
+See [docs/architecture.md](docs/architecture.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).

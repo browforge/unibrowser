@@ -95,6 +95,7 @@ pub struct CommandManagerDto {
 pub struct PaletteEntryDto {
     pub command_id: String,
     pub title: String,
+    pub chord: Option<String>,
     pub enabled: bool,
     pub reason: Option<String>,
 }
@@ -202,6 +203,28 @@ pub struct TabContentDto {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chrome_notice: Option<String>,
     pub ntp_sections: NtpSectionsDto,
+    pub files_view: FilesViewDto,
+}
+
+#[derive(Serialize)]
+pub struct FilesViewDto {
+    pub sort: String,
+    pub sort_ascending: bool,
+    pub show_hidden: bool,
+}
+
+fn files_view_dto(prefs: &crate::preferences::Preferences) -> FilesViewDto {
+    let v = &prefs.files_view;
+    FilesViewDto {
+        sort: match v.sort {
+            crate::preferences::FilesSortMode::Name => "name",
+            crate::preferences::FilesSortMode::Date => "date",
+            crate::preferences::FilesSortMode::Size => "size",
+        }
+        .into(),
+        sort_ascending: v.sort_ascending,
+        show_hidden: v.show_hidden,
+    }
 }
 
 #[derive(Serialize)]
@@ -728,6 +751,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         pinned_locations,
         chrome_notice,
         ntp_sections: ntp_sections_dto(&prefs),
+        files_view: files_view_dto(&prefs),
     })
 }
 
@@ -1551,6 +1575,7 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
             capabilities: unibrowser_mod_api::Capabilities::default(),
         });
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
+    let keybindings = state.keybindings.lock().map_err(|e| e.to_string())?;
     let host_cmds = state
         .vsix_host_commands
         .lock()
@@ -1569,9 +1594,13 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                     e.enablement.disabled_reason().map(String::from),
                 )
             };
+            let chord = keybindings
+                .chord_for_command(&e.command_id)
+                .map(|c| c.display());
             PaletteEntryDto {
                 command_id: e.command_id,
                 title: e.title,
+                chord,
                 enabled,
                 reason,
             }
@@ -1674,6 +1703,7 @@ pub struct PreferencesDto {
     pub crash_recovery_enabled: bool,
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
+    pub files_view: FilesViewDto,
 }
 
 #[tauri::command]
@@ -2027,7 +2057,36 @@ fn preferences_dto() -> PreferencesDto {
         crash_recovery_enabled: p.crash_recovery_enabled,
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,
+        files_view: files_view_dto(&p),
     }
+}
+
+fn parse_files_sort_mode(s: &str) -> crate::preferences::FilesSortMode {
+    match s.to_ascii_lowercase().as_str() {
+        "date" => crate::preferences::FilesSortMode::Date,
+        "size" => crate::preferences::FilesSortMode::Size,
+        _ => crate::preferences::FilesSortMode::Name,
+    }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesViewInput {
+    pub sort: String,
+    pub sort_ascending: bool,
+    pub show_hidden: bool,
+}
+
+#[tauri::command]
+pub fn set_files_view_prefs(input: FilesViewInput) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.files_view = crate::preferences::FilesViewPrefs {
+        sort: parse_files_sort_mode(&input.sort),
+        sort_ascending: input.sort_ascending,
+        show_hidden: input.show_hidden,
+    };
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 #[derive(serde::Deserialize)]

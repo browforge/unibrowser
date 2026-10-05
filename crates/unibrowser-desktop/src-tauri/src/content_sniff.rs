@@ -16,6 +16,8 @@ pub enum SniffedFormat {
     Wav,
     Mp3,
     RiffAvi,
+    Ogg,
+    Flac,
 }
 
 pub fn sniff_format(path: &Path) -> Option<SniffedFormat> {
@@ -37,6 +39,12 @@ pub fn sniff_format(path: &Path) -> Option<SniffedFormat> {
     }
     if h.starts_with(b"GIF87a") || h.starts_with(b"GIF89a") {
         return Some(SniffedFormat::Gif);
+    }
+    if h.starts_with(b"OggS") {
+        return Some(SniffedFormat::Ogg);
+    }
+    if h.starts_with(b"fLaC") {
+        return Some(SniffedFormat::Flac);
     }
     if h.starts_with(b"ID3") {
         return Some(SniffedFormat::Mp3);
@@ -138,6 +146,43 @@ mod tests {
         let p = dir.join(format!("ub-sniff-{}-mp3.bin", std::process::id()));
         std::fs::write(&p, b"ID3\x04\x00\x00\x00\x00\x00\x00").unwrap();
         assert_eq!(sniff_format(&p), Some(SniffedFormat::Mp3));
+        let _ = std::fs::remove_file(p);
+    }
+
+    #[test]
+    fn detects_ogg_flac_and_avi() {
+        let dir = std::env::temp_dir();
+        let ogg = dir.join(format!("ub-sniff-{}-ogg.bin", std::process::id()));
+        std::fs::write(&ogg, b"OggS\x00").unwrap();
+        assert_eq!(sniff_format(&ogg), Some(SniffedFormat::Ogg));
+
+        let flac = dir.join(format!("ub-sniff-{}-flac.bin", std::process::id()));
+        std::fs::write(&flac, b"fLaC").unwrap();
+        assert_eq!(sniff_format(&flac), Some(SniffedFormat::Flac));
+
+        let avi = dir.join(format!("ub-sniff-{}-avi.bin", std::process::id()));
+        std::fs::write(&avi, b"RIFF\x00\x00\x00\x00AVI ").unwrap();
+        assert_eq!(sniff_format(&avi), Some(SniffedFormat::RiffAvi));
+
+        let _ = std::fs::remove_file(ogg);
+        let _ = std::fs::remove_file(flac);
+        let _ = std::fs::remove_file(avi);
+    }
+}
+
+#[cfg(test)]
+mod open_path_tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn sniffed_avi_uses_video_backend() {
+        let dir = std::env::temp_dir();
+        let p = dir.join(format!("ub-avi-{}.wrongext", std::process::id()));
+        let mut f = std::fs::File::create(&p).unwrap();
+        f.write_all(b"RIFF\x00\x00\x00\x00AVI \x00").unwrap();
+        let doc = crate::state::open_file_document(&p).expect("document");
+        assert_eq!(doc.backend.backend_id(), base_video::BACKEND_ID);
         let _ = std::fs::remove_file(p);
     }
 }

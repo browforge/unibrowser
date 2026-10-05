@@ -39,6 +39,14 @@ interface DirEntry {
   name: string;
   path: string;
   is_dir: boolean;
+  size_bytes?: number;
+  modified_unix?: number;
+}
+
+interface FilesViewDto {
+  sort: string;
+  sort_ascending: boolean;
+  show_hidden: boolean;
 }
 
 interface ModSuggestionDto {
@@ -103,6 +111,7 @@ interface TabContentDto {
     show_browse: boolean;
     show_recent: boolean;
   };
+  files_view: FilesViewDto;
 }
 
 interface DownloadEventPayload {
@@ -124,6 +133,7 @@ interface RecentFileDto {
 interface PaletteEntryDto {
   command_id: string;
   title: string;
+  chord: string | null;
   enabled: boolean;
   reason: string | null;
 }
@@ -275,24 +285,115 @@ function renderTabs(data: TabContentDto) {
   omnibox.value = data.omnibox;
 }
 
-function renderFiles(entries: DirEntry[] | null) {
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function persistFilesView(view: FilesViewDto) {
+  await invoke("set_files_view_prefs", {
+    input: {
+      sort: view.sort,
+      sortAscending: view.sort_ascending,
+      showHidden: view.show_hidden,
+    },
+  });
+  await refreshState();
+}
+
+function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto) {
   filesPanel.innerHTML = "";
   if (!entries) {
     filesPanel.classList.add("hidden");
     return;
   }
   filesPanel.classList.remove("hidden");
+  const toolbar = document.createElement("div");
+  toolbar.className = "files-toolbar";
+  const sortLabel = document.createElement("label");
+  sortLabel.textContent = t("files.sort");
+  const sortSelect = document.createElement("select");
+  sortSelect.className = "files-sort";
+  [
+    { value: "name", label: t("files.sortName") },
+    { value: "date", label: t("files.sortDate") },
+    { value: "size", label: t("files.sortSize") },
+  ].forEach((opt) => {
+    const o = document.createElement("option");
+    o.value = opt.value;
+    o.textContent = opt.label;
+    sortSelect.appendChild(o);
+  });
+  sortSelect.value = filesView.sort;
+  const orderBtn = document.createElement("button");
+  orderBtn.type = "button";
+  orderBtn.className = "files-order";
+  orderBtn.textContent = filesView.sort_ascending ? t("files.ascending") : t("files.descending");
+  orderBtn.title = t("files.toggleOrder");
+  const hiddenCb = document.createElement("input");
+  hiddenCb.type = "checkbox";
+  hiddenCb.id = "files-show-hidden";
+  hiddenCb.checked = filesView.show_hidden;
+  const hiddenLabel = document.createElement("label");
+  hiddenLabel.htmlFor = hiddenCb.id;
+  hiddenLabel.textContent = t("files.showHidden");
+  sortSelect.onchange = () => {
+    void persistFilesView({
+      ...filesView,
+      sort: sortSelect.value,
+    });
+  };
+  orderBtn.onclick = () => {
+    void persistFilesView({
+      ...filesView,
+      sort_ascending: !filesView.sort_ascending,
+    });
+  };
+  hiddenCb.onchange = () => {
+    void persistFilesView({
+      ...filesView,
+      show_hidden: hiddenCb.checked,
+    });
+  };
+  toolbar.appendChild(sortLabel);
+  toolbar.appendChild(sortSelect);
+  toolbar.appendChild(orderBtn);
+  toolbar.appendChild(hiddenCb);
+  toolbar.appendChild(hiddenLabel);
+  filesPanel.appendChild(toolbar);
+
   const table = document.createElement("table");
+  table.className = "files-table";
   entries.forEach((entry) => {
     const row = document.createElement("tr");
-    const cell = document.createElement("td");
+    const nameCell = document.createElement("td");
     const link = document.createElement("button");
     link.className = "file-link";
     link.textContent = (entry.is_dir ? "[dir] " : "[file] ") + entry.name;
     link.onclick = () =>
       invoke<TabContentDto>("open_path", { path: entry.path }).then(applyState);
-    cell.appendChild(link);
-    row.appendChild(cell);
+    nameCell.appendChild(link);
+    const metaCell = document.createElement("td");
+    metaCell.className = "files-meta";
+    if (entry.is_dir) {
+      metaCell.textContent = "—";
+    } else {
+      const parts: string[] = [];
+      if (entry.size_bytes != null) {
+        parts.push(formatFileSize(entry.size_bytes));
+      }
+      if (entry.modified_unix) {
+        parts.push(new Date(entry.modified_unix * 1000).toLocaleString());
+      }
+      metaCell.textContent = parts.join(" · ") || "";
+    }
+    row.appendChild(nameCell);
+    row.appendChild(metaCell);
     table.appendChild(row);
   });
   filesPanel.appendChild(table);
@@ -684,7 +785,10 @@ async function applyState(data: TabContentDto) {
     if (showText || showViewer || active?.is_http) {
       filesPanel.classList.add("hidden");
     } else {
-      renderFiles(data.directory_entries);
+      renderFiles(
+        data.directory_entries,
+        data.files_view ?? { sort: "name", sort_ascending: true, show_hidden: false },
+      );
     }
   }
   renderModPortal(data.mod_portal);
@@ -1024,7 +1128,8 @@ paletteQuery.addEventListener("input", async () => {
   entries.forEach((entry) => {
     const row = document.createElement("button");
     row.className = entry.enabled ? "palette-item" : "palette-item disabled";
-    row.textContent = entry.title + (entry.enabled ? "" : " (greyed)");
+    const chord = entry.chord ? `  ·  ${entry.chord}` : "";
+    row.textContent = entry.title + chord + (entry.enabled ? "" : " (greyed)");
     row.disabled = !entry.enabled;
     row.onclick = () => {
       invoke<string>("execute_command", { commandId: entry.command_id }).then((msg) => {
