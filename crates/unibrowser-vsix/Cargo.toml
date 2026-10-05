@@ -12,3 +12,4 @@ thiserror = { workspace = true }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 unibrowser-engine = { path = "../unibrowser-engine" }
 unibrowser-mod-api = { path = "../unibrowser-mod-api" }
+unibrowser-extension-host = { path = "../unibrowser-extension-host" }

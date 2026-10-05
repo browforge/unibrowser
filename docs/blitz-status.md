@@ -14,7 +14,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, **word count / reading time** (text + DOCX), font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
-| VSIX / extensions | Opt-in **Node extension host** (Advanced); shim: editor snapshot, per-extension config JSON, warning/error toasts, `executeCommand` → builtins; trust on first enable; diagnostics pid/restarts; sample `probeEditor` |
+| VSIX / extensions | Node host: workspace edits + **Format document**, compatibility badge on install, theme/grammar notes; prior shim (editor, config, builtins, trust, diagnostics) |
 | Markdown preview | TOC sidebar (heading jump); **Export HTML** (standalone file, embedded images); Monaco code colour in preview; Mermaid (lazy); relative images via `convertFileSrc`; links via `resolve_preview_link` |
 | Undo / PDF | Document undo/redo on text, SVG, and `.unibrow` timeline (grey when stack empty); PDF thumb strip syncs active page; plain-text print preview; export PDF from Markdown/DOCX print HTML; matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |

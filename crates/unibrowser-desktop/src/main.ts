@@ -158,6 +158,10 @@ interface InstalledVsixDto {
   command_count: number;
   keybinding_count: number;
   enabled: boolean;
+  compatibility_level: string;
+  compatibility_missing_apis: string[];
+  theme_notes: string[];
+  grammar_notes: string[];
 }
 
 interface DownloadHistoryEntryDto {
@@ -912,7 +916,26 @@ async function refreshInstalledExtensions(
       const row = document.createElement("div");
       row.className = "vsix-installed-row";
       const label = document.createElement("span");
-      label.textContent = `${ext.extension_id} v${ext.version} — ${ext.command_count} cmd / ${ext.keybinding_count} keys`;
+      const compatKey =
+        ext.compatibility_level === "works"
+          ? "mods.vsixCompatWorks"
+          : ext.compatibility_level === "partial"
+            ? "mods.vsixCompatPartial"
+            : "mods.vsixCompatUnsupported";
+      const badge = t(compatKey);
+      label.textContent = `${ext.extension_id} v${ext.version} — ${badge} — ${ext.command_count} cmd / ${ext.keybinding_count} keys`;
+      if (ext.compatibility_missing_apis.length) {
+        label.title = t("mods.vsixCompatMissing", {
+          apis: ext.compatibility_missing_apis.join(", "),
+        });
+      }
+      const assets = [...ext.theme_notes, ...ext.grammar_notes];
+      if (assets.length) {
+        const note = document.createElement("p");
+        note.className = "viewer-note";
+        note.textContent = assets.join("; ");
+        row.appendChild(note);
+      }
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.textContent = ext.enabled ? t("mods.disable") : t("mods.enable");

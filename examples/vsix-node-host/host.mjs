@@ -9,6 +9,67 @@ import path from "node:path";
 const extensions = new Map();
 let pendingExecuteCtx = null;
 
+class Position {
+  constructor(line, character) {
+    this.line = line;
+    this.character = character;
+  }
+}
+
+class Range {
+  constructor(start, end) {
+    this.start = start;
+    this.end = end;
+  }
+}
+
+class Selection extends Range {}
+
+class TextEdit {
+  static replace(range, newText) {
+    return { range: rangeToDto(range), newText: String(newText) };
+  }
+  static insert(position, newText) {
+    const pos = positionToDto(position);
+    return {
+      range: { start: pos, end: pos },
+      newText: String(newText),
+    };
+  }
+  static delete(range) {
+    return TextEdit.replace(range, "");
+  }
+}
+
+class WorkspaceEdit {
+  constructor() {
+    this._edits = [];
+  }
+  replace(uri, range, newText) {
+    this._edits.push(TextEdit.replace(range, newText));
+  }
+  insert(uri, position, newText) {
+    this._edits.push(TextEdit.insert(position, newText));
+  }
+  delete(uri, range) {
+    this._edits.push(TextEdit.delete(range));
+  }
+  get edits() {
+    return this._edits;
+  }
+}
+
+function rangeToDto(range) {
+  return {
+    start: positionToDto(range.start),
+    end: positionToDto(range.end),
+  };
+}
+
+function positionToDto(pos) {
+  return { line: pos.line, character: pos.character };
+}
+
 function pushToast(ctx, message, severity) {
   ctx.pendingToasts.push({ message: String(message), severity });
 }
@@ -39,16 +100,71 @@ function makeConfiguration(configuration, section) {
   };
 }
 
+function documentFacade(editorSnap) {
+  return {
+    getText() {
+      return editorSnap?.text ?? "";
+    },
+    languageId: editorSnap?.language_id ?? "plaintext",
+    uri: { fsPath: editorSnap?.path ?? "" },
+  };
+}
+
+function selectorMatches(selector, languageId) {
+  if (!selector) {
+    return true;
+  }
+  if (typeof selector === "string") {
+    return selector === languageId || selector === "*";
+  }
+  if (Array.isArray(selector)) {
+    return selector.some((s) => selectorMatches(s, languageId));
+  }
+  if (typeof selector === "object" && selector.language) {
+    return selector.language === languageId || selector.language === "*";
+  }
+  return false;
+}
+
+function queueHostCall(ctx, call) {
+  ctx.runtime.hostCalls.push(call);
+  return new Promise((resolve, reject) => {
+    ctx.pendingHostResolvers.set(call.id, { resolve, reject });
+  });
+}
+
 function buildShim(ctx, runtime) {
   const req = runtime.req;
   const hostCalls = runtime.hostCalls;
-  const editor = req.editor
+  const editorSnap = req.editor;
+
+  const docFacade = editorSnap ? documentFacade(editorSnap) : null;
+
+  const editor = editorSnap
     ? {
-        document: {
-          getText() {
-            return req.editor.text ?? "";
-          },
-          languageId: req.editor.language_id ?? "plaintext",
+        document: docFacade,
+        edit(callback) {
+          const collected = [];
+          const builder = {
+            replace(range, newText) {
+              collected.push(TextEdit.replace(range, newText));
+            },
+            insert(position, newText) {
+              collected.push(TextEdit.insert(position, newText));
+            },
+            delete(range) {
+              collected.push(TextEdit.delete(range));
+            },
+          };
+          callback(builder);
+          if (collected.length) {
+            hostCalls.push({
+              id: `edit-${hostCalls.length + 1}`,
+              kind: "workspace_edit",
+              edits: collected,
+            });
+          }
+          return Promise.resolve(collected.length > 0);
         },
       }
     : undefined;
@@ -66,7 +182,7 @@ function buildShim(ctx, runtime) {
       executeCommand(commandId) {
         const id = String(commandId);
         const callId = `call-${hostCalls.length + 1}`;
-        hostCalls.push({ id: callId, command_id: id });
+        hostCalls.push({ id: callId, kind: "builtin", command_id: id });
         return undefined;
       },
     },
@@ -91,7 +207,29 @@ function buildShim(ctx, runtime) {
       getConfiguration(section) {
         return makeConfiguration(req.configuration, section);
       },
+      applyEdit(edit) {
+        const edits = edit?.edits ?? [];
+        if (edits.length) {
+          hostCalls.push({
+            id: `ws-${hostCalls.length + 1}`,
+            kind: "workspace_edit",
+            edits,
+          });
+        }
+        return Promise.resolve(edits.length > 0);
+      },
     },
+    languages: {
+      registerDocumentFormattingEditProvider(selector, provider) {
+        ctx.formatProviders.push({ selector, provider });
+        return { dispose() {} };
+      },
+    },
+    Position,
+    Range,
+    Selection,
+    TextEdit,
+    WorkspaceEdit,
   };
 }
 
@@ -99,7 +237,9 @@ function makeContext(extensionId) {
   return {
     extensionId,
     commandHandlers: new Map(),
+    formatProviders: [],
     pendingToasts: [],
+    pendingHostResolvers: new Map(),
     runtime: {
       req: { editor: null, configuration: {} },
       hostCalls: [],
@@ -108,16 +248,25 @@ function makeContext(extensionId) {
 }
 
 function vscodeApi(ctx) {
+  const shim = () => buildShim(ctx, ctx.runtime);
   return {
     get commands() {
-      return buildShim(ctx, ctx.runtime).commands;
+      return shim().commands;
     },
     get window() {
-      return buildShim(ctx, ctx.runtime).window;
+      return shim().window;
     },
     get workspace() {
-      return buildShim(ctx, ctx.runtime).workspace;
+      return shim().workspace;
     },
+    get languages() {
+      return shim().languages;
+    },
+    Position,
+    Range,
+    Selection,
+    TextEdit,
+    WorkspaceEdit,
   };
 }
 
@@ -152,11 +301,46 @@ function deactivateExtension(extensionId) {
     return;
   }
   ctx.commandHandlers.clear();
+  ctx.formatProviders.length = 0;
   extensions.delete(extensionId);
 }
 
 function pickToast(ctx) {
   return ctx.pendingToasts[0] ?? null;
+}
+
+function resolveHostResults(ctx, results) {
+  for (const res of results ?? []) {
+    const pending = ctx.pendingHostResolvers.get(res.id);
+    if (!pending) {
+      continue;
+    }
+    ctx.pendingHostResolvers.delete(res.id);
+    if (res.ok) {
+      pending.resolve(res.result);
+    } else {
+      pending.reject(new Error(res.error || "host call failed"));
+    }
+  }
+}
+
+function collectFormattingEdits(languageId, text) {
+  const doc = documentFacade({ language_id: languageId, text });
+  for (const ctx of extensions.values()) {
+    for (const { selector, provider } of ctx.formatProviders) {
+      if (!selectorMatches(selector, languageId)) {
+        continue;
+      }
+      const edits = provider.provideDocumentFormattingEdits(doc);
+      if (edits && edits.length) {
+        return edits.map((e) => ({
+          range: e.range,
+          new_text: e.newText ?? e.new_text ?? "",
+        }));
+      }
+    }
+  }
+  return [];
 }
 
 function respond(obj) {
@@ -179,6 +363,15 @@ rl.on("line", (line) => {
   const op = req.op;
   if (op === "ping") {
     respond({ ok: true, pong: true });
+    return;
+  }
+  if (op === "format_document") {
+    try {
+      const edits = collectFormattingEdits(req.language_id ?? "plaintext", req.text ?? "");
+      respond({ ok: true, edits });
+    } catch (err) {
+      respond({ ok: false, error: String(err) });
+    }
     return;
   }
   if (op === "activate") {
@@ -208,6 +401,8 @@ rl.on("line", (line) => {
       respond({ ok: false, error: "no pending execute" });
       return;
     }
+    resolveHostResults(ctx, req.results);
+    ctx.runtime.hostCalls = [];
     respond({ ok: true, complete: true, toast: pickToast(ctx) });
     return;
   }

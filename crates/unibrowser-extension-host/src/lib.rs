@@ -3,16 +3,22 @@
 
 mod activation;
 mod node_host;
+mod shim_registry;
+mod text_edits;
 
 pub use activation::{ActivationRecord, activated_extensions, matching_on_command_event, record_command_activation};
 pub use node_host::{
-    deactivate_extension, execute_extension_command, host_script_path, node_on_path,
-    runtime_status, shutdown_node_host, vsix_palette_enablement, EditorSnapshot,
-    NodeExecuteResult, NodeHostRuntimeStatus, VsixInvokeContext, VSIX_NODE_HOST_NO_MAIN,
-    VSIX_NODE_HOST_NO_NODE, VSIX_NODE_HOST_PREF_OFF,
+    deactivate_extension, execute_extension_command, format_document_via_node, host_script_path,
+    node_on_path, runtime_status, shutdown_node_host, vsix_palette_enablement, EditorSnapshot,
+    ExtensionHostCall, NodeExecuteResult, NodeHostRuntimeStatus, VsixInvokeContext,
+    VSIX_NODE_HOST_NO_MAIN, VSIX_NODE_HOST_NO_NODE, VSIX_NODE_HOST_PREF_OFF,
 };
+pub use shim_registry::{
+    compatibility_report, scan_vscode_api_usages, CompatibilityLevel, CompatibilityReport,
+};
+pub use text_edits::{apply_text_edits, PositionDto, RangeDto, TextEditDto};
 
-pub const HOST_VERSION: &str = "0.3.0-node-shim";
+pub const HOST_VERSION: &str = "0.4.0-edit-format";
 
 pub const VSIX_STUB_ENABLED_HINT: &str =
     "VSIX stub — JavaScript extension host not started (see docs/extension-host.md)";

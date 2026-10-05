@@ -7,6 +7,8 @@ VSIX packages install metadata and (optionally) run extension JavaScript through
 | Layer | Behaviour |
 | --- | --- |
 | Install | `.vsix` → `vsix-extensions/` under config; `install.json` + extracted `extension/` tree |
+| Compatibility | Static scan of `extension/main` for `vscode.*` usages vs shim registry → **Works / Partial / Unsupported** badge in mod portal |
+| Themes / grammars | `contributes.themes` and `contributes.grammars` listed as **recognised, not applied** (no Monaco theme/grammar wiring yet) |
 | `contributes.commands` | Registered in `CommandRegistry`; palette + **Command Manager → Extensions** |
 | `contributes.keybindings` | Merged into `keybindings.json` after defaults |
 | `activationEvents` | `onCommand:<id>` recorded when the command runs (Rust activation log) |
@@ -29,7 +31,7 @@ VSIX packages install metadata and (optionally) run extension JavaScript through
 
 - **Script:** `examples/vsix-node-host/host.mjs` (override with `UNIBROWSER_VSIX_NODE_HOST`).
 - **Transport:** one JSON object per line on stdin; one response line on stdout (multi-round `execute` until `complete`).
-- **Ops:** `ping`, `activate` (`install_dir`, `extension_dir`, `main`, `extension_id`), `deactivate` (`extension_id`), `execute` (`extension_id`, `command_id`, optional `editor`, `configuration`, `execute_token`), `host_results` (builtin command round-trip from extension).
+- **Ops:** `ping`, `activate`, `deactivate`, `execute`, `host_results` (builtin or workspace-edit round-trip), `format_document` (run registered formatting providers).
 
 The desktop shell keeps a single long-lived Node process per session (`unibrowser-extension-host::node_host`). If the child exits unexpectedly, the pool respawns with exponential backoff (cap 30s) on the next request.
 
@@ -49,45 +51,32 @@ Passed to `activate(vscode)` when the extension `main` module loads. Handlers re
 | API | Support |
 | --- | --- |
 | `vscode.commands.registerCommand(id, fn)` | Stores handler; `dispose()` removes it |
-| `vscode.window.showInformationMessage(text)` | Toast (info) |
-| `vscode.window.showWarningMessage(text)` | Toast (warning severity) |
-| `vscode.window.showErrorMessage(text)` | Toast (error) |
-| `vscode.window.activeTextEditor` | Read-only: `document.getText()`, `document.languageId`, `document.uri` from active Monaco / `base-text` tab |
-| `vscode.workspace.getConfiguration(section)` | JSON file per extension: `{config}/vsix-extension-config.json` keyed by extension id |
-| `vscode.commands.executeCommand(id, ...args)` | Dispatches **Unibrowser builtin** commands (e.g. `unibrowser.font.size.increase`) via the desktop command bus; re-entrancy skips nested VSIX dispatch |
+| `vscode.commands.executeCommand(id)` | Dispatches **Unibrowser builtin** commands via the desktop command bus |
+| `vscode.window.showInformationMessage` / `showWarningMessage` / `showErrorMessage` | Chrome toasts |
+| `vscode.window.activeTextEditor` | Read-only document + `TextEditor.edit` (replace/insert/delete → workspace edits with undo) |
+| `vscode.workspace.getConfiguration(section)` | Per-extension JSON under config |
+| `vscode.workspace.applyEdit(WorkspaceEdit)` | Queues workspace edits (same apply path as `edit`) |
+| `vscode.languages.registerDocumentFormattingEditProvider` | Registered providers; palette **`Format document`** (`unibrowser.editor.formatDocument`) calls `format_document` on the Node host |
+| `Position`, `Range`, `Selection`, `TextEdit`, `WorkspaceEdit` | Minimal builders for edits |
 
-**Not implemented:** workspace/fs APIs beyond configuration, languages, webviews, secrets, progress, terminals, debug, SCM, tests, authentication, etc.
-
-Extensions that call missing APIs will throw at runtime; keep samples to the shim above.
+**Not implemented:** LSP, webviews, secrets, file system workspace API, terminal, debug, SCM, tests, authentication, applying TextMate themes/grammars from the VSIX, etc.
 
 ## Sample extension
 
 - Source: [examples/vsix-sample-extension](../examples/vsix-sample-extension/)
 - Pack: `./examples/vsix-sample-extension/pack-vsix.sh`
-- Commands:
-  - `unibrowser.helloSample.sayHello` — information toast via the shim.
-  - `unibrowser.helloSample.probeEditor` — reads `activeTextEditor`, `helloSample.previewChars` from configuration, calls `unibrowser.font.size.increase`, then info toast.
-- Tests (`unibrowser-extension-host`, skip if `node` missing):
-  - `node_host_runs_sample_extension_command`
-  - `node_host_probe_editor_and_builtin_command`
+- Commands: `sayHello`, `probeEditor`, `formatViaEdit` (prefix via `editor.edit`)
+- Formatting: markdown provider adds a trailing newline; exercised by **`Format document`** and `node_host_format_document_provider`
+- Tests (`unibrowser-extension-host`, skip if `node` missing): sample command, probe/builtin bus, format provider, workspace edit host call
 
 ## Crate map
 
 | Crate | Role |
 | --- | --- |
-| `unibrowser-vsix` | Zip install, `contributions.json`, `read_extension_main`, registry registration |
-| `unibrowser-extension-host` | Activation log, Node sidecar client, shim protocol |
+| `unibrowser-vsix` | Zip install, compatibility scan, theme/grammar notes, registry registration |
+| `unibrowser-extension-host` | Activation log, Node sidecar, shim registry, text edit apply |
 | `unibrowser-engine` | `CommandRegistry`, palette search |
-| Desktop `vsix_host.rs` | Pref + PATH gating, editor snapshot, builtin `executeCommand` bridge |
-| Desktop `vsix_extension_config.rs` | Per-extension configuration JSON |
-
-## Remaining gaps (full host)
-
-- No worker/WASM host tier; Node only for this spike.
-- No `onLanguage:` / workspace / `*` activation scheduler beyond `onCommand:` logging.
-- No extension sandbox beyond cwd + minimal env (still full Node APIs).
-- No webview, LSP, or marketplace signing beyond install metadata and per-extension trust prompt.
-- Command enablement for non-VSIX commands unchanged.
+| Desktop `vsix_host.rs` | Editor snapshot, edits, format document, builtin bridge |
 
 ## Related
 

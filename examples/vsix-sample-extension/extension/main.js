@@ -21,6 +21,32 @@ function activate(vscode) {
       `probe: lang=${lang} snippet=${snippet}`,
     );
   });
+
+  vscode.commands.registerCommand("unibrowser.helloSample.formatViaEdit", () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showWarningMessage("No active editor");
+      return;
+    }
+    editor.edit((builder) => {
+      builder.insert(new vscode.Position(0, 0), "FORMATTED ");
+    });
+  });
+
+  vscode.languages.registerDocumentFormattingEditProvider({ language: "markdown" }, {
+    provideDocumentFormattingEdits(document) {
+      const text = document.getText();
+      if (text.endsWith("\n")) {
+        return [];
+      }
+      const lines = text.split("\n");
+      const lastLine = lines.length - 1;
+      const col = lines[lastLine].length;
+      return [
+        vscode.TextEdit.insert(new vscode.Position(lastLine, col), "\n"),
+      ];
+    },
+  });
 }
 
 module.exports = { activate };

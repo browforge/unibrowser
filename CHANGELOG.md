@@ -6,6 +6,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **VSIX Node host (edits + format + compatibility):** `TextEditor.edit` / `WorkspaceEdit` applied to active text with undo; `registerDocumentFormattingEditProvider` + **`Format document`** command; install-time `vscode.*` static scan → Works/Partial/Unsupported badge; themes/grammars noted as recognised-not-applied. Sample formatter + tests.
 - **VSIX Node host (shim + lifecycle):** `window.activeTextEditor` (read-only text + `languageId`), `workspace.getConfiguration` via per-extension JSON, warning/error toasts, `commands.executeCommand` into Unibrowser builtins; Node child restart with backoff; diagnostics show pid/restarts/last error; `deactivate` on disable; trust prompt on first enable; extension cwd = install dir and minimal env. Sample `probeEditor` command + `node_host_probe_editor_and_builtin_command` test. See [extension-host.md](docs/extension-host.md).
 - **VSIX Node host (spike):** Opt-in Advanced pref runs installed VSIX `main` via `examples/vsix-node-host/host.mjs` when `node` is on PATH; minimal `vscode` shim (`commands.registerCommand`, `window.showInformationMessage` → toast). Sample extension under `examples/vsix-sample-extension/`; documented in [extension-host.md](docs/extension-host.md).
 - **Markdown preview:** Table of contents sidebar from headings (click to scroll); **Export HTML** saves a standalone `.html` with inline CSS and base64 images; fenced code blocks use lazy Monaco `colorize`.

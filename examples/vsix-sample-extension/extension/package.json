@@ -10,7 +10,8 @@
   "main": "./main.js",
   "activationEvents": [
     "onCommand:unibrowser.helloSample.sayHello",
-    "onCommand:unibrowser.helloSample.probeEditor"
+    "onCommand:unibrowser.helloSample.probeEditor",
+    "onCommand:unibrowser.helloSample.formatViaEdit"
   ],
   "contributes": {
     "commands": [
@@ -22,6 +23,11 @@
       {
         "command": "unibrowser.helloSample.probeEditor",
         "title": "Probe editor + font increase",
+        "category": "VSIX sample"
+      },
+      {
+        "command": "unibrowser.helloSample.formatViaEdit",
+        "title": "Insert FORMATTED prefix (edit shim)",
         "category": "VSIX sample"
       }
     ]

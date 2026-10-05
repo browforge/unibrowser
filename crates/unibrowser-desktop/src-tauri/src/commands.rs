@@ -50,7 +50,8 @@ use crate::webview::{
 };
 use unibrowser_mod_api::handlers::{
     CONTEXT_HELP_ID, DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
-    FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
+    FONT_DECREASE_ID, FONT_INCREASE_ID, FORMAT_DOCUMENT_ID, PAGE_ZOOM_DECREASE_ID,
+    PAGE_ZOOM_INCREASE_ID,
     CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, COMPARE_TEXT_ID, PICTURE_IN_PICTURE_ID,
     SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
 };
@@ -3339,6 +3340,9 @@ fn execute_command_impl(
         document_redo(window, state)?;
         return Ok("Redone".into());
     }
+    if command_id == FORMAT_DOCUMENT_ID {
+        return crate::vsix_host::format_active_document(window, state);
+    }
     {
         let host_cmds = state
             .vsix_host_commands
@@ -6459,6 +6463,10 @@ pub struct InstalledVsixDto {
     pub command_count: usize,
     pub keybinding_count: usize,
     pub enabled: bool,
+    pub compatibility_level: String,
+    pub compatibility_missing_apis: Vec<String>,
+    pub theme_notes: Vec<String>,
+    pub grammar_notes: Vec<String>,
 }
 
 fn map_installed(rec: unibrowser_vsix::InstalledVsixRecord) -> InstalledVsixDto {
@@ -6471,6 +6479,14 @@ fn map_installed(rec: unibrowser_vsix::InstalledVsixRecord) -> InstalledVsixDto 
         command_count: rec.contributions.commands.len(),
         keybinding_count: rec.contributions.keybindings.len(),
         enabled: rec.enabled,
+        compatibility_level: if rec.compatibility_level.is_empty() {
+            "works".into()
+        } else {
+            rec.compatibility_level
+        },
+        compatibility_missing_apis: rec.compatibility_missing_apis,
+        theme_notes: rec.theme_notes,
+        grammar_notes: rec.grammar_notes,
     }
 }
 

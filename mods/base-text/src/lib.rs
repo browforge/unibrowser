@@ -5,7 +5,8 @@ use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot, commands,
     handlers::{
         DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
-        PRINT_SELECTION_ID, COMPARE_TEXT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID,
+        FORMAT_DOCUMENT_ID, PRINT_SELECTION_ID, COMPARE_TEXT_ID, FONT_DECREASE_ID,
+        FONT_INCREASE_ID,
     },
 };
 
@@ -265,6 +266,13 @@ pub fn register(registry: &mut CommandRegistry) {
         default_keybinding: Some("Ctrl+S"),
         aliases: &["write file", "save file"],
     });
+    registry.register_command(unibrowser_mod_api::CommandMeta {
+        id: commands::FORMAT_DOCUMENT,
+        title: "Format document",
+        icon: "format",
+        default_keybinding: None,
+        aliases: &["format", "prettify"],
+    });
     registry.register_handler(HandlerRegistration {
         command_id: FONT_INCREASE_ID.into(),
         backend_id: BACKEND_ID.into(),
@@ -288,6 +296,12 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: font_enable,
         execute: |_doc| Ok("document-find".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: FORMAT_DOCUMENT_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: |_doc| Enablement::Enabled,
+        execute: |_doc| Ok("format-document".into()),
     });
     registry.register_handler(HandlerRegistration {
         command_id: DOCUMENT_UNDO_ID.into(),

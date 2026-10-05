@@ -10,6 +10,8 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::text_edits::TextEditDto;
+
 pub const VSIX_NODE_HOST_PREF_OFF: &str =
     "Enable “Node extension host (experimental)” in Settings → Advanced";
 pub const VSIX_NODE_HOST_NO_NODE: &str = "Node.js not found on PATH (extension host unavailable)";
@@ -74,6 +76,18 @@ enum NodeHostRequest {
         execute_token: u64,
         results: Vec<HostCallResult>,
     },
+    FormatDocument {
+        language_id: String,
+        text: String,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtensionHostCall {
+    pub id: String,
+    pub kind: String,
+    pub command_id: Option<String>,
+    pub edits: Vec<TextEditDto>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -96,7 +110,12 @@ struct NodeHostToast {
 #[derive(Debug, Default, Deserialize)]
 struct HostCallOut {
     id: String,
+    #[serde(default)]
+    kind: String,
+    #[serde(default)]
     command_id: String,
+    #[serde(default)]
+    edits: Vec<TextEditDto>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -115,6 +134,8 @@ struct NodeHostResponse {
     host_calls: Vec<HostCallOut>,
     #[serde(default)]
     execute_token: u64,
+    #[serde(default)]
+    edits: Vec<TextEditDto>,
 }
 
 static EXECUTE_TOKEN: Mutex<u64> = Mutex::new(1);
@@ -304,12 +325,28 @@ pub fn deactivate_extension(extension_id: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn format_document_via_node(editor: EditorSnapshot) -> Result<Vec<TextEditDto>, String> {
+    let mut guard = SIDECAR.lock().map_err(|e| e.to_string())?;
+    let session = guard.ensure()?;
+    let resp = session.request(&NodeHostRequest::FormatDocument {
+        language_id: editor.language_id,
+        text: editor.text,
+    })?;
+    if !resp.ok {
+        guard.drop_session();
+        return Err(resp
+            .error
+            .unwrap_or_else(|| "format_document failed".into()));
+    }
+    Ok(resp.edits)
+}
+
 pub fn execute_extension_command<F>(
     ctx: VsixInvokeContext,
-    mut on_builtin: F,
+    mut on_host_call: F,
 ) -> Result<NodeExecuteResult, String>
 where
-    F: FnMut(&str) -> Result<String, String>,
+    F: FnMut(ExtensionHostCall) -> Result<String, String>,
 {
     let install_dir = ctx.install_dir.to_string_lossy().to_string();
     let extension_dir = ctx.extension_root.to_string_lossy().to_string();
@@ -351,7 +388,21 @@ where
     while !resp.complete {
         let mut results = Vec::new();
         for call in &resp.host_calls {
-            match on_builtin(&call.command_id) {
+            let host_call = ExtensionHostCall {
+                id: call.id.clone(),
+                kind: if call.kind.is_empty() {
+                    "builtin".into()
+                } else {
+                    call.kind.clone()
+                },
+                command_id: if call.command_id.is_empty() {
+                    None
+                } else {
+                    Some(call.command_id.clone())
+                },
+                edits: call.edits.clone(),
+            };
+            match on_host_call(host_call) {
                 Ok(msg) => results.push(HostCallResult {
                     id: call.id.clone(),
                     ok: true,
@@ -453,7 +504,11 @@ mod tests {
                 }),
                 configuration: serde_json::json!({ "helloSample": { "previewChars": 12 } }),
             },
-            |cmd| {
+            |call| {
+                if call.kind == "workspace_edit" {
+                    return Ok("edits".into());
+                }
+                let cmd = call.command_id.as_deref().unwrap_or("");
                 if cmd == "unibrowser.font.size.increase" {
                     builtin_ran = true;
                     return Ok("font increased".into());
@@ -466,5 +521,70 @@ mod tests {
         let toast = out.toast.as_deref().unwrap_or("");
         assert!(toast.contains("markdown"), "toast: {}", toast);
         assert!(toast.contains("Title"), "toast: {}", toast);
+    }
+
+    #[test]
+    fn node_host_format_document_provider() {
+        if !node_on_path() {
+            eprintln!("skip node_host_format_document_provider: node not on PATH");
+            return;
+        }
+        let (install, extension) = sample_paths();
+        let activate = execute_extension_command(
+            VsixInvokeContext {
+                install_dir: install.clone(),
+                extension_root: extension.clone(),
+                main_rel: "./main.js".into(),
+                extension_id: "unibrowser.hello-sample".into(),
+                command_id: "unibrowser.helloSample.sayHello".into(),
+                editor: None,
+                configuration: Value::Object(serde_json::Map::new()),
+            },
+            |_| Ok("noop".into()),
+        );
+        assert!(activate.is_ok(), "activate via execute: {:?}", activate.err());
+        let edits = format_document_via_node(EditorSnapshot {
+            language_id: "markdown".into(),
+            text: "line one\nline two".into(),
+        })
+        .expect("format");
+        assert!(!edits.is_empty(), "expected formatting edits from sample provider");
+        let out = crate::text_edits::apply_text_edits("line one\nline two".into(), &edits)
+            .expect("apply");
+        assert!(out.ends_with('\n'), "formatted output should gain trailing newline: {:?}", out);
+    }
+
+    #[test]
+    fn node_host_workspace_edit_via_command() {
+        if !node_on_path() {
+            eprintln!("skip node_host_workspace_edit_via_command: node not on PATH");
+            return;
+        }
+        let (install, extension) = sample_paths();
+        let mut applied = false;
+        let _ = execute_extension_command(
+            VsixInvokeContext {
+                install_dir: install,
+                extension_root: extension,
+                main_rel: "./main.js".into(),
+                extension_id: "unibrowser.hello-sample".into(),
+                command_id: "unibrowser.helloSample.formatViaEdit".into(),
+                editor: Some(EditorSnapshot {
+                    language_id: "markdown".into(),
+                    text: "hello".into(),
+                }),
+                configuration: Value::Object(serde_json::Map::new()),
+            },
+            |call| {
+                if call.kind == "workspace_edit" {
+                    applied = true;
+                    assert!(!call.edits.is_empty());
+                    return Ok("ok".into());
+                }
+                Ok("noop".into())
+            },
+        )
+        .expect("execute");
+        assert!(applied, "workspace_edit host call expected");
     }
 }

@@ -47,6 +47,7 @@ pub const PAGE_ZOOM_DECREASE_ID: &str = commands::PAGE_ZOOM_DECREASE;
 pub const FIND_IN_DOCUMENT_ID: &str = commands::FIND_IN_DOCUMENT;
 pub const DOCUMENT_UNDO_ID: &str = commands::DOCUMENT_UNDO;
 pub const DOCUMENT_REDO_ID: &str = commands::DOCUMENT_REDO;
+pub const FORMAT_DOCUMENT_ID: &str = commands::FORMAT_DOCUMENT;
 pub const EXPORT_PRINT_PDF_ID: &str = commands::EXPORT_PRINT_PDF;
 pub const PRINT_SELECTION_ID: &str = commands::PRINT_SELECTION;
 pub const TOGGLE_WEB_DEVTOOLS_ID: &str = commands::TOGGLE_WEB_DEVTOOLS;

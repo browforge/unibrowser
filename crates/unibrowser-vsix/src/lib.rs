@@ -69,6 +69,14 @@ pub struct InstalledVsixRecord {
     pub contributions: VsixContributions,
     #[serde(default = "default_enabled")]
     pub enabled: bool,
+    #[serde(default)]
+    pub compatibility_level: String,
+    #[serde(default)]
+    pub compatibility_missing_apis: Vec<String>,
+    #[serde(default)]
+    pub theme_notes: Vec<String>,
+    #[serde(default)]
+    pub grammar_notes: Vec<String>,
 }
 
 fn default_enabled() -> bool {
@@ -126,6 +134,8 @@ pub fn install_vsix_bytes(
     let contributions = extract_contributions(&package_json, &extension_id);
     let contrib_path = install_dir.join("contributions.json");
     fs::write(&contrib_path, serde_json::to_string_pretty(&contributions)?)?;
+    let (theme_notes, grammar_notes) = asset_notes_from_package(&package_json);
+    let compatibility = compatibility_for_install(&install_dir);
     let record = InstalledVsixRecord {
         extension_id,
         name: package_json.name.clone(),
@@ -136,6 +146,10 @@ pub fn install_vsix_bytes(
         install_dir: install_dir.to_string_lossy().into_owned(),
         contributions,
         enabled: true,
+        compatibility_level: compatibility.level,
+        compatibility_missing_apis: compatibility.missing_apis,
+        theme_notes,
+        grammar_notes,
     };
     write_install_record(&install_dir, &record)?;
     Ok(record)
@@ -336,6 +350,77 @@ struct Contributes {
     commands: Vec<PackageCommand>,
     #[serde(default)]
     keybindings: Vec<VsixKeybindingContrib>,
+    #[serde(default)]
+    themes: Vec<ThemeContrib>,
+    #[serde(default)]
+    grammars: Vec<GrammarContrib>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ThemeContrib {
+    #[serde(default)]
+    label: Option<String>,
+    #[serde(default)]
+    path: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct GrammarContrib {
+    #[serde(default)]
+    language: Option<String>,
+    #[serde(default)]
+    scope_name: Option<String>,
+    #[serde(default)]
+    path: Option<String>,
+}
+
+struct InstallCompatibility {
+    level: String,
+    missing_apis: Vec<String>,
+}
+
+fn compatibility_for_install(install_dir: &Path) -> InstallCompatibility {
+    let main_rel = read_extension_main(install_dir);
+    let mut source = String::new();
+    if let Some(main_rel) = main_rel {
+        let main_path = install_dir.join("extension").join(main_rel);
+        if main_path.is_file() {
+            source = fs::read_to_string(&main_path).unwrap_or_default();
+        }
+    }
+    let report = unibrowser_extension_host::compatibility_report(&source);
+    let level = match report.level {
+        unibrowser_extension_host::CompatibilityLevel::Works => "works",
+        unibrowser_extension_host::CompatibilityLevel::Partial => "partial",
+        unibrowser_extension_host::CompatibilityLevel::Unsupported => "unsupported",
+    };
+    InstallCompatibility {
+        level: level.into(),
+        missing_apis: report.missing_apis,
+    }
+}
+
+fn asset_notes_from_package(package: &PackageJson) -> (Vec<String>, Vec<String>) {
+    let contributes = package.contributes.as_ref().cloned().unwrap_or_default();
+    let themes = contributes
+        .themes
+        .into_iter()
+        .map(|t| {
+            let label = t.label.unwrap_or_else(|| "theme".into());
+            let path = t.path.unwrap_or_else(|| "?".into());
+            format!("{label} ({path}) — recognised, not applied")
+        })
+        .collect();
+    let grammars = contributes
+        .grammars
+        .into_iter()
+        .map(|g| {
+            let lang = g.language.unwrap_or_else(|| "unknown".into());
+            let path = g.path.unwrap_or_else(|| "?".into());
+            format!("{lang} grammar ({path}) — recognised, not applied")
+        })
+        .collect();
+    (themes, grammars)
 }
 
 #[derive(Debug, Clone, Deserialize)]
