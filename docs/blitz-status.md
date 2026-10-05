@@ -72,7 +72,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
-| Recovery | Text/SVG crash backups (opt-in, Settings/About); `.unibrow` `project.json` debounced backups + launch prompt; **session restore defers** matching `.unibrow` tabs ([session-restore.md](session-restore.md)) |
+| Recovery | Text/SVG/JS crash backups (opt-in, Settings/About); `.unibrow` `project.json` debounced backups + launch prompt; **session restore defers** paths with pending project or editor crash backups ([session-restore.md](session-restore.md)) |
+| https loading UX | Spinner over content host until load finish or document title; 30s slow-network message — [chrome.md](chrome.md) |
+| About feedback | **Report an issue** opens GitHub issue template chooser (`UNIBROWSER_REPORT_ISSUE_URL` override) |
 | Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab; **Content-Disposition** renames generic hints; failed fetch toast + history ([browser-shell.md](browser-shell.md)) |
 | Settings reset | Confirmable **Reset onboarding**, **Clear recent files**, **Reset floating toolbars** |
 | Command Manager | Scrollable command chips; horizontal tab strip; pin + layout buttons stay visible |

@@ -91,6 +91,12 @@ pub fn releases_page_url() -> String {
     })
 }
 
+pub fn report_issue_page_url() -> String {
+    std::env::var("UNIBROWSER_REPORT_ISSUE_URL").unwrap_or_else(|_| {
+        "https://github.com/unibrowser/unibrowser/issues/new/choose".to_string()
+    })
+}
+
 const ERR_UNSAVED_CLOSE: &str = "unsaved: confirm close";
 
 #[derive(Serialize)]
@@ -1617,6 +1623,14 @@ pub fn open_releases_page(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn open_report_issue_page(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = report_issue_page_url();
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn apply_session_to_window(
     state: &AppState,
     app: &AppHandle,
@@ -1624,12 +1638,17 @@ fn apply_session_to_window(
     entry: &crate::session::WindowSessionEntry,
 ) -> Result<(), String> {
     let pending_recovery = crate::project_recovery::pending_recovery_path_set(&state.cwd);
+    let pending_crash = crate::crash_recovery::pending_recovery_path_set(&state.cwd);
     let mut locations = Vec::new();
     for input in &entry.tab_inputs {
         if crate::project_recovery::session_tab_deferred_for_recovery(
             input,
             &state.cwd,
             &pending_recovery,
+        ) || crate::project_recovery::session_tab_deferred_for_recovery(
+            input,
+            &state.cwd,
+            &pending_crash,
         ) {
             continue;
         }
@@ -5211,11 +5230,29 @@ pub fn restore_crash_recovery_backup(window: tauri::Window,
     let record = crate::crash_recovery::load_backup(&backup_id)?;
     let file_path = resolve_open_path(&record.path, &state.cwd)?;
     allow_asset_protocol_file(&app, &file_path);
-    let loc = BrowserLocation::File { path: file_path };
+    let loc = BrowserLocation::File { path: file_path.clone() };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let _sess_tabs = ws(&state, &window)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.navigate_active(loc.clone(), is_dir, doc);
+    let existing = tabs.tabs().iter().position(|t| {
+        match &t.location {
+            BrowserLocation::File { path } => {
+                resolve_open_path(&path.to_string_lossy(), &state.cwd).ok().as_ref()
+                    == Some(&file_path)
+            }
+            _ => false,
+        }
+    });
+    if let Some(index) = existing {
+        tabs.set_active(index);
+        if let Some(tab) = tabs.tab_mut(index) {
+            tab.location = loc.clone();
+            tab.is_directory = is_dir;
+            tab.document = doc;
+        }
+    } else {
+        tabs.navigate_active(loc.clone(), is_dir, doc);
+    }
     if let BrowserLocation::File { path } = &loc {
         if path.is_file() {
             touch_recent_file(path);

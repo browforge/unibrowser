@@ -118,6 +118,7 @@ pub fn run() {
             commands::activate_tab_in_window,
             commands::open_crash_logs_folder,
             commands::open_releases_page,
+            commands::open_report_issue_page,
             commands::set_restore_session_on_launch,
             commands::navigate_omnibox,
             commands::open_path,

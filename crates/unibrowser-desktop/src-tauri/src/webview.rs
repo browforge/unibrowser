@@ -1,4 +1,6 @@
-use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl};
+use serde::Serialize;
+use tauri::webview::PageLoadEvent;
+use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl};
 use url::Url;
 
 use crate::downloads::DownloadEventPayload;
@@ -12,6 +14,28 @@ fn content_label(window_label: &str) -> String {
     content_label_for_capture(window_label)
 }
 
+fn window_label_from_content_webview(content_webview_label: &str) -> String {
+    content_webview_label
+        .strip_prefix("content-")
+        .unwrap_or(content_webview_label)
+        .to_string()
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HttpPageLoadEvent {
+    window_label: String,
+    url: String,
+    phase: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HttpPageTitleEvent {
+    window_label: String,
+    title: String,
+}
+
 pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(), String> {
     let label = content_label(window_label);
     if app.get_webview(&label).is_some() {
@@ -22,6 +46,31 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
         .ok_or_else(|| format!("window {} missing", window_label))?;
     let blank: Url = "about:blank".parse().map_err(|e: url::ParseError| e.to_string())?;
     let builder = tauri::webview::WebviewBuilder::new(&label, WebviewUrl::External(blank))
+        .on_page_load(|webview, payload| {
+            let phase = match payload.event() {
+                PageLoadEvent::Started => "started".to_string(),
+                PageLoadEvent::Finished => "finished".to_string(),
+            };
+            let window_label = window_label_from_content_webview(webview.label());
+            let _ = webview.app_handle().emit(
+                "unibrowser-http-page-load",
+                HttpPageLoadEvent {
+                    window_label,
+                    url: payload.url().to_string(),
+                    phase,
+                },
+            );
+        })
+        .on_document_title_changed(|webview, title| {
+            let window_label = window_label_from_content_webview(webview.label());
+            let _ = webview.app_handle().emit(
+                "unibrowser-http-page-title",
+                HttpPageTitleEvent {
+                    window_label,
+                    title,
+                },
+            );
+        })
         .on_download(|webview, event| {
             use tauri::webview::DownloadEvent;
             match event {

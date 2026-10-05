@@ -48,6 +48,7 @@ import { setViewerZoomListener } from "./viewerZoom";
 import { clearImagePixelSample, getImagePixelSample } from "./viewerPixelSample";
 import { applyChromeI18n, modsLineText } from "./chromeI18n";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
+import { initHttpLoadingListeners, syncHttpLoadingForTab } from "./httpLoadingOverlay";
 import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
 import { maybePromptProjectRecovery } from "./projectRecoveryPrompt";
@@ -1389,6 +1390,11 @@ async function applyState(data: TabContentDto) {
   }
   const zoomReset = () => void resetPageZoomFromStatusBar();
   if (active?.is_http) {
+    syncHttpLoadingForTab(true, data.omnibox);
+  } else {
+    syncHttpLoadingForTab(false);
+  }
+  if (active?.is_http) {
     setZoomHandler(
       "web",
       (delta) => {
@@ -2002,6 +2008,7 @@ window.addEventListener("unibrowser-prefs-changed", () => {
 listen<string>("unibrowser-script-output", (event) => {
   appendScriptOutput(String(event.payload));
 });
+initHttpLoadingListeners(contentHost);
 applyChromeI18n();
 void loadUiLocale().then(() => applyChromeI18n());
 void loadThemePreference().then(() => {

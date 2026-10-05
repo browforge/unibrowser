@@ -33,6 +33,21 @@ Accepted inputs: `file://`, absolute paths, `https://`, `unibrowser://` internal
 
 Path (click to copy), Command Manager context mode, unsaved label, encoding, editor cursor, font pt, zoom, encode progress. See shipped slice notes in [blitz-status.md](blitz-status.md).
 
+## Command Manager layout (export / import)
+
+Pinned tabs, command order, and floating toolbar positions are stored in `toolbars.json` under the config dir. To move a layout between machines or profiles:
+
+| Control | Location | Behaviour |
+| --- | --- | --- |
+| **Export layout** | Command Manager header | Save JSON (`command-manager.json`) via system save dialog |
+| **Import layout** | Command Manager header | Pick JSON; replaces in-memory layout and writes `toolbars.json` |
+
+Import applies immediately and refreshes the Command Manager strip. Pin semantics and context pin are described in [ui-commands.md](ui-commands.md).
+
+## Remote web loading (https tabs)
+
+While the content webview loads, a light overlay spinner appears over `#content-host` until the page **finishes loading** or the document **title** updates. After **30 seconds** without either, the spinner is replaced by a short timeout message (connection hint). Overlay is per-window and only for the active https tab.
+
 ## Related
 
 - [session-restore.md](session-restore.md) — tab URLs on launch

@@ -1726,6 +1726,48 @@ body.content-fullscreen::after {
   min-height: 0;
 }
 
+.http-loading-overlay {
+  position: absolute;
+  inset: 0.5rem;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  pointer-events: none;
+  background: rgba(18, 18, 22, 0.55);
+  border-radius: 4px;
+}
+
+.http-loading-overlay.hidden {
+  display: none;
+}
+
+.http-loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #444;
+  border-top-color: #8ab4f8;
+  border-radius: 50%;
+  animation: http-loading-spin 0.75s linear infinite;
+}
+
+@keyframes http-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.http-loading-message {
+  margin: 0;
+  max-width: 20rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #ddd;
+  line-height: 1.4;
+}
+
 .text-editor-host {
   position: absolute;
   inset: 0.5rem;

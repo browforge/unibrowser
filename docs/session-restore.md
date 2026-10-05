@@ -31,7 +31,7 @@ On startup the shell may do **both** session restore (Rust, before the UI paints
 | Kind | When | Precedence |
 | --- | --- | --- |
 | `.unibrow` `project.json` backup | Project autosave or crash recovery enabled; debounced backup exists | **Recovery wins** — session restore **skips** tabs for that project path so you are not double-opened. Accepting recovery restores `project.json` and opens or refreshes the matching tab. |
-| Text / SVG crash backups | Crash recovery enabled; dirty buffer saved | **Manual** — listed under Settings / About; not auto-restored with session tabs. Use **Restore** on the row you want. |
+| Text / SVG / JS crash backups | Crash recovery enabled; debounced backup on disk | **Recovery wins** — session restore **skips** tabs for that file path (same dedupe as `.unibrow`). Use **Restore** on the backup row in Settings or About; restore reuses an open tab when the path is already open. Dismiss backups you do not need. |
 
 Dismiss project recovery backups if you prefer the on-disk project without the autosaved `project.json`.
 

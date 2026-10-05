@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Crash backups vs session:** Session restore also skips file tabs with pending text/SVG/JS crash backups; **Restore** reuses an open tab. [session-restore.md](docs/session-restore.md).
+- **https loading:** Content-webview page-load/title events drive a spinner overlay; 30s timeout message. [chrome.md](docs/chrome.md).
+- **About:** **Report an issue** opens the GitHub issue chooser (`open_report_issue_page`, `UNIBROWSER_REPORT_ISSUE_URL`).
+- **Command Manager:** Export/import layout JSON documented in [chrome.md](docs/chrome.md) (controls were already in the CM header).
 - **Session vs recovery:** Session restore skips `.unibrow` tabs that have a pending `project.json` backup; recovery reuses an open tab when possible. Documented in [session-restore.md](docs/session-restore.md).
 - **Palette:** Stronger prefix fuzzy scores; recently executed commands get a ranking boost.
 - **DXF:** Parse/empty wireframe shows a clear viewer message instead of a blank canvas.

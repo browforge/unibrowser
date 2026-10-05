@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { appendCrashLogsSection } from "./crashLogsLink";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { t } from "./i18n";
+import { showErrorToast } from "./toast";
 
 type BuildInfoDto = {
   version: string;
@@ -113,4 +114,22 @@ export async function renderAbout(root: HTMLElement) {
   await appendCrashRecoveryPanel(recoveryBody, { compact: true });
   root.appendChild(recovery);
   appendCrashLogsSection(root);
+
+  const feedback = document.createElement("section");
+  feedback.className = "about-section";
+  const fh = document.createElement("h3");
+  fh.textContent = t("about.feedbackHeading");
+  feedback.appendChild(fh);
+  const fp = document.createElement("p");
+  fp.textContent = t("about.feedbackLead");
+  feedback.appendChild(fp);
+  const reportBtn = document.createElement("button");
+  reportBtn.type = "button";
+  reportBtn.className = "recent-link";
+  reportBtn.textContent = t("about.reportIssue");
+  reportBtn.onclick = () => {
+    void invoke("open_report_issue_page").catch((err) => showErrorToast(err));
+  };
+  feedback.appendChild(reportBtn);
+  root.appendChild(feedback);
 }

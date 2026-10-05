@@ -1,8 +1,8 @@
 //! Opt-in backup of dirty editor buffers under the config dir.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -147,6 +147,14 @@ fn read_backup_file(file: &PathBuf) -> Option<BackupRecord> {
     serde_json::from_str(&data).ok()
 }
 
+/// Canonical file paths with a pending text/SVG/JS crash backup (session restore defers these).
+pub fn pending_recovery_path_set(cwd: &Path) -> HashSet<PathBuf> {
+    list_backups()
+        .iter()
+        .filter_map(|b| crate::path_security::resolve_open_path(&b.path, cwd).ok())
+        .collect()
+}
+
 pub fn list_backups() -> Vec<CrashRecoveryBackupDto> {
     let dir = match recovery_dir() {
         Some(d) => d,
@@ -221,5 +229,25 @@ mod tests {
     fn backup_id_is_hex_stem() {
         let id = backup_id_for_path("/tmp/foo.txt").expect("id");
         assert_eq!(id.len(), 16);
+    }
+
+    #[test]
+    fn session_defers_file_with_pending_crash_backup() {
+        use crate::project_recovery::session_tab_deferred_for_recovery;
+
+        let cwd = std::env::temp_dir().join("ub-crash-recovery-defer");
+        let _ = fs::remove_dir_all(&cwd);
+        fs::create_dir_all(&cwd).unwrap();
+        let file = cwd.join("notes.md");
+        let resolved = crate::path_security::resolve_open_path(&file.to_string_lossy(), &cwd).unwrap();
+        let pending: HashSet<PathBuf> = HashSet::from([resolved]);
+        let input = format!("file://{}", file.display());
+        assert!(session_tab_deferred_for_recovery(&input, &cwd, &pending));
+        assert!(!session_tab_deferred_for_recovery(
+            &format!("file://{}", cwd.join("other.txt").display()),
+            &cwd,
+            &pending,
+        ));
+        let _ = fs::remove_dir_all(&cwd);
     }
 }
