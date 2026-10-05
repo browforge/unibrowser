@@ -15,6 +15,26 @@ const selectedPaths = new Set<string>();
 let lastBrowsePath = "";
 let searchFilter = "";
 let selectionAnchorIndex = -1;
+let renamingPath: string | null = null;
+
+function validateNameClient(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === "." || trimmed === "..") {
+    return null;
+  }
+  if (trimmed.includes("/") || trimmed.includes("\\")) {
+    return null;
+  }
+  return trimmed;
+}
+
+async function applySnapshot(deps: FilesPanelDeps, data: unknown) {
+  if (data) {
+    await deps.onApplyState(data);
+  } else {
+    await deps.onRefresh?.();
+  }
+}
 
 export interface FilesPanelDeps {
   entries: DirEntry[];
@@ -188,6 +208,237 @@ function showDeleteConfirm(paths: string[], deps: FilesPanelDeps, onDone: () => 
   panel.appendChild(actions);
 }
 
+function showCreatePanel(
+  kind: "folder" | "file",
+  deps: FilesPanelDeps,
+  onDone: () => void,
+) {
+  const panel = deps.sidePanel;
+  panel.classList.remove("hidden");
+  panel.innerHTML = "";
+
+  const title = document.createElement("h3");
+  title.className = "files-side-title";
+  title.textContent = t("files.createTitle");
+  panel.appendChild(title);
+
+  const label = document.createElement("label");
+  label.className = "files-side-note";
+  label.textContent =
+    kind === "folder" ? t("files.createFolderPrompt") : t("files.createFilePrompt");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "files-search-input";
+  input.value = kind === "folder" ? "New folder" : "untitled.txt";
+  label.appendChild(input);
+  panel.appendChild(label);
+
+  const actions = document.createElement("div");
+  actions.className = "files-side-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = t("files.deleteCancel");
+  cancel.onclick = () => {
+    clearSidePanel(panel);
+    onDone();
+  };
+  const confirm = document.createElement("button");
+  confirm.type = "button";
+  confirm.className = "files-side-primary";
+  confirm.textContent = t("files.createConfirm");
+  confirm.onclick = () => {
+    const name = validateNameClient(input.value);
+    if (!name) {
+      showToast(t("files.renameInvalid"), "error");
+      return;
+    }
+    void (async () => {
+      try {
+        const cmd = kind === "folder" ? "create_folder" : "create_text_file";
+        const data = await invoke(cmd, { parentDir: deps.browsePath, name });
+        clearSidePanel(panel);
+        await applySnapshot(deps, data);
+      } catch (err) {
+        showToast(String(err), "error");
+      } finally {
+        onDone();
+      }
+    })();
+  };
+  actions.appendChild(cancel);
+  actions.appendChild(confirm);
+  panel.appendChild(actions);
+  input.focus();
+  input.select();
+}
+
+function showDestinationPicker(
+  mode: "copy" | "move",
+  paths: string[],
+  deps: FilesPanelDeps,
+  onDone: () => void,
+) {
+  const panel = deps.sidePanel;
+  let destPath = deps.browsePath;
+
+  const render = () => {
+    panel.classList.remove("hidden");
+    panel.innerHTML = "";
+
+    const title = document.createElement("h3");
+    title.className = "files-side-title";
+    title.textContent =
+      mode === "copy" ? t("files.transferTitleCopy") : t("files.transferTitleMove");
+    panel.appendChild(title);
+
+    const destLabel = document.createElement("label");
+    destLabel.className = "files-side-note";
+    destLabel.textContent = t("files.transferDest");
+    const destInput = document.createElement("input");
+    destInput.type = "text";
+    destInput.className = "files-dest-path";
+    destInput.readOnly = true;
+    destInput.value = destPath;
+    destLabel.appendChild(destInput);
+    panel.appendChild(destLabel);
+
+    const nav = document.createElement("div");
+    nav.className = "files-dest-nav";
+    const up = document.createElement("button");
+    up.type = "button";
+    up.textContent = t("files.parent");
+    up.disabled = !parentPath(destPath);
+    up.onclick = () => {
+      const p = parentPath(destPath);
+      if (p) {
+        destPath = p;
+        render();
+      }
+    };
+    nav.appendChild(up);
+    const useBrowse = document.createElement("button");
+    useBrowse.type = "button";
+    useBrowse.textContent = t("files.transferPickFolder");
+    useBrowse.onclick = () => {
+      destPath = deps.browsePath;
+      render();
+    };
+    nav.appendChild(useBrowse);
+    panel.appendChild(nav);
+
+    if (deps.folderFavorites.length) {
+      const favWrap = document.createElement("div");
+      favWrap.className = "files-favorites";
+      deps.folderFavorites.forEach((p) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "files-fav-link";
+        btn.textContent = p.split("/").filter(Boolean).pop() ?? p;
+        btn.title = p;
+        btn.onclick = () => {
+          destPath = p;
+          render();
+        };
+        favWrap.appendChild(btn);
+      });
+      panel.appendChild(favWrap);
+    }
+
+    const list = document.createElement("ul");
+    list.className = "files-dest-list";
+    list.innerHTML = `<li class="viewer-note">${t("files.peekLoading")}</li>`;
+    panel.appendChild(list);
+
+    void invoke<DirEntry[]>("list_directory", { path: destPath })
+      .then((entries) => {
+        list.innerHTML = "";
+        entries
+          .filter((e) => e.is_dir)
+          .forEach((e) => {
+            const li = document.createElement("li");
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = `[dir] ${e.name}`;
+            btn.onclick = () => {
+              destPath = e.path;
+              render();
+            };
+            li.appendChild(btn);
+            list.appendChild(li);
+          });
+        if (!list.childElementCount) {
+          list.innerHTML = `<li class="viewer-note">—</li>`;
+        }
+      })
+      .catch((err) => {
+        list.innerHTML = `<li class="viewer-note">${String(err)}</li>`;
+      });
+
+    const actions = document.createElement("div");
+    actions.className = "files-side-actions";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = t("files.deleteCancel");
+    cancel.onclick = () => {
+      clearSidePanel(panel);
+      onDone();
+    };
+    const confirm = document.createElement("button");
+    confirm.type = "button";
+    confirm.className = "files-side-primary";
+    confirm.textContent =
+      mode === "copy" ? t("files.transferConfirmCopy") : t("files.transferConfirmMove");
+    confirm.onclick = () => {
+      void (async () => {
+        try {
+          const data = await invoke("transfer_paths", {
+            paths,
+            destinationDir: destPath,
+            mode,
+          });
+          selectedPaths.clear();
+          clearSidePanel(panel);
+          await applySnapshot(deps, data);
+        } catch (err) {
+          showToast(String(err), "error");
+        } finally {
+          onDone();
+        }
+      })();
+    };
+    actions.appendChild(cancel);
+    actions.appendChild(confirm);
+    panel.appendChild(actions);
+  };
+
+  render();
+}
+
+async function commitRename(
+  entry: DirEntry,
+  newName: string,
+  deps: FilesPanelDeps,
+  host: HTMLElement,
+) {
+  const name = validateNameClient(newName);
+  if (!name) {
+    showToast(t("files.renameInvalid"), "error");
+    return;
+  }
+  if (name === entry.name) {
+    renamingPath = null;
+    renderFilesPanel(host, deps);
+    return;
+  }
+  try {
+    const data = await invoke("rename_path", { path: entry.path, newName: name });
+    renamingPath = null;
+    await applySnapshot(deps, data);
+  } catch (err) {
+    showToast(String(err), "error");
+  }
+}
+
 async function showArchivePeek(
   peekHost: HTMLElement,
   archivePath: string,
@@ -285,6 +536,21 @@ function showContextMenu(
   if (entry.is_archive && onPeekArchive) {
     addItem(t("files.ctxPeekArchive"), onPeekArchive);
   }
+  addItem(t("files.ctxRename"), () => {
+    renamingPath = entry.path;
+    const host = document.getElementById("files-panel");
+    if (host) {
+      renderFilesPanel(host, deps);
+    }
+  });
+  addItem(t("files.ctxDuplicate"), async () => {
+    try {
+      const data = await invoke("duplicate_path", { path: entry.path });
+      await applySnapshot(deps, data);
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  });
 
   const close = () => menu.remove();
   document.body.appendChild(menu);
@@ -441,6 +707,25 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   toolbar.appendChild(orderBtn);
   toolbar.appendChild(hiddenCb);
   toolbar.appendChild(hiddenLabel);
+
+  const createActions = document.createElement("div");
+  createActions.className = "files-create-actions";
+  const newFolderBtn = document.createElement("button");
+  newFolderBtn.type = "button";
+  newFolderBtn.textContent = t("files.newFolder");
+  newFolderBtn.onclick = () => {
+    showCreatePanel("folder", deps, () => renderFilesPanel(host, deps));
+  };
+  const newFileBtn = document.createElement("button");
+  newFileBtn.type = "button";
+  newFileBtn.textContent = t("files.newFile");
+  newFileBtn.onclick = () => {
+    showCreatePanel("file", deps, () => renderFilesPanel(host, deps));
+  };
+  createActions.appendChild(newFolderBtn);
+  createActions.appendChild(newFileBtn);
+  toolbar.appendChild(createActions);
+
   host.appendChild(toolbar);
 
   const searchRow = document.createElement("div");
@@ -497,6 +782,26 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     );
   };
   bulkBar.appendChild(copySel);
+
+  const copyTo = document.createElement("button");
+  copyTo.type = "button";
+  copyTo.textContent = t("files.copyTo");
+  copyTo.onclick = () => {
+    showDestinationPicker("copy", [...selectedPaths], deps, () =>
+      renderFilesPanel(host, deps),
+    );
+  };
+  bulkBar.appendChild(copyTo);
+
+  const moveTo = document.createElement("button");
+  moveTo.type = "button";
+  moveTo.textContent = t("files.moveTo");
+  moveTo.onclick = () => {
+    showDestinationPicker("move", [...selectedPaths], deps, () =>
+      renderFilesPanel(host, deps),
+    );
+  };
+  bulkBar.appendChild(moveTo);
 
   const delSel = document.createElement("button");
   delSel.type = "button";
@@ -586,14 +891,46 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     }
 
     const nameCell = document.createElement("td");
-    const link = document.createElement("button");
-    link.className = "file-link";
-    link.textContent = (entry.is_dir ? "[dir] " : "[file] ") + entry.name;
-    link.onclick = (e) => {
-      e.stopPropagation();
-      void openPath(entry.path, deps);
-    };
-    nameCell.appendChild(link);
+    if (renamingPath === entry.path) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "files-rename-input";
+      input.value = entry.name;
+      input.onclick = (e) => e.stopPropagation();
+      let skipBlur = false;
+      input.onkeydown = (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          skipBlur = true;
+          void commitRename(entry, input.value, deps, host);
+        }
+        if (e.key === "Escape") {
+          skipBlur = true;
+          renamingPath = null;
+          renderFilesPanel(host, deps);
+        }
+      };
+      input.onblur = () => {
+        if (skipBlur) {
+          return;
+        }
+        void commitRename(entry, input.value, deps, host);
+      };
+      nameCell.appendChild(input);
+      requestAnimationFrame(() => {
+        input.focus();
+        input.select();
+      });
+    } else {
+      const link = document.createElement("button");
+      link.className = "file-link";
+      link.textContent = (entry.is_dir ? "[dir] " : "[file] ") + entry.name;
+      link.onclick = (e) => {
+        e.stopPropagation();
+        void openPath(entry.path, deps);
+      };
+      nameCell.appendChild(link);
+    }
     if (entry.is_dir) {
       const star = document.createElement("button");
       star.type = "button";

@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -1262,17 +1263,7 @@ pub fn open_archive_entry(
 }
 
 fn guard_deletable(path: &Path) -> Result<(), String> {
-    if !path.exists() {
-        return Err(format!("not found: {}", path.display()));
-    }
-    if let Some(cfg) = crate::config::config_dir() {
-        let cfg = cfg.canonicalize().map_err(|e| e.to_string())?;
-        let canon = path.canonicalize().map_err(|e| e.to_string())?;
-        if canon == cfg {
-            return Err("cannot delete application config directory".into());
-        }
-    }
-    Ok(())
+    crate::file_ops::guard_mutating(path)
 }
 
 #[tauri::command]
@@ -1289,6 +1280,114 @@ pub fn delete_paths(
         guard_deletable(&p)?;
         crate::trash::trash_or_remove(&p)?;
     }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn transfer_paths(
+    window: tauri::Window,
+    state: State<AppState>,
+    paths: Vec<String>,
+    destination_dir: String,
+    mode: String,
+) -> Result<TabContentDto, String> {
+    if paths.is_empty() {
+        return Err("no paths selected".into());
+    }
+    let copy = match mode.as_str() {
+        "copy" => true,
+        "move" => false,
+        _ => return Err("mode must be copy or move".into()),
+    };
+    let dest = resolve_open_path(&destination_dir, &state.cwd)?;
+    if !dest.is_dir() {
+        return Err("destination is not a directory".into());
+    }
+    let sources: Vec<PathBuf> = paths
+        .iter()
+        .map(|p| resolve_open_path(p, &state.cwd))
+        .collect::<Result<Vec<_>, _>>()?;
+    crate::file_ops::transfer_paths(&sources, &dest, copy)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn create_folder(
+    window: tauri::Window,
+    state: State<AppState>,
+    parent_dir: String,
+    name: String,
+) -> Result<TabContentDto, String> {
+    let parent = resolve_open_path(&parent_dir, &state.cwd)?;
+    if !parent.is_dir() {
+        return Err("parent is not a directory".into());
+    }
+    let name = crate::file_ops::validate_entry_name(&name)?;
+    let target = parent.join(&name);
+    if target.exists() {
+        return Err("an item with that name already exists".into());
+    }
+    fs::create_dir(&target).map_err(|e| e.to_string())?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn create_text_file(
+    window: tauri::Window,
+    state: State<AppState>,
+    parent_dir: String,
+    name: String,
+) -> Result<TabContentDto, String> {
+    let parent = resolve_open_path(&parent_dir, &state.cwd)?;
+    if !parent.is_dir() {
+        return Err("parent is not a directory".into());
+    }
+    let name = crate::file_ops::validate_entry_name(&name)?;
+    let target = parent.join(&name);
+    if target.exists() {
+        return Err("an item with that name already exists".into());
+    }
+    fs::write(&target, b"").map_err(|e| e.to_string())?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn rename_path(
+    window: tauri::Window,
+    state: State<AppState>,
+    path: String,
+    new_name: String,
+) -> Result<TabContentDto, String> {
+    let src = resolve_open_path(&path, &state.cwd)?;
+    crate::file_ops::guard_mutating(&src)?;
+    let new_name = crate::file_ops::validate_entry_name(&new_name)?;
+    let parent = src
+        .parent()
+        .ok_or("path has no parent directory")?;
+    let dest = parent.join(&new_name);
+    if dest == src {
+        return snapshot(&state, window.label());
+    }
+    if dest.exists() {
+        return Err("an item with that name already exists".into());
+    }
+    fs::rename(&src, &dest).map_err(|e| e.to_string())?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn duplicate_path(
+    window: tauri::Window,
+    state: State<AppState>,
+    path: String,
+) -> Result<TabContentDto, String> {
+    let src = resolve_open_path(&path, &state.cwd)?;
+    crate::file_ops::guard_mutating(&src)?;
+    let parent = src
+        .parent()
+        .ok_or("path has no parent directory")?;
+    let dest = crate::file_ops::duplicate_destination(parent, &src)?;
+    crate::file_ops::copy_path_recursive(&src, &dest)?;
     snapshot(&state, window.label())
 }
 

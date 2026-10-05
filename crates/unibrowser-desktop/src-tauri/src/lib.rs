@@ -21,6 +21,7 @@ mod crash_recovery;
 mod document_limits;
 mod content_sniff;
 mod files_listing;
+mod file_ops;
 mod trash;
 mod window_session;
 mod workspace_layouts;
@@ -127,6 +128,11 @@ pub fn run() {
             commands::peek_archive_entries,
             commands::open_archive_entry,
             commands::delete_paths,
+            commands::transfer_paths,
+            commands::create_folder,
+            commands::create_text_file,
+            commands::rename_path,
+            commands::duplicate_path,
             commands::set_auto_save_settings,
             commands::set_download_preference,
             commands::set_board_snap_to_grid,
