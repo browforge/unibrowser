@@ -14,15 +14,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install Linux GUI deps (eframe)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Linux deps (Tauri + egui)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev \
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev \
+            libayatana-appindicator3-dev libxcb-render0-dev libxcb-shape0-dev \
             libxcb-xfixes0-dev libxkbcommon-dev libxkbcommon-x11-0 libssl-dev
+      - name: npm install (desktop UI)
+        working-directory: crates/unibrowser-desktop
+        run: npm ci
+      - name: npm build (desktop UI)
+        working-directory: crates/unibrowser-desktop
+        run: npm run build
       - name: cargo test
         run: cargo test --workspace
-      - name: cargo build release
-        run: cargo build --release -p unibrowser-app
+      - name: cargo build Tauri (debug)
+        run: cargo build -p unibrowser-desktop
+      - name: cargo build egui spike
+        run: cargo build -p unibrowser-app
 
   windows-check:
     runs-on: ubuntu-latest
@@ -31,5 +43,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-      - name: cargo check (Windows MSVC)
-        run: cargo check --workspace --target x86_64-pc-windows-msvc
+      - name: cargo check (Windows MSVC, engine + mods)
+        run: cargo check --workspace --exclude unibrowser-desktop --target x86_64-pc-windows-msvc

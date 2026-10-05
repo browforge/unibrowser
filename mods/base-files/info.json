@@ -1,0 +1,12 @@
+{
+  "name": "base-files",
+  "version": "0.1.0",
+  "title": "Files",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "Directory browsing and file:// navigation",
+  "capabilities": ["files"]
+}

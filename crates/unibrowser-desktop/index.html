@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unibrowser</title>
+  </head>
+  <body>
+    <header id="chrome">
+      <div id="mods-line" class="mods-line"></div>
+      <div id="tab-strip" class="tab-strip"></div>
+      <div class="nav-row">
+        <button type="button" id="btn-back" title="Back">←</button>
+        <button type="button" id="btn-forward" title="Forward">→</button>
+        <button type="button" id="btn-reload" title="Reload">↻</button>
+        <input id="omnibox" type="text" placeholder="file://, https://, or path" />
+        <button type="button" id="btn-demo-download" class="muted" title="Simulate download → new tab">
+          Demo download
+        </button>
+      </div>
+      <div id="toolbar" class="toolbar"></div>
+      <div id="status-line" class="status-line">Press S for command palette</div>
+    </header>
+    <main id="content-host">
+      <div id="files-panel" class="panel"></div>
+      <div id="doc-panel" class="panel doc-panel"></div>
+    </main>
+    <div id="palette" class="palette hidden">
+      <input id="palette-query" type="text" placeholder="Search commands (S)" />
+      <div id="palette-results"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+[package]
+name = "unibrowser-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Unibrowser Tauri shell"
+authors = ["Unibrowser contributors"]
+
+[lib]
+name = "unibrowser_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["unstable"] }
+tauri-plugin-opener = "2"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+unibrowser-engine = { path = "../../unibrowser-engine" }
+unibrowser-mod-host = { path = "../../unibrowser-mod-host" }
+unibrowser-mod-api = { path = "../../unibrowser-mod-api" }
+base-files = { path = "../../../mods/base-files" }
+base-web = { path = "../../../mods/base-web" }
+base-text = { path = "../../../mods/base-text" }
+base-png = { path = "../../../mods/base-png" }
+toy-markdown = { path = "../../../mods/toy-markdown" }
+url = "2"

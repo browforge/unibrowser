@@ -1,0 +1,12 @@
+{
+  "name": "base-web",
+  "version": "0.1.0",
+  "title": "Web",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "https:// and http:// tabs in the system WebView",
+  "capabilities": ["web"]
+}

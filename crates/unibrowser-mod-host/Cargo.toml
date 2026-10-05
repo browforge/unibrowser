@@ -11,6 +11,8 @@ unibrowser-engine = { path = "../unibrowser-engine" }
 base-text = { path = "../../mods/base-text" }
 base-png = { path = "../../mods/base-png" }
 toy-markdown = { path = "../../mods/toy-markdown" }
+base-files = { path = "../../mods/base-files" }
+base-web = { path = "../../mods/base-web" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 semver = { workspace = true }

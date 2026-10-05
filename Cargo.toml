@@ -8,6 +8,9 @@ members = [
     "mods/base-text",
     "mods/base-png",
     "mods/toy-markdown",
+    "mods/base-files",
+    "mods/base-web",
+    "crates/unibrowser-desktop/src-tauri",
 ]
 
 [workspace.package]

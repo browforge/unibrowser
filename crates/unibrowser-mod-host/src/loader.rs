@@ -137,6 +137,8 @@ mod tests {
     fn loads_bundled_mods_from_manifests() {
         let mut registry = CommandRegistry::with_builtins();
         let bundled: HashMap<&str, ModRegisterFn> = [
+            ("base-files", base_files::register as ModRegisterFn),
+            ("base-web", base_web::register as ModRegisterFn),
             ("base-text", base_text::register as ModRegisterFn),
             ("base-png", base_png::register as ModRegisterFn),
             ("toy-markdown", toy_markdown::register as ModRegisterFn),
@@ -145,7 +147,7 @@ mod tests {
         .collect();
         let host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
             .expect("load");
-        assert_eq!(host.load_order.len(), 3);
+        assert_eq!(host.load_order.len(), 5);
         assert!(registry.command_meta("unibrowser.font.size.increase").is_some());
     }
 }

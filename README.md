@@ -1,8 +1,8 @@
 # Unibrowser
 
-Open source **browser for files and the web**: one tab strip for folders, local files, and `https://` pages (Chrome OS–style). Downloads open in a new tab by default; the same commands and toolbars work across formats (SOLIDWORKS-style modes, grey-out-not-hide), powered by Factorio-style mods and a VS Code–sized Rust core.
+Open source **browser for files and the web**: one tab strip for folders, local files, and `https://` pages (Chrome OS–style). Downloads default to **open in a new tab**. Same commands and toolbars across formats (SOLIDWORKS-style modes, grey-out-not-hide), powered by Factorio-style mods and a VS Code–sized Rust core.
 
-**Status:** Phase 0 skeleton (Rust engine + egui demo). See [docs/vision.md](docs/vision.md) and [docs/architecture.md](docs/architecture.md).
+**Status:** Phase 1 MVP browser shell on **Tauri 2** (`unibrowser-desktop`). See [docs/vision.md](docs/vision.md) and [docs/roadmap.md](docs/roadmap.md).
 
 ## Licence
 
@@ -10,20 +10,37 @@ Apache-2.0. See [LICENSE](LICENSE) and [docs/adr/0007-licensing.md](docs/adr/000
 
 ## Requirements
 
-- Rust 1.75+ (stable)
-- **Linux:** GTK3 / X11 or Wayland dev packages for `eframe` (see CI workflow). At runtime you may also need `libxkbcommon-x11-0` on X11 (Ubuntu: `sudo apt install libxkbcommon-x11-0`).
-- **Windows:** MSVC toolchain for native builds; cross-check uses `cargo-xwin`
+- Rust 1.85+ (`rust-toolchain.toml`)
+- **Linux (Tauri):** `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`, `librsvg2-dev`, `libayatana-appindicator3-dev` ([Tauri prerequisites](https://tauri.app/start/prerequisites/))
+- **Node.js 20+** for the desktop UI build
+- **Windows:** MSVC, WebView2 runtime, Node.js; build on a Windows host (see below)
 
-## Build and run (Linux)
+## Run the product (Tauri)
 
 ```bash
-cargo build -p unibrowser-app
-cargo run -p unibrowser-app
+cd crates/unibrowser-desktop
+npm install
+npm run tauri dev
 ```
 
-- **S** opens the command palette.
-- Switch tabs between sample text, PNG, and Markdown documents.
-- **Increase font size** is the same toolbar command; PNG without a text layer stays **greyed**, not hidden.
+- Browse your home directory on first launch; open folders and files in tabs.
+- Enter `https://example.com` in the omnibox.
+- **S** opens the command palette; open a `.txt` file to use **Increase font size** (greyed for `.png` without text layer).
+- **Demo download** exercises open-in-new-tab disposition.
+
+Release build:
+
+```bash
+cd crates/unibrowser-desktop
+npm run tauri build
+# Binary: ../../target/release/unibrowser-desktop (workspace target)
+```
+
+## egui spike (optional)
+
+```bash
+cargo run -p unibrowser-app
+```
 
 ## Tests
 
@@ -33,36 +50,35 @@ cargo test --workspace
 
 ## Windows
 
-### Native (recommended on Windows)
+### Native build and run (recommended)
 
 ```powershell
-rustup target add x86_64-pc-windows-msvc
-cargo build -p unibrowser-app --release
-cargo run -p unibrowser-app
+cd crates\unibrowser-desktop
+npm install
+npm run tauri dev
 ```
+
+Release: `npm run tauri build`
 
 ### Cross-check from Linux (CI)
 
+Core crates (excluding the Tauri bundle step that needs `llvm-rc` / Windows resources):
+
 ```bash
 rustup target add x86_64-pc-windows-msvc
-cargo check --workspace --target x86_64-pc-windows-msvc
+cargo check --workspace --exclude unibrowser-desktop --target x86_64-pc-windows-msvc
 ```
 
-This validates that the Rust workspace type-checks for Windows without linking a GUI binary on Linux. For a full Windows GUI build, use MSVC on a Windows host.
-
-Optional: `cargo-xwin` can link Windows binaries from Linux if the MSVC CRT download succeeds (`cargo install cargo-xwin --locked`).
+The `unibrowser-desktop` package is built and tested on **Linux** in CI; produce a Windows installer on a Windows machine.
 
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `crates/unibrowser-mod-api` | Versioned mod API |
-| `crates/unibrowser-engine` | Commands, modes, toolbar, palette |
+| `crates/unibrowser-desktop` | **Tauri 2 browser shell** (product) |
+| `crates/unibrowser-mod-api` | Versioned mod API + `BrowserLocation` |
+| `crates/unibrowser-engine` | Commands, tabs, modes, palette |
 | `crates/unibrowser-mod-host` | `info.json` loader |
-| `crates/unibrowser-app` | Desktop demo |
-| `mods/*` | Bundled base mods (`info.json` + Rust) |
-| `docs/` | Vision, architecture, ADRs, roadmap |
-
-## Roadmap
-
-[docs/roadmap.md](docs/roadmap.md) — Phase 1 moves document surfaces to **Tauri 2 + WebView** per [ADR 0001](docs/adr/0001-shell-and-rendering.md).
+| `crates/unibrowser-app` | egui demo / harness |
+| `mods/*` | Bundled mods (`base-files`, `base-web`, `base-text`, …) |
+| `docs/` | Vision, architecture, ADRs, [downloads](docs/downloads.md) |

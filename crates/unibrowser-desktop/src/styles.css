@@ -1,0 +1,151 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #e8e8e8;
+  background: #1a1a1f;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#chrome {
+  flex: 0 0 auto;
+  border-bottom: 1px solid #333;
+  padding: 0.35rem 0.5rem;
+}
+
+.mods-line {
+  font-size: 0.75rem;
+  color: #888;
+  margin-bottom: 0.25rem;
+}
+
+.tab-strip {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.tab {
+  background: #2a2a32;
+  border: 1px solid #444;
+  color: #ccc;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: #3d5a80;
+  color: #fff;
+}
+
+.tab.new-tab {
+  font-weight: bold;
+}
+
+.nav-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+#omnibox {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  background: #111;
+  border: 1px solid #444;
+  color: #eee;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+.toolbar button.disabled,
+.toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.status-line {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+#content-host {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.panel.hidden {
+  display: none;
+}
+
+.file-link {
+  background: none;
+  border: none;
+  color: #9cf;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.2rem 0;
+  font-size: 1rem;
+}
+
+.doc-panel {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #252530;
+  border-radius: 4px;
+}
+
+.palette {
+  position: fixed;
+  top: 20%;
+  left: 25%;
+  width: 50%;
+  background: #222;
+  border: 1px solid #555;
+  padding: 0.75rem;
+  z-index: 1000;
+  box-shadow: 0 8px 24px #0008;
+}
+
+.palette.hidden {
+  display: none;
+}
+
+#palette-query {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem;
+}
+
+.palette-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem;
+  background: #333;
+  border: none;
+  color: #eee;
+  margin-bottom: 0.2rem;
+  cursor: pointer;
+}
+
+.palette-item.disabled {
+  opacity: 0.5;
+}
+
+.muted {
+  font-size: 0.8rem;
+  color: #888;
+}

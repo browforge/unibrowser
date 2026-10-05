@@ -18,12 +18,16 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 
 ## Phase 1 — MVP browser (files + web)
 
-- **Tauri 2** shell: omnibox, tab strip, back/forward where meaningful ([ADR 0001](adr/0001-shell-and-rendering.md), [ADR 0009](adr/0009-browser-as-unified-shell.md)).
-- **`BrowserLocation`** per tab; download handler defaults to **open in new tab**.
-- **Bundled `base-files` mod:** folder navigation; open files in tabs (no separate file-manager app).
-- **Bundled `base-web` mod:** `https://` tabs on system WebView; shared command layer with file tabs.
-- Open/save, dirty indicators, toolbar layout persistence.
-- **Format mods:** plain text, Markdown, PNG/JPEG, SVG, HTML on disk, PDF view, DOCX basic preview, DXF view.
+| Deliverable | Status |
+| --- | --- |
+| Tauri 2 shell (`unibrowser-desktop`): tabs, omnibox, back/forward/reload | **Working (Linux)** |
+| Child content WebView for `https://` (`base-web`, `tauri` `unstable` multiwebview) | **Working** |
+| `base-files` directory listing and open in tab | **Working** |
+| `BrowserLocation` per tab; download → new tab (command + `on_download` emit) | **Working / stub** ([downloads.md](downloads.md)) |
+| Command registry, S-key palette, font-size grey-out on file docs | **Working** |
+| egui spike (`unibrowser-app`) | Kept as harness |
+| Open/save to disk, dirty persistence, toolbar JSON on disk | Deferred |
+| SVG, PDF, DOCX, DXF format mods | Deferred |
 
 ## Phase 2 — Document and CAD depth
 

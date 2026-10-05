@@ -1,0 +1,95 @@
+use unibrowser_mod_api::{
+    BrowserLocation, Capabilities, Enablement, Mode, SelectionSnapshot,
+    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID},
+};
+use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
+
+pub const BACKEND_ID: &str = "base-web";
+
+pub struct WebBackend {
+    pub url: String,
+}
+
+impl WebBackend {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self { url: url.into() }
+    }
+}
+
+impl unibrowser_engine::document::DocumentBackend for WebBackend {
+    fn backend_id(&self) -> &str {
+        BACKEND_ID
+    }
+    fn doc_type(&self) -> &str {
+        "text/html"
+    }
+    fn display_name(&self) -> &str {
+        "Web page"
+    }
+    fn mode(&self) -> Mode {
+        Mode::Web
+    }
+    fn capabilities(&self) -> Capabilities {
+        Capabilities { font_size: false }
+    }
+    fn selection(&self) -> SelectionSnapshot {
+        SelectionSnapshot::default()
+    }
+    fn increase_font_size(&mut self) -> Result<f32, String> {
+        Err("Not implemented".into())
+    }
+    fn decrease_font_size(&mut self) -> Result<f32, String> {
+        Err("Not implemented".into())
+    }
+    fn status_line(&self) -> String {
+        format!("Web · {}", self.url)
+    }
+    fn set_demo_text_selection(&mut self, _selected: bool) {}
+}
+
+pub fn handles(location: &BrowserLocation) -> bool {
+    match location {
+        BrowserLocation::Http { url } => {
+            url.starts_with("http://") || url.starts_with("https://")
+        }
+        _ => false,
+    }
+}
+
+pub fn http_url(location: &BrowserLocation) -> Option<&str> {
+    match location {
+        BrowserLocation::Http { url } => Some(url.as_str()),
+        _ => None,
+    }
+}
+
+fn web_font_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Wrong backend".into(),
+        };
+    }
+    Enablement::Disabled {
+        reason: "Web font size requires user-style injection (deferred)".into(),
+    }
+}
+
+fn web_font_exec(doc: &mut DocumentSession) -> Result<String, String> {
+    let _ = doc;
+    Err("Web font commands not yet wired to page content".into())
+}
+
+pub fn register(registry: &mut CommandRegistry) {
+    registry.register_handler(HandlerRegistration {
+        command_id: FONT_INCREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: web_font_enable,
+        execute: web_font_exec,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: FONT_DECREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: web_font_enable,
+        execute: web_font_exec,
+    });
+}
