@@ -11,11 +11,11 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Shell | Tauri 2 desktop: tabs, omnibox (`file://`, paths, `https://`, `unibrowser://`), multi-window, split, session restore opt-in, downloads (default open in tab) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |
 | Commands | Command Manager (dense mode), palette + chords, workspace layout presets, import/export JSON; VSIX commands on **Extensions** tab (stub run) |
-| Viewers | Monaco text, PDF, DOCX (Mammoth), SVG, CSV, EPUB spine + in-book search, images (crop/zoom), video/audio, MIDI stub, `.unibrow` board/timeline |
+| Viewers | Monaco text, PDF (multi-engine proving banner + lazy raster proxy), DOCX, SVG, CSV, EPUB search, images, video/audio, MIDI stub, `.unibrow` board/timeline + MIDI scrub status |
 | Projects | Templates, `project.json` autosave backup, share zip import/export; timeline **H.264 export** (ffmpeg, fast/balanced) with progress toasts |
 | Mods | Bundled `base-*`, mod portal, Open VSX, Rhai scripts, Linux user `mods/` + dynamic cdylib (feature flag); VSIX `activationEvents` stored |
 | Downloads | Linux WebKit `on_download` → shell; optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
-| A11y prefs | High contrast, reduce motion (system/on/off), Settings onboarding checklist (non-blocking) |
+| A11y prefs | High contrast, reduce motion, onboarding checklist; CM tab keys, palette Escape, focus rings ([ux-a11y.md](ux-a11y.md)) |
 | Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), ADRs 0001–0019 |
 | Quality | `cargo test --workspace`, path/transfer fuzz tests, `./scripts/smoke-desktop-qa.sh` |
 

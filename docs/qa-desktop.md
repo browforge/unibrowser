@@ -38,6 +38,21 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 ## MIDI
 
 - Open a `.mid` / `.midi` file: viewer shows SMF format, track count, ticks per quarter, and first note-on events (scrub stub).
+- `.unibrow` timeline: scrub a **MIDI** clip — note table + status bar hint (“MIDI stays MIDI until encode”); optional scrub beep in Settings → Media.
+
+## Accessibility
+
+- Command Manager tab row: arrows, Home/End, Enter/Space ([ux-a11y.md](./ux-a11y.md)).
+- Command palette: **Escape** closes.
+
+## Export / print
+
+- DOCX / Markdown: **Export print HTML** or print preview (printer-friendly CSS).
+- `.unibrow` timeline: **Export MP4 (H.264)** with fast/balanced preset; progress toasts when ffmpeg runs.
+
+## VSIX
+
+- With an extension installed: Command Manager → **Extensions** tab; run a contributed command (stub message).
 - Web tab: Increase/decrease font persists per origin in `web-font-prefs.json`; reload tab restores size.
 - Settings / About: crash recovery list + restore (debounced writes under config `crash-recovery/`).
 - `unibrowser://about` shows Apache-2.0; run `./scripts/generate-notice.sh` for NOTICE.md.

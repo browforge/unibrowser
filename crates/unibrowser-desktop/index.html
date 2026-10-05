@@ -97,8 +97,8 @@
       <input id="tab-search-query" type="text" placeholder="Filter open tabs…" />
       <div id="tab-search-results"></div>
     </div>
-    <div id="palette" class="palette hidden">
-      <input id="palette-query" type="text" placeholder="Search commands (Ctrl+Shift+P)" />
+    <div id="palette" class="palette hidden" role="dialog" aria-modal="true" aria-label="Command palette">
+      <input id="palette-query" type="text" placeholder="Search commands (Ctrl+Shift+P)" aria-label="Search commands" />
       <div id="palette-results"></div>
     </div>
     <div id="filename-search" class="palette hidden" role="dialog" aria-label="Find files">

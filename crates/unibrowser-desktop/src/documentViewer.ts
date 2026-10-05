@@ -11,6 +11,7 @@ import { emptyStateBlock } from "./emptyState";
 import { pathsFromDataTransfer } from "./filesDrag";
 import { showToast } from "./toast";
 import { playMidiScrubBeeps } from "./midiScrubAudio";
+import { setStatusHint } from "./statusBar";
 import { t } from "./i18n";
 import {
   downloadPrintFriendlyHtml,
@@ -75,6 +76,13 @@ export interface DocumentViewerDto {
   board_snap_to_grid?: boolean;
   midi_scrub_audio_enabled?: boolean;
   midi_note_preview?: MidiNoteOnDto[];
+  pdf_engines?: PdfEngineLineDto[];
+}
+
+interface PdfEngineLineDto {
+  engine: string;
+  status: string;
+  detail: string;
 }
 
 export interface MidiNoteOnDto {
@@ -411,13 +419,28 @@ async function syncPdfSelection(selected: boolean) {
   await invoke("sync_pdf_viewer_state", { hasTextSelection: selected }).catch(() => {});
 }
 
-async function renderPdf(path: string, root: HTMLElement, scale: number, startPage: number) {
+async function renderPdf(
+  path: string,
+  root: HTMLElement,
+  scale: number,
+  startPage: number,
+  engines?: PdfEngineLineDto[],
+) {
+  void invoke<string | null>("ensure_pdf_raster_proxy", { path }).catch(() => {});
   const pdfjsLib = await loadPdfJs();
   const bytes = await readBytes(path);
   const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
   let currentPage = Math.min(Math.max(startPage, 1), doc.numPages);
   let currentScale = scale;
   root.innerHTML = "";
+  if (engines?.length) {
+    const banner = document.createElement("p");
+    banner.className = "viewer-note pdf-engine-banner";
+    banner.textContent = engines
+      .map((e) => `${e.engine} (${e.status}): ${e.detail}`)
+      .join(" · ");
+    root.appendChild(banner);
+  }
   const wrap = document.createElement("div");
   wrap.className = "pdf-page-wrap";
   root.appendChild(wrap);
@@ -1742,6 +1765,13 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     });
     scrubMidi.appendChild(table);
     scrubMidi.classList.remove("hidden");
+    const noteSummary = notes
+      .slice(0, 5)
+      .map((n) => `n${n.note}@${n.tick}`)
+      .join(", ");
+    setStatusHint(
+      `MIDI scrub: ${noteSummary}${notes.length > 5 ? "…" : ""} — MIDI stays MIDI until encode`,
+    );
   };
 
   const updatePlayheadPreview = async (timeSec: number) => {
@@ -2634,7 +2664,13 @@ export const documentViewer = {
           await renderDocx(viewer.path, body);
           break;
         case "pdf":
-          await renderPdf(viewer.path, body, viewer.pdf_scale ?? 1.25, viewer.pdf_page ?? 1);
+          await renderPdf(
+            viewer.path,
+            body,
+            viewer.pdf_scale ?? 1.25,
+            viewer.pdf_page ?? 1,
+            viewer.pdf_engines,
+          );
           break;
         case "video":
           await renderVideo(viewer.path, body, viewer.media_note);

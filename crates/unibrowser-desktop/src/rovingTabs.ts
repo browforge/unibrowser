@@ -30,6 +30,13 @@ export function bindRovingTablist(
     } else if (e.key === "End") {
       next = buttons.length - 1;
       e.preventDefault();
+    } else if (e.key === "Enter" || e.key === " ") {
+      const target = e.target as HTMLButtonElement | null;
+      if (target && buttons.includes(target)) {
+        e.preventDefault();
+        target.click();
+      }
+      return;
     } else {
       return;
     }

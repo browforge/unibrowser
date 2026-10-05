@@ -1040,6 +1040,11 @@ function scheduleGeometrySave() {
 window.addEventListener("resize", scheduleGeometrySave);
 window.addEventListener("move", scheduleGeometrySave);
 
+function closePalette() {
+  paletteOpen = false;
+  palette.classList.add("hidden");
+}
+
 function togglePalette() {
   paletteOpen = !paletteOpen;
   palette.classList.toggle("hidden", !paletteOpen);
@@ -1119,6 +1124,18 @@ document.addEventListener(
   async (e) => {
   if (e.repeat) {
     return;
+  }
+  if (e.key === "Escape") {
+    if (paletteOpen) {
+      e.preventDefault();
+      closePalette();
+      return;
+    }
+    if (tabSearchOpen) {
+      e.preventDefault();
+      toggleTabSearch();
+      return;
+    }
   }
   if (!filesBrowserWrap.classList.contains("hidden") && handleFilesKeyDown(e)) {
     return;

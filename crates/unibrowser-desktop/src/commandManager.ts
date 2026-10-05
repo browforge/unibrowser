@@ -78,6 +78,7 @@ function renderCommandButtons(
     label.textContent = cmd.title;
     btn.appendChild(label);
     btn.title = cmd.reason ?? cmd.command_id;
+    btn.setAttribute("aria-label", cmd.title);
     btn.disabled = !cmd.enabled;
     btn.className = cmd.enabled ? "ui-command" : "ui-command disabled";
     btn.dataset.commandId = cmd.command_id;
@@ -228,6 +229,7 @@ export const commandManager = {
             : tab.selected && snapshot.context_pinned
               ? `${tab.label} (pinned)`
               : tab.label;
+      btn.setAttribute("aria-label", btn.title);
       btn.onclick = async () => {
         await invoke("select_command_manager_tab", { tabId: tab.id });
         await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);

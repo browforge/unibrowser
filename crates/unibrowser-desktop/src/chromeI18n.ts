@@ -11,6 +11,10 @@ export function applyChromeI18n() {
     } else {
       el.textContent = text;
     }
+    const label = title ?? text;
+    if (label) {
+      el.setAttribute("aria-label", label);
+    }
     if (title) {
       el.title = title;
     }

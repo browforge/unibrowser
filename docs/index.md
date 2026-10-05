@@ -34,6 +34,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | --- | --- |
 | [blitz-status.md](blitz-status.md) | Living Wed report: shipped, gaps, runbook, known bugs |
 | [qa-desktop.md](qa-desktop.md) | Manual desktop checklist |
+| [ux-a11y.md](ux-a11y.md) | Keyboard map and focus notes |
 | [report-visuals.md](report-visuals.md) | Wednesday report screenshots and capture script |
 | [ocr-sidecar.md](ocr-sidecar.md) | Planned Tesseract OCR sidecar (UI stub today) |
 

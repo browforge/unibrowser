@@ -55,6 +55,12 @@ export function setZoomHandler(
   }
 }
 
+export function setStatusHint(hint: string) {
+  if (hintEl) {
+    hintEl.textContent = hint;
+  }
+}
+
 export function updateStatusBar(model: StatusBarModel) {
   lastPath = model.path;
   if (pathEl) {

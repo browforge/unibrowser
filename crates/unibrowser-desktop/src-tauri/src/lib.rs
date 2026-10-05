@@ -24,6 +24,7 @@ mod files_listing;
 pub mod file_ops;
 mod batch_images;
 mod pdf_preview;
+mod pdf_proving;
 mod dir_list;
 mod dir_search;
 mod listing_control;
@@ -117,6 +118,7 @@ pub fn run() {
             rhai_host::run_rhai_script,
             commands::sync_pdf_viewer_state,
             commands::sync_pdf_page,
+            commands::ensure_pdf_raster_proxy,
             commands::sync_pdf_scale,
             commands::web_page_zoom,
             commands::pick_open_file,

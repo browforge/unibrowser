@@ -217,6 +217,8 @@ pub struct DocumentViewerDto {
     pub midi_scrub_audio_enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub midi_note_preview: Option<Vec<MidiNoteOnDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pdf_engines: Option<Vec<crate::pdf_proving::PdfEngineLineDto>>,
 }
 
 #[derive(Serialize)]
@@ -529,6 +531,7 @@ fn document_viewer_dto(
             board_snap_to_grid: Some(prefs.board_snap_to_grid),
             midi_scrub_audio_enabled: Some(prefs.midi_scrub_audio_enabled),
             midi_note_preview: None,
+            pdf_engines: None,
         });
     }
     if doc.backend.backend_id() == crate::settings_stub::BACKEND_ID {
@@ -548,6 +551,7 @@ fn document_viewer_dto(
             board_snap_to_grid: None,
             midi_scrub_audio_enabled: None,
             midi_note_preview: None,
+            pdf_engines: None,
         });
     }
     if doc.backend.backend_id() == crate::about_stub::BACKEND_ID {
@@ -567,6 +571,7 @@ fn document_viewer_dto(
             board_snap_to_grid: None,
             midi_scrub_audio_enabled: None,
             midi_note_preview: None,
+            pdf_engines: None,
         });
     }
     if doc.backend.backend_id() == crate::keys_stub::BACKEND_ID {
@@ -586,6 +591,7 @@ fn document_viewer_dto(
             board_snap_to_grid: None,
             midi_scrub_audio_enabled: None,
             midi_note_preview: None,
+            pdf_engines: None,
         });
     }
     if doc.backend.backend_id() == crate::midi_stub::BACKEND_ID {
@@ -622,6 +628,7 @@ fn document_viewer_dto(
             board_snap_to_grid: None,
             midi_scrub_audio_enabled: None,
             midi_note_preview: Some(notes),
+            pdf_engines: None,
         });
     }
     let viewer = match doc.backend.backend_id() {
@@ -637,12 +644,14 @@ fn document_viewer_dto(
         crate::csv_stub::BACKEND_ID => crate::csv_stub::VIEWER_KIND,
         _ => return None,
     };
-    let (pdf_scale, pdf_page) = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
+    let (pdf_scale, pdf_page, pdf_engines) = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
+        let engines = crate::pdf_proving::pdf_engine_lines(Path::new(&doc.path));
+        let eng = Some(engines);
         base_pdf::try_pdf_backend(&mut *doc.backend)
-            .map(|b| (Some(b.render_scale), Some(b.page_index)))
-            .unwrap_or((None, None))
+            .map(|b| (Some(b.render_scale), Some(b.page_index), eng.clone()))
+            .unwrap_or((None, None, eng))
     } else {
-        (None, None)
+        (None, None, None)
     };
     let media_note = if doc.backend.backend_id() == base_video::BACKEND_ID
         || doc.backend.backend_id() == base_audio::BACKEND_ID
@@ -667,6 +676,7 @@ fn document_viewer_dto(
         board_snap_to_grid: None,
         midi_scrub_audio_enabled: None,
         midi_note_preview: None,
+        pdf_engines,
     })
 }
 
@@ -2446,6 +2456,19 @@ pub fn sync_pdf_page(window: tauri::Window, page: u32, state: State<AppState>) -
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
     pdf.set_page_index(page);
     Ok(())
+}
+
+#[tauri::command]
+pub fn ensure_pdf_raster_proxy(path: String) -> Result<Option<String>, String> {
+    let p = Path::new(&path);
+    if !p.is_file() {
+        return Err("not a file".into());
+    }
+    match crate::pdf_preview::pdf_first_page_preview(p) {
+        Ok(out) if out.is_file() => Ok(Some(out.to_string_lossy().into_owned())),
+        Ok(_) => Ok(None),
+        Err(e) => Err(e),
+    }
 }
 
 #[tauri::command]

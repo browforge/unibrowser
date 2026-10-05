@@ -29,8 +29,11 @@ Launch
   [ ] unibrowser://about — licence, privacy (no telemetry), NOTICE hint, crash backups
   [ ] Settings — workspace layout save / load / delete
   [ ] .mid file — SMF format / track count in viewer
+  [ ] Command manager: arrow keys on tabs; Extensions tab shows VSIX commands (stub run)
   [ ] Command manager: Export layout / Import layout JSON
+  [ ] Command palette: Escape closes without running a command
   [ ] .unibrow project: board cards drag; timeline drag reorder + type badges
+  [ ] .unibrow timeline: MIDI clip scrub shows notes in panel + status bar; H.264 export (fast) when ffmpeg present
   [ ] Status bar: click path to copy; Ctrl+Shift+V paste path in omnibox
   [ ] Status bar: encoding (text), line/col (text), zoom (PDF/image/web)
   [ ] Ctrl+K then Ctrl+S saves text (sequence sketch)
@@ -42,8 +45,9 @@ Tabs and files
   [ ] Tab search (Ctrl+Shift+T) finds open tabs
 
 Viewers and zoom
-  [ ] PDF: page nav, canvas thumbnails, zoom +/-, Copy selection, print
-  [ ] DOCX: search highlights, Prev/Next match
+  [ ] PDF: engine banner (document / raster / vector); page nav, thumbnails, zoom, print
+  [ ] DOCX: search highlights, Prev/Next match; Export print HTML
+  [ ] Markdown: Print preview uses printer-friendly HTML
   [ ] Image: Crop overlay, Save cropped as… (new file), Clear crop
   [ ] Markdown preview: click https/file link opens safely
   [ ] Settings: Open another window

@@ -1431,9 +1431,21 @@ body {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-.unibrow-board-card:focus-visible {
+.unibrow-board-card:focus-visible,
+.cm-tab:focus-visible,
+.ui-command:focus-visible,
+.palette-item:focus-visible,
+.cm-pin:focus-visible,
+.cm-layout-btn:focus-visible {
   outline: 2px solid var(--accent, #3b82f6);
   outline-offset: 2px;
+}
+
+[data-high-contrast="true"] button:focus-visible,
+[data-high-contrast="true"] .cm-tab:focus-visible,
+[data-high-contrast="true"] .ui-command:focus-visible {
+  outline-width: 3px;
+  outline-color: #7cfc7c;
 }
 
 .new-project-overlay {

@@ -6,6 +6,8 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- Accessibility: Command Manager tab keyboard map, palette Escape, focus rings, toolbar `aria-label`s ([`docs/ux-a11y.md`](docs/ux-a11y.md)).
+- PDF proving banner (document / raster / vector) + `ensure_pdf_raster_proxy`; timeline MIDI scrub status bar + encode note.
 - VSIX `activationEvents` metadata; stub execute path; **Extensions** Command Manager tab ([`docs/extension-host.md`](docs/extension-host.md)).
 - Timeline **Export MP4 (H.264)** (`fast` / `balanced`) via ffmpeg with `unibrowser-encode-progress` events; sidecar `EncodeH264` op.
 - [`docs/browser-shell.md`](docs/browser-shell.md); Settings toggle **Open web downloads in system browser** (WebView2 interim).
