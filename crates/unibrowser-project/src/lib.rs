@@ -102,6 +102,13 @@ pub fn materialize_zip_package(zip_path: &Path, cache_dir: &Path) -> Result<Path
     zip_bundle::materialize_zip_package(zip_path, cache_dir)
 }
 
+pub fn list_zip_archive_entries(
+    path: &Path,
+    max_entries: usize,
+) -> Result<Vec<zip_bundle::ZipEntrySummary>, ProjectError> {
+    zip_bundle::list_zip_entries(path, max_entries)
+}
+
 /// Directory containing `project.json` — materialises zip packages when needed.
 pub fn resolve_package_root(path: &Path, zip_cache_dir: &Path) -> Result<PathBuf, ProjectError> {
     if path.is_dir() && path.join(PROJECT_FILE).is_file() {
@@ -560,6 +567,8 @@ mod tests {
         let materialized = materialize_zip_package(&zip_path, &cache).expect("materialize");
         let opened = open_package(&materialized).expect("open");
         assert_eq!(opened.manifest.title, "ZipMe");
+        let listed = list_zip_archive_entries(&zip_path, 50).expect("list");
+        assert!(listed.iter().any(|e| e.path.contains("project.json")));
         let _ = fs::remove_dir_all(&dir);
         let _ = fs::remove_dir_all(&zip_path);
     }

@@ -204,6 +204,7 @@ pub struct TabContentDto {
     pub chrome_notice: Option<String>,
     pub ntp_sections: NtpSectionsDto,
     pub files_view: FilesViewDto,
+    pub folder_favorites: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -752,6 +753,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         chrome_notice,
         ntp_sections: ntp_sections_dto(&prefs),
         files_view: files_view_dto(&prefs),
+        folder_favorites: prefs.folder_favorites.clone(),
     })
 }
 
@@ -1147,6 +1149,87 @@ pub fn open_path(window: tauri::Window, path: String, app: AppHandle, state: Sta
     }
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn open_path_in_new_tab(
+    window: tauri::Window,
+    path: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let file_path = resolve_open_path(&path, &state.cwd)?;
+    allow_asset_protocol_file(&app, &file_path);
+    let loc = BrowserLocation::File { path: file_path.clone() };
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.open_tab(loc.clone());
+    if let Some(tab) = tabs.active_tab_mut() {
+        tab.is_directory = is_dir;
+        tab.document = doc;
+    }
+    if let BrowserLocation::File { path } = &loc {
+        if path.is_file() {
+            touch_recent_file(path);
+        }
+    }
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn reveal_path_in_system(
+    path: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let p = resolve_open_path(&path, &state.cwd)?;
+    app.opener()
+        .reveal_item_in_dir(p)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn toggle_folder_favorite(path: String, state: State<AppState>) -> Result<Vec<String>, String> {
+    let resolved = resolve_open_path(&path, &state.cwd)?;
+    if !resolved.is_dir() {
+        return Err("only folders can be favourites".into());
+    }
+    let path_str = resolved.to_string_lossy().into_owned();
+    let mut prefs = load_preferences();
+    crate::preferences::toggle_folder_favorite(&mut prefs, &path_str);
+    save_preferences(&prefs)?;
+    Ok(prefs.folder_favorites.clone())
+}
+
+#[derive(Serialize)]
+pub struct ArchiveEntryDto {
+    pub path: String,
+    pub is_dir: bool,
+    pub size: u64,
+}
+
+#[tauri::command]
+pub fn peek_archive_entries(
+    path: String,
+    max_entries: Option<usize>,
+    state: State<AppState>,
+) -> Result<Vec<ArchiveEntryDto>, String> {
+    let p = resolve_open_path(&path, &state.cwd)?;
+    let cap = max_entries.unwrap_or(200).clamp(1, 500);
+    let entries = unibrowser_project::list_zip_archive_entries(&p, cap)
+        .map_err(|e| e.to_string())?;
+    Ok(entries
+        .into_iter()
+        .map(|e| ArchiveEntryDto {
+            path: e.path,
+            is_dir: e.is_dir,
+            size: e.size,
+        })
+        .collect())
 }
 
 #[tauri::command]

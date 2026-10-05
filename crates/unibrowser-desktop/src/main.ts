@@ -18,6 +18,8 @@ import { applyChromeI18n, modsLineText } from "./chromeI18n";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
 import { emptyStateBlock } from "./emptyState";
+import { renderFilesPanel } from "./filesPanel";
+import type { DirEntry as FilesDirEntry, FilesViewDto } from "./filesPanelTypes";
 
 interface TabDto {
   id: number;
@@ -35,19 +37,7 @@ interface TabSearchHit {
   score: number;
 }
 
-interface DirEntry {
-  name: string;
-  path: string;
-  is_dir: boolean;
-  size_bytes?: number;
-  modified_unix?: number;
-}
-
-interface FilesViewDto {
-  sort: string;
-  sort_ascending: boolean;
-  show_hidden: boolean;
-}
+type DirEntry = FilesDirEntry;
 
 interface ModSuggestionDto {
   mod_id: string;
@@ -112,6 +102,7 @@ interface TabContentDto {
     show_recent: boolean;
   };
   files_view: FilesViewDto;
+  folder_favorites: string[];
 }
 
 interface DownloadEventPayload {
@@ -285,16 +276,6 @@ function renderTabs(data: TabContentDto) {
   omnibox.value = data.omnibox;
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 async function persistFilesView(view: FilesViewDto) {
   await invoke("set_files_view_prefs", {
     input: {
@@ -306,97 +287,25 @@ async function persistFilesView(view: FilesViewDto) {
   await refreshState();
 }
 
-function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto) {
+const folderFavoritesCache: string[] = [];
+
+function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto, browsePath: string, favorites: string[]) {
   filesPanel.innerHTML = "";
   if (!entries) {
     filesPanel.classList.add("hidden");
     return;
   }
   filesPanel.classList.remove("hidden");
-  const toolbar = document.createElement("div");
-  toolbar.className = "files-toolbar";
-  const sortLabel = document.createElement("label");
-  sortLabel.textContent = t("files.sort");
-  const sortSelect = document.createElement("select");
-  sortSelect.className = "files-sort";
-  [
-    { value: "name", label: t("files.sortName") },
-    { value: "date", label: t("files.sortDate") },
-    { value: "size", label: t("files.sortSize") },
-  ].forEach((opt) => {
-    const o = document.createElement("option");
-    o.value = opt.value;
-    o.textContent = opt.label;
-    sortSelect.appendChild(o);
+  folderFavoritesCache.length = 0;
+  folderFavoritesCache.push(...favorites);
+  renderFilesPanel(filesPanel, {
+    entries,
+    filesView,
+    browsePath,
+    folderFavorites: folderFavoritesCache,
+    onApplyState: (data) => applyState(data as TabContentDto),
+    persistFilesView,
   });
-  sortSelect.value = filesView.sort;
-  const orderBtn = document.createElement("button");
-  orderBtn.type = "button";
-  orderBtn.className = "files-order";
-  orderBtn.textContent = filesView.sort_ascending ? t("files.ascending") : t("files.descending");
-  orderBtn.title = t("files.toggleOrder");
-  const hiddenCb = document.createElement("input");
-  hiddenCb.type = "checkbox";
-  hiddenCb.id = "files-show-hidden";
-  hiddenCb.checked = filesView.show_hidden;
-  const hiddenLabel = document.createElement("label");
-  hiddenLabel.htmlFor = hiddenCb.id;
-  hiddenLabel.textContent = t("files.showHidden");
-  sortSelect.onchange = () => {
-    void persistFilesView({
-      ...filesView,
-      sort: sortSelect.value,
-    });
-  };
-  orderBtn.onclick = () => {
-    void persistFilesView({
-      ...filesView,
-      sort_ascending: !filesView.sort_ascending,
-    });
-  };
-  hiddenCb.onchange = () => {
-    void persistFilesView({
-      ...filesView,
-      show_hidden: hiddenCb.checked,
-    });
-  };
-  toolbar.appendChild(sortLabel);
-  toolbar.appendChild(sortSelect);
-  toolbar.appendChild(orderBtn);
-  toolbar.appendChild(hiddenCb);
-  toolbar.appendChild(hiddenLabel);
-  filesPanel.appendChild(toolbar);
-
-  const table = document.createElement("table");
-  table.className = "files-table";
-  entries.forEach((entry) => {
-    const row = document.createElement("tr");
-    const nameCell = document.createElement("td");
-    const link = document.createElement("button");
-    link.className = "file-link";
-    link.textContent = (entry.is_dir ? "[dir] " : "[file] ") + entry.name;
-    link.onclick = () =>
-      invoke<TabContentDto>("open_path", { path: entry.path }).then(applyState);
-    nameCell.appendChild(link);
-    const metaCell = document.createElement("td");
-    metaCell.className = "files-meta";
-    if (entry.is_dir) {
-      metaCell.textContent = "—";
-    } else {
-      const parts: string[] = [];
-      if (entry.size_bytes != null) {
-        parts.push(formatFileSize(entry.size_bytes));
-      }
-      if (entry.modified_unix) {
-        parts.push(new Date(entry.modified_unix * 1000).toLocaleString());
-      }
-      metaCell.textContent = parts.join(" · ") || "";
-    }
-    row.appendChild(nameCell);
-    row.appendChild(metaCell);
-    table.appendChild(row);
-  });
-  filesPanel.appendChild(table);
 }
 
 function renderModPortal(portal: ModPortalDto | null) {
@@ -788,6 +697,8 @@ async function applyState(data: TabContentDto) {
       renderFiles(
         data.directory_entries,
         data.files_view ?? { sort: "name", sort_ascending: true, show_hidden: false },
+        data.browse_folder_path,
+        data.folder_favorites ?? [],
       );
     }
   }

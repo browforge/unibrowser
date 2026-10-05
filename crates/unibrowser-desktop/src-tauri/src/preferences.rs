@@ -67,6 +67,9 @@ pub struct Preferences {
     pub advanced_webview_devtools: bool,
     #[serde(default)]
     pub files_view: FilesViewPrefs,
+    /// Favourite folder paths (bookmarked from files view).
+    #[serde(default)]
+    pub folder_favorites: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -153,7 +156,19 @@ impl Default for Preferences {
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,
             files_view: FilesViewPrefs::default(),
+            folder_favorites: Vec::new(),
         }
+    }
+}
+
+pub fn toggle_folder_favorite(prefs: &mut Preferences, path: &str) {
+    if let Some(idx) = prefs.folder_favorites.iter().position(|p| p == path) {
+        prefs.folder_favorites.remove(idx);
+        return;
+    }
+    prefs.folder_favorites.insert(0, path.to_string());
+    if prefs.folder_favorites.len() > 24 {
+        prefs.folder_favorites.truncate(24);
     }
 }
 

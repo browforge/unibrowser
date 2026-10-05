@@ -23,7 +23,8 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 
 | Capability | Detail |
 | --- | --- |
-| Folder browse | List with **sort** (name / date / size), direction toggle, **hidden files** toggle (global prefs) |
+| Folder browse | **Breadcrumbs**, parent up, **folder favourites** (star), sort (name/date/size), hidden files, **lazy image thumbnails** (capped), **context menu** (open, new tab, copy path, reveal in OS file manager) |
+| Archives | **Peek** `.zip` / `.unibrow` zip contents without extracting (capped entry list) |
 | Magic-byte sniff | Wrong extension still opens correct viewer: PDF, PNG, JPEG, GIF, WebP, ZIP/EPUB, WAV, MP3, OGG, FLAC, RIFF/AVI → video, etc. |
 | Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |
 | Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters |
@@ -36,7 +37,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 | Capability | Detail |
 | --- | --- |
 | Command Manager | Context tabs, floating toolbars, import/export JSON layouts, workspace layout presets |
-| Palette | Fuzzy search with improved scoring; **key chord shown** next to each command when bound |
+| Palette | Fuzzy search (prefix/word/consecutive bonuses); **key chord** beside each command when bound |
 | Shortcuts | `keybindings.json` + VSIX contributions; `unibrowser://keys` cheatsheet page |
 | Chrome | Bookmark bar, split view, tab search, drag-drop open, status bar, toasts, en-NZ `t()` strings |
 | Compare | Side-by-side text diff (Monaco) for two files |

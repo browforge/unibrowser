@@ -8,7 +8,51 @@ use zip::read::ZipArchive;
 use zip::write::SimpleFileOptions;
 use zip::{ZipWriter, write::FileOptions};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{ProjectError, PROJECT_FILE};
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ZipEntrySummary {
+    pub path: String,
+    pub is_dir: bool,
+    pub size: u64,
+}
+
+/// List entries inside a zip file (`.zip` or `.unibrow` package) without extracting.
+pub fn list_zip_entries(path: &Path, max_entries: usize) -> Result<Vec<ZipEntrySummary>, ProjectError> {
+    if !path.is_file() {
+        return Err(ProjectError::Msg("not a file".into()));
+    }
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if ext == "unibrow" && !is_unibrow_zip_file(path) {
+        return Err(ProjectError::Msg("not a zip archive".into()));
+    }
+    if ext != "zip" && ext != "unibrow" {
+        return Err(ProjectError::Msg("not a zip archive".into()));
+    }
+    let file = File::open(path)?;
+    let mut archive = ZipArchive::new(file)?;
+    let cap = max_entries.min(archive.len());
+    let mut out = Vec::with_capacity(cap);
+    for i in 0..cap {
+        let entry = archive
+            .by_index(i)
+            .map_err(|e| ProjectError::Msg(e.to_string()))?;
+        let name = entry.name().replace('\\', "/");
+        let is_dir = entry.is_dir() || name.ends_with('/');
+        out.push(ZipEntrySummary {
+            path: name,
+            is_dir,
+            size: entry.size(),
+        });
+    }
+    Ok(out)
+}
 
 fn zip_has_root_manifest(path: &Path) -> Result<bool, ProjectError> {
     let file = File::open(path)?;

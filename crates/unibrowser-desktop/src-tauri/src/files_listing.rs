@@ -44,6 +44,8 @@ mod tests {
             is_dir: dir,
             size_bytes: size,
             modified_unix: modified,
+            is_image: false,
+            is_archive: false,
         }
     }
 
