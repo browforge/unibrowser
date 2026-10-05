@@ -159,6 +159,13 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["pull", "fetch"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::GO_TO_TAB,
+            title: "Go to tab",
+            icon: "tabs",
+            default_keybinding: Some("Ctrl+Shift+A"),
+            aliases: &["tab search", "find tab", "switch tab"],
+        });
         reg
     }
 

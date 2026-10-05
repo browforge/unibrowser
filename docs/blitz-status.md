@@ -51,6 +51,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Safe mode | `UNIBROWSER_SAFE_MODE=1` or Settings → disable user mods; [safe-mode.md](safe-mode.md) |
 | Privacy | No analytics SDKs; [privacy.md](privacy.md) + About **No telemetry** line |
 | Demo pack | [examples/demo-pack/](../examples/demo-pack/) sample txt/md/svg/png/unibrow |
+| Crash logs | Panic hook writes `crash-logs/` under config; About/Diagnostics **Open crash logs folder** (local only) |
+| Updates | Settings **Check for updates** opens releases URL only — [updates.md](updates.md) |
+| Go to tab | **Ctrl+Shift+A** (or T) / palette **Go to tab** — fuzzy search across all windows |
+| Diagnostics memory | Linux RSS from `/proc/self/status` when available |
 | Diagnostics | `unibrowser://diagnostics` — mods, ffmpeg, WebView stack, recent error log ring buffer |
 | Settings search | Filter Settings sections by typing in the search field |
 | Roadmap | [roadmap.md](roadmap.md) refreshed vs blitz shipped vs open (VSIX JS, WebView2 downloads, OCR, full encode) |

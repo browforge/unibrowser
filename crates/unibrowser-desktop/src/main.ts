@@ -71,6 +71,7 @@ interface TabDto {
 }
 
 interface TabSearchHit {
+  window_label: string;
   tab_index: number;
   label: string;
   omnibox: string;
@@ -1034,6 +1035,10 @@ async function processCommandResult(msg: string, commandId?: string) {
     togglePalette();
     return;
   }
+  if (msg === "tab-search") {
+    toggleTabSearch();
+    return;
+  }
   const toast = await handleShellCommandMessage(msg);
   if (toast && msg !== "Cancelled" && commandId !== "unibrowser.script.demo.hello") {
     showToast(String(msg), "info");
@@ -1266,6 +1271,15 @@ async function selectTab(index: number) {
   await refreshState();
 }
 
+async function activateTabHit(hit: TabSearchHit) {
+  await textEditor.flush();
+  await invoke("activate_tab_in_window", {
+    windowLabel: hit.window_label,
+    tabIndex: hit.tab_index,
+  });
+  await refreshState();
+}
+
 async function closeTabAt(index: number, dirty: boolean) {
   const force = dirty
     ? window.confirm("This tab has unsaved changes. Close anyway?")
@@ -1467,11 +1481,12 @@ async function refreshTabSearchResults() {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "palette-item";
-    row.textContent = hit.label;
-    row.title = hit.omnibox;
+    const winTag = hit.window_label === "main" ? "" : `[${hit.window_label}] `;
+    row.textContent = `${winTag}${hit.label}`;
+    row.title = `${hit.omnibox} (${hit.window_label})`;
     row.onclick = () => {
       toggleTabSearch();
-      void selectTab(hit.tab_index);
+      void activateTabHit(hit);
     };
     tabSearchResults.appendChild(row);
   });
@@ -1539,7 +1554,7 @@ document.addEventListener(
     toggleGlobalFind(lastBrowseFolderPath);
     return;
   }
-  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "t") {
+  if (e.ctrlKey && e.shiftKey && (e.key.toLowerCase() === "t" || e.key.toLowerCase() === "a")) {
     e.preventDefault();
     toggleTabSearch();
     return;

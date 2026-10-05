@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { appendCrashLogsSection } from "./crashLogsLink";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { t } from "./i18n";
 
@@ -111,4 +112,5 @@ export async function renderAbout(root: HTMLElement) {
   recovery.appendChild(recoveryBody);
   await appendCrashRecoveryPanel(recoveryBody, { compact: true });
   root.appendChild(recovery);
+  appendCrashLogsSection(root);
 }

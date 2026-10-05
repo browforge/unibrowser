@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Crash logs:** panic hook writes local files under `crash-logs/`; About/Diagnostics open folder; never uploaded.
+- **Updates stub:** Settings **Check for updates** opens releases URL (`UNIBROWSER_RELEASES_URL` override) — [updates.md](docs/updates.md).
+- **Go to tab:** palette **Go to tab** and **Ctrl+Shift+A**; fuzzy finder includes tabs in every window.
+- **Diagnostics:** process RSS note on Linux when `/proc/self/status` is readable.
 - **Notification center:** status bar **Alerts** opens a history drawer (last 20); ephemeral chrome toasts still show for new events.
 - **Safe mode:** `UNIBROWSER_SAFE_MODE=1` or Settings → disable user mods; diagnostics shows state — [safe-mode.md](docs/safe-mode.md).
 - **Privacy:** [docs/privacy.md](docs/privacy.md); About states **No telemetry** (no analytics SDKs).

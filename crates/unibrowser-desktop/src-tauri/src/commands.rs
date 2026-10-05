@@ -71,10 +71,17 @@ pub struct TabDto {
 
 #[derive(Serialize)]
 pub struct TabSearchHitDto {
+    pub window_label: String,
     pub tab_index: usize,
     pub label: String,
     pub omnibox: String,
     pub score: i32,
+}
+
+pub fn releases_page_url() -> String {
+    std::env::var("UNIBROWSER_RELEASES_URL").unwrap_or_else(|_| {
+        "https://github.com/unibrowser/unibrowser/releases".to_string()
+    })
 }
 
 const ERR_UNSAVED_CLOSE: &str = "unsaved: confirm close";
@@ -1356,30 +1363,78 @@ pub fn toggle_tab_pin(
 }
 
 #[tauri::command]
-pub fn search_open_tabs(window: tauri::Window, query: String, state: State<AppState>) -> Result<Vec<TabSearchHitDto>, String> {
-    let _sess_tabs = ws(&state, &window)?;
-    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let mut hits: Vec<TabSearchHitDto> = tabs
-        .tabs()
-        .iter()
-        .enumerate()
-        .filter_map(|(index, tab)| {
+pub fn search_open_tabs(
+    _window: tauri::Window,
+    query: String,
+    state: State<AppState>,
+) -> Result<Vec<TabSearchHitDto>, String> {
+    let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
+    let mut hits: Vec<TabSearchHitDto> = Vec::new();
+    for (window_label, sess) in sessions.iter() {
+        let tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
+        for (index, tab) in tabs.tabs().iter().enumerate() {
             let label = tab.location.display_label();
             let omnibox = location_to_omnibox(&tab.location);
             let score = fuzzy_score(&query, &label).max(fuzzy_score(&query, &omnibox));
             if score < 0 && !query.is_empty() {
-                return None;
+                continue;
             }
-            Some(TabSearchHitDto {
+            hits.push(TabSearchHitDto {
+                window_label: window_label.clone(),
                 tab_index: index,
                 label,
                 omnibox,
                 score: score.max(0),
-            })
-        })
-        .collect();
-    hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.label.cmp(&b.label)));
+            });
+        }
+    }
+    hits.sort_by(|a, b| {
+        b.score
+            .cmp(&a.score)
+            .then_with(|| a.window_label.cmp(&b.window_label))
+            .then_with(|| a.label.cmp(&b.label))
+    });
     Ok(hits)
+}
+
+#[tauri::command]
+pub fn activate_tab_in_window(
+    window_label: String,
+    tab_index: usize,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let sess = ws_label(&state, &window_label)?;
+    let mut tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.set_active(tab_index);
+    let loc = tabs
+        .active_tab()
+        .map(|t| t.location.clone())
+        .ok_or("no tab")?;
+    update_content_webview(&app, &window_label, &loc)?;
+    if let Some(w) = app.get_webview_window(&window_label) {
+        let _ = w.set_focus();
+    }
+    let _ = app.emit("browser-state-updated", ());
+    Ok(())
+}
+
+#[tauri::command]
+pub fn open_crash_logs_folder(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = crate::crash_log::ensure_crash_logs_dir().ok_or("config dir unavailable")?;
+    app.opener()
+        .reveal_item_in_dir(dir)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn open_releases_page(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = releases_page_url();
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn apply_session_to_window(
@@ -2466,6 +2521,9 @@ pub fn execute_command(window: tauri::Window,
 ) -> Result<String, String> {
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
+    }
+    if command_id == unibrowser_mod_api::commands::GO_TO_TAB {
+        return Ok("tab-search".into());
     }
     if command_id == unibrowser_mod_api::commands::NEW_WINDOW {
         let label = open_new_browser_window(window, app)?;
@@ -4414,6 +4472,9 @@ pub struct DiagnosticsInfoDto {
     pub recent_errors: Vec<crate::diagnostic_log::DiagnosticLogEntry>,
     pub user_mods_disabled: bool,
     pub safe_mode_env: bool,
+    pub memory_rss_kb: Option<u64>,
+    pub memory_detail: String,
+    pub crash_logs_dir: Option<String>,
 }
 
 #[tauri::command]
@@ -4439,6 +4500,7 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
             at_ms: r.at_ms,
         })
         .collect();
+    let process_mem = crate::process_status::process_memory();
     DiagnosticsInfoDto {
         mods_loaded: state.mods_loaded_line(),
         mod_catalog_count: state.bundled_mod_count() as u32,
@@ -4459,6 +4521,10 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
         recent_errors: crate::diagnostic_log::recent_entries(),
         user_mods_disabled: crate::preferences::user_mods_disabled(),
         safe_mode_env: std::env::var("UNIBROWSER_SAFE_MODE").as_deref() == Ok("1"),
+        memory_rss_kb: process_mem.rss_kb,
+        memory_detail: process_mem.detail,
+        crash_logs_dir: crate::crash_log::crash_logs_dir()
+            .map(|p| p.to_string_lossy().into_owned()),
     }
 }
 

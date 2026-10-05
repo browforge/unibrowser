@@ -24,6 +24,8 @@ mod capture;
 mod web_font_prefs;
 mod web_zoom_prefs;
 mod crash_recovery;
+mod crash_log;
+mod process_status;
 mod project_recovery;
 mod document_limits;
 mod content_sniff;
@@ -56,6 +58,7 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    crash_log::install_panic_hook();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -102,6 +105,9 @@ pub fn run() {
             commands::toggle_tab_pin,
             commands::close_tab,
             commands::search_open_tabs,
+            commands::activate_tab_in_window,
+            commands::open_crash_logs_folder,
+            commands::open_releases_page,
             commands::set_restore_session_on_launch,
             commands::navigate_omnibox,
             commands::open_path,

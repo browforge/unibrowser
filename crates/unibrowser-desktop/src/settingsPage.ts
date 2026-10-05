@@ -756,6 +756,24 @@ export async function renderSettings(root: HTMLElement) {
   aboutLink.appendChild(link);
   root.appendChild(aboutLink);
 
+  const updatesSection = document.createElement("section");
+  updatesSection.className = "settings-section";
+  const updatesHeading = document.createElement("h3");
+  updatesHeading.textContent = t("settings.updates");
+  const updatesLead = document.createElement("p");
+  updatesLead.className = "viewer-note";
+  updatesLead.textContent = t("settings.updatesLead");
+  const updatesBtn = document.createElement("button");
+  updatesBtn.type = "button";
+  updatesBtn.textContent = t("settings.checkForUpdates");
+  updatesBtn.onclick = () => {
+    void invoke("open_releases_page").catch((err) => showErrorToast(err));
+  };
+  updatesSection.appendChild(updatesHeading);
+  updatesSection.appendChild(updatesLead);
+  updatesSection.appendChild(updatesBtn);
+  root.appendChild(updatesSection);
+
   const diagLink = document.createElement("p");
   diagLink.className = "viewer-note";
   const diagBtn = document.createElement("button");

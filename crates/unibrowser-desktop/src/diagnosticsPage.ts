@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { appendCrashLogsSection } from "./crashLogsLink";
 import { t } from "./i18n";
 
 interface FfmpegProbe {
@@ -42,6 +43,9 @@ interface DiagnosticsInfoDto {
   recent_errors: DiagnosticLogEntry[];
   user_mods_disabled: boolean;
   safe_mode_env: boolean;
+  memory_rss_kb: number | null;
+  memory_detail: string;
+  crash_logs_dir: string | null;
 }
 
 export async function renderDiagnostics(root: HTMLElement) {
@@ -77,6 +81,7 @@ export async function renderDiagnostics(root: HTMLElement) {
           env: info.safe_mode_env ? t("diagnostics.safeModeEnv") : t("diagnostics.safeModePref"),
         })
       : t("diagnostics.safeModeOff"),
+    `${t("diagnostics.memory")}: ${info.memory_detail}`,
   ].forEach((line) => {
     const li = document.createElement("li");
     li.textContent = line;
@@ -185,4 +190,5 @@ export async function renderDiagnostics(root: HTMLElement) {
     errSec.appendChild(pre);
   }
   root.appendChild(errSec);
+  appendCrashLogsSection(root);
 }

@@ -118,4 +118,5 @@ pub mod commands {
     pub const GIT_COMMIT: &str = "unibrowser.git.commit";
     pub const GIT_PUSH: &str = "unibrowser.git.push";
     pub const GIT_SYNC: &str = "unibrowser.git.sync";
+    pub const GO_TO_TAB: &str = "unibrowser.tabs.goTo";
 }

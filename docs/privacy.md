@@ -17,6 +17,7 @@ What you do in the app stays on your device unless **you** trigger network acces
 | Session tabs | Optional session snapshot on exit | When restore is enabled |
 | Notification history | In-memory only (last 20) | Cleared when you quit; not written to disk |
 | Diagnostic error ring | In-memory for `unibrowser://diagnostics` | Support debugging; not uploaded |
+| Panic crash logs | `crash-logs/` under config dir | Written on panic only; local; never uploaded |
 | VSIX extensions | Config dir when installed | Only if you install extensions |
 | User mods | `mods/` under config | Only if you sideload mods |
 
