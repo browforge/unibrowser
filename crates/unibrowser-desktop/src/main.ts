@@ -28,6 +28,7 @@ import { invokeWithToast, showErrorToast, showToast } from "./toast";
 import {
   bindStatusBar,
   patchStatusCursor,
+  setFontResetHandler,
   setPathCopyHandler,
   setZoomHandler,
   updateStatusBar,
@@ -1019,6 +1020,29 @@ function renderRecentFiles(entries: RecentFileDto[]) {
   void renderSessionOptIn();
 }
 
+async function resetPageZoomFromStatusBar() {
+  await textEditor.flush();
+  const data = await invokeWithToast(
+    () => invoke<TabContentDto>("reset_active_page_zoom"),
+    t("status.zoomResetFailed"),
+  );
+  if (data) {
+    webZoomPercent = 100;
+    await applyState(data);
+  }
+}
+
+async function resetContextFontFromStatusBar() {
+  await textEditor.flush();
+  const data = await invokeWithToast(
+    () => invoke<TabContentDto>("reset_active_context_font"),
+    t("status.fontResetFailed"),
+  );
+  if (data) {
+    await applyState(data);
+  }
+}
+
 async function runPageZoom(commandId: string) {
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
@@ -1339,29 +1363,56 @@ async function applyState(data: TabContentDto) {
     setDocumentFindSurface("none");
     closeDocumentFind();
   }
+  const zoomReset = () => void resetPageZoomFromStatusBar();
   if (active?.is_http) {
-    setZoomHandler("web", (delta) => {
-      const cmd =
-        delta > 0
-          ? "unibrowser.page.zoom.increase"
-          : "unibrowser.page.zoom.decrease";
-      void runPageZoom(cmd);
-    });
-  } else if (showViewer && data.document_viewer) {
-    const kind = data.document_viewer.viewer;
-    if (kind === "pdf" || kind === "image") {
-      setZoomHandler("viewer", (delta) => {
+    setZoomHandler(
+      "web",
+      (delta) => {
         const cmd =
           delta > 0
             ? "unibrowser.page.zoom.increase"
             : "unibrowser.page.zoom.decrease";
         void runPageZoom(cmd);
-      });
+      },
+      zoomReset,
+    );
+  } else if (showViewer && data.document_viewer) {
+    const kind = data.document_viewer.viewer;
+    if (kind === "pdf" || kind === "image") {
+      setZoomHandler(
+        "viewer",
+        (delta) => {
+          const cmd =
+            delta > 0
+              ? "unibrowser.page.zoom.increase"
+              : "unibrowser.page.zoom.decrease";
+          void runPageZoom(cmd);
+        },
+        zoomReset,
+      );
     } else {
-      setZoomHandler("hidden", null);
+      setZoomHandler("hidden", null, null);
     }
   } else {
-    setZoomHandler("hidden", null);
+    setZoomHandler("hidden", null, null);
+  }
+  const fontResetable =
+    (showText && data.text_document) ||
+    (showViewer &&
+      data.document_viewer &&
+      (data.document_viewer.reader_font_pt ||
+        data.document_viewer.viewer === "svg"));
+  setFontResetHandler(fontResetable ? () => void resetContextFontFromStatusBar() : null);
+  const zoomLabel = document.getElementById("status-zoom-label");
+  if (zoomLabel) {
+    zoomLabel.title =
+      active?.is_http || (showViewer && data.document_viewer && (data.document_viewer.viewer === "pdf" || data.document_viewer.viewer === "image"))
+        ? t("status.zoomResetTitle")
+        : "";
+  }
+  const fontLabel = document.getElementById("status-font");
+  if (fontLabel) {
+    fontLabel.title = fontResetable ? t("status.fontResetTitle") : "";
   }
   refreshStatusBar(data, active, showText, showViewer);
   await refreshCommandManager();
@@ -1889,6 +1940,7 @@ initWorkspaceQuickOpen({
 setPathCopyHandler((path) => {
   void copyText(path, () => showToast(t("status.pathCopied"), "info"));
 });
+setFontResetHandler(null);
 setCursorStatusListener((pos) => {
   editorLine = pos.line;
   editorCol = pos.column;

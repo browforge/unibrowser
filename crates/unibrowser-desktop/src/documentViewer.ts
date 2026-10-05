@@ -93,6 +93,7 @@ export interface DocumentViewerDto {
   pdf_page?: number;
   media_note?: string;
   project_nodes?: ProjectNodeDto[];
+  orphan_assets?: string[];
   open_file_tabs?: OpenFileTabDto[];
   project_clips?: ProjectClipDto[];
   project_transitions?: ProjectTransitionDto[];
@@ -2864,6 +2865,47 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     }
   }
   root.appendChild(list);
+
+  const orphans = viewer.orphan_assets ?? [];
+  if (orphans.length) {
+    const orphanSection = document.createElement("section");
+    orphanSection.className = "unibrow-orphan-assets";
+    const orphanTitle = document.createElement("h3");
+    orphanTitle.textContent = "Unused assets on disk";
+    orphanSection.appendChild(orphanTitle);
+    const orphanHint = document.createElement("p");
+    orphanHint.className = "unibrow-orphan-hint";
+    orphanHint.textContent =
+      "These files are in assets/ but not linked from any board node. Timeline clips use nodes, not loose files.";
+    orphanSection.appendChild(orphanHint);
+    const orphanList = document.createElement("ul");
+    orphanList.className = "unibrow-orphan-list";
+    for (const file of orphans) {
+      const li = document.createElement("li");
+      li.textContent = file;
+      const removeOrphan = document.createElement("button");
+      removeOrphan.type = "button";
+      removeOrphan.textContent = "Remove";
+      removeOrphan.onclick = async () => {
+        if (
+          !window.confirm(
+            `Remove unused asset “${file}” from the project folder? This cannot be undone.`,
+          )
+        ) {
+          return;
+        }
+        const data = await invoke("remove_unibrow_orphan_asset", {
+          projectPath: viewer.path,
+          assetFile: file,
+        });
+        window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+      };
+      li.appendChild(removeOrphan);
+      orphanList.appendChild(li);
+    }
+    orphanSection.appendChild(orphanList);
+    root.appendChild(orphanSection);
+  }
 
   const drop = document.createElement("div");
   drop.className = "unibrow-drop";

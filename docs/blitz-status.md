@@ -13,7 +13,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Security | Trust banners, remote-web chrome hint, click-to-play media ([security.md](security.md)) |
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
-| Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt, zoom, encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
+| Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
 | Undo / PDF | Document undo/redo on text + SVG; export PDF from Markdown/DOCX print HTML (headless Chromium / wkhtmltopdf on Linux); matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
 | Chrome | Tab drag reorder, middle-click close, pin (Ctrl+click); omnibox Places/recent/URL suggestions; [chrome.md](chrome.md) |
@@ -67,7 +67,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Viewers | Monaco text, PDF (multi-engine proving banner + lazy raster proxy), DOCX, SVG, CSV, EPUB search, images, video/audio, MIDI stub, `.unibrow` board/timeline + MIDI scrub status |
 | Projects | Templates, `project.json` autosave backup, share zip import/export; timeline **H.264 export** (ffmpeg, fast/balanced) with progress toasts |
 | Mods | Bundled `base-*`, mod portal (context install panel + Open VSX / `.ubmod` stubs), Rhai scripts, Linux user `mods/` + dynamic cdylib (feature flag); VSIX `activationEvents` stored |
-| Toolbars | Floating bars drag-anywhere; positions in `toolbars.json` as screen coords ([toolbars.md](toolbars.md)); theme + high-contrast on CM and floating bars |
+| Toolbars | Floating bars drag-anywhere; screen coords across monitors/DPI ([toolbars.md](toolbars.md)); right-click **Reset this toolbar**; theme + high-contrast on CM and floating bars |
 | Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style ([commands-cross-format.md](commands-cross-format.md)) |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
@@ -103,7 +103,8 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
 | Scripting | Rhai demo from palette → output panel; `.rhai` plain text; JS/TS via **base-js** Monaco |
 | DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |
-| Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), ADRs 0001–0020 |
+| `.unibrow` assets | Orphan files under `assets/` listed in project UI; remove with confirm when unreferenced |
+| Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), [report-shots/README.md](report-shots/README.md), ADRs 0001–0020 |
 | Quality | `cargo test --workspace`, path/transfer fuzz tests, `./scripts/smoke-desktop-qa.sh` |
 
 ## How to run

@@ -130,6 +130,22 @@ pub fn adjust_page_zoom_for_url(app: &AppHandle, url: &str, delta: i32) -> Resul
     Ok(pct)
 }
 
+pub fn reset_page_zoom_for_url(app: &AppHandle, url: &str) -> Result<u8, String> {
+    let pct = crate::web_zoom_prefs::reset_origin_zoom_percent(url)?;
+    for (label, _) in app.webview_windows() {
+        inject_page_zoom_percent(app, &label, pct)?;
+    }
+    Ok(pct)
+}
+
+pub fn reset_page_font_for_url(app: &AppHandle, url: &str) -> Result<u8, String> {
+    let px = crate::web_font_prefs::reset_origin_font_px(url)?;
+    for (label, _) in app.webview_windows() {
+        inject_page_font_px(app, &label, px)?;
+    }
+    Ok(px)
+}
+
 pub fn content_webview_navigate(
     app: &AppHandle,
     window_label: &str,

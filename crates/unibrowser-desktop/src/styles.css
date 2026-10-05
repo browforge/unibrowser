@@ -843,6 +843,38 @@ button.proving-disabled,
   display: none;
 }
 
+.status-reset-target {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.floating-bar-context-menu {
+  position: fixed;
+  z-index: 12000;
+  min-width: 10rem;
+  padding: 0.25rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a32;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.floating-bar-context-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.floating-bar-context-menu button:hover {
+  background: #3a3a48;
+}
+
 [data-theme="light"] .status-bar {
   border-top-color: #ccc;
 }

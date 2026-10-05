@@ -8,6 +8,7 @@ pub use timeline_encode::{
     SegmentMedia, TimelineEncodeIntent,
 };
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -1026,6 +1027,67 @@ pub fn add_asset_copy(
     Ok(node)
 }
 
+/// Asset file names referenced by board nodes (`ProjectNode::asset`).
+pub fn referenced_asset_names(manifest: &ProjectManifest) -> HashSet<String> {
+    manifest
+        .nodes
+        .iter()
+        .filter_map(|n| n.asset.as_ref())
+        .cloned()
+        .collect()
+}
+
+/// Files under `assets/` that are not linked from any node (timeline clips use `node_id`).
+pub fn list_orphan_assets(package: &ProjectPackage) -> Result<Vec<String>, ProjectError> {
+    let assets_dir = package.root.join(DIR_ASSETS);
+    if !assets_dir.is_dir() {
+        return Ok(vec![]);
+    }
+    let referenced = referenced_asset_names(&package.manifest);
+    let mut orphans = Vec::new();
+    for entry in fs::read_dir(&assets_dir).map_err(ProjectError::Io)? {
+        let entry = entry.map_err(ProjectError::Io)?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !referenced.contains(&name) {
+            orphans.push(name);
+        }
+    }
+    orphans.sort();
+    Ok(orphans)
+}
+
+fn validate_asset_file_name(file_name: &str) -> Result<(), ProjectError> {
+    if file_name.is_empty()
+        || file_name.contains('/')
+        || file_name.contains('\\')
+        || file_name.contains("..")
+    {
+        return Err(ProjectError::Msg("invalid asset name".into()));
+    }
+    Ok(())
+}
+
+/// Delete an on-disk asset only when no node references it.
+pub fn remove_orphan_asset(package: &mut ProjectPackage, file_name: &str) -> Result<(), ProjectError> {
+    validate_asset_file_name(file_name)?;
+    let referenced = referenced_asset_names(&package.manifest);
+    if referenced.contains(file_name) {
+        return Err(ProjectError::Msg(
+            "asset is still referenced by a project node".into(),
+        ));
+    }
+    let path = package.root.join(DIR_ASSETS).join(file_name);
+    if !path.is_file() {
+        return Err(ProjectError::Msg("asset file not found".into()));
+    }
+    fs::remove_file(path).map_err(ProjectError::Io)?;
+    Ok(())
+}
+
 pub fn remove_node(package: &mut ProjectPackage, node_id: &str) -> Result<(), ProjectError> {
     let idx = package
         .manifest
@@ -1138,6 +1200,26 @@ mod tests {
         fs::write(&second, b"2").unwrap();
         let node = add_asset_copy(&mut pkg, &second, "image", "second").expect("dup");
         assert_eq!(node.asset.as_deref(), Some("photo-2.png"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn orphan_asset_list_and_remove() {
+        let dir = std::env::temp_dir().join("unibrow-test-orphan");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Orphan").expect("create");
+        let src = dir.join("orphan.txt");
+        fs::write(&src, "x").expect("write");
+        add_asset_copy(&mut pkg, &src, "file", "linked").expect("add");
+        let linked = pkg.manifest.nodes[0].asset.clone().unwrap();
+        let orphan_path = pkg.root.join(DIR_ASSETS).join("stray.bin");
+        fs::write(&orphan_path, b"orphan").expect("orphan");
+        let orphans = list_orphan_assets(&pkg).expect("list");
+        assert_eq!(orphans, vec!["stray.bin".to_string()]);
+        assert!(referenced_asset_names(&pkg.manifest).contains(&linked));
+        remove_orphan_asset(&mut pkg, "stray.bin").expect("remove");
+        assert!(list_orphan_assets(&pkg).expect("list").is_empty());
+        assert!(remove_orphan_asset(&mut pkg, &linked).is_err());
         let _ = fs::remove_dir_all(&dir);
     }
 

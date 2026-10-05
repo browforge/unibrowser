@@ -24,8 +24,11 @@ let zoomOutBtn: HTMLButtonElement | null = null;
 let zoomInBtn: HTMLButtonElement | null = null;
 let zoomMode: "hidden" | "viewer" | "web" = "hidden";
 let onZoomDelta: ((delta: number) => void) | null = null;
+let onZoomReset: (() => void) | null = null;
+let onFontReset: (() => void) | null = null;
 let onCopyPath: ((path: string) => void) | null = null;
 let lastPath = "";
+let lastFont = "";
 
 export function bindStatusBar(root: HTMLElement) {
   pathEl = root.querySelector("#status-path");
@@ -41,6 +44,14 @@ export function bindStatusBar(root: HTMLElement) {
   zoomInBtn = root.querySelector("#status-zoom-in");
   zoomOutBtn?.addEventListener("click", () => onZoomDelta?.(-1));
   zoomInBtn?.addEventListener("click", () => onZoomDelta?.(1));
+  zoomEl?.addEventListener("click", () => onZoomReset?.());
+  fontEl?.addEventListener("click", () => {
+    if (lastFont) {
+      onFontReset?.();
+    }
+  });
+  zoomEl?.classList.add("status-reset-target");
+  fontEl?.classList.add("status-reset-target");
   pathEl?.addEventListener("click", () => {
     if (lastPath) {
       onCopyPath?.(lastPath);
@@ -56,15 +67,23 @@ export function setPathCopyHandler(handler: ((path: string) => void) | null) {
 export function setZoomHandler(
   mode: "hidden" | "viewer" | "web",
   handler: ((delta: number) => void) | null,
+  resetHandler?: (() => void) | null,
 ) {
   zoomMode = mode;
   onZoomDelta = handler;
+  onZoomReset = resetHandler ?? null;
   const show = mode !== "hidden" && handler !== null;
   zoomOutBtn?.classList.toggle("hidden", !show);
   zoomInBtn?.classList.toggle("hidden", !show);
+  zoomEl?.classList.toggle("status-reset-target", show && onZoomReset !== null);
   if (zoomEl && !show) {
     zoomEl.textContent = "";
   }
+}
+
+export function setFontResetHandler(handler: (() => void) | null) {
+  onFontReset = handler;
+  fontEl?.classList.toggle("status-reset-target", handler !== null);
 }
 
 export function setStatusHint(hint: string) {
@@ -99,7 +118,11 @@ export function updateStatusBar(model: StatusBarModel) {
   setOptional(dirtyEl, model.dirty);
   setOptional(encodingEl, model.encoding);
   setOptional(cursorEl, model.cursor);
+  lastFont = model.font ?? "";
   setOptional(fontEl, model.font);
+  if (fontEl) {
+    fontEl.classList.toggle("status-reset-target", !!lastFont && onFontReset !== null);
+  }
   if (zoomEl && zoomMode !== "hidden") {
     setOptional(zoomEl, model.zoom);
   }

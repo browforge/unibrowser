@@ -82,6 +82,58 @@ function screenPositionFromPointer(e: PointerEvent, offsetX: number, offsetY: nu
   };
 }
 
+const DEFAULT_FLOAT_OFFSET = 96;
+
+async function resetFloatingBarPosition(barId: string) {
+  if (!lastSnapshot) {
+    return;
+  }
+  const file = snapshotToFile(lastSnapshot);
+  const barLayout = file.floating_bars.find((b) => b.id === barId);
+  if (!barLayout) {
+    return;
+  }
+  barLayout.anchor = "floating";
+  barLayout.x = window.screenX + DEFAULT_FLOAT_OFFSET;
+  barLayout.y = window.screenY + DEFAULT_FLOAT_OFFSET;
+  barLayout.coord_space = "screen";
+  await invoke("save_command_manager_layout", { layout: file });
+}
+
+function bindFloatingBarContextMenu(
+  wrap: HTMLElement,
+  bar: FloatingBarDto,
+  onRefresh: () => Promise<void>,
+) {
+  wrap.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    const menu = document.createElement("div");
+    menu.className = "floating-bar-context-menu";
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.textContent = t("commandManager.resetThisToolbar");
+    reset.onclick = async () => {
+      menu.remove();
+      await resetFloatingBarPosition(bar.id);
+      await onRefresh();
+      showToast(t("commandManager.toolbarReset"), "info");
+    };
+    menu.appendChild(reset);
+    const close = () => menu.remove();
+    menu.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    document.body.appendChild(menu);
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+    const onDoc = (ev: MouseEvent) => {
+      if (!menu.contains(ev.target as Node)) {
+        close();
+        document.removeEventListener("click", onDoc);
+      }
+    };
+    window.setTimeout(() => document.addEventListener("click", onDoc), 0);
+  });
+}
+
 type RunCommand = (commandId: string) => Promise<void>;
 
 let lastSnapshot: CommandManagerDto | null = null;
@@ -420,6 +472,9 @@ export const commandManager = {
           window.addEventListener("pointerup", onUp);
         });
       }
+      bindFloatingBarContextMenu(wrap, bar, async () => {
+        await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
+      });
       floatingEl.appendChild(wrap);
     });
   },

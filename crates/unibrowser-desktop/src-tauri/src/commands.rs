@@ -44,8 +44,8 @@ use crate::epub_preview::{EpubChapterDto, EpubChapterListItem, EpubSearchHitDto}
 use crate::user_backup::{self, GrandmaBackupV1};
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
 use crate::webview::{
-    adjust_page_font_for_url, adjust_page_zoom_for_url, sync_content_bounds,
-    sync_content_webview_for_window,
+    adjust_page_font_for_url, adjust_page_zoom_for_url, reset_page_font_for_url,
+    reset_page_zoom_for_url, sync_content_bounds, sync_content_webview_for_window,
 };
 use unibrowser_mod_api::handlers::{
     CONTEXT_HELP_ID, DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
@@ -257,6 +257,8 @@ pub struct DocumentViewerDto {
     pub media_note: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_nodes: Option<Vec<ProjectNodeDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub orphan_assets: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub open_file_tabs: Option<Vec<OpenFileTabDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -650,6 +652,9 @@ fn document_viewer_dto(
                 })
                 .collect()
         });
+        let orphan_assets = opened
+            .as_ref()
+            .and_then(|pkg| unibrowser_project::list_orphan_assets(pkg).ok());
         let prefs = load_preferences();
         return Some(DocumentViewerDto {
             path: doc.path.clone(),
@@ -661,6 +666,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: None,
             project_nodes: nodes,
+            orphan_assets,
             open_file_tabs: Some(open_file_tabs_dto(state, window_label)),
             project_clips: clips,
             project_transitions: transitions,
@@ -683,6 +689,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: None,
             project_nodes: None,
+            orphan_assets: None,
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
@@ -705,6 +712,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: None,
             project_nodes: None,
+            orphan_assets: None,
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
@@ -727,6 +735,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: None,
             project_nodes: None,
+            orphan_assets: None,
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
@@ -749,6 +758,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: None,
             project_nodes: None,
+            orphan_assets: None,
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
@@ -773,6 +783,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: Some(slug),
             project_nodes: None,
+            orphan_assets: None,
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
@@ -795,6 +806,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: None,
             project_nodes: None,
+            orphan_assets: None,
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
@@ -830,6 +842,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: Some(status),
             project_nodes: None,
+            orphan_assets: None,
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
@@ -884,6 +897,7 @@ fn document_viewer_dto(
         pdf_page,
         media_note,
         project_nodes: None,
+        orphan_assets: None,
         open_file_tabs: None,
         project_clips: None,
         project_transitions: None,
@@ -3636,6 +3650,105 @@ pub fn web_page_zoom(window: tauri::Window, delta_px: i32, app: AppHandle, state
     let step = if delta_px >= 0 { 10 } else { -10 };
     adjust_page_zoom_for_url(&app, &url, step)?;
     Ok(())
+}
+
+const DEFAULT_TEXT_FONT_PT: f32 = 12.0;
+const DEFAULT_READER_FONT_PT: f32 = 12.0;
+const DEFAULT_SVG_FONT_PT: f32 = 14.0;
+const DEFAULT_PDF_RENDER_SCALE: f32 = 1.25;
+const DEFAULT_IMAGE_PREVIEW_ZOOM: f32 = 1.0;
+
+#[tauri::command]
+pub fn reset_active_page_zoom(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    match &tab.location {
+        BrowserLocation::Http { url } => {
+            reset_page_zoom_for_url(&app, url)?;
+        }
+        BrowserLocation::File { .. } => {
+            let doc = tab.document.as_mut().ok_or("no document")?;
+            let backend_id = doc.backend.backend_id();
+            if backend_id == base_pdf::BACKEND_ID {
+                let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+                pdf.set_render_scale(DEFAULT_PDF_RENDER_SCALE);
+            } else if backend_id == base_png::BACKEND_ID {
+                let img = base_png::try_png_backend(&mut *doc.backend).ok_or("not an image")?;
+                img.preview_zoom = DEFAULT_IMAGE_PREVIEW_ZOOM;
+            } else {
+                return Err("zoom reset is not available for this tab".into());
+            }
+        }
+        _ => return Err("zoom reset is not available for this tab".into()),
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn reset_active_context_font(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    match &tab.location {
+        BrowserLocation::Http { url } => {
+            reset_page_font_for_url(&app, url)?;
+        }
+        BrowserLocation::File { .. } => {
+            let doc = tab.document.as_mut().ok_or("no document")?;
+            let path = doc.path.clone();
+            let backend_id = doc.backend.backend_id();
+            if backend_id == base_text::BACKEND_ID || backend_id == base_js::BACKEND_ID {
+                if let Some(text) = try_text_backend(&mut *doc.backend) {
+                    text.font_size_pt = DEFAULT_TEXT_FONT_PT;
+                } else if let Some(text) = base_js::try_js_backend(&mut *doc.backend) {
+                    text.font_size_pt = DEFAULT_TEXT_FONT_PT;
+                } else {
+                    return Err("not a text document".into());
+                }
+            } else if backend_id == base_docx::BACKEND_ID {
+                let b = base_docx::try_docx_backend(&mut *doc.backend).ok_or("not DOCX")?;
+                b.reader_font_pt = DEFAULT_READER_FONT_PT;
+                b.font_dirty = true;
+                crate::preferences::remember_docx_reader_font(&path, b.reader_font_pt);
+            } else if backend_id == crate::epub_stub::BACKEND_ID {
+                let b = crate::epub_stub::try_epub_backend(&mut *doc.backend).ok_or("not EPUB")?;
+                b.reader_font_pt = DEFAULT_READER_FONT_PT;
+            } else if backend_id == base_svg::BACKEND_ID {
+                let b = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not SVG")?;
+                b.font_size_pt = DEFAULT_SVG_FONT_PT;
+            } else {
+                return Err("font reset is not available for this tab".into());
+            }
+        }
+        _ => return Err("font reset is not available for this tab".into()),
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn remove_unibrow_orphan_asset(
+    window: tauri::Window,
+    project_path: String,
+    asset_file: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::remove_orphan_asset(&mut package, &asset_file).map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]

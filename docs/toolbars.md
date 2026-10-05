@@ -6,7 +6,9 @@ Command Manager layouts (tabs, floating bars, context pin) persist in **`toolbar
 
 - Use the **⋮⋮** handle on a floating bar to drag it anywhere on screen, including across monitors.
 - Positions are stored as **screen coordinates** (`coord_space: "screen"`) so a bar can stay on a second monitor when you move the main window.
+- Coordinates use the same CSS pixel space as `PointerEvent.screenX` / `screenY`, so they track monitor layout across typical DPI scaling (per-display scale is handled by the OS + WebView).
 - Legacy layouts without `coord_space` use viewport (client) pixels.
+- Right-click a floating bar for **Reset this toolbar** (default position near the window). Settings **Reset floating toolbars** still clears all floating bars.
 
 ## User taste wins
 

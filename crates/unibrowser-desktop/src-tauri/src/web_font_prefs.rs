@@ -72,3 +72,11 @@ pub fn adjust_origin_font_px(url: &str, delta: i32) -> Result<u8, String> {
     let next = (current + delta).clamp(MIN_PX as i32, MAX_PX as i32) as u8;
     set_origin_font_px(url, next)
 }
+
+pub fn reset_origin_font_px(url: &str) -> Result<u8, String> {
+    let key = origin_key_from_url(url).ok_or_else(|| "invalid url".to_string())?;
+    let mut store = load_store();
+    store.origins.remove(&key);
+    save_store(&store)?;
+    Ok(DEFAULT_PX)
+}

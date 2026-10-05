@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Floating toolbars:** Right-click **Reset this toolbar**; screen coord DPI note in [toolbars.md](docs/toolbars.md).
+- **`.unibrow` orphans:** List unused `assets/` files; remove with confirm when no node references them.
+- **Status bar:** Click zoom label to reset page/PDF/image zoom; click font pt to reset editor/reader font for the tab.
+- **Report shots:** [docs/report-shots/README.md](docs/report-shots/README.md) intended capture list.
 - **Docs index:** ADR 0020 in [docs/index.md](docs/index.md) ADR table with implementation column.
 - **Omnibox HTTP warning:** Preference **Warn before opening HTTP sites** (default on); confirm before `http://` navigation.
 - **Media keyboard:** Space play/pause and arrow keys seek ±5s when video/audio viewer is focused.
