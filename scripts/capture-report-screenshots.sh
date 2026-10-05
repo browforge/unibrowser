@@ -3,11 +3,45 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${UB_REPORT_SCREENSHOT_DIR:-$ROOT/report-screenshots}"
+
+print_guide() {
+  cat <<GUIDE
+Unibrowser report screenshots
+==============================
+Docs: docs/report-visuals.md
+
+Prerequisites
+  - cargo test --workspace && cd crates/unibrowser-desktop && npm run build
+  - Graphical session with DISPLAY (for interactive capture only)
+
+Launch the app
+  cd crates/unibrowser-desktop && npm run tauri dev
+
+Shot list (save as 1920x1080 or native, consistent theme)
+  1. unibrowser-01-ntp.png      — New tab (NTP hero + recent)
+  2. unibrowser-02-files.png    — Folder tab (breadcrumbs + list)
+  3. unibrowser-03-palette.png  — Ctrl+Shift+P palette
+  4. unibrowser-04-settings.png — unibrowser://settings
+  5. unibrowser-05-unibrow.png  — Notes .unibrow board + timeline
+  6. unibrowser-06-viewer.png   — EPUB, DOCX, or PDF highlight
+
+Output directory (gitignored): ${OUT}
+
+Tools (Linux): sudo apt-get install -y scrot   # or imagemagick (import)
+
+Non-interactive: pass --guide-only to print this list and exit (no capture).
+GUIDE
+}
+
+if [[ "${1:-}" == "--guide-only" ]]; then
+  print_guide
+  exit 0
+fi
+
 mkdir -p "$OUT"
 
 if [[ -z "${DISPLAY:-}" ]]; then
-  echo "No DISPLAY set. Start Unibrowser locally, then run this script in a graphical session."
-  echo "See docs/report-visuals.md for the shot list."
+  echo "No DISPLAY set. Use --guide-only for instructions, or run in a graphical session."
   exit 1
 fi
 
@@ -25,13 +59,10 @@ capture() {
   echo "Saved $path"
 }
 
-cat <<'GUIDE'
-Unibrowser report screenshots
-==============================
-Launch: cd crates/unibrowser-desktop && npm run tauri dev
-
-For each prompt, arrange the window and press Enter.
-GUIDE
+print_guide
+echo ""
+echo "Interactive capture — press Enter between shots."
+echo ""
 
 shots=(
   "unibrowser-01-ntp.png:New tab — NTP hero and recent"
@@ -49,4 +80,4 @@ for entry in "${shots[@]}"; do
   capture "$file"
 done
 
-echo "Done. Files in $OUT (add to .gitignore; do not commit large binaries)."
+echo "Done. Files in $OUT (do not commit large binaries)."

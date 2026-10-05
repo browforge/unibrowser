@@ -356,6 +356,29 @@ function applyDocxSearchHighlights(article: HTMLElement, query: string): HTMLEle
   return marks;
 }
 
+function docxEditHtmlSiblingPath(docxPath: string): string {
+  return `${docxPath}.ub-edit.html`;
+}
+
+async function saveDocxEditsAsHtml(
+  docxPath: string,
+  article: HTMLElement,
+  readerFontPt: number,
+) {
+  const dest = docxEditHtmlSiblingPath(docxPath);
+  const body = article.innerHTML;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${docxPath
+    .split(/[/\\]/)
+    .pop() ?? "document"}</title><style>body{font-size:${readerFontPt}pt;line-height:1.45;font-family:system-ui,sans-serif;margin:1rem;}</style></head><body>${body}</body></html>`;
+  const bytes = Array.from(new TextEncoder().encode(html));
+  try {
+    await invoke("write_document_bytes", { path: dest, bytes });
+    showToast(t("docx.savedEditsHtml", { path: dest }), "info");
+  } catch (err) {
+    showErrorToast(err);
+  }
+}
+
 async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   const mammoth = await import("mammoth");
   const bytes = await readBytes(path);
@@ -369,7 +392,7 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   const banner = document.createElement("p");
   banner.className = "viewer-note docx-limit";
   banner.textContent =
-    "View-only preview (Mammoth HTML). Word layout, fields, and tracked changes are not editable here; export or print HTML below.";
+    "Mammoth HTML preview (not a full Word round-trip). Edits stay in this session until you save a sibling .ub-edit.html file.";
 
   const toolbar = document.createElement("div");
   toolbar.className = "docx-toolbar";
@@ -455,13 +478,20 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
     const name = path.split(/[/\\]/).pop() ?? "document";
     downloadPrintFriendlyHtml(path, result.value, name);
   };
+  const saveHtmlBtn = document.createElement("button");
+  saveHtmlBtn.type = "button";
+  saveHtmlBtn.textContent = t("docx.saveEditsHtml");
   toolbar.appendChild(printBtn);
   toolbar.appendChild(exportBtn);
+  toolbar.appendChild(saveHtmlBtn);
 
   const article = document.createElement("article");
   article.className = "docx-view";
   article.style.fontSize = `${readerFontPt}pt`;
   article.innerHTML = result.value;
+  saveHtmlBtn.onclick = () => {
+    void saveDocxEditsAsHtml(path, article, readerFontPt);
+  };
   applyDocxSpellcheckExperiment(article);
   appendTrustBanner(root, "remote-html");
 
@@ -3098,6 +3128,31 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   notes.rows = 3;
   notes.placeholder = t("epub.readingNotesPlaceholder");
   applySpellcheckToEditable(notes, isExperimentalSpellcheckEnabled());
+  try {
+    notes.value = await invoke<string>("get_epub_reading_notes", { path: viewer.path });
+  } catch {
+    notes.value = "";
+  }
+  let notesSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  notes.addEventListener("input", () => {
+    if (notesSaveTimer) {
+      clearTimeout(notesSaveTimer);
+    }
+    notesSaveTimer = setTimeout(() => {
+      void invoke("set_epub_reading_notes", {
+        path: viewer.path,
+        notes: notes.value,
+      });
+    }, 400);
+  });
+  const exportNotesBtn = document.createElement("button");
+  exportNotesBtn.type = "button";
+  exportNotesBtn.textContent = t("epub.exportReadingNotes");
+  exportNotesBtn.onclick = () => {
+    void invoke<string>("export_epub_reading_notes", { path: viewer.path })
+      .then((out) => showToast(t("epub.exportedReadingNotes", { path: out }), "info"))
+      .catch((err) => showErrorToast(err));
+  };
 
   const searchRow = document.createElement("div");
   searchRow.className = "epub-search-row";
@@ -3246,6 +3301,7 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   nav.appendChild(printBtn);
   root.appendChild(searchRow);
   root.appendChild(notes);
+  root.appendChild(exportNotesBtn);
   root.appendChild(results);
   root.appendChild(nav);
   root.appendChild(frame);

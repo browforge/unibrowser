@@ -30,6 +30,14 @@ Name files `unibrowser-01-ntp.png`, `unibrowser-02-files.png`, and so on.
 Optional helper when a graphical session is available (`$DISPLAY` set):
 
 ```bash
+./scripts/capture-report-screenshots.sh --guide-only
+```
+
+Prints the shot list and paths without starting the app or requiring a display.
+
+Interactive capture (graphical session, `$DISPLAY` set):
+
+```bash
 ./scripts/capture-report-screenshots.sh
 ```
 

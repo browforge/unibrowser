@@ -33,17 +33,8 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
                     emit_unibrowser_download(webview.app_handle(), payload);
                     return false;
                 }
-                DownloadEvent::Finished {
-                    path: Some(path),
-                    success: true,
-                    ..
-                } => {
-                    let file_url = format!("file://{}", path.display());
-                    let payload = DownloadEventPayload {
-                        url: file_url,
-                        destination: Some(path.to_string_lossy().into_owned()),
-                    };
-                    emit_unibrowser_download(webview.app_handle(), payload);
+                DownloadEvent::Finished { .. } => {
+                    // Shell handles fetch on Requested; Finished would duplicate tabs/history.
                     return false;
                 }
                 _ => {}

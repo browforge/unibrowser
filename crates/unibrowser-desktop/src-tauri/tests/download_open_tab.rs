@@ -36,6 +36,23 @@ fn save_pref_returns_save_to_disk() {
 }
 
 #[test]
+fn platform_destination_hint_is_http_tab_at_disposition_layer() {
+    let d = apply_download_disposition(
+        "https://example.org/file.bin",
+        Some(std::path::PathBuf::from("/tmp/Downloads/file.bin")),
+        Path::new("/tmp"),
+        DownloadPreference::OpenInNewTab,
+    )
+    .expect("disposition");
+    match d {
+        DownloadDisposition::OpenInNewTab {
+            suggested_location: BrowserLocation::Http { url },
+        } => assert_eq!(url, "https://example.org/file.bin"),
+        _ => panic!("disposition layer still returns http tab; shell fetches when destination hint present"),
+    }
+}
+
+#[test]
 fn rejects_data_url_download() {
     let err =
         apply_download_disposition(

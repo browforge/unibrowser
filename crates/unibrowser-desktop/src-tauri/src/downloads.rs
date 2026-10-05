@@ -193,4 +193,22 @@ mod tests {
             "report.pdf"
         );
     }
+
+    #[test]
+    fn platform_hint_still_opens_http_tab_without_fetch_helper() {
+        let dest = PathBuf::from("/tmp/Downloads/report.pdf");
+        let d = apply_download_disposition(
+            "https://example.org/report.pdf",
+            Some(dest),
+            Path::new("/tmp"),
+            DownloadPreference::OpenInNewTab,
+        )
+        .expect("disposition");
+        assert!(matches!(
+            d,
+            DownloadDisposition::OpenInNewTab {
+                suggested_location: BrowserLocation::Http { .. }
+            }
+        ));
+    }
 }

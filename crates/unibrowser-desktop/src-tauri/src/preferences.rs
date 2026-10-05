@@ -4,6 +4,7 @@ use std::fs;
 use crate::config::preferences_file_path;
 
 pub const EPUB_POSITIONS_MAX: usize = 128;
+pub const EPUB_NOTES_MAX: usize = 64;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -126,6 +127,9 @@ pub struct Preferences {
     /// Last-opened spine chapter index per EPUB path.
     #[serde(default)]
     pub epub_chapter_by_path: HashMap<String, usize>,
+    /// Reading notes textarea per EPUB path (local prefs only).
+    #[serde(default)]
+    pub epub_reading_notes_by_path: HashMap<String, String>,
     /// Bookmark bar under chrome (pins + quick links).
     #[serde(default = "default_bookmark_bar_enabled")]
     pub bookmark_bar_enabled: bool,
@@ -293,6 +297,7 @@ impl Default for Preferences {
             onboarding_checklist_skip_forever: false,
             onboarding_checklist_completed: Vec::new(),
             epub_chapter_by_path: HashMap::new(),
+            epub_reading_notes_by_path: HashMap::new(),
             bookmark_bar_enabled: default_bookmark_bar_enabled(),
             bookmark_quick_links: Vec::new(),
             workspace_root: None,
@@ -382,6 +387,22 @@ mod tests {
         assert_eq!(p.recent_files[0].path, "/tmp/f5.txt");
         assert!(p.recent_files.iter().filter(|e| e.path == "/tmp/f5.txt").count() == 1);
     }
+
+    #[test]
+    fn export_epub_notes_writes_sibling_txt() {
+        let dir = std::env::temp_dir().join(format!("ub-epub-notes-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("dir");
+        let book = dir.join("sample.epub");
+        std::fs::write(&book, b"PK").expect("epub stub");
+        remember_epub_reading_notes(book.to_string_lossy().as_ref(), "line one")
+            .expect("remember");
+        let out = export_epub_reading_notes_file(book.to_string_lossy().as_ref())
+            .expect("export");
+        assert!(out.ends_with("sample.reading-notes.txt"));
+        let text = std::fs::read_to_string(&out).expect("read");
+        assert_eq!(text, "line one");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
 
 pub fn epub_read_chapter_index(path: &str) -> Option<usize> {
@@ -404,6 +425,52 @@ pub fn remember_epub_chapter(path: &str, index: usize) -> Result<(), String> {
         prefs.epub_chapter_by_path.remove(&key);
     }
     save_preferences(&prefs)
+}
+
+pub fn epub_reading_notes(path: &str) -> String {
+    load_preferences()
+        .epub_reading_notes_by_path
+        .get(path)
+        .cloned()
+        .unwrap_or_default()
+}
+
+pub fn remember_epub_reading_notes(path: &str, notes: &str) -> Result<(), String> {
+    let mut prefs = load_preferences();
+    let trimmed = notes.trim();
+    if trimmed.is_empty() {
+        prefs.epub_reading_notes_by_path.remove(path);
+    } else {
+        prefs
+            .epub_reading_notes_by_path
+            .insert(path.to_string(), notes.to_string());
+    }
+    while prefs.epub_reading_notes_by_path.len() > EPUB_NOTES_MAX {
+        let key = prefs
+            .epub_reading_notes_by_path
+            .keys()
+            .next()
+            .cloned()
+            .unwrap_or_default();
+        prefs.epub_reading_notes_by_path.remove(&key);
+    }
+    save_preferences(&prefs)
+}
+
+pub fn export_epub_reading_notes_file(epub_path: &str) -> Result<String, String> {
+    use std::path::Path;
+    let book = Path::new(epub_path);
+    if !book.is_file() {
+        return Err("not a file".into());
+    }
+    let notes = epub_reading_notes(epub_path);
+    let stem = book
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "book".into());
+    let out = book.with_file_name(format!("{}.reading-notes.txt", stem));
+    std::fs::write(&out, notes.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(out.to_string_lossy().into_owned())
 }
 
 pub fn push_recent_file(prefs: &mut Preferences, path: String, label: String) {

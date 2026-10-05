@@ -32,8 +32,10 @@ use crate::downloads::{
 use crate::state::{AppState, list_dir};
 use crate::mod_portal::{ModSuggestionDto, suggest_mods_for_unknown_path};
 use crate::preferences::{
-    default_pinned_locations, epub_read_chapter_index, load_preferences, push_recent_file,
-    remember_epub_chapter, save_preferences, DownloadPreference, PinnedLocation, UiTheme,
+    default_pinned_locations, epub_read_chapter_index, epub_reading_notes, load_preferences,
+    push_recent_file,
+    export_epub_reading_notes_file, remember_epub_chapter, remember_epub_reading_notes,
+    save_preferences, DownloadPreference, PinnedLocation, UiTheme,
     WindowState,
 };
 use crate::state::{FileCompareState, ImageCompareState};
@@ -3160,6 +3162,34 @@ pub async fn handle_download_url(window: tauri::Window,
     let prefs = load_preferences();
     let has_dest_hint = destination.is_some();
     let hinted = destination.as_ref().map(|s| PathBuf::from(s.as_str()));
+    let trimmed = url.trim();
+    if prefs.download_preference == DownloadPreference::OpenInNewTab
+        && has_dest_hint
+        && (trimmed.starts_with("http://") || trimmed.starts_with("https://"))
+    {
+        let dest = hinted.expect("has_dest_hint");
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        download_http_to_file(trimmed, &dest)?;
+        let resolved = resolve_open_path(&dest.to_string_lossy(), &state.cwd)?;
+        let loc = BrowserLocation::File { path: resolved };
+        let (loc, is_dir, doc) = state.resolve_location(loc);
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+        }
+        update_content_webview(&app, window.label(), &loc)?;
+        crate::download_history::record_success(
+            trimmed,
+            crate::download_history::DownloadHistoryStatus::OpenedTab,
+            Some(dest.to_string_lossy().as_ref()),
+        );
+        return snapshot(&state, window.label());
+    }
     let disposition = apply_download_disposition(
         &url,
         hinted,
@@ -5147,6 +5177,21 @@ pub fn get_epub_read_position(path: String) -> usize {
 #[tauri::command]
 pub fn remember_epub_chapter_position(path: String, index: usize) -> Result<(), String> {
     remember_epub_chapter(&path, index)
+}
+
+#[tauri::command]
+pub fn get_epub_reading_notes(path: String) -> String {
+    epub_reading_notes(&path)
+}
+
+#[tauri::command]
+pub fn set_epub_reading_notes(path: String, notes: String) -> Result<(), String> {
+    remember_epub_reading_notes(&path, &notes)
+}
+
+#[tauri::command]
+pub fn export_epub_reading_notes(path: String) -> Result<String, String> {
+    export_epub_reading_notes_file(&path)
 }
 
 #[tauri::command]

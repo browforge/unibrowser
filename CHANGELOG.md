@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Linux web downloads:** WebKit `Requested` downloads fetch to the platform path then open a file tab (default preference); suppress duplicate `Finished` events.
+- **DOCX lite export:** **Save edits as HTML** writes `{name}.docx.ub-edit.html`; [docx-roundtrip.md](docs/docx-roundtrip.md).
+- **EPUB reading notes:** Notes persist in prefs; **Export reading notes** writes `{book}.reading-notes.txt` next to the EPUB.
+- **Report visuals:** `./scripts/capture-report-screenshots.sh --guide-only` prints the shot list without a display.
 - **base-js proving:** Bundled mod opens `.js`/`.ts` (and related extensions) in Monaco with `javascript` / `typescript` language ids; scripting recommendation tip only when files still use plain **base-text**.
 - **Bottom panel:** **Output** tab (Rhai) plus disabled **Terminal** tab (planned); [terminal-panel.md](docs/terminal-panel.md).
 - **Web proxy prefs:** Settings stub (system / direct / manual host+port); persist only — [network-proxy.md](docs/network-proxy.md).

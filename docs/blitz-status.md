@@ -72,7 +72,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
 | Recovery | Text/SVG crash backups (opt-in); `.unibrow` `project.json` debounced backups + launch prompt when project autosave or crash recovery is on |
-| Downloads | Linux WebKit `on_download` → shell; optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
+| Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab (default pref); optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
+| DOCX lite | Mammoth preview + **Save edits as HTML** sibling `.ub-edit.html` — [docx-roundtrip.md](docx-roundtrip.md) |
+| EPUB notes | Reading notes in prefs; **Export reading notes** → `{book}.reading-notes.txt` beside the EPUB |
 | A11y prefs | High contrast, reduce motion (system/on/off + `prefers-reduced-motion`), optional **larger hit targets**, **Focus mode** denser chrome; skippable tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
 | WASM proving | When `examples/hello-wasm/hello.wasm` is present, palette **`mod.wasm.hello`** host stub (no wasmtime); [wasm-t2-status.md](wasm-t2-status.md) |
 | Palette history | Last **10** executed commands at top of palette (**Recent:**); stored in config only |
@@ -177,9 +179,9 @@ Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** pol
 
 | Sev | Issue | Notes |
 | --- | --- | --- |
-| P1 | WebView2 downloads | `DownloadStarting` not wired on Windows; use Advanced → system browser ([browser-shell.md](browser-shell.md)). |
+| P1 | WebView2 downloads (Windows) | `DownloadStarting` not wired; Linux WebKit path improved (fetch to hinted path, no Finished duplicate). Use Advanced → system browser on Windows ([browser-shell.md](browser-shell.md)). |
 | P2 | EPUB assets | Spine HTML only; embedded images/fonts often missing until asset URL resolution. |
-| P2 | DOCX fidelity | Mammoth layout limits; tracked changes not editable. |
+| P2 | DOCX fidelity | Mammoth layout limits; no `.docx` write-back (HTML sibling only — [docx-roundtrip.md](docx-roundtrip.md)). |
 | P2 | VSIX JS host | Stub execute only; no extension `main` runtime ([extension-host.md](extension-host.md)). |
 | P2 | Web proxy prefs | Persisted but **not applied** to embedded https webviews ([network-proxy.md](network-proxy.md)). |
 | P3 | Large PDF open | Profile with `UNIBROWSER_PROFILE_OPEN=1` if open feels slow. |
