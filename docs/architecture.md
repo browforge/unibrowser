@@ -307,6 +307,7 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0013 Dual audience (FOSS and everyday users)](adr/0013-dual-audience-foss-and-everyday-users.md)
 - [0014 VSIX compatibility layer](adr/0014-vsix-compatibility-layer.md)
 - [0015 Native project format](adr/0015-native-project-format.md)
+- [0016 FOSS UX benchmarks](adr/0016-foss-ux-benchmarks.md)
 - [Mod system overview](mod-system.md) (native + VSIX lanes)
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)

@@ -77,6 +77,8 @@ Unibrowser should **excel at moving between contexts** without feeling like a di
 | [Blender workspaces](https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html) | Workspaces + operator search; tools do not vanish |
 | [DaVinci Resolve](https://documents.blackmagicdesign.com/UserManuals/DaVinci-Resolve-19-User-Manual.pdf) | Page switching with consistent overall shell |
 
+**FOSS UX benchmarks (≈2021–2026):** recent redesigns show community-driven UI can match modern expectations — **Audacity 4** (workspaces, theming, Qt chrome), **Pop!_OS COSMIC** (new Rust DE, launcher, tiling shell), **Linux Mint Cinnamon** (Styles, calmer defaults, native dialogs). Unibrowser should learn from what shipped, not from “old FOSS” stereotypes. Decision record: [ADR 0016](adr/0016-foss-ux-benchmarks.md); ties to context switching in [ADR 0012](adr/0012-context-switching-ux-benchmarks.md).
+
 ### Native project format (`.unibrow`)
 
 Mixed-format work needs a **native project**, not another app’s NLE project file. Bear’s analogy: **Illustrator vs JPEG** maps to **`.unibrow` vs MP4** — the project is the editable, non-destructive package; MP4/PNG/PDF export is **delivery**, not where ongoing work lives.

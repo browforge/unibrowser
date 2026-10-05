@@ -19,7 +19,16 @@ Enablement is always computed by the registry (**grey out, never hide** core slo
 | [Blender workspaces](https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html) | Workspaces + operator search; tools stay findable |
 | [DaVinci Resolve](https://documents.blackmagicdesign.com/UserManuals/DaVinci-Resolve-19-User-Manual.pdf) | Page/context switch with consistent shell (future timeline page) |
 
-Full decision record: [ADR 0012](adr/0012-context-switching-ux-benchmarks.md).
+### FOSS UX benchmarks (2021–2026)
+
+| Project | Lesson for Command Manager / chrome |
+|---------|-------------------------------------|
+| [Audacity 4](https://www.audacityteam.org/audacity-4/) | Saved **workspaces** (toolbar layouts); dock/float/hide; context tools instead of mode clutter |
+| [Audacity 3.4](https://audacityteam.org/blog/audacity-3-4/) | One **export** window — separate from project save ([ADR 0015](adr/0015-native-project-format.md)) |
+| [Pop!_OS / COSMIC](https://system76.com/blog/post/pop-os-letter-from-our-founder) | Unified **search** (launcher); panel customisation without losing shell identity |
+| [Linux Mint Cinnamon 6.4](https://www.linuxmint.com/rel_xia_cinnamon_whatsnew.php) | **Styles** = curated defaults; power users tune actions/keybindings later |
+
+Details: [ADR 0016](adr/0016-foss-ux-benchmarks.md). Context-switch record: [ADR 0012](adr/0012-context-switching-ux-benchmarks.md).
 
 ## Stable chrome vs what swaps
 

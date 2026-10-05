@@ -16,6 +16,18 @@ Unibrowser must **excel at context switching**: stable chrome, auto-relevant too
 | **Blender** | Workspaces, operators with `poll()`, tools stay discoverable | [Blender workspaces](https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html), [Operators poll](https://docs.blender.org/api/current/bpy.types.Operator.html#bpy.types.Operator.poll) |
 | **DaVinci Resolve** | “Pages” (Media/Cut/Edit/Fusion/Color/Fairlight/Deliver) with shared shell | [Resolve workflows](https://documents.blackmagicdesign.com/UserManuals/DaVinci-Resolve-19-User-Manual.pdf) (Blackmagic user manual) |
 
+### FOSS UX benchmarks (recent redesigns)
+
+Recent FOSS desktops and apps show the same **stable shell + customisable tools + honest defaults** pattern from a different angle — theming, workspaces, and curated “styles” rather than dock drag alone. Full case studies and citations: **[ADR 0016](0016-foss-ux-benchmarks.md)**.
+
+| Project | What to study for Unibrowser |
+|---------|------------------------------|
+| **Audacity 3.4 → 4** | Single export surface; **workspaces**; Qt chrome with dock/float panels; context-sensitive tools vs mode switching; light/dark/HC + accent ([Audacity 4](https://www.audacityteam.org/audacity-4/)) |
+| **Pop!_OS / COSMIC** | Rust/Wayland DE from scratch (2024–2025); **Launcher** search; panel/dock/applets; ship coherent default apps before “alpha” ([System76 blog](https://system76.com/blog/post/pop-os-letter-from-our-founder), [LWN](https://lwn.net/Articles/1050268/)) |
+| **Linux Mint Cinnamon** | **Styles** (curated theme variants); corner-bar affordances; native dialogs matching shell; Nemo actions layout — defaults for everyday users ([Mint Styles post](https://blog.linuxmint.com/?m=202304), [Cinnamon 6.4 / 22.1](https://www.linuxmint.com/rel_xia_cinnamon_whatsnew.php)) |
+
+Context switching decisions below still lean on **SOLIDWORKS / GIMP / Blender / Resolve**; ADR 0016 covers **density, defaults, discoverability, theming, onboarding**.
+
 ## Decision — what we copy
 
 ### Stable chrome (Affinity, Resolve, SOLIDWORKS)
