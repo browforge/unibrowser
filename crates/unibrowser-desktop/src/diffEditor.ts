@@ -1,4 +1,5 @@
 import type { editor as MonacoEditorNS } from "monaco-editor";
+import { t } from "./i18n";
 
 type Monaco = typeof import("monaco-editor");
 type DiffEditor = MonacoEditorNS.IStandaloneDiffEditor;
@@ -77,8 +78,7 @@ export const diffEditorView = {
     if (titleEl) {
       titleEl.textContent = `${view.left_path} ↔ ${view.right_path}`;
     }
-    if (closeBtn && !closeBtn.textContent) {
-      const { t } = await import("./i18n");
+    if (closeBtn) {
       closeBtn.textContent = t("diff.close");
     }
     const left = api.editor.createModel(view.left_content, view.language);

@@ -1,5 +1,7 @@
 /** ADR 0013: non-blocking errors in chrome, never over the document surface. */
 
+import { t } from "./i18n";
+
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 export function showToast(message: string, kind: "error" | "info" = "error") {
@@ -23,7 +25,6 @@ export async function invokeWithToast<T>(
   fn: () => Promise<T>,
   fallback?: string,
 ): Promise<T | undefined> {
-  const { t } = await import("./i18n");
   const message = fallback ?? t("toast.errorDefault");
   try {
     return await fn();

@@ -12,7 +12,7 @@ export async function copyText(label: string, onCopied?: () => void): Promise<bo
     onCopied?.();
     return true;
   } catch {
-    showToast("Could not copy to clipboard", "error");
+    showToast(t("clipboard.copyFailed"), "error");
     return false;
   }
 }

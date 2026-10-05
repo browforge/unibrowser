@@ -47,6 +47,10 @@ export function applyChromeI18n() {
   if (tabSearch) {
     tabSearch.placeholder = t("tabSearch.placeholder");
   }
+  const bookmarkBar = document.getElementById("bookmark-bar");
+  if (bookmarkBar) {
+    bookmarkBar.setAttribute("aria-label", t("bookmark.ariaLabel"));
+  }
 }
 
 export function modsLineText(list: string): string {

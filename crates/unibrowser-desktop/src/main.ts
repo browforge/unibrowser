@@ -303,7 +303,7 @@ function renderModPortal(portal: ModPortalDto | null) {
     btn.textContent = `${s.title} (${s.mod_id})`;
     btn.title = s.reason;
     btn.onclick = () => {
-      showToast(`Install ${s.mod_id} — catalog stub (sideload always allowed)`, "info");
+      showToast(t("mods.installStub", { modId: s.mod_id }), "info");
     };
     modPortalPanel.appendChild(btn);
   });
@@ -319,14 +319,14 @@ function renderModPortal(portal: ModPortalDto | null) {
   optIn.id = "open-vsx-opt-in";
   const optLabel = document.createElement("label");
   optLabel.htmlFor = "open-vsx-opt-in";
-  optLabel.textContent = "Allow network (Open VSX)";
+  optLabel.textContent = t("mods.networkOptIn");
   const searchInput = document.createElement("input");
   searchInput.type = "search";
-  searchInput.placeholder = "Search Open VSX (FOSS catalog)";
+  searchInput.placeholder = t("mods.searchPlaceholder");
   searchInput.className = "mod-portal-query";
   const searchBtn = document.createElement("button");
   searchBtn.type = "button";
-  searchBtn.textContent = "Search";
+  searchBtn.textContent = t("mods.search");
   const searchStatus = document.createElement("p");
   searchStatus.className = "mod-portal-search-status viewer-note";
   const results = document.createElement("div");
@@ -340,7 +340,7 @@ function renderModPortal(portal: ModPortalDto | null) {
   modPortalPanel.appendChild(results);
 
   const installedHeading = document.createElement("h3");
-  installedHeading.textContent = "Installed VSIX";
+  installedHeading.textContent = t("mods.installedHeading");
   modPortalPanel.appendChild(installedHeading);
   const installedList = document.createElement("div");
   installedList.className = "mod-portal-installed";
@@ -349,12 +349,16 @@ function renderModPortal(portal: ModPortalDto | null) {
   const sideloadBtn = document.createElement("button");
   sideloadBtn.type = "button";
   sideloadBtn.className = "mod-suggestion";
-  sideloadBtn.textContent = "Install from file (.vsix)…";
+  sideloadBtn.textContent = t("mods.sideloadButton");
   sideloadBtn.onclick = async () => {
     try {
       const rec = await invoke<InstalledVsixDto>("pick_and_install_vsix");
       showToast(
-        `Installed ${rec.extension_id} (${rec.command_count} commands, ${rec.keybinding_count} keybindings in metadata)`,
+        t("mods.installedMeta", {
+          extensionId: rec.extension_id,
+          commandCount: rec.command_count,
+          keybindingCount: rec.keybinding_count,
+        }),
         "info",
       );
       await refreshInstalledVsix(installedList);
@@ -367,17 +371,14 @@ function renderModPortal(portal: ModPortalDto | null) {
   void refreshInstalledVsix(installedList);
 
   async function installFromOpenVsx(hit: OpenVsxHitDto) {
-    showToast(`Downloading ${hit.extension_id}…`, "info");
+    showToast(t("mods.downloading", { extensionId: hit.extension_id }), "info");
     try {
       const rec = await invoke<InstalledVsixDto>("download_install_vsix", {
         url: hit.url,
         networkOptIn: optIn.checked,
         license: hit.license,
       });
-      showToast(
-        `Installed ${rec.extension_id} — palette lists V1 commands (extension host not run)`,
-        "info",
-      );
+      showToast(t("mods.installedPaletteNote", { extensionId: rec.extension_id }), "info");
       await refreshInstalledVsix(installedList);
     } catch (err) {
       showToast(String(err), "error");
@@ -386,20 +387,24 @@ function renderModPortal(portal: ModPortalDto | null) {
 
   searchBtn.onclick = async () => {
     results.innerHTML = "";
-    searchStatus.textContent = "Searching…";
+    searchStatus.textContent = t("mods.searching");
     try {
       const hits = await invoke<OpenVsxHitDto[]>("search_open_vsx_catalog", {
         query: searchInput.value,
         networkOptIn: optIn.checked,
       });
       searchStatus.textContent = hits.length
-        ? `${hits.length} results (cached ~5 min)`
-        : "No results";
+        ? t("mods.resultsCount", { count: hits.length })
+        : t("mods.noResults");
       hits.forEach((hit) => {
         const row = document.createElement("button");
         row.type = "button";
         row.className = "mod-suggestion";
-        row.textContent = `Install ${hit.name} v${hit.version} · ${hit.publisher}`;
+        row.textContent = t("mods.installRow", {
+          name: hit.name,
+          version: hit.version,
+          publisher: hit.publisher,
+        });
         row.title = `${hit.extension_id}${hit.license ? ` · ${hit.license}` : ""}\n${hit.url}`;
         row.onclick = () => installFromOpenVsx(hit);
         results.appendChild(row);
@@ -415,7 +420,7 @@ async function refreshInstalledVsix(container: HTMLElement) {
   try {
     const list = await invoke<InstalledVsixDto[]>("list_installed_vsix");
     if (!list.length) {
-      container.textContent = "No VSIX extensions installed yet.";
+      container.textContent = t("mods.noInstalled");
       return;
     }
     list.forEach((ext) => {
@@ -425,7 +430,7 @@ async function refreshInstalledVsix(container: HTMLElement) {
       label.textContent = `${ext.extension_id} v${ext.version} — ${ext.command_count} cmd / ${ext.keybinding_count} keys`;
       const toggle = document.createElement("button");
       toggle.type = "button";
-      toggle.textContent = ext.enabled ? "Disable" : "Enable";
+      toggle.textContent = ext.enabled ? t("mods.disable") : t("mods.enable");
       toggle.onclick = async () => {
         await invoke("set_vsix_extension_enabled", {
           extensionId: ext.extension_id,
@@ -435,10 +440,10 @@ async function refreshInstalledVsix(container: HTMLElement) {
       };
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.textContent = "Uninstall";
+      remove.textContent = t("mods.uninstall");
       remove.onclick = async () => {
         await invoke("uninstall_vsix_extension", { extensionId: ext.extension_id });
-        showToast(`Removed ${ext.extension_id}`, "info");
+        showToast(t("mods.removed", { extensionId: ext.extension_id }), "info");
         await refreshInstalledVsix(container);
       };
       row.appendChild(label);
@@ -447,7 +452,7 @@ async function refreshInstalledVsix(container: HTMLElement) {
       container.appendChild(row);
     });
   } catch {
-    container.textContent = "Could not list installed extensions.";
+    container.textContent = t("mods.listFailed");
   }
 }
 
@@ -498,22 +503,39 @@ async function renderSessionOptIn() {
     autoCb.id = "auto-save-opt-in";
     const autoLabel = document.createElement("label");
     autoLabel.htmlFor = autoCb.id;
+    const intervalSelect = document.createElement("select");
+    intervalSelect.id = "auto-save-interval";
+    intervalSelect.className = "auto-save-interval";
+    intervalSelect.disabled = true;
+    [30, 60, 120, 300, 600].forEach((secs) => {
+      const opt = document.createElement("option");
+      opt.value = String(secs);
+      opt.textContent = t("autosave.interval", { seconds: secs });
+      intervalSelect.appendChild(opt);
+    });
+    const persistAutoSave = async () => {
+      const intervalSecs = Number.parseInt(intervalSelect.value, 10);
+      const next = await invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>(
+        "set_auto_save_settings",
+        { enabled: autoCb.checked, intervalSecs },
+      );
+      intervalSelect.disabled = !next.auto_save_enabled;
+      configureAutoSave(next.auto_save_enabled, next.auto_save_interval_secs);
+    };
     void invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>(
       "get_preferences",
     ).then((prefs) => {
       autoCb.checked = prefs.auto_save_enabled;
       autoLabel.textContent = t("autosave.label");
-      autoCb.onchange = async () => {
-        const next = await invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>(
-          "set_auto_save_settings",
-          { enabled: autoCb.checked, intervalSecs: prefs.auto_save_interval_secs },
-        );
-        configureAutoSave(next.auto_save_enabled, next.auto_save_interval_secs);
-      };
+      intervalSelect.value = String(prefs.auto_save_interval_secs);
+      intervalSelect.disabled = !prefs.auto_save_enabled;
+      autoCb.onchange = () => void persistAutoSave();
+      intervalSelect.onchange = () => void persistAutoSave();
       configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs);
     });
     autoRow.appendChild(autoCb);
     autoRow.appendChild(autoLabel);
+    autoRow.appendChild(intervalSelect);
     row.appendChild(cb);
     row.appendChild(label);
     row.appendChild(autoRow);
@@ -792,7 +814,7 @@ listen("browser-state-updated", () => {
 });
 
 btnSplit.onclick = () => {
-  void invokeWithToast(() => invoke<TabContentDto>("toggle_split_view"), "Split view failed").then(
+  void invokeWithToast(() => invoke<TabContentDto>("toggle_split_view"), t("chrome.splitFailed")).then(
     (data) => data && applyState(data),
   );
 };
@@ -850,7 +872,7 @@ themeBtn.onclick = async () => {
 };
 
 document.getElementById("btn-new-project")!.onclick = async () => {
-  const name = window.prompt("Project name", "MyProject");
+  const name = window.prompt(t("project.namePrompt"), "MyProject");
   if (!name) {
     return;
   }
@@ -888,7 +910,7 @@ function togglePalette() {
   if (paletteOpen) {
     tabSearchOpen = false;
     tabSearchPanel.classList.add("hidden");
-    paletteQuery.placeholder = `Search commands (${paletteChordLabel})`;
+    paletteQuery.placeholder = t("palette.placeholder", { chord: paletteChordLabel });
     paletteQuery.focus();
   }
 }
@@ -971,14 +993,14 @@ document.addEventListener(
   }
   if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "z") {
     e.preventDefault();
-    void invokeWithToast(() => invoke<TabContentDto>("document_undo"), "Nothing to undo").then(
+    void invokeWithToast(() => invoke<TabContentDto>("document_undo"), t("editor.nothingToUndo")).then(
       (data) => data && applyState(data),
     );
     return;
   }
   if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "y") {
     e.preventDefault();
-    void invokeWithToast(() => invoke<TabContentDto>("document_redo"), "Nothing to redo").then(
+    void invokeWithToast(() => invoke<TabContentDto>("document_redo"), t("editor.nothingToRedo")).then(
       (data) => data && applyState(data),
     );
     return;
@@ -1003,7 +1025,7 @@ async function loadKeybindingHints() {
     if (palette) {
       paletteChordLabel = palette.chord;
       paletteChordHint = `${paletteChordLabel} for command palette`;
-      paletteQuery.placeholder = `Search commands (${paletteChordLabel})`;
+      paletteQuery.placeholder = t("palette.placeholder", { chord: paletteChordLabel });
     }
   } catch {
     /* defaults */

@@ -183,10 +183,15 @@ body {
 
 .session-restore-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.35rem;
   align-items: center;
   margin-top: 0.35rem;
   font-size: 0.85rem;
+}
+
+.auto-save-interval {
+  font-size: inherit;
 }
 
 .nav-row {

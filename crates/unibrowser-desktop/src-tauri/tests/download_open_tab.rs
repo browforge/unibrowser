@@ -16,3 +16,10 @@ fn https_download_opens_http_tab_location() {
         _ => panic!("expected http tab"),
     }
 }
+
+#[test]
+fn rejects_data_url_download() {
+    let err =
+        apply_download_disposition("data:text/plain,hello", None, Path::new("/tmp")).unwrap_err();
+    assert!(err.contains("unsupported"));
+}
