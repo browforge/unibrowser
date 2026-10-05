@@ -1,21 +1,25 @@
-# Terminal panel (stub)
+# Terminal panel
 
 ## UI
 
-The bottom panel next to the status bar has two tabs:
+Bottom dock (shared with **Output**):
 
-| Tab | State |
+| Tab | Behaviour |
 | --- | --- |
-| **Output** | Active. Rhai palette demo and script host lines append here (`unibrowser-script-output` event). |
-| **Terminal** | Disabled (grey). Label shows **Terminal** with a “planned” tooltip. |
+| **Output** | Rhai / script host lines (`unibrowser-script-output`) |
+| **Terminal** | **xterm.js** + `portable-pty` shell |
 
-Close the panel with **×**; Rhai output re-opens it on the Output tab.
+- **Toggle:** palette **Toggle terminal panel** or **Ctrl+`** (default).
+- **Resize:** drag the top edge of the bottom panel (grip).
+- **Shell:** PowerShell (`-NoLogo`) on Windows; `$SHELL` or `/bin/bash` on Linux/macOS.
+- Default cwd: app workspace directory when the session starts.
 
-## Why no PTY yet?
+## Backend
 
-A real integrated terminal needs a pseudo-terminal, scrollback, signal handling, and safe cwd/env per window. That is more than a blitz stub. Prefer your system terminal for now.
+- Crate: `unibrowser-terminal` (PTY tests in crate).
+- Tauri: `terminal_spawn`, `terminal_write`, `terminal_resize`; `terminal-output` events.
 
-## Future direction
+## Limits
 
-- Optional tab: connect to `portable-pty` or platform PTY behind a Tauri command stream.
-- Respect workspace root as default cwd when workspace folders are pinned.
+- One PTY session per app instance (blitz).
+- No split panes, no SSH profiles, no ConPTY-specific features beyond `portable-pty`.

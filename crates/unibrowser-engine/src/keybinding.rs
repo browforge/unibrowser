@@ -121,6 +121,10 @@ impl KeybindingMap {
             unibrowser_mod_api::commands::REOPEN_CLOSED_TAB,
             "Ctrl+Shift+T",
         );
+        map.set_binding(
+            unibrowser_mod_api::commands::TOGGLE_TERMINAL_PANEL,
+            "Ctrl+`",
+        );
         map
     }
 

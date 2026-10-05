@@ -12,3 +12,7 @@ scraper = "0.22"
 serde = { workspace = true, features = ["derive"] }
 thiserror = "2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+proptest = "1"
+scraper = "0.22"

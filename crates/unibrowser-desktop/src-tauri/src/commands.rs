@@ -53,7 +53,8 @@ use unibrowser_mod_api::handlers::{
     FONT_DECREASE_ID, FONT_INCREASE_ID, FORMAT_DOCUMENT_ID, PAGE_ZOOM_DECREASE_ID,
     PAGE_ZOOM_INCREASE_ID,
     CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, COMPARE_TEXT_ID, PICTURE_IN_PICTURE_ID,
-    SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
+    COPY_TEXT_FROM_IMAGE_ID, SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID,
+    TOGGLE_TERMINAL_PANEL_ID, TOGGLE_WEB_DEVTOOLS_ID,
 };
 use unibrowser_engine::document::DocumentSession;
 use unibrowser_engine::{
@@ -3299,6 +3300,12 @@ fn execute_command_impl(
         } else {
             "reader-off".into()
         });
+    }
+    if command_id == TOGGLE_TERMINAL_PANEL_ID {
+        return Ok("terminal-toggle".into());
+    }
+    if command_id == COPY_TEXT_FROM_IMAGE_ID {
+        return ocr_active_tab(&state, &window);
     }
     if command_id == TOGGLE_WEB_DEVTOOLS_ID {
         let _sess_tabs = ws(&state, &window)?;
@@ -7189,6 +7196,83 @@ pub fn get_csv_preview(
     let limit = max_rows.unwrap_or(150).min(200);
     let p = resolve_open_path(&path, &state.cwd)?;
     crate::csv_preview::preview_file(&p, limit)
+}
+
+#[tauri::command]
+pub fn ocr_tesseract_available_cmd() -> bool {
+    unibrowser_ocr::tesseract_available()
+}
+
+#[tauri::command]
+pub fn terminal_spawn(
+    app: AppHandle,
+    cwd: Option<String>,
+    state: State<AppState>,
+) -> Result<u32, String> {
+    let cwd = cwd.or_else(|| Some(state.cwd.to_string_lossy().into_owned()));
+    crate::terminal_host::spawn_terminal(app, cwd)
+}
+
+#[tauri::command]
+pub fn terminal_write(session_id: u32, data: String) -> Result<(), String> {
+    crate::terminal_host::terminal_write(session_id, data)
+}
+
+#[tauri::command]
+pub fn terminal_resize(session_id: u32, cols: u16, rows: u16) -> Result<(), String> {
+    crate::terminal_host::terminal_resize(session_id, cols, rows)
+}
+
+fn ocr_active_tab(state: &AppState, window: &tauri::Window) -> Result<String, String> {
+    if !unibrowser_ocr::tesseract_available() {
+        return Err(
+            "Install Tesseract OCR and add it to PATH (or set UNIBROWSER_TESSERACT_PATH).".into(),
+        );
+    }
+    let path = active_document_path(state, window)?;
+    let p = resolve_open_path(&path, &state.cwd)?;
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_ascii_lowercase());
+    let text = match ext.as_deref() {
+        Some("png") | Some("jpg") | Some("jpeg") | Some("webp") | Some("bmp") | Some("gif") => {
+            unibrowser_ocr::ocr_image_file(&p).map_err(|e| e.to_string())?
+        }
+        Some("pdf") => ocr_pdf_page_one(&p)?,
+        _ => return Err("OCR is available for image files and PDF documents.".into()),
+    };
+    if text.trim().is_empty() {
+        return Err("OCR found no text in this document.".into());
+    }
+    Ok(format!("ocr-copy:{}", text))
+}
+
+fn ocr_pdf_page_one(pdf: &std::path::Path) -> Result<String, String> {
+    use std::process::Command;
+    let pdftoppm = unibrowser_media::find_binary("pdftoppm")
+        .ok_or("PDF OCR needs pdftoppm (Poppler) on PATH.")?;
+    let dir = std::env::temp_dir().join(format!("unibrowser-ocr-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let prefix = dir.join("page");
+    let status = Command::new(&pdftoppm)
+        .arg("-f")
+        .arg("1")
+        .arg("-l")
+        .arg("1")
+        .arg("-png")
+        .arg(pdf)
+        .arg(&prefix)
+        .status()
+        .map_err(|e| e.to_string())?;
+    if !status.success() {
+        let _ = std::fs::remove_dir_all(&dir);
+        return Err("pdftoppm failed to rasterize PDF page 1".into());
+    }
+    let png = dir.join("page-1.png");
+    let out = unibrowser_ocr::ocr_image_file(&png).map_err(|e| e.to_string());
+    let _ = std::fs::remove_dir_all(&dir);
+    out
 }
 
 fn active_web_reader_mode(state: &AppState, window_label: &str) -> bool {

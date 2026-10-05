@@ -1506,6 +1506,22 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   ocrBtn.textContent = t("image.ocr");
   ocrBtn.disabled = true;
   ocrBtn.title = t("image.ocrDisabledReason");
+  void invoke<boolean>("ocr_tesseract_available_cmd").then((ok) => {
+    ocrBtn.disabled = !ok;
+    ocrBtn.title = ok ? t("image.ocr") : t("image.ocrDisabledReason");
+  });
+  ocrBtn.onclick = () => {
+    void invoke<string>("execute_command", {
+      commandId: "unibrowser.image.ocr.copy",
+    }).then((msg) => {
+      if (msg.startsWith("ocr-copy:")) {
+        const text = msg.slice("ocr-copy:".length);
+        void navigator.clipboard.writeText(text).then(() => {
+          showToast(t("image.ocrCopied"), "info");
+        });
+      }
+    }).catch(showErrorToast);
+  };
   const copyImgBtn = document.createElement("button");
   copyImgBtn.type = "button";
   copyImgBtn.textContent = t("image.copy");

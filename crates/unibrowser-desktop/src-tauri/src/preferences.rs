@@ -163,7 +163,7 @@ pub struct Preferences {
     /// Larger minimum hit targets on tabs and command chips.
     #[serde(default)]
     pub larger_hit_targets: bool,
-    /// Web tab proxy preference (persisted; not applied to WRY webviews in blitz).
+    /// Web tab proxy preference (manual mode → `WebviewBuilder::proxy_url` on new content webviews).
     #[serde(default)]
     pub web_proxy: WebProxyPrefs,
     /// Confirm before omnibox navigates to plain `http://` (default on).

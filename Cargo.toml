@@ -12,6 +12,8 @@ members = [
     "crates/unibrowser-vsix",
     "crates/unibrowser-extension-host",
     "crates/unibrowser-docx",
+    "crates/unibrowser-terminal",
+    "crates/unibrowser-ocr",
     "crates/unibrowser-app",
     "mods/base-text",
     "mods/base-png",

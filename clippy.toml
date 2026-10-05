@@ -1,0 +1,3 @@
+# Workspace Clippy policy (see scripts/clippy-workspace.sh).
+# Legacy desktop shell: allow high-volume style lints until a dedicated cleanup pass.
+too-many-arguments-threshold = 12

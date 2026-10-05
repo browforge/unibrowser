@@ -45,7 +45,13 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
         .get_window(window_label)
         .ok_or_else(|| format!("window {} missing", window_label))?;
     let blank: Url = "about:blank".parse().map_err(|e: url::ParseError| e.to_string())?;
-    let mut builder = tauri::webview::WebviewBuilder::new(&label, WebviewUrl::External(blank))
+    let mut builder = tauri::webview::WebviewBuilder::new(&label, WebviewUrl::External(blank));
+    if let Some(proxy) =
+        crate::web_proxy::proxy_url_for_prefs(&crate::preferences::load_preferences().web_proxy)
+    {
+        builder = builder.proxy_url(proxy);
+    }
+    builder = builder
         .on_page_load(|webview, payload| {
             let phase = match payload.event() {
                 PageLoadEvent::Started => "started".to_string(),

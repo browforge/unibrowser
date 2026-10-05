@@ -67,6 +67,7 @@ import {
   appendScriptOutput,
   initScriptOutputPanel,
 } from "./scriptOutputPanel";
+import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
@@ -1178,6 +1179,20 @@ async function handleShellCommandMessage(msg: string): Promise<boolean> {
   if (msg === "devtools-open" || msg === "devtools-close") {
     return false;
   }
+  if (msg === "terminal-toggle") {
+    toggleTerminalPanel();
+    return false;
+  }
+  if (msg.startsWith("ocr-copy:")) {
+    const text = msg.slice("ocr-copy:".length);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(t("image.ocrCopied"), "info");
+    } catch {
+      showToast(text.slice(0, 120), "info");
+    }
+    return false;
+  }
   if (msg === "keys-overlay") {
     await openKeysOverlay();
     return false;
@@ -2088,6 +2103,7 @@ function deferNonCriticalInit(fn: () => void) {
 }
 
 initScriptOutputPanel();
+initTerminalPanel();
 initKeysOverlay();
 window.addEventListener("unibrowser-prefs-changed", () => {
   void refreshState();

@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Terminal panel:** xterm.js + `unibrowser-terminal` / portable-pty; Ctrl+`; resize grip; [terminal-panel.md](docs/terminal-panel.md).
+- **Web proxy:** manual mode → `proxy_url` on new content webviews; [network-proxy.md](docs/network-proxy.md).
+- **OCR:** Tesseract CLI + palette **Copy text from image**; [ocr-sidecar.md](docs/ocr-sidecar.md).
+- **Hardening:** `scripts/clippy-workspace.sh`, `clippy.toml`, proptest for `.unibrow` manifest JSON and DOCX HTML subset.
 - **DOCX save (lite):** `unibrowser-docx` + **Save to .docx** for supported HTML; refuses complex originals; tests in crate ([docx-roundtrip.md](docs/docx-roundtrip.md)).
 - **VSIX TextMate:** `vscode-textmate` + Oniguruma WASM in Monaco; fixture `fixturelang` grammar applied; install notes updated ([extension-host.md](docs/extension-host.md)).
 - **Packaging:** Tauri bundle targets deb/AppImage/NSIS/MSI; workflow bundle + artifact upload steps; honest [packaging.md](docs/packaging.md) + [ci.md](docs/ci.md) (Origin may not run workflows).

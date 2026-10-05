@@ -2,22 +2,25 @@
 
 ## Settings
 
-**Settings → Advanced → Web tab proxy** stores how https tabs should reach the network:
+**Settings → Advanced → Web tab proxy** (`preferences.json` → `web_proxy`):
 
-| Mode | Meaning |
+| Mode | Applied in shell |
 | --- | --- |
-| **System** | Use the OS proxy (default). |
-| **Direct** | No proxy. |
-| **Manual** | Host + port fields (persisted when mode is Manual). |
+| **System** | No override (OS / WebView default). |
+| **Direct** | No `proxy_url` on the content webview (not a forced bypass on all platforms). |
+| **Manual** | `http://host:port` via Tauri `WebviewBuilder::proxy_url` when the content webview is **created**. |
 
-Values live in `preferences.json` under `web_proxy`.
+## Platform notes
 
-## Applied in the shell?
+| Platform | Mechanism | Limits |
+| --- | --- | --- |
+| Windows (WebView2) | WRY maps manual proxy to `--proxy-server=…` | SOCKS/auth/PAC not implemented; existing https tabs keep old proxy until recreated |
+| Linux (WebKitGTK) | Tauri `proxy_url` | Same recreation caveat; system mode still uses OS env |
+| macOS | `proxy_url` needs macOS 14+ / feature flags in upstream Tauri | Not verified in blitz |
 
-**Not in the blitz build.** Tauri / WRY content webviews are created without a per-tab proxy override in `webview.rs`. Until a supported API exists on each platform (WebView2, WebKitGTK, WKWebView), changing this setting only updates prefs and diagnostics expectations.
+Changing proxy prefs does **not** hot-reload open https tabs; open a new tab or restart the window to pick up manual proxy on new webviews.
 
 ## Workarounds
 
-- Set the system proxy before launching Unibrowser (mode **System**).
-- Use **Direct** when you need to confirm traffic is not using a stale manual config (prefs only today).
-- Corporate proxies that require auth or PAC files are out of scope for this stub.
+- Set OS proxy before launch when using **System**.
+- Corporate PAC / NTLM proxies remain out of scope.

@@ -10,6 +10,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 | Area | What works |
 | --- | --- |
+| Terminal | Bottom **Terminal** tab (xterm + PTY); Ctrl+`; [terminal-panel.md](terminal-panel.md) |
 | Shell | Tauri 2 desktop: tabs, omnibox (`file://`, paths, `https://`, `unibrowser://`), multi-window, **split view** (experimental vertical split, [split-view.md](split-view.md)), **session restore** ([session-restore.md](session-restore.md)), downloads (default open in tab) |
 | Downloads UI | `unibrowser://downloads` manager: history, retry failed, clear list |
 | Security | Trust banners, remote-web chrome hint, click-to-play media; omnibox `file://` paths percent-decoded and traversal-checked ([security.md](security.md)) |
@@ -109,7 +110,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | **base-js** | `.js`/`.jsx`/`.mjs`/`.cjs`/`.ts`/`.tsx` open in Monaco (`javascript` / `typescript` language ids); `.rhai` stays plain text |
 | Scripting tip | Shown only when JS/TS still open in **base-text**; hidden when **base-js** handles the file |
 | Bottom panel | **Output** (Rhai) + grey **Terminal** tab (planned) — [terminal-panel.md](terminal-panel.md) |
-| Web proxy prefs | System / direct / manual host+port persisted; not applied to webviews yet — [network-proxy.md](network-proxy.md) |
+| Web proxy prefs | Manual host+port on new content webviews — [network-proxy.md](network-proxy.md) |
 | Branding | Window title **Unibrowser — {tab}**; icons documented in [branding.md](branding.md) |
 | Workspace quick open | **Ctrl+P** fuzzy file find under pinned workspace root (separate from omnibox / deep find **Ctrl+Shift+F**) |
 | MIDI audio render | Timeline H.264 export mixes MIDI when **fluidsynth** + soundfont available (Settings path or system default); palette viewer stub unchanged — [midi-audio-render.md](midi-audio-render.md) |
@@ -182,11 +183,11 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 | --- | --- | --- |
 | 1 | VSIX JS extension host (full) | Node sidecar + expanded shim + lifecycle/security; most `vscode` API still missing |
 | 2 | WebView2 download wiring | Hook in repo; Bear hardware QA + edge cases |
-| 3 | OCR sidecar | Announced stub, no Tesseract pool |
+| 3 | OCR depth | Tesseract CLI wired; multi-lang / hOCR not done |
 | 4 | Full timeline / DAW encode | ffmpeg H.264 + approximate duck/fade; no full DAW mix bus |
 | 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
 | 6 | EPUB/DOCX fidelity | Lite `.docx` save for simple bodies; Mammoth layout + tables/images still gaps |
-| 7 | Web proxy applied to webviews | Prefs persist only |
+| 7 | Web proxy edge cases | PAC/SOCKS/auth; hot-reload open tabs |
 | 8 | i18n depth | Chrome only (`en-NZ` / `en-US`) |
 | 9 | Cloud / collab | Share zip only |
 | 10 | Binary / heavy CAD DXF | Proving parser + wireframe only; friendly empty state, not full geometry |
@@ -196,7 +197,7 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 | Item | Notes |
 | --- | --- |
 | VSIX JS extension host | Opt-in Node sidecar, trust prompt, builtin command bus ([extension-host.md](extension-host.md)); not a full VS Code host |
-| OCR | UI placeholder; Tesseract sidecar not built ([ocr-sidecar.md](ocr-sidecar.md)) |
+| OCR | Tesseract on PATH; eng-only CLI ([ocr-sidecar.md](ocr-sidecar.md)) |
 | Spellcheck | Monaco still has no built-in dictionary; experimental browser spellcheck covers text mirror + DOCX + EPUB notes |
 | Timeline encode | H.264 when ffmpeg present; duck/fade approximations only; no stem/mix bus export |
 | Windows/macOS dynamic mods | Linux user `mods/` today |
@@ -213,12 +214,11 @@ Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** pol
 | P2 | EPUB assets | Spine HTML only; embedded images/fonts often missing until asset URL resolution. |
 | P2 | DOCX fidelity | Lite **Save to .docx** for paragraph/heading/bold/italic subset; rejects tables/images in source ([docx-roundtrip.md](docx-roundtrip.md)). |
 | P2 | VSIX JS host | Node spike only; grey when pref off or `node` missing ([extension-host.md](extension-host.md)). |
-| P2 | Web proxy prefs | Persisted but **not applied** to embedded https webviews ([network-proxy.md](network-proxy.md)). |
+| P3 | Web proxy prefs | Manual `proxy_url` when webview is created; system/direct limits documented ([network-proxy.md](network-proxy.md)). |
 | P3 | PDF text copy | Needs pdf.js **text layer**; scanned/raster-only pages have no selectable text (Copy / Print selection grey). |
 | P3 | Large PDF open | Profile with `UNIBROWSER_PROFILE_OPEN=1` if open feels slow. |
 | P3 | Spellcheck experiment | No underlines inside Monaco; mirror textarea / DOCX / EPUB notes only. |
-| P3 | OCR | Button disabled until Tesseract sidecar ships ([ocr-sidecar.md](ocr-sidecar.md)). |
-| P3 | Integrated terminal | Bottom **Terminal** tab disabled; use system shell ([terminal-panel.md](terminal-panel.md)). |
+| P3 | OCR | Tesseract CLI when on PATH; `eng` only; PDF page 1 needs pdftoppm ([ocr-sidecar.md](ocr-sidecar.md)). |
 
 ## Demo script (~10 min)
 

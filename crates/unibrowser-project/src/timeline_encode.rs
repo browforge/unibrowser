@@ -114,7 +114,7 @@ pub fn build_timeline_encode_intent(package: &ProjectPackage) -> TimelineEncodeI
         let media = if clip.title_text.is_some() || node.node_type == "title" {
             SegmentMedia::TitleCard
         } else {
-            segment_media_for_clip(package, *clip).unwrap_or(SegmentMedia::Other)
+            segment_media_for_clip(package, clip).unwrap_or(SegmentMedia::Other)
         };
         let path = match node.asset.as_ref() {
             Some(file) => assets.join(file),

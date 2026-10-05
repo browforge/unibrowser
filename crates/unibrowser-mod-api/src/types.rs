@@ -112,6 +112,8 @@ pub mod commands {
     pub const EXPORT_PRINT_PDF: &str = "unibrowser.export.printPdf";
     pub const PRINT_SELECTION: &str = "unibrowser.export.printSelection";
     pub const TOGGLE_WEB_DEVTOOLS: &str = "unibrowser.web.devtools.toggle";
+    pub const TOGGLE_TERMINAL_PANEL: &str = "unibrowser.terminal.toggle";
+    pub const COPY_TEXT_FROM_IMAGE: &str = "unibrowser.image.ocr.copy";
     pub const NEW_WINDOW: &str = "unibrowser.window.new";
     pub const SHOW_KEYBOARD_SHORTCUTS: &str = "unibrowser.keys.showOverlay";
     pub const TOGGLE_READER_MODE: &str = "unibrowser.web.reader.toggle";

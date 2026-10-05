@@ -88,18 +88,19 @@
       </div>
     </main>
     <aside id="script-output-panel" class="script-output-panel hidden" aria-label="Bottom panel">
+      <div id="bottom-panel-resize-grip" class="bottom-panel-resize-grip" title="Drag to resize panel" aria-hidden="true"></div>
       <div class="script-output-head">
         <div class="bottom-panel-tabs" role="tablist" aria-label="Bottom panel tabs">
           <button type="button" id="bottom-panel-tab-output" class="bottom-panel-tab is-active" role="tab" aria-selected="true" aria-controls="bottom-panel-output-pane">Output</button>
-          <button type="button" id="bottom-panel-tab-terminal" class="bottom-panel-tab bottom-panel-tab--planned" role="tab" aria-selected="false" aria-disabled="true" title="Planned" disabled>Terminal</button>
+          <button type="button" id="bottom-panel-tab-terminal" class="bottom-panel-tab" role="tab" aria-selected="false" aria-controls="bottom-panel-terminal-pane">Terminal</button>
         </div>
         <button type="button" id="script-output-close" aria-label="Close bottom panel">×</button>
       </div>
       <div id="bottom-panel-output-pane" class="bottom-panel-pane" role="tabpanel">
         <div id="script-output-log" class="script-output-log"></div>
       </div>
-      <div id="bottom-panel-terminal-pane" class="bottom-panel-pane bottom-panel-pane--planned hidden" role="tabpanel" aria-hidden="true">
-        <p class="bottom-panel-planned-note">Integrated terminal is planned. Use your system shell for now.</p>
+      <div id="bottom-panel-terminal-pane" class="bottom-panel-pane bottom-panel-terminal hidden" role="tabpanel" aria-hidden="true">
+        <div id="terminal-host" class="terminal-host"></div>
       </div>
     </aside>
     <div id="extension-tip" class="extension-tip hidden" role="status" aria-live="polite">

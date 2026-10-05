@@ -1,3 +1,5 @@
+import { hideBottomPanel, selectBottomPanelTab, showTerminalPanel } from "./terminalPanel";
+
 let host: HTMLElement | null = null;
 let logEl: HTMLElement | null = null;
 
@@ -11,27 +13,11 @@ export function initScriptOutputPanel() {
   const outputTab = document.getElementById("bottom-panel-tab-output");
   const terminalTab = document.getElementById("bottom-panel-tab-terminal");
   outputTab?.addEventListener("click", () => selectBottomPanelTab("output"));
-  terminalTab?.addEventListener("click", (ev) => {
-    ev.preventDefault();
+  terminalTab?.addEventListener("click", () => {
+    host?.classList.remove("hidden");
+    selectBottomPanelTab("terminal");
+    void showTerminalPanel();
   });
-}
-
-function selectBottomPanelTab(which: "output" | "terminal") {
-  if (which === "terminal") {
-    return;
-  }
-  const outputPane = document.getElementById("bottom-panel-output-pane");
-  const terminalPane = document.getElementById("bottom-panel-terminal-pane");
-  const outputTab = document.getElementById("bottom-panel-tab-output");
-  const terminalTab = document.getElementById("bottom-panel-tab-terminal");
-  outputPane?.classList.remove("hidden");
-  terminalPane?.classList.add("hidden");
-  terminalPane?.setAttribute("aria-hidden", "true");
-  outputPane?.setAttribute("aria-hidden", "false");
-  outputTab?.classList.add("is-active");
-  outputTab?.setAttribute("aria-selected", "true");
-  terminalTab?.classList.remove("is-active");
-  terminalTab?.setAttribute("aria-selected", "false");
 }
 
 export function appendScriptOutput(line: string) {
@@ -48,5 +34,5 @@ export function appendScriptOutput(line: string) {
 }
 
 export function hideScriptOutputPanel() {
-  host?.classList.add("hidden");
+  hideBottomPanel();
 }

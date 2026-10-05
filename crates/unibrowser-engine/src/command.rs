@@ -111,6 +111,20 @@ impl CommandRegistry {
             aliases: &["devtools", "web inspector", "inspect element"],
         });
         reg.register_command(CommandMeta {
+            id: commands::TOGGLE_TERMINAL_PANEL,
+            title: "Toggle terminal panel",
+            icon: "terminal",
+            default_keybinding: Some("Ctrl+`"),
+            aliases: &["integrated terminal", "shell", "pty"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::COPY_TEXT_FROM_IMAGE,
+            title: "Copy text from image (OCR)",
+            icon: "ocr",
+            default_keybinding: None,
+            aliases: &["ocr", "extract text", "tesseract"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::NEW_WINDOW,
             title: "New window",
             icon: "window",
