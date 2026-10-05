@@ -45,6 +45,16 @@ pub struct VsixContributions {
     pub extension_id: String,
     pub commands: Vec<VsixCommandContrib>,
     pub keybindings: Vec<VsixKeybindingContrib>,
+    #[serde(default)]
+    pub activation_events: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VsixCommandDetail {
+    pub command_id: String,
+    pub title: String,
+    pub extension_id: String,
+    pub activation_events: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -167,6 +177,47 @@ pub fn uninstall_extension(root: &Path, extension_id: &str) -> Result<(), VsixEr
     Err(VsixError::Msg(format!("extension not installed: {}", extension_id)))
 }
 
+pub fn lookup_vsix_command(root: &Path, command_id: &str) -> Option<(String, Vec<String>)> {
+    for rec in list_installed(root).unwrap_or_default() {
+        if !rec.enabled {
+            continue;
+        }
+        for cmd in &rec.contributions.commands {
+            if cmd.command == command_id {
+                return Some((
+                    rec.extension_id.clone(),
+                    rec.contributions.activation_events.clone(),
+                ));
+            }
+        }
+    }
+    None
+}
+
+pub fn enabled_command_details(installed: &[InstalledVsixRecord]) -> Vec<VsixCommandDetail> {
+    let mut out = Vec::new();
+    for rec in installed {
+        if !rec.enabled {
+            continue;
+        }
+        for cmd in &rec.contributions.commands {
+            let title = if let Some(cat) = &cmd.category {
+                format!("{}: {}", cat, cmd.title)
+            } else {
+                cmd.title.clone()
+            };
+            out.push(VsixCommandDetail {
+                command_id: cmd.command.clone(),
+                title,
+                extension_id: rec.extension_id.clone(),
+                activation_events: rec.contributions.activation_events.clone(),
+            });
+        }
+    }
+    out.sort_by(|a, b| a.command_id.cmp(&b.command_id));
+    out
+}
+
 pub fn enabled_keybindings(installed: &[InstalledVsixRecord]) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for rec in installed {
@@ -249,6 +300,8 @@ struct PackageJson {
     display_name: Option<String>,
     #[serde(default)]
     license: Option<String>,
+    #[serde(default, rename = "activationEvents")]
+    activation_events: Vec<String>,
     #[serde(default)]
     contributes: Option<Contributes>,
 }
@@ -350,6 +403,7 @@ fn extract_contributions(package: &PackageJson, extension_id: &str) -> VsixContr
         extension_id: extension_id.to_string(),
         commands,
         keybindings: contributes.keybindings,
+        activation_events: package.activation_events.clone(),
     }
 }
 
@@ -371,6 +425,7 @@ mod tests {
   "name": "demo",
   "publisher": "unibrowser",
   "version": "1.0.0",
+  "activationEvents": ["onCommand:demo.hello"],
   "contributes": {
     "commands": [{"command": "demo.hello", "title": "Hello", "category": "Demo"}],
     "keybindings": [{"command": "demo.hello", "key": "ctrl+shift+h"}]
@@ -402,6 +457,13 @@ mod tests {
         let rec = install_vsix_bytes(&dir, &sample_vsix_bytes(), Some("MIT".into())).expect("install");
         assert_eq!(rec.extension_id, "unibrowser.demo");
         assert_eq!(rec.contributions.commands.len(), 1);
+        assert_eq!(
+            rec.contributions.activation_events,
+            vec!["onCommand:demo.hello".to_string()]
+        );
+        let details = enabled_command_details(&list_installed(&dir).expect("list"));
+        assert_eq!(details.len(), 1);
+        assert_eq!(details[0].command_id, "demo.hello");
         let list = list_installed(&dir).expect("list");
         assert_eq!(list.len(), 1);
         let _ = fs::remove_dir_all(&dir);

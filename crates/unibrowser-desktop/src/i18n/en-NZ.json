@@ -269,5 +269,9 @@
   "image.ocr": "Extract text (OCR)",
   "image.ocrDisabledReason": "OCR sidecar not installed yet. See docs/ocr-sidecar.md.",
   "settings.experimentalSpellcheck": "Experimental browser spellcheck (text editor)",
-  "settings.experimentalSpellcheckNote": "Shows a read-only spellcheck field under the editor. Monaco itself has no native dictionary."
+  "settings.experimentalSpellcheckNote": "Shows a read-only spellcheck field under the editor. Monaco itself has no native dictionary.",
+  "settings.openDownloadsSystemBrowser": "Open web downloads in system browser",
+  "settings.openDownloadsSystemBrowserNote": "Interim workaround when the embedded webview cannot intercept downloads (e.g. WebView2 on Windows). See docs/browser-shell.md.",
+  "download.openedSystemBrowser": "Opened download URL in your system browser.",
+  "encode.progress": "Encode {percent}% — {stage}"
 }

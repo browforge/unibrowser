@@ -625,6 +625,7 @@ pub fn clip_asset_paths(package: &ProjectPackage) -> Vec<(TimelineClip, PathBuf,
 
 const EXPORT_STUB_NAME: &str = "export-mp4-preview.txt";
 const EXPORT_MP4_NAME: &str = "timeline-preview.mp4";
+const EXPORT_MP4_H264_NAME: &str = "timeline-export-h264.mp4";
 
 /// Write a human-readable stub or return path when encode is handled elsewhere.
 pub fn write_mp4_export_stub(
@@ -650,6 +651,10 @@ pub fn write_mp4_export_stub(
 
 pub fn derived_mp4_preview_path(package: &ProjectPackage) -> PathBuf {
     package.root.join(DIR_DERIVED).join(EXPORT_MP4_NAME)
+}
+
+pub fn derived_mp4_h264_path(package: &ProjectPackage) -> PathBuf {
+    package.root.join(DIR_DERIVED).join(EXPORT_MP4_H264_NAME)
 }
 
 pub fn export_stub_document_path(package: &ProjectPackage) -> PathBuf {

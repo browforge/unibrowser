@@ -87,6 +87,9 @@ pub struct Preferences {
     /// Read-only browser spellcheck mirror under the text editor (experimental).
     #[serde(default)]
     pub advanced_experimental_spellcheck: bool,
+    /// Interim: hand https downloads to the system browser (WebView2 gap on Windows).
+    #[serde(default)]
+    pub open_downloads_in_system_browser: bool,
     #[serde(default)]
     pub files_view: FilesViewPrefs,
     /// Favourite folder paths (bookmarked from files view).
@@ -194,6 +197,7 @@ impl Default for Preferences {
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,
             advanced_experimental_spellcheck: false,
+            open_downloads_in_system_browser: false,
             files_view: FilesViewPrefs::default(),
             folder_favorites: Vec::new(),
             command_manager_dense: false,

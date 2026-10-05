@@ -23,6 +23,8 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [keybindings.md](keybindings.md) | Chords and overrides |
 | [multi-window.md](multi-window.md) | Per-window state vs shared prefs |
 | [downloads.md](downloads.md) | Download disposition |
+| [browser-shell.md](browser-shell.md) | WebView downloads (Linux vs WebView2 gap) |
+| [extension-host.md](extension-host.md) | VSIX stub vs full JS host |
 | [ffmpeg-sidecar.md](ffmpeg-sidecar.md) | Media sidecar pool |
 | [api-gap-upstream.md](api-gap-upstream.md) | Upstream API gaps |
 

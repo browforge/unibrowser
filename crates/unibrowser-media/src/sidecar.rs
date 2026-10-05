@@ -20,6 +20,11 @@ pub enum SidecarRequest {
         time_sec: f64,
         dest_path: String,
     },
+    EncodeH264 {
+        input_path: String,
+        dest_path: String,
+        preset: String,
+    },
     Ping,
 }
 
@@ -169,6 +174,21 @@ fn spawn_sidecar() -> Result<Child, MediaError> {
 }
 
 /// Direct ffprobe (same as legacy path); used by the sidecar binary implementation.
+pub fn sidecar_encode_h264(input: &Path, dest: &Path, preset: &str) -> Result<(), MediaError> {
+    let resp = sidecar_request_pooled(&SidecarRequest::EncodeH264 {
+        input_path: input.to_string_lossy().into_owned(),
+        dest_path: dest.to_string_lossy().into_owned(),
+        preset: preset.to_string(),
+    })?;
+    if resp.ok {
+        Ok(())
+    } else {
+        Err(MediaError::Sidecar(
+            resp.error.unwrap_or_else(|| "encode failed".into()),
+        ))
+    }
+}
+
 pub fn probe_file_direct(path: &Path) -> Result<MediaFileProbe, MediaError> {
     let ffprobe = find_binary("ffprobe").ok_or(MediaError::NotFound)?;
     let output = Command::new(&ffprobe)

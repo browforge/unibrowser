@@ -1819,7 +1819,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
     let auto_context = cm.auto_context.tab_id().to_string();
-    let tab_dtos = cm
+    let mut tab_dtos: Vec<ManagerTabDto> = cm
         .tabs
         .iter()
         .map(|tab| {
@@ -1857,6 +1857,28 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
             }
         })
         .collect();
+    if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
+        let installed = unibrowser_vsix::list_installed(&vsix_root).unwrap_or_default();
+        let details = unibrowser_vsix::enabled_command_details(&installed);
+        if !details.is_empty() {
+            tab_dtos.push(ManagerTabDto {
+                id: "vsix".into(),
+                label: "Extensions".into(),
+                phase: phase_name(ToolbarPhase::Active).into(),
+                selected: false,
+                commands: details
+                    .into_iter()
+                    .map(|d| UiCommandDto {
+                        command_id: d.command_id,
+                        title: d.title,
+                        icon: "vsix".into(),
+                        enabled: true,
+                        reason: Some(unibrowser_extension_host::VSIX_STUB_ENABLED_HINT.into()),
+                    })
+                    .collect(),
+            });
+        }
+    }
     Ok(CommandManagerDto {
         auto_context,
         selected_tab: selected,
@@ -2032,6 +2054,23 @@ pub fn execute_command(window: tauri::Window,
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
     }
+    {
+        let host_cmds = state
+            .vsix_host_commands
+            .lock()
+            .map_err(|e| e.to_string())?;
+        if host_cmds.contains(&command_id) {
+            let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
+            let (extension_id, activation_events) =
+                unibrowser_vsix::lookup_vsix_command(&root, &command_id)
+                    .ok_or_else(|| format!("VSIX command not found: {}", command_id))?;
+            return Ok(unibrowser_extension_host::execute_vsix_stub(
+                &command_id,
+                &extension_id,
+                &activation_events,
+            ));
+        }
+    }
     let _sess_tabs = ws(&state, &window)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
@@ -2166,8 +2205,8 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
         .map(|e| {
             let (enabled, reason) = if host_cmds.contains(&e.command_id) {
                 (
-                    false,
-                    Some(unibrowser_vsix::VSIX_HOST_REQUIRED_REASON.to_string()),
+                    true,
+                    Some(unibrowser_extension_host::VSIX_STUB_ENABLED_HINT.to_string()),
                 )
             } else {
                 (
@@ -2293,6 +2332,7 @@ pub struct PreferencesDto {
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
     pub advanced_experimental_spellcheck: bool,
+    pub open_downloads_in_system_browser: bool,
     pub files_view: FilesViewDto,
 }
 
@@ -2708,6 +2748,98 @@ pub fn export_unibrow_mp4_preview(
     })
 }
 
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EncodeProgressPayload {
+    pub percent: u8,
+    pub stage: String,
+}
+
+fn resolve_timeline_mp4_inputs(project_path: &Path) -> Result<(unibrowser_project::ProjectPackage, Vec<PathBuf>), String> {
+    if !unibrowser_project::is_unibrow_path(project_path) {
+        return Err("not a .unibrow project".into());
+    }
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    let root = unibrowser_project::resolve_package_root(project_path, &cache).map_err(|e| e.to_string())?;
+    let pkg = unibrowser_project::open_package(&root).map_err(|e| e.to_string())?;
+    if pkg.manifest.timeline.clips.is_empty() {
+        return Err("timeline has no clips".into());
+    }
+    let resolved = unibrowser_project::clip_asset_paths(&pkg);
+    if resolved.len() != pkg.manifest.timeline.clips.len() {
+        return Err("some clips are missing board assets".into());
+    }
+    if !resolved.iter().all(|(_, _, ty)| ty == "video") {
+        return Err("export needs video-only mp4 clips".into());
+    }
+    let inputs: Vec<PathBuf> = resolved.into_iter().map(|(_, p, _)| p).collect();
+    Ok((pkg, inputs))
+}
+
+#[tauri::command]
+pub async fn export_unibrow_mp4_h264(
+    window: tauri::Window,
+    project_path: String,
+    preset: Option<String>,
+) -> Result<Mp4PreviewExportDto, String> {
+    use tauri::Emitter;
+    let preset = preset.unwrap_or_else(|| "fast".to_string());
+    let (pkg, inputs) = resolve_timeline_mp4_inputs(Path::new(&project_path))?;
+    let probe = unibrowser_media::probe_ffmpeg_install();
+    if !probe.available {
+        let path = unibrowser_project::write_mp4_export_stub(&pkg, "ffmpeg not on PATH")
+            .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: "Install ffmpeg for H.264 export.".into(),
+        });
+    }
+    let dest = unibrowser_project::derived_mp4_h264_path(&pkg);
+    let dest_display = dest.to_string_lossy().into_owned();
+    let dest_encode = dest.clone();
+    let app = window.app_handle().clone();
+    let label = window.label().to_string();
+    let preset_copy = preset.clone();
+    let encode_result = tauri::async_runtime::spawn_blocking(move || {
+        unibrowser_media::encode_h264_timeline(
+            &inputs,
+            &dest_encode,
+            &preset_copy,
+            &mut |percent, stage| {
+                let _ = app.emit_to(
+                    &label,
+                    "unibrowser-encode-progress",
+                    EncodeProgressPayload {
+                        percent,
+                        stage: stage.to_string(),
+                    },
+                );
+            },
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    if let Err(err) = encode_result {
+        let reason = err.to_string();
+        let path = unibrowser_project::write_mp4_export_stub(&pkg, &reason)
+            .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: format!("H.264 export failed: {}", reason),
+        });
+    }
+    Ok(Mp4PreviewExportDto {
+        path: dest_display,
+        mode: "encoded".into(),
+        message: format!(
+            "Exported H.264 ({}) to derived/timeline-export-h264.mp4.",
+            preset
+        ),
+    })
+}
+
 #[tauri::command]
 pub fn batch_convert_images(
     window: tauri::Window,
@@ -2986,6 +3118,7 @@ fn preferences_dto() -> PreferencesDto {
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,
         advanced_experimental_spellcheck: p.advanced_experimental_spellcheck,
+        open_downloads_in_system_browser: p.open_downloads_in_system_browser,
         files_view: files_view_dto(&p),
     }
 }
@@ -3058,6 +3191,28 @@ pub fn set_advanced_experimental_spellcheck(enabled: bool) -> Result<Preferences
     p.advanced_experimental_spellcheck = enabled;
     save_preferences(&p)?;
     Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_open_downloads_in_system_browser(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.open_downloads_in_system_browser = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn open_url_externally(url: String, app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return Err("empty url".into());
+    }
+    if !(trimmed.starts_with("http://") || trimmed.starts_with("https://")) {
+        return Err("only http(s) urls supported".into());
+    }
+    app.opener().open_url(trimmed, None::<&str>).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]

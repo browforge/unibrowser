@@ -46,6 +46,7 @@ interface PrefsDto {
   ntp_sections: NtpSectionsDto;
   advanced_webview_devtools: boolean;
   advanced_experimental_spellcheck: boolean;
+  open_downloads_in_system_browser: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -442,6 +443,27 @@ export async function renderSettings(root: HTMLElement) {
   spellRow.appendChild(spellLabel);
   advancedSection.appendChild(spellRow);
   advancedSection.appendChild(spellNote);
+  const dlBrowserRow = document.createElement("div");
+  dlBrowserRow.className = "settings-row";
+  const dlBrowserCb = document.createElement("input");
+  dlBrowserCb.type = "checkbox";
+  dlBrowserCb.id = "settings-downloads-system-browser";
+  dlBrowserCb.checked = prefs.open_downloads_in_system_browser;
+  dlBrowserCb.onchange = async () => {
+    await invoke<PrefsDto>("set_open_downloads_in_system_browser", {
+      enabled: dlBrowserCb.checked,
+    });
+  };
+  const dlBrowserLabel = document.createElement("label");
+  dlBrowserLabel.htmlFor = dlBrowserCb.id;
+  dlBrowserLabel.textContent = t("settings.openDownloadsSystemBrowser");
+  const dlBrowserNote = document.createElement("p");
+  dlBrowserNote.className = "viewer-note";
+  dlBrowserNote.textContent = t("settings.openDownloadsSystemBrowserNote");
+  dlBrowserRow.appendChild(dlBrowserCb);
+  dlBrowserRow.appendChild(dlBrowserLabel);
+  advancedSection.appendChild(dlBrowserRow);
+  advancedSection.appendChild(dlBrowserNote);
   root.appendChild(advancedSection);
 
   const keysLink = document.createElement("p");

@@ -2318,6 +2318,36 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     }
   };
   root.appendChild(exportMp4Btn);
+
+  const h264Row = document.createElement("div");
+  h264Row.className = "docx-toolbar";
+  const presetSelect = document.createElement("select");
+  presetSelect.innerHTML =
+    '<option value="fast">H.264 fast</option><option value="balanced">H.264 balanced</option>';
+  const exportH264Btn = document.createElement("button");
+  exportH264Btn.type = "button";
+  exportH264Btn.textContent = "Export MP4 (H.264)";
+  exportH264Btn.onclick = async () => {
+    exportH264Btn.disabled = true;
+    try {
+      const result = await invoke<{ path: string; mode: string; message: string }>(
+        "export_unibrow_mp4_h264",
+        { projectPath: viewer.path, preset: presetSelect.value },
+      );
+      showToast(result.message, "info");
+      const status = document.createElement("p");
+      status.className = "viewer-note";
+      status.textContent = `${result.message} (${result.path})`;
+      root.appendChild(status);
+    } catch (err) {
+      showToast(String(err), "error");
+    } finally {
+      exportH264Btn.disabled = false;
+    }
+  };
+  h264Row.appendChild(presetSelect);
+  h264Row.appendChild(exportH264Btn);
+  root.appendChild(h264Row);
 }
 
 interface RhaiScriptInfoDto {

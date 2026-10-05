@@ -8,8 +8,11 @@ use std::process::Command;
 use serde::Serialize;
 use thiserror::Error;
 
+pub mod encode;
 pub mod frame;
 pub mod sidecar;
+
+pub use encode::encode_h264_timeline;
 
 #[derive(Debug, Error)]
 pub enum MediaError {

@@ -1215,14 +1215,29 @@ listen<DownloadEventPayload | string>("unibrowser-download", (event) => {
     typeof event.payload === "string"
       ? { url: event.payload, destination: null }
       : event.payload;
-  void invokeWithToast(
-    () =>
-      invoke<TabContentDto>("handle_download_url", {
-        url: payload.url,
-        destination: payload.destination ?? null,
-      }),
-    t("toast.errorDefault"),
-  ).then(async (data) => {
+  void (async () => {
+    const prefs = await invoke<{ open_downloads_in_system_browser: boolean }>("get_preferences");
+    const url = payload.url.trim();
+    if (
+      prefs.open_downloads_in_system_browser &&
+      (url.startsWith("http://") || url.startsWith("https://"))
+    ) {
+      try {
+        await invoke("open_url_externally", { url });
+        showToast(t("download.openedSystemBrowser"), "info");
+      } catch (err) {
+        showToast(String(err), "error");
+      }
+      return;
+    }
+    const data = await invokeWithToast(
+      () =>
+        invoke<TabContentDto>("handle_download_url", {
+          url: payload.url,
+          destination: payload.destination ?? null,
+        }),
+      t("toast.errorDefault"),
+    );
     if (!data) {
       return;
     }
@@ -1233,7 +1248,12 @@ listen<DownloadEventPayload | string>("unibrowser-download", (event) => {
       }
     }
     void applyState(data);
-  });
+  })();
+});
+
+listen<{ percent: number; stage: string }>("unibrowser-encode-progress", (event) => {
+  const { percent, stage } = event.payload;
+  showToast(t("encode.progress", { percent: String(percent), stage }), "info");
 });
 
 window.addEventListener("unibrowser-refresh", (event) => {

@@ -2,6 +2,7 @@
 
 use std::io::{self, BufRead, Write};
 
+use unibrowser_media::encode::encode_h264_file;
 use unibrowser_media::frame::frame_thumbnail_to_dest;
 use unibrowser_media::sidecar::{SidecarRequest, SidecarResponse};
 use unibrowser_media::sidecar::probe_file_direct;
@@ -27,6 +28,30 @@ fn main() -> io::Result<()> {
                     Ok(probe) => SidecarResponse {
                         ok: true,
                         summary: probe.ffprobe_summary,
+                        error: None,
+                        frame_mime: None,
+                        pong: false,
+                    },
+                    Err(e) => SidecarResponse {
+                        ok: false,
+                        summary: None,
+                        error: Some(e.to_string()),
+                        frame_mime: None,
+                        pong: false,
+                    },
+                }
+            }
+            Ok(SidecarRequest::EncodeH264 {
+                input_path,
+                dest_path,
+                preset,
+            }) => {
+                let input = std::path::Path::new(&input_path);
+                let dest = std::path::Path::new(&dest_path);
+                match encode_h264_file(input, dest, &preset) {
+                    Ok(()) => SidecarResponse {
+                        ok: true,
+                        summary: None,
                         error: None,
                         frame_mime: None,
                         pong: false,

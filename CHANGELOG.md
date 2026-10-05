@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- VSIX `activationEvents` metadata; stub execute path; **Extensions** Command Manager tab ([`docs/extension-host.md`](docs/extension-host.md)).
+- Timeline **Export MP4 (H.264)** (`fast` / `balanced`) via ffmpeg with `unibrowser-encode-progress` events; sidecar `EncodeH264` op.
+- [`docs/browser-shell.md`](docs/browser-shell.md); Settings toggle **Open web downloads in system browser** (WebView2 interim).
 - Living Wed report [`docs/blitz-status.md`](docs/blitz-status.md); printer-friendly HTML export for Markdown/DOCX previews.
 - OCR UI stub + [`docs/ocr-sidecar.md`](docs/ocr-sidecar.md); experimental browser spellcheck in Advanced settings.
 - Docs hub [`docs/index.md`](docs/index.md), FOSS [`docs/getting-started.md`](docs/getting-started.md), and [`docs/report-visuals.md`](docs/report-visuals.md) + `scripts/capture-report-screenshots.sh`.
