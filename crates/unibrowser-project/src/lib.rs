@@ -55,10 +55,22 @@ pub struct TimelineClip {
     pub label: String,
 }
 
+/// Export/preview metadata only — not rendered yet.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TimelineTransition {
+    pub id: String,
+    /// Fade (or other stub) after this clip into the next on the timeline.
+    pub after_clip_id: String,
+    pub kind: String,
+    pub duration_sec: f32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct ProjectTimeline {
     #[serde(default)]
     pub clips: Vec<TimelineClip>,
+    #[serde(default)]
+    pub transitions: Vec<TimelineTransition>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -184,6 +196,12 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 label: "References".into(),
             },
         ],
+        transitions: vec![TimelineTransition {
+            id: "trans-1".into(),
+            after_clip_id: "clip-1".into(),
+            kind: "fade".into(),
+            duration_sec: 0.5,
+        }],
     };
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
@@ -226,6 +244,58 @@ pub fn append_timeline_clip_for_node(
     Ok(clip)
 }
 
+pub fn upsert_fade_transition(
+    package: &mut ProjectPackage,
+    after_clip_id: &str,
+    duration_sec: f32,
+) -> Result<TimelineTransition, ProjectError> {
+    if duration_sec <= 0.0 || !duration_sec.is_finite() {
+        return Err(ProjectError::Msg("transition duration must be positive".into()));
+    }
+    let exists = package
+        .manifest
+        .timeline
+        .clips
+        .iter()
+        .any(|c| c.id == after_clip_id);
+    if !exists {
+        return Err(ProjectError::Msg(format!("unknown clip {}", after_clip_id)));
+    }
+    let transitions = &mut package.manifest.timeline.transitions;
+    if let Some(t) = transitions.iter_mut().find(|t| t.after_clip_id == after_clip_id) {
+        t.kind = "fade".into();
+        t.duration_sec = duration_sec;
+        let out = t.clone();
+        write_manifest(&package.root, &package.manifest)?;
+        return Ok(out);
+    }
+    let id = format!("trans-{}", transitions.len() + 1);
+    let transition = TimelineTransition {
+        id,
+        after_clip_id: after_clip_id.into(),
+        kind: "fade".into(),
+        duration_sec,
+    };
+    transitions.push(transition.clone());
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(transition)
+}
+
+pub fn remove_timeline_transition(
+    package: &mut ProjectPackage,
+    after_clip_id: &str,
+) -> Result<(), ProjectError> {
+    let transitions = &mut package.manifest.timeline.transitions;
+    let idx = transitions
+        .iter()
+        .position(|t| t.after_clip_id == after_clip_id);
+    if let Some(i) = idx {
+        transitions.remove(i);
+        write_manifest(&package.root, &package.manifest)?;
+    }
+    Ok(())
+}
+
 pub fn remove_timeline_clip(package: &mut ProjectPackage, clip_id: &str) -> Result<(), ProjectError> {
     let idx = package
         .manifest
@@ -235,6 +305,11 @@ pub fn remove_timeline_clip(package: &mut ProjectPackage, clip_id: &str) -> Resu
         .position(|c| c.id == clip_id)
         .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
     package.manifest.timeline.clips.remove(idx);
+    package
+        .manifest
+        .timeline
+        .transitions
+        .retain(|t| t.after_clip_id != clip_id);
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
 }
@@ -396,7 +471,8 @@ pub fn guess_asset_node_type(path: &Path) -> &'static str {
         "docx" => "document",
         "dxf" => "drawing",
         "mp4" | "webm" => "video",
-        "wav" | "mid" | "midi" => "audio",
+        "wav" => "audio",
+        "mid" | "midi" => "midi",
         "js" | "rhai" => "script",
         _ => "file",
     }

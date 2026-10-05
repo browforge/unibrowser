@@ -61,6 +61,7 @@ export interface DocumentViewerDto {
   project_nodes?: ProjectNodeDto[];
   open_file_tabs?: OpenFileTabDto[];
   project_clips?: ProjectClipDto[];
+  project_transitions?: ProjectTransitionDto[];
   midi_summary?: MidiSummaryDto;
   board_snap_to_grid?: boolean;
   midi_note_preview?: MidiNoteOnDto[];
@@ -82,10 +83,20 @@ export interface ProjectClipDto {
   label: string;
 }
 
+interface ProjectTransitionDto {
+  id: string;
+  after_clip_id: string;
+  kind: string;
+  duration_sec: number;
+}
+
 function clipTypeAbbrev(nodeType: string): string {
   const t = nodeType.toLowerCase();
   if (t.includes("video")) {
     return "VID";
+  }
+  if (t.includes("midi")) {
+    return "MID";
   }
   if (t.includes("audio")) {
     return "AUD";
@@ -113,6 +124,73 @@ const loadedKeys = new WeakMap<HTMLElement, string | null>();
 async function readBytes(path: string): Promise<Uint8Array> {
   const data = await invoke<number[]>("read_document_bytes", { path });
   return Uint8Array.from(data);
+}
+
+async function rasterPdfFirstPageDataUrl(assetPath: string): Promise<string> {
+  const pdfjsLib = await loadPdfJs();
+  const bytes = await readBytes(assetPath);
+  const doc = await pdfjsLib.getDocument({ data: toArrayBuffer(bytes) }).promise;
+  const page = await doc.getPage(1);
+  const viewport = page.getViewport({ scale: 0.75 });
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("canvas unavailable");
+  }
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  return canvas.toDataURL("image/jpeg", 0.85);
+}
+
+type TimelineScrubPreview = {
+  kind: string;
+  image_path?: string;
+  image_mime?: string;
+  midi_notes?: MidiNoteOnDto[];
+};
+
+function findClipAtTime(clips: ProjectClipDto[], timeSec: number): ProjectClipDto | null {
+  for (const clip of clips) {
+    if (timeSec >= clip.start_sec && timeSec < clip.start_sec + clip.duration_sec) {
+      return clip;
+    }
+  }
+  return clips[0] ?? null;
+}
+
+function drawAudioPeaks(
+  g: CanvasRenderingContext2D,
+  channel: Float32Array,
+  width: number,
+  height: number,
+) {
+  g.fillStyle = "#1a1a22";
+  g.fillRect(0, 0, width, height);
+  const mid = height * 0.5;
+  const buckets = width;
+  const block = Math.max(1, Math.floor(channel.length / buckets));
+  g.fillStyle = "#66ccff";
+  for (let x = 0; x < buckets; x += 1) {
+    let peak = 0;
+    const start = x * block;
+    for (let i = 0; i < block && start + i < channel.length; i += 1) {
+      peak = Math.max(peak, Math.abs(channel[start + i]));
+    }
+    const bar = Math.max(1, peak * height * 0.9);
+    g.fillRect(x, mid - bar * 0.5, 1, bar);
+  }
+}
+
+function drawAudioStubBars(g: CanvasRenderingContext2D, width: number, height: number) {
+  g.fillStyle = "#1a1a22";
+  g.fillRect(0, 0, width, height);
+  g.fillStyle = "#445566";
+  const mid = height * 0.5;
+  for (let x = 0; x < width; x += 3) {
+    const h = 6 + ((x * 17) % 21);
+    g.fillRect(x, mid - h * 0.5, 2, h);
+  }
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -652,25 +730,15 @@ async function renderAudio(path: string, root: HTMLElement, note?: string) {
     const ch = buf.getChannelData(0);
     const g = canvas.getContext("2d");
     if (g) {
-      g.fillStyle = "#1a1a22";
-      g.fillRect(0, 0, canvas.width, canvas.height);
-      g.strokeStyle = "#66ccff";
-      g.beginPath();
-      const step = Math.max(1, Math.floor(ch.length / canvas.width));
-      for (let x = 0; x < canvas.width; x += 1) {
-        const i = x * step;
-        const y = (1 - ch[i]) * canvas.height * 0.5;
-        if (x === 0) {
-          g.moveTo(x, y);
-        } else {
-          g.lineTo(x, y);
-        }
-      }
-      g.stroke();
+      drawAudioPeaks(g, ch, canvas.width, canvas.height);
     }
     await ctx.close();
   } catch {
-    appendMediaNote(root, "Waveform preview unavailable; playback still works.");
+    const g = canvas.getContext("2d");
+    if (g) {
+      drawAudioStubBars(g, canvas.width, canvas.height);
+    }
+    appendMediaNote(root, "Waveform uses stub bars; playback still works.");
   }
   appendMediaNote(root, note);
 }
@@ -1507,6 +1575,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     return Math.max(1, end);
   };
   const totalSec = timelineTotalSec(clips);
+  const boardNodes = viewer.project_nodes ?? [];
 
   const timeline = document.createElement("section");
   timeline.className = "unibrow-timeline";
@@ -1529,6 +1598,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
 
   const track = document.createElement("div");
   track.className = "unibrow-timeline-track";
+  const transitions = viewer.project_transitions ?? [];
   clips.forEach((clip) => {
     const block = document.createElement("div");
     block.className = "unibrow-timeline-block";
@@ -1538,11 +1608,145 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     block.textContent = clipTypeAbbrev(clip.node_type);
     track.appendChild(block);
   });
+  transitions.forEach((tr) => {
+    const clip = clips.find((c) => c.id === tr.after_clip_id);
+    if (!clip || tr.kind !== "fade") {
+      return;
+    }
+    const fade = document.createElement("span");
+    fade.className = "unibrow-timeline-fade";
+    const end = clip.start_sec + clip.duration_sec;
+    fade.style.left = `${(end / totalSec) * 100}%`;
+    fade.title = `Fade ${tr.duration_sec.toFixed(1)}s (export stub)`;
+    fade.textContent = "fade";
+    track.appendChild(fade);
+  });
   timeline.appendChild(track);
+
+  const scrubPanel = document.createElement("div");
+  scrubPanel.className = "unibrow-timeline-scrub";
+  const scrubLabel = document.createElement("label");
+  scrubLabel.className = "video-scrub-label";
+  scrubLabel.textContent = "Playhead scrub";
+  const playhead = document.createElement("input");
+  playhead.type = "range";
+  playhead.className = "video-scrub-range";
+  playhead.min = "0";
+  playhead.max = String(Math.max(1, Math.floor(totalSec * 10)));
+  playhead.value = "0";
+  const playheadTime = document.createElement("span");
+  playheadTime.className = "video-scrub-time";
+  playheadTime.textContent = "0.0s";
+  const scrubImg = document.createElement("img");
+  scrubImg.className = "video-scrub-thumb hidden";
+  scrubImg.alt = "";
+  const scrubMidi = document.createElement("div");
+  scrubMidi.className = "unibrow-scrub-midi hidden";
+  const scrubNote = document.createElement("p");
+  scrubNote.className = "viewer-note hidden";
+  scrubPanel.appendChild(scrubLabel);
+  scrubPanel.appendChild(playhead);
+  scrubPanel.appendChild(playheadTime);
+  scrubPanel.appendChild(scrubImg);
+  scrubPanel.appendChild(scrubMidi);
+  scrubPanel.appendChild(scrubNote);
+  timeline.appendChild(scrubPanel);
+
+  let scrubDebounce: number | undefined;
+  const nodeById = new Map(boardNodes.map((n) => [n.id, n]));
+
+  const showMidiNotes = (notes: MidiNoteOnDto[]) => {
+    scrubMidi.innerHTML = "";
+    if (!notes.length) {
+      scrubMidi.textContent = "No note-ons near playhead.";
+      scrubMidi.classList.remove("hidden");
+      return;
+    }
+    const table = document.createElement("table");
+    table.className = "midi-note-table";
+    const head = document.createElement("tr");
+    ["Track", "Tick", "Note", "Vel"].forEach((c) => {
+      const th = document.createElement("th");
+      th.textContent = c;
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    notes.forEach((ev) => {
+      const row = document.createElement("tr");
+      [ev.track_index, ev.tick, ev.note, ev.velocity].forEach((v) => {
+        const td = document.createElement("td");
+        td.textContent = String(v);
+        row.appendChild(td);
+      });
+      table.appendChild(row);
+    });
+    scrubMidi.appendChild(table);
+    scrubMidi.classList.remove("hidden");
+  };
+
+  const updatePlayheadPreview = async (timeSec: number) => {
+    scrubImg.classList.add("hidden");
+    scrubMidi.classList.add("hidden");
+    scrubNote.classList.add("hidden");
+    const clip = findClipAtTime(clips, timeSec);
+    if (!clip) {
+      scrubNote.textContent = "No clip at playhead.";
+      scrubNote.classList.remove("hidden");
+      return;
+    }
+    const offset = timeSec - clip.start_sec;
+    try {
+      const preview = await invoke<TimelineScrubPreview>("timeline_clip_scrub_preview", {
+        projectPath: viewer.path,
+        clipId: clip.id,
+        offsetSec: offset,
+      });
+      if (preview.image_path) {
+        await ensureAssetAllowed(preview.image_path);
+        scrubImg.src = convertFileSrc(preview.image_path);
+        scrubImg.classList.remove("hidden");
+      } else if (preview.midi_notes) {
+        showMidiNotes(preview.midi_notes);
+      } else if (preview.kind === "audio") {
+        scrubNote.textContent = "Audio clip — open asset for waveform.";
+        scrubNote.classList.remove("hidden");
+      }
+    } catch {
+      const node = nodeById.get(clip.node_id);
+      const asset = node?.asset;
+      if (clip.node_type === "pdf" && asset) {
+        try {
+          const assetPath = await invoke<string>("allow_unibrow_asset", {
+            projectPath: viewer.path,
+            assetName: asset,
+          });
+          scrubImg.src = await rasterPdfFirstPageDataUrl(assetPath);
+          scrubImg.classList.remove("hidden");
+          return;
+        } catch {
+          /* fall through */
+        }
+      }
+      scrubNote.textContent = "Scrub preview unavailable for this clip.";
+      scrubNote.classList.remove("hidden");
+    }
+  };
+
+  playhead.addEventListener("input", () => {
+    const t = Number.parseFloat(playhead.value) / 10;
+    playheadTime.textContent = `${t.toFixed(1)}s`;
+    window.clearTimeout(scrubDebounce);
+    scrubDebounce = window.setTimeout(() => {
+      void updatePlayheadPreview(t);
+    }, 100);
+  });
+  if (clips.length) {
+    void updatePlayheadPreview(0);
+  }
+
   const timelineAddRow = document.createElement("div");
   timelineAddRow.className = "unibrow-timeline-add";
   const nodeSelect = document.createElement("select");
-  const boardNodes = viewer.project_nodes ?? [];
   const ph = document.createElement("option");
   ph.value = "";
   ph.textContent = boardNodes.length ? "Add clip from asset…" : "Add board assets first";
@@ -1676,6 +1880,52 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     timing.appendChild(startLabel);
     timing.appendChild(durLabel);
     li.appendChild(timing);
+
+    if (index < clips.length - 1) {
+      const tr = transitions.find((t) => t.after_clip_id === clip.id);
+      const fadeRow = document.createElement("div");
+      fadeRow.className = "unibrow-timeline-fade-row";
+      const fadeCb = document.createElement("input");
+      fadeCb.type = "checkbox";
+      fadeCb.checked = Boolean(tr && tr.kind === "fade");
+      const fadeLbl = document.createElement("label");
+      fadeLbl.textContent = "Fade to next (stub)";
+      fadeLbl.prepend(fadeCb);
+      const fadeDur = document.createElement("input");
+      fadeDur.type = "number";
+      fadeDur.min = "0.1";
+      fadeDur.step = "0.1";
+      fadeDur.value = String(tr?.duration_sec ?? 0.5);
+      fadeDur.disabled = !fadeCb.checked;
+      fadeCb.onchange = () => {
+        fadeDur.disabled = !fadeCb.checked;
+        void invoke("set_unibrow_timeline_transition", {
+          projectPath: viewer.path,
+          afterClipId: clip.id,
+          enabled: fadeCb.checked,
+          durationSec: Number.parseFloat(fadeDur.value) || 0.5,
+        }).then((data) => {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        });
+      };
+      fadeDur.onchange = () => {
+        if (!fadeCb.checked) {
+          return;
+        }
+        void invoke("set_unibrow_timeline_transition", {
+          projectPath: viewer.path,
+          afterClipId: clip.id,
+          enabled: true,
+          durationSec: Number.parseFloat(fadeDur.value) || 0.5,
+        }).then((data) => {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        });
+      };
+      fadeRow.appendChild(fadeLbl);
+      fadeRow.appendChild(fadeDur);
+      li.appendChild(fadeRow);
+    }
+
     const up = document.createElement("button");
     up.type = "button";
     up.textContent = "↑";

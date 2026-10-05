@@ -23,6 +23,7 @@ mod content_sniff;
 mod files_listing;
 mod file_ops;
 mod batch_images;
+mod pdf_preview;
 mod dir_list;
 mod dir_search;
 mod listing_control;
@@ -168,6 +169,8 @@ pub fn run() {
             commands::video_scrub_thumbnail,
             commands::export_unibrow_mp4_preview,
             commands::batch_convert_images,
+            commands::timeline_clip_scrub_preview,
+            commands::set_unibrow_timeline_transition,
             commands::auto_save_active_document,
             commands::pick_and_compare,
             commands::close_file_compare,

@@ -110,6 +110,45 @@ pub fn read_note_on_events(path: &Path, max_events: usize) -> Result<Vec<NoteOnE
     parse_note_on_events(&data, max_events)
 }
 
+/// Map scrub time within a clip to SMF ticks (120 BPM default) and return nearby note-ons.
+pub fn note_on_events_near_time(
+    path: &Path,
+    offset_sec: f64,
+    clip_duration_sec: f64,
+    window_ticks: u32,
+) -> Result<Vec<NoteOnEvent>, String> {
+    let data = std::fs::read(path).map_err(|e| e.to_string())?;
+    let header = parse_smf_header(&data)?;
+    let events = parse_note_on_events(&data, 4096)?;
+    if events.is_empty() {
+        return Ok(events);
+    }
+    let max_tick = events.iter().map(|e| e.tick).max().unwrap_or(1);
+    let dur = clip_duration_sec.max(0.001) as f64;
+    let ratio = (offset_sec.max(0.0).min(dur)) / dur;
+    let center = (ratio * max_tick as f64).round() as u32;
+    let bpm = 120.0;
+    let tpq = header.ticks_per_quarter.max(1) as f64;
+    let tick_from_time = (offset_sec * bpm / 60.0 * tpq).round() as u32;
+    let center_tick = if max_tick > 0 {
+        (center + tick_from_time) / 2
+    } else {
+        tick_from_time
+    };
+    Ok(events
+        .into_iter()
+        .filter(|e| {
+            let d = if e.tick >= center_tick {
+                e.tick - center_tick
+            } else {
+                center_tick - e.tick
+            };
+            d <= window_ticks
+        })
+        .take(24)
+        .collect())
+}
+
 pub fn parse_smf_header(data: &[u8]) -> Result<SmfSummary, String> {
     if data.len() < 14 {
         return Err("file too short for SMF header".into());
@@ -159,6 +198,30 @@ mod tests {
         assert_eq!(s.format, 1);
         assert_eq!(s.track_count, 2);
         assert_eq!(s.ticks_per_quarter, 480);
+    }
+
+    #[test]
+    fn notes_near_time_filters() {
+        let mut v = minimal_smf();
+        v.truncate(14 + 8);
+        v.extend_from_slice(b"MTrk");
+        let track: Vec<u8> = vec![
+            0x00,
+            0x90,
+            60,
+            100,
+            0x00,
+            0x80,
+            60,
+            0,
+        ];
+        v.extend_from_slice(&(track.len() as u32).to_be_bytes());
+        v.extend(track);
+        let dir = std::env::temp_dir().join("unibrowser-smf-near.mid");
+        std::fs::write(&dir, &v).expect("write");
+        let near = note_on_events_near_time(&dir, 0.0, 5.0, 480).expect("near");
+        assert_eq!(near.len(), 1);
+        let _ = std::fs::remove_file(&dir);
     }
 
     #[test]

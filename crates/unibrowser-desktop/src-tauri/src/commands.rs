@@ -135,6 +135,25 @@ pub struct ProjectClipDto {
 }
 
 #[derive(Serialize)]
+pub struct ProjectTransitionDto {
+    pub id: String,
+    pub after_clip_id: String,
+    pub kind: String,
+    pub duration_sec: f32,
+}
+
+#[derive(Serialize)]
+pub struct TimelineScrubPreviewDto {
+    pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_mime: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub midi_notes: Option<Vec<MidiNoteOnDto>>,
+}
+
+#[derive(Serialize)]
 pub struct MidiSummaryDto {
     pub format: u16,
     pub track_count: u16,
@@ -173,6 +192,8 @@ pub struct DocumentViewerDto {
     pub open_file_tabs: Option<Vec<OpenFileTabDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_clips: Option<Vec<ProjectClipDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_transitions: Option<Vec<ProjectTransitionDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub midi_summary: Option<MidiSummaryDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -444,6 +465,19 @@ fn document_viewer_dto(
                 })
                 .collect()
         });
+        let transitions = opened.as_ref().map(|pkg| {
+            pkg.manifest
+                .timeline
+                .transitions
+                .iter()
+                .map(|t| ProjectTransitionDto {
+                    id: t.id.clone(),
+                    after_clip_id: t.after_clip_id.clone(),
+                    kind: t.kind.clone(),
+                    duration_sec: t.duration_sec,
+                })
+                .collect()
+        });
         let prefs = load_preferences();
         return Some(DocumentViewerDto {
             path: doc.path.clone(),
@@ -457,6 +491,7 @@ fn document_viewer_dto(
             project_nodes: nodes,
             open_file_tabs: Some(open_file_tabs_dto(state, window_label)),
             project_clips: clips,
+            project_transitions: transitions,
             midi_summary: None,
             board_snap_to_grid: Some(prefs.board_snap_to_grid),
             midi_note_preview: None,
@@ -473,6 +508,7 @@ fn document_viewer_dto(
             project_nodes: None,
             open_file_tabs: None,
             project_clips: None,
+            project_transitions: None,
             midi_summary: None,
             board_snap_to_grid: None,
             midi_note_preview: None,
@@ -489,6 +525,7 @@ fn document_viewer_dto(
             project_nodes: None,
             open_file_tabs: None,
             project_clips: None,
+            project_transitions: None,
             midi_summary: None,
             board_snap_to_grid: None,
             midi_note_preview: None,
@@ -505,6 +542,7 @@ fn document_viewer_dto(
             project_nodes: None,
             open_file_tabs: None,
             project_clips: None,
+            project_transitions: None,
             midi_summary: None,
             board_snap_to_grid: None,
             midi_note_preview: None,
@@ -534,6 +572,7 @@ fn document_viewer_dto(
             project_nodes: None,
             open_file_tabs: None,
             project_clips: None,
+            project_transitions: None,
             midi_summary: Some(MidiSummaryDto {
                 format: summary.format,
                 track_count: summary.track_count,
@@ -580,6 +619,7 @@ fn document_viewer_dto(
         project_nodes: None,
         open_file_tabs: None,
         project_clips: None,
+        project_transitions: None,
         midi_summary: None,
         board_snap_to_grid: None,
         midi_note_preview: None,
@@ -2622,6 +2662,110 @@ pub fn batch_convert_images(
         return Err("no paths selected".into());
     }
     crate::batch_images::batch_convert_images(&paths, &format)
+}
+
+#[tauri::command]
+pub fn timeline_clip_scrub_preview(
+    window: tauri::Window,
+    state: State<AppState>,
+    project_path: String,
+    clip_id: String,
+    offset_sec: f64,
+) -> Result<TimelineScrubPreviewDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let package = open_unibrow_package(&project)?;
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| format!("unknown clip {}", clip_id))?;
+    let node = package
+        .manifest
+        .nodes
+        .iter()
+        .find(|n| n.id == clip.node_id)
+        .ok_or_else(|| "clip node missing".to_string())?;
+    let asset_name = node.asset.as_ref().ok_or("clip has no asset")?;
+    let asset_path = resolve_unibrow_asset_file(&project, asset_name)?;
+    let node_type = node.node_type.to_ascii_lowercase();
+    if node_type == "video" {
+        let frame = unibrowser_media::video_frame_thumbnail(&asset_path, offset_sec)
+            .map_err(|e| e.to_string())?;
+        return Ok(TimelineScrubPreviewDto {
+            kind: "video".into(),
+            image_path: Some(frame.path),
+            image_mime: Some(frame.mime),
+            midi_notes: None,
+        });
+    }
+    if node_type == "pdf" {
+        let path = crate::pdf_preview::pdf_first_page_preview(&asset_path)?;
+        return Ok(TimelineScrubPreviewDto {
+            kind: "pdf".into(),
+            image_path: Some(path.to_string_lossy().into_owned()),
+            image_mime: Some("image/jpeg".into()),
+            midi_notes: None,
+        });
+    }
+    if node_type == "midi" {
+        let notes = crate::smf::note_on_events_near_time(
+            &asset_path,
+            offset_sec,
+            clip.duration_sec as f64,
+            480,
+        )?;
+        let mapped = notes
+            .into_iter()
+            .map(|n| MidiNoteOnDto {
+                track_index: n.track_index,
+                tick: n.tick,
+                note: n.note,
+                velocity: n.velocity,
+            })
+            .collect();
+        return Ok(TimelineScrubPreviewDto {
+            kind: "midi".into(),
+            image_path: None,
+            image_mime: None,
+            midi_notes: Some(mapped),
+        });
+    }
+    if node_type == "audio" {
+        return Ok(TimelineScrubPreviewDto {
+            kind: "audio".into(),
+            image_path: None,
+            image_mime: None,
+            midi_notes: None,
+        });
+    }
+    Err(format!("scrub preview not available for {}", node_type))
+}
+
+#[tauri::command]
+pub fn set_unibrow_timeline_transition(
+    window: tauri::Window,
+    project_path: String,
+    after_clip_id: String,
+    enabled: bool,
+    duration_sec: f32,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    if enabled {
+        unibrowser_project::upsert_fade_transition(&mut package, &after_clip_id, duration_sec)
+            .map_err(|e| e.to_string())?;
+    } else {
+        unibrowser_project::remove_timeline_transition(&mut package, &after_clip_id)
+            .map_err(|e| e.to_string())?;
+    }
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]

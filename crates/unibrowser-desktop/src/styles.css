@@ -1412,6 +1412,38 @@ body {
   margin-left: 0.25rem;
 }
 
+.unibrow-timeline-fade {
+  position: absolute;
+  top: -0.35rem;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  color: var(--text-muted, #666);
+  pointer-events: none;
+}
+
+.unibrow-timeline-scrub {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.unibrow-scrub-midi {
+  margin-top: 0.35rem;
+  max-height: 8rem;
+  overflow: auto;
+}
+
+.unibrow-timeline-fade-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.unibrow-timeline-fade-row input[type="number"] {
+  width: 4rem;
+}
+
 .video-scrub {
   margin-top: 0.5rem;
   max-width: 40rem;
