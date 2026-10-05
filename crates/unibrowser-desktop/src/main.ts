@@ -916,6 +916,9 @@ async function handleShellCommandMessage(msg: string): Promise<boolean> {
     await runExportPrintPdf(documentViewerHost);
     return false;
   }
+  if (msg === "devtools-open" || msg === "devtools-close") {
+    return false;
+  }
   const pct = msg.match(/(\d+)%/);
   if (pct) {
     webZoomPercent = Number(pct[1]);

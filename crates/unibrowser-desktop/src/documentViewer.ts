@@ -1085,7 +1085,21 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   resetBtn.textContent = "Fit";
   const rotateBtn = document.createElement("button");
   rotateBtn.type = "button";
-  rotateBtn.textContent = "Rotate 90°";
+  rotateBtn.textContent = t("image.rotate");
+  const flipHBtn = document.createElement("button");
+  flipHBtn.type = "button";
+  flipHBtn.textContent = t("image.flipH");
+  const flipVBtn = document.createElement("button");
+  flipVBtn.type = "button";
+  flipVBtn.textContent = t("image.flipV");
+  const saveAsBtn = document.createElement("button");
+  saveAsBtn.type = "button";
+  saveAsBtn.textContent = t("image.saveAs");
+  const filtersBtn = document.createElement("button");
+  filtersBtn.type = "button";
+  filtersBtn.textContent = t("image.filters");
+  filtersBtn.disabled = true;
+  filtersBtn.title = t("image.filtersSoon");
   const cropBtn = document.createElement("button");
   cropBtn.type = "button";
   cropBtn.textContent = "Crop";
@@ -1110,6 +1124,10 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   toolbar.appendChild(zoomIn);
   toolbar.appendChild(resetBtn);
   toolbar.appendChild(rotateBtn);
+  toolbar.appendChild(flipHBtn);
+  toolbar.appendChild(flipVBtn);
+  toolbar.appendChild(saveAsBtn);
+  toolbar.appendChild(filtersBtn);
   toolbar.appendChild(cropBtn);
   toolbar.appendChild(clearCropBtn);
   toolbar.appendChild(saveCropBtn);
@@ -1142,8 +1160,15 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
 
   let scale = initialZoom;
   let rotation = 0;
+  let flipH = false;
+  let flipV = false;
   let panX = 0;
   let panY = 0;
+  const canSaveRaster = /\.(png|jpe?g)$/i.test(path);
+  if (!canSaveRaster) {
+    saveAsBtn.disabled = true;
+    saveAsBtn.title = t("image.saveAsPngJpegOnly");
+  }
   let cropMode = false;
   let cropDragging = false;
   let cropStartX = 0;
@@ -1151,8 +1176,51 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   let cropRectNorm: { x: number; y: number; w: number; h: number } | null = null;
 
   const applyTransform = () => {
-    stage.style.transform = `translate(${panX}px, ${panY}px) scale(${scale}) rotate(${rotation}deg)`;
+    const sx = flipH ? -1 : 1;
+    const sy = flipV ? -1 : 1;
+    stage.style.transform = `translate(${panX}px, ${panY}px) scale(${scale * sx}, ${scale * sy}) rotate(${rotation}deg)`;
   };
+
+  async function rasterizeEditedImage(): Promise<{
+    canvas: HTMLCanvasElement;
+    mime: string;
+  } | null> {
+    await img.decode();
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (!nw || !nh) {
+      return null;
+    }
+    let crop = cropRectNorm;
+    let sx = 0;
+    let sy = 0;
+    let sw = nw;
+    let sh = nh;
+    if (crop && crop.w >= 0.5 && crop.h >= 0.5) {
+      sx = Math.max(0, Math.round((crop.x / 100) * nw));
+      sy = Math.max(0, Math.round((crop.y / 100) * nh));
+      sw = Math.min(nw - sx, Math.round((crop.w / 100) * nw));
+      sh = Math.min(nh - sy, Math.round((crop.h / 100) * nh));
+    }
+    if (sw < 1 || sh < 1) {
+      return null;
+    }
+    const quarter = ((rotation % 360) + 360) % 360;
+    const swap = quarter === 90 || quarter === 270;
+    const canvas = document.createElement("canvas");
+    canvas.width = swap ? sh : sw;
+    canvas.height = swap ? sw : sh;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return null;
+    }
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((quarter * Math.PI) / 180);
+    ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
+    const mime = /\.jpe?g$/i.test(path) ? "image/jpeg" : "image/png";
+    return { canvas, mime };
+  }
 
   const bumpImageZoom = (delta: number) => {
     if (delta > 0) {
@@ -1218,6 +1286,8 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
     panX = 0;
     panY = 0;
     rotation = 0;
+    flipH = false;
+    flipV = false;
     cropRectNorm = null;
     cropMode = false;
     cropBtn.classList.remove("image-toolbar-active");
@@ -1231,38 +1301,31 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
     applyTransform();
     updateCropActions();
   };
+  flipHBtn.onclick = () => {
+    flipH = !flipH;
+    applyTransform();
+  };
+  flipVBtn.onclick = () => {
+    flipV = !flipV;
+    applyTransform();
+  };
 
-  saveCropBtn.onclick = async () => {
-    if (!cropRectNorm || cropRectNorm.w < 0.5 || cropRectNorm.h < 0.5) {
+  async function saveRasterCopy(suffix: string) {
+    const raster = await rasterizeEditedImage();
+    if (!raster) {
       return;
     }
-    await img.decode();
-    const nw = img.naturalWidth;
-    const nh = img.naturalHeight;
-    const sx = Math.max(0, Math.round((cropRectNorm.x / 100) * nw));
-    const sy = Math.max(0, Math.round((cropRectNorm.y / 100) * nh));
-    const sw = Math.min(nw - sx, Math.round((cropRectNorm.w / 100) * nw));
-    const sh = Math.min(nh - sy, Math.round((cropRectNorm.h / 100) * nh));
-    if (sw < 1 || sh < 1) {
-      return;
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = sw;
-    canvas.height = sh;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    const quality = raster.mime === "image/jpeg" ? 0.92 : undefined;
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((b) => resolve(b), "image/png");
+      raster.canvas.toBlob((b) => resolve(b), raster.mime, quality);
     });
     if (!blob) {
       return;
     }
     const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
     const base = path.split(/[/\\]/).pop() ?? "image.png";
-    const suggested = `${base.replace(/\.[^.]+$/i, "")}-crop.png`;
+    const ext = raster.mime === "image/jpeg" ? ".jpg" : ".png";
+    const suggested = `${base.replace(/\.[^.]+$/i, "")}${suffix}${ext}`;
     const dest = await invoke<string | null>("pick_save_image_path", { suggestedName: suggested });
     if (!dest) {
       return;
@@ -1270,6 +1333,21 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
     await invoke("write_document_bytes", { path: dest, bytes });
     const fileUrl = dest.startsWith("file://") ? dest : `file://${dest}`;
     window.dispatchEvent(new CustomEvent("unibrowser-navigate", { detail: fileUrl }));
+  }
+
+  saveAsBtn.onclick = () => {
+    void saveRasterCopy("-edited").catch((err) => showErrorToast(err));
+  };
+
+  saveCropBtn.onclick = async () => {
+    if (!cropRectNorm || cropRectNorm.w < 0.5 || cropRectNorm.h < 0.5) {
+      return;
+    }
+    try {
+      await saveRasterCopy("-crop");
+    } catch (err) {
+      showErrorToast(err);
+    }
   };
 
   let dragging = false;
@@ -1325,8 +1403,7 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   applyTransform();
   const note = document.createElement("p");
   note.className = "viewer-note";
-  note.textContent =
-    "Pan: drag (when Crop is off) · Crop draws a non-destructive overlay only · file on disk is unchanged.";
+  note.textContent = t("image.toolbarNote");
   root.appendChild(note);
 }
 

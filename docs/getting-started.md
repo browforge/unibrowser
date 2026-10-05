@@ -24,6 +24,8 @@ npm run tauri dev
 
 The app opens on your home directory by default. Use the omnibox for `unibrowser://settings`, `https://example.com`, or a file path.
 
+To inspect an embedded https tab, press **F12** or run **Toggle developer tools** from the command palette. See [devtools.md](devtools.md).
+
 ## Where code lives
 
 | Area | Path |

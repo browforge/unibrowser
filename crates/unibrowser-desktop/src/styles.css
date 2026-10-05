@@ -1467,6 +1467,11 @@ button.proving-disabled,
   font-size: 0.85rem;
 }
 
+.image-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .epub-chapter-frame {
   width: 100%;
   min-height: 20rem;

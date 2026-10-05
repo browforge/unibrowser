@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **About**: version, optional git hash, bundled mod count + registry command count; licence link and NOTICE path copy.
+- **DevTools**: `unibrowser.web.devtools.toggle` (**F12** default) and palette entry for https tabs; [docs/devtools.md](docs/devtools.md).
+- **Image edit lite**: flip horizontal/vertical, **Save as…** (PNG/JPEG) with rotation/crop baked; disabled **Filters** stub.
+- **`.unibrow` format**: `format_version` 2 (optional `description`); validate manifest on open with friendly errors; v1 migrates on save; [docs/unibrow-format-migration.md](docs/unibrow-format-migration.md).
 - **Licensing**: [NOTICE.md](NOTICE.md), [docs/licenses/](docs/licenses/) (Monaco, pdf.js, Mammoth, ffmpeg, WebView, etc.); README links for distributors.
 - **Error UX**: toast **Copy details** for failed invokes; friendly messages for EPUB/encode/cancel paths via `showErrorToast` / `invokeWithToast`.
 - **EPUB**: chapter `<select>` + spine list; remember last chapter per path; position restored on reopen.

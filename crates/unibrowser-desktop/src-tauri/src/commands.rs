@@ -47,6 +47,7 @@ use crate::webview::{
 use unibrowser_mod_api::handlers::{
     DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
+    TOGGLE_WEB_DEVTOOLS_ID,
 };
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -1482,6 +1483,19 @@ pub fn allow_unibrow_asset(window: tauri::Window,
 #[tauri::command]
 pub fn open_path(window: tauri::Window, path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let file_path = resolve_open_path(&path, &state.cwd)?;
+    if unibrowser_project::is_unibrow_path(&file_path) {
+        allow_asset_protocol_file(&app, &file_path);
+        let doc = crate::state::try_open_unibrow_document(&file_path)?;
+        let loc = BrowserLocation::File {
+            path: file_path.clone(),
+        };
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.navigate_active(loc.clone(), false, Some(doc));
+        touch_recent_file(&file_path);
+        update_content_webview(&app, window.label(), &loc)?;
+        return snapshot(&state, window.label());
+    }
     let profile_open = std::env::var("UNIBROWSER_PROFILE_OPEN")
         .ok()
         .is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
@@ -1526,7 +1540,12 @@ pub fn open_path_in_new_tab(
     let file_path = resolve_open_path(&path, &state.cwd)?;
     allow_asset_protocol_file(&app, &file_path);
     let loc = BrowserLocation::File { path: file_path.clone() };
-    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let (loc, is_dir, doc) = if unibrowser_project::is_unibrow_path(&file_path) {
+        let doc = crate::state::try_open_unibrow_document(&file_path)?;
+        (loc, false, Some(doc))
+    } else {
+        state.resolve_location(loc)
+    };
     let _sess_tabs = ws(&state, &window)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.open_tab(loc.clone());
@@ -2262,6 +2281,25 @@ pub fn execute_command(window: tauri::Window,
 ) -> Result<String, String> {
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
+    }
+    if command_id == TOGGLE_WEB_DEVTOOLS_ID {
+        let _sess_tabs = ws(&state, &window)?;
+        let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab().ok_or("no tab")?;
+        let is_web = tab
+            .document
+            .as_ref()
+            .map(|d| d.backend.backend_id() == base_web::BACKEND_ID)
+            .unwrap_or(false);
+        if !is_web {
+            return Err("Developer tools are only available on https tabs".into());
+        }
+        let opened = crate::webview::toggle_content_webview_devtools(&app, window.label())?;
+        return Ok(if opened {
+            "devtools-open".into()
+        } else {
+            "devtools-close".into()
+        });
     }
     if command_id == "mod.hello" {
         return Ok("Hello from native mod (stub handler)".into());
@@ -3505,14 +3543,18 @@ pub struct BuildInfoDto {
     pub version: String,
     pub version_line: String,
     pub git_hash: Option<String>,
+    pub bundled_mods_count: u32,
+    pub registry_commands_count: u32,
 }
 
 #[tauri::command]
-pub fn get_build_info() -> BuildInfoDto {
+pub fn get_build_info(state: State<AppState>) -> BuildInfoDto {
     BuildInfoDto {
         version: unibrowser_build_info::VERSION.into(),
         version_line: unibrowser_build_info::version_line(),
         git_hash: unibrowser_build_info::GIT_HASH.map(|s| s.to_string()),
+        bundled_mods_count: state.bundled_mod_count() as u32,
+        registry_commands_count: state.registry_command_count() as u32,
     }
 }
 

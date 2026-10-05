@@ -2,6 +2,7 @@ use unibrowser_mod_api::{
     BrowserLocation, Capabilities, Enablement, Mode, SelectionSnapshot,
     handlers::{
         FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
+        TOGGLE_WEB_DEVTOOLS_ID,
     },
 };
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
@@ -115,5 +116,11 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: web_page_zoom_enable,
         execute: web_page_zoom_exec,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: TOGGLE_WEB_DEVTOOLS_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: web_font_enable,
+        execute: web_font_exec,
     });
 }

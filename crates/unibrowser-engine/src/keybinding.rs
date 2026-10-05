@@ -108,6 +108,10 @@ impl KeybindingMap {
             "Ctrl+-",
         );
         map.set_binding(unibrowser_mod_api::commands::TEXT_SAVE, "Ctrl+S");
+        map.set_binding(
+            unibrowser_mod_api::commands::TOGGLE_WEB_DEVTOOLS,
+            "F12",
+        );
         map
     }
 

@@ -25,6 +25,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Error UX | Chrome toasts with **Copy details** on failures; friendly copy for opens/encodes (no raw panic strings) |
 | EPUB | Chapter dropdown + prev/next; last position per book in prefs; font size via shared increase/decrease commands |
 | Grandma backup | Settings export/import JSON: preferences + `keybindings.json` + `toolbars.json` |
+| About | `unibrowser://about`: version, git hash, mod/command counts, licence + NOTICE pointers |
+| DevTools | **F12** / palette **Toggle developer tools** on https tabs; [devtools.md](devtools.md) |
+| Image edit | PNG/JPEG: rotate, flip, save-as (new file); crop export; grey **Filters** stub |
+| `.unibrow` v2 | `format_version` 2 + validation on open; v1 still loads; [unibrow-format-migration.md](unibrow-format-migration.md) |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |
 | Commands | Command Manager (dense mode), palette + chords (`Ctrl+Shift+P` default, user override via `keybindings.json`), workspace layout presets, import/export JSON; VSIX commands on **Extensions** tab (stub run) |

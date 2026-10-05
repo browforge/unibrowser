@@ -13,7 +13,8 @@ pub const DIR_ASSETS: &str = "assets";
 pub const DIR_REFS: &str = "refs";
 pub const DIR_DERIVED: &str = "derived";
 
-pub const FORMAT_VERSION: u32 = 1;
+pub const FORMAT_VERSION: u32 = 2;
+pub const MIN_FORMAT_VERSION: u32 = 1;
 
 pub const LABEL_COLORS: &[&str] = &["blue", "green", "amber", "rose", "violet", "slate"];
 
@@ -113,6 +114,8 @@ pub struct ProjectTimeline {
 pub struct ProjectManifest {
     pub format_version: u32,
     pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     pub nodes: Vec<ProjectNode>,
     #[serde(default)]
     pub timeline: ProjectTimeline,
@@ -123,10 +126,64 @@ impl ProjectManifest {
         Self {
             format_version: FORMAT_VERSION,
             title: title.into(),
+            description: None,
             nodes: Vec::new(),
             timeline: ProjectTimeline::default(),
         }
     }
+}
+
+pub fn friendly_open_error(err: &ProjectError) -> String {
+    match err {
+        ProjectError::NotPackage(missing) => format!(
+            "This is not a valid .unibrow project (missing {}).",
+            missing
+        ),
+        ProjectError::Json(e) => format!(
+            "Could not read project.json: invalid JSON ({})",
+            e
+        ),
+        ProjectError::Io(e) => format!("Could not read the project: {}", e),
+        ProjectError::Zip(e) => format!("Could not read the .unibrow archive: {}", e),
+        ProjectError::Msg(s) if s.contains("format_version") => format!(
+            "{}. See docs/unibrow-format-migration.md for format versions.",
+            s
+        ),
+        ProjectError::Msg(s) => s.clone(),
+    }
+}
+
+pub fn validate_manifest(manifest: &ProjectManifest) -> Result<(), ProjectError> {
+    if manifest.format_version < MIN_FORMAT_VERSION || manifest.format_version > FORMAT_VERSION {
+        return Err(ProjectError::Msg(format!(
+            "unsupported format_version {} (supported {}–{})",
+            manifest.format_version,
+            MIN_FORMAT_VERSION,
+            FORMAT_VERSION
+        )));
+    }
+    if manifest.title.trim().is_empty() {
+        return Err(ProjectError::Msg("project title must not be empty".into()));
+    }
+    let mut seen = std::collections::HashSet::new();
+    for node in &manifest.nodes {
+        if node.id.trim().is_empty() {
+            return Err(ProjectError::Msg("every board node needs a non-empty id".into()));
+        }
+        if !seen.insert(node.id.clone()) {
+            return Err(ProjectError::Msg(format!("duplicate node id {}", node.id)));
+        }
+    }
+    for clip in &manifest.timeline.clips {
+        if !manifest.nodes.iter().any(|n| n.id == clip.node_id) {
+            return Err(ProjectError::Msg(format!(
+                "timeline clip {} references unknown node {}",
+                clip.id,
+                clip.node_id
+            )));
+        }
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -686,12 +743,7 @@ pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
     }
     let data = fs::read_to_string(&manifest_path)?;
     let manifest: ProjectManifest = serde_json::from_str(&data)?;
-    if manifest.format_version != FORMAT_VERSION {
-        return Err(ProjectError::Msg(format!(
-            "unsupported format_version {}",
-            manifest.format_version
-        )));
-    }
+    validate_manifest(&manifest)?;
     Ok(ProjectPackage {
         root: root.to_path_buf(),
         manifest,
@@ -699,7 +751,10 @@ pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
 }
 
 pub fn write_manifest(root: &Path, manifest: &ProjectManifest) -> Result<(), ProjectError> {
-    let data = serde_json::to_string_pretty(manifest)?;
+    let mut to_write = manifest.clone();
+    to_write.format_version = FORMAT_VERSION;
+    validate_manifest(&to_write)?;
+    let data = serde_json::to_string_pretty(&to_write)?;
     fs::write(root.join(PROJECT_FILE), data)?;
     Ok(())
 }
@@ -881,6 +936,37 @@ pub fn rename_node_label(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn validate_manifest_rejects_duplicate_nodes() {
+        let manifest = ProjectManifest {
+            format_version: 2,
+            title: "T".into(),
+            description: None,
+            nodes: vec![
+                ProjectNode {
+                    id: "a".into(),
+                    node_type: "note".into(),
+                    label: "A".into(),
+                    asset: None,
+                    x: 0.0,
+                    y: 0.0,
+                    color: None,
+                },
+                ProjectNode {
+                    id: "a".into(),
+                    node_type: "note".into(),
+                    label: "B".into(),
+                    asset: None,
+                    x: 0.0,
+                    y: 0.0,
+                    color: None,
+                },
+            ],
+            timeline: ProjectTimeline::default(),
+        };
+        assert!(validate_manifest(&manifest).is_err());
+    }
 
     #[test]
     fn unique_asset_name_when_taken() {

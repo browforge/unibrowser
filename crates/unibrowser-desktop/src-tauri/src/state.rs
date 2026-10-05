@@ -46,6 +46,17 @@ pub struct AppState {
 }
 
 impl AppState {
+    pub fn bundled_mod_count(&self) -> usize {
+        self._mod_host.mods.len()
+    }
+
+    pub fn registry_command_count(&self) -> usize {
+        self.registry
+            .lock()
+            .map(|r| r.sorted_command_ids().len())
+            .unwrap_or(0)
+    }
+
     pub fn session(&self, label: &str) -> Result<SharedWindowSession, String> {
         let mut map = self.sessions.lock().map_err(|e| e.to_string())?;
         Ok(map
@@ -347,24 +358,31 @@ fn internal_files_path(page: &str, cwd: &Path) -> PathBuf {
     cwd.to_path_buf()
 }
 
+pub fn try_open_unibrow_document(path: &Path) -> Result<DocumentSession, String> {
+    use crate::project_backend::UnibrowBackend;
+    let path_str = path.to_string_lossy().to_string();
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    let root =
+        unibrowser_project::resolve_package_root(path, &cache).map_err(|e| {
+            unibrowser_project::friendly_open_error(&e)
+        })?;
+    let pkg = unibrowser_project::open_package(&root).map_err(|e| {
+        unibrowser_project::friendly_open_error(&e)
+    })?;
+    Ok(DocumentSession::new(
+        path_str,
+        Box::new(UnibrowBackend::open(pkg)),
+    ))
+}
+
 pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
     let path_str = path.to_string_lossy().to_string();
     let sniffed = crate::content_sniff::sniff_format(path);
     if unibrowser_project::is_unibrow_path(path) {
-        let root = crate::config::unibrow_zip_cache_dir()
-            .ok_or_else(|| "config path unavailable".to_string());
-        let package = root
-            .and_then(|cache| {
-                unibrowser_project::resolve_package_root(path, &cache).map_err(|e| e.to_string())
-            })
-            .and_then(|root| unibrowser_project::open_package(&root).map_err(|e| e.to_string()));
-        if let Ok(pkg) = package {
-            use crate::project_backend::UnibrowBackend;
-            return Some(DocumentSession::new(
-                path_str,
-                Box::new(UnibrowBackend::open(pkg)),
-            ));
+        if let Ok(doc) = try_open_unibrow_document(path) {
+            return Some(doc);
         }
+        return None;
     }
     let ext = path
         .extension()

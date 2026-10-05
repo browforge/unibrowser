@@ -89,6 +89,13 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["print pdf", "save as pdf"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::TOGGLE_WEB_DEVTOOLS,
+            title: "Toggle developer tools",
+            icon: "tools",
+            default_keybinding: Some("F12"),
+            aliases: &["devtools", "web inspector", "inspect element"],
+        });
         reg
     }
 

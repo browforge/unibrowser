@@ -188,5 +188,32 @@ pub fn set_content_webview_devtools(
     } else {
         wv.close_devtools();
     }
+    set_devtools_open_flag(window_label, open);
     Ok(())
+}
+
+fn devtools_flags() -> &'static std::sync::Mutex<std::collections::HashMap<String, bool>> {
+    use std::sync::{Mutex, OnceLock};
+    static FLAGS: OnceLock<Mutex<std::collections::HashMap<String, bool>>> = OnceLock::new();
+    FLAGS.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
+}
+
+fn set_devtools_open_flag(window_label: &str, open: bool) {
+    if let Ok(mut map) = devtools_flags().lock() {
+        map.insert(window_label.to_string(), open);
+    }
+}
+
+pub fn toggle_content_webview_devtools(
+    app: &AppHandle,
+    window_label: &str,
+) -> Result<bool, String> {
+    let open = devtools_flags()
+        .lock()
+        .map_err(|e| e.to_string())?
+        .get(window_label)
+        .copied()
+        .unwrap_or(false);
+    set_content_webview_devtools(app, window_label, !open)?;
+    Ok(!open)
 }
