@@ -7,6 +7,7 @@ type DiffEditor = MonacoEditorNS.IStandaloneDiffEditor;
 let monacoApi: Monaco | null = null;
 let diffEditor: DiffEditor | null = null;
 let hostEl: HTMLElement | null = null;
+let sideBySide = true;
 
 async function getMonaco(): Promise<Monaco> {
   if (!monacoApi) {
@@ -55,6 +56,11 @@ export const diffEditorView = {
       const title = document.createElement("span");
       title.className = "diff-title";
       toolbar.appendChild(title);
+      const layoutToggle = document.createElement("button");
+      layoutToggle.type = "button";
+      layoutToggle.className = "diff-layout-toggle";
+      layoutToggle.dataset.action = "toggle-diff-layout";
+      toolbar.appendChild(layoutToggle);
       const close = document.createElement("button");
       close.type = "button";
       close.className = "diff-close";
@@ -75,14 +81,32 @@ export const diffEditorView = {
     }
     const titleEl = host.querySelector(".diff-title");
     const closeBtn = host.querySelector(".diff-close") as HTMLButtonElement | null;
+    const layoutBtn = host.querySelector(
+      ".diff-layout-toggle",
+    ) as HTMLButtonElement | null;
     if (titleEl) {
       titleEl.textContent = `${view.left_path} ↔ ${view.right_path}`;
     }
     if (closeBtn) {
       closeBtn.textContent = t("diff.close");
     }
+    if (layoutBtn) {
+      layoutBtn.textContent = sideBySide ? t("diff.unified") : t("diff.sideBySide");
+    }
+    diffEditor!.updateOptions({ renderSideBySide: sideBySide });
     const left = api.editor.createModel(view.left_content, view.language);
     const right = api.editor.createModel(view.right_content, view.language);
     diffEditor!.setModel({ original: left, modified: right });
+  },
+
+  toggleLayout(host: HTMLElement) {
+    sideBySide = !sideBySide;
+    diffEditor?.updateOptions({ renderSideBySide: sideBySide });
+    const layoutBtn = host.querySelector(
+      ".diff-layout-toggle",
+    ) as HTMLButtonElement | null;
+    if (layoutBtn) {
+      layoutBtn.textContent = sideBySide ? t("diff.unified") : t("diff.sideBySide");
+    }
   },
 };

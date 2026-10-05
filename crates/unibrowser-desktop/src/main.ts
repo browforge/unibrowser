@@ -988,6 +988,17 @@ async function handleShellCommandMessage(msg: string): Promise<boolean> {
     }
     return false;
   }
+  if (msg === "text-compare-pick") {
+    const data = await invokeWithToast(
+      () => invoke<TabContentDto>("pick_and_compare"),
+      t("compare.needFile"),
+    );
+    if (data) {
+      showToast(t("compare.started"), "info");
+      await applyState(data);
+    }
+    return false;
+  }
   const pct = msg.match(/(\d+)%/);
   if (pct) {
     webZoomPercent = Number(pct[1]);
@@ -1334,6 +1345,9 @@ diffEditorHost.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
   if (target.dataset.action === "close-diff") {
     void invoke<TabContentDto>("close_file_compare").then((d) => d && applyState(d));
+  }
+  if (target.dataset.action === "toggle-diff-layout") {
+    diffEditorView.toggleLayout(diffEditorHost);
   }
 });
 

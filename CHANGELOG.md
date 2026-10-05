@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **HTTPS tab capture (Linux)**: WebKitGTK visible-region snapshot for https tabs; other platforms document the gap on `unibrowser://diagnostics` and grey **Capture visible tab** with an explicit reason.
+- **Video clip markers**: named markers on video clips in `.unibrow` timelines; add at playhead, jump from clip marker list.
+- **Text compare (experimental)**: palette **Compare text files** opens Monaco diff (side-by-side or unified); text-only picker validation.
+- **Contributing**: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) developer runbook (build, checks, proving mod, PRs).
 - **Tab capture**: palette **Capture visible tab** saves PNG to Downloads and opens it in a new tab (webview snapshot / image encode / viewer canvas fallback).
 - **Image compare (experimental)**: palette **Compare images** with split slider and shared zoom; closes like text compare.
 - **Diagnostics**: `unibrowser://diagnostics` for mods, ffmpeg probe, WebView stack, and recent session errors.

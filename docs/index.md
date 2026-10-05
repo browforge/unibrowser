@@ -6,7 +6,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 
 1. Read [getting-started.md](getting-started.md) for clone, build, test, and where to send changes.
 2. Skim [vision.md](vision.md) and [architecture.md](architecture.md) so engine / mod / shell boundaries stay clear.
-3. Follow [CONTRIBUTING.md](../CONTRIBUTING.md) (licence, security, PR expectations).
+3. Follow [docs/CONTRIBUTING.md](CONTRIBUTING.md) (build, checks, proving mods, PR expectations) and [CONTRIBUTING.md](../CONTRIBUTING.md) (community and asset policy).
 4. Run `./scripts/smoke-desktop-qa.sh` before you open a PR.
 
 ## Architecture and product

@@ -68,6 +68,14 @@ pub struct ProjectNode {
     pub color: Option<String>,
 }
 
+/// Named cue within a single timeline clip (e.g. video chapter).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ClipMarker {
+    pub id: String,
+    pub offset_sec: f32,
+    pub label: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TimelineClip {
     pub id: String,
@@ -78,6 +86,8 @@ pub struct TimelineClip {
     pub label: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub clip_markers: Vec<ClipMarker>,
 }
 
 /// Chapter / cue point on the timeline ruler.
@@ -324,6 +334,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 duration_sec: 5.0,
                 label: "Notes intro".into(),
                 color: None,
+                clip_markers: Vec::new(),
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -332,6 +343,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 duration_sec: 8.0,
                 label: "References".into(),
                 color: None,
+                clip_markers: Vec::new(),
             },
         ],
         transitions: vec![TimelineTransition {
@@ -392,6 +404,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 duration_sec: 6.0,
                 label: "Intro".into(),
                 color: Some("blue".into()),
+                clip_markers: Vec::new(),
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -400,6 +413,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 duration_sec: 12.0,
                 label: "B-roll".into(),
                 color: Some("amber".into()),
+                clip_markers: Vec::new(),
             },
             TimelineClip {
                 id: "clip-3".into(),
@@ -408,6 +422,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 duration_sec: 5.0,
                 label: "Outro".into(),
                 color: Some("violet".into()),
+                clip_markers: Vec::new(),
             },
         ],
         transitions: vec![TimelineTransition {
@@ -467,6 +482,7 @@ pub fn append_timeline_clip_for_node(
         duration_sec: 5.0,
         label: node.label.clone(),
         color: node.color.clone(),
+        clip_markers: Vec::new(),
     };
     package.manifest.timeline.clips.push(clip.clone());
     write_manifest(&package.root, &package.manifest)?;
@@ -598,6 +614,58 @@ pub fn add_timeline_marker(
     package.manifest.timeline.markers.push(marker.clone());
     write_manifest(&package.root, &package.manifest)?;
     Ok(marker)
+}
+
+pub fn add_clip_marker(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    offset_sec: f32,
+    label: impl Into<String>,
+) -> Result<ClipMarker, ProjectError> {
+    if offset_sec < 0.0 || !offset_sec.is_finite() {
+        return Err(ProjectError::Msg("offset_sec must be non-negative".into()));
+    }
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    if offset_sec > clip.duration_sec {
+        return Err(ProjectError::Msg("marker offset past clip end".into()));
+    }
+    let id = format!("{}-m{}", clip_id, clip.clip_markers.len() + 1);
+    let marker = ClipMarker {
+        id,
+        offset_sec,
+        label: label.into(),
+    };
+    clip.clip_markers.push(marker.clone());
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(marker)
+}
+
+pub fn remove_clip_marker(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    marker_id: &str,
+) -> Result<(), ProjectError> {
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    let idx = clip
+        .clip_markers
+        .iter()
+        .position(|m| m.id == marker_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip marker {}", marker_id)))?;
+    clip.clip_markers.remove(idx);
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
 }
 
 pub fn remove_timeline_marker(package: &mut ProjectPackage, marker_id: &str) -> Result<(), ProjectError> {
@@ -1046,6 +1114,36 @@ mod tests {
         update_timeline_clip_timing(&mut pkg, &clip_id, 1.5, 4.0).expect("update timing");
         assert_eq!(pkg.manifest.timeline.clips[0].start_sec, 1.5);
         assert_eq!(pkg.manifest.timeline.clips[0].duration_sec, 4.0);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn clip_marker_on_timeline_clip() {
+        let dir = std::env::temp_dir().join("unibrow-test-clip-marker");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Cue").expect("create");
+        pkg.manifest.nodes.push(ProjectNode {
+            id: "vid-node".into(),
+            node_type: "video".into(),
+            label: "Take".into(),
+            asset: Some("take.mp4".into()),
+            x: 0.0,
+            y: 0.0,
+            color: None,
+        });
+        let clip = append_timeline_clip_for_node(&mut pkg, "vid-node").expect("clip");
+        let m = add_clip_marker(&mut pkg, &clip.id, 2.0, "Beat").expect("marker");
+        assert_eq!(m.label, "Beat");
+        let again = open_package(&dir).expect("open");
+        assert_eq!(again.manifest.timeline.clips[0].clip_markers.len(), 1);
+        remove_clip_marker(&mut pkg, &clip.id, &m.id).expect("remove");
+        assert!(open_package(&dir)
+            .expect("open2")
+            .manifest
+            .timeline
+            .clips[0]
+            .clip_markers
+            .is_empty());
         let _ = fs::remove_dir_all(&dir);
     }
 

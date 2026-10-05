@@ -109,6 +109,12 @@ export interface MidiNoteOnDto {
   velocity: number;
 }
 
+export interface ClipMarkerDto {
+  id: string;
+  offset_sec: number;
+  label: string;
+}
+
 export interface ProjectClipDto {
   id: string;
   node_id: string;
@@ -117,6 +123,7 @@ export interface ProjectClipDto {
   duration_sec: number;
   label: string;
   color?: string | null;
+  clip_markers?: ClipMarkerDto[];
 }
 
 interface ProjectMarkerDto {
@@ -131,6 +138,10 @@ interface ProjectTransitionDto {
   after_clip_id: string;
   kind: string;
   duration_sec: number;
+}
+
+function clipIsVideo(nodeType: string): boolean {
+  return nodeType.toLowerCase().includes("video");
 }
 
 function clipTypeAbbrev(nodeType: string): string {
@@ -2309,6 +2320,76 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       });
     });
     li.appendChild(clipColor);
+
+    if (clipIsVideo(clip.node_type)) {
+      const markerSec = document.createElement("div");
+      markerSec.className = "unibrow-clip-markers";
+      const markerHeading = document.createElement("span");
+      markerHeading.className = "unibrow-clip-markers-title";
+      markerHeading.textContent = "Clip markers";
+      markerSec.appendChild(markerHeading);
+      const addClipMarkerBtn = document.createElement("button");
+      addClipMarkerBtn.type = "button";
+      addClipMarkerBtn.textContent = "Add marker at playhead";
+      addClipMarkerBtn.onclick = async () => {
+        const clipLocal = playheadSec - clip.start_sec;
+        if (clipLocal < 0 || clipLocal > clip.duration_sec) {
+          showToast("Move playhead onto this clip first.", "error");
+          return;
+        }
+        const name = window.prompt("Marker label", `Cue ${(clip.clip_markers?.length ?? 0) + 1}`);
+        if (!name) {
+          return;
+        }
+        const data = await invoke("add_unibrow_clip_marker", {
+          projectPath: viewer.path,
+          clipId: clip.id,
+          offsetSec: clipLocal,
+          label: name,
+        });
+        window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+      };
+      markerSec.appendChild(addClipMarkerBtn);
+      const clipMarkerList = document.createElement("ul");
+      clipMarkerList.className = "unibrow-clip-marker-list";
+      const markersOnClip = clip.clip_markers ?? [];
+      markersOnClip.forEach((m) => {
+        const mli = document.createElement("li");
+        const abs = clip.start_sec + m.offset_sec;
+        mli.textContent = `+${m.offset_sec.toFixed(1)}s (${abs.toFixed(1)}s) — ${m.label}`;
+        const jump = document.createElement("button");
+        jump.type = "button";
+        jump.textContent = "Jump";
+        jump.onclick = () => {
+          playheadSec = abs;
+          playhead.value = String(Math.round(abs * 10));
+          playheadTime.textContent = `${abs.toFixed(1)}s`;
+          void updatePlayheadPreview(abs);
+        };
+        const removeM = document.createElement("button");
+        removeM.type = "button";
+        removeM.textContent = "Remove";
+        removeM.onclick = async () => {
+          const data = await invoke("remove_unibrow_clip_marker", {
+            projectPath: viewer.path,
+            clipId: clip.id,
+            markerId: m.id,
+          });
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        };
+        mli.appendChild(jump);
+        mli.appendChild(removeM);
+        clipMarkerList.appendChild(mli);
+      });
+      if (!markersOnClip.length) {
+        const emptyM = document.createElement("li");
+        emptyM.className = "viewer-note";
+        emptyM.textContent = "No clip markers yet.";
+        clipMarkerList.appendChild(emptyM);
+      }
+      markerSec.appendChild(clipMarkerList);
+      li.appendChild(markerSec);
+    }
 
     if (index < clips.length - 1) {
       const tr = transitions.find((t) => t.after_clip_id === clip.id);

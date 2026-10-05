@@ -18,6 +18,8 @@ interface DiagnosticsInfoDto {
   mod_catalog_count: number;
   ffmpeg: FfmpegProbe;
   webview_stack: string;
+  web_capture_native: boolean;
+  web_capture_detail: string;
   target_os: string;
   target_arch: string;
   recent_errors: DiagnosticLogEntry[];
@@ -58,6 +60,22 @@ export async function renderDiagnostics(root: HTMLElement) {
   });
   envSec.appendChild(envList);
   root.appendChild(envSec);
+
+  const capSec = document.createElement("section");
+  capSec.className = "settings-section";
+  const capH = document.createElement("h3");
+  capH.textContent = t("diagnostics.webCapture");
+  capSec.appendChild(capH);
+  const capP = document.createElement("p");
+  capP.textContent = info.web_capture_native
+    ? t("diagnostics.webCaptureOk")
+    : t("diagnostics.webCaptureGap");
+  capSec.appendChild(capP);
+  const capDetail = document.createElement("p");
+  capDetail.className = "viewer-note";
+  capDetail.textContent = info.web_capture_detail;
+  capSec.appendChild(capDetail);
+  root.appendChild(capSec);
 
   const ffSec = document.createElement("section");
   ffSec.className = "settings-section";

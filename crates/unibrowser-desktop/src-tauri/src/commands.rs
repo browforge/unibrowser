@@ -47,7 +47,7 @@ use crate::webview::{
 use unibrowser_mod_api::handlers::{
     DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
-    CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, SHOW_KEYBOARD_SHORTCUTS_ID,
+    CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, COMPARE_TEXT_ID, SHOW_KEYBOARD_SHORTCUTS_ID,
     TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
 };
 use unibrowser_engine::{
@@ -151,6 +151,15 @@ pub struct ProjectClipDto {
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub clip_markers: Vec<ClipMarkerDto>,
+}
+
+#[derive(Serialize)]
+pub struct ClipMarkerDto {
+    pub id: String,
+    pub offset_sec: f32,
+    pub label: String,
 }
 
 #[derive(Serialize)]
@@ -558,6 +567,15 @@ fn document_viewer_dto(
                         duration_sec: c.duration_sec,
                         label: c.label.clone(),
                         color: c.color.clone(),
+                        clip_markers: c
+                            .clip_markers
+                            .iter()
+                            .map(|m| ClipMarkerDto {
+                                id: m.id.clone(),
+                                offset_sec: m.offset_sec,
+                                label: m.label.clone(),
+                            })
+                            .collect(),
                     }
                 })
                 .collect()
@@ -2103,14 +2121,40 @@ fn phase_name(phase: ToolbarPhase) -> &'static str {
     }
 }
 
-fn map_ui_commands(cmds: Vec<unibrowser_engine::ResolvedUiCommand>) -> Vec<UiCommandDto> {
+fn patch_capture_visible_tab_enablement(
+    command_id: &str,
+    enabled: bool,
+    reason: Option<String>,
+    location: Option<&BrowserLocation>,
+) -> (bool, Option<String>) {
+    if command_id != CAPTURE_VISIBLE_TAB_ID {
+        return (enabled, reason);
+    }
+    if !matches!(location, Some(BrowserLocation::Http { .. })) {
+        return (enabled, reason);
+    }
+    let status = crate::webview_capture::web_capture_status();
+    if status.native_available {
+        return (enabled, reason);
+    }
+    (false, Some(status.detail))
+}
+
+fn map_ui_commands(
+    cmds: Vec<unibrowser_engine::ResolvedUiCommand>,
+    location: Option<&BrowserLocation>,
+) -> Vec<UiCommandDto> {
     cmds.into_iter()
-        .map(|c| UiCommandDto {
-            command_id: c.command_id,
-            title: c.title,
-            icon: c.icon,
-            enabled: c.enabled,
-            reason: c.reason,
+        .map(|c| {
+            let (enabled, reason) =
+                patch_capture_visible_tab_enablement(&c.command_id, c.enabled, c.reason, location);
+            UiCommandDto {
+                command_id: c.command_id,
+                title: c.title,
+                icon: c.icon,
+                enabled,
+                reason,
+            }
         })
         .collect()
 }
@@ -2126,6 +2170,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .map(|d| d.host_context())
         .unwrap_or_else(host_context_for_browse);
     let doc_ref = active.and_then(|t| t.document.as_ref());
+    let active_location = active.map(|t| &t.location);
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
@@ -2136,6 +2181,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .map(|tab| {
             let commands = map_ui_commands(
                 cm.resolve_tab_commands(&registry, &host, doc_ref, &tab.id),
+                active_location,
             );
             ManagerTabDto {
                 id: tab.id.clone(),
@@ -2153,6 +2199,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
             let commands = map_ui_commands(
                 cm.resolve_floating_bar(&registry, &host, doc_ref, &bar.id)
                     .unwrap_or_default(),
+                active_location,
             );
             FloatingBarDto {
                 id: bar.id.clone(),
@@ -2380,6 +2427,9 @@ pub fn execute_command(window: tauri::Window,
     }
     if command_id == COMPARE_IMAGES_ID {
         return Ok("image-compare-pick".into());
+    }
+    if command_id == COMPARE_TEXT_ID {
+        return Ok("text-compare-pick".into());
     }
     if command_id == TOGGLE_READER_MODE_ID {
         let _sess_tabs = ws(&state, &window)?;
@@ -2682,6 +2732,12 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                     e.enablement.disabled_reason().map(String::from),
                 )
             };
+            let (enabled, reason) = patch_capture_visible_tab_enablement(
+                &e.command_id,
+                enabled,
+                reason,
+                Some(&tab.location),
+            );
             let chord = keybindings
                 .chord_for_command(&e.command_id)
                 .map(|c| c.display());
@@ -3636,6 +3692,45 @@ pub fn remove_unibrow_timeline_marker(
 }
 
 #[tauri::command]
+pub fn add_unibrow_clip_marker(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    offset_sec: f32,
+    label: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::add_clip_marker(&mut package, &clip_id, offset_sec, label)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn remove_unibrow_clip_marker(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    marker_id: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::remove_clip_marker(&mut package, &clip_id, &marker_id)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
 pub fn set_unibrow_timeline_transition(
     window: tauri::Window,
     project_path: String,
@@ -4031,15 +4126,35 @@ pub fn auto_save_active_document(window: tauri::Window, state: State<AppState>) 
     Ok("saved".into())
 }
 
+fn is_text_compare_file(path: &Path) -> bool {
+    if crate::capture::is_raster_image_path(path) {
+        return false;
+    }
+    if std::fs::metadata(path)
+        .map(|m| m.len() > 8 * 1024 * 1024)
+        .unwrap_or(true)
+    {
+        return false;
+    }
+    match std::fs::read(path) {
+        Ok(bytes) => !bytes.contains(&0),
+        Err(_) => false,
+    }
+}
+
 #[tauri::command]
 pub fn begin_file_compare(window: tauri::Window, 
     other_path: String,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let left = active_document_path(&state, &window)?;
+    let left_path = resolve_open_path(&left, &state.cwd)?;
     let right = resolve_open_path(&other_path, &state.cwd)?;
     if !right.is_file() {
         return Err("compare target is not a file".into());
+    }
+    if !is_text_compare_file(&left_path) || !is_text_compare_file(&right) {
+        return Err("Text compare needs two readable text files (not images or binary)".into());
     }
     {
         let _sess_cmp = ws(&state, &window)?;
@@ -4121,7 +4236,7 @@ pub fn capture_visible_tab(
     let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab().ok_or("no active tab")?;
     if let BrowserLocation::Http { .. } = &tab.location {
-        match crate::webview::capture_content_webview_png(&app, window.label()) {
+        match crate::webview_capture::capture_content_webview_png(&app, window.label()) {
             Ok(bytes) => {
                 let path = crate::capture::write_png_bytes(&bytes)?;
                 let saved = path.to_string_lossy().into_owned();
@@ -4189,6 +4304,8 @@ pub struct DiagnosticsInfoDto {
     pub mod_catalog_count: u32,
     pub ffmpeg: unibrowser_media::FfmpegProbe,
     pub webview_stack: String,
+    pub web_capture_native: bool,
+    pub web_capture_detail: String,
     pub target_os: String,
     pub target_arch: String,
     pub recent_errors: Vec<crate::diagnostic_log::DiagnosticLogEntry>,
@@ -4205,11 +4322,14 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
     } else {
         "WRY embedded webview"
     };
+    let web_capture = crate::webview_capture::web_capture_status();
     DiagnosticsInfoDto {
         mods_loaded: state.mods_loaded_line(),
         mod_catalog_count: state.bundled_mod_count() as u32,
         ffmpeg: unibrowser_media::probe_ffmpeg_install(),
         webview_stack: webview_stack.into(),
+        web_capture_native: web_capture.native_available,
+        web_capture_detail: web_capture.detail,
         target_os: std::env::consts::OS.into(),
         target_arch: std::env::consts::ARCH.into(),
         recent_errors: crate::diagnostic_log::recent_entries(),

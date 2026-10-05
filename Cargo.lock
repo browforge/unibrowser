@@ -5325,6 +5325,10 @@ dependencies = [
  "base-text",
  "base-video",
  "base-web",
+ "base64 0.22.1",
+ "cairo-rs",
+ "gio",
+ "gtk",
  "image 0.25.10",
  "serde",
  "serde_json",
@@ -5345,6 +5349,7 @@ dependencies = [
  "ureq",
  "url",
  "urlencoding",
+ "webkit2gtk",
  "zip",
 ]
 

@@ -3,8 +3,12 @@ use url::Url;
 
 use crate::downloads::DownloadEventPayload;
 
-fn content_label(window_label: &str) -> String {
+pub fn content_label_for_capture(window_label: &str) -> String {
     format!("content-{}", window_label)
+}
+
+fn content_label(window_label: &str) -> String {
+    content_label_for_capture(window_label)
 }
 
 pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(), String> {
@@ -237,10 +241,3 @@ pub fn toggle_content_webview_devtools(
     Ok(!open)
 }
 
-/// PNG of the visible https content webview (platform snapshot; shell fallback when unavailable).
-pub fn capture_content_webview_png(app: &AppHandle, window_label: &str) -> Result<Vec<u8>, String> {
-    ensure_content_webview(app, window_label)?;
-    let _label = content_label(window_label);
-    let _ = app;
-    Err("native webview snapshot unavailable in this build".into())
-}

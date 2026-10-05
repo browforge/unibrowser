@@ -53,3 +53,4 @@ pub const SHOW_KEYBOARD_SHORTCUTS_ID: &str = commands::SHOW_KEYBOARD_SHORTCUTS;
 pub const TOGGLE_READER_MODE_ID: &str = commands::TOGGLE_READER_MODE;
 pub const CAPTURE_VISIBLE_TAB_ID: &str = commands::CAPTURE_VISIBLE_TAB;
 pub const COMPARE_IMAGES_ID: &str = commands::COMPARE_IMAGES;
+pub const COMPARE_TEXT_ID: &str = commands::COMPARE_TEXT;

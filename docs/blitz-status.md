@@ -35,7 +35,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Keyboard cheat sheet | Palette **Show keyboard shortcuts** → searchable overlay (`get_keyboard_shortcuts`: defaults + `keybindings.json`); `unibrowser://keys` page |
 | Reader mode | **Toggle reader mode** on https tabs (injected declutter CSS); grey in Command Manager when not http(s) |
 | Bookmark bar lite | Optional bar under chrome (pins + up to 8 quick URLs); Settings toggle; layout uses `#content-host` bounds so webview never sits under the bar |
-| Tab capture | Palette **Capture visible tab** → PNG in Downloads + new tab (raster image encode; PDF/image canvas fallback; native https snapshot stub) |
+| Tab capture | Palette **Capture visible tab** → PNG in Downloads + new tab (Linux WebKitGTK visible snapshot on https; raster encode / canvas fallback elsewhere; diagnostics + grey disable reason when native https capture missing) |
+| Text compare (stub) | Palette **Compare text files (experimental)** — Monaco diff, side-by-side or unified toggle |
+| Clip markers | Named markers on **video** timeline clips in `.unibrow`; jump from clip list |
+| Contributing | [docs/CONTRIBUTING.md](CONTRIBUTING.md) — build, checks, proving mod, PR expectations |
 | Image compare (stub) | Palette **Compare images** side-by-side with split slider + synced zoom; grey off image tabs |
 | Diagnostics | `unibrowser://diagnostics` — mods, ffmpeg, WebView stack, recent error log ring buffer |
 | Settings search | Filter Settings sections by typing in the search field |

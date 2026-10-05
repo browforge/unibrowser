@@ -114,4 +114,5 @@ pub mod commands {
     pub const TOGGLE_READER_MODE: &str = "unibrowser.web.reader.toggle";
     pub const CAPTURE_VISIBLE_TAB: &str = "unibrowser.capture.visibleTab";
     pub const COMPARE_IMAGES: &str = "unibrowser.image.compare";
+    pub const COMPARE_TEXT: &str = "unibrowser.text.compare";
 }

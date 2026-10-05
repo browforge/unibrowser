@@ -46,6 +46,7 @@ mod user_backup;
 
 pub use state::open_file_document;
 mod webview;
+mod webview_capture;
 
 use state::AppState;
 use tauri::Manager;
@@ -204,6 +205,8 @@ pub fn run() {
             commands::set_unibrow_timeline_clip_color,
             commands::add_unibrow_timeline_marker,
             commands::remove_unibrow_timeline_marker,
+            commands::add_unibrow_clip_marker,
+            commands::remove_unibrow_clip_marker,
             commands::set_midi_scrub_audio_enabled,
             commands::auto_save_active_document,
             commands::pick_and_compare,

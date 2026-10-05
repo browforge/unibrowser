@@ -5,7 +5,7 @@ use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot, commands,
     handlers::{
         DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
-        FONT_DECREASE_ID, FONT_INCREASE_ID,
+        COMPARE_TEXT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID,
     },
 };
 
@@ -291,6 +291,25 @@ pub fn register(registry: &mut CommandRegistry) {
         enable: markdown_export_enable,
         execute: |_doc| Ok("export-print-pdf".into()),
     });
+    registry.register_handler(HandlerRegistration {
+        command_id: COMPARE_TEXT_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: text_compare_enable,
+        execute: text_compare_exec,
+    });
+}
+
+fn text_compare_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Open a text file tab first".into(),
+        };
+    }
+    Enablement::Enabled
+}
+
+fn text_compare_exec(_doc: &mut DocumentSession) -> Result<String, String> {
+    Ok("text-compare-pick".into())
 }
 
 pub fn open_sample(path: &str) -> Box<dyn unibrowser_engine::document::DocumentBackend> {

@@ -131,6 +131,13 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["image diff", "side by side images"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::COMPARE_TEXT,
+            title: "Compare text files (experimental)",
+            icon: "compare",
+            default_keybinding: None,
+            aliases: &["text diff", "diff two files", "unified diff"],
+        });
         reg
     }
 
