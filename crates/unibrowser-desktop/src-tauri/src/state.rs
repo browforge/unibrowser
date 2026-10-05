@@ -5,9 +5,8 @@ use std::sync::Mutex;
 use base_files::list_directory;
 use base_web::{WebBackend, handles as web_handles};
 use unibrowser_engine::{
-    CommandManagerState, CommandRegistry, DocumentSession, KeybindingMap, TabManager,
-    infer_context, load_command_manager_file,
-    navigation::parse_user_input,
+    CommandManagerState, CommandRegistry, DocumentSession, KeySequenceMatcher, KeybindingMap,
+    TabManager, infer_context, load_command_manager_file, navigation::parse_user_input,
 };
 
 use crate::config::{keybindings_file_path, toolbars_file_path};
@@ -30,6 +29,7 @@ pub struct AppState {
     pub vsix_host_commands: Mutex<HashSet<String>>,
     pub undo_stacks: Mutex<crate::undo_stack::UndoStacks>,
     pub split_view: Mutex<SplitViewState>,
+    pub key_sequences: Mutex<KeySequenceMatcher>,
     pub _mod_host: ModHost,
 }
 
@@ -104,6 +104,7 @@ impl AppState {
             vsix_host_commands,
             undo_stacks: Mutex::new(crate::undo_stack::UndoStacks::default()),
             split_view: Mutex::new(SplitViewState::default()),
+            key_sequences: Mutex::new(KeySequenceMatcher::default()),
             _mod_host: mod_host,
         }
     }
@@ -202,6 +203,16 @@ impl AppState {
     pub fn navigate_input(&self, input: &str) -> Result<BrowserLocation, String> {
         let loc = parse_user_input(input, &self.cwd);
         let (loc, is_dir, doc) = self.resolve_location(loc);
+        let loc = match loc {
+            BrowserLocation::File { path } => {
+                let resolved = crate::path_security::resolve_open_path(
+                    &path.to_string_lossy(),
+                    &self.cwd,
+                )?;
+                BrowserLocation::File { path: resolved }
+            }
+            other => other,
+        };
         let mut tabs = self.tabs.lock().map_err(|e| e.to_string())?;
         tabs.navigate_active(loc.clone(), is_dir, doc);
         Ok(loc)

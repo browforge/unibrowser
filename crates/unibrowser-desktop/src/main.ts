@@ -8,7 +8,9 @@ import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
 import { invokeWithToast, showToast } from "./toast";
-import { bindStatusBar, setZoomHandler, updateStatusBar } from "./statusBar";
+import { bindStatusBar, setPathCopyHandler, setZoomHandler, updateStatusBar } from "./statusBar";
+import { copyText, readClipboardText } from "./clipboard";
+import { t } from "./i18n";
 import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
 import { setViewerZoomListener } from "./viewerZoom";
 
@@ -160,6 +162,7 @@ function refreshStatusBar(
   }
   updateStatusBar({
     path,
+    pathHint: path ? t("status.copyPath") : undefined,
     encoding,
     cursor,
     zoom,
@@ -690,6 +693,16 @@ function navigateOmnibox() {
 omnibox.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     navigateOmnibox();
+    return;
+  }
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "v") {
+    e.preventDefault();
+    void readClipboardText().then((text) => {
+      if (text) {
+        omnibox.value = text;
+        navigateOmnibox();
+      }
+    });
   }
 });
 
@@ -944,6 +957,9 @@ commandManager.bindPinControl(
 bindRovingTablist(tabStrip, () => tabButtons);
 
 bindStatusBar(statusBarEl);
+setPathCopyHandler((path) => {
+  void copyText(path, () => showToast(t("status.pathCopied"), "info"));
+});
 setCursorStatusListener((pos) => {
   editorLine = pos.line;
   editorCol = pos.column;

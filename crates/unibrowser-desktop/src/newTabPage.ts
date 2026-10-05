@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { t } from "./i18n";
 
 export interface DirEntry {
   name: string;
@@ -27,10 +28,10 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   const hero = document.createElement("section");
   hero.className = "ntp-hero";
   const h1 = document.createElement("h1");
-  h1.textContent = "What would you like to open?";
+  h1.textContent = t("ntp.title");
   const lead = document.createElement("p");
   lead.className = "ntp-lead";
-  lead.textContent = "Pick a file, a folder, something you opened before, or start a small project.";
+  lead.textContent = t("ntp.lead");
   hero.appendChild(h1);
   hero.appendChild(lead);
   host.appendChild(hero);
@@ -40,7 +41,7 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   const pickFile = document.createElement("button");
   pickFile.type = "button";
   pickFile.className = "ntp-primary";
-  pickFile.textContent = "Choose a file…";
+  pickFile.textContent = t("ntp.chooseFile");
   pickFile.onclick = async () => {
     const path = await invoke<string | null>("pick_open_file");
     if (path) {
@@ -49,11 +50,11 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   };
   const pickFolder = document.createElement("button");
   pickFolder.type = "button";
-  pickFolder.textContent = "Choose a folder…";
+  pickFolder.textContent = t("ntp.chooseFolder");
   pickFolder.onclick = () => deps.onPickFolder();
   const newProject = document.createElement("button");
   newProject.type = "button";
-  newProject.textContent = "Start a new project";
+  newProject.textContent = t("ntp.newProject");
   newProject.onclick = () => deps.onNewProject();
   actions.appendChild(pickFile);
   actions.appendChild(pickFolder);
@@ -63,7 +64,7 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   const browse = document.createElement("section");
   browse.className = "ntp-section";
   const browseTitle = document.createElement("h2");
-  browseTitle.textContent = "Files here";
+  browseTitle.textContent = t("ntp.filesHere");
   const browsePath = document.createElement("p");
   browsePath.className = "ntp-path";
   browsePath.textContent = deps.browsePath;
@@ -75,7 +76,7 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   if (!entries.length) {
     const empty = document.createElement("li");
     empty.className = "ntp-empty";
-    empty.textContent = "This folder is empty.";
+    empty.textContent = t("ntp.emptyFolder");
     list.appendChild(empty);
   } else {
     entries.slice(0, 24).forEach((entry) => {
@@ -91,7 +92,7 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
     if (entries.length > 24) {
       const more = document.createElement("li");
       more.className = "ntp-empty";
-      more.textContent = `… and ${entries.length - 24} more. Use “Choose a folder…” to browse elsewhere.`;
+      more.textContent = t("ntp.moreFiles", { count: entries.length - 24 });
       list.appendChild(more);
     }
   }
@@ -102,7 +103,7 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
     const recentSec = document.createElement("section");
     recentSec.className = "ntp-section";
     const recentTitle = document.createElement("h2");
-    recentTitle.textContent = "Opened recently";
+    recentTitle.textContent = t("ntp.recent");
     recentSec.appendChild(recentTitle);
     const recentList = document.createElement("ul");
     recentList.className = "ntp-file-list";

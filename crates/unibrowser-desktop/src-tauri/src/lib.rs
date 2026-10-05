@@ -8,6 +8,7 @@ mod epub_stub;
 mod undo_stack;
 mod mod_portal;
 mod open_vsx;
+mod path_security;
 mod preferences;
 mod project_backend;
 mod rhai_host;
@@ -97,6 +98,7 @@ pub fn run() {
             commands::rename_unibrow_node,
             commands::pick_unibrow_asset_file,
             commands::allow_asset_path,
+            commands::allow_unibrow_asset,
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
             commands::get_preferences,

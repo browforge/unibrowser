@@ -2,6 +2,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import * as mammoth from "mammoth";
 import { loadPdfJs, loadThree } from "./lazyModules";
 import { reportViewerZoom } from "./viewerZoom";
+import { copyText } from "./clipboard";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -157,6 +158,10 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
   zoomIn.textContent = "Zoom +";
   nav.appendChild(zoomOut);
   nav.appendChild(zoomIn);
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.textContent = "Copy";
+  copyBtn.onclick = () => void copyViewerSelection();
   const printBtn = document.createElement("button");
   printBtn.type = "button";
   printBtn.textContent = "Print";
@@ -174,6 +179,7 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
     const img = canvas.toDataURL("image/png");
     printHtmlDocument(path, `<img src="${img}" alt="PDF page ${currentPage}" />`);
   };
+  nav.appendChild(copyBtn);
   nav.appendChild(printBtn);
   root.appendChild(nav);
 
@@ -481,6 +487,12 @@ interface CsvPreviewDto {
   read_capped: boolean;
 }
 
+async function copyViewerSelection(): Promise<void> {
+  const sel = window.getSelection();
+  const text = sel?.toString().trim() ?? "";
+  await copyText(text);
+}
+
 function printHtmlDocument(title: string, bodyHtml: string) {
   const w = window.open("", "_blank", "noopener");
   if (!w) {
@@ -504,6 +516,14 @@ async function renderSpreadsheet(path: string, root: HTMLElement) {
     preview.truncated ? " Preview capped." : ""
   }${preview.read_capped ? " Large file: row scan may be incomplete." : ""}`;
   root.appendChild(note);
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.textContent = "Copy table";
+  copyBtn.onclick = () => {
+    const rows = [preview.headers.join("\t"), ...preview.rows.map((r) => r.join("\t"))];
+    void copyText(rows.join("\n"));
+  };
+  root.appendChild(copyBtn);
   const wrap = document.createElement("div");
   wrap.className = "csv-table-wrap";
   const table = document.createElement("table");
@@ -817,7 +837,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
         open.type = "button";
         open.textContent = "Open";
         open.onclick = async () => {
-          const assetPath = `${viewer.path}/assets/${node.asset}`;
+          const assetPath = await invoke<string>("allow_unibrow_asset", {
+            projectPath: viewer.path,
+            assetName: node.asset,
+          });
           const data = await invoke("open_path", { path: assetPath });
           window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
         };

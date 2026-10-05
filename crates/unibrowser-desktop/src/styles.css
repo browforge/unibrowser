@@ -417,6 +417,10 @@ body {
   text-overflow: ellipsis;
 }
 
+.status-path-copy {
+  cursor: copy;
+}
+
 .status-hint {
   margin-left: auto;
   color: #777;

@@ -13,7 +13,8 @@ pub use command::{CommandRegistry, HandlerRegistration};
 pub use document::{DocumentBackend, DocumentSession};
 pub use mode::ModeController;
 pub use keybinding::{
-    KeyChord, KeybindingFile, KeybindingMap, COMMAND_PALETTE_TOGGLE, DEFAULT_PALETTE_CHORD,
+    KeyChord, KeySequenceMatcher, KeybindingFile, KeybindingMap, COMMAND_PALETTE_TOGGLE,
+    DEFAULT_PALETTE_CHORD,
     DEFAULT_PALETTE_CHORD_MACOS,
 };
 pub use palette::{PaletteEntry, search_commands};

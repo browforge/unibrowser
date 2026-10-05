@@ -1,5 +1,6 @@
 export interface StatusBarModel {
   path: string;
+  pathHint?: string;
   encoding: string;
   cursor: string;
   zoom: string;
@@ -15,6 +16,8 @@ let zoomOutBtn: HTMLButtonElement | null = null;
 let zoomInBtn: HTMLButtonElement | null = null;
 let zoomMode: "hidden" | "viewer" | "web" = "hidden";
 let onZoomDelta: ((delta: number) => void) | null = null;
+let onCopyPath: ((path: string) => void) | null = null;
+let lastPath = "";
 
 export function bindStatusBar(root: HTMLElement) {
   pathEl = root.querySelector("#status-path");
@@ -26,6 +29,16 @@ export function bindStatusBar(root: HTMLElement) {
   zoomInBtn = root.querySelector("#status-zoom-in");
   zoomOutBtn?.addEventListener("click", () => onZoomDelta?.(-1));
   zoomInBtn?.addEventListener("click", () => onZoomDelta?.(1));
+  pathEl?.addEventListener("click", () => {
+    if (lastPath) {
+      onCopyPath?.(lastPath);
+    }
+  });
+  pathEl?.classList.add("status-path-copy");
+}
+
+export function setPathCopyHandler(handler: ((path: string) => void) | null) {
+  onCopyPath = handler;
 }
 
 export function setZoomHandler(
@@ -43,9 +56,10 @@ export function setZoomHandler(
 }
 
 export function updateStatusBar(model: StatusBarModel) {
+  lastPath = model.path;
   if (pathEl) {
     pathEl.textContent = model.path;
-    pathEl.title = model.path;
+    pathEl.title = model.pathHint ?? model.path;
   }
   if (encodingEl) {
     encodingEl.textContent = model.encoding;

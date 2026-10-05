@@ -19,6 +19,7 @@ use crate::preferences::{
     load_preferences, push_recent_file, save_preferences, UiTheme, WindowState,
 };
 use crate::epub_preview::EpubChapterDto;
+use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
 use crate::webview::{content_webview_navigate, inject_page_font_scale, sync_content_bounds};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
 use unibrowser_engine::{
@@ -696,8 +697,12 @@ pub fn open_dropped_paths(
         return Ok(());
     }
     for (i, path) in paths.iter().enumerate() {
-        allow_asset_protocol_file(app, path);
-        let loc = BrowserLocation::File { path: path.clone() };
+        let safe = resolve_open_path(&path.to_string_lossy(), &state.cwd)?;
+        allow_asset_protocol_file(app, &safe);
+        if safe.is_file() {
+            touch_recent_file(&safe);
+        }
+        let loc = BrowserLocation::File { path: safe };
         let (loc, is_dir, doc) = state.resolve_location(loc);
         {
             let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
@@ -710,9 +715,6 @@ pub fn open_dropped_paths(
                     tab.document = doc;
                 }
             }
-        }
-        if path.is_file() {
-            touch_recent_file(path);
         }
         update_content_webview(app, &loc)?;
     }
@@ -766,8 +768,12 @@ fn allow_asset_protocol_file(app: &AppHandle, path: &Path) {
 }
 
 #[tauri::command]
-pub fn allow_asset_path(path: String, app: AppHandle) -> Result<(), String> {
-    let p = PathBuf::from(&path);
+pub fn allow_asset_path(
+    path: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let p = resolve_open_path(&path, &state.cwd)?;
     if !p.is_file() {
         return Err("not a file".into());
     }
@@ -777,8 +783,27 @@ pub fn allow_asset_path(path: String, app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn allow_unibrow_asset(
+    project_path: String,
+    asset_name: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<String, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let file = resolve_unibrow_asset_file(&project, &asset_name)?;
+    if !file.is_file() {
+        return Err("asset file missing".into());
+    }
+    allow_asset_protocol_file(&app, &file);
+    app.asset_protocol_scope()
+        .allow_file(&file)
+        .map_err(|e| e.to_string())?;
+    Ok(file.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
 pub fn open_path(path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
-    let file_path = PathBuf::from(&path);
+    let file_path = resolve_open_path(&path, &state.cwd)?;
     allow_asset_protocol_file(&app, &file_path);
     let loc = BrowserLocation::File { path: file_path };
     let (loc, is_dir, doc) = state.resolve_location(loc);
@@ -1057,7 +1082,16 @@ pub fn dispatch_key_chord(
         key: chord.key.to_ascii_lowercase(),
     };
     let kb = state.keybindings.lock().map_err(|e| e.to_string())?;
-    Ok(kb.command_for_chord(&key).map(|s| s.to_string()))
+    if let Some(cmd) = kb.command_for_chord(&key) {
+        state
+            .key_sequences
+            .lock()
+            .map_err(|e| e.to_string())?
+            .reset();
+        return Ok(Some(cmd.to_string()));
+    }
+    let mut seq = state.key_sequences.lock().map_err(|e| e.to_string())?;
+    Ok(seq.on_chord(&key))
 }
 
 #[tauri::command]
@@ -1146,8 +1180,8 @@ pub struct PreferencesDto {
 }
 
 #[tauri::command]
-pub fn read_document_bytes(path: String) -> Result<Vec<u8>, String> {
-    let p = PathBuf::from(&path);
+pub fn read_document_bytes(path: String, state: State<AppState>) -> Result<Vec<u8>, String> {
+    let p = resolve_open_path(&path, &state.cwd)?;
     if !p.is_file() {
         return Err("not a file".into());
     }
@@ -1232,11 +1266,11 @@ pub fn add_unibrow_asset(
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
-    let project = PathBuf::from(&project_path);
+    let project = resolve_open_path(&project_path, &state.cwd)?;
     if !unibrowser_project::is_unibrow_path(&project) {
         return Err("not a .unibrow project".into());
     }
-    let source = PathBuf::from(&source_path);
+    let source = resolve_open_path(&source_path, &state.cwd)?;
     if !source.is_file() {
         return Err("source is not a file".into());
     }
@@ -1283,7 +1317,7 @@ pub fn remove_unibrow_node(
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
-    let project = PathBuf::from(&project_path);
+    let project = resolve_open_path(&project_path, &state.cwd)?;
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::remove_node(&mut package, &node_id).map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(&state, &project, project_path)?;
@@ -1300,7 +1334,7 @@ pub fn rename_unibrow_node(
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
-    let project = PathBuf::from(&project_path);
+    let project = resolve_open_path(&project_path, &state.cwd)?;
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::rename_node_label(&mut package, &node_id, &label)
         .map_err(|e| e.to_string())?;
@@ -1706,9 +1740,14 @@ pub fn omnibox_completions(
 }
 
 #[tauri::command]
-pub fn get_csv_preview(path: String, max_rows: Option<usize>) -> Result<crate::csv_preview::CsvPreviewDto, String> {
+pub fn get_csv_preview(
+    path: String,
+    max_rows: Option<usize>,
+    state: State<AppState>,
+) -> Result<crate::csv_preview::CsvPreviewDto, String> {
     let limit = max_rows.unwrap_or(150).min(200);
-    crate::csv_preview::preview_file(Path::new(&path), limit)
+    let p = resolve_open_path(&path, &state.cwd)?;
+    crate::csv_preview::preview_file(&p, limit)
 }
 
 fn update_content_webview(app: &AppHandle, loc: &BrowserLocation) -> Result<(), String> {

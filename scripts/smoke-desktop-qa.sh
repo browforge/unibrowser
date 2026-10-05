@@ -17,7 +17,9 @@ cat <<'CHECKLIST'
 Launch
   [ ] App opens; home folder or restored session (if opt-in enabled)
   [ ] New tab (+) shows friendly start page (files, recent, new project)
-  [ ] Status bar at bottom: path, encoding (text), line/col (text), zoom (PDF/image/web)
+  [ ] Status bar: click path to copy; Ctrl+Shift+V paste path in omnibox
+  [ ] Status bar: encoding (text), line/col (text), zoom (PDF/image/web)
+  [ ] Ctrl+K then Ctrl+S saves text (sequence sketch)
 
 Tabs and files
   [ ] Open .txt in Monaco; edit shows dirty dot; close asks to save
@@ -26,7 +28,8 @@ Tabs and files
   [ ] Tab search (Ctrl+Shift+T) finds open tabs
 
 Viewers and zoom
-  [ ] PDF: page nav, zoom +/- (toolbar or status bar), print
+  [ ] PDF: page nav, zoom +/-, Copy selection, print
+  [ ] CSV: Copy table button
   [ ] PNG/image: zoom, pan, rotate
   [ ] https:// page: web zoom +/- changes page text size
   [ ] Markdown preview + print preview

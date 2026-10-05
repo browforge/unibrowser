@@ -1,0 +1,16 @@
+{
+  "ntp.title": "What would you like to open?",
+  "ntp.lead": "Pick a file, a folder, something you opened before, or start a small project.",
+  "ntp.chooseFile": "Choose a file…",
+  "ntp.chooseFolder": "Choose a folder…",
+  "ntp.newProject": "Start a new project",
+  "ntp.filesHere": "Files here",
+  "ntp.emptyFolder": "This folder is empty.",
+  "ntp.moreFiles": "… and {count} more. Use “Choose a folder…” to browse elsewhere.",
+  "ntp.recent": "Opened recently",
+  "status.copyPath": "Click to copy path",
+  "status.pathCopied": "Path copied",
+  "status.pastePath": "Paste path in address bar (Ctrl+Shift+V)",
+  "clipboard.nothing": "Nothing to copy",
+  "clipboard.copied": "Copied"
+}

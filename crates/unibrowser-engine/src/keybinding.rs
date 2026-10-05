@@ -199,6 +199,47 @@ impl KeybindingMap {
     }
 }
 
+/// Sketch: multi-step chords (see `docs/design/key-chord-sequences.md`).
+#[derive(Debug, Default)]
+pub struct KeySequenceMatcher {
+    pending: Vec<KeyChord>,
+}
+
+impl KeySequenceMatcher {
+    pub fn reset(&mut self) {
+        self.pending.clear();
+    }
+
+    /// Returns a command id when a registered sequence completes.
+    pub fn on_chord(&mut self, chord: &KeyChord) -> Option<String> {
+        use unibrowser_mod_api::types::commands::TEXT_SAVE;
+        let ctrl_k = KeyChord {
+            ctrl: true,
+            alt: false,
+            shift: false,
+            meta: false,
+            key: "k".into(),
+        };
+        let ctrl_s = KeyChord {
+            ctrl: true,
+            alt: false,
+            shift: false,
+            meta: false,
+            key: "s".into(),
+        };
+        if self.pending.is_empty() && chord == &ctrl_k {
+            self.pending.push(ctrl_k);
+            return None;
+        }
+        if self.pending.len() == 1 && self.pending[0] == ctrl_k && chord == &ctrl_s {
+            self.pending.clear();
+            return Some(TEXT_SAVE.to_string());
+        }
+        self.pending.clear();
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -222,6 +263,18 @@ mod tests {
         let mut map = KeybindingMap::with_defaults();
         map.set_binding(COMMAND_PALETTE_TOGGLE, "Ctrl+K");
         assert!(map.is_palette_chord(&KeyChord::parse("Ctrl+K").expect("parse")));
+    }
+
+    #[test]
+    fn sequence_ctrl_k_s_save() {
+        let mut seq = KeySequenceMatcher::default();
+        let k = KeyChord::parse("Ctrl+K").expect("parse");
+        let s = KeyChord::parse("Ctrl+S").expect("parse");
+        assert!(seq.on_chord(&k).is_none());
+        assert_eq!(
+            seq.on_chord(&s).as_deref(),
+            Some(unibrowser_mod_api::types::commands::TEXT_SAVE)
+        );
     }
 
     #[test]

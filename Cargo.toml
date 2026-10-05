@@ -23,6 +23,7 @@ members = [
     "mods/base-files",
     "mods/base-web",
     "crates/unibrowser-desktop/src-tauri",
+    "examples/ub-mod-cdylib-stub",
 ]
 
 [workspace.package]

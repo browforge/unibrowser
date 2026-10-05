@@ -1,0 +1,13 @@
+[package]
+name = "ub-mod-cdylib-stub"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Example cdylib exports for future Unibrowser mod loader (not loaded at runtime yet)"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+unibrowser-mod-api = { path = "../../crates/unibrowser-mod-api" }
