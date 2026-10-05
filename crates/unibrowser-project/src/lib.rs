@@ -104,6 +104,15 @@ pub struct TimelineClip {
     /// Video encode: fade out to black before clip end (seconds).
     #[serde(default, skip_serializing_if = "is_zero_f32")]
     pub fade_out_sec: f32,
+    /// PDF timeline clip: 1-based page rasterized at encode (ADR 0011).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pdf_page: Option<u32>,
+    /// Title card copy (overrides label when set).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_text: Option<String>,
+    /// Title card font size in pt (`unibrowser.font.size.*` on active project).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_font_pt: Option<f32>,
 }
 
 fn is_zero_f32(v: &f32) -> bool {
@@ -362,6 +371,9 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 duck_under_video: false,
                 fade_in_sec: 0.0,
                 fade_out_sec: 0.0,
+                pdf_page: None,
+                title_text: None,
+                title_font_pt: None,
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -374,6 +386,9 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 duck_under_video: false,
                 fade_in_sec: 0.0,
                 fade_out_sec: 0.0,
+                pdf_page: None,
+                title_text: None,
+                title_font_pt: None,
             },
         ],
         transitions: vec![TimelineTransition {
@@ -438,6 +453,9 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 duck_under_video: false,
                 fade_in_sec: 0.0,
                 fade_out_sec: 0.0,
+                pdf_page: None,
+                title_text: None,
+                title_font_pt: None,
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -450,6 +468,9 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 duck_under_video: false,
                 fade_in_sec: 0.0,
                 fade_out_sec: 0.0,
+                pdf_page: None,
+                title_text: None,
+                title_font_pt: None,
             },
             TimelineClip {
                 id: "clip-3".into(),
@@ -462,6 +483,9 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 duck_under_video: false,
                 fade_in_sec: 0.0,
                 fade_out_sec: 0.0,
+                pdf_page: None,
+                title_text: None,
+                title_font_pt: None,
             },
         ],
         transitions: vec![TimelineTransition {
@@ -525,10 +549,65 @@ pub fn append_timeline_clip_for_node(
         duck_under_video: false,
         fade_in_sec: 0.0,
         fade_out_sec: 0.0,
+        pdf_page: if node.node_type == "pdf"
+            || node
+                .asset
+                .as_ref()
+                .map(|a| a.to_ascii_lowercase().ends_with(".pdf"))
+                .unwrap_or(false)
+        {
+            Some(1)
+        } else {
+            None
+        },
+        title_text: if node.node_type == "title" {
+            Some(node.label.clone())
+        } else {
+            None
+        },
+        title_font_pt: if node.node_type == "title" {
+            Some(48.0)
+        } else {
+            None
+        },
     };
     package.manifest.timeline.clips.push(clip.clone());
     write_manifest(&package.root, &package.manifest)?;
     Ok(clip)
+}
+
+/// Bump or shrink `title_font_pt` on all title timeline clips (shared font commands).
+pub fn adjust_timeline_title_font_pt(
+    package: &mut ProjectPackage,
+    delta_pt: f32,
+) -> Result<f32, ProjectError> {
+    let mut changed = false;
+    let mut sample = 48.0_f32;
+    for clip in &mut package.manifest.timeline.clips {
+        let is_title = clip.title_text.is_some()
+            || package
+                .manifest
+                .nodes
+                .iter()
+                .find(|n| n.id == clip.node_id)
+                .map(|n| n.node_type == "title")
+                == Some(true);
+        if !is_title {
+            continue;
+        }
+        let current = clip.title_font_pt.unwrap_or(48.0);
+        let next = (current + delta_pt).clamp(8.0, 200.0);
+        clip.title_font_pt = Some(next);
+        sample = next;
+        changed = true;
+    }
+    if !changed {
+        return Err(ProjectError::Msg(
+            "no title clips on timeline to resize".into(),
+        ));
+    }
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(sample)
 }
 
 pub fn set_timeline_clip_duck_under_video(

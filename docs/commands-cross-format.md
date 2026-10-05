@@ -23,7 +23,7 @@ Legend for Command Manager and palette:
 | **Video / audio** | Greyed | No text surface |
 | **DXF proving mod** | Greyed | CAD tools stubbed |
 | **Files / home** | Greyed | No document session |
-| **`.unibrow` project** | Greyed | Board/timeline chrome (font commands not wired) |
+| **`.unibrow` project** | Open project tab | **Title clips only:** adjusts `title_font_pt` on timeline title cards (used at H.264 encode via resvg); no effect when the timeline has no title clips |
 
 ## `unibrowser.find.inDocument` (Ctrl+F)
 

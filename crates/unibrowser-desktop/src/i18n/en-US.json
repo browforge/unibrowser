@@ -205,6 +205,8 @@
   "settings.boardSnap": "Snap cards to grid when dragging",
   "settings.media": "Media",
   "settings.midiScrubAudio": "Play Web Audio beeps when scrubbing MIDI on the timeline",
+  "settings.fluidsynthSoundfont": "FluidSynth soundfont (.sf2) for timeline H.264 export",
+  "settings.fluidsynthSoundfontPlaceholder": "Optional path; system default tried when empty",
   "settings.crashRecovery": "Crash recovery",
   "settings.crashRecoveryLabel": "Back up dirty text and SVG to the config folder",
   "crashRecovery.hint": "Backups appear here after you edit with crash recovery enabled. Restore opens the file with unsaved buffer content; dismiss removes the backup.",

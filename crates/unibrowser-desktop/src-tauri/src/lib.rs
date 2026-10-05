@@ -261,6 +261,7 @@ pub fn run() {
             commands::add_unibrow_clip_marker,
             commands::remove_unibrow_clip_marker,
             commands::set_midi_scrub_audio_enabled,
+            commands::set_fluidsynth_soundfont_path,
             commands::auto_save_active_document,
             commands::pick_and_compare,
             commands::close_file_compare,

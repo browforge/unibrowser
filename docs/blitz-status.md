@@ -14,7 +14,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, **word count / reading time** (text + DOCX), font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
-| VSIX / extensions | Node host: workspace edits + **Format document**, compatibility badge on install, theme/grammar notes; prior shim (editor, config, builtins, trust, diagnostics) |
+| VSIX / extensions | Node host + **VSIX colour themes** in Settings; compatibility badge; Open VSX smoke fixture test; grammars noted not applied |
 | Markdown preview | TOC sidebar (heading jump); **Export HTML** (standalone file, embedded images); Monaco code colour in preview; Mermaid (lazy); relative images via `convertFileSrc`; links via `resolve_preview_link` |
 | Undo / PDF | Document undo/redo on text, SVG, and `.unibrow` timeline (grey when stack empty); PDF thumb strip syncs active page; plain-text print preview; export PDF from Markdown/DOCX print HTML; matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
@@ -102,7 +102,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |
 | In-app docs | `unibrowser://docs/*` with TOC from [index.md](index.md), back link, in-page search |
 | SVG edit lite | Inline preview; fill/stroke panel for path/text; grey path boolean/simplify |
-| Timeline encode intents | H.264 export honours **fade** (two video clips), **clip fade in/out**, and **duck_under_video** on audio (approx); timeline UI for video fades; [timeline-encode-intents.md](timeline-encode-intents.md) |
+| Timeline encode intents | H.264 export honours **fade** (two visual clips), **clip fade in/out**, and **duck_under_video** on audio/MIDI (approx); **lazy encode** for PDF page (`pdftoppm`), SVG/title (`resvg`), MIDI (`fluidsynth` when available); [timeline-encode-intents.md](timeline-encode-intents.md), [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) |
 | Deep find | **Ctrl+Shift+F** filename + text scan; opens text at line; limits in [deep-find.md](deep-find.md) |
 | **base-js** | `.js`/`.jsx`/`.mjs`/`.cjs`/`.ts`/`.tsx` open in Monaco (`javascript` / `typescript` language ids); `.rhai` stays plain text |
 | Scripting tip | Shown only when JS/TS still open in **base-text**; hidden when **base-js** handles the file |
@@ -110,7 +110,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Web proxy prefs | System / direct / manual host+port persisted; not applied to webviews yet — [network-proxy.md](network-proxy.md) |
 | Branding | Window title **Unibrowser — {tab}**; icons documented in [branding.md](branding.md) |
 | Workspace quick open | **Ctrl+P** fuzzy file find under pinned workspace root (separate from omnibox / deep find **Ctrl+Shift+F**) |
-| MIDI audio render stub | Viewer + palette command grey unless **ffmpeg** and **fluidsynth** on PATH — [midi-audio-render.md](midi-audio-render.md) |
+| MIDI audio render | Timeline H.264 export mixes MIDI when **fluidsynth** + soundfont available (Settings path or system default); palette viewer stub unchanged — [midi-audio-render.md](midi-audio-render.md) |
 | Demo artifacts | `examples/demo-pack/` stays small; `hello-world.ubmod` built locally (`scripts/build-hello-ubmod.sh`), not committed |
 | i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
 | Scripting | Rhai demo from palette → output panel; `.rhai` plain text; JS/TS via **base-js** Monaco |

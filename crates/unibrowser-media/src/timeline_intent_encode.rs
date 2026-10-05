@@ -5,11 +5,18 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde::Serialize;
-use unibrowser_project::{audio_segments, video_segments, TimelineEncodeIntent};
+use unibrowser_project::{audio_segments, video_segments, EncodeSegment, SegmentMedia, TimelineEncodeIntent};
 
 use crate::encode::encode_h264_file;
 use crate::frame::concat_mp4_videos;
+use crate::lazy_materialize::{materialize_visual_segment, resolve_audio_path};
 use crate::{find_binary, MediaError};
+
+#[derive(Debug, Clone, Default)]
+pub struct TimelineEncodeOptions {
+    /// User-configured FluidSynth soundfont (`.sf2`). When unset, common system paths are tried.
+    pub soundfont_path: Option<PathBuf>,
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EncodeIntentReport {
@@ -19,31 +26,23 @@ pub struct EncodeIntentReport {
     pub ignored: Vec<String>,
 }
 
+struct ResolvedAudio {
+    path: PathBuf,
+    start_sec: f32,
+    duck_under_video: bool,
+    cleanup: bool,
+}
+
 pub fn encode_h264_timeline_intents(
     intent: &TimelineEncodeIntent,
     dest: &Path,
     preset: &str,
+    options: &TimelineEncodeOptions,
     progress: &mut dyn FnMut(u8, &str),
 ) -> Result<EncodeIntentReport, MediaError> {
     let videos = video_segments(intent);
     if videos.is_empty() {
-        return Err(MediaError::Sidecar("no video clips to export".into()));
-    }
-    for v in &videos {
-        if !v.path.is_file() {
-            return Err(MediaError::Sidecar(format!("missing {}", v.path.display())));
-        }
-        let ext = v
-            .path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_ascii_lowercase();
-        if ext != "mp4" {
-            return Err(MediaError::Sidecar(
-                "H.264 export needs MP4 video assets".into(),
-            ));
-        }
+        return Err(MediaError::Sidecar("no visual clips to export".into()));
     }
 
     let mut report = EncodeIntentReport {
@@ -53,11 +52,53 @@ pub fn encode_h264_timeline_intents(
         ignored: intent.notes.clone(),
     };
 
+    let work_dir = dest
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(".ub-lazy-encode");
+    fs::create_dir_all(&work_dir).map_err(|e| MediaError::Sidecar(e.to_string()))?;
+
+    let width = intent.export_width.max(320);
+    let height = intent.export_height.max(240);
+    let soundfont = resolve_soundfont(options);
+
+    progress(5, "materialize");
+    let mut lazy_cleanup: Vec<PathBuf> = Vec::new();
+    let mut sources: Vec<PathBuf> = Vec::with_capacity(videos.len());
+    for (i, seg) in videos.iter().enumerate() {
+        if seg.media == SegmentMedia::Video {
+            if !seg.path.is_file() {
+                return Err(MediaError::Sidecar(format!("missing {}", seg.path.display())));
+            }
+            let ext = seg
+                .path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            if ext != "mp4" {
+                return Err(MediaError::Sidecar(
+                    "H.264 export needs MP4 video assets".into(),
+                ));
+            }
+            sources.push(seg.path.clone());
+            continue;
+        }
+        if seg.media != SegmentMedia::TitleCard && !seg.path.is_file() {
+            return Err(MediaError::Sidecar(format!("missing {}", seg.path.display())));
+        }
+        let mp4 = materialize_visual_segment(seg, width, height, &work_dir, i)?;
+        if mp4 != seg.path {
+            lazy_cleanup.push(mp4.clone());
+        }
+        sources.push(mp4);
+    }
+
     progress(8, "trim");
     let mut trimmed: Vec<PathBuf> = Vec::with_capacity(videos.len());
     for (i, seg) in videos.iter().enumerate() {
         let out = trim_video_segment(
-            &seg.path,
+            &sources[i],
             seg.duration_sec,
             seg.fade_in_sec,
             seg.fade_out_sec,
@@ -68,6 +109,9 @@ pub fn encode_h264_timeline_intents(
             report.honored_clip_fade = true;
         }
         trimmed.push(out);
+    }
+    for p in lazy_cleanup {
+        let _ = fs::remove_file(p);
     }
 
     progress(25, "video");
@@ -100,7 +144,13 @@ pub fn encode_h264_timeline_intents(
         progress(55, "audio");
         let mixed = dest.with_extension("ub-mix.mp4");
         let duck_any = audios.iter().any(|a| a.duck_under_video);
-        mix_audio_over_video(&video_temp, audios, &mixed)?;
+        let resolved = resolve_audio_tracks(audios, soundfont.as_deref(), &work_dir, &mut report)?;
+        mix_audio_over_video(&video_temp, &resolved, &mixed)?;
+        for r in resolved {
+            if r.cleanup {
+                let _ = fs::remove_file(r.path);
+            }
+        }
         let _ = fs::remove_file(&video_temp);
         if duck_any {
             report.honored_duck = true;
@@ -111,8 +161,81 @@ pub fn encode_h264_timeline_intents(
     progress(70, "encode");
     encode_h264_file(&final_temp, dest, preset)?;
     let _ = fs::remove_file(&final_temp);
+    let _ = fs::remove_dir_all(&work_dir);
     progress(100, "done");
     Ok(report)
+}
+
+fn resolve_soundfont(options: &TimelineEncodeOptions) -> Option<PathBuf> {
+    if let Some(p) = &options.soundfont_path {
+        if p.is_file() {
+            return Some(p.clone());
+        }
+    }
+    if let Ok(p) = std::env::var("UNIBROWSER_SOUNDFONT_PATH") {
+        let path = PathBuf::from(p);
+        if path.is_file() {
+            return Some(path);
+        }
+    }
+    for candidate in [
+        "/usr/share/sounds/sf2/FluidR3_GM.sf2",
+        "/usr/share/soundfonts/FluidR3_GM.sf2",
+        "/usr/share/sounds/sf2/default.sf2",
+    ] {
+        let path = PathBuf::from(candidate);
+        if path.is_file() {
+            return Some(path);
+        }
+    }
+    None
+}
+
+fn resolve_audio_tracks(
+    audios: Vec<&EncodeSegment>,
+    soundfont: Option<&Path>,
+    work_dir: &Path,
+    report: &mut EncodeIntentReport,
+) -> Result<Vec<ResolvedAudio>, MediaError> {
+    let mut out = Vec::new();
+    for (i, seg) in audios.into_iter().enumerate() {
+        if seg.media == SegmentMedia::Audio {
+            if !seg.path.is_file() {
+                report
+                    .ignored
+                    .push(format!("audio clip {} missing file; skipped", seg.clip_id));
+                continue;
+            }
+            out.push(ResolvedAudio {
+                path: seg.path.clone(),
+                start_sec: seg.start_sec,
+                duck_under_video: seg.duck_under_video,
+                cleanup: false,
+            });
+            continue;
+        }
+        match resolve_audio_path(seg, soundfont, work_dir, i) {
+            Ok(wav) => {
+                out.push(ResolvedAudio {
+                    path: wav,
+                    start_sec: seg.start_sec,
+                    duck_under_video: seg.duck_under_video,
+                    cleanup: true,
+                });
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                if msg.contains("MIDI mix skipped") {
+                    report.ignored.push(msg);
+                } else {
+                    report
+                        .ignored
+                        .push(format!("midi clip {}: {}", seg.clip_id, msg));
+                }
+            }
+        }
+    }
+    Ok(out)
 }
 
 fn trim_video_segment(
@@ -214,12 +337,12 @@ fn xfade_two(
     Ok(())
 }
 
-fn mix_audio_over_video(
-    video: &Path,
-    audios: Vec<&unibrowser_project::EncodeSegment>,
-    dest: &Path,
-) -> Result<(), MediaError> {
+fn mix_audio_over_video(video: &Path, audios: &[ResolvedAudio], dest: &Path) -> Result<(), MediaError> {
     let ffmpeg = find_binary("ffmpeg").ok_or(MediaError::NotFound)?;
+    if audios.is_empty() {
+        fs::copy(video, dest).map_err(|e| MediaError::Sidecar(e.to_string()))?;
+        return Ok(());
+    }
     let mut args: Vec<String> = vec![
         "-hide_banner".into(),
         "-loglevel".into(),
@@ -227,7 +350,7 @@ fn mix_audio_over_video(
         "-i".into(),
         video.to_string_lossy().into_owned(),
     ];
-    for a in &audios {
+    for a in audios {
         args.push("-i".into());
         args.push(a.path.to_string_lossy().into_owned());
     }
@@ -241,10 +364,6 @@ fn mix_audio_over_video(
             "[{idx}:a]volume={vol},adelay={delay_ms}|{delay_ms}[a{idx}]"
         ));
         mix_inputs.push_str(&format!("[a{idx}]"));
-    }
-    if filter_parts.is_empty() {
-        fs::copy(video, dest).map_err(|e| MediaError::Sidecar(e.to_string()))?;
-        return Ok(());
     }
     let filter = format!(
         "{};{}amix=inputs={}:duration=longest:dropout_transition=0[aout]",

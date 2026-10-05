@@ -20,7 +20,9 @@ Override binaries with `UNIBROWSER_FFMPEG_PATH` / standard `PATH` lookup (see [f
 - Enabled: returns a stub message naming the open MIDI path.
 - Disabled: explains which tool is missing.
 
-Planned pipeline (not wired): `fluidsynth` → WAV → optional ffmpeg normalise/encode.
+**Timeline H.264 export** (when a `.mid` clip is on the timeline): `fluidsynth` → WAV → ffmpeg mix over the video bus when binary and soundfont are available; otherwise export proceeds and the result message lists the skip reason. See [timeline-encode-intents.md](timeline-encode-intents.md).
+
+The palette **Render MIDI to WAV** viewer stub remains unwired.
 
 ## Related
 

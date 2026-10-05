@@ -84,6 +84,9 @@ pub struct Preferences {
     /// Play short Web Audio beeps when MIDI clips are scrubbed on the timeline.
     #[serde(default)]
     pub midi_scrub_audio_enabled: bool,
+    /// Optional `.sf2` for FluidSynth when timeline export renders MIDI to WAV.
+    #[serde(default)]
+    pub fluidsynth_soundfont_path: Option<String>,
     /// Backup `project.json` under `derived/` for open `.unibrow` tabs.
     #[serde(default)]
     pub project_autosave_enabled: bool,
@@ -298,6 +301,7 @@ impl Default for Preferences {
             download_preference: DownloadPreference::default(),
             board_snap_to_grid: false,
             midi_scrub_audio_enabled: false,
+            fluidsynth_soundfont_path: None,
             project_autosave_enabled: false,
             project_autosave_interval_secs: default_auto_save_interval(),
             crash_recovery_enabled: false,

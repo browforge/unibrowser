@@ -49,6 +49,7 @@ interface PrefsDto {
   download_preference: string;
   board_snap_to_grid: boolean;
   midi_scrub_audio_enabled: boolean;
+  fluidsynth_soundfont_path: string | null;
   project_autosave_enabled: boolean;
   project_autosave_interval_secs: number;
   crash_recovery_enabled: boolean;
@@ -585,8 +586,28 @@ export async function renderSettings(root: HTMLElement) {
   midiLabel.textContent = t("settings.midiScrubAudio");
   midiRow.appendChild(midiCb);
   midiRow.appendChild(midiLabel);
+  const sfRow = document.createElement("div");
+  sfRow.className = "settings-row";
+  const sfLabel = document.createElement("label");
+  sfLabel.htmlFor = "settings-fluidsynth-sf2";
+  sfLabel.textContent = t("settings.fluidsynthSoundfont");
+  const sfInput = document.createElement("input");
+  sfInput.type = "text";
+  sfInput.id = "settings-fluidsynth-sf2";
+  sfInput.className = "settings-text-input";
+  sfInput.placeholder = t("settings.fluidsynthSoundfontPlaceholder");
+  sfInput.value = prefs.fluidsynth_soundfont_path ?? "";
+  sfInput.onchange = async () => {
+    const raw = sfInput.value.trim();
+    await invoke("set_fluidsynth_soundfont_path", {
+      path: raw.length > 0 ? raw : null,
+    });
+  };
+  sfRow.appendChild(sfLabel);
+  sfRow.appendChild(sfInput);
   mediaSection.appendChild(mediaHeading);
   mediaSection.appendChild(midiRow);
+  mediaSection.appendChild(sfRow);
   root.appendChild(mediaSection);
 
   const recoverySection = document.createElement("section");

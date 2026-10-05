@@ -3340,6 +3340,24 @@ fn execute_command_impl(
         document_redo(window, state)?;
         return Ok("Redone".into());
     }
+    if command_id == FONT_INCREASE_ID || command_id == FONT_DECREASE_ID {
+        let _sess_tabs = ws(&state, &window)?;
+        let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab().ok_or("no tab")?;
+        if let Some(doc) = &tab.document {
+            if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
+                let path = doc.path.clone();
+                let project = std::path::PathBuf::from(&path);
+                let delta = if command_id == FONT_INCREASE_ID { 2.0 } else { -2.0 };
+                let mut package = open_unibrow_package(&project)?;
+                let pt = unibrowser_project::adjust_timeline_title_font_pt(&mut package, delta)
+                    .map_err(|e| e.to_string())?;
+                let label = window.label().to_string();
+                reload_unibrow_project_tab(state.inner(), &label, &project, path)?;
+                return Ok(format!("Title card font {}pt", pt));
+            }
+        }
+    }
     if command_id == FORMAT_DOCUMENT_ID {
         return crate::vsix_host::format_active_document(window, state);
     }
@@ -3955,6 +3973,7 @@ pub struct PreferencesDto {
     pub download_preference: String,
     pub board_snap_to_grid: bool,
     pub midi_scrub_audio_enabled: bool,
+    pub fluidsynth_soundfont_path: Option<String>,
     pub project_autosave_enabled: bool,
     pub project_autosave_interval_secs: u32,
     pub crash_recovery_enabled: bool,
@@ -4676,7 +4695,7 @@ pub async fn export_unibrow_mp4_h264(
     let pkg = open_unibrow_package_for_export(Path::new(&project_path))?;
     let intent = unibrowser_project::build_timeline_encode_intent(&pkg);
     if unibrowser_project::video_segments(&intent).is_empty() {
-        return Err("timeline has no video clips to export".into());
+        return Err("timeline has no visual clips to export".into());
     }
     let probe = unibrowser_media::probe_ffmpeg_install();
     if !probe.available {
@@ -4695,11 +4714,19 @@ pub async fn export_unibrow_mp4_h264(
     let label = window.label().to_string();
     let preset_copy = preset.clone();
     let intent_copy = intent.clone();
+    let prefs = load_preferences();
+    let encode_options = unibrowser_media::TimelineEncodeOptions {
+        soundfont_path: prefs
+            .fluidsynth_soundfont_path
+            .as_ref()
+            .map(std::path::PathBuf::from),
+    };
     let encode_result = tauri::async_runtime::spawn_blocking(move || {
         unibrowser_media::encode_h264_timeline_intents(
             &intent_copy,
             &dest_encode,
             &preset_copy,
+            &encode_options,
             &mut |percent, stage| {
                 let _ = app.emit_to(
                     &label,
@@ -5190,6 +5217,7 @@ fn preferences_dto() -> PreferencesDto {
         download_preference: download_pref_to_str(&p.download_preference),
         board_snap_to_grid: p.board_snap_to_grid,
         midi_scrub_audio_enabled: p.midi_scrub_audio_enabled,
+        fluidsynth_soundfont_path: p.fluidsynth_soundfont_path.clone(),
         project_autosave_enabled: p.project_autosave_enabled,
         project_autosave_interval_secs: p.project_autosave_interval_secs,
         crash_recovery_enabled: p.crash_recovery_enabled,
@@ -5533,6 +5561,16 @@ pub fn set_midi_scrub_audio_enabled(
 ) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.midi_scrub_audio_enabled = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_fluidsynth_soundfont_path(path: Option<String>) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.fluidsynth_soundfont_path = path
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
     save_preferences(&p)?;
     Ok(preferences_dto())
 }

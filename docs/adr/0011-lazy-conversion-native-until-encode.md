@@ -40,7 +40,19 @@ The same rule applies elsewhere: **source of truth stays in the mod’s native m
 - `ExportContribution` — what this clip/layer needs at encode time.
 - `ConversionEdge` — typed transform (e.g. `Midi → AudioPcm`, `PdfPage → Raster`) with cache key.
 
-Phase 1 does **not** implement timelines or PDF-on-timeline; this ADR locks the **design contract** for when those mods land.
+Phase 1 did not ship timelines; the blitz **H.264 export** path now implements a slice of this contract for `.unibrow` timelines.
+
+### Implementation notes (2026-10 blitz)
+
+| Boundary | Preview | Export (H.264) |
+| --- | --- | --- |
+| PDF page on timeline | Existing pdf.js raster proxy in the viewer | `pdftoppm` at `export_width`×`export_height`, then ffmpeg still clip |
+| SVG on timeline | Vector in project / viewer | `resvg` + `tiny-skia` in `unibrowser-media` (MIT; see [third-party licences](../licenses/third-party.md)) |
+| Title card | Label in UI | resvg SVG with `title_font_pt`; **Increase font size** on `.unibrow` adjusts `title_font_pt` on title clips |
+| MIDI on timeline | Optional scrub beeps (prefs) | `fluidsynth` → WAV when binary + soundfont available; export continues without MIDI mix and reports skip reason |
+| MP4 video | Native | Trim/concat as before |
+
+Intent construction: `build_timeline_encode_intent` in `unibrowser-project`; execution: `encode_h264_timeline_intents` + `lazy_materialize` in `unibrowser-media`. Details: [timeline-encode-intents.md](../timeline-encode-intents.md).
 
 ## Consequences
 

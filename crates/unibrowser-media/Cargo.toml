@@ -14,3 +14,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 unibrowser-project = { path = "../unibrowser-project" }
+resvg = "0.44"
+usvg = "0.44"
+tiny-skia = "0.11"

@@ -27,6 +27,9 @@ Monaco and pdf.js retain their own copyright notices in `node_modules` and in pr
 | Component | Licence | Notes |
 | --- | --- | --- |
 | [ffmpeg](https://ffmpeg.org/) / [ffprobe](https://ffmpeg.org/ffprobe.html) | LGPL-2.1+ (default build) | Timeline H.264 export, thumbnails, audio waveform PCM when installed on PATH; see [ffmpeg-sidecar.md](../ffmpeg-sidecar.md) |
+| [resvg](https://github.com/RazrFalcon/resvg) / [usvg](https://github.com/RazrFalcon/usvg) / [tiny-skia](https://github.com/RazrFalcon/tiny-skia) | MIT / MIT / BSD-3-Clause | Lazy SVG and title-card raster at timeline H.264 encode (`unibrowser-media`) |
+| [FluidSynth](https://www.fluidsynth.org/) | LGPL-2.1+ | Optional MIDI → WAV at timeline export (sidecar on PATH) |
+| [pdftoppm](https://poppler.freedesktop.org/) (Poppler) | GPL-2.0 | Optional PDF page raster at timeline export (sidecar on PATH) |
 | [wkhtmltopdf](https://wkhtmltopdf.org/) | LGPL-3.0 | Optional PDF export fallback on Linux |
 | Chromium (system) | BSD-style + others | Optional headless print-to-PDF |
 
