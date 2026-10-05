@@ -670,12 +670,6 @@ body {
   white-space: nowrap;
 }
 
-.palette-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
 .settings-advanced summary {
   cursor: pointer;
   font-weight: 600;
