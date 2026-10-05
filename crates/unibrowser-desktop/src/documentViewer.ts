@@ -10,6 +10,7 @@ import { renderKeys } from "./keysPage";
 import { emptyStateBlock } from "./emptyState";
 import { pathsFromDataTransfer } from "./filesDrag";
 import { showToast } from "./toast";
+import { playMidiScrubBeeps } from "./midiScrubAudio";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -43,6 +44,7 @@ export interface ProjectNodeDto {
   asset: string | null;
   x: number;
   y: number;
+  color?: string | null;
 }
 
 export interface OpenFileTabDto {
@@ -62,8 +64,10 @@ export interface DocumentViewerDto {
   open_file_tabs?: OpenFileTabDto[];
   project_clips?: ProjectClipDto[];
   project_transitions?: ProjectTransitionDto[];
+  project_markers?: ProjectMarkerDto[];
   midi_summary?: MidiSummaryDto;
   board_snap_to_grid?: boolean;
+  midi_scrub_audio_enabled?: boolean;
   midi_note_preview?: MidiNoteOnDto[];
 }
 
@@ -81,6 +85,14 @@ export interface ProjectClipDto {
   start_sec: number;
   duration_sec: number;
   label: string;
+  color?: string | null;
+}
+
+interface ProjectMarkerDto {
+  id: string;
+  time_sec: number;
+  title: string;
+  color?: string | null;
 }
 
 interface ProjectTransitionDto {
@@ -111,6 +123,36 @@ function clipTypeAbbrev(nodeType: string): string {
     return "PDF";
   }
   return "AST";
+}
+
+const LABEL_COLORS = ["", "blue", "green", "amber", "rose", "violet", "slate"];
+
+function applyLabelColor(el: HTMLElement, color?: string | null) {
+  if (color) {
+    el.dataset.labelColor = color;
+  } else {
+    delete el.dataset.labelColor;
+  }
+}
+
+function makeLabelColorSelect(
+  value: string | null | undefined,
+  onChange: (color: string | null) => void,
+): HTMLSelectElement {
+  const sel = document.createElement("select");
+  sel.className = "unibrow-label-color";
+  sel.title = "Label colour";
+  LABEL_COLORS.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c ? c : "none";
+    sel.appendChild(opt);
+  });
+  sel.value = value ?? "";
+  sel.onchange = () => {
+    onChange(sel.value ? sel.value : null);
+  };
+  return sel;
 }
 
 export interface MidiSummaryDto {
@@ -1467,7 +1509,22 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     card.className = "unibrow-board-card";
     card.style.left = `${node.x}px`;
     card.style.top = `${node.y}px`;
-    card.textContent = node.label;
+    applyLabelColor(card, node.color);
+    const cardLabel = document.createElement("span");
+    cardLabel.className = "unibrow-board-card-label";
+    cardLabel.textContent = node.label;
+    card.appendChild(cardLabel);
+    const cardColor = makeLabelColorSelect(node.color, (color) => {
+      void invoke("set_unibrow_node_color", {
+        projectPath: viewer.path,
+        nodeId: node.id,
+        color,
+      }).then((data) => {
+        window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+      });
+    });
+    cardColor.addEventListener("pointerdown", (e) => e.stopPropagation());
+    card.appendChild(cardColor);
     card.title = node.asset ? `${node.label} · ${node.asset}` : node.label;
     let startNodeX = node.x;
     let startNodeY = node.y;
@@ -1576,6 +1633,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   };
   const totalSec = timelineTotalSec(clips);
   const boardNodes = viewer.project_nodes ?? [];
+  const markers = viewer.project_markers ?? [];
 
   const timeline = document.createElement("section");
   timeline.className = "unibrow-timeline";
@@ -1594,6 +1652,15 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     tick.textContent = `${t}s`;
     ruler.appendChild(tick);
   }
+  markers.forEach((marker) => {
+    const pin = document.createElement("span");
+    pin.className = "unibrow-timeline-marker-pin";
+    pin.style.left = `${(marker.time_sec / totalSec) * 100}%`;
+    pin.title = `${marker.title} @ ${marker.time_sec.toFixed(1)}s`;
+    applyLabelColor(pin, marker.color);
+    pin.textContent = "|";
+    ruler.appendChild(pin);
+  });
   timeline.appendChild(ruler);
 
   const track = document.createElement("div");
@@ -1606,6 +1673,8 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     block.style.left = `${(clip.start_sec / totalSec) * 100}%`;
     block.style.width = `${Math.max((clip.duration_sec / totalSec) * 100, 2)}%`;
     block.textContent = clipTypeAbbrev(clip.node_type);
+    const nodeColor = boardNodes.find((n) => n.id === clip.node_id)?.color;
+    applyLabelColor(block, clip.color ?? nodeColor);
     track.appendChild(block);
   });
   transitions.forEach((tr) => {
@@ -1653,9 +1722,13 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   timeline.appendChild(scrubPanel);
 
   let scrubDebounce: number | undefined;
+  let playheadSec = 0;
   const nodeById = new Map(boardNodes.map((n) => [n.id, n]));
 
   const showMidiNotes = (notes: MidiNoteOnDto[]) => {
+    if (viewer.midi_scrub_audio_enabled) {
+      playMidiScrubBeeps(notes);
+    }
     scrubMidi.innerHTML = "";
     if (!notes.length) {
       scrubMidi.textContent = "No note-ons near playhead.";
@@ -1734,6 +1807,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
 
   playhead.addEventListener("input", () => {
     const t = Number.parseFloat(playhead.value) / 10;
+    playheadSec = t;
     playheadTime.textContent = `${t.toFixed(1)}s`;
     window.clearTimeout(scrubDebounce);
     scrubDebounce = window.setTimeout(() => {
@@ -1743,6 +1817,56 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   if (clips.length) {
     void updatePlayheadPreview(0);
   }
+
+  const markerRow = document.createElement("div");
+  markerRow.className = "unibrow-timeline-markers";
+  const markerTitle = document.createElement("h4");
+  markerTitle.textContent = "Markers / chapters";
+  markerRow.appendChild(markerTitle);
+  const addMarkerBtn = document.createElement("button");
+  addMarkerBtn.type = "button";
+  addMarkerBtn.textContent = "Add marker at playhead";
+  addMarkerBtn.onclick = async () => {
+    const title = window.prompt("Marker title", `Chapter ${markers.length + 1}`);
+    if (!title) {
+      return;
+    }
+    const data = await invoke("add_unibrow_timeline_marker", {
+      projectPath: viewer.path,
+      timeSec: playheadSec,
+      title,
+      color: "amber",
+    });
+    window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+  };
+  markerRow.appendChild(addMarkerBtn);
+  const markerList = document.createElement("ul");
+  markerList.className = "unibrow-marker-list";
+  markers.forEach((marker) => {
+    const li = document.createElement("li");
+    li.textContent = `${marker.time_sec.toFixed(1)}s — ${marker.title}`;
+    applyLabelColor(li, marker.color);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.onclick = async () => {
+      const data = await invoke("remove_unibrow_timeline_marker", {
+        projectPath: viewer.path,
+        markerId: marker.id,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    };
+    li.appendChild(remove);
+    markerList.appendChild(li);
+  });
+  if (!markers.length) {
+    const empty = document.createElement("li");
+    empty.className = "viewer-note";
+    empty.textContent = "No markers yet.";
+    markerList.appendChild(empty);
+  }
+  markerRow.appendChild(markerList);
+  timeline.appendChild(markerRow);
 
   const timelineAddRow = document.createElement("div");
   timelineAddRow.className = "unibrow-timeline-add";
@@ -1880,6 +2004,17 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     timing.appendChild(startLabel);
     timing.appendChild(durLabel);
     li.appendChild(timing);
+
+    const clipColor = makeLabelColorSelect(clip.color, (color) => {
+      void invoke("set_unibrow_timeline_clip_color", {
+        projectPath: viewer.path,
+        clipId: clip.id,
+        color,
+      }).then((data) => {
+        window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+      });
+    });
+    li.appendChild(clipColor);
 
     if (index < clips.length - 1) {
       const tr = transitions.find((t) => t.after_clip_id === clip.id);

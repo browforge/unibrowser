@@ -30,7 +30,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 | Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |
 | Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters |
 | Media | Video with scrub frames; **audio peak waveform** (decode or stub bars); optional LGPL sidecar pool |
-| 3D / CAD | DXF layers (three.js); `.unibrow` project board, assets, **timeline ruler** with playhead scrub (PDF page proxy via pdf.js / pdftoppm, MIDI note-ons near playhead, video frames), **fade transitions** stub in `project.json`, export zip, **Export MP4 (preview)** |
+| 3D / CAD | DXF layers (three.js); `.unibrow` board **colour labels**, timeline **markers/chapters**, playhead scrub (PDF/MIDI/video), optional **MIDI scrub beeps** (settings), fade transitions stub, export zip, **Export MP4 (preview)** |
 | Images | PNG/JPEG/GIF/WebP viewer; **Files bulk convert** to PNG or JPEG |
 
 ### Commands, keys, and UI chrome
@@ -58,7 +58,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 
 | Capability | Detail |
 | --- | --- |
-| Tests | `cargo test --workspace` (engine tab stress to 20 tabs, sniff/open-path, downloads, palette fuzzy, files listing) |
+| Tests | `cargo test --workspace` (incl. **timeline CRUD fuzz** + zip roundtrip on `.unibrow`) |
 | Desktop build | `npm run build` in `crates/unibrowser-desktop` |
 | Smoke | `./scripts/smoke-desktop-qa.sh` and [docs/qa-desktop.md](docs/qa-desktop.md) |
 

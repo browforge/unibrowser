@@ -15,6 +15,26 @@ pub const DIR_DERIVED: &str = "derived";
 
 pub const FORMAT_VERSION: u32 = 1;
 
+pub const LABEL_COLORS: &[&str] = &["blue", "green", "amber", "rose", "violet", "slate"];
+
+pub fn normalize_label_color(raw: Option<&str>) -> Result<Option<String>, ProjectError> {
+    match raw {
+        None => Ok(None),
+        Some(s) if s.trim().is_empty() || s.eq_ignore_ascii_case("none") => Ok(None),
+        Some(s) => {
+            let k = s.trim().to_ascii_lowercase();
+            if LABEL_COLORS.iter().any(|c| *c == k) {
+                Ok(Some(k))
+            } else {
+                Err(ProjectError::Msg(format!(
+                    "color must be one of: {}",
+                    LABEL_COLORS.join(", ")
+                )))
+            }
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum ProjectError {
     #[error("IO: {0}")]
@@ -43,6 +63,8 @@ pub struct ProjectNode {
     /// Board Y in document space.
     #[serde(default)]
     pub y: f32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -53,6 +75,18 @@ pub struct TimelineClip {
     pub start_sec: f32,
     pub duration_sec: f32,
     pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+}
+
+/// Chapter / cue point on the timeline ruler.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TimelineMarker {
+    pub id: String,
+    pub time_sec: f32,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
 }
 
 /// Export/preview metadata only — not rendered yet.
@@ -71,6 +105,8 @@ pub struct ProjectTimeline {
     pub clips: Vec<TimelineClip>,
     #[serde(default)]
     pub transitions: Vec<TimelineTransition>,
+    #[serde(default)]
+    pub markers: Vec<TimelineMarker>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -169,6 +205,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
             asset: Some("notes.txt".into()),
             x: 48.0,
             y: 56.0,
+            color: None,
         },
         ProjectNode {
             id: "node-2".into(),
@@ -177,6 +214,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
             asset: Some("refs.txt".into()),
             x: 280.0,
             y: 160.0,
+            color: None,
         },
     ];
     package.manifest.timeline = ProjectTimeline {
@@ -187,6 +225,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 start_sec: 0.0,
                 duration_sec: 5.0,
                 label: "Notes intro".into(),
+                color: None,
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -194,6 +233,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 start_sec: 5.0,
                 duration_sec: 8.0,
                 label: "References".into(),
+                color: None,
             },
         ],
         transitions: vec![TimelineTransition {
@@ -202,6 +242,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
             kind: "fade".into(),
             duration_sec: 0.5,
         }],
+        markers: vec![],
     };
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
@@ -238,6 +279,7 @@ pub fn append_timeline_clip_for_node(
         start_sec: start,
         duration_sec: 5.0,
         label: node.label.clone(),
+        color: node.color.clone(),
     };
     package.manifest.timeline.clips.push(clip.clone());
     write_manifest(&package.root, &package.manifest)?;
@@ -310,6 +352,74 @@ pub fn remove_timeline_clip(package: &mut ProjectPackage, clip_id: &str) -> Resu
         .timeline
         .transitions
         .retain(|t| t.after_clip_id != clip_id);
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn set_node_label_color(
+    package: &mut ProjectPackage,
+    node_id: &str,
+    color: Option<&str>,
+) -> Result<(), ProjectError> {
+    let normalized = normalize_label_color(color)?;
+    let node = package
+        .manifest
+        .nodes
+        .iter_mut()
+        .find(|n| n.id == node_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown node {}", node_id)))?;
+    node.color = normalized;
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn set_timeline_clip_color(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    color: Option<&str>,
+) -> Result<(), ProjectError> {
+    let normalized = normalize_label_color(color)?;
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    clip.color = normalized;
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn add_timeline_marker(
+    package: &mut ProjectPackage,
+    time_sec: f32,
+    title: impl Into<String>,
+    color: Option<&str>,
+) -> Result<TimelineMarker, ProjectError> {
+    if time_sec < 0.0 || !time_sec.is_finite() {
+        return Err(ProjectError::Msg("time_sec must be non-negative".into()));
+    }
+    let normalized = normalize_label_color(color)?;
+    let id = format!("marker-{}", package.manifest.timeline.markers.len() + 1);
+    let marker = TimelineMarker {
+        id,
+        time_sec,
+        title: title.into(),
+        color: normalized,
+    };
+    package.manifest.timeline.markers.push(marker.clone());
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(marker)
+}
+
+pub fn remove_timeline_marker(package: &mut ProjectPackage, marker_id: &str) -> Result<(), ProjectError> {
+    let markers = &mut package.manifest.timeline.markers;
+    let idx = markers
+        .iter()
+        .position(|m| m.id == marker_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown marker {}", marker_id)))?;
+    markers.remove(idx);
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
 }
@@ -563,6 +673,7 @@ pub fn add_asset_copy(
         asset: Some(file_name),
         x,
         y,
+        color: None,
     };
     package.manifest.nodes.push(node.clone());
     write_manifest(&package.root, &package.manifest)?;
@@ -746,5 +857,84 @@ mod tests {
         assert!(listed.iter().any(|e| e.path.contains("project.json")));
         let _ = fs::remove_dir_all(&dir);
         let _ = fs::remove_dir_all(&zip_path);
+    }
+
+    #[test]
+    fn timeline_crud_save_load_fuzz() {
+        let dir = std::env::temp_dir().join("unibrow-test-timeline-fuzz");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Fuzz").expect("create");
+        seed_board_sketch(&mut pkg).expect("seed");
+        let node_ids: Vec<String> = pkg.manifest.nodes.iter().map(|n| n.id.clone()).collect();
+        let mut rng = 0xC0FFEE_u64;
+        let mut step = 0u32;
+        while step < 96 {
+            rng = rng.wrapping_mul(1_103_515_245).wrapping_add(12_345);
+            let op = (rng >> 17) as u8 % 9;
+            match op {
+                0 if !node_ids.is_empty() => {
+                    let i = (rng as usize) % node_ids.len();
+                    let _ = append_timeline_clip_for_node(&mut pkg, &node_ids[i]);
+                }
+                1 => {
+                    if let Some(c) = pkg.manifest.timeline.clips.last() {
+                        let id = c.id.clone();
+                        let _ = remove_timeline_clip(&mut pkg, &id);
+                    }
+                }
+                2 if pkg.manifest.timeline.clips.len() > 1 => {
+                    let len = pkg.manifest.timeline.clips.len();
+                    let from = (rng as usize) % len;
+                    let to = (rng as usize >> 8) % len;
+                    let _ = reorder_timeline_clip(&mut pkg, from, to);
+                }
+                3 if !pkg.manifest.timeline.clips.is_empty() => {
+                    let i = (rng as usize) % pkg.manifest.timeline.clips.len();
+                    let id = pkg.manifest.timeline.clips[i].id.clone();
+                    let start = ((rng >> 5) % 400) as f32 / 10.0;
+                    let dur = 0.5 + ((rng >> 11) % 80) as f32 / 10.0;
+                    let _ = update_timeline_clip_timing(&mut pkg, &id, start, dur);
+                }
+                4 if !pkg.manifest.timeline.clips.is_empty() => {
+                    let i = (rng as usize) % pkg.manifest.timeline.clips.len();
+                    let id = pkg.manifest.timeline.clips[i].id.clone();
+                    let _ = upsert_fade_transition(&mut pkg, &id, 0.25 + (rng % 5) as f32 / 10.0);
+                }
+                5 => {
+                    let t = ((rng >> 3) % 200) as f32 / 10.0;
+                    let _ = add_timeline_marker(&mut pkg, t, format!("M{}", step), Some("blue"));
+                }
+                6 if !pkg.manifest.timeline.markers.is_empty() => {
+                    let i = (rng as usize) % pkg.manifest.timeline.markers.len();
+                    let id = pkg.manifest.timeline.markers[i].id.clone();
+                    let _ = remove_timeline_marker(&mut pkg, &id);
+                }
+                7 if !node_ids.is_empty() => {
+                    let i = (rng as usize) % node_ids.len();
+                    let colors = ["blue", "green", "amber", "none"];
+                    let c = colors[(rng as usize >> 4) % colors.len()];
+                    let _ = set_node_label_color(&mut pkg, &node_ids[i], Some(c));
+                }
+                _ => {}
+            }
+            pkg = open_package(&dir).expect("reload");
+            let on_disk = fs::read_to_string(dir.join(PROJECT_FILE)).expect("read json");
+            let parsed: ProjectManifest = serde_json::from_str(&on_disk).expect("parse json");
+            assert_eq!(parsed.timeline.clips.len(), pkg.manifest.timeline.clips.len());
+            assert_eq!(
+                parsed.timeline.markers.len(),
+                pkg.manifest.timeline.markers.len()
+            );
+            step += 1;
+        }
+        let exported = dir.with_extension("fuzz.unibrow");
+        export_package_to_zip(&dir, &exported).expect("zip");
+        let cache = dir.join("zip-cache");
+        let materialized = materialize_zip_package(&exported, &cache).expect("materialize");
+        let again = open_package(&materialized).expect("open zip");
+        assert_eq!(again.manifest.title, "Fuzz");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::remove_dir_all(&exported);
+        let _ = fs::remove_dir_all(&cache);
     }
 }

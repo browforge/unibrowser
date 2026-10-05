@@ -22,6 +22,7 @@ interface PrefsDto {
   auto_save_interval_secs: number;
   download_preference: string;
   board_snap_to_grid: boolean;
+  midi_scrub_audio_enabled: boolean;
   crash_recovery_enabled: boolean;
   ntp_sections: NtpSectionsDto;
   advanced_webview_devtools: boolean;
@@ -165,6 +166,28 @@ export async function renderSettings(root: HTMLElement) {
   boardSection.appendChild(boardHeading);
   boardSection.appendChild(boardRow);
   root.appendChild(boardSection);
+
+  const mediaSection = document.createElement("section");
+  mediaSection.className = "settings-section";
+  const mediaHeading = document.createElement("h3");
+  mediaHeading.textContent = t("settings.media");
+  const midiRow = document.createElement("div");
+  midiRow.className = "settings-row";
+  const midiCb = document.createElement("input");
+  midiCb.type = "checkbox";
+  midiCb.id = "settings-midi-scrub-audio";
+  midiCb.checked = prefs.midi_scrub_audio_enabled;
+  midiCb.onchange = async () => {
+    await invoke("set_midi_scrub_audio_enabled", { enabled: midiCb.checked });
+  };
+  const midiLabel = document.createElement("label");
+  midiLabel.htmlFor = midiCb.id;
+  midiLabel.textContent = t("settings.midiScrubAudio");
+  midiRow.appendChild(midiCb);
+  midiRow.appendChild(midiLabel);
+  mediaSection.appendChild(mediaHeading);
+  mediaSection.appendChild(midiRow);
+  root.appendChild(mediaSection);
 
   const recoverySection = document.createElement("section");
   recoverySection.className = "settings-section";

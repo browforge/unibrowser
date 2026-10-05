@@ -59,6 +59,9 @@ pub struct Preferences {
     /// Snap board card positions to a 24px grid in `.unibrow` projects.
     #[serde(default)]
     pub board_snap_to_grid: bool,
+    /// Play short Web Audio beeps when MIDI clips are scrubbed on the timeline.
+    #[serde(default)]
+    pub midi_scrub_audio_enabled: bool,
     /// Backup dirty text/SVG buffers under config dir (off by default).
     #[serde(default)]
     pub crash_recovery_enabled: bool,
@@ -154,6 +157,7 @@ impl Default for Preferences {
             pinned_locations: Vec::new(),
             download_preference: DownloadPreference::default(),
             board_snap_to_grid: false,
+            midi_scrub_audio_enabled: false,
             crash_recovery_enabled: false,
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,

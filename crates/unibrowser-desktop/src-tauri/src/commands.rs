@@ -122,6 +122,8 @@ pub struct ProjectNodeDto {
     pub asset: Option<String>,
     pub x: f32,
     pub y: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -132,6 +134,17 @@ pub struct ProjectClipDto {
     pub start_sec: f32,
     pub duration_sec: f32,
     pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct ProjectMarkerDto {
+    pub id: String,
+    pub time_sec: f32,
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -195,9 +208,13 @@ pub struct DocumentViewerDto {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_transitions: Option<Vec<ProjectTransitionDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_markers: Option<Vec<ProjectMarkerDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub midi_summary: Option<MidiSummaryDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub board_snap_to_grid: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub midi_scrub_audio_enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub midi_note_preview: Option<Vec<MidiNoteOnDto>>,
 }
@@ -438,6 +455,7 @@ fn document_viewer_dto(
                     asset: n.asset.clone(),
                     x: n.x,
                     y: n.y,
+                    color: n.color.clone(),
                 })
                 .collect()
         });
@@ -461,6 +479,7 @@ fn document_viewer_dto(
                         start_sec: c.start_sec,
                         duration_sec: c.duration_sec,
                         label: c.label.clone(),
+                        color: c.color.clone(),
                     }
                 })
                 .collect()
@@ -478,6 +497,19 @@ fn document_viewer_dto(
                 })
                 .collect()
         });
+        let markers = opened.as_ref().map(|pkg| {
+            pkg.manifest
+                .timeline
+                .markers
+                .iter()
+                .map(|m| ProjectMarkerDto {
+                    id: m.id.clone(),
+                    time_sec: m.time_sec,
+                    title: m.title.clone(),
+                    color: m.color.clone(),
+                })
+                .collect()
+        });
         let prefs = load_preferences();
         return Some(DocumentViewerDto {
             path: doc.path.clone(),
@@ -492,8 +524,10 @@ fn document_viewer_dto(
             open_file_tabs: Some(open_file_tabs_dto(state, window_label)),
             project_clips: clips,
             project_transitions: transitions,
+            project_markers: markers,
             midi_summary: None,
             board_snap_to_grid: Some(prefs.board_snap_to_grid),
+            midi_scrub_audio_enabled: Some(prefs.midi_scrub_audio_enabled),
             midi_note_preview: None,
         });
     }
@@ -509,8 +543,10 @@ fn document_viewer_dto(
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
+            project_markers: None,
             midi_summary: None,
             board_snap_to_grid: None,
+            midi_scrub_audio_enabled: None,
             midi_note_preview: None,
         });
     }
@@ -526,8 +562,10 @@ fn document_viewer_dto(
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
+            project_markers: None,
             midi_summary: None,
             board_snap_to_grid: None,
+            midi_scrub_audio_enabled: None,
             midi_note_preview: None,
         });
     }
@@ -543,8 +581,10 @@ fn document_viewer_dto(
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
+            project_markers: None,
             midi_summary: None,
             board_snap_to_grid: None,
+            midi_scrub_audio_enabled: None,
             midi_note_preview: None,
         });
     }
@@ -573,12 +613,14 @@ fn document_viewer_dto(
             open_file_tabs: None,
             project_clips: None,
             project_transitions: None,
+            project_markers: None,
             midi_summary: Some(MidiSummaryDto {
                 format: summary.format,
                 track_count: summary.track_count,
                 ticks_per_quarter: summary.ticks_per_quarter,
             }),
             board_snap_to_grid: None,
+            midi_scrub_audio_enabled: None,
             midi_note_preview: Some(notes),
         });
     }
@@ -620,8 +662,10 @@ fn document_viewer_dto(
         open_file_tabs: None,
         project_clips: None,
         project_transitions: None,
+        project_markers: None,
         midi_summary: None,
         board_snap_to_grid: None,
+        midi_scrub_audio_enabled: None,
         midi_note_preview: None,
     })
 }
@@ -2234,6 +2278,7 @@ pub struct PreferencesDto {
     pub auto_save_interval_secs: u32,
     pub download_preference: String,
     pub board_snap_to_grid: bool,
+    pub midi_scrub_audio_enabled: bool,
     pub crash_recovery_enabled: bool,
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
@@ -2744,6 +2789,83 @@ pub fn timeline_clip_scrub_preview(
 }
 
 #[tauri::command]
+pub fn set_unibrow_node_color(
+    window: tauri::Window,
+    project_path: String,
+    node_id: String,
+    color: Option<String>,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    let raw = color.as_deref();
+    unibrowser_project::set_node_label_color(&mut package, &node_id, raw)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn set_unibrow_timeline_clip_color(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    color: Option<String>,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::set_timeline_clip_color(&mut package, &clip_id, color.as_deref())
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn add_unibrow_timeline_marker(
+    window: tauri::Window,
+    project_path: String,
+    time_sec: f32,
+    title: String,
+    color: Option<String>,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::add_timeline_marker(&mut package, time_sec, title, color.as_deref())
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn remove_unibrow_timeline_marker(
+    window: tauri::Window,
+    project_path: String,
+    marker_id: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::remove_timeline_marker(&mut package, &marker_id)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
 pub fn set_unibrow_timeline_transition(
     window: tauri::Window,
     project_path: String,
@@ -2825,6 +2947,7 @@ fn preferences_dto() -> PreferencesDto {
         auto_save_interval_secs: p.auto_save_interval_secs,
         download_preference: download_pref_to_str(&p.download_preference),
         board_snap_to_grid: p.board_snap_to_grid,
+        midi_scrub_audio_enabled: p.midi_scrub_audio_enabled,
         crash_recovery_enabled: p.crash_recovery_enabled,
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,
@@ -2957,6 +3080,17 @@ pub fn restore_crash_recovery_backup(window: tauri::Window,
 pub fn set_board_snap_to_grid(window: tauri::Window, enabled: bool) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.board_snap_to_grid = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_midi_scrub_audio_enabled(
+    _window: tauri::Window,
+    enabled: bool,
+) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.midi_scrub_audio_enabled = enabled;
     save_preferences(&p)?;
     Ok(preferences_dto())
 }
