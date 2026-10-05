@@ -8,6 +8,7 @@ import {
 import { pathsFromDataTransfer, setPathsOnDataTransfer } from "./filesDrag";
 import { t } from "./i18n";
 import { showToast } from "./toast";
+import { appendFileTypeIcon, fileTypeVisual } from "./fileTypeIcons";
 import type { DirEntry, FilesViewDto } from "./filesPanelTypes";
 
 export type { DirEntry, FilesViewDto } from "./filesPanelTypes";
@@ -1235,6 +1236,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
 
     const thumbCell = document.createElement("td");
     thumbCell.className = "files-thumb-cell";
+    appendFileTypeIcon(thumbCell, fileTypeVisual(entry));
     if (entry.is_image) {
       const img = document.createElement("img");
       img.className = "files-thumb";
@@ -1278,7 +1280,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     } else {
       const link = document.createElement("button");
       link.className = "file-link";
-      link.textContent = (entry.is_dir ? "[dir] " : "[file] ") + entry.name;
+      link.textContent = entry.name;
       link.onclick = (e) => {
         e.stopPropagation();
         void openPath(entry.path, deps);

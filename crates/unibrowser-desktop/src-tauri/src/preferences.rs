@@ -16,6 +16,15 @@ impl Default for UiTheme {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ReduceMotionPref {
+    #[default]
+    System,
+    On,
+    Off,
+}
+
 pub const RECENT_FILES_MAX: usize = 12;
 
 /// How completed downloads are handled (ADR 0009). Default: open in a new tab.
@@ -80,6 +89,19 @@ pub struct Preferences {
     /// Favourite folder paths (bookmarked from files view).
     #[serde(default)]
     pub folder_favorites: Vec<String>,
+    /// Smaller command chips in the Command Manager toolbar.
+    #[serde(default)]
+    pub command_manager_dense: bool,
+    /// High-contrast chrome (strong borders, Audacity-style accents).
+    #[serde(default)]
+    pub high_contrast: bool,
+    #[serde(default)]
+    pub reduce_motion: ReduceMotionPref,
+    /// Hide the Settings onboarding checklist permanently.
+    #[serde(default)]
+    pub onboarding_checklist_skip_forever: bool,
+    #[serde(default)]
+    pub onboarding_checklist_completed: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -170,8 +192,24 @@ impl Default for Preferences {
             advanced_webview_devtools: false,
             files_view: FilesViewPrefs::default(),
             folder_favorites: Vec::new(),
+            command_manager_dense: false,
+            high_contrast: false,
+            reduce_motion: ReduceMotionPref::default(),
+            onboarding_checklist_skip_forever: false,
+            onboarding_checklist_completed: Vec::new(),
         }
     }
+}
+
+pub fn complete_checklist_step(prefs: &mut Preferences, step_id: &str) {
+    let step_id = step_id.trim();
+    if step_id.is_empty() {
+        return;
+    }
+    if prefs.onboarding_checklist_completed.iter().any(|s| s == step_id) {
+        return;
+    }
+    prefs.onboarding_checklist_completed.push(step_id.to_string());
 }
 
 pub fn toggle_folder_favorite(prefs: &mut Preferences, path: &str) {
@@ -213,6 +251,14 @@ pub fn default_pinned_locations(home: &str) -> Vec<PinnedLocation> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn checklist_step_dedupes() {
+        let mut p = Preferences::default();
+        complete_checklist_step(&mut p, "palette");
+        complete_checklist_step(&mut p, "palette");
+        assert_eq!(p.onboarding_checklist_completed.len(), 1);
+    }
 
     #[test]
     fn recent_files_dedupe_and_cap() {

@@ -895,7 +895,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         text_document,
         mod_portal,
         document_viewer,
-        show_onboarding: !prefs.onboarding_dismissed,
+        show_onboarding: false,
         recent_files: recent_files_dto(&prefs),
         split_view_enabled: split_enabled,
         split_index: if split_enabled { split_index } else { None },
@@ -2275,7 +2275,12 @@ pub fn set_content_bounds(
 #[derive(Serialize)]
 pub struct PreferencesDto {
     pub onboarding_dismissed: bool,
+    pub onboarding_checklist_skip_forever: bool,
+    pub onboarding_checklist_completed: Vec<String>,
     pub theme: String,
+    pub command_manager_dense: bool,
+    pub high_contrast: bool,
+    pub reduce_motion: String,
     pub restore_session_on_launch: bool,
     pub auto_save_enabled: bool,
     pub auto_save_interval_secs: u32,
@@ -2962,7 +2967,12 @@ fn preferences_dto() -> PreferencesDto {
     let p = load_preferences();
     PreferencesDto {
         onboarding_dismissed: p.onboarding_dismissed,
+        onboarding_checklist_skip_forever: p.onboarding_checklist_skip_forever,
+        onboarding_checklist_completed: p.onboarding_checklist_completed.clone(),
         theme: theme_to_str(&p.theme),
+        command_manager_dense: p.command_manager_dense,
+        high_contrast: p.high_contrast,
+        reduce_motion: reduce_motion_to_str(&p.reduce_motion),
         restore_session_on_launch: p.restore_session_on_launch,
         auto_save_enabled: p.auto_save_enabled,
         auto_save_interval_secs: p.auto_save_interval_secs,
@@ -3261,6 +3271,23 @@ pub fn set_restore_session_on_launch(enabled: bool) -> Result<PreferencesDto, St
     Ok(preferences_dto())
 }
 
+fn reduce_motion_to_str(pref: &crate::preferences::ReduceMotionPref) -> String {
+    match pref {
+        crate::preferences::ReduceMotionPref::System => "system".into(),
+        crate::preferences::ReduceMotionPref::On => "on".into(),
+        crate::preferences::ReduceMotionPref::Off => "off".into(),
+    }
+}
+
+fn parse_reduce_motion(s: &str) -> Result<crate::preferences::ReduceMotionPref, String> {
+    match s.to_ascii_lowercase().as_str() {
+        "system" => Ok(crate::preferences::ReduceMotionPref::System),
+        "on" => Ok(crate::preferences::ReduceMotionPref::On),
+        "off" => Ok(crate::preferences::ReduceMotionPref::Off),
+        _ => Err("reduce_motion must be system, on, or off".into()),
+    }
+}
+
 fn theme_to_str(theme: &UiTheme) -> String {
     match theme {
         UiTheme::Light => "light".into(),
@@ -3414,6 +3441,52 @@ pub fn set_project_autosave_settings(
     let mut p = load_preferences();
     p.project_autosave_enabled = enabled;
     p.project_autosave_interval_secs = interval_secs.clamp(30, 600);
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[derive(serde::Deserialize)]
+pub struct AccessibilityPrefsInput {
+    pub high_contrast: Option<bool>,
+    pub reduce_motion: Option<String>,
+}
+
+#[tauri::command]
+pub fn set_accessibility_prefs(input: AccessibilityPrefsInput) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    if let Some(hc) = input.high_contrast {
+        p.high_contrast = hc;
+    }
+    if let Some(rm) = input.reduce_motion {
+        p.reduce_motion = parse_reduce_motion(&rm)?;
+    }
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_command_manager_dense(dense: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.command_manager_dense = dense;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn complete_onboarding_checklist_step(step_id: String) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    crate::preferences::complete_checklist_step(&mut p, &step_id);
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_onboarding_checklist_skip_forever(skip: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.onboarding_checklist_skip_forever = skip;
+    if skip {
+        p.onboarding_dismissed = true;
+    }
     save_preferences(&p)?;
     Ok(preferences_dto())
 }

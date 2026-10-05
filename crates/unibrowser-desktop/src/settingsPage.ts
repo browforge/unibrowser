@@ -3,7 +3,17 @@ import enNz from "./i18n/en-NZ.json";
 import { t } from "./i18n";
 
 type I18nKey = keyof typeof enNz;
+import {
+  applyCommandManagerDensity,
+  applyHighContrastToDocument,
+  applyReduceMotionToDocument,
+  setCommandManagerDense,
+  setHighContrast,
+  setReduceMotion,
+  type ReduceMotionPref,
+} from "./accessibility";
 import { applyThemeToDocument, loadThemePreference } from "./theme";
+import { appendOnboardingChecklistSection, markChecklistStep } from "./onboardingChecklist";
 import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
@@ -17,7 +27,12 @@ interface NtpSectionsDto {
 }
 
 interface PrefsDto {
+  onboarding_checklist_skip_forever: boolean;
+  onboarding_checklist_completed: string[];
   theme: string;
+  command_manager_dense: boolean;
+  high_contrast: boolean;
+  reduce_motion: string;
   restore_session_on_launch: boolean;
   auto_save_enabled: boolean;
   auto_save_interval_secs: number;
@@ -65,6 +80,77 @@ export async function renderSettings(root: HTMLElement) {
   themeSection.appendChild(themeHeading);
   themeSection.appendChild(themeSelect);
   root.appendChild(themeSection);
+
+  const a11ySection = document.createElement("section");
+  a11ySection.className = "settings-section";
+  const a11yHeading = document.createElement("h3");
+  a11yHeading.textContent = t("settings.accessibility");
+  a11ySection.appendChild(a11yHeading);
+
+  const hcRow = document.createElement("div");
+  hcRow.className = "settings-row";
+  const hcCb = document.createElement("input");
+  hcCb.type = "checkbox";
+  hcCb.id = "settings-high-contrast";
+  hcCb.checked = prefs.high_contrast;
+  const hcLabel = document.createElement("label");
+  hcLabel.htmlFor = hcCb.id;
+  hcLabel.textContent = t("settings.highContrast");
+  hcCb.onchange = async () => {
+    await setHighContrast(hcCb.checked);
+    applyHighContrastToDocument(hcCb.checked);
+  };
+  hcRow.appendChild(hcCb);
+  hcRow.appendChild(hcLabel);
+  a11ySection.appendChild(hcRow);
+
+  const motionLabel = document.createElement("label");
+  motionLabel.textContent = t("settings.reduceMotion");
+  const motionSelect = document.createElement("select");
+  (["system", "on", "off"] as ReduceMotionPref[]).forEach((value) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = t(`settings.reduceMotion.${value}` as I18nKey);
+    motionSelect.appendChild(opt);
+  });
+  motionSelect.value = prefs.reduce_motion?.toLowerCase() ?? "system";
+  motionSelect.onchange = async () => {
+    const v = motionSelect.value as ReduceMotionPref;
+    await setReduceMotion(v);
+    applyReduceMotionToDocument();
+  };
+  a11ySection.appendChild(motionLabel);
+  a11ySection.appendChild(motionSelect);
+  root.appendChild(a11ySection);
+
+  const cmSection = document.createElement("section");
+  cmSection.className = "settings-section";
+  const cmHeading = document.createElement("h3");
+  cmHeading.textContent = t("settings.commandManager");
+  const denseRow = document.createElement("div");
+  denseRow.className = "settings-row";
+  const denseCb = document.createElement("input");
+  denseCb.type = "checkbox";
+  denseCb.id = "settings-cm-dense";
+  denseCb.checked = prefs.command_manager_dense;
+  const denseLabel = document.createElement("label");
+  denseLabel.htmlFor = denseCb.id;
+  denseLabel.textContent = t("settings.commandManagerDense");
+  denseCb.onchange = async () => {
+    await setCommandManagerDense(denseCb.checked);
+    applyCommandManagerDensity(denseCb.checked);
+  };
+  denseRow.appendChild(denseCb);
+  denseRow.appendChild(denseLabel);
+  cmSection.appendChild(cmHeading);
+  cmSection.appendChild(denseRow);
+  root.appendChild(cmSection);
+
+  appendOnboardingChecklistSection(root, {
+    onboarding_checklist_skip_forever: prefs.onboarding_checklist_skip_forever,
+    onboarding_checklist_completed: prefs.onboarding_checklist_completed,
+  });
+  void markChecklistStep("settings_tour");
 
   const dlSection = document.createElement("section");
   dlSection.className = "settings-section";

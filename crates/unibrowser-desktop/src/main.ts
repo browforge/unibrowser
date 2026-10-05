@@ -6,6 +6,8 @@ import { commandManager } from "./commandManager";
 import { textEditor, type TextDocumentDto, setCursorStatusListener } from "./textEditor";
 import { documentViewer, adjustViewerZoom, type DocumentViewerDto } from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
+import { loadAccessibilityPreferences } from "./accessibility";
+import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
 import { invokeWithToast, showToast } from "./toast";
@@ -598,10 +600,6 @@ function renderDoc(
   docPanel.textContent = status;
 }
 
-function renderOnboarding(show: boolean) {
-  onboardingBanner.classList.toggle("hidden", !show);
-}
-
 async function renderSessionOptIn() {
   try {
     let row = document.getElementById("session-restore-row");
@@ -832,7 +830,12 @@ async function applyState(data: TabContentDto) {
   renderModPortal(data.mod_portal);
   const hasPortal = Boolean(data.mod_portal);
   renderDoc(data.document_status, showText, hasPortal, showViewer);
-  renderOnboarding(data.show_onboarding);
+  if (data.directory_entries && data.directory_entries.length > 0) {
+    void markChecklistStep("browse_folder");
+  }
+  if (data.text_document || data.document_viewer) {
+    void markChecklistStep("open_file");
+  }
   renderRecentFiles(data.recent_files ?? []);
   if (!showDiff) {
     if (showText && data.text_document) {
@@ -940,7 +943,12 @@ listen("browser-state-updated", () => {
 
 btnSplit.onclick = () => {
   void invokeWithToast(() => invoke<TabContentDto>("toggle_split_view"), t("chrome.splitFailed")).then(
-    (data) => data && applyState(data),
+    (data) => {
+      if (data) {
+        void markChecklistStep("split_view");
+        applyState(data);
+      }
+    },
   );
 };
 
@@ -1039,6 +1047,7 @@ function togglePalette() {
     tabSearchPanel.classList.add("hidden");
     paletteQuery.placeholder = t("palette.placeholder", { chord: paletteChordLabel });
     paletteQuery.focus();
+    void markChecklistStep("palette");
   }
 }
 
@@ -1279,6 +1288,7 @@ applyChromeI18n();
 void loadThemePreference().then(() => {
   themeBtn.textContent = themeButtonLabel();
 });
+void loadAccessibilityPreferences();
 void refreshState();
 
 deferNonCriticalInit(() => {

@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- File-type badges in the files panel; compact Command Manager option in Settings.
+- High-contrast mode and reduce-motion preference (system / on / off).
+- Non-blocking onboarding checklist in Settings with hide forever.
 - Security fuzz tests for `path_security` and `transfer_paths`; transfer name validation and dest escape guard.
 - ADR 0019 WASM T2 sandbox notes; `unibrowser-mod-host/wasm-mods` wasmtime feature stub.
 - Large directory listing perf test (`UB_LIST_STRESS=1` for 10k); virtualized files table when >500 entries.

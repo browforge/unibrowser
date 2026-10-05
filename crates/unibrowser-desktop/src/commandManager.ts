@@ -69,7 +69,14 @@ function renderCommandButtons(
   commands.forEach((cmd) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = cmd.title;
+    const icon = document.createElement("span");
+    icon.className = `cm-cmd-icon cm-icon-${cmd.icon || "extension"}`;
+    icon.setAttribute("aria-hidden", "true");
+    btn.appendChild(icon);
+    const label = document.createElement("span");
+    label.className = "cm-cmd-label";
+    label.textContent = cmd.title;
+    btn.appendChild(label);
     btn.title = cmd.reason ?? cmd.command_id;
     btn.disabled = !cmd.enabled;
     btn.className = cmd.enabled ? "ui-command" : "ui-command disabled";
