@@ -16,12 +16,14 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 
 **Exit criteria:** `cargo test` green; demo increases font size in text mod, greyed on PNG without text selection.
 
-## Phase 1 — MVP file host
+## Phase 1 — MVP browser (files + web)
 
-- Real open/save, tabs, dirty indicators.
-- **Mods:** plain text, Markdown (view/edit), PNG/JPEG view+metadata, SVG view+text edit, HTML file mod (embedded WebView via Tauri), PDF view (pdf.js in WebView), DOCX basic preview, DXF view.
-- Toolbar layout persistence; preferences.
-- Tauri 2 shell (per ADR 0001) replacing or wrapping egui chrome for document surfaces.
+- **Tauri 2** shell: omnibox, tab strip, back/forward where meaningful ([ADR 0001](adr/0001-shell-and-rendering.md), [ADR 0009](adr/0009-browser-as-unified-shell.md)).
+- **`BrowserLocation`** per tab; download handler defaults to **open in new tab**.
+- **Bundled `base-files` mod:** folder navigation; open files in tabs (no separate file-manager app).
+- **Bundled `base-web` mod:** `https://` tabs on system WebView; shared command layer with file tabs.
+- Open/save, dirty indicators, toolbar layout persistence.
+- **Format mods:** plain text, Markdown, PNG/JPEG, SVG, HTML on disk, PDF view, DOCX basic preview, DXF view.
 
 ## Phase 2 — Document and CAD depth
 
@@ -29,10 +31,10 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 - DXF edit via permissive parser or GPL helper process.
 - EPUB reader mod; optional LibreOfficeKit sidecar for office fidelity.
 
-## Phase 3 — Media and live web
+## Phase 3 — Media and advanced web
 
 - Video/audio with ffmpeg (LGPL build) sidecar; subtitle/text overlays.
-- Live page mod: guest WebView + user stylesheet commands (Stylus-like).
+- Hardened web mod: permissions, user stylesheet commands (Stylus-like), isolated guest profiles.
 
 ## Phase 4 — Ecosystem
 

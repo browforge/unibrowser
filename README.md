@@ -1,6 +1,6 @@
 # Unibrowser
 
-Open source desktop host for viewing and editing many file formats through **one consistent UI**. Same command, different backend: SOLIDWORKS-style modes and grey-out-not-hide toolbars, Factorio-style bundled and community mods, VS Code-sized core.
+Open source **browser for files and the web**: one tab strip for folders, local files, and `https://` pages (Chrome OS–style). Downloads open in a new tab by default; the same commands and toolbars work across formats (SOLIDWORKS-style modes, grey-out-not-hide), powered by Factorio-style mods and a VS Code–sized Rust core.
 
 **Status:** Phase 0 skeleton (Rust engine + egui demo). See [docs/vision.md](docs/vision.md) and [docs/architecture.md](docs/architecture.md).
 

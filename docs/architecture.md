@@ -1,6 +1,6 @@
 # Architecture overview
 
-Unibrowser splits into a **host engine** (commands, modes, UI chrome, mod loading) and **format mods** (document backends and command handlers). The skeleton in this repository implements the host in Rust with **egui/eframe** as a stand-in shell; see [ADR 0001](adr/0001-shell-and-rendering.md) for the product direction toward Tauri + WebView for rich editors.
+Unibrowser is a **unified browser shell** (files + web in one tab strip; see [ADR 0009](adr/0009-browser-as-unified-shell.md)). The **host engine** owns navigation, commands, modes, UI chrome, and mod loading; **mods** supply document backends, web surfaces, and the bundled file browser. The skeleton uses **egui/eframe** only to prove commands and toolbars; the product shell is **Tauri + WebView** ([ADR 0001](adr/0001-shell-and-rendering.md)).
 
 ## Layer diagram
 
@@ -67,6 +67,41 @@ sequenceDiagram
   UI->>En: refresh grey-out state
 ```
 
+## Navigation (browser shell)
+
+```mermaid
+flowchart LR
+  subgraph Input
+    O[Omnibox / path bar]
+    FB[Files mod listing]
+    DL[Download complete]
+  end
+
+  subgraph Host
+    NAV[Location resolver]
+    TABS[Tab session]
+  end
+
+  subgraph Tab
+    L["BrowserLocation\nfile / https / unibrowser://"]
+    BE[Backend mod]
+  end
+
+  O --> NAV
+  FB --> NAV
+  DL -->|default OpenInNewTab| NAV
+  NAV --> TABS
+  TABS --> L
+  L --> BE
+```
+
+| Concept | Responsibility |
+| --- | --- |
+| **`BrowserLocation`** | `File`, `Http`, or `Internal` — every tab has one (`unibrowser-mod-api::navigation`). |
+| **Tab session** | Ordered tabs, active tab, dirty flags; location + backend state per tab. |
+| **Download disposition** | Default **open in new tab**; save to disk only when the user asks. |
+| **Files mod** | Directory UI; open children as new tabs via the same resolver as global “Open file”. |
+
 ## Core concepts
 
 | Concept | Responsibility |
@@ -74,7 +109,7 @@ sequenceDiagram
 | **Command** | Stable ID, title, icon key, default keybinding; registered once in the host. |
 | **Handler** | Mod-provided implementation + enablement predicate for a command. |
 | **Backend** | Opens a document type; owns native model; maps selection to `SelectionSnapshot`. |
-| **Mode** | High-level context (text, image, vector, …); drives default toolbar tab. |
+| **Mode** | High-level context (text, image, vector, web, …); drives default toolbar tab. |
 | **Context keys** | `doc.type`, `selection.has_text`, `backend.capabilities.font_size`, etc. |
 | **Mod manifest** | `info.json`: id, version, dependencies, `api_version`, contributions. |
 
@@ -107,6 +142,7 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)
 - [0008 API gaps and upstream requests](adr/0008-api-gap-upstream-requests.md)
+- [0009 Browser as unified shell](adr/0009-browser-as-unified-shell.md)
 
 ## Roadmap
 

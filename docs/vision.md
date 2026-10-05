@@ -1,49 +1,58 @@
 # Unibrowser vision
 
-Unibrowser is an open source desktop host for viewing and editing many file formats through **one consistent user interface**. The same command (for example **Increase font size**) appears in the same place whether you are editing plain text, SVG, HTML, a DOCX paragraph, an EPUB chapter, a DXF annotation, or a live web page (via injected user styles). Each format implements the command differently; the user learns the tool once.
+**Unibrowser** is a real **browser** in two senses at once:
+
+1. **File browser** — walk folders and open anything you find (single files or batches) in tabs, view and edit with one UI.
+2. **Web browser** — use the live web in the same shell, the way Chrome OS treated the browser as the main surface.
+
+You should not need a different app per format or per “is this local or online?”. A download or an “open” action **opens a new tab in Unibrowser** by default, not a third-party viewer. Tweaking a PDF, a spreadsheet export, a page, and a folder of assets should feel like the same product.
+
+On top of that shell, the **same commands** work everywhere they make sense (for example **Increase font size** on text in HTML, SVG, DOCX, EPUB, PNG text layers, or a live page via user styles). Each format mod implements the command; the toolbar does not move.
 
 ## Problems we are solving
 
-- **UI inconsistency**: Every application reinvents toolbars, shortcuts, and command discovery. Power users carry dozens of mental models.
-- **Format silos**: Opening a PNG, a PDF, and a spreadsheet means three apps with three undo models and three export flows.
+- **UI inconsistency**: Every application reinvents toolbars, shortcuts, and command discovery.
+- **Format silos**: PNG, PDF, and spreadsheets in three apps means three undo models and three export flows.
+- **File vs web split**: OS defaults and “open with” train users to leave the flow; Unibrowser keeps you in one tabbed environment.
 - **Extension fatigue**: Monolithic suites are hard to maintain; tiny single-purpose apps do not share behaviour.
 
 ## Design north stars
 
+### Chrome OS–style unified shell
+
+- **Tabs are universal**: `file:///…`, `https://…`, and internal pages share one strip and one command layer.
+- **Downloads → new tab** (default): saving to disk is explicit; opening for work is in-app.
+- **File browsing is in-product**: directories are a mod surface, not Explorer/Finder with a separate Unibrowser launch.
+
 ### SOLIDWORKS CommandManager
 
-- **Context modes** (sketch, model, assembly, drawing, …) map to Unibrowser **modes** driven by the active document and selection.
-- Switching mode **selects the relevant toolbar tab** automatically.
-- Commands that do not apply are **greyed out, never hidden**, so layout stays stable and tools do not “move”.
-- **S-key** opens a fuzzy command palette (like SOLIDWORKS search or VS Code Ctrl+Shift+P).
-- Toolbars and command tabs are **user-customisable** and persisted.
+- **Context modes** map to the active document and selection; toolbar tabs auto-switch.
+- Commands that do not apply are **greyed out, never hidden**.
+- **S-key** fuzzy command palette; toolbars user-customisable and persisted.
 
 ### Factorio-style mods
 
-- The **engine** ships only fundamentals: document session, selection bus, command registry, modes, toolbars, and a mod loader.
-- **Formats are mods** (`base` bundled mods for text, PNG, HTML, … use the same API as community mods).
-- Mods declare **dependencies and versions** in a manifest (`info.json`).
-- When a mod needs capability the engine lacks, authors file an **upstream API request**; the host API is **versioned** with explicit negotiation.
+- Engine ships fundamentals: **navigation**, tabs, commands, modes, mod loader.
+- **Formats and web** are mods (`base-text`, `base-web`, …) on the same API as community mods.
+- Manifests, dependencies, API versioning, and upstream API requests when mods outgrow the host.
 
 ### VS Code-style core
 
-- Small, solid **Rust engine**; bite-sized **mods** for formats and workflows.
-- Contribution points (commands, handlers, backends, toolbars) rather than a single mega-codebase.
-- No Chromium or Firefox fork for v1; embed web tech where needed via mods.
+- Small Rust engine; bite-sized mods; no Chromium/Firefox **fork** for v1 (embed via WebView/CEF path per ADR 0001).
 
 ## Non-goals (initially)
 
 - macOS and mobile targets.
-- “Every format on day one” (OpenDoc lesson: ship a compelling host and a sharp vertical first).
-- Forking Chromium, Gecko, or LibreOffice as the application shell.
-- GPL/AGPL engines linked into the permissive core (those stay optional, labelled mods or sidecars).
+- Every obscure format on day one (plugins and honest “unsupported” tabs).
+- Forking Chromium, Gecko, or LibreOffice as the whole codebase.
+- GPL/AGPL engines linked into the permissive core.
 
 ## Success picture
 
-> Select text in HTML and in SVG; press the same toolbar button or S-key command; both increase font size. With a PNG open and no text selection, the button stays visible but greyed out.
+> You download a `.docx` from a site; it opens in a new tab. You open a project folder; images and README open in tabs with the same Increase font size control where text is selected. A PNG without a text layer keeps that control visible but greyed out.
 
-When that feels SOLIDWORKS-grade, we add formats as mods.
+When that feels SOLIDWORKS-grade in a browser-shaped shell, we expand mods.
 
-## Name note
+## Name
 
-“Unibrowser” has prior uses (university search, assistive UI, npm helpers). Before public launch, run trademark checks (AU/NZ/US) and consider a distinctive product name if “browser” confuses users (Unibrowser is not primarily a web browser).
+**Unibrowser** — the name matches the product: one browser for files and the web. Prior uses and trademarks still need a formal check (AU/NZ/US) before a public launch.
