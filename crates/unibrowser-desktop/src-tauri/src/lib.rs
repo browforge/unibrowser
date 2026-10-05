@@ -14,6 +14,9 @@ mod project_backend;
 mod smf;
 mod midi_stub;
 mod settings_stub;
+mod about_stub;
+mod web_font_prefs;
+mod crash_recovery;
 mod rhai_host;
 mod session;
 mod state;
@@ -111,6 +114,10 @@ pub fn run() {
             commands::set_auto_save_settings,
             commands::set_download_preference,
             commands::set_board_snap_to_grid,
+            commands::set_crash_recovery_enabled,
+            commands::add_unibrow_timeline_clip,
+            commands::remove_unibrow_timeline_clip,
+            commands::reorder_unibrow_timeline_clips,
             commands::auto_save_active_document,
             commands::pick_and_compare,
             commands::close_file_compare,

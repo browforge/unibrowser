@@ -180,6 +180,65 @@ pub fn default_board_position(node_index: usize) -> (f32, f32) {
     (32.0 + col * 168.0, 40.0 + row * 128.0)
 }
 
+fn timeline_end_sec(clips: &[TimelineClip]) -> f32 {
+    clips
+        .iter()
+        .map(|c| c.start_sec + c.duration_sec)
+        .fold(0.0_f32, f32::max)
+}
+
+pub fn append_timeline_clip_for_node(
+    package: &mut ProjectPackage,
+    node_id: &str,
+) -> Result<TimelineClip, ProjectError> {
+    let node = package
+        .manifest
+        .nodes
+        .iter()
+        .find(|n| n.id == node_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown node {}", node_id)))?;
+    let start = timeline_end_sec(&package.manifest.timeline.clips);
+    let id = format!("clip-{}", package.manifest.timeline.clips.len() + 1);
+    let clip = TimelineClip {
+        id,
+        node_id: node_id.into(),
+        start_sec: start,
+        duration_sec: 5.0,
+        label: node.label.clone(),
+    };
+    package.manifest.timeline.clips.push(clip.clone());
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(clip)
+}
+
+pub fn remove_timeline_clip(package: &mut ProjectPackage, clip_id: &str) -> Result<(), ProjectError> {
+    let idx = package
+        .manifest
+        .timeline
+        .clips
+        .iter()
+        .position(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    package.manifest.timeline.clips.remove(idx);
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn reorder_timeline_clip(
+    package: &mut ProjectPackage,
+    from_index: usize,
+    to_index: usize,
+) -> Result<(), ProjectError> {
+    let clips = &mut package.manifest.timeline.clips;
+    if from_index >= clips.len() || to_index >= clips.len() || from_index == to_index {
+        return Ok(());
+    }
+    let item = clips.remove(from_index);
+    clips.insert(to_index, item);
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
 pub fn set_node_board_position(
     package: &mut ProjectPackage,
     node_id: &str,
@@ -456,6 +515,23 @@ mod tests {
         assert!(dir.join(DIR_ASSETS).is_dir());
         let again = open_package(&dir).expect("open");
         assert_eq!(again.manifest.title, "Demo");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn timeline_clip_roundtrip() {
+        let dir = std::env::temp_dir().join("unibrow-test-timeline");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Tl").expect("create");
+        seed_board_sketch(&mut pkg).expect("seed");
+        let id = pkg.manifest.nodes[0].id.clone();
+        append_timeline_clip_for_node(&mut pkg, &id).expect("append");
+        assert_eq!(pkg.manifest.timeline.clips.len(), 3);
+        let clip_id = pkg.manifest.timeline.clips[2].id.clone();
+        remove_timeline_clip(&mut pkg, &clip_id).expect("remove");
+        assert_eq!(pkg.manifest.timeline.clips.len(), 2);
+        reorder_timeline_clip(&mut pkg, 1, 0).expect("reorder");
+        assert_eq!(pkg.manifest.timeline.clips[0].node_id, "node-2");
         let _ = fs::remove_dir_all(&dir);
     }
 

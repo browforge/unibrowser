@@ -33,7 +33,7 @@ pub fn session_file_path() -> Option<PathBuf> {
     config_dir().map(|d| d.join("session.json"))
 }
 
-fn config_dir() -> Option<PathBuf> {
+pub fn config_dir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
         return std::env::var("APPDATA")

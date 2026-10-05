@@ -10,6 +10,7 @@ interface PrefsDto {
   auto_save_interval_secs: number;
   download_preference: string;
   board_snap_to_grid: boolean;
+  crash_recovery_enabled: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -150,4 +151,40 @@ export async function renderSettings(root: HTMLElement) {
   boardSection.appendChild(boardHeading);
   boardSection.appendChild(boardRow);
   root.appendChild(boardSection);
+
+  const recoverySection = document.createElement("section");
+  recoverySection.className = "settings-section";
+  const recoveryHeading = document.createElement("h3");
+  recoveryHeading.textContent = t("settings.crashRecovery");
+  const recoveryRow = document.createElement("div");
+  recoveryRow.className = "settings-row";
+  const recoveryCb = document.createElement("input");
+  recoveryCb.type = "checkbox";
+  recoveryCb.id = "settings-crash-recovery";
+  recoveryCb.checked = prefs.crash_recovery_enabled;
+  recoveryCb.onchange = async () => {
+    await invoke("set_crash_recovery_enabled", { enabled: recoveryCb.checked });
+  };
+  const recoveryLabel = document.createElement("label");
+  recoveryLabel.htmlFor = recoveryCb.id;
+  recoveryLabel.textContent = t("settings.crashRecoveryLabel");
+  recoveryRow.appendChild(recoveryCb);
+  recoveryRow.appendChild(recoveryLabel);
+  recoverySection.appendChild(recoveryHeading);
+  recoverySection.appendChild(recoveryRow);
+  root.appendChild(recoverySection);
+
+  const aboutLink = document.createElement("p");
+  aboutLink.className = "viewer-note";
+  const link = document.createElement("button");
+  link.type = "button";
+  link.className = "recent-link";
+  link.textContent = t("about.open");
+  link.onclick = () => {
+    window.dispatchEvent(
+      new CustomEvent("unibrowser-navigate", { detail: "unibrowser://about" }),
+    );
+  };
+  aboutLink.appendChild(link);
+  root.appendChild(aboutLink);
 }

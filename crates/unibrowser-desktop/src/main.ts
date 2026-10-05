@@ -1023,6 +1023,14 @@ paletteQuery.addEventListener("input", async () => {
 
 window.addEventListener("resize", () => syncContentBounds());
 
+window.addEventListener("unibrowser-navigate", (event) => {
+  const detail = (event as CustomEvent<string>).detail;
+  if (detail) {
+    omnibox.value = detail;
+    void navigateOmnibox();
+  }
+});
+
 listen<DownloadEventPayload | string>("unibrowser-download", (event) => {
   const payload =
     typeof event.payload === "string"

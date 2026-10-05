@@ -26,7 +26,9 @@ use crate::state::FileCompareState;
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
 use crate::epub_preview::EpubChapterDto;
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
-use crate::webview::{content_webview_navigate, inject_page_font_scale, sync_content_bounds};
+use crate::webview::{
+    adjust_page_font_for_url, apply_persisted_web_font, content_webview_navigate, sync_content_bounds,
+};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -126,6 +128,14 @@ pub struct MidiSummaryDto {
 }
 
 #[derive(Serialize)]
+pub struct MidiNoteOnDto {
+    pub track_index: u16,
+    pub tick: u32,
+    pub note: u8,
+    pub velocity: u8,
+}
+
+#[derive(Serialize)]
 pub struct OpenFileTabDto {
     pub tab_index: usize,
     pub path: String,
@@ -153,6 +163,8 @@ pub struct DocumentViewerDto {
     pub midi_summary: Option<MidiSummaryDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub board_snap_to_grid: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub midi_note_preview: Option<Vec<MidiNoteOnDto>>,
 }
 
 #[derive(Serialize)]
@@ -342,6 +354,7 @@ fn document_viewer_dto(
             project_clips: clips,
             midi_summary: None,
             board_snap_to_grid: Some(prefs.board_snap_to_grid),
+            midi_note_preview: None,
         });
     }
     if doc.backend.backend_id() == crate::settings_stub::BACKEND_ID {
@@ -357,11 +370,38 @@ fn document_viewer_dto(
             project_clips: None,
             midi_summary: None,
             board_snap_to_grid: None,
+            midi_note_preview: None,
+        });
+    }
+    if doc.backend.backend_id() == crate::about_stub::BACKEND_ID {
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::about_stub::VIEWER_KIND.into(),
+            title: "About Unibrowser".into(),
+            pdf_scale: None,
+            pdf_page: None,
+            media_note: None,
+            project_nodes: None,
+            open_file_tabs: None,
+            project_clips: None,
+            midi_summary: None,
+            board_snap_to_grid: None,
+            midi_note_preview: None,
         });
     }
     if doc.backend.backend_id() == crate::midi_stub::BACKEND_ID {
         let midi = crate::midi_stub::try_midi_backend(&mut *doc.backend).expect("midi backend");
         let summary = midi.summary.clone();
+        let notes = midi
+            .note_preview
+            .iter()
+            .map(|n| MidiNoteOnDto {
+                track_index: n.track_index,
+                tick: n.tick,
+                note: n.note,
+                velocity: n.velocity,
+            })
+            .collect();
         let status = doc.backend.status_line();
         return Some(DocumentViewerDto {
             path: doc.path.clone(),
@@ -379,6 +419,7 @@ fn document_viewer_dto(
                 ticks_per_quarter: summary.ticks_per_quarter,
             }),
             board_snap_to_grid: None,
+            midi_note_preview: Some(notes),
         });
     }
     let viewer = match doc.backend.backend_id() {
@@ -420,6 +461,7 @@ fn document_viewer_dto(
         project_clips: None,
         midi_summary: None,
         board_snap_to_grid: None,
+        midi_note_preview: None,
     })
 }
 
@@ -1224,8 +1266,12 @@ pub fn execute_command(
         && (command_id == FONT_INCREASE_ID || command_id == FONT_DECREASE_ID)
     {
         let delta = if command_id == FONT_INCREASE_ID { 1 } else { -1 };
-        inject_page_font_scale(&app, delta)?;
-        return Ok(format!("Page font scale {:+}px (user style stub)", delta));
+        let url = match &tab.location {
+            BrowserLocation::Http { url } => url.clone(),
+            _ => return Err("not a web tab".into()),
+        };
+        let px = adjust_page_font_for_url(&app, &url, delta)?;
+        return Ok(format!("Page font {}px (saved for origin)", px));
     }
     state
         .registry
@@ -1251,6 +1297,9 @@ pub fn sync_text_document(
     backend.set_selection_range(selection_start, selection_end);
     let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
     stacks.record_change(&path, before, &backend.content);
+    if backend.dirty {
+        crate::crash_recovery::maybe_backup_dirty(&path, base_text::BACKEND_ID, &backend.content);
+    }
     Ok(())
 }
 
@@ -1442,6 +1491,7 @@ pub struct PreferencesDto {
     pub auto_save_interval_secs: u32,
     pub download_preference: String,
     pub board_snap_to_grid: bool,
+    pub crash_recovery_enabled: bool,
 }
 
 #[tauri::command]
@@ -1487,8 +1537,15 @@ pub fn sync_pdf_scale(scale: f32, state: State<AppState>) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn web_page_zoom(delta_px: i32, app: AppHandle) -> Result<(), String> {
-    inject_page_font_scale(&app, delta_px)
+pub fn web_page_zoom(delta_px: i32, app: AppHandle, state: State<AppState>) -> Result<(), String> {
+    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab().ok_or("no tab")?;
+    let url = match &tab.location {
+        BrowserLocation::Http { url } => url.clone(),
+        _ => return Err("not a web tab".into()),
+    };
+    adjust_page_font_for_url(&app, &url, delta_px)?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -1611,6 +1668,58 @@ pub fn set_unibrow_node_position(
 }
 
 #[tauri::command]
+pub fn add_unibrow_timeline_clip(
+    project_path: String,
+    node_id: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::append_timeline_clip_for_node(&mut package, &node_id)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(&state, &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn remove_unibrow_timeline_clip(
+    project_path: String,
+    clip_id: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::remove_timeline_clip(&mut package, &clip_id)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(&state, &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn reorder_unibrow_timeline_clips(
+    project_path: String,
+    from_index: usize,
+    to_index: usize,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::reorder_timeline_clip(&mut package, from_index, to_index)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(&state, &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+#[tauri::command]
 pub fn rename_unibrow_node(
     project_path: String,
     node_id: String,
@@ -1649,7 +1758,14 @@ pub fn get_preferences() -> PreferencesDto {
         auto_save_interval_secs: p.auto_save_interval_secs,
         download_preference: download_pref_to_str(&p.download_preference),
         board_snap_to_grid: p.board_snap_to_grid,
+        crash_recovery_enabled: p.crash_recovery_enabled,
     }
+}
+
+#[tauri::command]
+pub fn set_crash_recovery_enabled(enabled: bool) -> Result<PreferencesDto, String> {
+    crate::crash_recovery::set_enabled(enabled)?;
+    Ok(get_preferences())
 }
 
 #[tauri::command]
@@ -2048,6 +2164,9 @@ pub fn sync_svg_document(content: String, state: State<AppState>) -> Result<(), 
     backend.set_content(content);
     let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
     stacks.record_change(&path, before, &backend.content);
+    if backend.dirty {
+        crate::crash_recovery::maybe_backup_dirty(&path, base_svg::BACKEND_ID, &backend.content);
+    }
     Ok(())
 }
 
@@ -2184,6 +2303,7 @@ fn update_content_webview(app: &AppHandle, loc: &BrowserLocation) -> Result<(), 
     match loc {
         BrowserLocation::Http { url } => {
             content_webview_navigate(app, url)?;
+            apply_persisted_web_font(app, url)?;
         }
         _ => {
             content_webview_navigate(app, "about:blank")?;

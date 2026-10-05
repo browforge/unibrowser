@@ -57,6 +57,9 @@ pub struct Preferences {
     /// Snap board card positions to a 24px grid in `.unibrow` projects.
     #[serde(default)]
     pub board_snap_to_grid: bool,
+    /// Backup dirty text/SVG buffers under config dir (off by default).
+    #[serde(default)]
+    pub crash_recovery_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -82,6 +85,7 @@ impl Default for Preferences {
             pinned_locations: Vec::new(),
             download_preference: DownloadPreference::default(),
             board_snap_to_grid: false,
+            crash_recovery_enabled: false,
         }
     }
 }

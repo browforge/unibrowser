@@ -4,6 +4,7 @@ import { loadPdfJs, loadThree } from "./lazyModules";
 import { reportViewerZoom } from "./viewerZoom";
 import { copyText } from "./clipboard";
 import { renderSettings } from "./settingsPage";
+import { renderAbout } from "./aboutPage";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -57,6 +58,14 @@ export interface DocumentViewerDto {
   project_clips?: ProjectClipDto[];
   midi_summary?: MidiSummaryDto;
   board_snap_to_grid?: boolean;
+  midi_note_preview?: MidiNoteOnDto[];
+}
+
+export interface MidiNoteOnDto {
+  track_index: number;
+  tick: number;
+  note: number;
+  velocity: number;
 }
 
 export interface ProjectClipDto {
@@ -863,7 +872,7 @@ function renderMidi(viewer: DocumentViewerDto, root: HTMLElement) {
   }
   const dl = document.createElement("dl");
   dl.className = "midi-summary";
-  const addRow = (label: string, value: string) => {
+  const appendMidiRow = (label: string, value: string) => {
     const dt = document.createElement("dt");
     dt.textContent = label;
     const dd = document.createElement("dd");
@@ -871,14 +880,39 @@ function renderMidi(viewer: DocumentViewerDto, root: HTMLElement) {
     dl.appendChild(dt);
     dl.appendChild(dd);
   };
-  addRow("SMF format", String(summary.format));
-  addRow("Track count", String(summary.track_count));
-  addRow("Ticks per quarter note", String(summary.ticks_per_quarter));
+  appendMidiRow("SMF format", String(summary.format));
+  appendMidiRow("Track count", String(summary.track_count));
+  appendMidiRow("Ticks per quarter note", String(summary.ticks_per_quarter));
   root.appendChild(dl);
   const note = document.createElement("p");
   note.className = "viewer-note";
   note.textContent = "Native SMF header only — synthesis and encode are not wired yet.";
   root.appendChild(note);
+  const preview = viewer.midi_note_preview ?? [];
+  if (preview.length > 0) {
+    const h = document.createElement("h3");
+    h.textContent = "Note-on preview (scrub stub)";
+    root.appendChild(h);
+    const table = document.createElement("table");
+    table.className = "midi-note-table";
+    const head = document.createElement("tr");
+    ["Track", "Tick", "Note", "Velocity"].forEach((c) => {
+      const th = document.createElement("th");
+      th.textContent = c;
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    preview.forEach((ev) => {
+      const row = document.createElement("tr");
+      [ev.track_index, ev.tick, ev.note, ev.velocity].forEach((v) => {
+        const td = document.createElement("td");
+        td.textContent = String(v);
+        row.appendChild(td);
+      });
+      table.appendChild(row);
+    });
+    root.appendChild(table);
+  }
 }
 
 async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
@@ -1024,22 +1058,96 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   root.appendChild(viewport);
 
   const clips = viewer.project_clips ?? [];
-  if (clips.length > 0) {
-    const timeline = document.createElement("section");
-    timeline.className = "unibrow-timeline";
-    const tlTitle = document.createElement("h3");
-    tlTitle.textContent = "Timeline (stub)";
-    timeline.appendChild(tlTitle);
-    const ol = document.createElement("ol");
-    ol.className = "unibrow-timeline-clips";
-    for (const clip of clips) {
-      const li = document.createElement("li");
-      li.textContent = `${clip.start_sec.toFixed(1)}s · ${clip.duration_sec.toFixed(1)}s — ${clip.label} (${clip.node_id})`;
-      ol.appendChild(li);
+  const timeline = document.createElement("section");
+  timeline.className = "unibrow-timeline";
+  const tlTitle = document.createElement("h3");
+  tlTitle.textContent = "Timeline";
+  timeline.appendChild(tlTitle);
+  const timelineAddRow = document.createElement("div");
+  timelineAddRow.className = "unibrow-timeline-add";
+  const nodeSelect = document.createElement("select");
+  const boardNodes = viewer.project_nodes ?? [];
+  const ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = boardNodes.length ? "Add clip from asset…" : "Add board assets first";
+  nodeSelect.appendChild(ph);
+  boardNodes.forEach((n) => {
+    const opt = document.createElement("option");
+    opt.value = n.id;
+    opt.textContent = n.label;
+    nodeSelect.appendChild(opt);
+  });
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.textContent = "Add clip";
+  addBtn.disabled = boardNodes.length === 0;
+  addBtn.onclick = async () => {
+    if (!nodeSelect.value) {
+      return;
     }
-    timeline.appendChild(ol);
-    root.appendChild(timeline);
+    const data = await invoke("add_unibrow_timeline_clip", {
+      projectPath: viewer.path,
+      nodeId: nodeSelect.value,
+    });
+    window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+  };
+  timelineAddRow.appendChild(nodeSelect);
+  timelineAddRow.appendChild(addBtn);
+  timeline.appendChild(timelineAddRow);
+  const ol = document.createElement("ol");
+  ol.className = "unibrow-timeline-clips";
+  clips.forEach((clip, index) => {
+    const li = document.createElement("li");
+    li.className = "unibrow-timeline-clip";
+    const label = document.createElement("span");
+    label.textContent = `${clip.start_sec.toFixed(1)}s · ${clip.duration_sec.toFixed(1)}s — ${clip.label} (${clip.node_id})`;
+    li.appendChild(label);
+    const up = document.createElement("button");
+    up.type = "button";
+    up.textContent = "↑";
+    up.disabled = index === 0;
+    up.onclick = async () => {
+      const data = await invoke("reorder_unibrow_timeline_clips", {
+        projectPath: viewer.path,
+        fromIndex: index,
+        toIndex: index - 1,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    };
+    const down = document.createElement("button");
+    down.type = "button";
+    down.textContent = "↓";
+    down.disabled = index === clips.length - 1;
+    down.onclick = async () => {
+      const data = await invoke("reorder_unibrow_timeline_clips", {
+        projectPath: viewer.path,
+        fromIndex: index,
+        toIndex: index + 1,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    };
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.onclick = async () => {
+      const data = await invoke("remove_unibrow_timeline_clip", {
+        projectPath: viewer.path,
+        clipId: clip.id,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    };
+    li.appendChild(up);
+    li.appendChild(down);
+    li.appendChild(remove);
+    ol.appendChild(li);
+  });
+  if (!clips.length) {
+    const empty = document.createElement("li");
+    empty.textContent = "No clips yet.";
+    ol.appendChild(empty);
   }
+  timeline.appendChild(ol);
+  root.appendChild(timeline);
   const list = document.createElement("ul");
   list.className = "unibrow-nodes";
   const nodes = viewer.project_nodes ?? [];
@@ -1128,8 +1236,8 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     }
   };
   root.appendChild(drop);
-  const addRow = document.createElement("div");
-  addRow.className = "unibrow-add-row";
+  const assetAddRow = document.createElement("div");
+  assetAddRow.className = "unibrow-add-row";
   const select = document.createElement("select");
   const tabs = viewer.open_file_tabs ?? [];
   const placeholder = document.createElement("option");
@@ -1171,10 +1279,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     });
     window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
   };
-  addRow.appendChild(select);
-  addRow.appendChild(btn);
-  addRow.appendChild(pickBtn);
-  root.appendChild(addRow);
+  assetAddRow.appendChild(select);
+  assetAddRow.appendChild(btn);
+  assetAddRow.appendChild(pickBtn);
+  root.appendChild(assetAddRow);
   const note = document.createElement("p");
   note.className = "viewer-note";
   note.textContent = "Copies the file into project assets/ and updates project.json.";
@@ -1452,6 +1560,9 @@ export const documentViewer = {
           break;
         case "settings":
           await renderSettings(body);
+          break;
+        case "about":
+          renderAbout(body);
           break;
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;

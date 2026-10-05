@@ -4,7 +4,7 @@ use std::path::Path;
 
 use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
 
-use crate::smf::SmfSummary;
+use crate::smf::{NoteOnEvent, SmfSummary};
 
 pub const BACKEND_ID: &str = "base-midi-stub";
 pub const VIEWER_KIND: &str = "midi";
@@ -12,14 +12,17 @@ pub const VIEWER_KIND: &str = "midi";
 pub struct MidiStubBackend {
     pub path: String,
     pub summary: SmfSummary,
+    pub note_preview: Vec<NoteOnEvent>,
 }
 
 impl MidiStubBackend {
     pub fn from_path(path: &Path) -> Result<Self, String> {
         let summary = crate::smf::read_smf_summary(path)?;
+        let note_preview = crate::smf::read_note_on_events(path, 32).unwrap_or_default();
         Ok(Self {
             path: path.to_string_lossy().into_owned(),
             summary,
+            note_preview,
         })
     }
 }

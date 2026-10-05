@@ -213,6 +213,13 @@ impl AppState {
                 );
                 return (location, false, Some(doc));
             }
+            if page == "about" {
+                let doc = DocumentSession::new(
+                    crate::about_stub::LOCATION.to_string(),
+                    crate::about_stub::open(),
+                );
+                return (location, false, Some(doc));
+            }
         }
         (location, false, None)
     }

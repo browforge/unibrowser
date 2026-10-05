@@ -72,15 +72,28 @@ pub fn sync_content_bounds(
     Ok(())
 }
 
-/// Stub user-style hook for live-page font scaling ([ADR 0016] web lane).
-pub fn inject_page_font_scale(app: &AppHandle, delta_px: i32) -> Result<(), String> {
+/// Apply absolute root font size via injected user stylesheet.
+pub fn inject_page_font_px(app: &AppHandle, px: u8) -> Result<(), String> {
     ensure_content_webview(app)?;
     let wv = app.get_webview(CONTENT_LABEL).ok_or("content webview missing")?;
     let script = format!(
-        "(function(){{var s=document.getElementById('unibrowser-user-style');if(!s){{s=document.createElement('style');s.id='unibrowser-user-style';document.head.appendChild(s);}}var n=parseFloat(s.dataset.ubFont||'16');n=Math.min(96,Math.max(8,n+{delta}));s.dataset.ubFont=String(n);s.textContent='html{{font-size:'+n+'px!important}}';}})();",
-        delta = delta_px
+        "(function(){{try{{if(!document.head){{return;}}var s=document.getElementById('unibrowser-user-style');if(!s){{s=document.createElement('style');s.id='unibrowser-user-style';document.head.appendChild(s);}}s.dataset.ubFont='{px}';s.textContent='html{{font-size:{px}px!important;}}';}}catch(e){{}}}})();",
+        px = px
     );
     wv.eval(&script).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Adjust font for a page URL, persist per origin, and inject.
+pub fn adjust_page_font_for_url(app: &AppHandle, url: &str, delta: i32) -> Result<u8, String> {
+    let px = crate::web_font_prefs::adjust_origin_font_px(url, delta)?;
+    inject_page_font_px(app, px)?;
+    Ok(px)
+}
+
+pub fn apply_persisted_web_font(app: &AppHandle, url: &str) -> Result<(), String> {
+    let px = crate::web_font_prefs::get_origin_font_px(url);
+    inject_page_font_px(app, px)?;
     Ok(())
 }
 
