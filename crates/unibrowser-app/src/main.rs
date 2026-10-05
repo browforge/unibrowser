@@ -68,7 +68,7 @@ impl UnibrowserApp {
             toolbar.select_tab_for_mode(doc.backend.mode());
         }
 
-        let keybindings = KeybindingMap::load_merged(None);
+        let keybindings = KeybindingMap::load_merged(None, &[]);
         let status = format!(
             "{} for command palette",
             keybindings.palette_chord_display()

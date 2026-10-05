@@ -129,4 +129,49 @@ impl TabManager {
     pub fn reload_location(&self) -> Option<BrowserLocation> {
         self.active_tab().map(|t| t.location.clone())
     }
+
+    pub fn tab_count(&self) -> usize {
+        self.tabs.len()
+    }
+
+    /// Close tab at `index`; keeps at least one tab open.
+    pub fn close_tab(&mut self, index: usize) -> bool {
+        if self.tabs.len() <= 1 || index >= self.tabs.len() {
+            return false;
+        }
+        self.tabs.remove(index);
+        if self.active >= self.tabs.len() {
+            self.active = self.tabs.len() - 1;
+        } else if index < self.active {
+            self.active -= 1;
+        }
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use unibrowser_mod_api::BrowserLocation;
+
+    #[test]
+    fn open_close_tabs_never_empty() {
+        let home = BrowserLocation::File {
+            path: PathBuf::from("/tmp"),
+        };
+        let mut mgr = TabManager::new_with_home(home);
+        assert_eq!(mgr.tab_count(), 1);
+        for i in 0..8 {
+            mgr.open_tab(BrowserLocation::File {
+                path: PathBuf::from(format!("/tmp/f{}", i)),
+            });
+        }
+        assert_eq!(mgr.tab_count(), 9);
+        while mgr.tab_count() > 1 {
+            mgr.close_tab(mgr.active_index());
+        }
+        assert_eq!(mgr.tab_count(), 1);
+        assert!(mgr.active_tab().is_some());
+    }
 }

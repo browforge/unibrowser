@@ -145,9 +145,23 @@ impl KeybindingMap {
             .unwrap_or_else(|| DEFAULT_PALETTE_CHORD.to_string())
     }
 
-    /// Load engine defaults and merge `keybindings.json` when the path exists.
-    pub fn load_merged(user_file: Option<&Path>) -> Self {
+    /// VSIX chords apply only when the command is not already bound (defaults count).
+    pub fn merge_vsix_keybindings(
+        &mut self,
+        keybindings: &[(String, String)],
+    ) {
+        for (command_id, chord_str) in keybindings {
+            if self.by_command.contains_key(command_id) {
+                continue;
+            }
+            self.set_binding(command_id, chord_str);
+        }
+    }
+
+    /// Load engine defaults, optional VSIX chords, then `keybindings.json` (user wins).
+    pub fn load_merged(user_file: Option<&Path>, vsix_keybindings: &[(String, String)]) -> Self {
         let mut map = Self::with_defaults();
+        map.merge_vsix_keybindings(vsix_keybindings);
         if let Some(path) = user_file {
             if let Ok(data) = std::fs::read_to_string(path) {
                 if let Ok(file) = serde_json::from_str::<KeybindingFile>(&data) {
@@ -207,6 +221,24 @@ mod tests {
     fn user_override_replaces_palette() {
         let mut map = KeybindingMap::with_defaults();
         map.set_binding(COMMAND_PALETTE_TOGGLE, "Ctrl+K");
+        assert!(map.is_palette_chord(&KeyChord::parse("Ctrl+K").expect("parse")));
+    }
+
+    #[test]
+    fn vsix_fills_gap_user_overrides() {
+        let vsix = vec![(
+            COMMAND_PALETTE_TOGGLE.to_string(),
+            "Ctrl+Alt+V".to_string(),
+        )];
+        let mut map = KeybindingMap::load_merged(None, &vsix);
+        assert!(!map.is_palette_chord(&KeyChord::parse("Ctrl+Alt+V").expect("parse")));
+        let file = KeybindingFile {
+            bindings: HashMap::from([(
+                COMMAND_PALETTE_TOGGLE.to_string(),
+                "Ctrl+K".to_string(),
+            )]),
+        };
+        map.merge_user_file(&file);
         assert!(map.is_palette_chord(&KeyChord::parse("Ctrl+K").expect("parse")));
     }
 }

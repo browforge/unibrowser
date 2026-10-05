@@ -663,6 +663,18 @@ async function refreshRhaiMeta(
   }
 }
 
+async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
+  root.innerHTML = "";
+  const note = document.createElement("p");
+  note.className = "viewer-note";
+  note.textContent =
+    "EPUB preview stub — package opens; spine/HTML rendering will live in a future base-epub mod. DOCX remains view-first (Mammoth HTML); structured edit is on the roadmap.";
+  root.appendChild(note);
+  const path = document.createElement("code");
+  path.textContent = viewer.path;
+  root.appendChild(path);
+}
+
 async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
   await ensureAssetAllowed(viewer.path);
@@ -804,6 +816,9 @@ export const documentViewer = {
           break;
         case "svg":
           await renderSvg(viewer, body);
+          break;
+        case "epub":
+          await renderEpub(viewer, body);
           break;
         case "script":
           await renderScript(viewer, body);

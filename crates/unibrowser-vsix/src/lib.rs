@@ -1,14 +1,18 @@
 //! Install `.vsix` packages to the user config dir and import V1 metadata ([ADR 0014](../../docs/adr/0014-vsix-compatibility-layer.md)).
 
+use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use unibrowser_engine::CommandRegistry;
 use unibrowser_mod_api::CommandMeta;
 use zip::ZipArchive;
+
+pub const VSIX_HOST_REQUIRED_REASON: &str = "Needs extension host (ADR 0018)";
 
 #[derive(Debug, Error)]
 pub enum VsixError {
@@ -53,6 +57,12 @@ pub struct InstalledVsixRecord {
     pub license: Option<String>,
     pub install_dir: String,
     pub contributions: VsixContributions,
+    #[serde(default = "default_enabled")]
+    pub enabled: bool,
+}
+
+fn default_enabled() -> bool {
+    true
 }
 
 pub fn extensions_root(config_dir: &Path) -> PathBuf {
@@ -115,12 +125,59 @@ pub fn install_vsix_bytes(
         license: package_json.license.clone().or_else(|| license_hint.map(str::to_string)),
         install_dir: install_dir.to_string_lossy().into_owned(),
         contributions,
+        enabled: true,
     };
+    write_install_record(&install_dir, &record)?;
+    Ok(record)
+}
+
+pub fn write_install_record(install_dir: &Path, record: &InstalledVsixRecord) -> Result<(), VsixError> {
     fs::write(
         install_dir.join("install.json"),
-        serde_json::to_string_pretty(&record)?,
+        serde_json::to_string_pretty(record)?,
     )?;
-    Ok(record)
+    Ok(())
+}
+
+pub fn set_extension_enabled(root: &Path, extension_id: &str, enabled: bool) -> Result<(), VsixError> {
+    for rec in list_installed(root)? {
+        if rec.extension_id != extension_id {
+            continue;
+        }
+        let dir = PathBuf::from(&rec.install_dir);
+        let mut updated = rec;
+        updated.enabled = enabled;
+        write_install_record(&dir, &updated)?;
+        return Ok(());
+    }
+    Err(VsixError::Msg(format!("extension not installed: {}", extension_id)))
+}
+
+pub fn uninstall_extension(root: &Path, extension_id: &str) -> Result<(), VsixError> {
+    for rec in list_installed(root)? {
+        if rec.extension_id != extension_id {
+            continue;
+        }
+        let dir = PathBuf::from(&rec.install_dir);
+        if dir.is_dir() {
+            fs::remove_dir_all(&dir)?;
+        }
+        return Ok(());
+    }
+    Err(VsixError::Msg(format!("extension not installed: {}", extension_id)))
+}
+
+pub fn enabled_keybindings(installed: &[InstalledVsixRecord]) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for rec in installed {
+        if !rec.enabled {
+            continue;
+        }
+        for kb in &rec.contributions.keybindings {
+            out.push((kb.command.clone(), kb.key.clone()));
+        }
+    }
+    out
 }
 
 pub fn install_vsix_file(root: &Path, vsix_path: &Path) -> Result<InstalledVsixRecord, VsixError> {
@@ -128,10 +185,23 @@ pub fn install_vsix_file(root: &Path, vsix_path: &Path) -> Result<InstalledVsixR
     install_vsix_bytes(root, &bytes, None)
 }
 
-pub fn register_all_contributions(registry: &mut CommandRegistry, root: &Path) {
+pub fn register_enabled_contributions(
+    registry: &mut CommandRegistry,
+    root: &Path,
+    host_command_ids: &Mutex<HashSet<String>>,
+) {
     let installed = list_installed(root).unwrap_or_default();
-    for rec in installed {
-        register_contributions(registry, &rec.contributions);
+    if let Ok(mut ids) = host_command_ids.lock() {
+        ids.clear();
+        for rec in installed {
+            if !rec.enabled {
+                continue;
+            }
+            register_contributions(registry, &rec.contributions);
+            for cmd in &rec.contributions.commands {
+                ids.insert(cmd.command.clone());
+            }
+        }
     }
 }
 
@@ -312,6 +382,17 @@ mod tests {
         zip.write_all(b"# demo").unwrap();
         let finished = zip.finish().unwrap().into_inner();
         finished
+    }
+
+    #[test]
+    fn enabled_keybindings_skips_disabled() {
+        let dir = std::env::temp_dir().join("vsix-kb-test");
+        let _ = fs::remove_dir_all(&dir);
+        let rec = install_vsix_bytes(&dir, &sample_vsix_bytes(), None).expect("install");
+        set_extension_enabled(&dir, &rec.extension_id, false).expect("disable");
+        let list = list_installed(&dir).expect("list");
+        assert!(enabled_keybindings(&list).is_empty());
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

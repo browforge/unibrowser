@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -19,34 +19,55 @@ pub struct AppState {
     pub tabs: Mutex<TabManager>,
     pub cwd: PathBuf,
     pub mods_loaded: String,
-    pub keybindings: KeybindingMap,
+    pub keybindings: Mutex<KeybindingMap>,
     pub command_manager: Mutex<CommandManagerState>,
+    pub vsix_host_commands: Mutex<HashSet<String>>,
     pub _mod_host: ModHost,
+}
+
+fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
+    [
+        ("base-files", base_files::register as ModRegisterFn),
+        ("base-web", base_web::register as ModRegisterFn),
+        ("base-text", base_text::register as ModRegisterFn),
+        ("base-png", base_png::register as ModRegisterFn),
+        ("base-svg", base_svg::register as ModRegisterFn),
+        ("base-docx", base_docx::register as ModRegisterFn),
+        ("base-pdf", base_pdf::register as ModRegisterFn),
+        ("base-dxf", base_dxf::register as ModRegisterFn),
+        ("base-js", base_js::register as ModRegisterFn),
+        ("base-video", base_video::register as ModRegisterFn),
+        ("base-audio", base_audio::register as ModRegisterFn),
+        ("toy-markdown", toy_markdown::register as ModRegisterFn),
+    ]
+    .into_iter()
+    .collect()
+}
+
+pub fn vsix_keybinding_pairs() -> Vec<(String, String)> {
+    let root = crate::config::vsix_extensions_dir();
+    let root = match root {
+        Some(r) => r,
+        None => return Vec::new(),
+    };
+    let installed = unibrowser_vsix::list_installed(&root).unwrap_or_default();
+    unibrowser_vsix::enabled_keybindings(&installed)
+}
+
+pub fn load_merged_keybindings() -> KeybindingMap {
+    let vsix = vsix_keybinding_pairs();
+    KeybindingMap::load_merged(keybindings_file_path().as_deref(), &vsix)
 }
 
 impl AppState {
     pub fn new() -> Self {
         let mut registry = CommandRegistry::with_builtins();
-        let bundled: HashMap<&str, ModRegisterFn> = [
-            ("base-files", base_files::register as ModRegisterFn),
-            ("base-web", base_web::register as ModRegisterFn),
-            ("base-text", base_text::register as ModRegisterFn),
-            ("base-png", base_png::register as ModRegisterFn),
-            ("base-svg", base_svg::register as ModRegisterFn),
-            ("base-docx", base_docx::register as ModRegisterFn),
-            ("base-pdf", base_pdf::register as ModRegisterFn),
-            ("base-dxf", base_dxf::register as ModRegisterFn),
-            ("base-js", base_js::register as ModRegisterFn),
-            ("base-video", base_video::register as ModRegisterFn),
-            ("base-audio", base_audio::register as ModRegisterFn),
-            ("toy-markdown", toy_markdown::register as ModRegisterFn),
-        ]
-        .into_iter()
-        .collect();
+        let bundled = bundled_mod_registers();
         let mod_host =
             ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled).expect("mods");
+        let vsix_host_commands = Mutex::new(HashSet::new());
         if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
-            unibrowser_vsix::register_all_contributions(&mut registry, &vsix_root);
+            unibrowser_vsix::register_enabled_contributions(&mut registry, &vsix_root, &vsix_host_commands);
         }
         let mods_loaded = mod_host.load_order.join(", ");
         let cwd = std::env::var("HOME")
@@ -59,7 +80,7 @@ impl AppState {
         if let Some(tab) = tab_mgr.active_tab_mut() {
             tab.is_directory = cwd.is_dir();
         }
-        let keybindings = KeybindingMap::load_merged(keybindings_file_path().as_deref());
+        let keybindings = Mutex::new(load_merged_keybindings());
         let cm_file = load_command_manager_file(toolbars_file_path().as_deref());
         let command_manager = Mutex::new(
             CommandManagerState::from_file(&cm_file, unibrowser_mod_api::CommandContext::Browse),
@@ -72,7 +93,29 @@ impl AppState {
             mods_loaded,
             keybindings,
             command_manager,
+            vsix_host_commands,
             _mod_host: mod_host,
+        }
+    }
+
+    pub fn refresh_vsix_catalog(&self) {
+        let mut registry = CommandRegistry::with_builtins();
+        let bundled = bundled_mod_registers();
+        for register in bundled.values() {
+            register(&mut registry);
+        }
+        if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
+            unibrowser_vsix::register_enabled_contributions(
+                &mut registry,
+                &vsix_root,
+                &self.vsix_host_commands,
+            );
+        }
+        if let Ok(mut guard) = self.registry.lock() {
+            *guard = registry;
+        }
+        if let Ok(mut kb) = self.keybindings.lock() {
+            *kb = load_merged_keybindings();
         }
     }
 
@@ -190,6 +233,7 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
         "mp4" | "webm" => base_video::open_file(path).ok(),
         "wav" | "mid" | "midi" => base_audio::open_file(path).ok(),
+        "epub" => Some(crate::epub_stub::open_file(path)),
         _ => base_text::open_file(path).ok(),
     };
     backend.map(|b| DocumentSession::new(path_str, b))

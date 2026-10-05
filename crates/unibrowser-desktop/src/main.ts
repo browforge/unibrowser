@@ -49,6 +49,7 @@ interface InstalledVsixDto {
   license: string | null;
   command_count: number;
   keybinding_count: number;
+  enabled: boolean;
 }
 
 interface TabContentDto {
@@ -279,9 +280,31 @@ async function refreshInstalledVsix(container: HTMLElement) {
       return;
     }
     list.forEach((ext) => {
-      const row = document.createElement("p");
-      row.className = "viewer-note";
-      row.textContent = `${ext.extension_id} v${ext.version} — ${ext.command_count} commands, ${ext.keybinding_count} keybindings (metadata)`;
+      const row = document.createElement("div");
+      row.className = "vsix-installed-row";
+      const label = document.createElement("span");
+      label.textContent = `${ext.extension_id} v${ext.version} — ${ext.command_count} cmd / ${ext.keybinding_count} keys`;
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.textContent = ext.enabled ? "Disable" : "Enable";
+      toggle.onclick = async () => {
+        await invoke("set_vsix_extension_enabled", {
+          extensionId: ext.extension_id,
+          enabled: !ext.enabled,
+        });
+        await refreshInstalledVsix(container);
+      };
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "Uninstall";
+      remove.onclick = async () => {
+        await invoke("uninstall_vsix_extension", { extensionId: ext.extension_id });
+        statusLine.textContent = `Removed ${ext.extension_id}`;
+        await refreshInstalledVsix(container);
+      };
+      row.appendChild(label);
+      row.appendChild(toggle);
+      row.appendChild(remove);
       container.appendChild(row);
     });
   } catch {

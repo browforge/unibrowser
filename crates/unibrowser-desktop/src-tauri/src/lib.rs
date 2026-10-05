@@ -1,12 +1,15 @@
 mod commands;
 mod config;
 mod downloads;
+mod epub_stub;
 mod mod_portal;
 mod open_vsx;
 mod preferences;
 mod project_backend;
 mod rhai_host;
 mod state;
+
+pub use state::open_file_document;
 mod webview;
 
 use state::AppState;
@@ -76,6 +79,8 @@ pub fn run() {
             commands::install_vsix_from_path,
             commands::download_install_vsix,
             commands::pick_and_install_vsix,
+            commands::set_vsix_extension_enabled,
+            commands::uninstall_vsix_extension,
             commands::sync_svg_document,
             commands::search_open_vsx_catalog,
             rhai_host::describe_rhai_script,

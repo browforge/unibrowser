@@ -228,6 +228,7 @@ fn document_viewer_dto(
         base_video::BACKEND_ID => base_video::VIEWER_KIND,
         base_audio::BACKEND_ID => base_audio::VIEWER_KIND,
         base_svg::BACKEND_ID => base_svg::VIEWER_KIND,
+        crate::epub_stub::BACKEND_ID => crate::epub_stub::VIEWER_KIND,
         _ => return None,
     };
     let (pdf_scale, pdf_page) = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
@@ -315,7 +316,16 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         mods_loaded: state.mods_loaded.clone(),
         status: document_status
             .clone()
-            .unwrap_or_else(|| format!("{} for command palette", state.keybindings.palette_chord_display())),
+            .unwrap_or_else(|| {
+                format!(
+                    "{} for command palette",
+                    state
+                        .keybindings
+                        .lock()
+                        .map(|k| k.palette_chord_display())
+                        .unwrap_or_else(|_| "Ctrl+Shift+P".into())
+                )
+            }),
         directory_entries,
         document_status,
         text_document,
@@ -339,7 +349,7 @@ fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPo
             };
             return Some(ModPortalDto {
                 title: "Mod portal".into(),
-                message: "Install support for formats you need. Catalog: Open VSX + native .ubmod (stub).".into(),
+                message: "Install support for formats you need. Open VSX search + VSIX install (V1 command metadata; no extension host).".into(),
                 suggestions,
                 sideload_hint: "Install from file… (.vsix, .ubmod) — always allowed.".into(),
             });
@@ -681,8 +691,8 @@ pub struct KeyChordInput {
 
 #[tauri::command]
 pub fn get_keybindings(state: State<AppState>) -> Result<Vec<KeybindingDto>, String> {
-    Ok(state
-        .keybindings
+    let kb = state.keybindings.lock().map_err(|e| e.to_string())?;
+    Ok(kb
         .bindings_for_display()
         .into_iter()
         .map(|(command_id, chord)| KeybindingDto {
@@ -705,10 +715,8 @@ pub fn dispatch_key_chord(
         meta: chord.meta,
         key: chord.key.to_ascii_lowercase(),
     };
-    Ok(state
-        .keybindings
-        .command_for_chord(&key)
-        .map(|s| s.to_string()))
+    let kb = state.keybindings.lock().map_err(|e| e.to_string())?;
+    Ok(kb.command_for_chord(&key).map(|s| s.to_string()))
 }
 
 #[tauri::command]
@@ -727,13 +735,30 @@ pub fn palette_search(query: String, state: State<AppState>) -> Result<Vec<Palet
             capabilities: unibrowser_mod_api::Capabilities::default(),
         });
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
+    let host_cmds = state
+        .vsix_host_commands
+        .lock()
+        .map_err(|e| e.to_string())?;
     Ok(search_commands(&registry, &ctx, &query)
         .into_iter()
-        .map(|e| PaletteEntryDto {
-            command_id: e.command_id,
-            title: e.title,
-            enabled: e.enablement.is_enabled(),
-            reason: e.enablement.disabled_reason().map(String::from),
+        .map(|e| {
+            let (enabled, reason) = if host_cmds.contains(&e.command_id) {
+                (
+                    false,
+                    Some(unibrowser_vsix::VSIX_HOST_REQUIRED_REASON.to_string()),
+                )
+            } else {
+                (
+                    e.enablement.is_enabled(),
+                    e.enablement.disabled_reason().map(String::from),
+                )
+            };
+            PaletteEntryDto {
+                command_id: e.command_id,
+                title: e.title,
+                enabled,
+                reason,
+            }
         })
         .collect())
 }
@@ -1007,6 +1032,7 @@ pub struct InstalledVsixDto {
     pub license: Option<String>,
     pub command_count: usize,
     pub keybinding_count: usize,
+    pub enabled: bool,
 }
 
 fn map_installed(rec: unibrowser_vsix::InstalledVsixRecord) -> InstalledVsixDto {
@@ -1018,6 +1044,7 @@ fn map_installed(rec: unibrowser_vsix::InstalledVsixRecord) -> InstalledVsixDto 
         license: rec.license,
         command_count: rec.contributions.commands.len(),
         keybinding_count: rec.contributions.keybindings.len(),
+        enabled: rec.enabled,
     }
 }
 
@@ -1029,9 +1056,29 @@ fn install_vsix_bytes_and_register(
     let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
     let rec = unibrowser_vsix::install_vsix_bytes(&root, bytes, license)
         .map_err(|e| e.to_string())?;
-    let mut registry = state.registry.lock().map_err(|e| e.to_string())?;
-    unibrowser_vsix::register_contributions(&mut registry, &rec.contributions);
+    state.refresh_vsix_catalog();
     Ok(map_installed(rec))
+}
+
+#[tauri::command]
+pub fn set_vsix_extension_enabled(
+    extension_id: String,
+    enabled: bool,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
+    unibrowser_vsix::set_extension_enabled(&root, &extension_id, enabled)
+        .map_err(|e| e.to_string())?;
+    state.refresh_vsix_catalog();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn uninstall_vsix_extension(extension_id: String, state: State<AppState>) -> Result<(), String> {
+    let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
+    unibrowser_vsix::uninstall_extension(&root, &extension_id).map_err(|e| e.to_string())?;
+    state.refresh_vsix_catalog();
+    Ok(())
 }
 
 #[tauri::command]

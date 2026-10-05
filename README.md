@@ -10,10 +10,10 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 | --- | --- | --- |
 | **Browser** | Tabs, omnibox (`file://` + `https://`), back/forward/reload, home dir browse | WebView2/GTK download hooks |
 | **Editors** | Monaco text + save; **Markdown preview** toggle on `.md` | Full WYSIWYG markdown |
-| **Viewers** | PDF (page + thumbs), DOCX HTML, DXF (layers, pan/zoom), video/audio, Rhai scripts, **SVG source + preview + save** | PDF raster thumbs; DXF NURBS |
+| **Viewers** | PDF (page + thumbs), DOCX HTML (view; edit via native model later), DXF (layers, pan/zoom), video/audio, Rhai scripts, **SVG source + preview + save**, **EPUB stub** | PDF raster thumbs; DXF NURBS; EPUB spine |
 | **Projects** | `.unibrow` create/open, add/rename/remove assets (rename renames file on disk), drag-drop | Cloud sync |
 | **Commands** | Command Manager tabs, floating bars (drag commands), palette, keybindings file | Full audio/image toolbars |
-| **Mods** | Bundled `base-*` mods; **Mod portal** with Open VSX search (opt-in network), **VSIX install** to config dir, V1 command metadata in palette (no extension host) | VSIX JS execution, `.ubmod` store |
+| **Mods** | Bundled `base-*` mods; **Mod portal** with Open VSX search/install, VSIX enable/disable/uninstall, V1 commands + keybindings (user `keybindings.json` wins), palette shows **needs extension host** | VSIX JS execution, `.ubmod` store |
 | **Media** | ffprobe; optional **LGPL sidecar** pool (`UNIBROWSER_MEDIA_USE_SIDECAR=1`) | Bundled ffmpeg in installer |
 | **Scripting** | Rhai sandbox, per-script allowlist, browse-only palette without doc | Script panel UX polish |
 

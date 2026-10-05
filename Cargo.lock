@@ -5284,6 +5284,7 @@ dependencies = [
  "tauri-plugin-opener",
  "toy-markdown",
  "unibrowser-engine",
+ "unibrowser-extension-host",
  "unibrowser-media",
  "unibrowser-mod-api",
  "unibrowser-mod-host",
@@ -5302,6 +5303,13 @@ dependencies = [
  "serde",
  "serde_json",
  "unibrowser-mod-api",
+]
+
+[[package]]
+name = "unibrowser-extension-host"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
