@@ -1,9 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
+import enNz from "./i18n/en-NZ.json";
 import { t } from "./i18n";
+
+type I18nKey = keyof typeof enNz;
 import { applyThemeToDocument, loadThemePreference } from "./theme";
 import { configureAutoSave } from "./autoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
+
+interface NtpSectionsDto {
+  show_hero: boolean;
+  show_actions: boolean;
+  show_browse: boolean;
+  show_recent: boolean;
+}
 
 interface PrefsDto {
   theme: string;
@@ -13,6 +23,8 @@ interface PrefsDto {
   download_preference: string;
   board_snap_to_grid: boolean;
   crash_recovery_enabled: boolean;
+  ntp_sections: NtpSectionsDto;
+  advanced_webview_devtools: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -193,6 +205,86 @@ export async function renderSettings(root: HTMLElement) {
   workspaceSection.appendChild(workspaceBody);
   void appendWorkspaceLayoutPanel(workspaceBody);
   root.appendChild(workspaceSection);
+
+  const ntpSection = document.createElement("section");
+  ntpSection.className = "settings-section";
+  const ntpHeading = document.createElement("h3");
+  ntpHeading.textContent = t("settings.ntp");
+  ntpSection.appendChild(ntpHeading);
+  const ntpLead = document.createElement("p");
+  ntpLead.className = "viewer-note";
+  ntpLead.textContent = t("settings.ntpLead");
+  ntpSection.appendChild(ntpLead);
+  const ntpRows: { id: string; key: keyof NtpSectionsDto; labelKey: I18nKey }[] = [
+    { id: "ntp-hero", key: "show_hero", labelKey: "settings.ntpHero" as I18nKey },
+    { id: "ntp-actions", key: "show_actions", labelKey: "settings.ntpActions" as I18nKey },
+    { id: "ntp-browse", key: "show_browse", labelKey: "settings.ntpBrowse" as I18nKey },
+    { id: "ntp-recent", key: "show_recent", labelKey: "settings.ntpRecent" as I18nKey },
+  ];
+  const ntpState: NtpSectionsDto = { ...prefs.ntp_sections };
+  const persistNtp = async () => {
+    const next = await invoke<PrefsDto>("set_ntp_sections", { sections: ntpState });
+    Object.assign(ntpState, next.ntp_sections);
+  };
+  ntpRows.forEach((row) => {
+    const line = document.createElement("div");
+    line.className = "settings-row";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = row.id;
+    cb.checked = ntpState[row.key];
+    cb.onchange = () => {
+      ntpState[row.key] = cb.checked;
+      void persistNtp();
+    };
+    const label = document.createElement("label");
+    label.htmlFor = row.id;
+    label.textContent = t(row.labelKey);
+    line.appendChild(cb);
+    line.appendChild(label);
+    ntpSection.appendChild(line);
+  });
+  root.appendChild(ntpSection);
+
+  const advancedSection = document.createElement("details");
+  advancedSection.className = "settings-section settings-advanced";
+  const advancedSummary = document.createElement("summary");
+  advancedSummary.textContent = t("settings.advanced");
+  advancedSection.appendChild(advancedSummary);
+  const devtoolsRow = document.createElement("div");
+  devtoolsRow.className = "settings-row";
+  const devtoolsCb = document.createElement("input");
+  devtoolsCb.type = "checkbox";
+  devtoolsCb.id = "settings-webview-devtools";
+  devtoolsCb.checked = prefs.advanced_webview_devtools;
+  devtoolsCb.onchange = async () => {
+    await invoke<PrefsDto>("set_advanced_webview_devtools", { enabled: devtoolsCb.checked });
+  };
+  const devtoolsLabel = document.createElement("label");
+  devtoolsLabel.htmlFor = devtoolsCb.id;
+  devtoolsLabel.textContent = t("settings.webviewDevtools");
+  const devtoolsNote = document.createElement("p");
+  devtoolsNote.className = "viewer-note";
+  devtoolsNote.textContent = t("settings.webviewDevtoolsNote");
+  devtoolsRow.appendChild(devtoolsCb);
+  devtoolsRow.appendChild(devtoolsLabel);
+  advancedSection.appendChild(devtoolsRow);
+  advancedSection.appendChild(devtoolsNote);
+  root.appendChild(advancedSection);
+
+  const keysLink = document.createElement("p");
+  keysLink.className = "viewer-note";
+  const keysBtn = document.createElement("button");
+  keysBtn.type = "button";
+  keysBtn.className = "recent-link";
+  keysBtn.textContent = t("keys.open");
+  keysBtn.onclick = () => {
+    window.dispatchEvent(
+      new CustomEvent("unibrowser-navigate", { detail: "unibrowser://keys" }),
+    );
+  };
+  keysLink.appendChild(keysBtn);
+  root.appendChild(keysLink);
 
   const windowSection = document.createElement("section");
   windowSection.className = "settings-section";

@@ -619,6 +619,39 @@ body {
   list-style: none;
 }
 
+.keys-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.keys-table td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #333;
+  vertical-align: top;
+}
+
+.keys-chord {
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
+  color: #c8c8d0;
+  width: 12rem;
+}
+
+[data-theme="light"] .keys-table td {
+  border-bottom-color: #ddd;
+}
+
+[data-theme="light"] .keys-chord {
+  color: #333;
+}
+
+.settings-advanced summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
 .web-zoom-toolbar {
   display: flex;
   gap: 0.35rem;

@@ -15,6 +15,7 @@ mod smf;
 mod midi_stub;
 mod settings_stub;
 mod about_stub;
+mod keys_stub;
 mod web_font_prefs;
 mod crash_recovery;
 mod document_limits;
@@ -115,6 +116,8 @@ pub fn run() {
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
             commands::get_preferences,
+            commands::set_ntp_sections,
+            commands::set_advanced_webview_devtools,
             commands::set_auto_save_settings,
             commands::set_download_preference,
             commands::set_board_snap_to_grid,

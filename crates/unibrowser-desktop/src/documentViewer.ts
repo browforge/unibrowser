@@ -6,6 +6,7 @@ import { bindPreviewLinks } from "./previewLinks";
 import { copyText } from "./clipboard";
 import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
+import { renderKeys } from "./keysPage";
 import { emptyStateBlock } from "./emptyState";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
@@ -1960,6 +1961,9 @@ export const documentViewer = {
           break;
         case "about":
           await renderAbout(body);
+          break;
+        case "keys":
+          await renderKeys(body);
           break;
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;

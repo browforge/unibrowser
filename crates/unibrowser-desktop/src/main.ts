@@ -97,6 +97,12 @@ interface TabContentDto {
   diff_view: DiffViewDto | null;
   pinned_locations: PinnedLocationDto[];
   chrome_notice?: string | null;
+  ntp_sections: {
+    show_hero: boolean;
+    show_actions: boolean;
+    show_browse: boolean;
+    show_recent: boolean;
+  };
 }
 
 interface DownloadEventPayload {
@@ -657,6 +663,12 @@ async function applyState(data: TabContentDto) {
       entries: data.directory_entries,
       recent: data.recent_files ?? [],
       browsePath: data.browse_folder_path,
+      sections: data.ntp_sections ?? {
+        show_hero: true,
+        show_actions: true,
+        show_browse: true,
+        show_recent: true,
+      },
       onOpenPath: (path) =>
         invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d)),
       onNewProject: () => document.getElementById("btn-new-project")!.click(),

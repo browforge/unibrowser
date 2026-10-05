@@ -203,6 +203,22 @@ mod tests {
     }
 
     #[test]
+    fn stress_open_twenty_tabs() {
+        let home = BrowserLocation::File {
+            path: PathBuf::from("/tmp"),
+        };
+        let mut mgr = TabManager::new_with_home(home);
+        assert_eq!(mgr.tab_count(), 1);
+        for i in 0..19 {
+            mgr.open_tab(BrowserLocation::File {
+                path: PathBuf::from(format!("/tmp/stress-tab-{}", i)),
+            });
+        }
+        assert_eq!(mgr.tab_count(), 20);
+        assert!(mgr.active_tab().is_some());
+    }
+
+    #[test]
     fn open_close_tabs_never_empty() {
         let home = BrowserLocation::File {
             path: PathBuf::from("/tmp"),

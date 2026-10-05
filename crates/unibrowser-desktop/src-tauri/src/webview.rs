@@ -138,5 +138,24 @@ pub fn sync_content_webview_for_window(
             content_webview_navigate(app, window_label, "about:blank")?;
         }
     }
+    if crate::preferences::load_preferences().advanced_webview_devtools {
+        let _ = set_content_webview_devtools(app, window_label, true);
+    }
+    Ok(())
+}
+
+pub fn set_content_webview_devtools(
+    app: &AppHandle,
+    window_label: &str,
+    open: bool,
+) -> Result<(), String> {
+    ensure_content_webview(app, window_label)?;
+    let label = content_label(window_label);
+    let wv = app.get_webview(&label).ok_or("content webview missing")?;
+    if open {
+        wv.open_devtools();
+    } else {
+        wv.close_devtools();
+    }
     Ok(())
 }

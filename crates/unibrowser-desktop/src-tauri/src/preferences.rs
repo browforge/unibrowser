@@ -60,6 +60,11 @@ pub struct Preferences {
     /// Backup dirty text/SVG buffers under config dir (off by default).
     #[serde(default)]
     pub crash_recovery_enabled: bool,
+    #[serde(default)]
+    pub ntp_sections: NtpSectionPrefs,
+    /// When true, embedded https webviews may open WebKit/Chromium devtools (advanced).
+    #[serde(default)]
+    pub advanced_webview_devtools: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -71,6 +76,34 @@ pub struct PinnedLocation {
 
 fn default_auto_save_interval() -> u32 {
     120
+}
+
+fn default_true() -> bool {
+    true
+}
+
+/// Which blocks appear on the new tab page (`unibrowser://home`).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NtpSectionPrefs {
+    #[serde(default = "default_true")]
+    pub show_hero: bool,
+    #[serde(default = "default_true")]
+    pub show_actions: bool,
+    #[serde(default = "default_true")]
+    pub show_browse: bool,
+    #[serde(default = "default_true")]
+    pub show_recent: bool,
+}
+
+impl Default for NtpSectionPrefs {
+    fn default() -> Self {
+        Self {
+            show_hero: true,
+            show_actions: true,
+            show_browse: true,
+            show_recent: true,
+        }
+    }
 }
 
 impl Default for Preferences {
@@ -86,6 +119,8 @@ impl Default for Preferences {
             download_preference: DownloadPreference::default(),
             board_snap_to_grid: false,
             crash_recovery_enabled: false,
+            ntp_sections: NtpSectionPrefs::default(),
+            advanced_webview_devtools: false,
         }
     }
 }

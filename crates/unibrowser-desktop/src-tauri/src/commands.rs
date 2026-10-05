@@ -201,6 +201,25 @@ pub struct TabContentDto {
     pub pinned_locations: Vec<PinnedLocationDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chrome_notice: Option<String>,
+    pub ntp_sections: NtpSectionsDto,
+}
+
+#[derive(Serialize)]
+pub struct NtpSectionsDto {
+    pub show_hero: bool,
+    pub show_actions: bool,
+    pub show_browse: bool,
+    pub show_recent: bool,
+}
+
+fn ntp_sections_dto(prefs: &crate::preferences::Preferences) -> NtpSectionsDto {
+    let s = &prefs.ntp_sections;
+    NtpSectionsDto {
+        show_hero: s.show_hero,
+        show_actions: s.show_actions,
+        show_browse: s.show_browse,
+        show_recent: s.show_recent,
+    }
 }
 
 #[derive(Serialize)]
@@ -404,6 +423,22 @@ fn document_viewer_dto(
             path: doc.path.clone(),
             viewer: crate::about_stub::VIEWER_KIND.into(),
             title: "About Unibrowser".into(),
+            pdf_scale: None,
+            pdf_page: None,
+            media_note: None,
+            project_nodes: None,
+            open_file_tabs: None,
+            project_clips: None,
+            midi_summary: None,
+            board_snap_to_grid: None,
+            midi_note_preview: None,
+        });
+    }
+    if doc.backend.backend_id() == crate::keys_stub::BACKEND_ID {
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::keys_stub::VIEWER_KIND.into(),
+            title: "Keyboard shortcuts".into(),
             pdf_scale: None,
             pdf_page: None,
             media_note: None,
@@ -692,6 +727,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         diff_view,
         pinned_locations,
         chrome_notice,
+        ntp_sections: ntp_sections_dto(&prefs),
     })
 }
 
@@ -1636,6 +1672,8 @@ pub struct PreferencesDto {
     pub download_preference: String,
     pub board_snap_to_grid: bool,
     pub crash_recovery_enabled: bool,
+    pub ntp_sections: NtpSectionsDto,
+    pub advanced_webview_devtools: bool,
 }
 
 #[tauri::command]
@@ -1987,7 +2025,43 @@ fn preferences_dto() -> PreferencesDto {
         download_preference: download_pref_to_str(&p.download_preference),
         board_snap_to_grid: p.board_snap_to_grid,
         crash_recovery_enabled: p.crash_recovery_enabled,
+        ntp_sections: ntp_sections_dto(&p),
+        advanced_webview_devtools: p.advanced_webview_devtools,
     }
+}
+
+#[derive(serde::Deserialize)]
+pub struct NtpSectionsInput {
+    pub show_hero: bool,
+    pub show_actions: bool,
+    pub show_browse: bool,
+    pub show_recent: bool,
+}
+
+#[tauri::command]
+pub fn set_ntp_sections(sections: NtpSectionsInput) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.ntp_sections = crate::preferences::NtpSectionPrefs {
+        show_hero: sections.show_hero,
+        show_actions: sections.show_actions,
+        show_browse: sections.show_browse,
+        show_recent: sections.show_recent,
+    };
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_advanced_webview_devtools(
+    window: tauri::Window,
+    app: AppHandle,
+    enabled: bool,
+) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.advanced_webview_devtools = enabled;
+    save_preferences(&p)?;
+    crate::webview::set_content_webview_devtools(&app, window.label(), enabled)?;
+    Ok(preferences_dto())
 }
 
 #[tauri::command]
