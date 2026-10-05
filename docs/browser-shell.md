@@ -7,13 +7,10 @@ Unibrowser embeds a per-window **content webview** for `https://` tabs ([ADR 000
 | Platform | WebView | Download hook | Status in repo |
 | --- | --- | --- | --- |
 | Linux | WebKitGTK (Tauri 2) | `WebviewBuilder::on_download` → `DownloadEvent::Requested` | **Wired** — emits `unibrowser-download` ([`webview.rs`](../crates/unibrowser-desktop/src-tauri/src/webview.rs)) |
-| Windows | WebView2 | `ICoreWebView2::DownloadStarting` | **Not wired** — no native delegate yet |
+| Windows | WebView2 | `ICoreWebView2_4::DownloadStarting` | **Wired in code** (`webview_download_win.rs`); compiles on `windows-latest`; manual QA on hardware — [windows-testing.md](windows-testing.md) |
 | macOS | WKWebView | Platform download delegate | **Not wired** in this slice |
 
-Until WebView2/macOS delegates exist, Windows users rely on:
-
-- **Settings → Advanced → Open downloads in system browser** (interim): `unibrowser-download` opens the URL with the system browser instead of `handle_download_url`.
-- **Demo download** / omnibox flows that call `handle_download_url` directly (still work).
+On Windows, if the native hook misbehaves, **Settings → Advanced → Open downloads in system browser** still hands off to the system browser. **Demo download** / omnibox flows that call `handle_download_url` directly still work.
 
 ## Frontend flow (Linux)
 
@@ -30,7 +27,7 @@ Shared Rust helper: `downloads::apply_download_disposition` (see integration tes
 
 **Tracking:** use GitHub issue template [WebView2 download hook](../.github/ISSUE_TEMPLATE/webview2-download.yml) when opening a follow-up.
 
-**Spike in repo:** `webview_download.rs` exposes `emit_unibrowser_download` (shared with Linux) and `webview2_download_starting_stub` on Windows. Wire the stub from a future WRY/Tauri `DownloadStarting` callback so behaviour matches Linux.
+**Implementation:** `webview_download_win.rs` registers `DownloadStarting` on the content webview via Tauri `with_webview` + `ICoreWebView2_4`, cancels the default WebView2 download, and calls `emit_unibrowser_download` (same as Linux `on_download`).
 
 ### Acceptance criteria
 
@@ -43,7 +40,8 @@ Shared Rust helper: `downloads::apply_download_disposition` (see integration tes
 ### Interim (today)
 
 - Linux: `WebviewBuilder::on_download` in `webview.rs` → `emit_unibrowser_download`.
-- Windows / macOS: hook not wired; Advanced setting **Open web downloads in system browser** remains the supported workaround.
+- Windows: `webview_download_win.rs` → same event (verify on hardware).
+- macOS: hook not wired; use system-browser workaround until WKWebView delegate exists.
 
 ## Related
 

@@ -18,8 +18,8 @@ pub fn platform_download_hook_status() -> (&'static str, bool) {
     #[cfg(target_os = "windows")]
     {
         (
-            "WebView2 ICoreWebView2::DownloadStarting not wired (spike: see webview_download.rs)",
-            false,
+            "WebView2 ICoreWebView2_4::DownloadStarting → unibrowser-download (compiles; not verified on hardware)",
+            true,
         )
     }
     #[cfg(target_os = "macos")]
@@ -32,12 +32,3 @@ pub fn platform_download_hook_status() -> (&'static str, bool) {
     }
 }
 
-/// Windows spike entry point: call from a future `DownloadStarting` handler.
-#[cfg(target_os = "windows")]
-pub fn webview2_download_starting_stub(app: &AppHandle, url: &str, suggested_path: Option<&str>) {
-    let payload = DownloadEventPayload {
-        url: url.to_string(),
-        destination: suggested_path.map(String::from),
-    };
-    emit_unibrowser_download(app, payload);
-}

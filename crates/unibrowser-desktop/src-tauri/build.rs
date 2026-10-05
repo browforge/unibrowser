@@ -21,7 +21,12 @@ fn stage_media_sidecar() {
     }
     let profile = std::env::var("PROFILE").unwrap_or_else(|_| "debug".into());
     let workspace = Path::new(&manifest_dir).join("../../..");
-    let src = workspace.join("target").join(&profile).join("unibrowser-media-sidecar");
+    let sidecar_name = if target.contains("windows") {
+        "unibrowser-media-sidecar.exe"
+    } else {
+        "unibrowser-media-sidecar"
+    };
+    let src = workspace.join("target").join(&profile).join(sidecar_name);
     if !src.is_file() {
         return;
     }

@@ -45,7 +45,7 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
         .get_window(window_label)
         .ok_or_else(|| format!("window {} missing", window_label))?;
     let blank: Url = "about:blank".parse().map_err(|e: url::ParseError| e.to_string())?;
-    let builder = tauri::webview::WebviewBuilder::new(&label, WebviewUrl::External(blank))
+    let mut builder = tauri::webview::WebviewBuilder::new(&label, WebviewUrl::External(blank))
         .on_page_load(|webview, payload| {
             let phase = match payload.event() {
                 PageLoadEvent::Started => "started".to_string(),
@@ -70,8 +70,10 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
                     title,
                 },
             );
-        })
-        .on_download(|webview, event| {
+        });
+    #[cfg(not(target_os = "windows"))]
+    {
+        builder = builder.on_download(|webview, event| {
             use tauri::webview::DownloadEvent;
             match event {
                 DownloadEvent::Requested { url, destination } => {
@@ -83,13 +85,13 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
                     return false;
                 }
                 DownloadEvent::Finished { .. } => {
-                    // Shell handles fetch on Requested; Finished would duplicate tabs/history.
                     return false;
                 }
                 _ => {}
             }
             true
         });
+    }
     window
         .add_child(
             builder,
@@ -98,6 +100,14 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
         )
         .map_err(|e| e.to_string())?;
     if let Some(wv) = app.get_webview(&label) {
+        #[cfg(target_os = "windows")]
+        {
+            crate::webview_download_win::try_attach_download_starting(
+                app.clone(),
+                &wv,
+                &label,
+            );
+        }
         let _ = wv.hide();
     }
     Ok(())

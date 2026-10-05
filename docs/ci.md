@@ -15,7 +15,10 @@ Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 | Job | What it does |
 | --- | --- |
 | `linux` | `npm ci` + `npm run build`, `cargo test --workspace`, debug builds for desktop + media sidecar + egui spike |
-| `windows-check` | `cargo check --workspace --exclude unibrowser-desktop --target x86_64-pc-windows-msvc` |
+| `windows-check` | Ubuntu cross-compile: `cargo check --workspace --exclude unibrowser-desktop --target x86_64-pc-windows-msvc` (desktop needs a real Windows host for `ring`/WebView2) |
+| `windows` | `windows-latest`: same npm build + `cargo test --workspace` + debug `unibrowser-desktop` (primary Bear target) |
+
+Manual Windows QA beyond CI: [windows-testing.md](windows-testing.md).
 
 Linux packages: GTK 3, WebKit2GTK 4.1, and related Tauri deps (see workflow `apt-get` step).
 

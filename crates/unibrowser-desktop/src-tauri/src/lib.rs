@@ -67,6 +67,8 @@ mod webview;
 mod webview_capture;
 mod webview_find;
 mod webview_download;
+#[cfg(target_os = "windows")]
+mod webview_download_win;
 
 use state::AppState;
 use tauri::Manager;

@@ -3,8 +3,8 @@
 //! **Hook points (platform):**
 //! - **Linux (WebKitGTK / Tauri content webview):** `WebviewBuilder::on_download` in `webview.rs`
 //!   handles `DownloadEvent::Requested` and emits `unibrowser-download` (see `docs/downloads.md`).
-//! - **Windows (WebView2):** `ICoreWebView2::DownloadStarting` is **not** wired in this repo yet;
-//!   use `handle_download_url` / demo button until the native delegate calls `apply_download_disposition`.
+//! - **Windows (WebView2):** `ICoreWebView2_4::DownloadStarting` in `webview_download_win.rs`
+//!   emits the same `unibrowser-download` event (compiles on CI; manual QA on Bear's machine).
 //!
 //! Until platform delegates pass a suggested path, the shell exposes `handle_download_url` and events.
 

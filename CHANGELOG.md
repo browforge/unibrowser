@@ -6,6 +6,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Windows target:** WebView2 `DownloadStarting` → `unibrowser-download` (`webview_download_win.rs`); Node host spawn restores SystemRoot/PATHEXT after `env_clear`; `find_binary` / media sidecar `.exe` sibling names; `windows-latest` CI job; [windows-testing.md](docs/windows-testing.md).
 - **Timeline lazy-clip UI:** Add PDF page (picker + page), SVG still, title card, and MIDI track; block proxies (raster thumb, title text, MIDI note bars). Demo `sample.unibrow` preloaded; `timeline_lazy_encode_e2e` integration test (skips without ffmpeg/pdftoppm).
 - **Docs:** [extension-host.md](docs/extension-host.md) aligned with VSIX themes + Node shim enablement.
 - **ADR 0011 lazy encode (timeline H.264):** PDF page, SVG still, and title card clips stay native in `project.json`; rasterize at export resolution (`pdftoppm`, `resvg`). MIDI timeline clips render to WAV via **fluidsynth** when binary and soundfont are available (Settings **FluidSynth soundfont**, `UNIBROWSER_SOUNDFONT_PATH`, or common system `.sf2`); export continues without MIDI mix and reports skip reason. **Increase font size** on `.unibrow` bumps `title_font_pt` on title clips. Intent builder tests; [timeline-encode-intents.md](docs/timeline-encode-intents.md), ADR 0011 implementation notes, resvg licence row in [third-party.md](docs/licenses/third-party.md).

@@ -140,6 +140,27 @@ struct NodeHostResponse {
 
 static EXECUTE_TOKEN: Mutex<u64> = Mutex::new(1);
 
+/// After `env_clear()`, Node on Windows needs SystemRoot (and friends) to resolve `node.exe`.
+fn apply_minimal_child_env(cmd: &mut Command) {
+    const KEYS: &[&str] = &[
+        "SystemRoot",
+        "WINDIR",
+        "ComSpec",
+        "TEMP",
+        "TMP",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "APPDATA",
+        "PATHEXT",
+        "HOME",
+    ];
+    for key in KEYS {
+        if let Ok(val) = std::env::var(key) {
+            cmd.env(key, val);
+        }
+    }
+}
+
 fn next_execute_token() -> u64 {
     let mut guard = EXECUTE_TOKEN.lock().unwrap();
     *guard += 1;
@@ -197,13 +218,15 @@ impl SidecarPool {
     fn spawn_child() -> Result<NodeSidecar, String> {
         let script = host_script_path().ok_or("VSIX Node host script not found")?;
         let path_env = std::env::var("PATH").unwrap_or_default();
-        let mut child = Command::new("node")
-            .arg(&script)
+        let mut cmd = Command::new("node");
+        cmd.arg(&script)
             .env_clear()
             .env("PATH", path_env)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(Stdio::null());
+        apply_minimal_child_env(&mut cmd);
+        let mut child = cmd
             .spawn()
             .map_err(|e| format!("failed to spawn node: {}", e))?;
         let stdout = child

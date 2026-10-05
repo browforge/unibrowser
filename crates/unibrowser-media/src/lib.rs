@@ -57,12 +57,33 @@ pub fn find_binary(name: &str) -> Option<PathBuf> {
 fn which_on_path(name: &str) -> Option<PathBuf> {
     let path_var = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path_var) {
-        let candidate = dir.join(name);
-        if candidate.is_file() {
-            return Some(candidate);
+        for candidate in candidate_names(name) {
+            if candidate.is_file() {
+                return Some(candidate);
+            }
         }
     }
     None
+}
+
+fn candidate_names(name: &str) -> Vec<PathBuf> {
+    let has_ext = std::path::Path::new(name)
+        .extension()
+        .is_some_and(|e| !e.is_empty());
+    let mut out = vec![PathBuf::from(name)];
+    if !has_ext {
+        #[cfg(windows)]
+        {
+            out.push(PathBuf::from(format!("{}.exe", name)));
+        }
+        if let Ok(pathext) = std::env::var("PATHEXT") {
+            for ext in pathext.split(';').filter(|s| !s.is_empty()) {
+                let ext = ext.strip_prefix('.').unwrap_or(ext);
+                out.push(PathBuf::from(format!("{}.{}", name, ext)));
+            }
+        }
+    }
+    out
 }
 
 pub fn probe_ffmpeg_install() -> FfmpegProbe {

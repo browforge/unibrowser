@@ -41,7 +41,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Text compare (stub) | Palette **Compare text files (experimental)** — Monaco diff, side-by-side or unified toggle |
 | Clip markers | Named markers on **video** timeline clips in `.unibrow`; jump from clip list |
 | Contributing | [docs/CONTRIBUTING.md](CONTRIBUTING.md) — build, checks, proving mod, PR expectations |
-| WebView2 downloads | Gap documented + issue template; `webview_download.rs` spike (`DownloadStarting` stub on Windows) — [browser-shell.md](browser-shell.md) |
+| WebView2 downloads | `ICoreWebView2_4::DownloadStarting` → `unibrowser-download` (`webview_download_win.rs`); `windows-latest` CI; manual checklist [windows-testing.md](windows-testing.md) |
 | VSIX activation | `onCommand:` activation at stub execute; activated extensions on diagnostics |
 | Image eyedropper | Stub on PNG/JPEG viewer: sample RGB in status bar |
 | Architecture | Runtime mermaid (shell ↔ engine ↔ mods ↔ sidecars) in [architecture.md](architecture.md) |
@@ -179,7 +179,7 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 | Rank | Gap | Why it matters |
 | --- | --- | --- |
 | 1 | VSIX JS extension host (full) | Node sidecar + expanded shim + lifecycle/security; most `vscode` API still missing |
-| 2 | WebView2 download wiring | Windows default browser workaround |
+| 2 | WebView2 download wiring | Hook in repo; Bear hardware QA + edge cases |
 | 3 | OCR sidecar | Announced stub, no Tesseract pool |
 | 4 | Full timeline / DAW encode | ffmpeg H.264 + approximate duck/fade; no full DAW mix bus |
 | 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
@@ -207,7 +207,7 @@ Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** pol
 
 | Sev | Issue | Notes |
 | --- | --- | --- |
-| P1 | WebView2 downloads (Windows) | `DownloadStarting` not wired; Linux WebKit path improved (fetch to hinted path, no Finished duplicate). Use Advanced → system browser on Windows ([browser-shell.md](browser-shell.md)). |
+| P2 | WebView2 downloads (Windows) | `DownloadStarting` wired in code; not verified on Bear's machine yet. Linux WebKit path: fetch to hinted path, no Finished duplicate ([browser-shell.md](browser-shell.md), [windows-testing.md](windows-testing.md)). |
 | P2 | EPUB assets | Spine HTML only; embedded images/fonts often missing until asset URL resolution. |
 | P2 | DOCX fidelity | Mammoth layout limits; no `.docx` write-back (HTML sibling only — [docx-roundtrip.md](docx-roundtrip.md)). |
 | P2 | VSIX JS host | Node spike only; grey when pref off or `node` missing ([extension-host.md](extension-host.md)). |

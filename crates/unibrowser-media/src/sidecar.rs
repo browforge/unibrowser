@@ -152,6 +152,18 @@ pub fn probe_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
     probe_file_pooled(path)
 }
 
+fn sibling_sidecar_binary(host_exe: &Path) -> PathBuf {
+    let base = host_exe.with_file_name("unibrowser-media-sidecar");
+    #[cfg(windows)]
+    {
+        let with_exe = base.with_extension("exe");
+        if with_exe.is_file() {
+            return with_exe;
+        }
+    }
+    base
+}
+
 fn spawn_sidecar() -> Result<Child, MediaError> {
     let program = if let Ok(p) = std::env::var("UNIBROWSER_MEDIA_SIDECAR_BIN") {
         let path = PathBuf::from(p);
@@ -161,9 +173,9 @@ fn spawn_sidecar() -> Result<Child, MediaError> {
             return Err(MediaError::Sidecar(format!("missing {}", path.display())));
         }
     } else {
-        std::env::current_exe()
-            .map_err(|e| MediaError::Sidecar(e.to_string()))?
-            .with_file_name("unibrowser-media-sidecar")
+        let exe = std::env::current_exe()
+            .map_err(|e| MediaError::Sidecar(e.to_string()))?;
+        sibling_sidecar_binary(&exe)
     };
     Command::new(&program)
         .stdin(Stdio::piped())
