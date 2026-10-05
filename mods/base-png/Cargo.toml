@@ -7,3 +7,4 @@ license.workspace = true
 [dependencies]
 unibrowser-mod-api = { path = "../../crates/unibrowser-mod-api" }
 unibrowser-engine = { path = "../../crates/unibrowser-engine" }
+image = { version = "0.25", default-features = false, features = ["png"] }

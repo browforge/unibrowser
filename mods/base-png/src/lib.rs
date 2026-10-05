@@ -1,3 +1,6 @@
+use std::path::Path;
+
+use image::{GenericImageView, ImageReader};
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot,
@@ -163,7 +166,30 @@ pub fn register(registry: &mut CommandRegistry) {
     });
 }
 
+pub fn open_file(path: &Path) -> Box<dyn unibrowser_engine::document::DocumentBackend> {
+    let (width, height) = read_dimensions(path).unwrap_or((640, 480));
+    let mut backend = PngBackend::without_text_layer();
+    backend.width = width;
+    backend.height = height;
+    if path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .map(|s| s.contains("text"))
+        .unwrap_or(false)
+    {
+        backend = PngBackend::with_text_layer();
+        backend.width = width;
+        backend.height = height;
+    }
+    Box::new(backend)
+}
+
+fn read_dimensions(path: &Path) -> Option<(u32, u32)> {
+    let reader = ImageReader::open(path).ok()?;
+    let img = reader.decode().ok()?;
+    Some(img.dimensions())
+}
+
 pub fn open_sample(path: &str) -> Box<dyn unibrowser_engine::document::DocumentBackend> {
-    let _ = path;
-    Box::new(PngBackend::without_text_layer())
+    open_file(Path::new(path))
 }

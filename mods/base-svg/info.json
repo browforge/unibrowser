@@ -1,0 +1,12 @@
+{
+  "name": "base-svg",
+  "version": "0.1.0",
+  "title": "SVG vector",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "SVG vector proving mod (view metadata; web surface renders in shell)",
+  "capabilities": ["font-size"]
+}

@@ -1,0 +1,11 @@
+[package]
+name = "unibrowser-project"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native .unibrow project package (ADR 0015)"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
