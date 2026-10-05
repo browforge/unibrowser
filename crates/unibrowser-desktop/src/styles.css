@@ -803,19 +803,86 @@ body {
   background: rgba(100, 160, 255, 0.45);
 }
 
-.unibrow-board {
+.unibrow-board-viewport {
   position: relative;
   min-height: 14rem;
+  height: 16rem;
   margin: 0 0 0.75rem;
   border: 1px solid #444;
   border-radius: 4px;
+  overflow: hidden;
+  cursor: grab;
+  background: #1a1a1a;
+}
+
+.unibrow-board-viewport:active {
+  cursor: grabbing;
+}
+
+.unibrow-board-canvas {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
   background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 23px,
-    #2a2a2a 24px
-  );
-  overflow: auto;
+      0deg,
+      transparent,
+      transparent 23px,
+      #2a2a2a 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 23px,
+      #2a2a2a 24px
+    );
+  min-width: 120%;
+  min-height: 120%;
+}
+
+.unibrow-board-hint {
+  margin-bottom: 0.35rem;
+}
+
+.unibrow-timeline {
+  margin: 0 0 0.75rem;
+}
+
+.unibrow-timeline-clips {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.settings-section {
+  margin-bottom: 1rem;
+  max-width: 28rem;
+}
+
+.settings-section h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.midi-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.midi-summary dt {
+  font-weight: 600;
+}
+
+.midi-summary dd {
+  margin: 0;
 }
 
 .unibrow-board-card {

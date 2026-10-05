@@ -206,6 +206,13 @@ impl AppState {
             if page.starts_with("mods") {
                 return (location, false, None);
             }
+            if page == "settings" {
+                let doc = DocumentSession::new(
+                    crate::settings_stub::LOCATION.to_string(),
+                    crate::settings_stub::open(),
+                );
+                return (location, false, Some(doc));
+            }
         }
         (location, false, None)
     }
@@ -273,7 +280,8 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         "csv" | "tsv" => Some(crate::csv_stub::open_file(path)),
         "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
         "mp4" | "webm" => base_video::open_file(path).ok(),
-        "wav" | "mid" | "midi" => base_audio::open_file(path).ok(),
+        "wav" => base_audio::open_file(path).ok(),
+        "mid" | "midi" => crate::midi_stub::open_file(path).ok(),
         "epub" => Some(crate::epub_stub::open_file(path)),
         _ => base_text::open_file(path).ok(),
     };

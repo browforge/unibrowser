@@ -110,6 +110,22 @@ pub struct ProjectNodeDto {
 }
 
 #[derive(Serialize)]
+pub struct ProjectClipDto {
+    pub id: String,
+    pub node_id: String,
+    pub start_sec: f32,
+    pub duration_sec: f32,
+    pub label: String,
+}
+
+#[derive(Serialize)]
+pub struct MidiSummaryDto {
+    pub format: u16,
+    pub track_count: u16,
+    pub ticks_per_quarter: u16,
+}
+
+#[derive(Serialize)]
 pub struct OpenFileTabDto {
     pub tab_index: usize,
     pub path: String,
@@ -131,6 +147,12 @@ pub struct DocumentViewerDto {
     pub project_nodes: Option<Vec<ProjectNodeDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub open_file_tabs: Option<Vec<OpenFileTabDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_clips: Option<Vec<ProjectClipDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub midi_summary: Option<MidiSummaryDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub board_snap_to_grid: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -291,6 +313,21 @@ fn document_viewer_dto(
                 })
                 .collect()
         });
+        let clips = opened.as_ref().map(|pkg| {
+            pkg.manifest
+                .timeline
+                .clips
+                .iter()
+                .map(|c| ProjectClipDto {
+                    id: c.id.clone(),
+                    node_id: c.node_id.clone(),
+                    start_sec: c.start_sec,
+                    duration_sec: c.duration_sec,
+                    label: c.label.clone(),
+                })
+                .collect()
+        });
+        let prefs = load_preferences();
         return Some(DocumentViewerDto {
             path: doc.path.clone(),
             viewer: crate::project_backend::VIEWER_KIND.into(),
@@ -302,6 +339,46 @@ fn document_viewer_dto(
             media_note: None,
             project_nodes: nodes,
             open_file_tabs: Some(open_file_tabs_dto(state)),
+            project_clips: clips,
+            midi_summary: None,
+            board_snap_to_grid: Some(prefs.board_snap_to_grid),
+        });
+    }
+    if doc.backend.backend_id() == crate::settings_stub::BACKEND_ID {
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::settings_stub::VIEWER_KIND.into(),
+            title: "Settings".into(),
+            pdf_scale: None,
+            pdf_page: None,
+            media_note: None,
+            project_nodes: None,
+            open_file_tabs: None,
+            project_clips: None,
+            midi_summary: None,
+            board_snap_to_grid: None,
+        });
+    }
+    if doc.backend.backend_id() == crate::midi_stub::BACKEND_ID {
+        let midi = crate::midi_stub::try_midi_backend(&mut *doc.backend).expect("midi backend");
+        let summary = midi.summary.clone();
+        let status = doc.backend.status_line();
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::midi_stub::VIEWER_KIND.into(),
+            title: doc.backend.display_name().into(),
+            pdf_scale: None,
+            pdf_page: None,
+            media_note: Some(status),
+            project_nodes: None,
+            open_file_tabs: None,
+            project_clips: None,
+            midi_summary: Some(MidiSummaryDto {
+                format: summary.format,
+                track_count: summary.track_count,
+                ticks_per_quarter: summary.ticks_per_quarter,
+            }),
+            board_snap_to_grid: None,
         });
     }
     let viewer = match doc.backend.backend_id() {
@@ -340,6 +417,9 @@ fn document_viewer_dto(
         media_note,
         project_nodes: None,
         open_file_tabs: None,
+        project_clips: None,
+        midi_summary: None,
+        board_snap_to_grid: None,
     })
 }
 
@@ -1361,6 +1441,7 @@ pub struct PreferencesDto {
     pub auto_save_enabled: bool,
     pub auto_save_interval_secs: u32,
     pub download_preference: String,
+    pub board_snap_to_grid: bool,
 }
 
 #[tauri::command]
@@ -1567,7 +1648,16 @@ pub fn get_preferences() -> PreferencesDto {
         auto_save_enabled: p.auto_save_enabled,
         auto_save_interval_secs: p.auto_save_interval_secs,
         download_preference: download_pref_to_str(&p.download_preference),
+        board_snap_to_grid: p.board_snap_to_grid,
     }
+}
+
+#[tauri::command]
+pub fn set_board_snap_to_grid(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.board_snap_to_grid = enabled;
+    save_preferences(&p)?;
+    Ok(get_preferences())
 }
 
 fn download_pref_to_str(pref: &DownloadPreference) -> String {

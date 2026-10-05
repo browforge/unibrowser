@@ -3,8 +3,28 @@ import * as mammoth from "mammoth";
 import { loadPdfJs, loadThree } from "./lazyModules";
 import { reportViewerZoom } from "./viewerZoom";
 import { copyText } from "./clipboard";
+import { renderSettings } from "./settingsPage";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
+
+const BOARD_GRID = 24;
+
+function snapBoardCoord(value: number, snap: boolean): number {
+  const v = Math.max(0, value);
+  if (!snap) {
+    return v;
+  }
+  return Math.round(v / BOARD_GRID) * BOARD_GRID;
+}
+
+async function openUnibrowAsset(projectPath: string, asset: string) {
+  const assetPath = await invoke<string>("allow_unibrow_asset", {
+    projectPath,
+    assetName: asset,
+  });
+  const data = await invoke("open_path", { path: assetPath });
+  window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+}
 
 export function adjustViewerZoom(delta: number) {
   viewerZoomAdjust?.(delta);
@@ -34,6 +54,23 @@ export interface DocumentViewerDto {
   media_note?: string;
   project_nodes?: ProjectNodeDto[];
   open_file_tabs?: OpenFileTabDto[];
+  project_clips?: ProjectClipDto[];
+  midi_summary?: MidiSummaryDto;
+  board_snap_to_grid?: boolean;
+}
+
+export interface ProjectClipDto {
+  id: string;
+  node_id: string;
+  start_sec: number;
+  duration_sec: number;
+  label: string;
+}
+
+export interface MidiSummaryDto {
+  format: number;
+  track_count: number;
+  ticks_per_quarter: number;
 }
 
 const loadedKeys = new WeakMap<HTMLElement, string | null>();
@@ -818,12 +855,100 @@ async function renderDxf(path: string, root: HTMLElement) {
   canvasCol.appendChild(meta);
 }
 
+function renderMidi(viewer: DocumentViewerDto, root: HTMLElement) {
+  const summary = viewer.midi_summary;
+  if (!summary) {
+    root.textContent = viewer.media_note ?? "MIDI file";
+    return;
+  }
+  const dl = document.createElement("dl");
+  dl.className = "midi-summary";
+  const addRow = (label: string, value: string) => {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  };
+  addRow("SMF format", String(summary.format));
+  addRow("Track count", String(summary.track_count));
+  addRow("Ticks per quarter note", String(summary.ticks_per_quarter));
+  root.appendChild(dl);
+  const note = document.createElement("p");
+  note.className = "viewer-note";
+  note.textContent = "Native SMF header only — synthesis and encode are not wired yet.";
+  root.appendChild(note);
+}
+
 async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
-  const board = document.createElement("div");
-  board.className = "unibrow-board";
-  board.setAttribute("role", "img");
-  board.setAttribute("aria-label", "Project board");
+  const snapGrid = viewer.board_snap_to_grid ?? false;
+  const hint = document.createElement("p");
+  hint.className = "viewer-note unibrow-board-hint";
+  hint.textContent =
+    "Alt+drag pan · Ctrl+wheel zoom · Double-click card to open · Drag to move";
+  root.appendChild(hint);
+
+  const viewport = document.createElement("div");
+  viewport.className = "unibrow-board-viewport";
+  viewport.setAttribute("role", "img");
+  viewport.setAttribute("aria-label", "Project board");
+  const canvas = document.createElement("div");
+  canvas.className = "unibrow-board-canvas";
+  let panX = 0;
+  let panY = 0;
+  let scale = 1;
+  const applyTransform = () => {
+    canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  };
+  applyTransform();
+
+  let panning = false;
+  let panStartX = 0;
+  let panStartY = 0;
+  let panOriginX = 0;
+  let panOriginY = 0;
+  viewport.addEventListener("pointerdown", (e) => {
+    if (!e.altKey || e.target !== viewport) {
+      return;
+    }
+    panning = true;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panOriginX = panX;
+    panOriginY = panY;
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener("pointermove", (e) => {
+    if (!panning) {
+      return;
+    }
+    panX = panOriginX + (e.clientX - panStartX);
+    panY = panOriginY + (e.clientY - panStartY);
+    applyTransform();
+  });
+  viewport.addEventListener("pointerup", (e) => {
+    if (!panning) {
+      return;
+    }
+    panning = false;
+    viewport.releasePointerCapture(e.pointerId);
+  });
+  viewport.addEventListener(
+    "wheel",
+    (e) => {
+      if (!e.ctrlKey) {
+        return;
+      }
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      scale = Math.min(2.5, Math.max(0.35, scale + delta));
+      applyTransform();
+    },
+    { passive: false },
+  );
+
   const nodesOnBoard = viewer.project_nodes ?? [];
   for (const node of nodesOnBoard) {
     const card = document.createElement("button");
@@ -833,26 +958,41 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     card.style.top = `${node.y}px`;
     card.textContent = node.label;
     card.title = node.asset ? `${node.label} · ${node.asset}` : node.label;
-    let dragX = 0;
-    let dragY = 0;
+    let startNodeX = node.x;
+    let startNodeY = node.y;
+    let startMX = 0;
+    let startMY = 0;
     let moved = false;
+    card.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      if (node.asset) {
+        void openUnibrowAsset(viewer.path, node.asset);
+      }
+    });
     card.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0) {
+      if (e.button !== 0 || e.altKey) {
         return;
       }
       e.preventDefault();
+      e.stopPropagation();
       card.setPointerCapture(e.pointerId);
       moved = false;
-      dragX = e.clientX - node.x;
-      dragY = e.clientY - node.y;
+      startNodeX = node.x;
+      startNodeY = node.y;
+      startMX = e.clientX;
+      startMY = e.clientY;
     });
     card.addEventListener("pointermove", (e) => {
       if (!card.hasPointerCapture(e.pointerId)) {
         return;
       }
-      moved = true;
-      const x = Math.max(0, e.clientX - dragX);
-      const y = Math.max(0, e.clientY - dragY);
+      const dx = (e.clientX - startMX) / scale;
+      const dy = (e.clientY - startMY) / scale;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        moved = true;
+      }
+      const x = Math.max(0, startNodeX + dx);
+      const y = Math.max(0, startNodeY + dy);
       card.style.left = `${x}px`;
       card.style.top = `${y}px`;
     });
@@ -864,8 +1004,12 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       if (!moved) {
         return;
       }
-      const x = Math.max(0, e.clientX - dragX);
-      const y = Math.max(0, e.clientY - dragY);
+      const dx = (e.clientX - startMX) / scale;
+      const dy = (e.clientY - startMY) / scale;
+      const x = snapBoardCoord(startNodeX + dx, snapGrid);
+      const y = snapBoardCoord(startNodeY + dy, snapGrid);
+      card.style.left = `${x}px`;
+      card.style.top = `${y}px`;
       const data = await invoke("set_unibrow_node_position", {
         projectPath: viewer.path,
         nodeId: node.id,
@@ -874,9 +1018,28 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       });
       window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
     });
-    board.appendChild(card);
+    canvas.appendChild(card);
   }
-  root.appendChild(board);
+  viewport.appendChild(canvas);
+  root.appendChild(viewport);
+
+  const clips = viewer.project_clips ?? [];
+  if (clips.length > 0) {
+    const timeline = document.createElement("section");
+    timeline.className = "unibrow-timeline";
+    const tlTitle = document.createElement("h3");
+    tlTitle.textContent = "Timeline (stub)";
+    timeline.appendChild(tlTitle);
+    const ol = document.createElement("ol");
+    ol.className = "unibrow-timeline-clips";
+    for (const clip of clips) {
+      const li = document.createElement("li");
+      li.textContent = `${clip.start_sec.toFixed(1)}s · ${clip.duration_sec.toFixed(1)}s — ${clip.label} (${clip.node_id})`;
+      ol.appendChild(li);
+    }
+    timeline.appendChild(ol);
+    root.appendChild(timeline);
+  }
   const list = document.createElement("ul");
   list.className = "unibrow-nodes";
   const nodes = viewer.project_nodes ?? [];
@@ -895,13 +1058,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
         const open = document.createElement("button");
         open.type = "button";
         open.textContent = "Open";
-        open.onclick = async () => {
-          const assetPath = await invoke<string>("allow_unibrow_asset", {
-            projectPath: viewer.path,
-            assetName: node.asset,
-          });
-          const data = await invoke("open_path", { path: assetPath });
-          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        open.onclick = () => {
+          if (node.asset) {
+            void openUnibrowAsset(viewer.path, node.asset);
+          }
         };
         li.appendChild(open);
       }
@@ -1286,6 +1446,12 @@ export const documentViewer = {
           break;
         case "unibrow":
           await renderUnibrow(viewer, body);
+          break;
+        case "midi":
+          renderMidi(viewer, body);
+          break;
+        case "settings":
+          await renderSettings(body);
           break;
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;

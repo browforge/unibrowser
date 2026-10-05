@@ -483,7 +483,6 @@ function renderOnboarding(show: boolean) {
 
 async function renderSessionOptIn() {
   try {
-    const prefs = await invoke<{ restore_session_on_launch: boolean }>("get_preferences");
     let row = document.getElementById("session-restore-row");
     if (!row) {
       row = document.createElement("div");
@@ -492,83 +491,15 @@ async function renderSessionOptIn() {
       recentPanel.appendChild(row);
     }
     row.innerHTML = "";
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.id = "restore-session-opt-in";
-    cb.checked = prefs.restore_session_on_launch;
-    cb.onchange = async () => {
-      await invoke("set_restore_session_on_launch", { enabled: cb.checked });
+    const settingsBtn = document.createElement("button");
+    settingsBtn.type = "button";
+    settingsBtn.className = "recent-link";
+    settingsBtn.textContent = t("settings.open");
+    settingsBtn.onclick = () => {
+      omnibox.value = "unibrowser://settings";
+      void navigateOmnibox();
     };
-    const label = document.createElement("label");
-    label.htmlFor = cb.id;
-    label.textContent = t("recent.restore");
-    const autoRow = document.createElement("div");
-    autoRow.className = "session-restore-row";
-    const autoCb = document.createElement("input");
-    autoCb.type = "checkbox";
-    autoCb.id = "auto-save-opt-in";
-    const autoLabel = document.createElement("label");
-    autoLabel.htmlFor = autoCb.id;
-    const intervalSelect = document.createElement("select");
-    intervalSelect.id = "auto-save-interval";
-    intervalSelect.className = "auto-save-interval";
-    intervalSelect.disabled = true;
-    [30, 60, 120, 300, 600].forEach((secs) => {
-      const opt = document.createElement("option");
-      opt.value = String(secs);
-      opt.textContent = t("autosave.interval", { seconds: secs });
-      intervalSelect.appendChild(opt);
-    });
-    const persistAutoSave = async () => {
-      const intervalSecs = Number.parseInt(intervalSelect.value, 10);
-      const next = await invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>(
-        "set_auto_save_settings",
-        { enabled: autoCb.checked, intervalSecs },
-      );
-      intervalSelect.disabled = !next.auto_save_enabled;
-      configureAutoSave(next.auto_save_enabled, next.auto_save_interval_secs);
-    };
-    void invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>(
-      "get_preferences",
-    ).then((prefs) => {
-      autoCb.checked = prefs.auto_save_enabled;
-      autoLabel.textContent = t("autosave.label");
-      intervalSelect.value = String(prefs.auto_save_interval_secs);
-      intervalSelect.disabled = !prefs.auto_save_enabled;
-      autoCb.onchange = () => void persistAutoSave();
-      intervalSelect.onchange = () => void persistAutoSave();
-      configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs);
-    });
-    autoRow.appendChild(autoCb);
-    autoRow.appendChild(autoLabel);
-    autoRow.appendChild(intervalSelect);
-    row.appendChild(cb);
-    row.appendChild(label);
-    row.appendChild(autoRow);
-    const dlRow = document.createElement("div");
-    dlRow.className = "session-restore-row";
-    const dlLabel = document.createElement("label");
-    dlLabel.htmlFor = "download-pref";
-    dlLabel.textContent = t("download.preferenceLabel");
-    const dlSelect = document.createElement("select");
-    dlSelect.id = "download-pref";
-    const openOpt = document.createElement("option");
-    openOpt.value = "open_in_new_tab";
-    openOpt.textContent = t("download.openInTab");
-    const saveOpt = document.createElement("option");
-    saveOpt.value = "save_to_disk";
-    saveOpt.textContent = t("download.saveToDisk");
-    dlSelect.appendChild(openOpt);
-    dlSelect.appendChild(saveOpt);
-    void invoke<{ download_preference: string }>("get_preferences").then((prefs) => {
-      dlSelect.value = prefs.download_preference;
-      dlSelect.onchange = async () => {
-        await invoke("set_download_preference", { preference: dlSelect.value });
-      };
-    });
-    dlRow.appendChild(dlLabel);
-    dlRow.appendChild(dlSelect);
-    row.appendChild(dlRow);
+    row.appendChild(settingsBtn);
   } catch {
     /* optional */
   }
@@ -586,6 +517,8 @@ function renderBookmarkBar(pins: PinnedLocationDto[]) {
       btn.textContent = t("bookmark.downloads");
     } else if (pin.id === "new-project") {
       btn.textContent = t("bookmark.project");
+    } else if (pin.id === "settings") {
+      btn.textContent = t("bookmark.settings");
     } else {
       btn.textContent = pin.label;
     }

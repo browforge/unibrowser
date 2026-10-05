@@ -46,10 +46,28 @@ pub struct ProjectNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TimelineClip {
+    pub id: String,
+    /// References `ProjectNode::id` and its asset when present.
+    pub node_id: String,
+    pub start_sec: f32,
+    pub duration_sec: f32,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct ProjectTimeline {
+    #[serde(default)]
+    pub clips: Vec<TimelineClip>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ProjectManifest {
     pub format_version: u32,
     pub title: String,
     pub nodes: Vec<ProjectNode>,
+    #[serde(default)]
+    pub timeline: ProjectTimeline,
 }
 
 impl ProjectManifest {
@@ -58,6 +76,7 @@ impl ProjectManifest {
             format_version: FORMAT_VERSION,
             title: title.into(),
             nodes: Vec::new(),
+            timeline: ProjectTimeline::default(),
         }
     }
 }
@@ -133,6 +152,24 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
             y: 160.0,
         },
     ];
+    package.manifest.timeline = ProjectTimeline {
+        clips: vec![
+            TimelineClip {
+                id: "clip-1".into(),
+                node_id: "node-1".into(),
+                start_sec: 0.0,
+                duration_sec: 5.0,
+                label: "Notes intro".into(),
+            },
+            TimelineClip {
+                id: "clip-2".into(),
+                node_id: "node-2".into(),
+                start_sec: 5.0,
+                duration_sec: 8.0,
+                label: "References".into(),
+            },
+        ],
+    };
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
 }

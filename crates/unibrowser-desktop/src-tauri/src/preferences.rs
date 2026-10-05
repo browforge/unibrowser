@@ -54,6 +54,9 @@ pub struct Preferences {
     pub pinned_locations: Vec<PinnedLocation>,
     #[serde(default)]
     pub download_preference: DownloadPreference,
+    /// Snap board card positions to a 24px grid in `.unibrow` projects.
+    #[serde(default)]
+    pub board_snap_to_grid: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -78,6 +81,7 @@ impl Default for Preferences {
             auto_save_interval_secs: default_auto_save_interval(),
             pinned_locations: Vec::new(),
             download_preference: DownloadPreference::default(),
+            board_snap_to_grid: false,
         }
     }
 }
@@ -98,6 +102,11 @@ pub fn default_pinned_locations(home: &str) -> Vec<PinnedLocation> {
             id: "new-project".into(),
             label: "New project".into(),
             location: "unibrowser://action/new-project".into(),
+        },
+        PinnedLocation {
+            id: "settings".into(),
+            label: "Settings".into(),
+            location: "unibrowser://settings".into(),
         },
     ]
 }

@@ -11,6 +11,9 @@ mod open_vsx;
 mod path_security;
 pub mod preferences;
 mod project_backend;
+mod smf;
+mod midi_stub;
+mod settings_stub;
 mod rhai_host;
 mod session;
 mod state;
@@ -107,6 +110,7 @@ pub fn run() {
             commands::get_preferences,
             commands::set_auto_save_settings,
             commands::set_download_preference,
+            commands::set_board_snap_to_grid,
             commands::auto_save_active_document,
             commands::pick_and_compare,
             commands::close_file_compare,

@@ -8,13 +8,17 @@ Automated gate:
 
 The script runs `cargo test --workspace` and `npm run build`, then prints the checklist for a Wednesday-style report.
 
-## Preferences (Recent panel)
+## Settings (`unibrowser://settings`)
+
+Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All prefs save inline (no modal).
 
 | Setting | Default | Check |
 | --- | --- | --- |
-| Restore open tabs on launch | Off | Enable → restart → tabs return; disable → fresh home |
-| Auto-save edited files | Off | Enable + interval → edit `.txt`/SVG → toast after interval |
-| Downloads | Open in new tab | Switch to **Save to disk** → demo download → save dialog / saved path toast, no new tab |
+| Theme | System | Light / dark / system updates chrome immediately |
+| Downloads | Open in new tab | Save to disk → demo download → file saved, no new tab |
+| Auto-save | Off | Enable + interval → edit `.txt`/SVG → toast after interval |
+| Restore session | Off | Enable → restart → tabs return |
+| Board snap to grid | Off | Enable → drag `.unibrow` cards snap to 24px grid |
 
 ## Downloads
 
@@ -22,11 +26,15 @@ The script runs `cargo test --workspace` and `npm run build`, then prints the ch
 - **Save to disk**: Same flows write under chosen path; Recent preference persists in config JSON.
 - See [downloads.md](./downloads.md) for Linux WebKit vs Windows WebView2 status.
 
-## `.unibrow` board
+## `.unibrow` board and timeline
 
-- New project seeds **Notes** and **References** on the board (`project.json` `x`/`y`).
-- Drag cards on the board; positions persist after refresh.
+- New project seeds **Notes** and **References** on the board (`project.json` `x`/`y`) plus a **timeline** clip list stub.
+- Alt+drag pan, Ctrl+wheel zoom; double-click card opens asset; drag moves cards (optional grid snap in Settings).
 - List below still supports Open / Rename / Remove and add flows.
+
+## MIDI
+
+- Open a `.mid` / `.midi` file: viewer shows SMF format, track count, and ticks per quarter (header parse only).
 
 ## Command manager
 
