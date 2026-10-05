@@ -100,7 +100,7 @@ impl ModHost {
     }
 }
 
-fn check_api_version(manifest: &ModManifest) -> Result<(), ModHostError> {
+pub(crate) fn check_api_version(manifest: &ModManifest) -> Result<(), ModHostError> {
     let host = Version::parse(MOD_API_VERSION).expect("host api semver");
     let mod_api = Version::parse(&manifest.unibrowser_api).map_err(|_| {
         ModHostError::ApiIncompatible(

@@ -198,6 +198,8 @@ pub fn run() {
             commands::download_install_vsix,
             commands::pick_and_install_vsix,
             commands::set_vsix_extension_enabled,
+            commands::list_installed_native_mods,
+            commands::set_native_mod_enabled,
             commands::uninstall_vsix_extension,
             commands::sync_svg_document,
             commands::document_undo,

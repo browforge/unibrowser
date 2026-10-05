@@ -20,7 +20,7 @@ Compiled mods (cdylib / future WASM) must target this API. Breaking changes bump
 ## Not stable yet
 
 - Engine `DocumentBackend` trait (lives in `unibrowser-engine`, not this crate)
-- Dynamic `cdylib` loader ABI (draft: [docs/plugin-sdk](plugin-sdk/README.md), `examples/ub-mod-cdylib-stub`; Linux load via `UNIBROWSER_LOAD_CDYLIB_MOD=1`)
+- Dynamic `cdylib` loader ABI (draft: [docs/plugin-sdk](plugin-sdk/README.md); user dir `mods/`, optional `UNIBROWSER_REQUIRE_SIGNED_MODS=1`)
 - VSIX / extension-host types
 
 ## Mod author checklist

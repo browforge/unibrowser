@@ -877,7 +877,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
             .collect(),
         active_index: tabs.active_index(),
         omnibox,
-        mods_loaded: state.mods_loaded.clone(),
+        mods_loaded: state.mods_loaded_line(),
         status: document_status
             .clone()
             .unwrap_or_else(|| {
@@ -3541,7 +3541,52 @@ pub fn set_vsix_extension_enabled(window: tauri::Window,
     let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
     unibrowser_vsix::set_extension_enabled(&root, &extension_id, enabled)
         .map_err(|e| e.to_string())?;
-    state.refresh_vsix_catalog();
+    state.refresh_extension_catalog()?;
+    Ok(())
+}
+
+#[derive(Serialize)]
+pub struct InstalledNativeModDto {
+    pub name: String,
+    pub title: String,
+    pub version: String,
+    pub enabled: bool,
+    pub library_present: bool,
+    pub signature_ok: bool,
+    pub load_block_reason: Option<String>,
+}
+
+#[tauri::command]
+pub fn list_installed_native_mods(
+    _window: tauri::Window,
+) -> Result<Vec<InstalledNativeModDto>, String> {
+    let root = crate::config::user_mods_dir().ok_or("config dir unavailable")?;
+    let list = unibrowser_mod_host::native::list_installed(&root).map_err(|e| e.to_string())?;
+    Ok(list
+        .into_iter()
+        .map(|rec| InstalledNativeModDto {
+            name: rec.name,
+            title: rec.title,
+            version: rec.version,
+            enabled: rec.enabled,
+            library_present: rec.library_path.is_some(),
+            signature_ok: rec.signature_ok,
+            load_block_reason: rec.load_block_reason,
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub fn set_native_mod_enabled(
+    _window: tauri::Window,
+    name: String,
+    enabled: bool,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let root = crate::config::user_mods_dir().ok_or("config dir unavailable")?;
+    unibrowser_mod_host::set_native_mod_enabled(&root, &name, enabled)
+        .map_err(|e| e.to_string())?;
+    state.refresh_extension_catalog()?;
     Ok(())
 }
 

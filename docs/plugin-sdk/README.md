@@ -1,17 +1,61 @@
 # Unibrowser Plugin SDK (draft)
 
-Compiled mods ship as native libraries (`cdylib` on Linux/macOS, `dll` on Windows) that export a small C ABI. The host loads them when enabled (Linux today: `UNIBROWSER_LOAD_CDYLIB_MOD=1`). Rust mods can use the same symbols as the reference stub; other languages link against [`ub-mod.h`](ub-mod.h).
+Compiled mods ship as native libraries (`cdylib` on Linux/macOS, `dll` on Windows) that export a small C ABI. With the `dynamic-mods` feature, the host loads **enabled** mods from the user mods directory (see below). Linux is the first platform where cdylibs are loaded at runtime. Rust mods can use the same symbols as the reference stub; other languages link against [`ub-mod.h`](ub-mod.h).
+
+Signing policy (stub): [signing.md](signing.md).
 
 This draft sits beside the stable Rust surface in [`unibrowser-mod-api`](../mod-api-stable.md). Manifest and versioning rules: [ADR 0006](../adr/0006-mod-manifest-and-versioning.md).
 
+## User mods directory
+
+| OS | Path |
+| --- | --- |
+| Linux | `~/.config/unibrowser/mods/<mod-name>/` (or `$XDG_CONFIG_HOME/unibrowser/mods/`) |
+| macOS | `~/Library/Application Support/unibrowser/mods/` |
+| Windows | `%APPDATA%\\unibrowser\\mods\\` |
+
+Each mod is a folder containing:
+
+- `info.json` — `ModManifest` (`name`, `version`, `title`, `unibrowser_api`, optional `library`)
+- `state.json` — host-managed `{ "enabled": true }` (written when you toggle in the mod portal)
+- Native library — see **Library file names** below
+
+Enable or disable mods in **Mod portal** (native and VSIX). Only enabled native mods with a resolvable library are loaded when `dynamic-mods` is on.
+
+## Library file names
+
+If `info.json` omits `library`, the host looks for (examples for mod name `my-mod` → stem `my_mod`):
+
+| OS | Candidate files (in mod folder) |
+| --- | --- |
+| Linux | `libmy_mod.so`, `libmy-mod.so` (stem uses `-` → `_`) |
+| macOS | `libmy_mod.dylib`, `libmy-mod.dylib` |
+| Windows | `my_mod.dll`, `my_mod_mod.dll` |
+
+Prefer setting `"library": "libmy_plugin.so"` explicitly for cross-platform packs.
+
 ## Quick start (Linux)
+
+**User install (recommended):**
 
 ```bash
 cargo build -p ub-mod-cdylib-stub
+MOD_ROOT="${XDG_CONFIG_HOME:-$HOME/.config}/unibrowser/mods/hello-stub"
+mkdir -p "$MOD_ROOT"
+cp examples/ub-mod-cdylib-stub/info.json.example "$MOD_ROOT/info.json" 2>/dev/null || true
+# Or write info.json with name, version, title, unibrowser_api, library: libub_mod_cdylib_stub.so
+cp target/debug/libub_mod_cdylib_stub.so "$MOD_ROOT/"
+# Enable in Mod portal or echo '{"enabled":true}' > "$MOD_ROOT/state.json"
+```
+
+**Dev stub (optional):**
+
+```bash
 export UNIBROWSER_LOAD_CDYLIB_MOD=1
 export UNIBROWSER_CDYLIB_MOD_PATH=examples/ub-mod-cdylib-stub/target/debug/libub_mod_cdylib_stub.so
-# run unibrowser-desktop; command palette should list "Hello from mod" (id `mod.hello`)
 ```
+
+Command palette should list **Hello from mod** (`mod.hello`) when loaded.
 
 ## Required exports (ABI v1)
 

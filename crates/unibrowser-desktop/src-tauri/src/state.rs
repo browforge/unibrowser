@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 
 use crate::listing_control::ListingControl;
 
@@ -33,9 +33,9 @@ pub struct AppState {
     pub registry: Mutex<CommandRegistry>,
     pub sessions: Mutex<HashMap<String, SharedWindowSession>>,
     pub cwd: PathBuf,
-    pub mods_loaded: String,
+    mods_loaded: RwLock<String>,
     #[cfg(feature = "dynamic-mods")]
-    _dynamic_cdylib: Option<unibrowser_mod_host::dynamic::LoadedCdylibMod>,
+    dynamic_cdylibs: Mutex<Vec<unibrowser_mod_host::dynamic::LoadedCdylibMod>>,
     pub keybindings: Mutex<KeybindingMap>,
     pub command_manager: Mutex<CommandManagerState>,
     pub vsix_host_commands: Mutex<HashSet<String>>,
@@ -89,40 +89,81 @@ pub fn load_merged_keybindings() -> KeybindingMap {
     KeybindingMap::load_merged(keybindings_file_path().as_deref(), &vsix)
 }
 
-impl AppState {
-    pub fn new() -> Self {
-        let mut registry = CommandRegistry::with_builtins();
-        let bundled = bundled_mod_registers();
-        let mod_host =
-            ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled).expect("mods");
-        let vsix_host_commands = Mutex::new(HashSet::new());
-        if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
-            unibrowser_vsix::register_enabled_contributions(&mut registry, &vsix_root, &vsix_host_commands);
-        }
-        let mut mods_loaded = mod_host.load_order.join(", ");
-        #[cfg(all(feature = "dynamic-mods", target_os = "linux"))]
-        let dynamic_cdylib = {
-            let mut loaded = None;
-            if std::env::var("UNIBROWSER_LOAD_CDYLIB_MOD").as_deref() == Ok("1") {
-                use unibrowser_mod_host::dynamic::{default_cdylib_search_paths, load_cdylib_mod};
-                for path in default_cdylib_search_paths() {
-                    match load_cdylib_mod(&path, &mut registry) {
-                        Ok(mod_lib) => {
-                            if !mods_loaded.is_empty() {
-                                mods_loaded.push_str(", ");
-                            }
-                            mods_loaded.push_str(&mod_lib.name);
-                            loaded = Some(mod_lib);
-                            break;
-                        }
-                        Err(_) => {}
-                    }
+fn append_mod_name(line: &mut String, name: &str) {
+    if !line.is_empty() {
+        line.push_str(", ");
+    }
+    line.push_str(name);
+}
+
+struct BuiltRegistry {
+    registry: CommandRegistry,
+    mod_host: ModHost,
+    mods_line: String,
+    #[cfg(feature = "dynamic-mods")]
+    dynamic_libs: Vec<unibrowser_mod_host::dynamic::LoadedCdylibMod>,
+}
+
+fn build_command_registry(
+    vsix_host_commands: &Mutex<HashSet<String>>,
+) -> Result<BuiltRegistry, String> {
+    let mut registry = CommandRegistry::with_builtins();
+    let bundled = bundled_mod_registers();
+    let mod_host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
+        .map_err(|e| e.to_string())?;
+    if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
+        unibrowser_vsix::register_enabled_contributions(
+            &mut registry,
+            &vsix_root,
+            vsix_host_commands,
+        );
+    }
+    let mut mods_line = mod_host.load_order.join(", ");
+    #[cfg(feature = "dynamic-mods")]
+    let mut dynamic_libs = Vec::new();
+    #[cfg(all(feature = "dynamic-mods", target_os = "linux"))]
+    {
+        if let Some(root) = crate::config::user_mods_dir() {
+            if let Ok(user_libs) =
+                unibrowser_mod_host::dynamic::load_user_native_mods(&root, &mut registry)
+            {
+                for m in user_libs {
+                    append_mod_name(&mut mods_line, &m.name);
+                    dynamic_libs.push(m);
                 }
             }
-            loaded
-        };
-        #[cfg(not(all(feature = "dynamic-mods", target_os = "linux")))]
-        let dynamic_cdylib = None;
+        }
+        if std::env::var("UNIBROWSER_LOAD_CDYLIB_MOD").as_deref() == Ok("1") {
+            use unibrowser_mod_host::dynamic::{default_cdylib_search_paths, load_cdylib_mod};
+            for path in default_cdylib_search_paths() {
+                if let Ok(m) = load_cdylib_mod(None, &path, &mut registry) {
+                    append_mod_name(&mut mods_line, &m.name);
+                    dynamic_libs.push(m);
+                    break;
+                }
+            }
+        }
+    }
+    Ok(BuiltRegistry {
+        registry,
+        mod_host,
+        mods_line,
+        #[cfg(feature = "dynamic-mods")]
+        dynamic_libs,
+    })
+}
+
+impl AppState {
+    pub fn mods_loaded_line(&self) -> String {
+        self.mods_loaded
+            .read()
+            .map(|s| s.clone())
+            .unwrap_or_default()
+    }
+
+    pub fn new() -> Self {
+        let vsix_host_commands = Mutex::new(HashSet::new());
+        let built = build_command_registry(&vsix_host_commands).expect("mods");
         let cwd = std::env::var("HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("/"));
@@ -138,41 +179,42 @@ impl AppState {
         );
 
         Self {
-            registry: Mutex::new(registry),
+            registry: Mutex::new(built.registry),
             sessions,
             cwd,
-            mods_loaded,
+            mods_loaded: RwLock::new(built.mods_line),
             keybindings,
             command_manager,
             vsix_host_commands,
             key_sequences: Mutex::new(KeySequenceMatcher::default()),
             listing_control: ListingControl::new(),
             filename_search_cancel: AtomicBool::new(false),
-            _mod_host: mod_host,
+            _mod_host: built.mod_host,
             #[cfg(feature = "dynamic-mods")]
-            _dynamic_cdylib: dynamic_cdylib,
+            dynamic_cdylibs: Mutex::new(built.dynamic_libs),
         }
     }
 
-    pub fn refresh_vsix_catalog(&self) {
-        let mut registry = CommandRegistry::with_builtins();
-        let bundled = bundled_mod_registers();
-        for register in bundled.values() {
-            register(&mut registry);
-        }
-        if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
-            unibrowser_vsix::register_enabled_contributions(
-                &mut registry,
-                &vsix_root,
-                &self.vsix_host_commands,
-            );
-        }
+    pub fn refresh_extension_catalog(&self) -> Result<(), String> {
+        let built = build_command_registry(&self.vsix_host_commands)?;
         if let Ok(mut guard) = self.registry.lock() {
-            *guard = registry;
+            *guard = built.registry;
+        }
+        if let Ok(mut line) = self.mods_loaded.write() {
+            *line = built.mods_line;
+        }
+        #[cfg(feature = "dynamic-mods")]
+        if let Ok(mut libs) = self.dynamic_cdylibs.lock() {
+            *libs = built.dynamic_libs;
         }
         if let Ok(mut kb) = self.keybindings.lock() {
             *kb = load_merged_keybindings();
         }
+        Ok(())
+    }
+
+    pub fn refresh_vsix_catalog(&self) {
+        let _ = self.refresh_extension_catalog();
     }
 
     pub fn refresh_command_manager_context(&self, window_label: &str) {

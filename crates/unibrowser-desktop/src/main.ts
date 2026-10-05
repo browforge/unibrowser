@@ -66,6 +66,16 @@ interface OpenVsxHitDto {
   url: string;
 }
 
+interface InstalledNativeModDto {
+  name: string;
+  title: string;
+  version: string;
+  enabled: boolean;
+  library_present: boolean;
+  signature_ok: boolean;
+  load_block_reason: string | null;
+}
+
 interface InstalledVsixDto {
   extension_id: string;
   name: string;
@@ -405,8 +415,19 @@ function renderModPortal(portal: ModPortalDto | null) {
   const installedHeading = document.createElement("h3");
   installedHeading.textContent = t("mods.installedHeading");
   modPortalPanel.appendChild(installedHeading);
+
+  const nativeHeading = document.createElement("h4");
+  nativeHeading.textContent = t("mods.nativeHeading");
+  modPortalPanel.appendChild(nativeHeading);
+  const nativeList = document.createElement("div");
+  nativeList.className = "mod-portal-installed mod-portal-native";
+  modPortalPanel.appendChild(nativeList);
+
+  const vsixHeading = document.createElement("h4");
+  vsixHeading.textContent = t("mods.vsixHeading");
+  modPortalPanel.appendChild(vsixHeading);
   const installedList = document.createElement("div");
-  installedList.className = "mod-portal-installed";
+  installedList.className = "mod-portal-installed mod-portal-vsix";
   modPortalPanel.appendChild(installedList);
 
   const sideloadBtn = document.createElement("button");
@@ -424,14 +445,14 @@ function renderModPortal(portal: ModPortalDto | null) {
         }),
         "info",
       );
-      await refreshInstalledVsix(installedList);
+      await refreshInstalledExtensions(nativeList, installedList);
     } catch (err) {
       showToast(String(err), "error");
     }
   };
   modPortalPanel.appendChild(sideloadBtn);
 
-  void refreshInstalledVsix(installedList);
+  void refreshInstalledExtensions(nativeList, installedList);
 
   async function installFromOpenVsx(hit: OpenVsxHitDto) {
     showToast(t("mods.downloading", { extensionId: hit.extension_id }), "info");
@@ -442,7 +463,7 @@ function renderModPortal(portal: ModPortalDto | null) {
         license: hit.license,
       });
       showToast(t("mods.installedPaletteNote", { extensionId: rec.extension_id }), "info");
-      await refreshInstalledVsix(installedList);
+      await refreshInstalledExtensions(nativeList, installedList);
     } catch (err) {
       showToast(String(err), "error");
     }
@@ -478,12 +499,55 @@ function renderModPortal(portal: ModPortalDto | null) {
   };
 }
 
-async function refreshInstalledVsix(container: HTMLElement) {
-  container.innerHTML = "";
+async function refreshInstalledExtensions(
+  nativeContainer: HTMLElement,
+  vsixContainer: HTMLElement,
+) {
+  nativeContainer.innerHTML = "";
+  vsixContainer.innerHTML = "";
+  try {
+    const native = await invoke<InstalledNativeModDto[]>("list_installed_native_mods");
+    if (!native.length) {
+      nativeContainer.textContent = t("mods.noNative");
+    } else {
+      native.forEach((mod) => {
+        const row = document.createElement("div");
+        row.className = "vsix-installed-row";
+        const label = document.createElement("span");
+        label.textContent = t("mods.nativeRow", {
+          title: mod.title,
+          name: mod.name,
+          version: mod.version,
+        });
+        if (mod.load_block_reason) {
+          const block = document.createElement("span");
+          block.className = "viewer-note";
+          block.textContent = t("mods.nativeBlocked", { reason: mod.load_block_reason });
+          label.appendChild(document.createElement("br"));
+          label.appendChild(block);
+        }
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.textContent = mod.enabled ? t("mods.disable") : t("mods.enable");
+        toggle.onclick = async () => {
+          await invoke("set_native_mod_enabled", {
+            name: mod.name,
+            enabled: !mod.enabled,
+          });
+          await refreshInstalledExtensions(nativeContainer, vsixContainer);
+        };
+        row.appendChild(label);
+        row.appendChild(toggle);
+        nativeContainer.appendChild(row);
+      });
+    }
+  } catch {
+    nativeContainer.textContent = t("mods.nativeListFailed");
+  }
   try {
     const list = await invoke<InstalledVsixDto[]>("list_installed_vsix");
     if (!list.length) {
-      container.textContent = t("mods.noInstalled");
+      vsixContainer.textContent = t("mods.noInstalled");
       return;
     }
     list.forEach((ext) => {
@@ -499,7 +563,7 @@ async function refreshInstalledVsix(container: HTMLElement) {
           extensionId: ext.extension_id,
           enabled: !ext.enabled,
         });
-        await refreshInstalledVsix(container);
+        await refreshInstalledExtensions(nativeContainer, vsixContainer);
       };
       const remove = document.createElement("button");
       remove.type = "button";
@@ -507,15 +571,15 @@ async function refreshInstalledVsix(container: HTMLElement) {
       remove.onclick = async () => {
         await invoke("uninstall_vsix_extension", { extensionId: ext.extension_id });
         showToast(t("mods.removed", { extensionId: ext.extension_id }), "info");
-        await refreshInstalledVsix(container);
+        await refreshInstalledExtensions(nativeContainer, vsixContainer);
       };
       row.appendChild(label);
       row.appendChild(toggle);
       row.appendChild(remove);
-      container.appendChild(row);
+      vsixContainer.appendChild(row);
     });
   } catch {
-    container.textContent = t("mods.listFailed");
+    vsixContainer.textContent = t("mods.listFailed");
   }
 }
 

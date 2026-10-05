@@ -73,7 +73,26 @@ pub fn default_cdylib_search_paths() -> Vec<std::path::PathBuf> {
     paths
 }
 
-pub fn load_cdylib_mod(path: &Path, registry: &mut CommandRegistry) -> Result<LoadedCdylibMod, ModHostError> {
+/// Load enabled native mods from the user config `mods` directory.
+pub fn load_user_native_mods(
+    user_root: &Path,
+    registry: &mut CommandRegistry,
+) -> Result<Vec<LoadedCdylibMod>, ModHostError> {
+    let mut loaded = Vec::new();
+    for (mod_dir, lib) in crate::native::enabled_load_candidates(user_root)? {
+        loaded.push(load_cdylib_mod(Some(&mod_dir), &lib, registry)?);
+    }
+    Ok(loaded)
+}
+
+pub fn load_cdylib_mod(
+    mod_dir: Option<&Path>,
+    path: &Path,
+    registry: &mut CommandRegistry,
+) -> Result<LoadedCdylibMod, ModHostError> {
+    if let Some(dir) = mod_dir {
+        crate::signing::verify_mod_dir(dir)?;
+    }
     if !path.is_file() {
         return Err(ModHostError::Dynamic(format!(
             "cdylib not found: {}",
@@ -140,7 +159,7 @@ mod tests {
             return;
         }
         let mut registry = CommandRegistry::with_builtins();
-        let loaded = load_cdylib_mod(&path, &mut registry).expect("load stub");
+        let loaded = load_cdylib_mod(None, &path, &mut registry).expect("load stub");
         assert_eq!(loaded.name, "libub_mod_cdylib_stub");
         assert!(registry.command_meta("mod.hello").is_some());
     }

@@ -4,6 +4,13 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ## [0.1.0] — blitz (in progress)
 
+### Added (latest)
+
+- User mods dir (`~/.config/unibrowser/mods` on Linux): discover `info.json`, load enabled cdylibs when `dynamic-mods` is on (not env-only).
+- Mod portal: enable/disable **native mods** and **VSIX** in separate lists.
+- T1 signing stub: [docs/plugin-sdk/signing.md](docs/plugin-sdk/signing.md); `UNIBROWSER_REQUIRE_SIGNED_MODS=1` refuses unsigned loads.
+- Plugin SDK: Windows/macOS library naming and user mods paths in README.
+
 ### Added
 
 - **Plugin SDK draft**: `docs/plugin-sdk/` (README, `ub-mod.h`, `ub-mod.wit`); example `ub-mod-cdylib-stub` registers `mod.hello`.

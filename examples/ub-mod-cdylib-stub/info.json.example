@@ -1,0 +1,7 @@
+{
+  "name": "ub-mod-cdylib-stub",
+  "version": "0.1.0",
+  "title": "Hello cdylib stub",
+  "unibrowser_api": "0.1.0",
+  "library": "libub_mod_cdylib_stub.so"
+}

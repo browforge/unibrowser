@@ -66,7 +66,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 
 - Save-to-disk download disposition UI polish; full VSIX JS extension host
 - Cloud sync; full spreadsheet/DXF NURBS
-- Production cdylib mod discovery (today: opt-in Linux load; see [docs/plugin-sdk](docs/plugin-sdk/README.md))
+- Windows/macOS cdylib runtime load (Linux + user `mods/` today; see [docs/plugin-sdk](docs/plugin-sdk/README.md))
 - Complete i18n beyond en-NZ; Monaco spellcheck
 - Windows installer signing and bundled ffmpeg in installer
 - Real timeline encode (render fades, audio mix, PDF page-per-time); batch convert beyond PNG/JPEG
