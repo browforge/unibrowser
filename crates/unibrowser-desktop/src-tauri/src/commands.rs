@@ -71,6 +71,8 @@ pub struct TabDto {
     pub pinned: bool,
     /// Folder path when this tab can receive file drops (browse / directory tabs).
     pub browse_path: Option<String>,
+    pub muted: bool,
+    pub mute_available: bool,
 }
 
 #[derive(Serialize)]
@@ -281,6 +283,8 @@ pub struct DocumentViewerDto {
     pub reader_font_pt: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preview_zoom: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tab_muted: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -529,6 +533,33 @@ fn build_tab_dto(
         dirty: tab_is_dirty(tab),
         pinned: tab.pinned,
         browse_path: tab_browse_path(state, tabs, tab),
+        muted: tab.muted,
+        mute_available: tab_mute_available(tab),
+    }
+}
+
+fn tab_mute_available(tab: &unibrowser_engine::tabs::Tab) -> bool {
+    match &tab.location {
+        BrowserLocation::Http { .. } => true,
+        BrowserLocation::File { path } => {
+            let ext = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            matches!(
+                ext.as_str(),
+                "mp4" | "webm" | "mkv" | "mov" | "wav" | "mp3" | "flac" | "ogg" | "m4a" | "aac"
+                    | "opus"
+            )
+        }
+        BrowserLocation::Internal { .. } => false,
+    }
+}
+
+fn record_closed_tab(sess: &crate::window_session::WindowSession, loc: BrowserLocation) {
+    if let Ok(mut stack) = sess.closed_tabs.lock() {
+        stack.push(loc);
     }
 }
 
@@ -570,6 +601,7 @@ fn document_viewer_dto(
     doc: &mut unibrowser_engine::DocumentSession,
     state: &AppState,
     window_label: &str,
+    tab_muted: bool,
 ) -> Option<DocumentViewerDto> {
     if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
         let root = Path::new(&doc.path);
@@ -678,6 +710,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     if doc.backend.backend_id() == crate::settings_stub::BACKEND_ID {
@@ -701,6 +734,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     if doc.backend.backend_id() == crate::about_stub::BACKEND_ID {
@@ -724,6 +758,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     if doc.backend.backend_id() == crate::downloads_stub::BACKEND_ID {
@@ -747,6 +782,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     if doc.backend.backend_id() == crate::diagnostics_stub::BACKEND_ID {
@@ -770,6 +806,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     if doc.backend.backend_id() == crate::docs_stub::BACKEND_ID {
@@ -795,6 +832,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     if doc.backend.backend_id() == crate::keys_stub::BACKEND_ID {
@@ -818,6 +856,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     if doc.backend.backend_id() == crate::midi_stub::BACKEND_ID {
@@ -858,6 +897,7 @@ fn document_viewer_dto(
             pdf_engines: None,
             reader_font_pt: None,
             preview_zoom: None,
+            tab_muted: None,
         });
     }
     let viewer = match doc.backend.backend_id() {
@@ -909,6 +949,7 @@ fn document_viewer_dto(
         pdf_engines,
         reader_font_pt,
         preview_zoom: preview_zoom_for_doc(doc),
+        tab_muted: Some(tab_muted),
     })
 }
 
@@ -953,10 +994,11 @@ fn tab_pane_dtos(
         .document
         .as_ref()
         .map(|d| d.backend.status_line());
+    let tab_muted = tab.muted;
     let viewer = tab
         .document
         .as_mut()
-        .and_then(|d| document_viewer_dto(d, state, window_label));
+        .and_then(|d| document_viewer_dto(d, state, window_label, tab_muted));
     let reveal_line = tab.reveal_line;
     if reveal_line.is_some() {
         tab.reveal_line = None;
@@ -1111,6 +1153,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .map(|d| d.backend.status_line());
     let (document_viewer, text_document) = match tabs.active_tab_mut() {
         Some(tab) => {
+            let tab_muted = tab.muted;
             let reveal_line = tab.reveal_line;
             if reveal_line.is_some() {
                 tab.reveal_line = None;
@@ -1118,7 +1161,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
             let viewer = tab
                 .document
                 .as_mut()
-                .and_then(|d| document_viewer_dto(d, state, window_label));
+                .and_then(|d| document_viewer_dto(d, state, window_label, tab_muted));
             let text = if viewer.is_some() {
                 None
             } else {
@@ -1441,11 +1484,15 @@ pub fn close_tab(window: tauri::Window,
                 return Err(ERR_UNSAVED_CLOSE.into());
             }
         }
+        let closed_loc = tabs.tabs().get(index).map(|t| t.location.clone());
         if let Some(tab) = tabs.tabs().get(index) {
             _sess_tabs.purge_tab_resources(tab);
         }
         if !tabs.close_tab(index) {
             return Err("cannot close last tab".into());
+        }
+        if let Some(loc) = closed_loc {
+            record_closed_tab(&_sess_tabs, loc);
         }
     }
     let loc = {
@@ -2506,10 +2553,27 @@ fn patch_tab_shell_enablement(
     reason: Option<String>,
     tab_count: usize,
     active_index: usize,
+    closed_count: usize,
+    mute_available: bool,
 ) -> (bool, Option<String>) {
     use unibrowser_mod_api::commands::{
-        CLOSE_OTHER_TABS, CLOSE_TABS_TO_RIGHT, DUPLICATE_TAB,
+        CLOSE_OTHER_TABS, CLOSE_TABS_TO_RIGHT, DUPLICATE_TAB, REOPEN_CLOSED_TAB, TOGGLE_TAB_MUTE,
     };
+    if command_id == REOPEN_CLOSED_TAB {
+        if closed_count == 0 {
+            return (false, Some("No recently closed tabs".into()));
+        }
+        return (true, None);
+    }
+    if command_id == TOGGLE_TAB_MUTE {
+        if !mute_available {
+            return (
+                false,
+                Some("Mute is only available on https and media tabs".into()),
+            );
+        }
+        return (true, None);
+    }
     if command_id == DUPLICATE_TAB {
         return (true, None);
     }
@@ -2555,6 +2619,8 @@ fn map_ui_commands(
     location: Option<&BrowserLocation>,
     tab_count: usize,
     active_index: usize,
+    closed_count: usize,
+    mute_available: bool,
 ) -> Vec<UiCommandDto> {
     cmds.into_iter()
         .map(|c| {
@@ -2572,6 +2638,8 @@ fn map_ui_commands(
                 reason,
                 tab_count,
                 active_index,
+                closed_count,
+                mute_available,
             );
             UiCommandDto {
                 command_id: c.command_id,
@@ -2598,6 +2666,12 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .unwrap_or_else(host_context_for_browse);
     let doc_ref = active.and_then(|t| t.document.as_ref());
     let active_location = active.map(|t| &t.location);
+    let closed_count = _sess_tabs_guard
+        .closed_tabs
+        .lock()
+        .map_err(|e| e.to_string())?
+        .len();
+    let mute_available = active.map(tab_mute_available).unwrap_or(false);
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
@@ -2611,6 +2685,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 active_location,
                 tab_count,
                 active_index,
+                closed_count,
+                mute_available,
             );
             ManagerTabDto {
                 id: tab.id.clone(),
@@ -2631,6 +2707,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 active_location,
                 tab_count,
                 active_index,
+                closed_count,
+                mute_available,
             );
             FloatingBarDto {
                 id: bar.id.clone(),
@@ -2856,6 +2934,78 @@ enum CloseTabsMode {
     ToRight,
 }
 
+fn reopen_closed_tab(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<AppState>,
+) -> Result<String, String> {
+    let _sess_tabs = ws(state, window)?;
+    let loc = _sess_tabs
+        .closed_tabs
+        .lock()
+        .map_err(|e| e.to_string())?
+        .pop()
+        .ok_or("No recently closed tabs")?;
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.open_tab(loc.clone());
+    if let Some(tab) = tabs.active_tab_mut() {
+        tab.is_directory = is_dir;
+        tab.document = doc;
+        tab.location = loc.clone();
+    }
+    update_content_webview(app, window.label(), &loc)?;
+    Ok("Tab reopened".into())
+}
+
+fn toggle_active_tab_muted(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<AppState>,
+) -> Result<String, String> {
+    let _sess_tabs = ws(state, window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    if !tab_mute_available(tab) {
+        return Err("Mute is only available on https and media tabs".into());
+    }
+    tab.muted = !tab.muted;
+    let muted = tab.muted;
+    let is_http = matches!(tab.location, BrowserLocation::Http { .. });
+    if is_http {
+        crate::webview::apply_tab_mute(app, window.label(), muted)?;
+    }
+    Ok(if muted {
+        "Tab muted".into()
+    } else {
+        "Tab unmuted".into()
+    })
+}
+
+#[tauri::command]
+pub fn toggle_tab_mute(
+    window: tauri::Window,
+    index: usize,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.tab_mut(index).ok_or("invalid tab")?;
+    if !tab_mute_available(tab) {
+        return Err("Mute is only available on https and media tabs".into());
+    }
+    tab.muted = !tab.muted;
+    let muted = tab.muted;
+    let loc = tab.location.clone();
+    if index == tabs.active_index() {
+        if matches!(loc, BrowserLocation::Http { .. }) {
+            crate::webview::apply_tab_mute(&app, window.label(), muted)?;
+        }
+    }
+    snapshot(&state, window.label())
+}
+
 fn duplicate_active_tab(
     window: &tauri::Window,
     app: &AppHandle,
@@ -2904,8 +3054,10 @@ fn close_tabs_relative(
         if tab_is_dirty(tab) {
             continue;
         }
+        let closed_loc = tab.location.clone();
         _sess_tabs.purge_tab_resources(tab);
         if tabs.close_tab(index) {
+            record_closed_tab(&_sess_tabs, closed_loc);
             closed += 1;
         }
     }
@@ -2958,6 +3110,12 @@ fn execute_command_impl(
     }
     if command_id == unibrowser_mod_api::commands::CLOSE_TABS_TO_RIGHT {
         return close_tabs_relative(&window, &app, &state, CloseTabsMode::ToRight);
+    }
+    if command_id == unibrowser_mod_api::commands::REOPEN_CLOSED_TAB {
+        return reopen_closed_tab(&window, &app, &state);
+    }
+    if command_id == unibrowser_mod_api::commands::TOGGLE_TAB_MUTE {
+        return toggle_active_tab_muted(&window, &app, &state);
     }
     if command_id == unibrowser_mod_api::commands::WORKSPACE_QUICK_OPEN {
         return Ok("workspace-quick-open".into());
@@ -3302,6 +3460,12 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
         .vsix_host_commands
         .lock()
         .map_err(|e| e.to_string())?;
+    let closed_count = _sess_tabs
+        .closed_tabs
+        .lock()
+        .map_err(|e| e.to_string())?
+        .len();
+    let mute_available = tab_mute_available(tab);
     let mut out: Vec<PaletteEntryDto> = search_commands(&registry, &ctx, &query)
         .into_iter()
         .map(|e| {
@@ -3334,6 +3498,8 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                 reason,
                 tabs.tab_count(),
                 tabs.active_index(),
+                closed_count,
+                mute_available,
             );
             let chord = keybindings
                 .chord_for_command(&e.command_id)
@@ -6391,14 +6557,31 @@ fn active_web_reader_mode(state: &AppState, window_label: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn active_tab_muted(state: &AppState, window_label: &str) -> bool {
+    let sess = ws_label(state, window_label).ok();
+    let Some(sess) = sess else {
+        return false;
+    };
+    let tabs = match sess.tabs.lock() {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+    tabs.active_tab().map(|t| t.muted).unwrap_or(false)
+}
+
 fn update_content_webview(
     app: &AppHandle,
     window_label: &str,
     loc: &BrowserLocation,
 ) -> Result<(), String> {
-    let reader = app
+    let (reader, muted) = app
         .try_state::<AppState>()
-        .map(|s| active_web_reader_mode(s.inner(), window_label))
-        .unwrap_or(false);
-    sync_content_webview_for_window(app, window_label, loc, reader)
+        .map(|s| {
+            (
+                active_web_reader_mode(s.inner(), window_label),
+                active_tab_muted(s.inner(), window_label),
+            )
+        })
+        .unwrap_or((false, false));
+    sync_content_webview_for_window(app, window_label, loc, reader, muted)
 }

@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Tabs:** **Reopen closed tab** (`Ctrl+Shift+T`, stack of last 10 file paths / URLs); **Mute tab** stub on https (injected `video`/`audio` mute) and media file tabs (strip control + viewer `muted`).
+- **PDF:** Text-layer select + **Copy** / **Print selection** when pdf.js exposes a text layer; raster-only pages remain a documented gap.
+- **Docs:** [CONTRIBUTING.md](docs/CONTRIBUTING.md) lists `./scripts/blitz-metrics.sh` and `./scripts/lint-doc-links.sh`.
 - **Tabs:** **Duplicate tab** (`Ctrl+Shift+K`); **Close other tabs** and **Close tabs to the right** (skips pinned and unsaved).
 - **Image histogram:** PNG/JPEG viewer histogram panel (sampled RGB); **Curves** grey stub.
 - **`.unibrow` labels:** Double-click node or timeline clip labels to rename inline (persisted to `project.json`).

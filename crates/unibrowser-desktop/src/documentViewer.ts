@@ -150,6 +150,7 @@ export interface DocumentViewerDto {
   pdf_engines?: PdfEngineLineDto[];
   reader_font_pt?: number;
   preview_zoom?: number;
+  tab_muted?: boolean;
 }
 
 interface PdfEngineLineDto {
@@ -942,12 +943,18 @@ async function ensureAssetAllowed(path: string) {
   await invoke("allow_asset_path", { path }).catch(() => {});
 }
 
-async function renderVideo(path: string, root: HTMLElement, note?: string) {
+async function renderVideo(
+  path: string,
+  root: HTMLElement,
+  note?: string,
+  tabMuted = false,
+) {
   await ensureAssetAllowed(path);
   root.innerHTML = "";
   const video = document.createElement("video");
   video.className = "media-view";
   video.controls = true;
+  video.muted = tabMuted;
   video.src = convertFileSrc(path);
   mountClickToPlay(root, video, "Click to play video");
   bindMediaViewerKeys(video);
@@ -1044,7 +1051,12 @@ function drawAudioPeakArray(
   }
 }
 
-async function renderAudio(path: string, root: HTMLElement, note?: string) {
+async function renderAudio(
+  path: string,
+  root: HTMLElement,
+  note?: string,
+  tabMuted = false,
+) {
   await ensureAssetAllowed(path);
   root.innerHTML = "";
   const banner = document.createElement("p");
@@ -1069,6 +1081,7 @@ async function renderAudio(path: string, root: HTMLElement, note?: string) {
   const audio = document.createElement("audio");
   audio.className = "media-view";
   audio.controls = true;
+  audio.muted = tabMuted;
   audio.src = convertFileSrc(path);
   const audioWrap = document.createElement("div");
   root.appendChild(audioWrap);
@@ -3632,7 +3645,14 @@ function viewerCacheKey(viewer: DocumentViewerDto): string {
   const scale = viewer.pdf_scale ?? 0;
   const page = viewer.pdf_page ?? 0;
   const font = viewer.reader_font_pt ?? 0;
-  return `${viewer.viewer}:${viewer.path}:${scale}:${page}:${font}:${nodeCount}`;
+  const muted = viewer.tab_muted ? 1 : 0;
+  return `${viewer.viewer}:${viewer.path}:${scale}:${page}:${font}:${nodeCount}:${muted}`;
+}
+
+function applyTabMutedToViewer(el: HTMLElement, muted: boolean) {
+  el.querySelectorAll<HTMLMediaElement>("video, audio").forEach((media) => {
+    media.muted = muted;
+  });
 }
 
 export interface DocumentViewerApplyExtras {
@@ -3656,6 +3676,7 @@ export const documentViewer = {
     const prevKey = loadedKeys.get(el) ?? null;
     if (key === prevKey && el.childElementCount > 0) {
       el.classList.remove("hidden");
+      applyTabMutedToViewer(el, Boolean(viewer.tab_muted));
       return;
     }
     loadedKeys.set(el, key);
@@ -3684,10 +3705,20 @@ export const documentViewer = {
           );
           break;
         case "video":
-          await renderVideo(viewer.path, body, viewer.media_note);
+          await renderVideo(
+            viewer.path,
+            body,
+            viewer.media_note,
+            Boolean(viewer.tab_muted),
+          );
           break;
         case "audio":
-          await renderAudio(viewer.path, body, viewer.media_note);
+          await renderAudio(
+            viewer.path,
+            body,
+            viewer.media_note,
+            Boolean(viewer.tab_muted),
+          );
           break;
         case "image":
           await renderImage(viewer.path, body, viewer.preview_zoom ?? 1);
@@ -3759,6 +3790,21 @@ export const documentViewer = {
     return { title, html: article.innerHTML };
   },
   getPrintSelectionHtml(el: HTMLElement): { title: string; html: string } | null {
+    const pdfLayer = el.querySelector(".pdf-text-layer");
+    if (pdfLayer) {
+      const sel = window.getSelection();
+      const text = sel?.toString().trim() ?? "";
+      if (!text || !sel?.anchorNode || !pdfLayer.contains(sel.anchorNode)) {
+        return null;
+      }
+      const titleEl = el.querySelector(".viewer-title");
+      const title = titleEl?.textContent?.trim() || "PDF";
+      const escaped = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return { title: `${title} (selection)`, html: `<pre class="pdf-selection">${escaped}</pre>` };
+    }
     const article = el.querySelector(".docx-view");
     if (!article) {
       return null;

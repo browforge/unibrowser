@@ -123,6 +123,8 @@ pub mod commands {
     pub const DUPLICATE_TAB: &str = "unibrowser.tabs.duplicate";
     pub const CLOSE_OTHER_TABS: &str = "unibrowser.tabs.closeOthers";
     pub const CLOSE_TABS_TO_RIGHT: &str = "unibrowser.tabs.closeToRight";
+    pub const REOPEN_CLOSED_TAB: &str = "unibrowser.tabs.reopenClosed";
+    pub const TOGGLE_TAB_MUTE: &str = "unibrowser.tabs.mute.toggle";
     pub const IMAGE_CURVES: &str = "unibrowser.image.curves";
     pub const PICTURE_IN_PICTURE: &str = "unibrowser.media.pictureInPicture";
     pub const CONTEXT_HELP: &str = "unibrowser.help.context";

@@ -92,6 +92,8 @@ interface TabDto {
   dirty: boolean;
   pinned: boolean;
   browse_path?: string | null;
+  muted: boolean;
+  mute_available: boolean;
 }
 
 interface TabSearchHit {
@@ -407,7 +409,8 @@ function renderTabs(data: TabContentDto) {
       (isSplit ? " split-pane-tab" : "");
     const dirtyMark = tab.dirty ? " •" : "";
     const pinMark = tab.pinned ? " ★" : "";
-    btn.textContent = tab.label + pinMark + dirtyMark + (isSplit ? " |" : "");
+    const muteMark = tab.mute_available && tab.muted ? " (muted)" : "";
+    btn.textContent = tab.label + pinMark + dirtyMark + muteMark + (isSplit ? " |" : "");
     btn.draggable = true;
     const fullTitle = isSplit
       ? `${tab.location_kind} (split pane; Shift+click to move split here; Ctrl+click pin)`
@@ -510,6 +513,25 @@ function renderTabs(data: TabContentDto) {
           mode,
         }).then((d) => d && applyState(d));
       });
+    }
+    if (tab.mute_available) {
+      const muteBtn = document.createElement("button");
+      muteBtn.type = "button";
+      muteBtn.className = "tab-mute" + (tab.muted ? " tab-muted" : "");
+      muteBtn.setAttribute(
+        "aria-label",
+        tab.muted ? `Unmute ${tab.label}` : `Mute ${tab.label}`,
+      );
+      muteBtn.title = tab.muted ? "Unmute tab" : "Mute tab";
+      muteBtn.textContent = tab.muted ? "M" : "S";
+      muteBtn.onclick = (e) => {
+        e.stopPropagation();
+        void invokeWithToast(
+          () => invoke<TabContentDto>("toggle_tab_mute", { index }),
+          "Could not change tab mute",
+        ).then((d) => d && applyState(d));
+      };
+      wrap.appendChild(muteBtn);
     }
     wrap.appendChild(btn);
     wrap.appendChild(close);

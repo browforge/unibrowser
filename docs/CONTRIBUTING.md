@@ -19,7 +19,11 @@ Full gate (matches CI intent):
 ```bash
 ./scripts/check-workspace.sh
 ./scripts/smoke-desktop-qa.sh
+./scripts/blitz-metrics.sh
+./scripts/lint-doc-links.sh
 ```
+
+`lint-doc-links.sh` checks relative links from `docs/index.md`; pass `--all` to scan every file under `docs/`.
 
 ## Architecture (where to edit)
 

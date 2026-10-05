@@ -181,11 +181,24 @@ pub fn apply_reader_mode(
     Ok(())
 }
 
+pub fn apply_tab_mute(app: &AppHandle, window_label: &str, muted: bool) -> Result<(), String> {
+    ensure_content_webview(app, window_label)?;
+    let label = content_label(window_label);
+    let wv = app.get_webview(&label).ok_or("content webview missing")?;
+    let script = format!(
+        r#"(function(){{try{{var muted={muted};function apply(){{document.querySelectorAll('video,audio').forEach(function(el){{el.muted=muted;}});}}apply();if(!window.__ubMuteObs){{window.__ubMuteObs=new MutationObserver(apply);window.__ubMuteObs.observe(document.documentElement,{{childList:true,subtree:true}});}}window.__ubTabMuted=muted;}}catch(e){{}}}})();"#,
+        muted = if muted { "true" } else { "false" }
+    );
+    wv.eval(&script).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn sync_content_webview_for_window(
     app: &AppHandle,
     window_label: &str,
     loc: &unibrowser_mod_api::BrowserLocation,
     reader_mode: bool,
+    tab_muted: bool,
 ) -> Result<(), String> {
     match loc {
         unibrowser_mod_api::BrowserLocation::Http { url } => {
@@ -193,6 +206,7 @@ pub fn sync_content_webview_for_window(
             apply_persisted_web_font(app, window_label, url)?;
             apply_persisted_web_zoom(app, window_label, url)?;
             apply_reader_mode(app, window_label, reader_mode)?;
+            apply_tab_mute(app, window_label, tab_muted)?;
         }
         _ => {
             content_webview_navigate(app, window_label, "about:blank")?;

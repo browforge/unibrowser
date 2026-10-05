@@ -195,6 +195,20 @@ impl CommandRegistry {
             aliases: &["close right tabs"],
         });
         reg.register_command(CommandMeta {
+            id: commands::REOPEN_CLOSED_TAB,
+            title: "Reopen closed tab",
+            icon: "tabs",
+            default_keybinding: Some("Ctrl+Shift+T"),
+            aliases: &["restore tab", "undo close tab"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TOGGLE_TAB_MUTE,
+            title: "Mute tab",
+            icon: "media",
+            default_keybinding: None,
+            aliases: &["mute audio", "silence tab"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::PICTURE_IN_PICTURE,
             title: "Picture-in-picture",
             icon: "pip",
@@ -288,6 +302,8 @@ impl CommandRegistry {
             || command_id == commands::DUPLICATE_TAB
             || command_id == commands::CLOSE_OTHER_TABS
             || command_id == commands::CLOSE_TABS_TO_RIGHT
+            || command_id == commands::REOPEN_CLOSED_TAB
+            || command_id == commands::TOGGLE_TAB_MUTE
         {
             return Enablement::Enabled;
         }

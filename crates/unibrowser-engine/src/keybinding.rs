@@ -117,6 +117,10 @@ impl KeybindingMap {
             unibrowser_mod_api::commands::DUPLICATE_TAB,
             "Ctrl+Shift+K",
         );
+        map.set_binding(
+            unibrowser_mod_api::commands::REOPEN_CLOSED_TAB,
+            "Ctrl+Shift+T",
+        );
         map
     }
 

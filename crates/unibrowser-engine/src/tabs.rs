@@ -14,6 +14,8 @@ pub struct Tab {
     pub pinned: bool,
     /// Reveal this line in the text editor on the next snapshot (one-shot).
     pub reveal_line: Option<u32>,
+    /// Mute https / media playback for this tab (shell applies when possible).
+    pub muted: bool,
 }
 
 #[derive(Default)]
@@ -70,6 +72,7 @@ impl TabManager {
             is_directory: false,
             pinned: false,
             reveal_line: None,
+            muted: false,
         };
         self.tabs.push(tab);
         self.active = self.tabs.len() - 1;
@@ -164,6 +167,7 @@ impl TabManager {
                 is_directory: false,
                 pinned: false,
                 reveal_line: None,
+                muted: false,
             });
         }
         self.active = active.min(self.tabs.len() - 1);
@@ -229,6 +233,7 @@ impl TabManager {
             is_directory: src.is_directory,
             pinned: false,
             reveal_line: None,
+            muted: src.muted,
         };
         self.tabs.push(tab);
         self.active = self.tabs.len() - 1;

@@ -258,6 +258,27 @@ button.proving-disabled,
   background: #5a3038;
 }
 
+.tab-mute {
+  background: #2a2a32;
+  border: 1px solid #444;
+  border-left: none;
+  color: #aaa;
+  padding: 0 0.3rem;
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.tab-mute.tab-muted {
+  color: #e8a0a8;
+}
+
+.tab-mute:hover {
+  color: #fff;
+  background: #3a3a48;
+}
+
 .session-restore-row {
   display: flex;
   flex-wrap: wrap;
@@ -2204,6 +2225,7 @@ body.content-fullscreen::after {
 .pdf-text-layer span {
   color: transparent;
   cursor: text;
+  user-select: text;
 }
 
 .pdf-text-layer ::selection {

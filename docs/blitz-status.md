@@ -16,7 +16,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
 | Undo / PDF | Document undo/redo on text + SVG; export PDF from Markdown/DOCX print HTML (headless Chromium / wkhtmltopdf on Linux); matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
-| Chrome | Tab drag reorder, duplicate tab (Ctrl+Shift+K), close others / close to the right, middle-click close, pin (Ctrl+click); omnibox Places/recent/URL suggestions; [chrome.md](chrome.md) |
+| Chrome | Tab drag reorder, duplicate tab (Ctrl+Shift+K), **reopen closed tab** (Ctrl+Shift+T, last 10 paths/URLs), close others / close to the right, **mute tab** stub (https + media), middle-click close, pin (Ctrl+click); omnibox Places/recent/URL suggestions; [chrome.md](chrome.md) |
 | Audio proving | `wav`/`mp3`/`flac`/`ogg` viewer: HTML audio + waveform (Web Audio or ffmpeg PCM); grey DAW commands on `base-audio` |
 | CM pin UX | Separate **Pin commands tab** control; tab clicks are preview-only until pin; tip in Settings + first pin toast |
 | Clipboard / timeline | Copy image from PNG viewer; **Paste still** on `.unibrow` timeline (asset + clip stub) |
@@ -196,6 +196,7 @@ Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** pol
 | P2 | DOCX fidelity | Mammoth layout limits; no `.docx` write-back (HTML sibling only — [docx-roundtrip.md](docx-roundtrip.md)). |
 | P2 | VSIX JS host | Stub execute only; no extension `main` runtime ([extension-host.md](extension-host.md)). |
 | P2 | Web proxy prefs | Persisted but **not applied** to embedded https webviews ([network-proxy.md](network-proxy.md)). |
+| P3 | PDF text copy | Needs pdf.js **text layer**; scanned/raster-only pages have no selectable text (Copy / Print selection grey). |
 | P3 | Large PDF open | Profile with `UNIBROWSER_PROFILE_OPEN=1` if open feels slow. |
 | P3 | Spellcheck experiment | No underlines inside Monaco; mirror textarea / DOCX / EPUB notes only. |
 | P3 | OCR | Button disabled until Tesseract sidecar ships ([ocr-sidecar.md](ocr-sidecar.md)). |

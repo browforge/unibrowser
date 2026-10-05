@@ -44,6 +44,7 @@ mod dir_list;
 mod dir_search;
 mod listing_control;
 mod trash;
+mod closed_tabs;
 pub mod window_session;
 mod workspace_layouts;
 mod workspace_tree;
@@ -110,6 +111,7 @@ pub fn run() {
             commands::select_tab,
             commands::reorder_tabs,
             commands::toggle_tab_pin,
+            commands::toggle_tab_mute,
             commands::close_tab,
             commands::search_open_tabs,
             commands::activate_tab_in_window,
