@@ -24,7 +24,7 @@ These are not separate SKUs; one shell must layer **simple defaults** over **opt
 | **User owns data and mods** | Plain-text config; mod manifests inspectable; engine does not phone home for open/save. |
 | **Engine stays out of the way** | Host provides navigation, commands, chrome — not ads, upsells, or nudging that overrides user intent. |
 
-Power features (Command Manager pin, palette, custom layouts, mod install) are **available**, not **required** for daily use.
+Power features (Command Manager pin, palette, custom layouts, native mod install, optional **`.vsix` import**) are **available**, not **required** for daily use. VSIX / Open VSX never appear in the grandma onboarding path ([ADR 0014](0014-vsix-compatibility-layer.md)).
 
 ### Everyday audience — principles
 

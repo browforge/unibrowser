@@ -86,7 +86,7 @@ Path: same directory as [keybindings.md](keybindings.md).
 | Command | Purpose |
 |---------|---------|
 | `get_command_manager` | Tabs, resolved commands, `context_pinned` |
-| `select_command_manager_tab` | User tab click (does not set pin) |
+| `select_command_manager_tab` | User tab click (temporary; does not pin) |
 | `save_command_manager_layout` | Persist reorder / float move |
 | `pin_command_manager_context` | Pin current tab to `context_pin` |
 | `clear_command_manager_context_pin` | Follow auto context again |

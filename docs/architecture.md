@@ -175,6 +175,8 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0011 Lazy conversion / native until encode](adr/0011-lazy-conversion-native-until-encode.md)
 - [0012 Context switching UX benchmarks](adr/0012-context-switching-ux-benchmarks.md)
 - [0013 Dual audience (FOSS and everyday users)](adr/0013-dual-audience-foss-and-everyday-users.md)
+- [0014 VSIX compatibility layer](adr/0014-vsix-compatibility-layer.md)
+- [Mod system overview](mod-system.md) (native + VSIX lanes)
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)
 - [0008 API gaps and upstream requests](adr/0008-api-gap-upstream-requests.md)

@@ -16,7 +16,7 @@ Unibrowser is built for **hackers and grandmas** at the same time — not two ed
 ### 1. FOSS crowd — free, moddable, stay out of the way
 
 - **Free as in beer, free as in speech** — permissive core (Apache-2.0); community mods and transparent licensing.
-- **Factorio-style mods** — engine + loader + API; formats and features extend without forking the host.
+- **Factorio-style mods** — engine + loader + API; formats and features extend without forking the host. Optional **VS Code `.vsix` reuse** for power users ([ADR 0014](adr/0014-vsix-compatibility-layer.md)); grandma never installs extensions manually.
 - **Do not interfere with user space** — your files stay where you put them; config is plain JSON in your profile; no dark patterns, no required cloud, no telemetry-by-default. You own your data, your mods, and your layouts.
 - **Engine stays out of the way** — the host provides navigation, commands, and chrome; it does not fight the user for attention or lock basic workflows behind accounts.
 

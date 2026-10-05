@@ -31,8 +31,19 @@ Skeleton implements **T0** with manifest loading and optional `cdylib` entry sym
 
 Mods declare `api_version` in `info.json`. Host exposes `UNIBROWSER_MOD_API_VERSION` (semver). Loader rejects incompatible mods with a clear error (major mismatch; minor backward compatible per semver rules).
 
+## VSIX compatibility (separate lane)
+
+Native **`info.json` mods remain first-class** for formats, enablement, and trust tiers above.
+
+**VS Code `.vsix` packages** are an optional **import/compat path**: unpack `package.json` contributions and map them to Unibrowser command registry, keybindings, and Monaco (phased). They do **not** replace manifests or T0–T3 execution rules; JS extension code requires a future sandboxed **extension host** with a **subset** of `vscode.*` APIs.
+
+Grandma-path installs use bundled native mods only; VSIX is power-user opt-in ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md)).
+
+Full mapping, phases, and limits: [ADR 0014](0014-vsix-compatibility-layer.md). Overview: [mod-system.md](../mod-system.md).
+
 ## Consequences
 
 - Base mods in repo use the same manifest format as future community mods.
 - Security reviews focus on T1 signing and T2 WASM host imports.
 - Heavy AGPL editors never link into `unibrowser-engine`.
+- VSIX reuse is pursued where contribution points align; unsupported VS Code APIs fail visibly, not silently.
