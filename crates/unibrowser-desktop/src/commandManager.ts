@@ -23,6 +23,7 @@ export interface FloatingBarDto {
   anchor: string;
   x: number;
   y: number;
+  coord_space?: string;
   commands: UiCommandDto[];
 }
 
@@ -49,8 +50,33 @@ export interface CommandManagerFile {
     anchor: string;
     x: number;
     y: number;
+    coord_space?: string;
     commands: { command_id: string }[];
   }[];
+}
+
+function floatingBarViewportPosition(bar: FloatingBarDto): { left: number; top: number } {
+  if (bar.anchor !== "floating") {
+    return { left: bar.x, top: bar.y };
+  }
+  const space = bar.coord_space ?? "viewport";
+  if (space === "screen") {
+    return {
+      left: bar.x - window.screenX,
+      top: bar.y - window.screenY,
+    };
+  }
+  return { left: bar.x, top: bar.y };
+}
+
+function screenPositionFromPointer(e: PointerEvent, offsetX: number, offsetY: number): {
+  screenX: number;
+  screenY: number;
+} {
+  return {
+    screenX: e.screenX - offsetX,
+    screenY: e.screenY - offsetY,
+  };
 }
 
 type RunCommand = (commandId: string) => Promise<void>;
@@ -122,12 +148,15 @@ async function addCommandToFloatingBar(
     }
   } else {
     const id = `float-${Date.now()}`;
+    const px = position?.x ?? 96;
+    const py = position?.y ?? 96;
     file.floating_bars.push({
       id,
       label: "Custom",
       anchor: "floating",
-      x: position?.x ?? 96,
-      y: position?.y ?? 96,
+      x: window.screenX + px,
+      y: window.screenY + py,
+      coord_space: "screen",
       commands: [{ command_id: commandId }],
     });
   }
@@ -178,6 +207,7 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
       anchor: bar.anchor,
       x: bar.x,
       y: bar.y,
+      coord_space: bar.coord_space ?? "viewport",
       commands: bar.commands.map((c) => ({ command_id: c.command_id })),
     })),
   };
@@ -264,17 +294,19 @@ export const commandManager = {
       if (!id) {
         return;
       }
-      addCommandToFloatingBar(id, undefined, { x: e.clientX - 48, y: e.clientY - 24 }).catch(
-        () => {},
-      );
+      addCommandToFloatingBar(id, undefined, {
+        x: e.clientX - 48,
+        y: e.clientY - 24,
+      }).catch(() => {});
     };
     snapshot.floating_bars.forEach((bar) => {
       const wrap = document.createElement("div");
       wrap.className =
         "floating-bar" + (bar.anchor === "floating" ? " floating" : " docked");
       if (bar.anchor === "floating") {
-        wrap.style.left = `${bar.x}px`;
-        wrap.style.top = `${bar.y}px`;
+        const pos = floatingBarViewportPosition(bar);
+        wrap.style.left = `${pos.left}px`;
+        wrap.style.top = `${pos.top}px`;
       }
       const label = document.createElement("span");
       label.className = "floating-bar-label";
@@ -311,10 +343,13 @@ export const commandManager = {
           if (!lastSnapshot) {
             return;
           }
-          const x = Math.max(0, e.clientX - dragOffsetX);
-          const y = Math.max(0, e.clientY - dragOffsetY);
-          wrap.style.left = `${x}px`;
-          wrap.style.top = `${y}px`;
+          const { screenX, screenY } = screenPositionFromPointer(
+            e,
+            dragOffsetX,
+            dragOffsetY,
+          );
+          wrap.style.left = `${screenX - window.screenX}px`;
+          wrap.style.top = `${screenY - window.screenY}px`;
         };
         const onUp = async (e: PointerEvent) => {
           window.removeEventListener("pointermove", onMove);
@@ -322,14 +357,18 @@ export const commandManager = {
           if (!lastSnapshot) {
             return;
           }
-          const x = Math.max(0, e.clientX - dragOffsetX);
-          const y = Math.max(0, e.clientY - dragOffsetY);
+          const { screenX, screenY } = screenPositionFromPointer(
+            e,
+            dragOffsetX,
+            dragOffsetY,
+          );
           const file = snapshotToFile(lastSnapshot);
           const barLayout = file.floating_bars.find((b) => b.id === bar.id);
           if (barLayout) {
             barLayout.anchor = "floating";
-            barLayout.x = x;
-            barLayout.y = y;
+            barLayout.x = screenX;
+            barLayout.y = screenY;
+            barLayout.coord_space = "screen";
             await invoke("save_command_manager_layout", { layout: file });
           }
         };

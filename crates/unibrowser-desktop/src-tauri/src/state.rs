@@ -392,9 +392,54 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         "wav" | "mp3" | "ogg" | "flac" => base_audio::open_file(path).ok(),
         "mid" | "midi" => crate::midi_stub::open_file(path).ok(),
         "epub" => Some(crate::epub_stub::open_file(path)),
-        _ => base_text::open_file(path).ok(),
+        "zip" | "7z" | "rar" | "tar" | "gz" => None,
+        _ if is_known_text_extension(effective) => base_text::open_file(path).ok(),
+        _ => None,
     };
     backend.map(|b| DocumentSession::new(path_str, b))
+}
+
+/// Extensions opened as plain text when sniffing does not override.
+pub fn is_known_text_extension(ext: &str) -> bool {
+    matches!(
+        ext,
+        "txt"
+            | "md"
+            | "markdown"
+            | "json"
+            | "rs"
+            | "toml"
+            | "yaml"
+            | "yml"
+            | "html"
+            | "htm"
+            | "css"
+            | "scss"
+            | "xml"
+            | "sh"
+            | "bash"
+            | "zsh"
+            | "log"
+            | "ini"
+            | "cfg"
+            | "conf"
+            | "c"
+            | "h"
+            | "cpp"
+            | "hpp"
+            | "ts"
+            | "tsx"
+            | "js"
+            | "jsx"
+            | "mjs"
+            | "py"
+            | "go"
+            | "java"
+            | "kt"
+            | "sql"
+            | "lua"
+            | "rhai"
+    )
 }
 
 pub fn list_dir(path: &Path) -> Result<Vec<base_files::DirEntry>, String> {

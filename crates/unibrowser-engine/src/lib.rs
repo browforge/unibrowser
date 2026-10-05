@@ -22,6 +22,7 @@ pub use tabs::{Tab, TabManager};
 pub use command_manager::{
     infer_context, load_command_manager_file, save_command_manager_file, CommandManagerState,
     CommandSurface, FloatingToolbarLayout, ManagerTabLayout, ResolvedUiCommand, ToolbarAnchor,
+    ToolbarCoordSpace,
     ToolbarPhase, UiCommandSlot,
 };
 pub use toolbar::{ToolbarConfig, ToolbarController};

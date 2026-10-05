@@ -52,7 +52,7 @@ These apply to **both** audiences. FOSS UX context: [ADR 0016](0016-foss-ux-benc
 | **Never get in the way** | First-run **onboarding is allowed** only if it is **skippable**, remembers “don’t show again”, and does **not** reappear on every launch after reinstall, profile reset, or factory defaults. No modal stacks that block open/save/browse. |
 | **Mod suggestions with consent** | **Mod Portal** prompts (missing handler, recommendations) are OK when they **do not cover or replace** the content the user was already viewing or working on — use non-blocking placement (inline tab message, side panel, toast), not a full-screen takeover of the document surface. |
 | **Everything in its proper place** | Commands, status, and chrome follow [ADR 0012](0012-context-switching-ux-benchmarks.md): stable shell vs swapping surfaces; export vs project ([ADR 0015](0015-native-project-format.md)); errors near what failed. |
-| **User taste is always right** | Layout choices the product did not predict are **supported without nagging** — e.g. floating Command Manager bars on a **second monitor**, extreme toolbar density, pin/follow preferences. Persist silently via `toolbars.json` / window state; no “are you sure?” or reset-to-our-defaults unless the user asks. |
+| **User taste is always right** | Layout choices the product did not predict are **supported without nagging** — e.g. floating Command Manager bars on a **second monitor**, extreme toolbar density, pin/follow preferences. Persist silently via `toolbars.json` (screen coordinates for floating bars; see [toolbars.md](../toolbars.md)) / window state; no “are you sure?” or reset-to-our-defaults unless the user asks. |
 
 ## Consequences
 

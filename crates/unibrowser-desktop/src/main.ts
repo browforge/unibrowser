@@ -21,6 +21,7 @@ import { applyChromeI18n, modsLineText } from "./chromeI18n";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
+import { maybePromptProjectRecovery } from "./projectRecoveryPrompt";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
 import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./filesPanel";
@@ -51,6 +52,8 @@ interface ModSuggestionDto {
   mod_id: string;
   title: string;
   reason: string;
+  open_vsx_id?: string | null;
+  ubmod_id?: string | null;
 }
 
 interface ModPortalDto {
@@ -376,9 +379,27 @@ function renderModPortal(portal: ModPortalDto | null) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mod-suggestion";
-    btn.textContent = `${s.title} (${s.mod_id})`;
+    const ubmod = s.ubmod_id ? ` · .ubmod ${s.ubmod_id}` : "";
+    btn.textContent = `${s.title} (${s.mod_id}${ubmod})`;
     btn.title = s.reason;
     btn.onclick = () => {
+      if (s.open_vsx_id) {
+        const searchInput = modPortalPanel.querySelector<HTMLInputElement>(".mod-portal-query");
+        const optIn = modPortalPanel.querySelector<HTMLInputElement>("#open-vsx-opt-in");
+        if (searchInput) {
+          searchInput.value = s.open_vsx_id;
+          searchInput.focus();
+        }
+        if (optIn) {
+          optIn.checked = true;
+        }
+        showToast(t("mods.installStub", { modId: s.mod_id }), "info");
+        return;
+      }
+      if (s.ubmod_id) {
+        showToast(t("mods.ubmodStub", { modId: s.ubmod_id }), "info");
+        return;
+      }
       showToast(t("mods.installStub", { modId: s.mod_id }), "info");
     };
     modPortalPanel.appendChild(btn);
@@ -1328,7 +1349,14 @@ void loadThemePreference().then(() => {
 });
 void loadAccessibilityPreferences();
 void loadExperimentalSpellcheckPref();
-void refreshState();
+void refreshState().then(() => {
+  void maybePromptProjectRecovery((data) => {
+    void applyState(data as TabContentDto);
+  });
+});
+window.addEventListener("focus", () => {
+  void invoke("reload_keybindings").then(() => loadKeybindingHints());
+});
 
 deferNonCriticalInit(() => {
   commandManager.bindPinControl(

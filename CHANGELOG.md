@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- Floating toolbars: screen-coordinate persistence in `toolbars.json` (multi-monitor friendly); [`docs/toolbars.md`](docs/toolbars.md) + ADR 0013 cross-link.
+- Mod portal context panel when a file has no handler (Open VSX + `.ubmod` stub suggestions; non-blocking beside the tab).
+- `keybindings.json` palette override end-to-end (`reload_keybindings` on focus); default **`Ctrl+Shift+P`** documented in README and [`docs/keybindings.md`](docs/keybindings.md).
+- `.unibrow` project recovery: debounced `project.json` backups under config; launch restore prompt.
 - Accessibility: Command Manager tab keyboard map, palette Escape, focus rings, toolbar `aria-label`s ([`docs/ux-a11y.md`](docs/ux-a11y.md)).
 - PDF proving banner (document / raster / vector) + `ensure_pdf_raster_proxy`; timeline MIDI scrub status bar + encode note.
 - VSIX `activationEvents` metadata; stub execute path; **Extensions** Command Manager tab ([`docs/extension-host.md`](docs/extension-host.md)).

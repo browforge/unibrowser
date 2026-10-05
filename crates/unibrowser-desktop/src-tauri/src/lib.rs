@@ -18,6 +18,7 @@ mod about_stub;
 mod keys_stub;
 mod web_font_prefs;
 mod crash_recovery;
+mod project_recovery;
 mod document_limits;
 mod content_sniff;
 mod files_listing;
@@ -110,6 +111,7 @@ pub fn run() {
             commands::execute_command,
             commands::palette_search,
             commands::get_keybindings,
+            commands::reload_keybindings,
             commands::dispatch_key_chord,
             commands::sync_text_document,
             commands::handle_download_url,
@@ -158,6 +160,9 @@ pub fn run() {
             commands::list_crash_recovery_backups,
             commands::dismiss_crash_recovery_backup,
             commands::restore_crash_recovery_backup,
+            commands::list_project_recovery_backups,
+            commands::dismiss_project_recovery_backup,
+            commands::restore_project_recovery_backup,
             commands::list_workspace_layout_presets,
             commands::save_workspace_layout_preset,
             commands::load_workspace_layout_preset,

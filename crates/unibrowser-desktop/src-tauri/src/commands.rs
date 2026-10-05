@@ -93,6 +93,7 @@ pub struct FloatingBarDto {
     pub anchor: String,
     pub x: f64,
     pub y: f64,
+    pub coord_space: String,
     pub commands: Vec<UiCommandDto>,
 }
 
@@ -1007,14 +1008,15 @@ fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPo
     if let BrowserLocation::File { path } = &tab.location {
         if tab.document.is_none() && path.is_file() {
             let suggestions = suggest_mods_for_unknown_path(&path.to_string_lossy());
-            if !suggestions.is_empty() {
-                return Some(ModPortalDto {
-                    title: "Install support for this file".into(),
-                    message: format!("Unibrowser cannot open {} yet.", path.file_name().unwrap_or_default().to_string_lossy()),
-                    suggestions,
-                    sideload_hint: "Install from file… or browse Open VSX when online.".into(),
-                });
-            }
+            return Some(ModPortalDto {
+                title: "Install support for this file".into(),
+                message: format!(
+                    "Unibrowser has no handler for {} yet. Install a mod below (Open VSX or .ubmod); the panel stays beside your tab and does not cover file content.",
+                    path.file_name().unwrap_or_default().to_string_lossy()
+                ),
+                suggestions,
+                sideload_hint: "Install from file… (.vsix, .ubmod) or search Open VSX when online.".into(),
+            });
         }
     }
     None
@@ -1863,6 +1865,11 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 .into(),
                 x: bar.x,
                 y: bar.y,
+                coord_space: match bar.coord_space {
+                    unibrowser_engine::ToolbarCoordSpace::Viewport => "viewport",
+                    unibrowser_engine::ToolbarCoordSpace::Screen => "screen",
+                }
+                .into(),
                 commands,
             }
         })
@@ -2152,6 +2159,22 @@ pub struct KeyChordInput {
 #[tauri::command]
 pub fn get_keybindings(window: tauri::Window, state: State<AppState>) -> Result<Vec<KeybindingDto>, String> {
     let kb = state.keybindings.lock().map_err(|e| e.to_string())?;
+    Ok(kb
+        .bindings_for_display()
+        .into_iter()
+        .map(|(command_id, chord)| KeybindingDto {
+            command_id,
+            chord,
+        })
+        .collect())
+}
+
+/// Re-read `keybindings.json` and VSIX chords (user overrides win over defaults).
+#[tauri::command]
+pub fn reload_keybindings(state: State<AppState>) -> Result<Vec<KeybindingDto>, String> {
+    let merged = crate::state::load_merged_keybindings();
+    let mut kb = state.keybindings.lock().map_err(|e| e.to_string())?;
+    *kb = merged;
     Ok(kb
         .bindings_for_display()
         .into_iter()
@@ -2564,6 +2587,7 @@ fn reload_unibrow_project_tab(
     project_path: String,
 ) -> Result<(), String> {
     let package = open_unibrow_package(project)?;
+    crate::project_recovery::maybe_backup_project(&project_path, &package.root);
     let _sess_tabs = ws_label(state, window_label)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let project_index = tabs.tabs().iter().position(|t| {
@@ -3298,6 +3322,42 @@ pub fn restore_crash_recovery_backup(window: tauri::Window,
 }
 
 #[tauri::command]
+pub fn list_project_recovery_backups(_window: tauri::Window) -> Vec<crate::project_recovery::ProjectRecoveryBackupDto> {
+    crate::project_recovery::list_backups()
+}
+
+#[tauri::command]
+pub fn dismiss_project_recovery_backup(_window: tauri::Window, backup_id: String) -> Result<(), String> {
+    crate::project_recovery::dismiss_backup(&backup_id)
+}
+
+#[tauri::command]
+pub fn restore_project_recovery_backup(
+    window: tauri::Window,
+    backup_id: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let record = crate::project_recovery::load_backup(&backup_id)?;
+    crate::project_recovery::restore_backup_to_disk(&record)?;
+    let file_path = resolve_open_path(&record.project_path, &state.cwd)?;
+    allow_asset_protocol_file(&app, &file_path);
+    let loc = BrowserLocation::File { path: file_path };
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.navigate_active(loc.clone(), is_dir, doc);
+    if let BrowserLocation::File { path } = &loc {
+        if path.is_file() {
+            touch_recent_file(path);
+        }
+    }
+    update_content_webview(&app, window.label(), &loc)?;
+    let _ = crate::project_recovery::dismiss_backup(&backup_id);
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
 pub fn set_board_snap_to_grid(window: tauri::Window, enabled: bool) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.board_snap_to_grid = enabled;
@@ -3627,6 +3687,10 @@ pub fn autosave_unibrow_active_project(
     let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
     let root = unibrowser_project::resolve_package_root(&path, &cache).map_err(|e| e.to_string())?;
     let dest = unibrowser_project::snapshot_project_autosave(&root).map_err(|e| e.to_string())?;
+    crate::project_recovery::maybe_backup_project(
+        &path.to_string_lossy(),
+        &root,
+    );
     Ok(dest.to_string_lossy().into_owned())
 }
 

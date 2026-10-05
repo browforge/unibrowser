@@ -28,7 +28,9 @@ Object mapping **command id** to **chord string** (modifiers joined with `+`, ke
 
 Supported modifiers: `Ctrl`, `Alt`, `Shift`, `Cmd` / `Meta` / `Super`.
 
-`unibrowser.palette.toggle` is the pseudo-command for the command palette (same role as VS Code “Show All Commands”).
+`unibrowser.palette.toggle` is the pseudo-command for the command palette (same role as VS Code “Show All Commands”). The default chord is **`Ctrl+Shift+P`** on Windows and Linux (`Cmd+Shift+P` on macOS).
+
+User entries in `keybindings.json` **replace** defaults for that command id (including the palette). The desktop shell reloads the map when the window gains focus and exposes `reload_keybindings` for the same merge order: engine defaults → VSIX → user file.
 
 ## Defaults
 

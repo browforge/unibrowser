@@ -41,6 +41,17 @@ pub enum ToolbarAnchor {
     Floating,
 }
 
+/// How `x` / `y` for floating bars are interpreted when persisted in `toolbars.json`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolbarCoordSpace {
+    /// Legacy: CSS `left` / `top` in the webview viewport (client pixels).
+    #[default]
+    Viewport,
+    /// Physical screen position; shell converts using `window.screenX` / `screenY` on load.
+    Screen,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FloatingToolbarLayout {
     pub id: String,
@@ -48,6 +59,8 @@ pub struct FloatingToolbarLayout {
     pub anchor: ToolbarAnchor,
     pub x: f64,
     pub y: f64,
+    #[serde(default)]
+    pub coord_space: ToolbarCoordSpace,
     pub commands: Vec<UiCommandSlot>,
 }
 
@@ -142,6 +155,7 @@ impl CommandManagerFile {
                 anchor: ToolbarAnchor::Docked,
                 x: 0.0,
                 y: 0.0,
+                coord_space: ToolbarCoordSpace::Viewport,
                 commands: vec![slot(commands::TEXT_SAVE)],
             }],
         }

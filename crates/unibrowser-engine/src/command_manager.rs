@@ -6,7 +6,7 @@ use crate::ui_command::CommandManagerFile;
 
 pub use crate::ui_command::{
     CommandManagerState, CommandSurface, FloatingToolbarLayout, ManagerTabLayout,
-    ResolvedUiCommand, ToolbarAnchor, ToolbarPhase, UiCommandSlot,
+    ResolvedUiCommand, ToolbarAnchor, ToolbarCoordSpace, ToolbarPhase, UiCommandSlot,
 };
 
 pub fn load_command_manager_file(path: Option<&Path>) -> CommandManagerFile {
