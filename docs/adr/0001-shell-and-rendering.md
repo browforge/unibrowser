@@ -21,7 +21,7 @@ Alternatives evaluated:
 ## Decision
 
 1. **Product shell (post-skeleton):** **Tauri 2** with OS WebView (WebView2 on Windows, WebKitGTK on Linux). Unibrowser **is** a browser ([ADR 0009](0009-browser-as-unified-shell.md)): file and `https://` tabs share one chrome; format editors and live web run as **mods** inside that shell.
-2. **This repository’s skeleton:** **eframe + egui** for the CommandManager, grey-out toolbar, and S-key palette so the Rust engine and mod API are proven without Node/WebView setup. Document surfaces in the skeleton are placeholders; real rendering migrates to Tauri webviews per mod.
+2. **This repository’s skeleton:** **eframe + egui** for the CommandManager, grey-out toolbar, and command palette (default **Ctrl+Shift+P**) so the Rust engine and mod API are proven without Node/WebView setup. Document surfaces in the skeleton are placeholders; real rendering migrates to Tauri webviews per mod.
 3. **Do not fork** Chromium or Gecko for Unibrowser v1.
 
 ## Consequences

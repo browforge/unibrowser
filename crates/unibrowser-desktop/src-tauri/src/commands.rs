@@ -2,7 +2,11 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
-use unibrowser_engine::palette::search_commands;
+use unibrowser_engine::{
+    keybinding::COMMAND_PALETTE_TOGGLE,
+    palette::search_commands,
+    KeyChord,
+};
 use unibrowser_mod_api::{BrowserLocation, DownloadDisposition};
 
 use crate::downloads::apply_download_disposition;
@@ -87,7 +91,10 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         active_index: tabs.active_index(),
         omnibox,
         mods_loaded: state.mods_loaded.clone(),
-        status: String::new(),
+        status: format!(
+            "{} for command palette",
+            state.keybindings.palette_chord_display()
+        ),
         directory_entries,
         document_status,
     })
@@ -217,10 +224,60 @@ pub fn get_toolbar_commands(state: State<AppState>) -> Result<Vec<ToolbarCommand
 
 #[tauri::command]
 pub fn execute_command(command_id: String, state: State<AppState>) -> Result<String, String> {
+    if command_id == COMMAND_PALETTE_TOGGLE {
+        return Ok("palette".into());
+    }
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("command needs an open document")?;
     state.registry.execute(&command_id, doc)
+}
+
+#[derive(Serialize)]
+pub struct KeybindingDto {
+    pub command_id: String,
+    pub chord: String,
+}
+
+#[derive(serde::Deserialize)]
+pub struct KeyChordInput {
+    pub ctrl: bool,
+    pub alt: bool,
+    pub shift: bool,
+    pub meta: bool,
+    pub key: String,
+}
+
+#[tauri::command]
+pub fn get_keybindings(state: State<AppState>) -> Result<Vec<KeybindingDto>, String> {
+    Ok(state
+        .keybindings
+        .bindings_for_display()
+        .into_iter()
+        .map(|(command_id, chord)| KeybindingDto {
+            command_id,
+            chord,
+        })
+        .collect())
+}
+
+/// Resolve a keyboard chord to a command id (e.g. `unibrowser.palette.toggle`).
+#[tauri::command]
+pub fn dispatch_key_chord(
+    chord: KeyChordInput,
+    state: State<AppState>,
+) -> Result<Option<String>, String> {
+    let key = KeyChord {
+        ctrl: chord.ctrl,
+        alt: chord.alt,
+        shift: chord.shift,
+        meta: chord.meta,
+        key: chord.key.to_ascii_lowercase(),
+    };
+    Ok(state
+        .keybindings
+        .command_for_chord(&key)
+        .map(|s| s.to_string()))
 }
 
 #[tauri::command]

@@ -120,7 +120,7 @@ flowchart LR
 | `unibrowser-mod-api` | Stable, versioned traits and types mods compile against. |
 | `unibrowser-engine` | Registry, enablement, modes, toolbar layout, palette search. |
 | `unibrowser-mod-host` | Load manifests, resolve deps, register bundled/dynamic mods. |
-| `unibrowser-app` | Desktop shell (eframe): demonstrates grey-out toolbar and S-key palette. |
+| `unibrowser-app` | egui harness: grey-out toolbar and command palette (default Ctrl+Shift+P). |
 | `mods/*` | Bundled base mods (same API as future community mods). |
 
 ## Capability model (narrow, not universal DOM)
@@ -137,7 +137,7 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0001 Shell and rendering](adr/0001-shell-and-rendering.md)
 - [0002 Mod system and sandboxing](adr/0002-mod-system-and-sandboxing.md)
 - [0003 Command, handler, enablement](adr/0003-command-handler-enablement.md)
-- [0004 S-key command palette](adr/0004-s-key-command-palette.md)
+- [0004 Command palette and keybindings](adr/0004-s-key-command-palette.md) (default Ctrl+Shift+P; user `keybindings.json`)
 - [0005 Context modes and toolbars](adr/0005-context-modes-and-toolbars.md)
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)

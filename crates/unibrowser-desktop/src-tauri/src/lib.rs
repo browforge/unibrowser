@@ -1,4 +1,5 @@
 mod commands;
+mod config;
 mod downloads;
 mod state;
 mod webview;
@@ -27,6 +28,8 @@ pub fn run() {
             commands::get_toolbar_commands,
             commands::execute_command,
             commands::palette_search,
+            commands::get_keybindings,
+            commands::dispatch_key_chord,
             commands::handle_download_url,
             commands::set_content_bounds,
         ])

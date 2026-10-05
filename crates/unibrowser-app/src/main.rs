@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use eframe::egui;
 use unibrowser_engine::{
-    CommandRegistry, DocumentSession, ModeController, ToolbarController,
+    CommandRegistry, DocumentSession, KeybindingMap, ModeController, ToolbarController,
+    keybinding::COMMAND_PALETTE_TOGGLE,
     palette::search_commands,
+    KeyChord,
 };
 use unibrowser_mod_host::{ModHost, ModRegisterFn, default_mods_dir};
 
@@ -30,6 +32,7 @@ struct UnibrowserApp {
     toolbar: ToolbarController,
     palette_open: bool,
     palette_query: String,
+    keybindings: KeybindingMap,
     status: String,
     mods_loaded: String,
     demo_selection: Vec<bool>,
@@ -65,6 +68,12 @@ impl UnibrowserApp {
             toolbar.select_tab_for_mode(doc.backend.mode());
         }
 
+        let keybindings = KeybindingMap::load_merged(None);
+        let status = format!(
+            "{} for command palette",
+            keybindings.palette_chord_display()
+        );
+
         Self {
             registry,
             _mod_host,
@@ -74,9 +83,61 @@ impl UnibrowserApp {
             toolbar,
             palette_open: false,
             palette_query: String::new(),
-            status: "Press S for command palette".into(),
+            keybindings,
+            status,
             mods_loaded,
             demo_selection,
+        }
+    }
+
+    fn egui_key_to_chord_key(key: egui::Key) -> Option<String> {
+        match key {
+            egui::Key::P => Some("p".into()),
+            egui::Key::Equals | egui::Key::Plus => Some("=".into()),
+            egui::Key::Minus => Some("-".into()),
+            _ => None,
+        }
+    }
+
+    fn handle_keybindings(&mut self, ctx: &egui::Context) {
+        let chords: Vec<KeyChord> = ctx.input(|i| {
+            let mut out = Vec::new();
+            for event in &i.events {
+                let egui::Event::Key {
+                    key,
+                    pressed: true,
+                    repeat: false,
+                    ..
+                } = event
+                else {
+                    continue;
+                };
+                let Some(key_str) = Self::egui_key_to_chord_key(*key) else {
+                    continue;
+                };
+                out.push(KeyChord {
+                    ctrl: i.modifiers.ctrl,
+                    alt: i.modifiers.alt,
+                    shift: i.modifiers.shift,
+                    meta: i.modifiers.command,
+                    key: key_str,
+                });
+            }
+            out
+        });
+        for chord in chords {
+            let command_id = self
+                .keybindings
+                .command_for_chord(&chord)
+                .map(|id| id.to_string());
+            let Some(command_id) = command_id else {
+                continue;
+            };
+            if command_id == COMMAND_PALETTE_TOGGLE {
+                self.palette_open = !self.palette_open;
+            } else {
+                self.run_command(&command_id);
+            }
         }
     }
 
@@ -97,8 +158,8 @@ impl UnibrowserApp {
 
 impl eframe::App for UnibrowserApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if ctx.input(|i| i.key_pressed(egui::Key::S)) && !ctx.wants_keyboard_input() {
-            self.palette_open = !self.palette_open;
+        if !ctx.wants_keyboard_input() {
+            self.handle_keybindings(ctx);
         }
 
         egui::TopBottomPanel::top("menu").show(ctx, |ui| {
@@ -187,7 +248,10 @@ impl eframe::App for UnibrowserApp {
         });
 
         if self.palette_open {
-            egui::Window::new("Command palette (S)")
+            egui::Window::new(format!(
+                "Command palette ({})",
+                self.keybindings.palette_chord_display()
+            ))
                 .collapsible(false)
                 .resizable(true)
                 .default_width(420.0)

@@ -4,7 +4,7 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 
 ## Phase 0 — Prove the abstraction (this repository)
 
-**Goal:** Same command, different backends; grey-out-not-hide; S-key palette; mod manifests.
+**Goal:** Same command, different backends; grey-out-not-hide; command palette with standard keybindings; mod manifests.
 
 | Deliverable | Status |
 | --- | --- |
@@ -24,7 +24,7 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 | Child content WebView for `https://` (`base-web`, `tauri` `unstable` multiwebview) | **Working** |
 | `base-files` directory listing and open in tab | **Working** |
 | `BrowserLocation` per tab; download → new tab (command + `on_download` emit) | **Working / stub** ([downloads.md](downloads.md)) |
-| Command registry, S-key palette, font-size grey-out on file docs | **Working** |
+| Command registry, palette (Ctrl+Shift+P), user keybindings, font-size grey-out on file docs | **Working** |
 | egui spike (`unibrowser-app`) | Kept as harness |
 | Open/save to disk, dirty persistence, toolbar JSON on disk | Deferred |
 | SVG, PDF, DOCX, DXF format mods | Deferred |

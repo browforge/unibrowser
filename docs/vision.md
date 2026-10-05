@@ -28,7 +28,7 @@ On top of that shell, the **same commands** work everywhere they make sense (for
 
 - **Context modes** map to the active document and selection; toolbar tabs auto-switch.
 - Commands that do not apply are **greyed out, never hidden**.
-- **S-key** fuzzy command palette; toolbars user-customisable and persisted.
+- **Command palette** on standard chords (default **Ctrl+Shift+P** / **Cmd+Shift+P**); **user-configurable keybindings** like VS Code; toolbars customisable and persisted.
 
 ### Factorio-style mods
 

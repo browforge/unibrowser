@@ -5,9 +5,11 @@ use std::sync::Mutex;
 use base_files::list_directory;
 use base_web::{WebBackend, handles as web_handles};
 use unibrowser_engine::{
-    CommandRegistry, DocumentSession, TabManager,
+    CommandRegistry, DocumentSession, KeybindingMap, TabManager,
     navigation::parse_user_input,
 };
+
+use crate::config::keybindings_file_path;
 use unibrowser_mod_api::BrowserLocation;
 use unibrowser_mod_host::{ModHost, ModRegisterFn, default_mods_dir};
 
@@ -16,6 +18,7 @@ pub struct AppState {
     pub tabs: Mutex<TabManager>,
     pub cwd: PathBuf,
     pub mods_loaded: String,
+    pub keybindings: KeybindingMap,
     pub _mod_host: ModHost,
 }
 
@@ -44,11 +47,14 @@ impl AppState {
         if let Some(tab) = tab_mgr.active_tab_mut() {
             tab.is_directory = cwd.is_dir();
         }
+        let keybindings = KeybindingMap::load_merged(keybindings_file_path().as_deref());
+
         Self {
             registry,
             tabs: Mutex::new(tab_mgr),
             cwd,
             mods_loaded,
+            keybindings,
             _mod_host: mod_host,
         }
     }

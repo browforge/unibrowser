@@ -52,7 +52,10 @@ const paletteQuery = document.getElementById("palette-query") as HTMLInputElemen
 const paletteResults = document.getElementById("palette-results")!;
 const contentHost = document.getElementById("content-host")!;
 
+const PALETTE_TOGGLE = "unibrowser.palette.toggle";
+
 let paletteOpen = false;
+let paletteChordLabel = "Ctrl+Shift+P";
 
 async function syncContentBounds() {
   const rect = contentHost.getBoundingClientRect();
@@ -181,26 +184,69 @@ document.getElementById("btn-demo-download")!.onclick = () =>
 function togglePalette() {
   paletteOpen = !paletteOpen;
   palette.classList.toggle("hidden", !paletteOpen);
-  if (paletteOpen) paletteQuery.focus();
+  if (paletteOpen) {
+    paletteQuery.placeholder = `Search commands (${paletteChordLabel})`;
+    paletteQuery.focus();
+  }
 }
 
-document.addEventListener("keydown", (e) => {
-  if (
-    e.key === "s" &&
-    !e.ctrlKey &&
-    !e.metaKey &&
-    document.activeElement !== omnibox
-  ) {
-    if (
-      document.activeElement instanceof HTMLInputElement &&
-      document.activeElement !== paletteQuery
-    ) {
-      return;
-    }
-    e.preventDefault();
-    togglePalette();
+function chordFromKeyboardEvent(e: KeyboardEvent) {
+  let key = e.key;
+  if (key.length === 1) {
+    key = key.toLowerCase();
+  } else {
+    key = key.toLowerCase();
   }
+  if (key === "+") {
+    key = "=";
+  }
+  return {
+    ctrl: e.ctrlKey,
+    alt: e.altKey,
+    shift: e.shiftKey,
+    meta: e.metaKey,
+    key,
+  };
+}
+
+async function runKeybindingCommand(commandId: string) {
+  if (commandId === PALETTE_TOGGLE) {
+    togglePalette();
+    return;
+  }
+  const msg = await invoke<string>("execute_command", { commandId });
+  statusLine.textContent = String(msg);
+  await refreshToolbar();
+  await refreshState();
+}
+
+document.addEventListener("keydown", async (e) => {
+  if (e.repeat) {
+    return;
+  }
+  const chord = chordFromKeyboardEvent(e);
+  const commandId = await invoke<string | null>("dispatch_key_chord", { chord });
+  if (!commandId) {
+    return;
+  }
+  e.preventDefault();
+  await runKeybindingCommand(commandId);
 });
+
+async function loadKeybindingHints() {
+  try {
+    const bindings = await invoke<{ command_id: string; chord: string }[]>(
+      "get_keybindings",
+    );
+    const palette = bindings.find((b) => b.command_id === PALETTE_TOGGLE);
+    if (palette) {
+      paletteChordLabel = palette.chord;
+      paletteQuery.placeholder = `Search commands (${paletteChordLabel})`;
+    }
+  } catch {
+    /* defaults */
+  }
+}
 
 paletteQuery.addEventListener("input", async () => {
   const entries = await invoke<PaletteEntryDto[]>("palette_search", {
@@ -230,4 +276,5 @@ listen<string>("unibrowser-download", (event) => {
   invoke<TabContentDto>("handle_download_url", { url: event.payload }).then(applyState);
 });
 
+loadKeybindingHints();
 refreshState();
