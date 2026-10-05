@@ -134,6 +134,8 @@ export interface ProjectClipDto {
   color?: string | null;
   clip_markers?: ClipMarkerDto[];
   duck_under_video?: boolean;
+  fade_in_sec?: number;
+  fade_out_sec?: number;
 }
 
 interface ProjectMarkerDto {
@@ -2556,7 +2558,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       duckCb.type = "checkbox";
       duckCb.checked = Boolean(clip.duck_under_video);
       const duckLbl = document.createElement("label");
-      duckLbl.textContent = "Duck under video (encode later)";
+      duckLbl.textContent = "Duck under video on export";
       duckLbl.prepend(duckCb);
       duckCb.onchange = () => {
         void invoke("set_unibrow_timeline_clip_duck", {
@@ -2572,6 +2574,40 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     }
 
     if (clipIsVideo(clip.node_type)) {
+      const fadeClipRow = document.createElement("div");
+      fadeClipRow.className = "unibrow-timeline-fade-row";
+      const fadeInLbl = document.createElement("label");
+      fadeInLbl.textContent = "Fade in (s)";
+      const fadeInInput = document.createElement("input");
+      fadeInInput.type = "number";
+      fadeInInput.min = "0";
+      fadeInInput.step = "0.1";
+      fadeInInput.value = String(clip.fade_in_sec ?? 0);
+      const fadeOutLbl = document.createElement("label");
+      fadeOutLbl.textContent = "Fade out (s)";
+      const fadeOutInput = document.createElement("input");
+      fadeOutInput.type = "number";
+      fadeOutInput.min = "0";
+      fadeOutInput.step = "0.1";
+      fadeOutInput.value = String(clip.fade_out_sec ?? 0);
+      const applyClipFade = () => {
+        void invoke("set_unibrow_timeline_clip_fade", {
+          projectPath: viewer.path,
+          clipId: clip.id,
+          fadeInSec: Number.parseFloat(fadeInInput.value) || 0,
+          fadeOutSec: Number.parseFloat(fadeOutInput.value) || 0,
+        }).then((data) => {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        });
+      };
+      fadeInInput.addEventListener("change", applyClipFade);
+      fadeOutInput.addEventListener("change", applyClipFade);
+      fadeClipRow.appendChild(fadeInLbl);
+      fadeClipRow.appendChild(fadeInInput);
+      fadeClipRow.appendChild(fadeOutLbl);
+      fadeClipRow.appendChild(fadeOutInput);
+      li.appendChild(fadeClipRow);
+
       const markerSec = document.createElement("div");
       markerSec.className = "unibrow-clip-markers";
       const markerHeading = document.createElement("span");
@@ -2649,7 +2685,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       fadeCb.type = "checkbox";
       fadeCb.checked = Boolean(tr && tr.kind === "fade");
       const fadeLbl = document.createElement("label");
-      fadeLbl.textContent = "Fade to next (stub)";
+      fadeLbl.textContent = "Fade to next clip";
       fadeLbl.prepend(fadeCb);
       const fadeDur = document.createElement("input");
       fadeDur.type = "number";

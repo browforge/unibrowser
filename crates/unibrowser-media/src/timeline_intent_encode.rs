@@ -14,6 +14,7 @@ use crate::{find_binary, MediaError};
 #[derive(Debug, Clone, Serialize)]
 pub struct EncodeIntentReport {
     pub honored_fade: bool,
+    pub honored_clip_fade: bool,
     pub honored_duck: bool,
     pub ignored: Vec<String>,
 }
@@ -47,16 +48,27 @@ pub fn encode_h264_timeline_intents(
 
     let mut report = EncodeIntentReport {
         honored_fade: false,
+        honored_clip_fade: false,
         honored_duck: false,
         ignored: intent.notes.clone(),
     };
 
     progress(8, "trim");
-    let trimmed: Vec<PathBuf> = videos
-        .iter()
-        .enumerate()
-        .map(|(i, seg)| trim_video_segment(&seg.path, seg.duration_sec, dest, i))
-        .collect::<Result<Vec<_>, MediaError>>()?;
+    let mut trimmed: Vec<PathBuf> = Vec::with_capacity(videos.len());
+    for (i, seg) in videos.iter().enumerate() {
+        let out = trim_video_segment(
+            &seg.path,
+            seg.duration_sec,
+            seg.fade_in_sec,
+            seg.fade_out_sec,
+            dest,
+            i,
+        )?;
+        if seg.fade_in_sec > 0.0 || seg.fade_out_sec > 0.0 {
+            report.honored_clip_fade = true;
+        }
+        trimmed.push(out);
+    }
 
     progress(25, "video");
     let video_temp = dest.with_extension("ub-video.mp4");
@@ -106,26 +118,51 @@ pub fn encode_h264_timeline_intents(
 fn trim_video_segment(
     input: &Path,
     duration_sec: f32,
+    fade_in_sec: f32,
+    fade_out_sec: f32,
     dest_hint: &Path,
     index: usize,
 ) -> Result<PathBuf, MediaError> {
     let ffmpeg = find_binary("ffmpeg").ok_or(MediaError::NotFound)?;
     let out = dest_hint.with_extension(format!("ub-trim-{}.mp4", index));
-    let dur = format!("{:.3}", duration_sec.max(0.1));
+    let dur = duration_sec.max(0.1);
+    let dur_s = format!("{:.3}", dur);
+    let fade_in = fade_in_sec.max(0.0);
+    let fade_out = fade_out_sec.max(0.0);
+    let needs_reencode = fade_in > 0.01 || fade_out > 0.01;
+    let mut args = vec![
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+        "-i".to_string(),
+        input.to_string_lossy().into_owned(),
+        "-t".to_string(),
+        dur_s,
+    ];
+    if needs_reencode {
+        let mut filters = Vec::new();
+        if fade_in > 0.01 {
+            filters.push(format!("fade=t=in:st=0:d={:.3}", fade_in.min(dur)));
+        }
+        if fade_out > 0.01 {
+            let st = (dur - fade_out).max(0.0);
+            filters.push(format!("fade=t=out:st={:.3}:d={:.3}", st, fade_out.min(dur)));
+        }
+        args.push("-vf".to_string());
+        args.push(filters.join(","));
+        args.push("-c:v".to_string());
+        args.push("libx264".to_string());
+        args.push("-preset".to_string());
+        args.push("veryfast".to_string());
+        args.push("-an".to_string());
+    } else {
+        args.push("-c".to_string());
+        args.push("copy".to_string());
+    }
+    args.push("-y".to_string());
+    args.push(out.to_string_lossy().into_owned());
     let status = Command::new(&ffmpeg)
-        .args([
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-i",
-            input.to_string_lossy().as_ref(),
-            "-t",
-            &dur,
-            "-c",
-            "copy",
-            "-y",
-            out.to_string_lossy().as_ref(),
-        ])
+        .args(&args)
         .status()
         .map_err(|e| MediaError::Sidecar(e.to_string()))?;
     if !status.success() || !out.is_file() {

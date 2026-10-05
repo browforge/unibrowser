@@ -9,6 +9,7 @@ When you export **H.264** from a `.unibrow` project, the shell builds a `Timelin
 | Clip duration | `timeline.clips[].duration_sec` | Each video clip is trimmed with `ffmpeg -t` before concat/mix. |
 | Fade between videos | `timeline.transitions[]` where `kind == "fade"` and the next clip is also video | **Only when there are exactly two video clips.** Uses `xfade=fade` between trimmed segments. On failure, falls back to plain concat and records a note. |
 | Duck under video | `timeline.clips[].duck_under_video` on **audio** clips | External audio tracks are mixed over the video at about **35%** volume with `adelay` from `start_sec`. Does not duck the video’s own embedded audio (see ignored). |
+| Clip fade in / out | `timeline.clips[].fade_in_sec` / `fade_out_sec` on **video** clips | Per-clip `ffmpeg` `fade` filter on the trimmed segment (re-encode when non-zero). |
 
 Export message and stub notes list what was applied.
 

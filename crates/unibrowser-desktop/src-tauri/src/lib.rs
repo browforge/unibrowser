@@ -160,6 +160,8 @@ pub fn run() {
             commands::get_help_doc_markdown,
             commands::get_help_doc_toc,
             commands::set_unibrow_timeline_clip_duck,
+            commands::set_unibrow_timeline_clip_fade,
+            commands::dismiss_scripting_extension_tip,
             commands::list_pdf_highlights,
             commands::add_pdf_highlight,
             commands::web_page_zoom,

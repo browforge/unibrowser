@@ -94,6 +94,11 @@
       </div>
       <div id="script-output-log" class="script-output-log"></div>
     </aside>
+    <div id="extension-tip" class="extension-tip hidden" role="status" aria-live="polite">
+      <span id="extension-tip-message" class="extension-tip-message"></span>
+      <button type="button" id="extension-tip-mods" class="extension-tip-action">Mods</button>
+      <button type="button" id="extension-tip-dismiss" class="extension-tip-action">Dismiss forever</button>
+    </div>
     <footer id="status-bar" class="status-bar" aria-label="Status">
       <span id="status-path" class="status-segment status-path"></span>
       <span id="status-context" class="status-segment status-context muted"></span>
@@ -148,7 +153,7 @@
       <p id="workspace-quick-open-hint" class="viewer-note filename-search-root-label"></p>
       <div id="workspace-quick-open-results"></div>
     </div>
-    <div id="filename-search" class="palette hidden" role="dialog" aria-label="Find files">
+    <div id="filename-search" class="palette hidden" role="dialog" aria-label="Deep find">
       <div class="filename-search-head">
         <input id="filename-search-query" type="search" placeholder="Filename…" />
         <button type="button" id="filename-search-cancel">Cancel search</button>
@@ -158,6 +163,7 @@
         Search under
         <input id="filename-search-root" type="text" class="files-search-input" />
       </label>
+      <p id="filename-search-limits" class="viewer-note filename-search-root-label"></p>
       <div id="filename-search-results"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>

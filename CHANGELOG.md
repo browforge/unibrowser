@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Clip fade UI:** Video timeline clips expose fade in/out (seconds) on `project.json`; honoured on H.264 export.
+- **Deep find:** Content search with line numbers for text files; open at line; [deep-find.md](docs/deep-find.md).
+- **Scripting extension tip:** Bottom bar for `.js`/`.ts` opened as plain text; dismiss forever; links to mod portal.
+- **Branding:** Dynamic window title `Unibrowser — {tab}`; [branding.md](docs/branding.md) for icons.
 - **Timeline encode intents:** H.264 export applies approximate **fade** (two MP4 clips) and **duck_under_video** audio mix; [timeline-encode-intents.md](docs/timeline-encode-intents.md).
 - **Workspace quick open:** **Ctrl+P** fuzzy go-to-file under pinned workspace root; deep filename search stays **Ctrl+Shift+F**.
 - **MIDI render stub:** Palette + viewer button when ffmpeg and fluidsynth are on PATH; [midi-audio-render.md](docs/midi-audio-render.md).

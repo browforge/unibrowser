@@ -21,6 +21,8 @@ pub struct EncodeSegment {
     pub duck_under_video: bool,
     /// Fade into the next segment when present (video chain only).
     pub fade_to_next_sec: Option<f32>,
+    pub fade_in_sec: f32,
+    pub fade_out_sec: f32,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -103,7 +105,23 @@ pub fn build_timeline_encode_intent(package: &ProjectPackage) -> TimelineEncodeI
             duration_sec: clip.duration_sec.max(0.1),
             duck_under_video: clip.duck_under_video,
             fade_to_next_sec: fade,
+            fade_in_sec: if media == SegmentMedia::Video {
+                clip.fade_in_sec.max(0.0)
+            } else {
+                0.0
+            },
+            fade_out_sec: if media == SegmentMedia::Video {
+                clip.fade_out_sec.max(0.0)
+            } else {
+                0.0
+            },
         });
+    }
+
+    if segments.iter().any(|s| s.fade_in_sec > 0.0 || s.fade_out_sec > 0.0) {
+        notes.push(
+            "clip fade in/out: applied per video segment via ffmpeg fade filter (approx)".into(),
+        );
     }
 
     if segments.iter().any(|s| s.duck_under_video) {

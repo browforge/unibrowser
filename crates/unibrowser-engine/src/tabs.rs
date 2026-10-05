@@ -12,6 +12,8 @@ pub struct Tab {
     pub is_directory: bool,
     /// Pinned tabs stay identifiable in the strip; middle-click close is ignored until unpinned.
     pub pinned: bool,
+    /// Reveal this line in the text editor on the next snapshot (one-shot).
+    pub reveal_line: Option<u32>,
 }
 
 #[derive(Default)]
@@ -67,6 +69,7 @@ impl TabManager {
             document: None,
             is_directory: false,
             pinned: false,
+            reveal_line: None,
         };
         self.tabs.push(tab);
         self.active = self.tabs.len() - 1;
@@ -160,6 +163,7 @@ impl TabManager {
                 document: None,
                 is_directory: false,
                 pinned: false,
+                reveal_line: None,
             });
         }
         self.active = active.min(self.tabs.len() - 1);

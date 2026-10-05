@@ -97,6 +97,16 @@ pub struct TimelineClip {
     /// Encode-time intent: lower this audio when a video clip is active (not applied in blitz encode).
     #[serde(default, skip_serializing_if = "is_false")]
     pub duck_under_video: bool,
+    /// Video encode: fade in from black at clip start (seconds).
+    #[serde(default, skip_serializing_if = "is_zero_f32")]
+    pub fade_in_sec: f32,
+    /// Video encode: fade out to black before clip end (seconds).
+    #[serde(default, skip_serializing_if = "is_zero_f32")]
+    pub fade_out_sec: f32,
+}
+
+fn is_zero_f32(v: &f32) -> bool {
+    *v <= 0.0 || !v.is_finite()
 }
 
 fn is_false(b: &bool) -> bool {
@@ -349,6 +359,8 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 color: None,
                 clip_markers: Vec::new(),
                 duck_under_video: false,
+                fade_in_sec: 0.0,
+                fade_out_sec: 0.0,
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -359,6 +371,8 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 color: None,
                 clip_markers: Vec::new(),
                 duck_under_video: false,
+                fade_in_sec: 0.0,
+                fade_out_sec: 0.0,
             },
         ],
         transitions: vec![TimelineTransition {
@@ -421,6 +435,8 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 color: Some("blue".into()),
                 clip_markers: Vec::new(),
                 duck_under_video: false,
+                fade_in_sec: 0.0,
+                fade_out_sec: 0.0,
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -431,6 +447,8 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 color: Some("amber".into()),
                 clip_markers: Vec::new(),
                 duck_under_video: false,
+                fade_in_sec: 0.0,
+                fade_out_sec: 0.0,
             },
             TimelineClip {
                 id: "clip-3".into(),
@@ -441,6 +459,8 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 color: Some("violet".into()),
                 clip_markers: Vec::new(),
                 duck_under_video: false,
+                fade_in_sec: 0.0,
+                fade_out_sec: 0.0,
             },
         ],
         transitions: vec![TimelineTransition {
@@ -502,6 +522,8 @@ pub fn append_timeline_clip_for_node(
         color: node.color.clone(),
         clip_markers: Vec::new(),
         duck_under_video: false,
+        fade_in_sec: 0.0,
+        fade_out_sec: 0.0,
     };
     package.manifest.timeline.clips.push(clip.clone());
     write_manifest(&package.root, &package.manifest)?;
@@ -521,6 +543,38 @@ pub fn set_timeline_clip_duck_under_video(
         .find(|c| c.id == clip_id)
         .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
     clip.duck_under_video = duck_under_video;
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn set_timeline_clip_fade(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    fade_in_sec: f32,
+    fade_out_sec: f32,
+) -> Result<(), ProjectError> {
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    clip.fade_in_sec = if fade_in_sec.is_finite() && fade_in_sec > 0.0 {
+        fade_in_sec
+    } else {
+        0.0
+    };
+    clip.fade_out_sec = if fade_out_sec.is_finite() && fade_out_sec > 0.0 {
+        fade_out_sec
+    } else {
+        0.0
+    };
+    if clip.fade_in_sec + clip.fade_out_sec >= clip.duration_sec.max(0.1) {
+        return Err(ProjectError::Msg(
+            "fade in + fade out must be shorter than clip duration".into(),
+        ));
+    }
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
 }

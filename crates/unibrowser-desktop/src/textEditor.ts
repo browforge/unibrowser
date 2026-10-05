@@ -51,6 +51,7 @@ export interface TextDocumentDto {
   language: string;
   dirty: boolean;
   encoding: string;
+  reveal_line?: number | null;
 }
 
 export interface CursorStatus {
@@ -328,6 +329,11 @@ export const textEditor = {
       suppressSync = false;
     }
     editor!.updateOptions({ fontSize: doc.font_size_pt });
+    if (doc.reveal_line && doc.reveal_line > 0) {
+      const line = doc.reveal_line;
+      editor!.revealLineInCenter(line);
+      editor!.setPosition({ lineNumber: line, column: 1 });
+    }
     if (markdownPreview && previewEl) {
       previewEl.innerHTML = marked.parse(doc.content, { async: false }) as string;
     }

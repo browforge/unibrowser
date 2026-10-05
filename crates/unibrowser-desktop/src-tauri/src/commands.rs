@@ -126,6 +126,13 @@ pub struct CommandManagerDto {
 }
 
 #[derive(Serialize)]
+pub struct ExtensionTipDto {
+    pub message: String,
+    pub mod_id: String,
+    pub mod_title: String,
+}
+
+#[derive(Serialize)]
 pub struct PaletteEntryDto {
     pub command_id: String,
     pub title: String,
@@ -163,6 +170,14 @@ pub struct ProjectClipDto {
     pub clip_markers: Vec<ClipMarkerDto>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub duck_under_video: bool,
+    #[serde(default, skip_serializing_if = "is_zero_f32")]
+    pub fade_in_sec: f32,
+    #[serde(default, skip_serializing_if = "is_zero_f32")]
+    pub fade_out_sec: f32,
+}
+
+fn is_zero_f32(v: &f32) -> bool {
+    *v <= 0.0 || !v.is_finite()
 }
 
 fn is_false(b: &bool) -> bool {
@@ -271,6 +286,8 @@ pub struct TextDocumentDto {
     pub language: String,
     pub dirty: bool,
     pub encoding: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reveal_line: Option<u32>,
 }
 
 #[derive(Serialize)]
@@ -300,6 +317,8 @@ pub struct TabContentDto {
     pub pinned_locations: Vec<PinnedLocationDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chrome_notice: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extension_tip: Option<ExtensionTipDto>,
     pub ntp_sections: NtpSectionsDto,
     pub files_view: FilesViewDto,
     pub folder_favorites: Vec<String>,
@@ -596,6 +615,8 @@ fn document_viewer_dto(
                             })
                             .collect(),
                         duck_under_video: c.duck_under_video,
+                        fade_in_sec: c.fade_in_sec,
+                        fade_out_sec: c.fade_out_sec,
                     }
                 })
                 .collect()
@@ -920,10 +941,16 @@ fn tab_pane_dtos(
         .document
         .as_mut()
         .and_then(|d| document_viewer_dto(d, state, window_label));
+    let reveal_line = tab.reveal_line;
+    if reveal_line.is_some() {
+        tab.reveal_line = None;
+    }
     let text = if viewer.is_some() {
         None
     } else {
-        tab.document.as_mut().and_then(text_document_dto)
+        tab.document
+            .as_mut()
+            .and_then(|d| text_document_dto(d, reveal_line))
     };
     (text, viewer, status)
 }
@@ -1000,7 +1027,10 @@ fn detect_text_encoding(path: &str) -> String {
     }
 }
 
-fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<TextDocumentDto> {
+fn text_document_dto(
+    doc: &mut unibrowser_engine::DocumentSession,
+    reveal_line: Option<u32>,
+) -> Option<TextDocumentDto> {
     let backend = try_text_backend(&mut *doc.backend)?;
     Some(TextDocumentDto {
         path: backend.path.clone(),
@@ -1009,6 +1039,7 @@ fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<Tex
         language: TextBackend::language_id(&backend.path).into(),
         dirty: backend.dirty,
         encoding: detect_text_encoding(&backend.path),
+        reveal_line,
     })
 }
 
@@ -1053,6 +1084,10 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .map(|d| d.backend.status_line());
     let (document_viewer, text_document) = match tabs.active_tab_mut() {
         Some(tab) => {
+            let reveal_line = tab.reveal_line;
+            if reveal_line.is_some() {
+                tab.reveal_line = None;
+            }
             let viewer = tab
                 .document
                 .as_mut()
@@ -1060,7 +1095,9 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
             let text = if viewer.is_some() {
                 None
             } else {
-                tab.document.as_mut().and_then(text_document_dto)
+                tab.document
+                    .as_mut()
+                    .and_then(|d| text_document_dto(d, reveal_line))
             };
             (viewer, text)
         }
@@ -1098,6 +1135,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .lock()
         .map_err(|e| e.to_string())?
         .take();
+    let extension_tip = scripting_extension_tip(tabs.active_tab(), &prefs);
     let (git_is_repo, git_dirty_paths) =
         crate::git_status::status_for_folder(Path::new(&browse_folder_path));
     Ok(TabContentDto {
@@ -1140,6 +1178,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         image_compare_view,
         pinned_locations,
         chrome_notice,
+        extension_tip,
         ntp_sections: ntp_sections_dto(&prefs),
         files_view: files_view_dto(&prefs),
         folder_favorites: prefs.folder_favorites.clone(),
@@ -1242,6 +1281,40 @@ fn touch_recent_file(path: &Path) {
     let mut prefs = load_preferences();
     push_recent_file(&mut prefs, path.to_string_lossy().into_owned(), label);
     let _ = save_preferences(&prefs);
+}
+
+fn scripting_extension_tip(
+    tab: Option<&unibrowser_engine::tabs::Tab>,
+    prefs: &crate::preferences::Preferences,
+) -> Option<ExtensionTipDto> {
+    if prefs.scripting_extension_tip_dismissed_forever {
+        return None;
+    }
+    let tab = tab?;
+    let doc = tab.document.as_ref()?;
+    if doc.backend.backend_id() != base_text::BACKEND_ID {
+        return None;
+    }
+    let path = match &tab.location {
+        BrowserLocation::File { path } => path,
+        _ => return None,
+    };
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if !matches!(ext.as_str(), "js" | "jsx" | "mjs" | "cjs" | "ts" | "tsx") {
+        return None;
+    }
+    Some(ExtensionTipDto {
+        message: format!(
+            "This file opened in the plain-text editor. For script tooling, try the bundled {} mod or install a VSIX extension from the mod portal.",
+            "base-js"
+        ),
+        mod_id: "base-js".into(),
+        mod_title: "Run user scripts safely".into(),
+    })
 }
 
 fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPortalDto> {
@@ -1682,7 +1755,13 @@ pub fn allow_unibrow_asset(window: tauri::Window,
 }
 
 #[tauri::command]
-pub fn open_path(window: tauri::Window, path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
+pub fn open_path(
+    window: tauri::Window,
+    path: String,
+    line: Option<u32>,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
     let file_path = resolve_open_path(&path, &state.cwd)?;
     if unibrowser_project::is_unibrow_path(&file_path) {
         allow_asset_protocol_file(&app, &file_path);
@@ -1722,6 +1801,11 @@ pub fn open_path(window: tauri::Window, path: String, app: AppHandle, state: Sta
     let _sess_tabs = ws(&state, &window)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.navigate_active(loc.clone(), is_dir, doc);
+    if let Some(line) = line.filter(|l| *l > 0) {
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.reveal_line = Some(line);
+        }
+    }
     if let BrowserLocation::File { path } = &loc {
         if path.is_file() {
             touch_recent_file(path);
@@ -3812,6 +3896,9 @@ pub async fn export_unibrow_mp4_h264(
     if report.honored_fade {
         message.push_str(" Fade transition applied (approx).");
     }
+    if report.honored_clip_fade {
+        message.push_str(" Clip fade in/out applied (approx).");
+    }
     if report.honored_duck {
         message.push_str(" Duck-under-video mix applied (approx).");
     }
@@ -3957,6 +4044,39 @@ pub fn set_unibrow_node_color(
     let loc = BrowserLocation::File { path: project };
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn set_unibrow_timeline_clip_fade(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    fade_in_sec: f32,
+    fade_out_sec: f32,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::set_timeline_clip_fade(
+        &mut package,
+        &clip_id,
+        fade_in_sec,
+        fade_out_sec,
+    )
+    .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn dismiss_scripting_extension_tip() -> Result<(), String> {
+    let mut prefs = load_preferences();
+    prefs.scripting_extension_tip_dismissed_forever = true;
+    save_preferences(&prefs)?;
+    Ok(())
 }
 
 #[tauri::command]

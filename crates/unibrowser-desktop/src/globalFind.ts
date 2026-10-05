@@ -5,17 +5,19 @@ import { showToast } from "./toast";
 export interface FilenameHit {
   path: string;
   name: string;
+  line?: number | null;
+  match_kind?: string;
 }
 
 let panel: HTMLElement | null = null;
 let queryInput: HTMLInputElement | null = null;
 let resultsEl: HTMLElement | null = null;
 let rootInput: HTMLInputElement | null = null;
-let onOpenPath: ((path: string) => void) | null = null;
+let onOpenPath: ((path: string, line?: number) => void) | null = null;
 let searchToken = 0;
 
 export function initGlobalFind(opts: {
-  onOpenPath: (path: string) => void;
+  onOpenPath: (path: string, line?: number) => void;
   defaultRoot: string;
 }) {
   onOpenPath = opts.onOpenPath;
@@ -62,6 +64,10 @@ export function toggleGlobalFind(defaultRoot?: string) {
     panel.classList.remove("hidden");
     if (defaultRoot && rootInput) {
       rootInput.value = defaultRoot;
+    }
+    const limits = document.getElementById("filename-search-limits");
+    if (limits) {
+      limits.textContent = t("globalFind.limitsNote");
     }
     queryInput.focus();
     queryInput.select();
@@ -118,11 +124,12 @@ async function runSearch() {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "filename-search-hit";
-      btn.textContent = hit.name;
-      btn.title = hit.path;
+      const lineLabel = hit.line ? `:${hit.line}` : "";
+      btn.textContent = `${hit.name}${lineLabel}`;
+      btn.title = `${hit.path}${hit.line ? ` (line ${hit.line})` : ""}`;
       btn.onclick = () => {
         hideGlobalFind();
-        onOpenPath?.(hit.path);
+        onOpenPath?.(hit.path, hit.line ?? undefined);
       };
       li.appendChild(btn);
       ul.appendChild(li);

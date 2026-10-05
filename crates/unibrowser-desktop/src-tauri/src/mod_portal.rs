@@ -53,10 +53,16 @@ pub fn suggest_mods_for_extension(ext: &str) -> Vec<ModSuggestionDto> {
             None,
             Some("unibrowser.base-midi".into()),
         )],
-        "js" | "mjs" => vec![(
+        "js" | "mjs" | "cjs" | "jsx" => vec![(
             "base-js".into(),
             "Run user scripts safely".into(),
             Some("dbaeumer.vscode-eslint".into()),
+            None,
+        )],
+        "ts" | "tsx" => vec![(
+            "base-js".into(),
+            "Script and TypeScript tooling (proving)".into(),
+            Some("ms-vscode.vscode-typescript-next".into()),
             None,
         )],
         "psd" => vec![(

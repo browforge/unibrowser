@@ -1241,6 +1241,26 @@ button.proving-disabled,
   font-size: 0.85rem;
 }
 
+.extension-tip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border-muted, #333);
+  background: var(--surface-elevated, #1a1a1a);
+}
+.extension-tip.hidden {
+  display: none;
+}
+.extension-tip-message {
+  flex: 1 1 12rem;
+}
+.extension-tip-action {
+  font-size: 0.85rem;
+}
+
 .filename-search-hit:hover {
   background: #333;
 }

@@ -80,7 +80,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |
 | In-app docs | `unibrowser://docs/*` with TOC from [index.md](index.md), back link, in-page search |
 | SVG edit lite | Inline preview; fill/stroke panel for path/text; grey path boolean/simplify |
-| Timeline encode intents | H.264 export honours **fade** (two video clips) and **duck_under_video** on audio (approx); see [timeline-encode-intents.md](timeline-encode-intents.md) |
+| Timeline encode intents | H.264 export honours **fade** (two video clips), **clip fade in/out**, and **duck_under_video** on audio (approx); timeline UI for video fades; [timeline-encode-intents.md](timeline-encode-intents.md) |
+| Deep find | **Ctrl+Shift+F** filename + text scan; opens text at line; limits in [deep-find.md](deep-find.md) |
+| Scripting tip | JS/TS opened as plain text → dismissable bottom bar suggesting **base-js** / mods (not modal) |
+| Branding | Window title **Unibrowser — {tab}**; icons documented in [branding.md](branding.md) |
 | Workspace quick open | **Ctrl+P** fuzzy file find under pinned workspace root (separate from omnibox / deep find **Ctrl+Shift+F**) |
 | MIDI audio render stub | Viewer + palette command grey unless **ffmpeg** and **fluidsynth** on PATH — [midi-audio-render.md](midi-audio-render.md) |
 | Demo artifacts | `examples/demo-pack/` stays small; `hello-world.ubmod` built locally (`scripts/build-hello-ubmod.sh`), not committed |

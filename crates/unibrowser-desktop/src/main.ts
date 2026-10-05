@@ -176,6 +176,11 @@ interface TabContentDto {
   image_compare_view?: ImageCompareViewDto | null;
   pinned_locations: PinnedLocationDto[];
   chrome_notice?: string | null;
+  extension_tip?: {
+    message: string;
+    mod_id: string;
+    mod_title: string;
+  } | null;
   ntp_sections: {
     show_hero: boolean;
     show_actions: boolean;
@@ -1147,10 +1152,35 @@ async function applySplitPane(data: TabContentDto) {
   }
 }
 
+const extensionTipEl = document.getElementById("extension-tip")!;
+const extensionTipMessage = document.getElementById("extension-tip-message")!;
+document.getElementById("extension-tip-mods")!.onclick = () => {
+  void invoke<TabContentDto>("open_mod_portal", { ext: "js" }).then(applyState);
+};
+document.getElementById("extension-tip-dismiss")!.onclick = () => {
+  void invoke("dismiss_scripting_extension_tip").then(() => {
+    extensionTipEl.classList.add("hidden");
+  });
+};
+
+function renderExtensionTip(tip: TabContentDto["extension_tip"]) {
+  if (!tip) {
+    extensionTipEl.classList.add("hidden");
+    return;
+  }
+  extensionTipMessage.textContent = tip.message;
+  extensionTipEl.classList.remove("hidden");
+}
+
 async function applyState(data: TabContentDto) {
   if (data.chrome_notice) {
     showToast(data.chrome_notice, "info");
   }
+  renderExtensionTip(data.extension_tip ?? null);
+  const activeTab = data.tabs[data.active_index];
+  const winTitle = activeTab?.label ? `Unibrowser — ${activeTab.label}` : "Unibrowser";
+  document.title = winTitle;
+  void getCurrentWebviewWindow().setTitle(winTitle);
   onboardingBanner.classList.toggle("hidden", !data.show_onboarding);
   showOnboardingTour(data.show_onboarding_tour);
   if (data.browse_folder_path) {
@@ -1780,13 +1810,13 @@ initContentFullscreen(() => {
 });
 initGlobalFind({
   defaultRoot: lastBrowseFolderPath,
-  onOpenPath: (path) => {
-    void invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d));
+  onOpenPath: (path, line) => {
+    void invoke<TabContentDto>("open_path", { path, line: line ?? null }).then((d) => d && applyState(d));
   },
 });
 initWorkspaceQuickOpen({
   onOpenPath: (path) => {
-    void invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d));
+    void invoke<TabContentDto>("open_path", { path, line: null }).then((d) => d && applyState(d));
   },
 });
 setPathCopyHandler((path) => {

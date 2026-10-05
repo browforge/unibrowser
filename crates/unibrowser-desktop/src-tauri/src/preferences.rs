@@ -115,6 +115,9 @@ pub struct Preferences {
     pub high_contrast: bool,
     #[serde(default)]
     pub reduce_motion: ReduceMotionPref,
+    /// Hide the scripting mod suggestion bar on JS/TS files opened as plain text.
+    #[serde(default)]
+    pub scripting_extension_tip_dismissed_forever: bool,
     /// Hide the Settings onboarding checklist permanently.
     #[serde(default)]
     pub onboarding_checklist_skip_forever: bool,
@@ -274,6 +277,7 @@ impl Default for Preferences {
             disable_user_mods: false,
             chrome_focus_mode: false,
             larger_hit_targets: false,
+            scripting_extension_tip_dismissed_forever: false,
         }
     }
 }
