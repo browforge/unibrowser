@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import { commandManager } from "./commandManager";
 import { textEditor, type TextDocumentDto, setCursorStatusListener } from "./textEditor";
-import { documentViewer, adjustViewerZoom, type DocumentViewerDto } from "./documentViewer";
+import { documentViewer, type DocumentViewerDto } from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { loadAccessibilityPreferences } from "./accessibility";
 import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
@@ -33,6 +33,12 @@ import { emptyStateBlock } from "./emptyState";
 import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./filesPanel";
 import { pathsFromDataTransfer } from "./filesDrag";
 import { initGlobalFind, toggleGlobalFind } from "./globalFind";
+import {
+  closeDocumentFind,
+  openDocumentFind,
+  setDocumentFindSurface,
+  toggleDocumentFind,
+} from "./documentFind";
 import type { DirEntry as FilesDirEntry, FilesViewDto } from "./filesPanelTypes";
 
 interface TabDto {
@@ -172,7 +178,7 @@ const floatingToolbarHost = document.getElementById("floating-toolbar-host")!;
 const statusBarEl = document.getElementById("status-bar")!;
 const newTabPageHost = document.getElementById("new-tab-page-host")!;
 let paletteChordHint = "Ctrl+Shift+P for command palette";
-let webZoomPx = 16;
+let webZoomPercent = 100;
 let lastViewerZoomLabel = "";
 let editorLine = 1;
 let editorCol = 1;
@@ -216,7 +222,7 @@ function refreshStatusBar(
   const cursor = showText && data.text_document ? `Ln ${editorLine}, Col ${editorCol}` : "";
   let zoom = "";
   if (active?.is_http) {
-    zoom = `Web ${webZoomPx}px`;
+    zoom = `Web ${webZoomPercent}%`;
   } else if (showViewer && data.document_viewer) {
     zoom = lastViewerZoomLabel;
   }
@@ -745,9 +751,32 @@ function renderRecentFiles(entries: RecentFileDto[]) {
   void renderSessionOptIn();
 }
 
+async function runPageZoom(commandId: string) {
+  await textEditor.flush();
+  const msg = await invoke<string>("execute_command", { commandId });
+  const pct = msg.match(/(\d+)%/);
+  if (pct) {
+    webZoomPercent = Number(pct[1]);
+  }
+  if (msg !== "document-find") {
+    showToast(String(msg), "info");
+  }
+  await refreshCommandManager();
+  await refreshState();
+}
+
 async function runUiCommand(commandId: string) {
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
+  if (msg === "document-find") {
+    openDocumentFind();
+    await refreshCommandManager();
+    return;
+  }
+  const pct = msg.match(/(\d+)%/);
+  if (pct) {
+    webZoomPercent = Number(pct[1]);
+  }
   showToast(String(msg), "info");
   await refreshCommandManager();
   await refreshState();
@@ -894,16 +923,33 @@ async function applyState(data: TabContentDto) {
     }
   }
   await applySplitPane(data);
+  const viewerKind = data.document_viewer?.viewer;
+  if (showText) {
+    setDocumentFindSurface("monaco");
+  } else if (showViewer && (viewerKind === "docx" || viewerKind === "epub")) {
+    setDocumentFindSurface("viewer");
+  } else {
+    setDocumentFindSurface("none");
+    closeDocumentFind();
+  }
   if (active?.is_http) {
     setZoomHandler("web", (delta) => {
-      webZoomPx = Math.min(96, Math.max(8, webZoomPx + delta));
-      void invoke("web_page_zoom", { deltaPx: delta });
-      refreshStatusBar(data, active, showText, showViewer);
+      const cmd =
+        delta > 0
+          ? "unibrowser.page.zoom.increase"
+          : "unibrowser.page.zoom.decrease";
+      void runPageZoom(cmd);
     });
   } else if (showViewer && data.document_viewer) {
     const kind = data.document_viewer.viewer;
     if (kind === "pdf" || kind === "image") {
-      setZoomHandler("viewer", (delta) => adjustViewerZoom(delta));
+      setZoomHandler("viewer", (delta) => {
+        const cmd =
+          delta > 0
+            ? "unibrowser.page.zoom.increase"
+            : "unibrowser.page.zoom.decrease";
+        void runPageZoom(cmd);
+      });
     } else {
       setZoomHandler("hidden", null);
     }
@@ -1195,7 +1241,9 @@ document.addEventListener(
     toggleTabSearch();
     return;
   }
-  if (textEditor.isActive() && e.ctrlKey && e.key.toLowerCase() === "f") {
+  if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    toggleDocumentFind();
     return;
   }
   if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "z") {

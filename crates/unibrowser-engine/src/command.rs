@@ -47,6 +47,27 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["script hello", "rhai demo"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::PAGE_ZOOM_INCREASE,
+            title: "Increase page zoom",
+            icon: "zoom-in",
+            default_keybinding: Some("Ctrl+Shift+="),
+            aliases: &["zoom in", "bigger page"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PAGE_ZOOM_DECREASE,
+            title: "Decrease page zoom",
+            icon: "zoom-out",
+            default_keybinding: Some("Ctrl+Shift+-"),
+            aliases: &["zoom out", "smaller page"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::FIND_IN_DOCUMENT,
+            title: "Find in document",
+            icon: "search",
+            default_keybinding: Some("Ctrl+F"),
+            aliases: &["find", "search document"],
+        });
         reg
     }
 
@@ -107,6 +128,22 @@ impl CommandRegistry {
         }
         if command_id == commands::TEXT_SAVE {
             return Enablement::Enabled;
+        }
+        if command_id == commands::FIND_IN_DOCUMENT {
+            if self.resolve_handler(command_id, &ctx.backend_id).is_some() {
+                return Enablement::Enabled;
+            }
+            return Enablement::Disabled {
+                reason: "Find is not available in this view".into(),
+            };
+        }
+        if command_id == commands::PAGE_ZOOM_INCREASE || command_id == commands::PAGE_ZOOM_DECREASE {
+            if self.resolve_handler(command_id, &ctx.backend_id).is_some() {
+                return Enablement::Enabled;
+            }
+            return Enablement::Disabled {
+                reason: "Page zoom is not available in this view".into(),
+            };
         }
         // Handlers need full session for precise enable; palette uses snapshot approximation.
         if ctx.capabilities.font_size && ctx.selection.has_text_selection {

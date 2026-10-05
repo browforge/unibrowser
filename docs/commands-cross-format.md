@@ -25,6 +25,24 @@ Legend for Command Manager and palette:
 | **Files / home** | Greyed | No document session |
 | **`.unibrow` project** | Greyed | Board/timeline chrome (font commands not wired) |
 
+## `unibrowser.find.inDocument` (Ctrl+F)
+
+| Context | Live when | Effect |
+| --- | --- | --- |
+| **Text / Monaco** | Text tab | Find bar; Monaco find or markdown preview search |
+| **DOCX** | `.docx` tab | Find bar; Mammoth HTML highlight search |
+| **EPUB** | `.epub` tab | Find bar; `window.find` in chapter iframe |
+| **PDF / image / video / files** | Greyed | No in-document find handler |
+
+## `unibrowser.page.zoom.increase` / `.decrease`
+
+| Context | Live when | Effect |
+| --- | --- | --- |
+| **HTTP / HTTPS** | Web tab | CSS `zoom` per origin (`web-zoom-prefs.json`), not font size |
+| **PDF** | `.pdf` tab | `render_scale` on raster preview |
+| **Images** | PNG/JPEG/GIF/WebP | `preview_zoom` on image viewer |
+| **Text / DOCX font** | Greyed | Use font-size commands instead |
+
 ## Related commands
 
 | Command | Notes |

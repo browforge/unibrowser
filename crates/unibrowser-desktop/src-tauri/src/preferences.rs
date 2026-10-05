@@ -196,7 +196,7 @@ impl Default for Preferences {
             ui_locale: default_ui_locale(),
             theme: UiTheme::default(),
             recent_files: Vec::new(),
-            restore_session_on_launch: false,
+            restore_session_on_launch: true,
             auto_save_enabled: false,
             auto_save_interval_secs: default_auto_save_interval(),
             pinned_locations: Vec::new(),

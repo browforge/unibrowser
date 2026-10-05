@@ -4,7 +4,7 @@ use image::{GenericImageView, ImageReader};
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot,
-    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID},
+    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID},
 };
 
 pub const BACKEND_ID: &str = "base-png";
@@ -16,6 +16,7 @@ pub struct PngBackend {
     /// Simulated text layer (real mod would read PNG metadata / sidecar).
     pub text_layer: Option<TextLayer>,
     pub text_layer_selected: bool,
+    pub preview_zoom: f32,
 }
 
 pub struct TextLayer {
@@ -30,6 +31,7 @@ impl PngBackend {
             height: 480,
             text_layer: None,
             text_layer_selected: false,
+            preview_zoom: 1.0,
         }
     }
 
@@ -42,7 +44,12 @@ impl PngBackend {
                 font_size_pt: 18.0,
             }),
             text_layer_selected: true,
+            preview_zoom: 1.0,
         }
+    }
+
+    pub fn adjust_preview_zoom(&mut self, factor: f32) {
+        self.preview_zoom = (self.preview_zoom * factor).clamp(0.15, 8.0);
     }
 }
 
@@ -152,6 +159,36 @@ fn exec_decrease(doc: &mut DocumentSession) -> Result<String, String> {
     Ok(format!("Text layer font: {:.1} pt", pt))
 }
 
+fn page_zoom_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Wrong backend".into(),
+        };
+    }
+    Enablement::Enabled
+}
+
+fn exec_page_zoom_in(doc: &mut DocumentSession) -> Result<String, String> {
+    let b = try_png_backend(&mut *doc.backend).ok_or("not an image")?;
+    b.adjust_preview_zoom(1.1);
+    Ok(format!("Image zoom {:.0}%", b.preview_zoom * 100.0))
+}
+
+fn exec_page_zoom_out(doc: &mut DocumentSession) -> Result<String, String> {
+    let b = try_png_backend(&mut *doc.backend).ok_or("not an image")?;
+    b.adjust_preview_zoom(1.0 / 1.1);
+    Ok(format!("Image zoom {:.0}%", b.preview_zoom * 100.0))
+}
+
+pub fn try_png_backend(
+    backend: &mut dyn unibrowser_engine::document::DocumentBackend,
+) -> Option<&mut PngBackend> {
+    if backend.backend_id() != BACKEND_ID {
+        return None;
+    }
+    backend.as_any_mut().downcast_mut::<PngBackend>()
+}
+
 pub fn register(registry: &mut CommandRegistry) {
     registry.register_handler(HandlerRegistration {
         command_id: FONT_INCREASE_ID.into(),
@@ -164,6 +201,18 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: font_enable,
         execute: exec_decrease,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PAGE_ZOOM_INCREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: page_zoom_enable,
+        execute: exec_page_zoom_in,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PAGE_ZOOM_DECREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: page_zoom_enable,
+        execute: exec_page_zoom_out,
     });
 }
 

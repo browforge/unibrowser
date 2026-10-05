@@ -17,6 +17,7 @@ mod settings_stub;
 mod about_stub;
 mod keys_stub;
 mod web_font_prefs;
+mod web_zoom_prefs;
 mod crash_recovery;
 mod project_recovery;
 mod document_limits;
@@ -66,7 +67,7 @@ pub fn run() {
                     let _ = preferences::save_window_state(&state);
                 }
                 if let Some(state) = window.try_state::<AppState>() {
-                    session::persist_session_if_enabled(state.inner(), "main");
+                    session::persist_session_if_enabled(state.inner(), window.app_handle());
                 }
             }
             if let tauri::WindowEvent::DragDrop(drag) = event {

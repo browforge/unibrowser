@@ -3,14 +3,50 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use crate::config::session_file_path;
-use crate::preferences::{load_preferences, save_preferences};
+use crate::preferences::{load_preferences, save_preferences, WindowState};
 use crate::state::AppState;
+use tauri::{AppHandle, Manager};
 use unibrowser_mod_api::BrowserLocation;
+
+pub const SESSION_FORMAT_VERSION: u32 = 2;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct WindowSessionEntry {
+    pub label: String,
+    pub tab_inputs: Vec<String>,
+    pub active_index: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub geometry: Option<WindowState>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SessionSnapshot {
+    #[serde(default)]
+    pub version: u32,
+    #[serde(default)]
+    pub windows: Vec<WindowSessionEntry>,
+    /// Legacy v1 fields (migrated into `windows` on load).
+    #[serde(default)]
     pub tab_inputs: Vec<String>,
+    #[serde(default)]
     pub active_index: usize,
+}
+
+impl SessionSnapshot {
+    pub fn normalized_windows(&self) -> Vec<WindowSessionEntry> {
+        if !self.windows.is_empty() {
+            return self.windows.clone();
+        }
+        if self.tab_inputs.is_empty() {
+            return Vec::new();
+        }
+        vec![WindowSessionEntry {
+            label: "main".into(),
+            tab_inputs: self.tab_inputs.clone(),
+            active_index: self.active_index,
+            geometry: None,
+        }]
+    }
 }
 
 pub fn save_session_snapshot(snapshot: &SessionSnapshot) -> Result<(), String> {
@@ -29,33 +65,6 @@ pub fn load_session_snapshot() -> Option<SessionSnapshot> {
     serde_json::from_str(&data).ok()
 }
 
-pub fn capture_from_state(state: &AppState, window_label: &str) -> SessionSnapshot {
-    let session = state.session(window_label).ok();
-    let Some(sess) = session else {
-        return SessionSnapshot {
-            tab_inputs: Vec::new(),
-            active_index: 0,
-        };
-    };
-    let tabs = match sess.tabs.lock() {
-        Ok(t) => t,
-        Err(_) => {
-            return SessionSnapshot {
-                tab_inputs: Vec::new(),
-                active_index: 0,
-            };
-        }
-    };
-    SessionSnapshot {
-        tab_inputs: tabs
-            .tabs()
-            .iter()
-            .map(|t| location_to_omnibox(&t.location))
-            .collect(),
-        active_index: tabs.active_index(),
-    }
-}
-
 pub fn location_to_omnibox(loc: &BrowserLocation) -> String {
     match loc {
         BrowserLocation::File { path } => format!("file://{}", path.display()),
@@ -64,12 +73,58 @@ pub fn location_to_omnibox(loc: &BrowserLocation) -> String {
     }
 }
 
-pub fn persist_session_if_enabled(state: &AppState, window_label: &str) {
+pub fn capture_window(state: &AppState, window_label: &str) -> WindowSessionEntry {
+    let session = state.session(window_label).ok();
+    let (tab_inputs, active_index) = match session {
+        Some(sess) => match sess.tabs.lock() {
+            Ok(tabs) => (
+                tabs
+                    .tabs()
+                    .iter()
+                    .map(|t| location_to_omnibox(&t.location))
+                    .collect(),
+                tabs.active_index(),
+            ),
+            Err(_) => (Vec::new(), 0),
+        },
+        None => (Vec::new(), 0),
+    };
+    WindowSessionEntry {
+        label: window_label.to_string(),
+        tab_inputs,
+        active_index,
+        geometry: None,
+    }
+}
+
+pub fn capture_all_windows(state: &AppState, app: &AppHandle) -> SessionSnapshot {
+    let mut windows = Vec::new();
+    for (label, _window) in app.webview_windows() {
+        let mut entry = capture_window(state, &label);
+        if let Some(window) = app.get_window(&label) {
+            if let Ok(geom) = crate::preferences::capture_window_state(&window) {
+                entry.geometry = Some(geom);
+            }
+        }
+        windows.push(entry);
+    }
+    if windows.is_empty() {
+        windows.push(capture_window(state, "main"));
+    }
+    SessionSnapshot {
+        version: SESSION_FORMAT_VERSION,
+        windows,
+        tab_inputs: Vec::new(),
+        active_index: 0,
+    }
+}
+
+pub fn persist_session_if_enabled(state: &AppState, app: &AppHandle) {
     let prefs = load_preferences();
     if !prefs.restore_session_on_launch {
         return;
     }
-    let snap = capture_from_state(state, window_label);
+    let snap = capture_all_windows(state, app);
     let _ = save_session_snapshot(&snap);
 }
 
@@ -77,4 +132,23 @@ pub fn set_restore_session_enabled(enabled: bool) -> Result<(), String> {
     let mut prefs = load_preferences();
     prefs.restore_session_on_launch = enabled;
     save_preferences(&prefs)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn migrates_legacy_snapshot() {
+        let legacy = SessionSnapshot {
+            version: 0,
+            windows: vec![],
+            tab_inputs: vec!["file:///tmp/a".into()],
+            active_index: 1,
+        };
+        let wins = legacy.normalized_windows();
+        assert_eq!(wins.len(), 1);
+        assert_eq!(wins[0].label, "main");
+        assert_eq!(wins[0].active_index, 1);
+    }
 }

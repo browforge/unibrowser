@@ -42,3 +42,6 @@ pub fn font_size_decrease(doc: &mut dyn FontSizeHost) -> Result<String, String> 
 
 pub const FONT_INCREASE_ID: &str = commands::FONT_SIZE_INCREASE;
 pub const FONT_DECREASE_ID: &str = commands::FONT_SIZE_DECREASE;
+pub const PAGE_ZOOM_INCREASE_ID: &str = commands::PAGE_ZOOM_INCREASE;
+pub const PAGE_ZOOM_DECREASE_ID: &str = commands::PAGE_ZOOM_DECREASE;
+pub const FIND_IN_DOCUMENT_ID: &str = commands::FIND_IN_DOCUMENT;

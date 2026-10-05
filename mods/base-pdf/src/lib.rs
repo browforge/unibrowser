@@ -10,7 +10,7 @@ use std::path::Path;
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot,
-    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID},
+    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID},
 };
 
 pub const BACKEND_ID: &str = "base-pdf";
@@ -136,6 +136,27 @@ fn exec_decrease(doc: &mut DocumentSession) -> Result<String, String> {
     Ok(format!("PDF view scale: {:.1} pt eq", pt))
 }
 
+fn page_zoom_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Wrong backend".into(),
+        };
+    }
+    Enablement::Enabled
+}
+
+fn exec_page_zoom_in(doc: &mut DocumentSession) -> Result<String, String> {
+    let b = try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+    b.set_render_scale(b.render_scale * 1.1);
+    Ok(format!("PDF zoom {:.0}%", b.render_scale * 100.0))
+}
+
+fn exec_page_zoom_out(doc: &mut DocumentSession) -> Result<String, String> {
+    let b = try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+    b.set_render_scale(b.render_scale / 1.1);
+    Ok(format!("PDF zoom {:.0}%", b.render_scale * 100.0))
+}
+
 pub fn register(registry: &mut CommandRegistry) {
     registry.register_handler(HandlerRegistration {
         command_id: FONT_INCREASE_ID.into(),
@@ -148,6 +169,18 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: font_enable,
         execute: exec_decrease,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PAGE_ZOOM_INCREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: page_zoom_enable,
+        execute: exec_page_zoom_in,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PAGE_ZOOM_DECREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: page_zoom_enable,
+        execute: exec_page_zoom_out,
     });
 }
 

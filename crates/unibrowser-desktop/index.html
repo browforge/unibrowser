@@ -105,6 +105,13 @@
       <input id="tab-search-query" type="text" placeholder="Filter open tabs…" />
       <div id="tab-search-results"></div>
     </div>
+    <div id="document-find-bar" class="document-find-bar hidden" role="search">
+      <label class="document-find-label" for="document-find-input">Find</label>
+      <input id="document-find-input" type="search" autocomplete="off" spellcheck="false" />
+      <button type="button" id="document-find-prev" title="Previous match">Prev</button>
+      <button type="button" id="document-find-next" title="Next match">Next</button>
+      <button type="button" id="document-find-close" title="Close find">Close</button>
+    </div>
     <div id="palette" class="palette hidden" role="dialog" aria-modal="true" aria-label="Command palette">
       <input id="palette-query" type="text" placeholder="Search commands (Ctrl+Shift+P)" aria-label="Search commands" />
       <div id="palette-results"></div>

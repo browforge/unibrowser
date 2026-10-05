@@ -3,7 +3,7 @@
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionSnapshot,
-    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID},
+    handlers::{FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID},
 };
 
 pub const BACKEND_ID: &str = "toy-epub-stub";
@@ -98,6 +98,12 @@ pub fn register_handlers(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: font_enable,
         execute: exec_decrease,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: FIND_IN_DOCUMENT_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: |_doc| Ok("document-find".into()),
     });
 }
 

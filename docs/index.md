@@ -20,7 +20,9 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [mod-api-stable.md](mod-api-stable.md) | Frozen mod API 0.1 |
 | [plugin-sdk.md](plugin-sdk.md) | Hello-world `.ubmod` build and install |
 | [plugin-sdk/README.md](plugin-sdk/README.md) | Native mod SDK ABI and user `mods/` dir |
-| [commands-cross-format.md](commands-cross-format.md) | Font-size demo: live vs greyed per viewer |
+| [commands-cross-format.md](commands-cross-format.md) | Font-size, find, and page zoom per viewer |
+| [session-restore.md](session-restore.md) | Tabs/windows on launch preference |
+| [ci.md](ci.md) | Local check script and CI on Origin |
 | [ui-commands.md](ui-commands.md) | Command Manager and toolbars |
 | [keybindings.md](keybindings.md) | Chords and overrides |
 | [multi-window.md](multi-window.md) | Per-window state vs shared prefs |

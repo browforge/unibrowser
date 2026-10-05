@@ -21,6 +21,17 @@ import { applySpellcheckToEditable } from "./experimentalSpellcheck";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
+type FindRunner = (query: string, next: boolean) => void;
+let viewerFindRunner: FindRunner | null = null;
+
+export function setViewerFindRunner(run: FindRunner | null) {
+  viewerFindRunner = run;
+}
+
+export function runViewerFind(query: string, next: boolean) {
+  viewerFindRunner?.(query, next);
+}
+
 const BOARD_GRID = 24;
 
 function snapBoardCoord(value: number, snap: boolean): number {
@@ -78,6 +89,7 @@ export interface DocumentViewerDto {
   midi_note_preview?: MidiNoteOnDto[];
   pdf_engines?: PdfEngineLineDto[];
   reader_font_pt?: number;
+  preview_zoom?: number;
 }
 
 interface PdfEngineLineDto {
@@ -354,6 +366,21 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
     hits = applyDocxSearchHighlights(article, searchInput.value.trim());
     focusHit(0);
   };
+  setViewerFindRunner((query, next) => {
+    searchInput.value = query;
+    if (!query.trim()) {
+      clearDocxSearchMarks(article);
+      hits = [];
+      hitIndex = -1;
+      searchStatus.textContent = "";
+      return;
+    }
+    if (!hits.length || searchInput.value.trim() !== query.trim()) {
+      runSearch();
+      return;
+    }
+    focusHit(hitIndex + (next ? 1 : -1));
+  });
   searchInput.onkeydown = (ev) => {
     if (ev.key === "Enter") {
       ev.preventDefault();
@@ -983,7 +1010,7 @@ async function renderSpreadsheet(path: string, root: HTMLElement) {
   root.appendChild(wrap);
 }
 
-async function renderImage(path: string, root: HTMLElement) {
+async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   await ensureAssetAllowed(path);
   root.innerHTML = "";
   const toolbar = document.createElement("div");
@@ -1049,7 +1076,7 @@ async function renderImage(path: string, root: HTMLElement) {
   viewport.appendChild(stage);
   root.appendChild(viewport);
 
-  let scale = 1;
+  let scale = initialZoom;
   let rotation = 0;
   let panX = 0;
   let panY = 0;
@@ -2554,6 +2581,25 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   prev.onclick = () => loadChapter(chapterIndex - 1).catch(showEpubError);
   next.onclick = () => loadChapter(chapterIndex + 1).catch(showEpubError);
 
+  setViewerFindRunner((query, forward) => {
+    const win = frame.contentWindow;
+    if (!win || !query.trim()) {
+      return;
+    }
+    const finder = win as unknown as Window & {
+      find: (
+        query: string,
+        caseSensitive: boolean,
+        backwards: boolean,
+        wrapAround: boolean,
+        wholeWord: boolean,
+        searchInFrames: boolean,
+        showDialog: boolean,
+      ) => boolean;
+    };
+    finder.find(query, false, !forward, false, false, false, false);
+  });
+
   function showEpubError(err: unknown) {
     label.textContent = String(err);
   }
@@ -2767,7 +2813,7 @@ export const documentViewer = {
           await renderAudio(viewer.path, body, viewer.media_note);
           break;
         case "image":
-          await renderImage(viewer.path, body);
+          await renderImage(viewer.path, body, viewer.preview_zoom ?? 1);
           break;
         case "spreadsheet":
           await renderSpreadsheet(viewer.path, body);
@@ -2808,6 +2854,7 @@ export const documentViewer = {
   },
   hide(el: HTMLElement) {
     viewerZoomAdjust = null;
+    setViewerFindRunner(null);
     el.classList.add("hidden");
   },
 };

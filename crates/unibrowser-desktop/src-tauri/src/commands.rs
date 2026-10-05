@@ -38,8 +38,14 @@ use crate::state::FileCompareState;
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
 use crate::epub_preview::{EpubChapterDto, EpubSearchHitDto};
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
-use crate::webview::{adjust_page_font_for_url, sync_content_bounds, sync_content_webview_for_window};
-use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
+use crate::webview::{
+    adjust_page_font_for_url, adjust_page_zoom_for_url, sync_content_bounds,
+    sync_content_webview_for_window,
+};
+use unibrowser_mod_api::handlers::{
+    FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID,
+    PAGE_ZOOM_INCREASE_ID,
+};
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
     CommandManagerFile, ToolbarPhase,
@@ -225,6 +231,8 @@ pub struct DocumentViewerDto {
     pub pdf_engines: Option<Vec<crate::pdf_proving::PdfEngineLineDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reader_font_pt: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preview_zoom: Option<f32>,
 }
 
 #[derive(Serialize)]
@@ -540,6 +548,7 @@ fn document_viewer_dto(
             midi_note_preview: None,
             pdf_engines: None,
             reader_font_pt: None,
+            preview_zoom: None,
         });
     }
     if doc.backend.backend_id() == crate::settings_stub::BACKEND_ID {
@@ -561,6 +570,7 @@ fn document_viewer_dto(
             midi_note_preview: None,
             pdf_engines: None,
             reader_font_pt: None,
+            preview_zoom: None,
         });
     }
     if doc.backend.backend_id() == crate::about_stub::BACKEND_ID {
@@ -582,6 +592,7 @@ fn document_viewer_dto(
             midi_note_preview: None,
             pdf_engines: None,
             reader_font_pt: None,
+            preview_zoom: None,
         });
     }
     if doc.backend.backend_id() == crate::keys_stub::BACKEND_ID {
@@ -603,6 +614,7 @@ fn document_viewer_dto(
             midi_note_preview: None,
             pdf_engines: None,
             reader_font_pt: None,
+            preview_zoom: None,
         });
     }
     if doc.backend.backend_id() == crate::midi_stub::BACKEND_ID {
@@ -641,6 +653,7 @@ fn document_viewer_dto(
             midi_note_preview: Some(notes),
             pdf_engines: None,
             reader_font_pt: None,
+            preview_zoom: None,
         });
     }
     let viewer = match doc.backend.backend_id() {
@@ -691,7 +704,18 @@ fn document_viewer_dto(
         midi_note_preview: None,
         pdf_engines,
         reader_font_pt,
+        preview_zoom: preview_zoom_for_doc(doc),
     })
+}
+
+fn preview_zoom_for_doc(doc: &mut unibrowser_engine::DocumentSession) -> Option<f32> {
+    if let Some(b) = base_pdf::try_pdf_backend(&mut *doc.backend) {
+        return Some(b.render_scale);
+    }
+    if let Some(b) = base_png::try_png_backend(&mut *doc.backend) {
+        return Some(b.preview_zoom);
+    }
+    None
 }
 
 fn reader_font_pt_for_doc(doc: &mut unibrowser_engine::DocumentSession) -> Option<f32> {
@@ -1152,26 +1176,25 @@ pub fn search_open_tabs(window: tauri::Window, query: String, state: State<AppSt
     Ok(hits)
 }
 
-pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<(), String> {
-    let prefs = load_preferences();
-    if !prefs.restore_session_on_launch {
-        return Ok(());
-    }
-    let snap = crate::session::load_session_snapshot();
-    let snap = match snap {
-        Some(s) if !s.tab_inputs.is_empty() => s,
-        _ => return Ok(()),
-    };
+fn apply_session_to_window(
+    state: &AppState,
+    app: &AppHandle,
+    window_label: &str,
+    entry: &crate::session::WindowSessionEntry,
+) -> Result<(), String> {
     let mut locations = Vec::new();
-    for input in &snap.tab_inputs {
+    for input in &entry.tab_inputs {
         let loc = parse_user_input(input, &state.cwd);
         let (loc, _, _) = state.resolve_location(loc);
         locations.push(loc);
     }
+    if locations.is_empty() {
+        return Ok(());
+    }
     {
-        let _sess_tabs = ws_label(state, "main")?;
+        let _sess_tabs = ws_label(state, window_label)?;
         let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        tabs.load_locations(locations, snap.active_index);
+        tabs.load_locations(locations, entry.active_index);
         let count = tabs.tab_count();
         for i in 0..count {
             let loc = tabs
@@ -1187,14 +1210,61 @@ pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<()
         }
     }
     let loc = {
-        let _sess_tabs = ws_label(state, "main")?;
+        let _sess_tabs = ws_label(state, window_label)?;
         let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         tabs
             .active_tab()
             .map(|t| t.location.clone())
             .ok_or("no tab")?
     };
-    update_content_webview(app, "main", &loc)?;
+    update_content_webview(app, window_label, &loc)?;
+    if let Some(geom) = &entry.geometry {
+        if let Some(window) = app.get_window(window_label) {
+            let _ = crate::preferences::apply_window_state(&window, geom);
+        }
+    }
+    Ok(())
+}
+
+pub fn ensure_browser_window(app: &AppHandle, label: &str) -> Result<(), String> {
+    use tauri::{WebviewUrl, WebviewWindowBuilder};
+    if app.get_webview_window(label).is_some() {
+        return Ok(());
+    }
+    WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+        .title("Unibrowser")
+        .inner_size(1200.0, 800.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+    crate::webview::ensure_content_webview(app, label)?;
+    Ok(())
+}
+
+pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<(), String> {
+    let prefs = load_preferences();
+    if !prefs.restore_session_on_launch {
+        return Ok(());
+    }
+    let snap = crate::session::load_session_snapshot();
+    let snap = match snap {
+        Some(s) => s,
+        None => return Ok(()),
+    };
+    let entries = snap.normalized_windows();
+    if entries.is_empty() {
+        return Ok(());
+    }
+    for (i, entry) in entries.iter().enumerate() {
+        let label = if i == 0 {
+            "main".to_string()
+        } else {
+            entry.label.clone()
+        };
+        if i > 0 {
+            ensure_browser_window(app, &label)?;
+        }
+        apply_session_to_window(state, app, &label, entry)?;
+    }
     Ok(())
 }
 
@@ -2155,6 +2225,28 @@ pub fn execute_command(window: tauri::Window,
         let px = adjust_page_font_for_url(&app, &url, delta)?;
         return Ok(format!("Page font {}px (saved for origin)", px));
     }
+    if doc.backend.backend_id() == base_web::BACKEND_ID
+        && (command_id == PAGE_ZOOM_INCREASE_ID || command_id == PAGE_ZOOM_DECREASE_ID)
+    {
+        let step = if command_id == PAGE_ZOOM_INCREASE_ID { 10 } else { -10 };
+        let url = match &tab.location {
+            BrowserLocation::Http { url } => url.clone(),
+            _ => return Err("not a web tab".into()),
+        };
+        let pct = adjust_page_zoom_for_url(&app, &url, step)?;
+        return Ok(format!("Page zoom {}%", pct));
+    }
+    if command_id == FIND_IN_DOCUMENT_ID {
+        let en = state
+            .registry
+            .lock()
+            .map_err(|e| e.to_string())?
+            .enablement(&command_id, doc);
+        if !en.is_enabled() {
+            return Err(en.disabled_reason().unwrap_or("disabled").into());
+        }
+        return Ok("document-find".into());
+    }
     state
         .registry
         .lock()
@@ -2548,20 +2640,14 @@ pub fn resolve_preview_link(window: tauri::Window,
 }
 
 #[tauri::command]
-pub fn open_new_browser_window(window: tauri::Window, app: AppHandle) -> Result<String, String> {
-    use tauri::{WebviewUrl, WebviewWindowBuilder};
+pub fn open_new_browser_window(_window: tauri::Window, app: AppHandle) -> Result<String, String> {
     let mut n = app.webview_windows().len().max(1) + 1;
     let mut label = format!("browser-{}", n);
     while app.get_webview_window(&label).is_some() {
         n += 1;
         label = format!("browser-{}", n);
     }
-    let _window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::App("index.html".into()))
-        .title("Unibrowser")
-        .inner_size(1200.0, 800.0)
-        .build()
-        .map_err(|e| e.to_string())?;
-    crate::webview::ensure_content_webview(&app, &label)?;
+    ensure_browser_window(&app, &label)?;
     Ok(label)
 }
 
@@ -2623,7 +2709,8 @@ pub fn web_page_zoom(window: tauri::Window, delta_px: i32, app: AppHandle, state
         BrowserLocation::Http { url } => url.clone(),
         _ => return Err("not a web tab".into()),
     };
-    adjust_page_font_for_url(&app, &url, delta_px)?;
+    let step = if delta_px >= 0 { 10 } else { -10 };
+    adjust_page_zoom_for_url(&app, &url, step)?;
     Ok(())
 }
 
@@ -3859,6 +3946,7 @@ pub fn set_onboarding_checklist_skip_forever(skip: bool) -> Result<PreferencesDt
     p.onboarding_checklist_skip_forever = skip;
     if skip {
         p.onboarding_dismissed = true;
+        p.restore_session_on_launch = false;
     }
     save_preferences(&p)?;
     Ok(preferences_dto())
@@ -3876,6 +3964,7 @@ pub fn skip_onboarding_tour_forever(_window: tauri::Window) -> Result<Preference
     let mut p = load_preferences();
     p.onboarding_tour_skipped_forever = true;
     p.onboarding_dismissed = true;
+    p.restore_session_on_launch = false;
     save_preferences(&p)?;
     Ok(preferences_dto())
 }

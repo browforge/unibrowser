@@ -97,6 +97,28 @@ pub fn apply_persisted_web_font(app: &AppHandle, window_label: &str, url: &str) 
     Ok(())
 }
 
+pub fn inject_page_zoom_percent(
+    app: &AppHandle,
+    window_label: &str,
+    percent: u8,
+) -> Result<(), String> {
+    ensure_content_webview(app, window_label)?;
+    let label = content_label(window_label);
+    let wv = app.get_webview(&label).ok_or("content webview missing")?;
+    let script = format!(
+        "(function(){{try{{if(!document.documentElement){{return;}}document.documentElement.style.zoom='{pct}%';}}catch(e){{}}}})();",
+        pct = percent
+    );
+    wv.eval(&script).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn apply_persisted_web_zoom(app: &AppHandle, window_label: &str, url: &str) -> Result<(), String> {
+    let pct = crate::web_zoom_prefs::get_origin_zoom_percent(url);
+    inject_page_zoom_percent(app, window_label, pct)?;
+    Ok(())
+}
+
 /// Adjust font for a page URL, persist per origin, and inject into every open window.
 pub fn adjust_page_font_for_url(app: &AppHandle, url: &str, delta: i32) -> Result<u8, String> {
     let px = crate::web_font_prefs::adjust_origin_font_px(url, delta)?;
@@ -104,6 +126,14 @@ pub fn adjust_page_font_for_url(app: &AppHandle, url: &str, delta: i32) -> Resul
         inject_page_font_px(app, &label, px)?;
     }
     Ok(px)
+}
+
+pub fn adjust_page_zoom_for_url(app: &AppHandle, url: &str, delta: i32) -> Result<u8, String> {
+    let pct = crate::web_zoom_prefs::adjust_origin_zoom_percent(url, delta)?;
+    for (label, _) in app.webview_windows() {
+        inject_page_zoom_percent(app, &label, pct)?;
+    }
+    Ok(pct)
 }
 
 pub fn content_webview_navigate(
@@ -133,6 +163,7 @@ pub fn sync_content_webview_for_window(
         unibrowser_mod_api::BrowserLocation::Http { url } => {
             content_webview_navigate(app, window_label, url)?;
             apply_persisted_web_font(app, window_label, url)?;
+            apply_persisted_web_zoom(app, window_label, url)?;
         }
         _ => {
             content_webview_navigate(app, window_label, "about:blank")?;

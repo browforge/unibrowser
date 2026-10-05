@@ -1040,6 +1040,32 @@ body {
   color: #0645ad;
 }
 
+.document-find-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  margin: 0.25rem 0;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #2a2a32;
+}
+
+.document-find-bar.hidden {
+  display: none;
+}
+
+.document-find-bar input[type="search"] {
+  flex: 1;
+  min-width: 8rem;
+  font-size: 0.9rem;
+}
+
+[data-theme="light"] .document-find-bar {
+  background: #f0f0f4;
+  border-color: #bbb;
+}
+
 .files-nav {
   display: flex;
   flex-wrap: wrap;

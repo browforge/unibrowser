@@ -216,6 +216,56 @@ async function ensureEditor(host: HTMLElement) {
   editor.onDidChangeCursorPosition(() => emitCursorStatus());
 }
 
+export function openTextFind() {
+  editor?.getAction("actions.find")?.run();
+}
+
+export function runTextFind(query: string, forward: boolean) {
+  if (!editor) {
+    return;
+  }
+  if (markdownPreview && previewEl && query.trim()) {
+    const finder = window as unknown as Window & {
+      find: (
+        query: string,
+        caseSensitive: boolean,
+        backwards: boolean,
+        wrapAround: boolean,
+        wholeWord: boolean,
+        searchInFrames: boolean,
+        showDialog: boolean,
+      ) => boolean;
+    };
+    finder.find(query, false, !forward, false, false, false, false);
+    return;
+  }
+  const model = editor.getModel();
+  if (!model || !query.trim()) {
+    openTextFind();
+    return;
+  }
+  const api = monacoApi;
+  if (!api) {
+    openTextFind();
+    return;
+  }
+  const matches = model.findMatches(query, false, false, false, null, false);
+  if (!matches.length) {
+    return;
+  }
+  const sel = editor.getSelection();
+  const pos = sel ? model.getOffsetAt(sel.getStartPosition()) : 0;
+  let idx = matches.findIndex((m) => model.getOffsetAt(m.range.getStartPosition()) > pos);
+  if (idx < 0) {
+    idx = forward ? 0 : matches.length - 1;
+  } else if (!forward) {
+    idx = Math.max(0, idx - 1);
+  }
+  const match = matches[idx];
+  editor.setSelection(match.range);
+  editor.revealRangeInCenter(match.range);
+}
+
 export const textEditor = {
   isActive(): boolean {
     return editor !== null && loadedPath !== null;

@@ -102,4 +102,7 @@ pub mod commands {
     pub const FONT_SIZE_DECREASE: &str = "unibrowser.font.size.decrease";
     pub const TEXT_SAVE: &str = "unibrowser.text.save";
     pub const SCRIPT_DEMO_HELLO: &str = "unibrowser.script.demo.hello";
+    pub const PAGE_ZOOM_INCREASE: &str = "unibrowser.page.zoom.increase";
+    pub const PAGE_ZOOM_DECREASE: &str = "unibrowser.page.zoom.decrease";
+    pub const FIND_IN_DOCUMENT: &str = "unibrowser.find.inDocument";
 }

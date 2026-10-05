@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Session restore v2**: save/restore all windows + geometry; default on until first-run tour/checklist skip; [session-restore.md](docs/session-restore.md).
+- **Find in document**: `unibrowser.find.inDocument` + Ctrl+F bar (Monaco, DOCX HTML, EPUB chapter).
+- **Page zoom** commands for web (CSS zoom per origin), PDF raster scale, and images (separate from font-size).
+- **CI**: `./scripts/check-workspace.sh`; [docs/ci.md](docs/ci.md) for GitHub Actions and Origin.
 - Unified **Increase font size** demo: `unibrowser.font.size.increase` on Monaco/text, SVG preview, DOCX/EPUB HTML, HTTP user-style; matrix in [`docs/commands-cross-format.md`](docs/commands-cross-format.md).
 - **Places**: recent files + pinned folders in Files manager; palette entries (`unibrowser.places.open`) with `open_path`.
 - Theme persistence (light / dark / system) applies to Command Manager chrome and floating toolbars; high-contrast borders on CM + bars.
