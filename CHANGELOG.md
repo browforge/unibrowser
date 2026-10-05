@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Session vs recovery:** Session restore skips `.unibrow` tabs that have a pending `project.json` backup; recovery reuses an open tab when possible. Documented in [session-restore.md](docs/session-restore.md).
+- **Palette:** Stronger prefix fuzzy scores; recently executed commands get a ranking boost.
+- **DXF:** Parse/empty wireframe shows a clear viewer message instead of a blank canvas.
 - **Web zoom:** Palette **Reset zoom for all sites** clears `web-zoom-prefs.json` and sets open https tabs to 100%.
 - **Reader mode:** Last on/off per origin persisted (`web-reader-prefs.json`) when toggling reader mode.
 - **Security:** Omnibox `file://` URLs use percent-decoding plus existing traversal guards (`resolve_file_url_input`); unit test for encoded `..` segments.

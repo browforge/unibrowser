@@ -1844,8 +1844,20 @@ async function renderDxf(path: string, root: HTMLElement) {
   const DxfParser = (await import("dxf-parser")).default;
   const text = new TextDecoder().decode(await readBytes(path));
   const parser = new DxfParser();
-  const dxf = parser.parseSync(text) as DxfData | null;
+  let dxf: DxfData | null = null;
+  let parseError: string | null = null;
+  try {
+    dxf = parser.parseSync(text) as DxfData | null;
+  } catch (err) {
+    parseError = err instanceof Error ? err.message : String(err);
+  }
   const entities = dxf?.entities ?? [];
+  const showDxfWireframeError = (host: HTMLElement, detail: string) => {
+    const err = document.createElement("p");
+    err.className = "viewer-note dxf-wireframe-error";
+    err.textContent = detail;
+    host.appendChild(err);
+  };
 
   const geomPanel = document.createElement("aside");
   geomPanel.className = "dxf-geom-panel";
@@ -1932,6 +1944,21 @@ async function renderDxf(path: string, root: HTMLElement) {
   const width = wrap.clientWidth || 800;
   const height = 400;
 
+  if (parseError) {
+    showDxfWireframeError(
+      wrap,
+      `Could not read this DXF: ${parseError}. Try exporting ASCII DXF from your CAD tool.`,
+    );
+    return;
+  }
+  if (entities.length === 0) {
+    showDxfWireframeError(
+      wrap,
+      "No geometry found in this DXF. The file may be empty, binary-only, or use entities the proving parser does not support yet.",
+    );
+    return;
+  }
+
   const collectSegments = () => {
     const allSegs: Vec3[] = [];
     for (const ent of entities) {
@@ -1975,6 +2002,11 @@ async function renderDxf(path: string, root: HTMLElement) {
         line.setAttribute("stroke-width", "1");
         svg.appendChild(line);
       }
+    } else {
+      showDxfWireframeError(
+        wrap,
+        "No drawable wireframe segments in this DXF (unsupported entity types or zero-length geometry).",
+      );
     }
     wrap.appendChild(svg);
     return;
@@ -2027,6 +2059,14 @@ async function renderDxf(path: string, root: HTMLElement) {
       camera.updateProjectionMatrix();
     }
     renderer.render(scene, camera);
+    if (!baseBbox && entities.length > 0) {
+      if (!wrap.querySelector(".dxf-wireframe-error")) {
+        showDxfWireframeError(
+          wrap,
+          "No drawable wireframe segments in this DXF (unsupported entity types or zero-length geometry).",
+        );
+      }
+    }
   };
 
   let dragging = false;

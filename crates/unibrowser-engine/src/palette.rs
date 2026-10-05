@@ -21,7 +21,7 @@ pub fn fuzzy_score(query: &str, target: &str) -> i32 {
         return 500;
     }
     if t.starts_with(&q) {
-        return 300 + (50 - t.len() as i32).max(0);
+        return 420 + (60 - t.len() as i32).max(0);
     }
     if t.contains(&q) {
         let idx = t.find(&q).unwrap_or(0);
@@ -78,6 +78,15 @@ pub fn search_commands(
     entries
 }
 
+/// Boost palette score for recently executed commands (palette history).
+pub fn apply_history_boost(command_id: &str, score: i32, history: &[String]) -> i32 {
+    if let Some(pos) = history.iter().position(|id| id == command_id) {
+        let weight = (history.len() - pos) as i32;
+        return score + weight * 35;
+    }
+    score
+}
+
 fn best_field_score(query: &str, meta: &CommandMeta) -> i32 {
     let mut best = fuzzy_score(query, meta.title);
     best = best.max(fuzzy_score(query, meta.id));
@@ -102,5 +111,13 @@ mod tests {
         let prefix = fuzzy_score("save", "Save document");
         let subseq = fuzzy_score("svd", "Save document");
         assert!(prefix > subseq);
+    }
+
+    #[test]
+    fn history_boost_ranks_recent_higher() {
+        let history = vec!["a".into(), "b".into(), "c".into()];
+        let boosted_a = apply_history_boost("a", 100, &history);
+        let boosted_c = apply_history_boost("c", 100, &history);
+        assert!(boosted_a > boosted_c);
     }
 }

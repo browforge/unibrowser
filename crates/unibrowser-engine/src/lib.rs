@@ -17,7 +17,7 @@ pub use keybinding::{
     DEFAULT_PALETTE_CHORD,
     DEFAULT_PALETTE_CHORD_MACOS,
 };
-pub use palette::{PaletteEntry, search_commands};
+pub use palette::{PaletteEntry, apply_history_boost, search_commands};
 pub use tabs::{Tab, TabManager};
 pub use command_manager::{
     infer_context, load_command_manager_file, save_command_manager_file, CommandManagerState,

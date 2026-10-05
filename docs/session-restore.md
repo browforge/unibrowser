@@ -24,6 +24,17 @@ Format version **2** stores a `windows[]` array (`main`, `browser-2`, …). Olde
 
 Each additional browser window (`browser-N`) is restored after `main` when a snapshot lists it. New windows created from Settings use the same session capture on close.
 
+## Recovery precedence (launch)
+
+On startup the shell may do **both** session restore (Rust, before the UI paints) and a **project recovery** prompt (frontend, after the first state snapshot).
+
+| Kind | When | Precedence |
+| --- | --- | --- |
+| `.unibrow` `project.json` backup | Project autosave or crash recovery enabled; debounced backup exists | **Recovery wins** — session restore **skips** tabs for that project path so you are not double-opened. Accepting recovery restores `project.json` and opens or refreshes the matching tab. |
+| Text / SVG crash backups | Crash recovery enabled; dirty buffer saved | **Manual** — listed under Settings / About; not auto-restored with session tabs. Use **Restore** on the row you want. |
+
+Dismiss project recovery backups if you prefer the on-disk project without the autosaved `project.json`.
+
 ## Related
 
 - [multi-window.md](multi-window.md)

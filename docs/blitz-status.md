@@ -72,7 +72,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
-| Recovery | Text/SVG crash backups (opt-in); `.unibrow` `project.json` debounced backups + launch prompt when project autosave or crash recovery is on |
+| Recovery | Text/SVG crash backups (opt-in, Settings/About); `.unibrow` `project.json` debounced backups + launch prompt; **session restore defers** matching `.unibrow` tabs ([session-restore.md](session-restore.md)) |
 | Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab; **Content-Disposition** renames generic hints; failed fetch toast + history ([browser-shell.md](browser-shell.md)) |
 | Settings reset | Confirmable **Reset onboarding**, **Clear recent files**, **Reset floating toolbars** |
 | Command Manager | Scrollable command chips; horizontal tab strip; pin + layout buttons stay visible |
@@ -163,6 +163,8 @@ Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10
 
 ### Open gaps (ranked for post-blitz)
 
+Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader prefs, omnibox `file://` hardening) are **done** — not listed below.
+
 | Rank | Gap | Why it matters |
 | --- | --- | --- |
 | 1 | VSIX JS extension host | Largest compat promise vs delivery |
@@ -171,8 +173,10 @@ Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10
 | 4 | Full timeline / DAW encode | ffmpeg H.264 + approximate duck/fade; no full DAW mix bus |
 | 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
 | 6 | EPUB/DOCX fidelity | Asset URLs; Mammoth layout |
-| 7 | i18n depth | Chrome only (`en-NZ` / `en-US`) |
-| 8 | Cloud / collab | Share zip only |
+| 7 | Web proxy applied to webviews | Prefs persist only |
+| 8 | i18n depth | Chrome only (`en-NZ` / `en-US`) |
+| 9 | Cloud / collab | Share zip only |
+| 10 | Binary / heavy CAD DXF | Proving parser + wireframe only; friendly empty state, not full geometry |
 
 ## Gaps (honest)
 

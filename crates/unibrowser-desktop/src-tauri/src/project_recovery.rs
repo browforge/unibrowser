@@ -1,6 +1,6 @@
 //! Debounced backups of `project.json` for open `.unibrow` packages (crash recovery).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -160,6 +160,34 @@ fn read_backup_file(file: &PathBuf) -> Option<ProjectBackupRecord> {
     serde_json::from_str(&data).ok()
 }
 
+/// Canonical `.unibrow` paths with a pending recovery backup (session restore defers these).
+pub fn pending_recovery_path_set(cwd: &Path) -> HashSet<PathBuf> {
+    list_backups()
+        .iter()
+        .filter_map(|b| {
+            crate::path_security::resolve_open_path(&b.project_path, cwd).ok()
+        })
+        .collect()
+}
+
+/// Skip restoring this session tab input when launch will offer project recovery instead.
+pub fn session_tab_deferred_for_recovery(
+    input: &str,
+    cwd: &Path,
+    pending: &HashSet<PathBuf>,
+) -> bool {
+    if pending.is_empty() {
+        return false;
+    }
+    let loc = unibrowser_engine::navigation::parse_user_input(input, cwd);
+    let path = match loc {
+        unibrowser_mod_api::BrowserLocation::File { path } => path,
+        _ => return false,
+    };
+    let resolved = crate::path_security::resolve_open_path(&path.to_string_lossy(), cwd).ok();
+    resolved.map(|p| pending.contains(&p)).unwrap_or(false)
+}
+
 pub fn list_backups() -> Vec<ProjectRecoveryBackupDto> {
     let dir = match recovery_dir() {
         Some(d) => d,
@@ -228,5 +256,27 @@ mod tests {
         let a = backup_path_for("/tmp/foo.unibrow");
         let b = backup_path_for("/tmp/foo.unibrow");
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn session_defers_unibrow_with_pending_backup() {
+        let cwd = std::env::temp_dir().join("ub-proj-recovery-defer");
+        let _ = fs::remove_dir_all(&cwd);
+        fs::create_dir_all(&cwd).unwrap();
+        let project = cwd.join("demo.unibrow");
+        let resolved = crate::path_security::resolve_open_path(
+            &project.to_string_lossy(),
+            &cwd,
+        )
+        .unwrap();
+        let pending: HashSet<PathBuf> = HashSet::from([resolved]);
+        let input = format!("file://{}", project.display());
+        assert!(session_tab_deferred_for_recovery(&input, &cwd, &pending));
+        assert!(!session_tab_deferred_for_recovery(
+            &format!("file://{}", cwd.join("readme.md").display()),
+            &cwd,
+            &pending,
+        ));
+        let _ = fs::remove_dir_all(&cwd);
     }
 }
