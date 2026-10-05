@@ -77,9 +77,9 @@ Unibrowser should **excel at moving between contexts** without feeling like a di
 | [Blender workspaces](https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html) | Workspaces + operator search; tools do not vanish |
 | [DaVinci Resolve](https://documents.blackmagicdesign.com/UserManuals/DaVinci-Resolve-19-User-Manual.pdf) | Page switching with consistent overall shell |
 
-### Native project format (`.unibrow` / `.uni`)
+### Native project format (`.unibrow`)
 
-Mixed-format work needs a **native project**, not another app’s NLE project file. Bear’s analogy: **Illustrator vs JPEG** maps to **`.unibrow` (or `.uni`) vs MP4** — the project is the editable, non-destructive package; MP4/PNG/PDF export is **delivery**, not where ongoing work lives.
+Mixed-format work needs a **native project**, not another app’s NLE project file. Bear’s analogy: **Illustrator vs JPEG** maps to **`.unibrow` vs MP4** — the project is the editable, non-destructive package; MP4/PNG/PDF export is **delivery**, not where ongoing work lives.
 
 You can drop **literally anything** on an infinite canvas or timeline — half-finished PDF, MIDI, notes, diagrams — and save **without flattening** sources by default ([ADR 0015](adr/0015-native-project-format.md), [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)).
 

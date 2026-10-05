@@ -95,7 +95,7 @@ flowchart TB
 
 **Satellite mods (thin wrappers):** `base-markdown` (mostly **Text**); `base-pdf` is a **multi-engine** mod, not a single-engine lane — see [roadmap.md](roadmap.md).
 
-## Native project format (`.unibrow` / `.uni`)
+## Native project format (`.unibrow`)
 
 Mixed-format canvas and timeline work is persisted in a **Unibrowser project package**, not as a Vegas/Premiere-style single-domain project file. **Export** (MP4, flattened PDF, PNG) is a **boundary** out of the project; sources stay native inside the bundle where [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) allows.
 
@@ -109,7 +109,7 @@ Mixed-format canvas and timeline work is persisted in a **Unibrowser project pac
 
 ```mermaid
 flowchart LR
-  subgraph Project[".unibrow / .uni package"]
+  subgraph Project[".unibrow package"]
     PJ[project.json]
     A[assets/]
     R[refs/]
@@ -132,7 +132,7 @@ flowchart LR
   A -.->|native until encode| D
 ```
 
-**Mods** serialize their node types; the **host** owns the package layout and asset index ([ADR 0015](adr/0015-native-project-format.md)). Name **`.unibrow` vs `.uni`** remains an open product decision.
+**Mods** serialize their node types; the **host** owns the package layout and asset index ([ADR 0015](adr/0015-native-project-format.md)). Standard extension: **`.unibrow`** (directory bundle or ZIP single file).
 
 ## Layer diagram
 

@@ -1,4 +1,4 @@
-# ADR 0015: Native project format (`.unibrow` / `.uni`)
+# ADR 0015: Native project format (`.unibrow`)
 
 - **Status:** Accepted (direction; format not implemented)
 - **Date:** 2026-10-05
@@ -13,7 +13,7 @@ Bear’s analogy:
 
 | Role | Illustration / video analogue | Unibrowser |
 |------|------------------------------|------------|
-| **Editable native project** | Adobe Illustrator `.ai` (layers, objects, non-destructive) | **`.unibrow` or `.uni`** — anything-goes project package |
+| **Editable native project** | Adobe Illustrator `.ai` (layers, objects, non-destructive) | **`.unibrow`** — anything-goes project package |
 | **Flattened delivery** | JPEG (pixels, lossy workflow end state) | **MP4, PNG, PDF export**, etc. — **export**, not the living project |
 
 **Ongoing work is not “a Vegas project.”** It is a **first-class Unibrowser project** that **references or embeds** source assets in their **native or lazy-native** form until the user **exports** to a delivery format.
@@ -28,6 +28,14 @@ Bear’s analogy:
 4. **Mod-extensible** — new clip/layer types register schema + serializers via mods; the host owns the **project shell** and **asset index**, not every format’s internals.
 5. **Export is separate** — “Save project” ≠ “Export MP4”; export runs the conversion graph at full fidelity.
 
+### File extension (decided)
+
+Bear confirmed **2026-10-05**: the standard extension is **`.unibrow`** only (not `.uni`). Longer-than-three-letter extensions are acceptable on modern **Windows, Linux, and macOS**; the branded name avoids generic collisions (e.g. “uni”) and matches the product.
+
+- **Directory bundle:** `MyProject.unibrow/` (package folder).
+- **Single-file save:** `MyProject.unibrow` as a ZIP (or OPC) container with the same interior layout — one extension for both shapes; disambiguate by file type (directory vs archive) at open time.
+- **MIME / UTI:** register a vendor type when shipping (e.g. `application/vnd.unibrowser.project+json` or zip-based subtype) — details TBD; extension is fixed.
+
 ### Non-goals (v1 format design)
 
 - Replacing ZIP, PDF, or Office as interchange standards for other apps.
@@ -40,14 +48,14 @@ Evaluate three shapes; the product may ship **one primary** with a documented mi
 
 | Shape | Pros | Cons | Likely use in Unibrowser |
 |-------|------|------|---------------------------|
-| **Directory bundle** (e.g. `MyShow.unibrow/` or `MyShow.uni/` as a folder) | Easy debugging; partial copy; git-friendly text parts | macOS “folder looks like file” UX; user must not break inner layout | Strong candidate for **dev** and **power users** |
+| **Directory bundle** (e.g. `MyShow.unibrow/` as a folder) | Easy debugging; partial copy; git-friendly text parts | macOS “folder looks like file” UX; user must not break inner layout | Strong candidate for **dev** and **power users** |
 | **ZIP (OPC-style) single file** | Familiar (Office, VSIX); one attachment to email | Whole-file rewrite on save; large media inside zip | Strong candidate for **grandma “one file”** UX |
 | **SQLite inside bundle** | Fast asset index, queries, undo metadata, thumbnails | Binary blob; harder hand-edit | **Index + metadata** inside directory or zip, not necessarily sole container |
 
 **Working hypothesis (subject to spike):**
 
 ```
-MyProject.unibrow/          # or MyProject.uni.zip with same interior layout
+MyProject.unibrow/          # directory bundle; or MyProject.unibrow (ZIP) — same interior
   project.json              # version, schema, canvas/timeline graph, mod API version
   assets/                   # embedded copies (content-addressed or uuid names)
   refs/                     # sidecar pointers to external file:// paths (optional)
@@ -109,13 +117,14 @@ A PDF opened **only** as a tab is still a **file**; **Save As project** copies o
 
 ## Open questions
 
-1. **Extension and MIME** — **`.unibrow`** (branded, verbose) vs **`.uni`** (short, generic)? OS “uni” collisions? Register both with same interior?
-2. **Single file vs bundle default** — ZIP for everyday save; “Reveal package contents” for support?
-3. **Schema versioning** — `project.json` `format_version` vs semver; forward-compatible readers?
-4. **Undo / collaboration** — operation log in SQLite vs event-sourced JSONL in bundle?
-5. **Encryption** — optional project password (out of scope v1)?
-6. **Which mod owns the project surface** — host built-in `base-project` vs community timeline mod?
-7. **Git / diff** — text-first `project.json` + avoid binary noise in `assets/` for LFS workflows?
+1. **Single file vs bundle default** — ZIP `*.unibrow` for everyday save vs directory `*.unibrow/`; “Reveal package contents” for support?
+2. **Schema versioning** — `project.json` `format_version` vs semver; forward-compatible readers?
+3. **Undo / collaboration** — operation log in SQLite vs event-sourced JSONL in bundle?
+4. **Encryption** — optional project password (out of scope v1)?
+5. **Which mod owns the project surface** — host built-in `base-project` vs community timeline mod?
+6. **Git / diff** — text-first `project.json` + avoid binary noise in `assets/` for LFS workflows?
+
+**Closed (extension):** **`.unibrow`** only — see **File extension (decided)** above.
 
 ## Related
 

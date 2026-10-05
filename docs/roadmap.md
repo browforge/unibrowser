@@ -79,7 +79,7 @@ Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)). Each ro
 
 ## Phase 3 — Mixed media + lazy conversion
 
-**Depends on:** native **project format** ([ADR 0015](adr/0015-native-project-format.md)) — `.unibrow` / `.uni` package with `project.json`, `assets/`, `refs/`, `derived/`; export separate from save.
+**Depends on:** native **project format** ([ADR 0015](adr/0015-native-project-format.md)) — **`.unibrow`** package with `project.json`, `assets/`, `refs/`, `derived/`; export separate from save.
 
 | Milestone | Deliverable |
 |-----------|-------------|
