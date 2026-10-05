@@ -55,6 +55,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Updates | Settings **Check for updates** opens releases URL only — [updates.md](updates.md) |
 | Go to tab | **Ctrl+Shift+A** (or T) / palette **Go to tab** — fuzzy search across all windows |
 | Diagnostics memory | Linux RSS from `/proc/self/status` when available |
+| Content fullscreen | **F11** hides chrome for the active viewer; **Escape** exits — [fullscreen-content.md](fullscreen-content.md) |
+| Media PiP stub | Palette **Picture-in-picture** on video/audio tabs; system PiP when webview allows, else grey reason |
+| Spellcheck expansion | Experimental setting also targets DOCX preview + EPUB reading notes |
 | Diagnostics | `unibrowser://diagnostics` — mods, ffmpeg, WebView stack, recent error log ring buffer |
 | Settings search | Filter Settings sections by typing in the search field |
 | Roadmap | [roadmap.md](roadmap.md) refreshed vs blitz shipped vs open (VSIX JS, WebView2 downloads, OCR, full encode) |
@@ -89,13 +92,64 @@ CLI version: `cargo run -p unibrowser-cli -- --version`
 
 Report screenshots: [report-visuals.md](report-visuals.md) and `./scripts/capture-report-screenshots.sh`.
 
+## Metrics (Wed report skeleton)
+
+Counts are approximate for the blitz branch; re-run before publishing.
+
+| Metric | Value (snapshot) |
+| --- | --- |
+| Workspace Rust sources (`crates/` + `mods/`) | ~116 `.rs` files |
+| Desktop TypeScript (`crates/unibrowser-desktop/src`) | ~54 `.ts` files |
+| Bundled format mods (`mods/`) | 12 packages (`base-*` + `toy-markdown`) |
+| Architecture decision records | 19 in `docs/adr/` |
+| Workspace crates (root `Cargo.toml` members) | 25 members incl. desktop, engine, mod-host, media, project, VSIX, cdylib stub |
+
+### Workspace crates (core)
+
+| Crate | Role |
+| --- | --- |
+| `unibrowser-desktop` | Tauri shell + Vite UI |
+| `unibrowser-engine` | Tabs, commands, Command Manager |
+| `unibrowser-mod-host` | Mod load + registry |
+| `unibrowser-mod-api` | Stable mod ABI types |
+| `unibrowser-project` | `.unibrow` manifest + zip |
+| `unibrowser-media` | ffmpeg sidecar probe/encode |
+| `unibrowser-vsix` / `unibrowser-extension-host` | VSIX metadata + stub host |
+| `unibrowser-script-host` | Rhai scripting |
+| `unibrowser-cli` / `unibrowser-app` | CLI + thin app entry |
+| `unibrowser-build-info` | Version/git embed |
+
+### Proving mods (placeholder UX)
+
+| Mod | Proves | Grey / stub |
+| --- | --- | --- |
+| `base-dxf` | CAD wireframe viewer | Measure, Export STEP ([proving-mod-dxf.md](proving-mod-dxf.md)) |
+| `base-audio` | Waveform + HTML audio | DAW split/stem/automation commands |
+| `base-video` | HTML video + scrub thumbs | PiP when webview lacks API |
+| `base-files` | Git dirty badges | Commit / push / sync SCM |
+| `base-png` | Image tools | Filters stub; compare/capture hooks |
+| `toy-markdown` | Markdown preview path | — |
+
+### Open gaps (ranked for post-blitz)
+
+| Rank | Gap | Why it matters |
+| --- | --- | --- |
+| 1 | VSIX JS extension host | Largest compat promise vs delivery |
+| 2 | WebView2 download wiring | Windows default browser workaround |
+| 3 | OCR sidecar | Announced stub, no Tesseract pool |
+| 4 | Full timeline / DAW encode | ffmpeg H.264 only; no mix/fades |
+| 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
+| 6 | EPUB/DOCX fidelity | Asset URLs; Mammoth layout |
+| 7 | i18n depth | Chrome only (`en-NZ` / `en-US`) |
+| 8 | Cloud / collab | Share zip only |
+
 ## Gaps (honest)
 
 | Item | Notes |
 | --- | --- |
 | VSIX JS extension host | Metadata + stub execute ([extension-host.md](extension-host.md)); no `main` JS |
 | OCR | UI placeholder; Tesseract sidecar not built ([ocr-sidecar.md](ocr-sidecar.md)) |
-| Spellcheck | Monaco has no dictionary; optional **experimental** browser spellcheck mirror in Advanced settings |
+| Spellcheck | Monaco still has no built-in dictionary; experimental browser spellcheck covers text mirror + DOCX + EPUB notes |
 | Timeline encode | H.264 path when ffmpeg present; no audio mix / cross-fades; preview concat still copy-only |
 | Windows/macOS dynamic mods | Linux user `mods/` today |
 | i18n | Viewer copy not fully translated; only chrome catalogues today |

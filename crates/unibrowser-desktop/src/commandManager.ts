@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { patchPictureInPictureCommand } from "./mediaPip";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { showToast } from "./toast";
 import { t } from "./i18n";
@@ -107,6 +108,7 @@ function renderCommandButtons(
 ) {
   container.innerHTML = "";
   commands.forEach((cmd) => {
+    const patched = patchPictureInPictureCommand(cmd);
     const btn = document.createElement("button");
     btn.type = "button";
     const icon = document.createElement("span");
@@ -115,13 +117,13 @@ function renderCommandButtons(
     btn.appendChild(icon);
     const label = document.createElement("span");
     label.className = "cm-cmd-label";
-    label.textContent = cmd.title;
+    label.textContent = patched.title;
     btn.appendChild(label);
-    btn.title = cmd.reason ?? cmd.command_id;
-    btn.setAttribute("aria-label", cmd.title);
-    btn.disabled = !cmd.enabled;
-    btn.className = cmd.enabled ? "ui-command" : "ui-command disabled";
-    btn.dataset.commandId = cmd.command_id;
+    btn.title = patched.reason ?? patched.command_id;
+    btn.setAttribute("aria-label", patched.title);
+    btn.disabled = !patched.enabled;
+    btn.className = patched.enabled ? "ui-command" : "ui-command disabled";
+    btn.dataset.commandId = patched.command_id;
     if (draggable) {
       btn.draggable = true;
       btn.addEventListener("dragstart", (e) => {

@@ -1,7 +1,10 @@
 use std::path::Path;
 
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
-use unibrowser_mod_api::{Capabilities, CommandMeta, Enablement, Mode, SelectionSnapshot};
+use unibrowser_mod_api::{
+    Capabilities, CommandMeta, Enablement, Mode, SelectionSnapshot,
+    handlers::PICTURE_IN_PICTURE_ID,
+};
 
 pub const BACKEND_ID: &str = "base-audio";
 pub const VIEWER_KIND: &str = "audio";
@@ -93,6 +96,26 @@ pub fn register(registry: &mut CommandRegistry) {
             execute: daw_tool_stub,
         });
     }
+    registry.register_handler(HandlerRegistration {
+        command_id: PICTURE_IN_PICTURE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: pip_enable,
+        execute: pip_exec,
+    });
+}
+
+fn pip_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() == BACKEND_ID {
+        Enablement::Enabled
+    } else {
+        Enablement::Disabled {
+            reason: "Picture-in-picture needs an audio tab".into(),
+        }
+    }
+}
+
+fn pip_exec(_doc: &mut DocumentSession) -> Result<String, String> {
+    Ok("media-pip".into())
 }
 
 pub fn open_file(path: &Path) -> Result<Box<dyn unibrowser_engine::document::DocumentBackend>, String> {

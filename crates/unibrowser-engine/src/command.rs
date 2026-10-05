@@ -166,6 +166,13 @@ impl CommandRegistry {
             default_keybinding: Some("Ctrl+Shift+A"),
             aliases: &["tab search", "find tab", "switch tab"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::PICTURE_IN_PICTURE,
+            title: "Picture-in-picture",
+            icon: "pip",
+            default_keybinding: None,
+            aliases: &["pip", "pop out video", "pop out player"],
+        });
         reg
     }
 

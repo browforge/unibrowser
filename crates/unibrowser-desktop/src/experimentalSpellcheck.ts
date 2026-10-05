@@ -23,6 +23,7 @@ export function setExperimentalSpellcheckEnabled(value: boolean): void {
   if (!value) {
     detachSpellcheckPane();
   }
+  window.dispatchEvent(new CustomEvent("unibrowser-spellcheck-refresh"));
 }
 
 export function attachSpellcheckPane(hostParent: HTMLElement | null): void {

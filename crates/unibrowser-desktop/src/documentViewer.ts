@@ -25,7 +25,10 @@ import {
   openPrintFriendlyDocument,
   openPrintPreviewDocument,
 } from "./printExport";
-import { applySpellcheckToEditable } from "./experimentalSpellcheck";
+import {
+  applySpellcheckToEditable,
+  isExperimentalSpellcheckEnabled,
+} from "./experimentalSpellcheck";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -450,6 +453,7 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   article.className = "docx-view";
   article.style.fontSize = `${readerFontPt}pt`;
   article.innerHTML = result.value;
+  applyDocxSpellcheckExperiment(article);
   appendTrustBanner(root, "remote-html");
 
   root.innerHTML = "";
@@ -2844,10 +2848,41 @@ interface EpubChapterListItem {
   title: string;
 }
 
+function applyDocxSpellcheckExperiment(article: HTMLElement) {
+  if (!isExperimentalSpellcheckEnabled()) {
+    article.contentEditable = "false";
+    applySpellcheckToEditable(article, false);
+    return;
+  }
+  article.contentEditable = "true";
+  article.setAttribute("role", "textbox");
+  article.setAttribute("aria-label", "DOCX preview (experimental edit)");
+  applySpellcheckToEditable(article, true);
+}
+
+function refreshViewerSpellcheckTargets() {
+  document.querySelectorAll<HTMLElement>(".docx-view").forEach((article) => {
+    applyDocxSpellcheckExperiment(article);
+  });
+  document.querySelectorAll<HTMLElement>(".epub-reading-notes").forEach((notes) => {
+    applySpellcheckToEditable(notes, isExperimentalSpellcheckEnabled());
+  });
+}
+
+window.addEventListener("unibrowser-spellcheck-refresh", () => {
+  refreshViewerSpellcheckTargets();
+});
+
 async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
   let chapterIndex = 0;
   let chapters: EpubChapterListItem[] = [];
+
+  const notes = document.createElement("textarea");
+  notes.className = "epub-reading-notes";
+  notes.rows = 3;
+  notes.placeholder = t("epub.readingNotesPlaceholder");
+  applySpellcheckToEditable(notes, isExperimentalSpellcheckEnabled());
 
   const searchRow = document.createElement("div");
   searchRow.className = "epub-search-row";
@@ -2995,6 +3030,7 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   nav.appendChild(next);
   nav.appendChild(printBtn);
   root.appendChild(searchRow);
+  root.appendChild(notes);
   root.appendChild(results);
   root.appendChild(nav);
   root.appendChild(frame);

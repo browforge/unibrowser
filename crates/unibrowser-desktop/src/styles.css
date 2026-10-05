@@ -1561,6 +1561,54 @@ button.proving-disabled,
   font-size: 0.85rem;
 }
 
+body.content-fullscreen #chrome,
+body.content-fullscreen #status-bar,
+body.content-fullscreen #onboarding-banner,
+body.content-fullscreen #onboarding-tour,
+body.content-fullscreen #script-output-panel,
+body.content-fullscreen #notification-drawer,
+body.content-fullscreen #palette,
+body.content-fullscreen #tab-search,
+body.content-fullscreen #document-find-bar,
+body.content-fullscreen .floating-toolbar-host {
+  display: none !important;
+}
+
+body.content-fullscreen #content-host {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body.content-fullscreen::after {
+  content: "F11 or Escape to show chrome";
+  position: fixed;
+  right: 0.5rem;
+  bottom: 0.35rem;
+  z-index: 55;
+  font-size: 0.65rem;
+  color: #666;
+  pointer-events: none;
+}
+
+.epub-reading-notes {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0.35rem 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  border: 1px solid #444;
+  border-radius: 3px;
+  background: #1a1a1f;
+  color: #ddd;
+  resize: vertical;
+}
+
+.docx-view[contenteditable="true"] {
+  outline: 1px dashed #4a6fa5;
+  outline-offset: 2px;
+}
+
 #content-host {
   flex: 1;
   position: relative;

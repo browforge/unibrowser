@@ -11,8 +11,15 @@ import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
 import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
+import {
+  exitContentFullscreen,
+  initContentFullscreen,
+  isContentFullscreen,
+  toggleContentFullscreen,
+} from "./fullscreenContent";
 import { initNotificationCenter } from "./notifications";
-import { invokeWithToast, showToast } from "./toast";
+import { tryMediaPictureInPicture } from "./mediaPip";
+import { invokeWithToast, showErrorToast, showToast } from "./toast";
 import {
   bindStatusBar,
   patchStatusCursor,
@@ -1039,6 +1046,10 @@ async function processCommandResult(msg: string, commandId?: string) {
     toggleTabSearch();
     return;
   }
+  if (msg === "media-pip") {
+    void tryMediaPictureInPicture().catch((err) => showErrorToast(err));
+    return;
+  }
   const toast = await handleShellCommandMessage(msg);
   if (toast && msg !== "Cancelled" && commandId !== "unibrowser.script.demo.hello") {
     showToast(String(msg), "info");
@@ -1530,6 +1541,11 @@ document.addEventListener(
     return;
   }
   if (e.key === "Escape") {
+    if (isContentFullscreen()) {
+      e.preventDefault();
+      exitContentFullscreen();
+      return;
+    }
     if (isKeysOverlayOpen()) {
       e.preventDefault();
       closeKeysOverlay();
@@ -1552,6 +1568,11 @@ document.addEventListener(
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
     e.preventDefault();
     toggleGlobalFind(lastBrowseFolderPath);
+    return;
+  }
+  if (e.key === "F11") {
+    e.preventDefault();
+    toggleContentFullscreen();
     return;
   }
   if (e.ctrlKey && e.shiftKey && (e.key.toLowerCase() === "t" || e.key.toLowerCase() === "a")) {
@@ -1716,6 +1737,9 @@ bindRovingTablist(tabStrip, () => tabButtons);
 
 bindStatusBar(statusBarEl);
 initNotificationCenter(statusBarEl);
+initContentFullscreen(() => {
+  void syncContentBounds();
+});
 initGlobalFind({
   defaultRoot: lastBrowseFolderPath,
   onOpenPath: (path) => {

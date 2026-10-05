@@ -1,7 +1,10 @@
 use std::path::Path;
 
-use unibrowser_engine::CommandRegistry;
-use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
+use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
+use unibrowser_mod_api::{
+    Capabilities, Enablement, Mode, SelectionSnapshot,
+    handlers::PICTURE_IN_PICTURE_ID,
+};
 
 pub const BACKEND_ID: &str = "base-video";
 pub const VIEWER_KIND: &str = "video";
@@ -59,7 +62,28 @@ impl unibrowser_engine::document::DocumentBackend for VideoBackend {
     }
 }
 
-pub fn register(_registry: &mut CommandRegistry) {}
+fn pip_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() == BACKEND_ID {
+        Enablement::Enabled
+    } else {
+        Enablement::Disabled {
+            reason: "Picture-in-picture needs a video tab".into(),
+        }
+    }
+}
+
+fn pip_exec(_doc: &mut DocumentSession) -> Result<String, String> {
+    Ok("media-pip".into())
+}
+
+pub fn register(registry: &mut CommandRegistry) {
+    registry.register_handler(HandlerRegistration {
+        command_id: PICTURE_IN_PICTURE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: pip_enable,
+        execute: pip_exec,
+    });
+}
 
 pub fn open_file(path: &Path) -> Result<Box<dyn unibrowser_engine::document::DocumentBackend>, String> {
     Ok(Box::new(VideoBackend::from_path(path)?))

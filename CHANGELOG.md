@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Content fullscreen:** **F11** hides chrome for focused viewing; **Escape** exits; webview bounds refresh — [fullscreen-content.md](docs/fullscreen-content.md).
+- **Picture-in-picture stub:** palette command on video/audio tabs; uses system PiP when the webview supports it.
+- **Spellcheck expansion:** experimental setting applies to DOCX preview (contenteditable) and EPUB reading notes field.
+- **Wed report skeleton:** metrics, crate list, proving mods table, ranked gaps in [blitz-status.md](docs/blitz-status.md).
 - **Crash logs:** panic hook writes local files under `crash-logs/`; About/Diagnostics open folder; never uploaded.
 - **Updates stub:** Settings **Check for updates** opens releases URL (`UNIBROWSER_RELEASES_URL` override) — [updates.md](docs/updates.md).
 - **Go to tab:** palette **Go to tab** and **Ctrl+Shift+A**; fuzzy finder includes tabs in every window.

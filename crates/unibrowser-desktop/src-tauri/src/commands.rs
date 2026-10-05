@@ -47,8 +47,8 @@ use crate::webview::{
 use unibrowser_mod_api::handlers::{
     DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
-    CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, COMPARE_TEXT_ID, SHOW_KEYBOARD_SHORTCUTS_ID,
-    TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
+    CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, COMPARE_TEXT_ID, PICTURE_IN_PICTURE_ID,
+    SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
 };
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -2524,6 +2524,9 @@ pub fn execute_command(window: tauri::Window,
     }
     if command_id == unibrowser_mod_api::commands::GO_TO_TAB {
         return Ok("tab-search".into());
+    }
+    if command_id == PICTURE_IN_PICTURE_ID {
+        return Ok("media-pip".into());
     }
     if command_id == unibrowser_mod_api::commands::NEW_WINDOW {
         let label = open_new_browser_window(window, app)?;

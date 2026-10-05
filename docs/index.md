@@ -28,6 +28,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [privacy.md](privacy.md) | No telemetry; local data |
 | [safe-mode.md](safe-mode.md) | Disable user mods for troubleshooting |
 | [updates.md](updates.md) | Manual FOSS update check (releases URL) |
+| [fullscreen-content.md](fullscreen-content.md) | F11 chrome-hidden content focus |
 | [session-restore.md](session-restore.md) | Tabs/windows on launch preference |
 | [split-view.md](split-view.md) | Experimental side-by-side tabs |
 | [security.md](security.md) | Trust model and UI signals |
