@@ -1,51 +1,68 @@
 # Mod system overview
 
-Unibrowser uses **Factorio-style native mods** as the source of truth for formats and deep behaviour. **VS Code `.vsix` packages** are a **compatibility import path** for ecosystem reuse — not a replacement ([ADR 0014](adr/0014-vsix-compatibility-layer.md)).
+Unibrowser mods are **compiled loadables** (DLL / `.so` / `.dylib` and/or **WASM**), not JSON programs. A small **manifest** (`info.json`) holds metadata, dependencies, API version, and **entry points** only ([ADR 0002](adr/0002-mod-system-and-sandboxing.md), [ADR 0006](adr/0006-mod-manifest-and-versioning.md)).
+
+**VS Code `.vsix`** is a separate **compat import** lane ([ADR 0014](adr/0014-vsix-compatibility-layer.md)) — do not conflate with the native mod ABI.
 
 ## Native mods (first-class)
 
-- Manifest: `info.json` per [ADR 0006](adr/0006-mod-manifest-and-versioning.md).
-- Register commands, handlers, document backends via `unibrowser-mod-api`.
-- Execution tiers: [ADR 0002](adr/0002-mod-system-and-sandboxing.md) (T0 bundled → T3 sidecar).
-- Shipped in the box for everyday users (`base-text`, `base-web`, `base-files`, …).
+### Package shape (target)
 
 ```
-mods/my-format/
-  info.json
-  src/ … Rust or future WASM …
+my-mod/
+  info.json              # metadata, deps, unibrowser_api, library / wasm_module
+  libub_mod_my_mod.so    # Linux payload (platform-specific names on Win/macOS)
+  # optional: mod.wasm for T2-only distribution
 ```
+
+| Audience | What they get |
+|----------|----------------|
+| **Everyone (grandma)** | Prebuilt **bundled `base-*`** binaries shipped with the app (FOSS, Apache-2.0) |
+| **Power / FOSS** | Optional community mods: compile or install a package; inspect manifest + trust signing |
+| **Vendors (future)** | **Closed-source or paid** T1 native mods: binary + manifest; core stays open |
+
+### Dev skeleton (today)
+
+In-tree `mods/base-*` still use **Rust source + static registration** for fast CI. That is a **T0 ergonomics exception**, not the community mod format.
+
+### Execution tiers
+
+| Tier | Payload | Typical use |
+|------|---------|-------------|
+| T0 | Bundled native | `base-text`, `base-web`, … |
+| T1 | Signed native DLL/so | CAD, commercial codecs, paid mods |
+| T2 | WASM | Default target for **untrusted community** mods |
+| T3 | Sidecar process | GPL/AGPL tools (ffmpeg, LOK) |
+
+### Security
+
+- **Signing** for T1 native (policy TBD).
+- **WASM allowlist** for T2 host imports.
+- **User space:** mods live in a user-visible directory; uninstall deletes manifest + binaries; no required cloud ([ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md)).
 
 ## VSIX compat (optional, power users)
 
-- **Goal:** Reuse existing `.vsix` where contribution points map cleanly (commands, grammars, themes, …).
-- **Limit:** Most extensions depend on `vscode.*` APIs; only a **subset** is honoured or shimmed; see mapping table in [ADR 0014](adr/0014-vsix-compatibility-layer.md).
-- **UX:** No VSIX prompts in the default install path ([ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md)).
-- **Phases:** Metadata-only (V1) → Monaco assets (V2) → minimal extension host (V3) → optional Open VSX (V4).
-
-```
-user-extensions/
-  publisher.extension-1.2.3/   # unpacked from .vsix
-    package.json
-    …
-```
-
-Native `info.json` mods may **depend on** assets produced from a VSIX (e.g. grammar-only pack) via a future `vsix_import` manifest field — design TBD.
+- Import path for VS Code extensions — contributions and/or extension host.
+- May **compile or adapt** into Monaco assets or registry entries; does **not** replace `library` / `wasm_module` native mods.
+- Invisible in default UX; see [ADR 0014](adr/0014-vsix-compatibility-layer.md).
 
 ## Choosing native vs VSIX
 
 | Need | Prefer |
 |------|--------|
-| New file format / timeline / backend | Native `info.json` mod |
-| Syntax highlighting for a language | VSIX (V2) or native grammar bundle |
-| Cross-app command (font size, save) | Native handler + registry |
-| Reuse a popular VS Code command-only extension | VSIX V1+ with stub host |
-| GPL office/CAD kernel | Native T3 sidecar, not VSIX |
+| New file format / timeline / backend | **Native** compiled mod (T0–T2) |
+| Syntax highlighting | VSIX import (V2) or WASM/native grammar mod |
+| Cross-app command with real enablement | Native handler in compiled mod |
+| Reuse VS Code extension (metadata only) | VSIX V1 |
+| GPL office kernel | T3 sidecar |
 
 ## Loading order
 
 1. Virtual `base` mod  
-2. Topological sort of `info.json` dependencies  
-3. (Future) VSIX contributions merged into registry **after** native handlers, with explicit precedence rules for keybindings
+2. Topological sort by manifest dependencies  
+3. Load **payload** per tier (`dlopen` / WASM instantiate / sidecar spawn)  
+4. Call exported **register** entry (ABI TBD)  
+5. (Future) VSIX contributions merged after native registration where configured  
 
 ## See also
 

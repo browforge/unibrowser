@@ -10,7 +10,7 @@ Bear’s direction: **where possible, reuse preexisting mods**, including **VS C
 Constraints:
 
 - Unibrowser is **not** a VS Code fork. Most extensions call **`vscode.*` APIs** that assume the VS Code workbench, extension host, debug adapter protocol, and proprietary UI surfaces.
-- **Factorio-native mods** (`info.json`, Rust handlers, document backends) remain the **first-class** model for formats, enablement, and deep integration ([ADR 0006](0006-mod-manifest-and-versioning.md)).
+- **Native mods** (manifest + **compiled** DLL/WASM payload) remain **first-class** for formats, enablement, and deep integration ([ADR 0002](0002-mod-system-and-sandboxing.md), [ADR 0006](0006-mod-manifest-and-versioning.md)). `info.json` is metadata only — not the mod body.
 - **Dual audience** ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md)): grandma uses bundled `base-*` mods; **`.vsix` is invisible** in the default UI (advanced / power-user install only).
 
 ## Decision
@@ -19,10 +19,10 @@ Constraints:
 
 | Lane | Format | Role |
 |------|--------|------|
-| **Native** | `info.json` + Rust (T0–T3 per [ADR 0002](0002-mod-system-and-sandboxing.md)) | Formats, backends, commands with real enablement, CAD/media, ship with app |
-| **VSIX compat** | `.vsix` (zip of `package.json` + assets) | **Import/adapt** contributions into host surfaces; optional thin JS host later |
+| **Native** | Manifest + **compiled** mod (T0–T3 per [ADR 0002](0002-mod-system-and-sandboxing.md)) | Formats, backends, commands with real enablement, CAD/media, ship with app |
+| **VSIX compat** | `.vsix` (zip of `package.json` + assets) | **Import/adapt** contributions; optional extension host — **not** the native mod ABI |
 
-VSIX does **not** replace `info.json`. A VSIX may be **translated** into native command registrations and Monaco assets; it does not get direct engine internals.
+VSIX does **not** replace manifest + binary mods. A VSIX may be **translated** into registry entries, Monaco assets, or cached data; deep behaviour still belongs in **compiled** native/WASM mods or T3 sidecars.
 
 ### Compatibility layer goal
 

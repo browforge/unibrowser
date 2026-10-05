@@ -10,6 +10,8 @@ use unibrowser_mod_api::{MOD_API_VERSION, ModManifest};
 
 use crate::deps::{DepError, resolve_load_order};
 
+/// T0 dev: static registration from in-tree `base-*` sources.
+/// Product/community mods: manifest + compiled `cdylib`/WASM entry (see docs/adr/0002).
 pub type ModRegisterFn = fn(&mut CommandRegistry);
 
 #[derive(Debug, Error)]

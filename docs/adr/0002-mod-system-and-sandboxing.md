@@ -1,49 +1,76 @@
 # ADR 0002: Mod system and sandboxing
 
-- **Status:** Accepted (tiered model)
+- **Status:** Accepted (tiered model; amended 2026-10-05 — compiled mod payload)
 - **Date:** 2026-10-05
 
 ## Context
 
-Factorio-style mods must load with dependencies and API version checks. Community mods must not compromise the host. Alternatives:
+Factorio-style mods must load with dependencies and API version checks. Community mods must not compromise the host. **JSON manifest alone is not a mod format** — it cannot carry performant format logic, protect IP, or express a stable ABI. Mods are **compiled loadables** (native library and/or WASM) plus a **small manifest** for metadata only.
+
+Alternatives for **payload** execution:
 
 | Model | Pros | Cons |
 | --- | --- | --- |
-| **In-process native dylib** | Full API; best performance; simple for `base` mods | No sandbox; trust required |
-| **WASM (wasmtime + WIT / Extism)** | Sandboxed; portable | Component Model still maturing; FFI overhead; hard for GPU/video |
+| **In-process native dylib** (`cdylib` / DLL / `.so`) | Full API; best performance; closed-source/paid mods possible | No sandbox; trust + signing required |
+| **WASM (wasmtime + WIT / Extism)** | Sandboxed; portable; safer default for community | FFI overhead; GPU/video limits |
 | **Out-of-process sidecar** | Strong isolation for GPL/AGPL tools | Latency; IPC complexity |
-| **JS/TS in WebView (Tauri)** | Matches editor ecosystem | Sandboxed by web model; not for native CAD kernels |
+| **JS/TS in WebView (Tauri)** | VSIX / extension host path | Not the native mod ABI; separate lane ([ADR 0014](0014-vsix-compatibility-layer.md)) |
 
 ## Decision
 
-**Tiered mod execution:**
+### Manifest vs payload
 
-| Tier | Who | Runtime | Trust |
+| Part | Contents | Not allowed |
+|------|-----------|-------------|
+| **Manifest** (`info.json` or successor) | `name`, version, title, licence, `unibrowser_api`, dependencies, **entry point** (`library` / `wasm_module`), capabilities, signing metadata | Executable logic, scripts as the mod body |
+| **Payload** | **Compiled** artifact: Windows `.dll`, Linux `.so`, macOS `.dylib`, and/or **`.wasm`** (tier-dependent) | Shipping only JSON and expecting the host to “interpret” behaviour |
+
+**Skeleton exception (T0 dev):** bundled `base-*` mods in the repo may **statically register** via a built-in table for fast iteration. That is **not** the long-term community format — release and third-party mods ship **manifest + binary**.
+
+### Tiered mod execution
+
+| Tier | Who | Payload | Trust |
 | --- | --- | --- | --- |
-| **T0 Bundled base** | Ships with app | In-process native (Rust `cdylib` or static registration) | Same as engine |
-| **T1 Community native** | Power users, CAD vendors | Signed native mod + capability manifest | User opt-in; limited host APIs |
-| **T2 WASM** | Untrusted / marketplace | **wasmtime** with WASI preview + host WIT imports | Default for third-party in Phase 4 |
-| **T3 Sidecar** | GPL/AGPL (Inkscape CLI, LOK, ffmpeg) | Separate process, JSON-RPC | Licence isolation |
+| **T0 Bundled base** | Ships with app | In-process native (static link or bundled `cdylib`) | Same as engine; **Apache-2.0 / FOSS** |
+| **T1 Community native** | Vendors, paid/closed-source mods | Signed **native** library + capability manifest | Explicit user opt-in; publisher signing; limited host API surface |
+| **T2 WASM** | Untrusted / marketplace default | **`.wasm`** + WIT imports | Sandboxed; preferred default for **community** mods when performance allows |
+| **T3 Sidecar** | GPL/AGPL (Inkscape CLI, LOK, ffmpeg) | Separate process, JSON-RPC | Licence isolation; not a mod DLL |
 
-Skeleton implements **T0** with manifest loading and optional `cdylib` entry symbol; WASM and sidecars are documented only.
+### Proprietary and paid mods (future)
+
+- **Core engine** and **bundled `base-*`** remain **FOSS** (Apache-2.0) and auditable.
+- **T1 native** mods may be **closed-source or paid**; the host loads a binary + manifest, not source. Licence and publisher shown at install; user opts in.
+- Paid distribution (store, keys) is **out of scope** for the engine; the architecture only **allows** binary mods and signing, not DRM in user files.
+
+### Security and user space ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md))
+
+- **Signing / trust:** T1 requires signature verification (policy TBD); T2 WASM limits host imports.
+- **No interference:** mods install to a user-controlled mods directory; uninstall removes manifest + binaries; no hidden data exfiltration channels in the base design.
+- **Fail closed:** incompatible `unibrowser_api` major → refuse load with clear error.
+
+Skeleton implements **T0** manifest discovery + **optional** `library` dynamic load + dev static registration; WASM and sidecars documented only.
 
 ## API versioning
 
-Mods declare `api_version` in `info.json`. Host exposes `UNIBROWSER_MOD_API_VERSION` (semver). Loader rejects incompatible mods with a clear error (major mismatch; minor backward compatible per semver rules).
+Mods declare `unibrowser_api` in the manifest. Host exposes `UNIBROWSER_MOD_API_VERSION` (semver). Loader rejects incompatible mods (major mismatch; minor backward compatible per semver). **ABI stability** is defined at the `cdylib` export boundary (C ABI or stable Rust `extern "C"` shim) — see open questions.
 
 ## VSIX compatibility (separate lane)
 
-Native **`info.json` mods remain first-class** for formats, enablement, and trust tiers above.
+**VSIX is not a native mod.** It is a **compat import** ([ADR 0014](0014-vsix-compatibility-layer.md)): unpack `package.json`, map contributions, optionally run JS in an **extension host**. VSIX may **feed** Monaco assets or command metadata; it may **not** be conflated with the **native mod ABI** (manifest + DLL/WASM). Adapted assets may be cached beside user mods; the VSIX lane does not replace `library` / `wasm_module` entry points.
 
-**VS Code `.vsix` packages** are an optional **import/compat path**: unpack `package.json` contributions and map them to Unibrowser command registry, keybindings, and Monaco (phased). They do **not** replace manifests or T0–T3 execution rules; JS extension code requires a future sandboxed **extension host** with a **subset** of `vscode.*` APIs.
-
-Grandma-path installs use bundled native mods only; VSIX is power-user opt-in ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md)).
-
-Full mapping, phases, and limits: [ADR 0014](0014-vsix-compatibility-layer.md). Overview: [mod-system.md](../mod-system.md).
+Grandma-path: bundled **compiled** `base-*` only; no VSIX, no third-party DLL install prompts.
 
 ## Consequences
 
-- Base mods in repo use the same manifest format as future community mods.
-- Security reviews focus on T1 signing and T2 WASM host imports.
-- Heavy AGPL editors never link into `unibrowser-engine`.
-- VSIX reuse is pursued where contribution points align; unsupported VS Code APIs fail visibly, not silently.
+- [ADR 0006](0006-mod-manifest-and-versioning.md) describes metadata; community mods must ship a **binary** (or WASM) entry.
+- Security reviews focus on T1 signing, T2 WIT allowlists, and sidecar IPC.
+- Heavy AGPL editors stay in **T3**, never linked into `unibrowser-engine`.
+- Documentation and tooling target **SDK → compile → `.ubmod` package** (manifest + artefact), not “drop a JSON mod”.
+
+## Open questions
+
+1. **ABI stability** — C vtable vs `abi_stable` vs versioned `extern "C"` registration function only?
+2. **Default for community** — T2 WASM first, T1 native only after signing, or both from day one?
+3. **`cdylib` per OS** — one package with all three binaries vs platform-specific downloads?
+4. **Rust mods** — dynamic `cdylib` from Rust SDK only, or stable C ABI for other languages?
+5. **Paid mods** — signature + licence field only, or integration with a store later?

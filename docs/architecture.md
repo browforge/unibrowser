@@ -141,7 +141,7 @@ flowchart LR
 | **Backend** | Opens a document type; owns **native** model; maps selection to `SelectionSnapshot`. |
 | **`CommandContext`** | Text / Office / Code / Image / Audio / Browse / Web — drives auto manager tab. |
 | **Preview vs export** | Mod defines native state; conversion edges at preview/export ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)). |
-| **Mod manifest** | `info.json`: id, version, dependencies, `api_version`, contributions. |
+| **Mod package** | `info.json` metadata + **compiled** payload (DLL/WASM); see [mod-system.md](mod-system.md). |
 
 ## Crate layout
 

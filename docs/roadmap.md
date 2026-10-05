@@ -11,7 +11,7 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 | Deliverable | Status |
 | --- | --- |
 | Rust engine: command registry, enablement, modes, toolbar | Skeleton |
-| Mod loader + `info.json` + API version check | Skeleton |
+| Mod loader + manifest + API version check; **compiled payload** (T0 static dev; `library` field) | Skeleton |
 | Bundled `base-text`, `base-png`, `toy-markdown` mods | Skeleton |
 | egui demo window | Skeleton |
 | Architecture docs + ADRs | Done |
@@ -70,9 +70,11 @@ Implement [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) for real:
 
 ## Phase 5 — Ecosystem and hardening
 
-- Signed mods; WASM tier; studio presets (Affinity-style shared layouts).
+- **Compiled mod SDK** — `cdylib` + C ABI (or WIT) registration; `.ubmod` package (manifest + binary).
+- **T2 WASM** default for untrusted community; **T1 signed native** for vendors / closed-source / paid mods ([ADR 0002](adr/0002-mod-system-and-sandboxing.md)).
+- Signed mods; studio presets (Affinity-style shared layouts).
 - Crash reporting; sandbox audit; REUSE/SPDX CI.
-- **VSIX compat** (phased, [ADR 0014](adr/0014-vsix-compatibility-layer.md)): optional Open VSX (power UI, opt-in).
+- **VSIX compat** (phased, [ADR 0014](adr/0014-vsix-compatibility-layer.md)): optional Open VSX (power UI, opt-in) — separate from native ABI.
 
 ## VSIX compatibility (parallel track)
 
