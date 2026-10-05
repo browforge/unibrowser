@@ -12,15 +12,18 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 |------|---------------------------|-------------|--------|-------------------------------------|
 | Text | Editor bridge, save/sync | `base-text` | `.txt` | Monaco (**done** in shell) |
 | Browser | Tabs, `BrowserLocation`, WebView | `base-web`, `base-files` | HTML / HTTPS / dirs | Tauri WRY; optional CEF |
-| Image | Raster surface, capabilities | `base-png` | PNG | libvips / image crate; canvas in webview |
+| Raster | Bitmap surface, capabilities | `base-png` | PNG | libvips / image crate; canvas in webview |
+| Vector | SVG scene graph, path tools | `base-svg` | SVG | SVG.js / svgo; webview DOM |
 | Document | Office context, structured doc | `base-docx` | DOCX | mammoth, docx-preview; LOK T3 later |
 | Code | LSP hooks, same registry | VSIX + `base-text` / grammars | source files | Monaco + Open VSX grammars |
 | Scripting | Sandbox / extension host | `base-js` | JS | QuickJS/Rhai/Extism (policy TBD) |
-| Video | Timeline + encode contract | *TBD* (`base-mp4`?) | *TBD* | ffmpeg LGPL sidecar; WebCodecs |
-| Audio | Preview vs export clips | *TBD* (`base-wav` / `base-midi`?) | *TBD* | ffmpeg; MIDI-native per ADR 0011 |
+| Video | Timeline + encode contract | *TBD* (`base-mp4`?) | container *TBD* | **ffmpeg** LGPL **T3** (decided backbone) |
+| Audio | Preview vs export clips | *TBD* (`base-wav` / `base-midi`?) | WAV / MIDI candidates | **ffmpeg** **T3**; MIDI-native per ADR 0011 |
 | CAD | 2D/3D view host | `base-dxf` | DXF | dxf-parser + three.js; GPL helpers T3 |
 
-Satellite mods (reuse engines above): `base-markdown`, `base-svg`, `base-pdf` (pdf.js), EPUB — not separate engine lanes.
+**Multi-engine mods:** `base-pdf` (vector + raster + document + pdf.js); video/timeline (video + audio + raster; document/vector via import). See [architecture.md](architecture.md).
+
+Satellite mods: `base-markdown` (text); EPUB (document + raster); not separate engine lanes.
 
 ## Phase 0 — Prove the abstraction (this repository)
 
@@ -61,7 +64,7 @@ Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)). Each ro
 | **Text** | Text engine stable; `base-text` + Monaco; optional `base-markdown` |
 | **Office** | Document engine v1; **`base-docx`** view/edit (mammoth / docx-preview); optional LOK **T3** |
 | **Code** | Code context on text engine; LSP hooks; VSIX grammars (V2 track) |
-| **Image** | Image engine; **`base-png`** edit path; `base-svg`; GIMP-style floating tool slots |
+| **Raster / Vector** | **Raster** engine + **`base-png`**; **Vector** engine + **`base-svg`**; GIMP-style floating tool slots |
 | **Scripting** | Scripting engine skeleton; **`base-js`** stub (sandbox policy) |
 
 **Toolbar UX (GIMP + SOLIDWORKS bar):**
@@ -78,11 +81,10 @@ Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)). Each ro
 
 Implement [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) for real:
 
-- **Video engine** + proving mod (**format TBD**, candidate container: MP4/WebM) — timeline page inside stable chrome.
-- **Audio engine** + proving mod (**format TBD**, candidates: WAV + MIDI).
-- PDF clips vector-native; proxy raster for scrub; rasterise at encode (`base-pdf` + pdf.js).
-- MIDI clips native in project; synth preview; PCM bake on export.
-- **ffmpeg** (LGPL) **T3 sidecar** for probe/decode/encode — not linked into Apache core.
+- **Video** + **Audio** engines on **ffmpeg** (LGPL **T3 sidecar**); proving mods/containers still TBD (e.g. MP4/WebM, WAV/MIDI).
+- Timeline page inside stable chrome; video mod composes **video + audio + raster** engines ([architecture.md](architecture.md)).
+- **`base-pdf`** multi-engine: vector-native clips, raster proxies for scrub, document text; pdf.js view layer.
+- MIDI clips native in project; synth preview; PCM bake on export via ffmpeg where needed.
 
 ## Phase 4 — Document and CAD depth
 
@@ -127,11 +129,12 @@ Aligned to **engine lanes** above and Command Manager tabs:
 
 1. `base-text` — **Text** engine / `.txt`
 2. `base-web` + `base-files` — **Browser** engine
-3. `base-png` — **Image** engine / PNG
-4. `base-markdown` — text engine satellite
-5. `base-pdf` — pdf.js view; timeline-native later
-6. `base-docx` — **Document** engine / DOCX
-7. `base-dxf` — **CAD** engine / DXF
-8. `base-js` — **Scripting** engine (stub)
-9. `base-audio` / `base-midi` or container pick — **Audio** engine (TBD)
-10. video proving mod — **Video** engine (TBD)
+3. `base-png` — **Raster** engine / PNG
+4. `base-svg` — **Vector** engine / SVG
+5. `base-markdown` — text satellite
+6. `base-pdf` — **multi-engine** (vector + raster + document); timeline-native later
+7. `base-docx` — **Document** engine / DOCX
+8. `base-dxf` — **CAD** engine / DXF
+9. `base-js` — **Scripting** engine (stub)
+10. audio proving mod — **Audio** engine (ffmpeg-backed; format TBD)
+11. video proving mod — **Video** engine (ffmpeg-backed; container TBD)

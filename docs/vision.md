@@ -95,22 +95,27 @@ Convert at **preview** or **export** boundaries, not on “Open file”. Details
 
 ### Engines in the product, one proving mod per lane
 
-The **product** ships **core engines** (text, document, image, scripting, browser, video, audio, CAD). Each lane is validated by **one bundled `base-*` mod** on a real format — for example **Text** + `base-text` / `.txt` with **Monaco** already proving the pattern.
+The **product** ships **core engines** (text, document, **raster**, **vector**, scripting, browser, video, audio, CAD). Each lane is validated by **one bundled `base-*` mod** on a real format — for example **Text** + `base-text` / `.txt` with **Monaco** already proving the pattern.
 
-**Do not rewrite what FOSS already does well:** embed or bridge trusted libraries (Monaco, pdf.js, ffmpeg as sidecar, dxf-parser + three.js) inside the engine/mod boundary that matches [ADR 0007](adr/0007-licensing.md). Video and audio **proving formats are still TBD**; CAD targets **DXF** via `base-dxf`.
+**Media:** **Video** and **Audio** engines use **[ffmpeg](https://ffmpeg.org/)** as the default stack (LGPL **T3 sidecar** per [ADR 0007](adr/0007-licensing.md)); proving container/format names can land later.
+
+**Images are two engines:** **Raster** (`base-png` / PNG) and **Vector** (`base-svg` / SVG).
+
+**Mods can use multiple engines.** PDF needs vector + raster + document; video needs video + audio + raster directly, and may pull document or vector in via import/render. See [architecture.md](architecture.md).
 
 | Engine | Proving mod |
 |--------|-------------|
 | Text | `base-text` / `.txt` |
 | Document | `base-docx` / DOCX |
-| Image | `base-png` / PNG |
+| Raster | `base-png` / PNG |
+| Vector | `base-svg` / SVG |
 | Scripting | `base-js` / JS (planned) |
 | Browser | `base-web` / HTML & HTTPS |
-| Video | proving mod TBD |
-| Audio | proving mod TBD |
+| Video | proving mod TBD (ffmpeg-backed) |
+| Audio | proving mod TBD (ffmpeg-backed) |
 | CAD | `base-dxf` / DXF |
 
-Detail and FOSS candidates: [architecture.md](architecture.md).
+Detail: [architecture.md](architecture.md).
 
 ### VS Code-style core
 

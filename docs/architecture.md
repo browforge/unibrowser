@@ -6,27 +6,29 @@ Unibrowser is a **unified browser shell** (files + web in one tab strip; see [AD
 
 ## Engines in the product, formats in mods
 
-Bear’s direction: the **shipped product** owns **engine fundamentals** (session lifecycle, command wiring, surface hosting, conversion contracts). Each engine lane is **proven end-to-end** by one bundled **`base-*` mod** that opens a concrete format. Community mods extend the same APIs; they do not replace the host engine.
+Bear’s direction: the **shipped product** owns **engine fundamentals** (session lifecycle, command wiring, surface hosting, conversion contracts). Each **engine lane** is **proven end-to-end** by one bundled **`base-*` mod** on a concrete format. **Format mods may compose multiple engines** (see below). Community mods extend the same APIs; they do not replace the host engine.
 
-**Principle:** **import trusted FOSS** into engines and mods where possible — embed or bridge (Monaco for text, pdf.js for PDF view, ffmpeg as LGPL sidecar for media). **Do not rewrite** mature stacks unless the API gap is smaller than the maintenance cost ([ADR 0007](adr/0007-licensing.md): keep AGPL/GPL helpers in **T3 sidecars** or optional mods, not linked into `unibrowser-engine`).
+**Principle:** **import trusted FOSS** into engines and mods where possible — embed or bridge (Monaco for text, pdf.js for PDF view, **ffmpeg** for video/audio). **Do not rewrite** mature stacks unless the API gap is smaller than the maintenance cost ([ADR 0007](adr/0007-licensing.md): **ffmpeg** and other copyleft media stacks use **LGPL T3 sidecars** (or equivalent isolation), not linkage into `unibrowser-engine`).
 
-| Engine lane | Host engine owns (fundamentals) | Proving `base-*` mod | Proving format | Candidate FOSS (adopt after licence check) |
+| Engine lane | Host engine owns (fundamentals) | Proving `base-*` mod | Proving format | FOSS backbone (verify licence at adoption) |
 |-------------|--------------------------------|----------------------|----------------|---------------------------------------------|
-| **Text** | Buffer sync, save/dirty, text `CommandContext`, editor host bridge | `base-text` | `.txt` (plain text) | **[Monaco](https://github.com/microsoft/monaco-editor)** (MIT) — **in use** in Tauri shell |
-| **Document** | Office context, structured doc session, export hooks | `base-docx` (planned) | DOCX | **mammoth**, **docx-preview** (permissive JS); full fidelity → **LOK** / Collabora as **T3** (MPL/AGPL) |
-| **Image** | Raster surface, selection → capabilities, encode path | `base-png` (skeleton) | PNG | **libvips** / **image** (Rust); canvas/WebGL in webview; **Squoosh** codecs (Apache WASM) for encode experiments |
-| **Scripting** | Sandboxed runtimes, extension-host hooks, mod `activate` | `base-js` (planned) | JS / user scripts | **QuickJS** / **Rhai** (in-process, policy TBD); **Extism** WASM PDK for untrusted scripts; VSIX JS → extension host ([ADR 0014](adr/0014-vsix-compatibility-layer.md)) |
-| **Browser** | `BrowserLocation`, tabs, WebView lifecycle, navigation commands | `base-web` / `base-html` | HTML / `https://` | **OS WebView** (Tauri WRY); optional **CEF** branch for parity ([ADR 0001](adr/0001-shell-and-rendering.md)) |
-| **Video** | Timeline/decode contract, proxies, encode at export ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)) | *proving mod TBD* (e.g. `base-mp4` / WebM) | *TBD* | **ffmpeg** (LGPL build, **T3 sidecar**); **WebCodecs** where available; **Etro** (MIT) for light web composition |
-| **Audio** | Clip model, preview vs bake, MIDI-native project data | *proving mod TBD* (e.g. `base-wav`, `base-midi`) | *TBD* | **ffmpeg** probe/decode sidecar; **rodio** / cpal for preview; MIDI → synth preview until PCM export |
-| **CAD** | 2D/3D scene host, units, view tools | `base-dxf` (planned) | DXF | **dxf-parser** + **three.js** (view MVP); **libdxfrw** / LibreCAD path as **GPL T3** for heavy R/W |
+| **Text** | Buffer sync, save/dirty, text `CommandContext`, editor host bridge | `base-text` | `.txt` (plain text) | **[Monaco](https://github.com/microsoft/monaco-editor)** (MIT) — **in use** |
+| **Document** | Office context, structured doc session, export hooks | `base-docx` (planned) | DOCX | **mammoth**, **docx-preview**; full fidelity → **LOK** **T3** (MPL/AGPL) |
+| **Raster** | Bitmap surface, pixels, selection → capabilities, raster encode | `base-png` (skeleton) | PNG | **libvips** / **image** (Rust); canvas/WebGL; **Squoosh** WASM codecs |
+| **Vector** | Paths, transforms, SVG scene graph, vector export | `base-svg` (planned) | SVG | **SVG.js** / DOM in webview; **svgo**; optional Fabric/Konva for edit |
+| **Scripting** | Sandboxed runtimes, extension-host hooks, mod `activate` | `base-js` (planned) | JS / user scripts | **QuickJS** / **Rhai**; **Extism** WASM; VSIX JS → extension host ([ADR 0014](adr/0014-vsix-compatibility-layer.md)) |
+| **Browser** | `BrowserLocation`, tabs, WebView lifecycle, navigation commands | `base-web` / `base-html` | HTML / `https://` | **Tauri WRY**; optional **CEF** ([ADR 0001](adr/0001-shell-and-rendering.md)) |
+| **Video** | Timeline/decode contract, proxies, encode at export ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)) | *proving mod TBD* (e.g. `base-mp4`) | container *TBD* | **[ffmpeg](https://ffmpeg.org/)** (LGPL build, **T3 sidecar**) — **default media stack**; WebCodecs as optional fast path |
+| **Audio** | Clip model, preview vs bake, MIDI-native project data | *proving mod TBD* (e.g. `base-wav`, `base-midi`) | WAV / MIDI *candidates* | **ffmpeg** (probe/decode/encode, **T3**); cpal/rodio for low-latency preview where needed |
+| **CAD** | 2D/3D scene host, units, view tools | `base-dxf` (planned) | DXF | **dxf-parser** + **three.js**; **libdxfrw** **GPL T3** for heavy R/W |
 
 ```mermaid
 flowchart LR
-  subgraph HostEngines["Shipped engines (Rust + web hosts)"]
+  subgraph HostEngines["Shipped engines"]
     E1[Text]
     E2[Document]
-    E3[Image]
+    E3[Raster]
+    E3v[Vector]
     E4[Scripting]
     E5[Browser]
     E6[Video]
@@ -34,10 +36,11 @@ flowchart LR
     E8[CAD]
   end
 
-  subgraph ProvingMods["Bundled proving mods"]
+  subgraph ProvingMods["One proving mod per lane"]
     M1[base-text]
     M2[base-docx]
     M3[base-png]
+    M3v[base-svg]
     M4[base-js]
     M5[base-web]
     M6[base-video TBD]
@@ -48,6 +51,7 @@ flowchart LR
   E1 --> M1
   E2 --> M2
   E3 --> M3
+  E3v --> M3v
   E4 --> M4
   E5 --> M5
   E6 --> M6
@@ -55,9 +59,41 @@ flowchart LR
   E8 --> M8
 ```
 
-**Code layout (today):** engine logic stays in `unibrowser-engine`, `unibrowser-desktop`, and shared bridges; **no separate engine crate per lane yet**. Optional future splits (e.g. `unibrowser-engine-media` as a workspace crate) only when a lane’s dependency graph forces it.
+### Multi-engine mods
 
-**Related formats without a new engine:** PDF view (`base-pdf` + **pdf.js**), Markdown (`base-markdown`), SVG (`base-svg`) reuse **Text**, **Image**, or **Browser** hosts — see [roadmap.md](roadmap.md).
+A **single format mod** is one tab backend but may **bind several host engines**. The mod owns format-specific parsing and project state; engines expose **stable services** (surfaces, buffers, timelines, structured text). Composition is explicit in manifest metadata (future `engines` / `uses` field) and in code — no monolithic “god backend”.
+
+| Example mod | Engines used **directly** | Engines used **indirectly** (import / render / conversion) |
+|-------------|---------------------------|------------------------------------------------------------|
+| **`base-pdf`** | **Vector** (paths, text objects), **Raster** (page tiles, scrub proxies), **Document** (text runs, office-like selection) | Text (searchable extracted text), Video (timeline clip export) |
+| **Video / timeline mod** | **Video**, **Audio**, **Raster** (frame buffers, thumbnails, scope/waveform as images) | Document (titles/captions), Vector (motion graphics import), Browser (live source preview) |
+
+```mermaid
+flowchart TB
+  subgraph ModPDF["base-pdf mod"]
+    PDF[PDF native model]
+  end
+
+  subgraph ModVid["Video mod"]
+    TL[Timeline project]
+  end
+
+  PDF --> VE[Vector engine]
+  PDF --> RE[Raster engine]
+  PDF --> DE[Document engine]
+
+  TL --> VIE[Video engine]
+  TL --> AE[Audio engine]
+  TL --> RE2[Raster engine]
+  TL -.->|import/render| DE2[Document engine]
+  TL -.->|import/render| VE2[Vector engine]
+```
+
+**Command Manager context** may still show one primary tab (e.g. Image vs Office) while multiple engines participate; enablement reflects which engine owns the active selection ([ADR 0003](adr/0003-command-handler-enablement.md)).
+
+**Code layout (today):** engine logic stays in `unibrowser-engine`, `unibrowser-desktop`, and shared bridges; **no separate engine crate per lane yet**. Optional future splits (e.g. `unibrowser-engine-media` wrapping ffmpeg RPC) when dependency graphs force it.
+
+**Satellite mods (thin wrappers):** `base-markdown` (mostly **Text**); `base-pdf` is a **multi-engine** mod, not a single-engine lane — see [roadmap.md](roadmap.md).
 
 ## Layer diagram
 
