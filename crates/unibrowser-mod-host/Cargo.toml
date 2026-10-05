@@ -14,6 +14,10 @@ toy-markdown = { path = "../../mods/toy-markdown" }
 base-files = { path = "../../mods/base-files" }
 base-web = { path = "../../mods/base-web" }
 base-svg = { path = "../../mods/base-svg" }
+base-docx = { path = "../../mods/base-docx" }
+base-pdf = { path = "../../mods/base-pdf" }
+base-dxf = { path = "../../mods/base-dxf" }
+base-js = { path = "../../mods/base-js" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 semver = { workspace = true }

@@ -1,0 +1,10 @@
+[package]
+name = "unibrowser-media"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "LGPL ffmpeg/ffprobe T3 sidecar helpers (ADR 0007)"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }

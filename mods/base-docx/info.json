@@ -1,0 +1,9 @@
+{
+  "name": "base-docx",
+  "version": "0.1.0",
+  "title": "Word DOCX",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "DOCX view via mammoth.js in the document surface"
+}

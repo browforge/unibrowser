@@ -1,0 +1,9 @@
+{
+  "name": "base-pdf",
+  "version": "0.1.0",
+  "title": "PDF",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "PDF view via pdf.js; multi-engine vector+raster+document (ADR 0011)"
+}

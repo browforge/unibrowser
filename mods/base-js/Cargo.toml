@@ -1,0 +1,10 @@
+[package]
+name = "base-js"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+unibrowser-mod-api = { path = "../../crates/unibrowser-mod-api" }
+unibrowser-engine = { path = "../../crates/unibrowser-engine" }
+rhai = "1.22"

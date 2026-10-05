@@ -1,0 +1,9 @@
+{
+  "name": "base-js",
+  "version": "0.1.0",
+  "title": "Scripting (Rhai)",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "Script proving mod — Rhai host per ADR 0017"
+}

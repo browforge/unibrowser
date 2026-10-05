@@ -144,13 +144,17 @@ mod tests {
             ("base-text", base_text::register as ModRegisterFn),
             ("base-png", base_png::register as ModRegisterFn),
             ("base-svg", base_svg::register as ModRegisterFn),
+            ("base-docx", base_docx::register as ModRegisterFn),
+            ("base-pdf", base_pdf::register as ModRegisterFn),
+            ("base-dxf", base_dxf::register as ModRegisterFn),
+            ("base-js", base_js::register as ModRegisterFn),
             ("toy-markdown", toy_markdown::register as ModRegisterFn),
         ]
         .into_iter()
         .collect();
         let host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
             .expect("load");
-        assert_eq!(host.load_order.len(), 6);
+        assert_eq!(host.load_order.len(), 10);
         assert!(registry.command_meta("unibrowser.font.size.increase").is_some());
     }
 }

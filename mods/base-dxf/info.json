@@ -1,0 +1,9 @@
+{
+  "name": "base-dxf",
+  "version": "0.1.0",
+  "title": "DXF CAD",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "DXF view via dxf-parser + three.js"
+}
