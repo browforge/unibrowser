@@ -41,17 +41,9 @@ impl Default for ToolbarConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ToolbarController {
     pub config: ToolbarConfig,
-}
-
-impl Default for ToolbarController {
-    fn default() -> Self {
-        Self {
-            config: ToolbarConfig::default(),
-        }
-    }
 }
 
 impl ToolbarController {

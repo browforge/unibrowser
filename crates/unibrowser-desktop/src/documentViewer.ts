@@ -2,6 +2,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { loadPdfJs, loadThree } from "./lazyModules";
 import { appendTrustBanner } from "./trustBanner";
 import { mountClickToPlay } from "./mediaPlayGate";
+import { bindMediaViewerKeys } from "./mediaKeyboard";
 import { renderDownloadsManager, type DownloadHistoryEntryDto } from "./downloadsPage";
 import { reportViewerZoom } from "./viewerZoom";
 import { bindPreviewLinks } from "./previewLinks";
@@ -903,6 +904,7 @@ async function renderVideo(path: string, root: HTMLElement, note?: string) {
   video.controls = true;
   video.src = convertFileSrc(path);
   mountClickToPlay(root, video, "Click to play video");
+  bindMediaViewerKeys(video);
 
   const scrubWrap = document.createElement("div");
   scrubWrap.className = "video-scrub";
@@ -1025,6 +1027,7 @@ async function renderAudio(path: string, root: HTMLElement, note?: string) {
   const audioWrap = document.createElement("div");
   root.appendChild(audioWrap);
   mountClickToPlay(audioWrap, audio, "Click to play audio");
+  bindMediaViewerKeys(audio);
   const canvas = document.createElement("canvas");
   canvas.className = "audio-waveform";
   canvas.width = 640;

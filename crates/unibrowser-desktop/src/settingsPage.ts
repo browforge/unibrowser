@@ -60,6 +60,7 @@ interface PrefsDto {
   chrome_focus_mode: boolean;
   larger_hit_targets: boolean;
   web_proxy: { mode: string; host: string; port: number };
+  warn_insecure_http: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -325,6 +326,32 @@ export async function renderSettings(root: HTMLElement) {
   targetsRow.appendChild(targetsLabel);
   a11ySection.appendChild(targetsRow);
   a11ySection.appendChild(targetsNote);
+  const insecureRow = document.createElement("div");
+  insecureRow.className = "settings-row";
+  const insecureCb = document.createElement("input");
+  insecureCb.type = "checkbox";
+  insecureCb.id = "settings-warn-insecure-http";
+  insecureCb.checked = prefs.warn_insecure_http ?? true;
+  insecureCb.onchange = async () => {
+    try {
+      const next = await invoke<PrefsDto>("set_warn_insecure_http", {
+        enabled: insecureCb.checked,
+      });
+      insecureCb.checked = next.warn_insecure_http;
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  const insecureLabel = document.createElement("label");
+  insecureLabel.htmlFor = insecureCb.id;
+  insecureLabel.textContent = t("settings.warnInsecureHttp");
+  const insecureNote = document.createElement("p");
+  insecureNote.className = "viewer-note";
+  insecureNote.textContent = t("settings.warnInsecureHttpNote");
+  insecureRow.appendChild(insecureCb);
+  insecureRow.appendChild(insecureLabel);
+  a11ySection.appendChild(insecureRow);
+  a11ySection.appendChild(insecureNote);
   root.appendChild(a11ySection);
 
   const cmSection = document.createElement("section");

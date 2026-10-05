@@ -80,6 +80,7 @@ ADRs are numbered in `docs/adr/`. Read the ones that touch your area before larg
 | [0017](adr/0017-scripting-engine-rhai.md) | Scripting engine (Rhai) | `crates/unibrowser-rhai`, palette Rhai demo |
 | [0018](adr/0018-extension-host-stub.md) | Extension host stub (not a full VSIX JS host) | [extension-host.md](extension-host.md), diagnostics VSIX list |
 | [0019](adr/0019-wasm-t2-sandbox.md) | WASM T2 sandbox (design + feature stub) | ADR + feature flag stub in mod-host (no production WASM mods) |
+| [0020](adr/0020-linux-download-open-as-tab.md) | Linux web download → fetch → file tab | `webview.rs` + `handle_download_url`; [browser-shell.md](browser-shell.md) |
 
 ## Changelog
 

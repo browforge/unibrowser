@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Docs index:** ADR 0020 in [docs/index.md](docs/index.md) ADR table with implementation column.
+- **Omnibox HTTP warning:** Preference **Warn before opening HTTP sites** (default on); confirm before `http://` navigation.
+- **Media keyboard:** Space play/pause and arrow keys seek ±5s when video/audio viewer is focused.
+- **Clippy:** Small `Default` derives and duplicate-branch cleanup in engine/project.
 - **Tab sleep stub:** Background https tabs marked sleeping in the tab strip after 10 min idle (UI only); [tab-sleep.md](docs/tab-sleep.md).
 - **Print selection:** Command `unibrowser.export.printSelection` prints the Monaco or DOCX selection through shared print CSS.
 - **A11y checklist:** Done vs open table in [ux-a11y.md](docs/ux-a11y.md).

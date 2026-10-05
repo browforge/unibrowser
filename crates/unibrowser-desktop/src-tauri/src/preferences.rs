@@ -154,6 +154,9 @@ pub struct Preferences {
     /// Web tab proxy preference (persisted; not applied to WRY webviews in blitz).
     #[serde(default)]
     pub web_proxy: WebProxyPrefs,
+    /// Confirm before omnibox navigates to plain `http://` (default on).
+    #[serde(default = "default_true")]
+    pub warn_insecure_http: bool,
 }
 
 /// How https/file web tabs should reach the network (prefs only until webview proxy API lands).
@@ -307,6 +310,7 @@ impl Default for Preferences {
             larger_hit_targets: false,
             scripting_extension_tip_dismissed_forever: false,
             web_proxy: WebProxyPrefs::default(),
+            warn_insecure_http: true,
         }
     }
 }

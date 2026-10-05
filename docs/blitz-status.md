@@ -75,6 +75,12 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab; **Content-Disposition** renames generic hints; failed fetch toast + history ([browser-shell.md](browser-shell.md)) |
 | Settings reset | Confirmable **Reset onboarding**, **Clear recent files**, **Reset floating toolbars** |
 | Command Manager | Scrollable command chips; horizontal tab strip; pin + layout buttons stay visible |
+| Tab sleep (stub) | Background https tabs **sleeping** after 10 min idle (UI only) — [tab-sleep.md](tab-sleep.md) |
+| Print selection | Palette **Print selection** for Monaco / DOCX fragment via print CSS |
+| A11y audit | Done vs open checklist in [ux-a11y.md](ux-a11y.md) |
+| ADR 0020 | Linux download fetch → file tab — [adr/0020-linux-download-open-as-tab.md](adr/0020-linux-download-open-as-tab.md) (indexed in [index.md](index.md)) |
+| Omnibox HTTP warn | Settings **Warn before opening HTTP sites** (default on); confirm on `http://` navigation |
+| Media keys | Focused video/audio: Space play/pause, arrows seek ±5s |
 | DOCX lite | Mammoth preview + **Save edits as HTML** sibling `.ub-edit.html` — [docx-roundtrip.md](docx-roundtrip.md) |
 | EPUB notes | Reading notes in prefs; **Export reading notes** → `{book}.reading-notes.txt` beside the EPUB |
 | A11y prefs | High contrast, reduce motion (system/on/off + `prefers-reduced-motion`), optional **larger hit targets**, **Focus mode** denser chrome; skippable tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
@@ -97,7 +103,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
 | Scripting | Rhai demo from palette → output panel; `.rhai` plain text; JS/TS via **base-js** Monaco |
 | DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |
-| Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), ADRs 0001–0019 |
+| Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), ADRs 0001–0020 |
 | Quality | `cargo test --workspace`, path/transfer fuzz tests, `./scripts/smoke-desktop-qa.sh` |
 
 ## How to run

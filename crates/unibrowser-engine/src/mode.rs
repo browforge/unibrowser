@@ -3,15 +3,9 @@ use unibrowser_mod_api::Mode;
 use crate::document::DocumentSession;
 
 /// Derives active mode from document and optional user pin (pin not implemented in skeleton).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ModeController {
     pinned: Option<Mode>,
-}
-
-impl Default for ModeController {
-    fn default() -> Self {
-        Self { pinned: None }
-    }
 }
 
 impl ModeController {

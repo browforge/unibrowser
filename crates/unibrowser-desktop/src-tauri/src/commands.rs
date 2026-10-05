@@ -3367,6 +3367,7 @@ pub struct PreferencesDto {
     pub chrome_focus_mode: bool,
     pub larger_hit_targets: bool,
     pub web_proxy: WebProxyPrefsDto,
+    pub warn_insecure_http: bool,
 }
 
 #[derive(Serialize)]
@@ -4439,7 +4440,16 @@ fn preferences_dto() -> PreferencesDto {
         chrome_focus_mode: p.chrome_focus_mode,
         larger_hit_targets: p.larger_hit_targets,
         web_proxy: web_proxy_prefs_dto(&p.web_proxy),
+        warn_insecure_http: p.warn_insecure_http,
     }
+}
+
+#[tauri::command]
+pub fn set_warn_insecure_http(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.warn_insecure_http = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 fn web_proxy_prefs_dto(p: &crate::preferences::WebProxyPrefs) -> WebProxyPrefsDto {

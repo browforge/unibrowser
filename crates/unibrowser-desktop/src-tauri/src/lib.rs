@@ -230,6 +230,7 @@ pub fn run() {
             commands::open_url_externally,
             commands::set_open_downloads_in_system_browser,
             commands::set_web_proxy_prefs,
+            commands::set_warn_insecure_http,
             commands::batch_convert_images,
             commands::timeline_clip_scrub_preview,
             commands::set_unibrow_timeline_transition,

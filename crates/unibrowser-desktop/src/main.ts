@@ -15,6 +15,7 @@ import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
 import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
+import { isInsecureHttpNavigation } from "./omniboxSecurity";
 import {
   exitContentFullscreen,
   initContentFullscreen,
@@ -1409,9 +1410,21 @@ async function closeTabAt(index: number, dirty: boolean) {
   }
 }
 
-function navigateOmnibox() {
+async function confirmInsecureHttpNavigation(input: string): Promise<boolean> {
+  const prefs = await invoke<{ warn_insecure_http: boolean }>("get_preferences");
+  if (!prefs.warn_insecure_http || !isInsecureHttpNavigation(input)) {
+    return true;
+  }
+  return window.confirm(t("omnibox.insecureHttpConfirm"));
+}
+
+async function navigateOmnibox() {
+  const input = omnibox.value;
+  if (!(await confirmInsecureHttpNavigation(input))) {
+    return;
+  }
   void invokeWithToast(
-    () => invoke<TabContentDto>("navigate_omnibox", { input: omnibox.value }),
+    () => invoke<TabContentDto>("navigate_omnibox", { input }),
     "Could not navigate",
   ).then((data) => {
     if (data) {
@@ -1778,7 +1791,15 @@ window.addEventListener("unibrowser-navigate", (event) => {
   const detail = (event as CustomEvent<string>).detail;
   if (detail) {
     omnibox.value = detail;
-    void navigateOmnibox();
+    void (async () => {
+      if (!(await confirmInsecureHttpNavigation(detail))) {
+        return;
+      }
+      void invokeWithToast(
+        () => invoke<TabContentDto>("navigate_omnibox", { input: detail }),
+        "Could not navigate",
+      ).then((data) => data && applyState(data));
+    })();
   }
 });
 

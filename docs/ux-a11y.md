@@ -23,6 +23,8 @@ Target: keyboard-first use alongside mouse; WCAG-minded focus and labels. Full a
 | Screen reader live regions | Partial | Toasts `aria-live`; encode progress in status bar |
 | Colour contrast audit | Open | High-contrast mode helps chrome; viewers not audited |
 | i18n beyond chrome | Open | `en-NZ` / `en-US` catalogues only |
+| Media keyboard shortcuts | Done | Space / arrows on focused `.media-view` |
+| HTTP omnibox warning | Done | Optional confirm (default on) in Settings → Accessibility |
 
 ## Reduced motion
 
