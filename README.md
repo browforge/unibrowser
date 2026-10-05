@@ -74,7 +74,7 @@ Use this section as the source for weekly status. Narrative + gaps: [docs/blitz-
 
 ## Licence
 
-Apache-2.0. See [LICENSE](LICENSE) and [docs/adr/0007-licensing.md](docs/adr/0007-licensing.md).
+Apache-2.0. See [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), [docs/licenses/](docs/licenses/) (Monaco, pdf.js, Mammoth, ffmpeg, WebView, and other third-party notices), and [docs/adr/0007-licensing.md](docs/adr/0007-licensing.md).
 
 ## Requirements
 

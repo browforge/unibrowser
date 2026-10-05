@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use crate::config::preferences_file_path;
+
+pub const EPUB_POSITIONS_MAX: usize = 128;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -117,6 +120,9 @@ pub struct Preferences {
     pub onboarding_checklist_skip_forever: bool,
     #[serde(default)]
     pub onboarding_checklist_completed: Vec<String>,
+    /// Last-opened spine chapter index per EPUB path.
+    #[serde(default)]
+    pub epub_chapter_by_path: HashMap<String, usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -221,6 +227,7 @@ impl Default for Preferences {
             reduce_motion: ReduceMotionPref::default(),
             onboarding_checklist_skip_forever: false,
             onboarding_checklist_completed: Vec::new(),
+            epub_chapter_by_path: HashMap::new(),
         }
     }
 }
@@ -301,6 +308,28 @@ mod tests {
         assert_eq!(p.recent_files[0].path, "/tmp/f5.txt");
         assert!(p.recent_files.iter().filter(|e| e.path == "/tmp/f5.txt").count() == 1);
     }
+}
+
+pub fn epub_read_chapter_index(path: &str) -> Option<usize> {
+    load_preferences()
+        .epub_chapter_by_path
+        .get(path)
+        .copied()
+}
+
+pub fn remember_epub_chapter(path: &str, index: usize) -> Result<(), String> {
+    let mut prefs = load_preferences();
+    prefs.epub_chapter_by_path.insert(path.to_string(), index);
+    while prefs.epub_chapter_by_path.len() > EPUB_POSITIONS_MAX {
+        let key = prefs
+            .epub_chapter_by_path
+            .keys()
+            .next()
+            .cloned()
+            .unwrap_or_default();
+        prefs.epub_chapter_by_path.remove(&key);
+    }
+    save_preferences(&prefs)
 }
 
 pub fn push_recent_file(prefs: &mut Preferences, path: String, label: String) {

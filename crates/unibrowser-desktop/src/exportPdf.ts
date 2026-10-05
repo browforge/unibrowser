@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { documentViewer } from "./documentViewer";
 import { getPrintHtmlForPdf, textEditor } from "./textEditor";
-import { showToast } from "./toast";
+import { showErrorToast, showToast } from "./toast";
 import { t } from "./i18n";
 
 export async function runExportPrintPdf(viewerHost: HTMLElement) {
@@ -23,6 +23,6 @@ export async function runExportPrintPdf(viewerHost: HTMLElement) {
     if (text.includes("cancelled")) {
       return;
     }
-    showToast(text, "error");
+    showErrorToast(err);
   }
 }

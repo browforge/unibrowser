@@ -21,6 +21,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | CM pin UX | Separate **Pin commands tab** control; tab clicks are preview-only until pin; tip in Settings + first pin toast |
 | Clipboard / timeline | Copy image from PNG viewer; **Paste still** on `.unibrow` timeline (asset + clip stub) |
 | Mod catalog | Offline filter in mod portal (`list_mod_catalog`); Open VSX network search optional; sideload always |
+| Licensing | [NOTICE.md](../NOTICE.md) + [docs/licenses/](licenses/) third-party attributions; `./scripts/generate-notice.sh` for Rust deps |
+| Error UX | Chrome toasts with **Copy details** on failures; friendly copy for opens/encodes (no raw panic strings) |
+| EPUB | Chapter dropdown + prev/next; last position per book in prefs; font size via shared increase/decrease commands |
+| Grandma backup | Settings export/import JSON: preferences + `keybindings.json` + `toolbars.json` |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |
 | Commands | Command Manager (dense mode), palette + chords (`Ctrl+Shift+P` default, user override via `keybindings.json`), workspace layout presets, import/export JSON; VSIX commands on **Extensions** tab (stub run) |

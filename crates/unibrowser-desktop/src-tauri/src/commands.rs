@@ -31,12 +31,14 @@ use crate::downloads::{
 use crate::state::{AppState, list_dir};
 use crate::mod_portal::{ModSuggestionDto, suggest_mods_for_unknown_path};
 use crate::preferences::{
-    default_pinned_locations, load_preferences, push_recent_file, save_preferences,
-    DownloadPreference, PinnedLocation, UiTheme, WindowState,
+    default_pinned_locations, epub_read_chapter_index, load_preferences, push_recent_file,
+    remember_epub_chapter, save_preferences, DownloadPreference, PinnedLocation, UiTheme,
+    WindowState,
 };
 use crate::state::FileCompareState;
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
-use crate::epub_preview::{EpubChapterDto, EpubSearchHitDto};
+use crate::epub_preview::{EpubChapterDto, EpubChapterListItem, EpubSearchHitDto};
+use crate::user_backup::{self, GrandmaBackupV1};
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
 use crate::webview::{
     adjust_page_font_for_url, adjust_page_zoom_for_url, sync_content_bounds,
@@ -3950,6 +3952,67 @@ pub fn search_epub_in_book(
 ) -> Result<Vec<EpubSearchHitDto>, String> {
     let cap = limit.unwrap_or(48);
     crate::epub_preview::search_in_book(Path::new(&path), &query, cap)
+}
+
+#[tauri::command]
+pub fn list_epub_chapters(path: String) -> Result<Vec<EpubChapterListItem>, String> {
+    crate::epub_preview::list_chapters(Path::new(&path))
+}
+
+#[tauri::command]
+pub fn get_epub_read_position(path: String) -> usize {
+    epub_read_chapter_index(&path).unwrap_or(0)
+}
+
+#[tauri::command]
+pub fn remember_epub_chapter_position(path: String, index: usize) -> Result<(), String> {
+    remember_epub_chapter(&path, index)
+}
+
+#[tauri::command]
+pub async fn export_grandma_backup_file(
+    app: AppHandle,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let backup = user_backup::build_backup()?;
+    let json = serde_json::to_string_pretty(&backup).map_err(|e| e.to_string())?;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export settings backup")
+        .add_filter("JSON", &["json"])
+        .set_file_name("unibrowser-backup.json")
+        .blocking_save_file();
+    if let Some(path) = picked {
+        let dest = PathBuf::from(path.to_string());
+        std::fs::write(&dest, json).map_err(|e| e.to_string())?;
+        Ok(Some(dest.to_string_lossy().into_owned()))
+    } else {
+        Ok(None)
+    }
+}
+
+#[tauri::command]
+pub async fn import_grandma_backup_file(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Import settings backup")
+        .add_filter("JSON", &["json"])
+        .blocking_pick_file();
+    let path = picked.ok_or_else(|| "import cancelled".to_string())?;
+    let data = std::fs::read_to_string(path.to_string()).map_err(|e| e.to_string())?;
+    let backup: GrandmaBackupV1 = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+    user_backup::apply_backup(&backup)?;
+    apply_command_manager_layout(&backup.toolbars, state.inner())?;
+    if let Ok(mut kb) = state.keybindings.lock() {
+        *kb = crate::state::load_merged_keybindings();
+    }
+    Ok(())
 }
 
 #[tauri::command]

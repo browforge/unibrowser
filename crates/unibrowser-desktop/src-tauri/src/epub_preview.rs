@@ -16,6 +16,12 @@ pub struct EpubChapterDto {
 }
 
 #[derive(Debug, Serialize)]
+pub struct EpubChapterListItem {
+    pub index: usize,
+    pub title: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct EpubSearchHitDto {
     pub chapter_index: usize,
     pub title: String,
@@ -72,6 +78,34 @@ pub fn search_in_book(
         });
     }
     Ok(hits)
+}
+
+pub fn list_chapters(path: &Path) -> Result<Vec<EpubChapterListItem>, String> {
+    let file = File::open(path).map_err(|e| e.to_string())?;
+    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let container = read_zip_entry(&mut archive, "META-INF/container.xml")?;
+    let opf_path = extract_attr(&container, "full-path").ok_or("container: no full-path")?;
+    let opf = read_zip_entry(&mut archive, &opf_path)?;
+    let opf_dir = opf_parent(&opf_path);
+    let spine_ids = parse_spine_itemrefs(&opf);
+    let manifest = parse_manifest_hrefs(&opf);
+    if spine_ids.is_empty() {
+        return Err("EPUB spine empty".into());
+    }
+    let mut items = Vec::with_capacity(spine_ids.len());
+    for (chapter_index, id) in spine_ids.iter().enumerate() {
+        let href = manifest
+            .get(id)
+            .ok_or_else(|| format!("manifest missing spine id {}", id))?;
+        let chapter_path = resolve_href(&opf_dir, href);
+        let html = read_zip_entry(&mut archive, &chapter_path)?;
+        let title = parse_title(&html).unwrap_or_else(|| format!("Chapter {}", chapter_index + 1));
+        items.push(EpubChapterListItem {
+            index: chapter_index,
+            title,
+        });
+    }
+    Ok(items)
 }
 
 pub fn preview_chapter(path: &Path, index: usize) -> Result<EpubChapterDto, String> {
@@ -213,6 +247,9 @@ mod tests {
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].chapter_index, 0);
         assert!(hits[0].snippet.to_ascii_lowercase().contains("one"));
+        let toc = list_chapters(&path).expect("list");
+        assert_eq!(toc.len(), 1);
+        assert_eq!(toc[0].title, "Hello EPUB");
         let _ = std::fs::remove_file(path);
     }
 }

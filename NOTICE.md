@@ -1,16 +1,31 @@
-# Third-party notices (generated stub)
+# NOTICE
 
-This file is a placeholder. Re-run `./scripts/generate-notice.sh` after installing
-`cargo-license` (`cargo install cargo-license`) for a full dependency listing.
+Unibrowser
+Copyright 2025–2026 The Unibrowser Authors
 
-## Key runtime dependencies (hand-maintained)
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-| Component | Licence | Notes |
-| --- | --- | --- |
-| Tauri 2 | MIT / Apache-2.0 | Desktop shell |
-| Monaco Editor | MIT | Text editor UI |
-| pdf.js | Apache-2.0 | PDF viewer (bundled assets) |
-| serde / serde_json | MIT / Apache-2.0 | Serialization |
-| ffmpeg (sidecar, when used) | LGPL 2.1+ | Media probing / transcode |
+    http://www.apache.org/licenses/LICENSE-2.0
 
-Unibrowser application code is licensed under Apache-2.0 (see LICENSE).
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## Third-party software
+
+This product bundles or may invoke third-party components. See:
+
+- [docs/licenses/third-party.md](docs/licenses/third-party.md) — Monaco, pdf.js, Mammoth, ffmpeg, Tauri, WebView, etc.
+- [docs/licenses/README.md](docs/licenses/README.md) — index for distributors
+
+For a machine-readable list of Rust dependency licences, run:
+
+```bash
+./scripts/generate-notice.sh
+```
+
+(requires `cargo install cargo-license` when generating the full dependency table).

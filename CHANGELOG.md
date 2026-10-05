@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Licensing**: [NOTICE.md](NOTICE.md), [docs/licenses/](docs/licenses/) (Monaco, pdf.js, Mammoth, ffmpeg, WebView, etc.); README links for distributors.
+- **Error UX**: toast **Copy details** for failed invokes; friendly messages for EPUB/encode/cancel paths via `showErrorToast` / `invokeWithToast`.
+- **EPUB**: chapter `<select>` + spine list; remember last chapter per path; position restored on reopen.
+- **Grandma backup**: `export_grandma_backup_file` / `import_grandma_backup_file` (prefs + keybindings + toolbars JSON); Settings section.
 - **Command Manager pin UX**: labelled pin control, transient CM tab preview (no stick on click alone), Settings tip + first-pin toast.
 - **Clipboard**: copy image from PNG viewer; paste still onto `.unibrow` timeline (`paste_unibrow_still_clip`).
 - **Mod portal**: offline catalog filter (`list_mod_catalog`); Open VSX remains opt-in network; sideload unchanged.

@@ -11,7 +11,7 @@ import { renderAbout } from "./aboutPage";
 import { renderKeys } from "./keysPage";
 import { emptyStateBlock } from "./emptyState";
 import { pathsFromDataTransfer } from "./filesDrag";
-import { showToast } from "./toast";
+import { showErrorToast, showToast } from "./toast";
 import { playMidiScrubBeeps } from "./midiScrubAudio";
 import { setStatusHint } from "./statusBar";
 import { t } from "./i18n";
@@ -2498,7 +2498,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       });
       showToast(`Share package: ${dest}`, "info");
     } catch (err) {
-      showToast(String(err), "error");
+      showErrorToast(err);
     }
   };
   root.appendChild(shareExportBtn);
@@ -2520,7 +2520,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       });
       window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
     } catch (err) {
-      showToast(String(err), "error");
+      showErrorToast(err);
     }
   };
   root.appendChild(shareImportBtn);
@@ -2540,7 +2540,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       status.textContent = `${result.message} (${result.path})`;
       root.appendChild(status);
     } catch (err) {
-      showToast(String(err), "error");
+      showErrorToast(err, t("toast.encodeFailed"));
     }
   };
   root.appendChild(exportMp4Btn);
@@ -2566,7 +2566,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       status.textContent = `${result.message} (${result.path})`;
       root.appendChild(status);
     } catch (err) {
-      showToast(String(err), "error");
+      showErrorToast(err, t("toast.encodeFailed"));
     } finally {
       exportH264Btn.disabled = false;
     }
@@ -2612,9 +2612,15 @@ interface EpubSearchHitDto {
   match_count: number;
 }
 
+interface EpubChapterListItem {
+  index: number;
+  title: string;
+}
+
 async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
   let chapterIndex = 0;
+  let chapters: EpubChapterListItem[] = [];
 
   const searchRow = document.createElement("div");
   searchRow.className = "epub-search-row";
@@ -2640,6 +2646,9 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   next.textContent = t("epub.next");
   const label = document.createElement("span");
   label.className = "epub-chapter-label";
+  const chapterSelect = document.createElement("select");
+  chapterSelect.className = "epub-chapter-select";
+  chapterSelect.setAttribute("aria-label", t("epub.chapterJump"));
 
   const frame = document.createElement("iframe");
   frame.className = "epub-chapter-frame";
@@ -2659,14 +2668,27 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
     });
     chapterIndex = ch.index;
     label.textContent = `${ch.title} (${ch.index + 1} / ${ch.total})`;
+    if (chapterSelect.value !== String(ch.index)) {
+      chapterSelect.value = String(ch.index);
+    }
     prev.disabled = ch.index <= 0;
     next.disabled = ch.index + 1 >= ch.total;
     const pt = viewer.reader_font_pt ?? 12;
     frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-size:${pt}pt;line-height:1.45;font-family:system-ui,sans-serif;margin:0.75rem;}</style></head><body>${ch.html}</body></html>`;
+    void invoke("remember_epub_chapter_position", {
+      path: viewer.path,
+      index: ch.index,
+    }).catch(() => undefined);
   }
 
   prev.onclick = () => loadChapter(chapterIndex - 1).catch(showEpubError);
   next.onclick = () => loadChapter(chapterIndex + 1).catch(showEpubError);
+  chapterSelect.onchange = () => {
+    const idx = Number(chapterSelect.value);
+    if (!Number.isNaN(idx)) {
+      loadChapter(idx).catch(showEpubError);
+    }
+  };
 
   setViewerFindRunner((query, forward) => {
     const win = frame.contentWindow;
@@ -2688,7 +2710,7 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   });
 
   function showEpubError(err: unknown) {
-    label.textContent = String(err);
+    showErrorToast(err, t("toast.openEpubFailed"));
   }
 
   let searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -2728,7 +2750,7 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
     }
     searchTimer = setTimeout(() => {
       runEpubSearch().catch((err) => {
-        searchStatus.textContent = String(err);
+        showErrorToast(err, t("epub.searchEmpty"));
       });
     }, 280);
   };
@@ -2741,6 +2763,7 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
     printHtmlDocument(viewer.path, html);
   };
   nav.appendChild(prev);
+  nav.appendChild(chapterSelect);
   nav.appendChild(label);
   nav.appendChild(next);
   nav.appendChild(printBtn);
@@ -2749,7 +2772,24 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   root.appendChild(nav);
   root.appendChild(frame);
   root.appendChild(note);
-  await loadChapter(0);
+  try {
+    chapters = await invoke<EpubChapterListItem[]>("list_epub_chapters", {
+      path: viewer.path,
+    });
+    chapterSelect.innerHTML = "";
+    for (const item of chapters) {
+      const opt = document.createElement("option");
+      opt.value = String(item.index);
+      opt.textContent = item.title;
+      chapterSelect.appendChild(opt);
+    }
+    const saved = await invoke<number>("get_epub_read_position", { path: viewer.path });
+    const start =
+      saved >= 0 && saved < chapters.length ? saved : 0;
+    await loadChapter(start);
+  } catch (err) {
+    showErrorToast(err, t("toast.openEpubFailed"));
+  }
 }
 
 async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {

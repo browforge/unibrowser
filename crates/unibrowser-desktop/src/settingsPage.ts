@@ -19,6 +19,7 @@ import { configureProjectAutoSave } from "./projectAutoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
 import { setExperimentalSpellcheckEnabled } from "./experimentalSpellcheck";
+import { showErrorToast, showToast } from "./toast";
 
 interface NtpSectionsDto {
   show_hero: boolean;
@@ -387,6 +388,60 @@ export async function renderSettings(root: HTMLElement) {
   workspaceSection.appendChild(workspaceBody);
   void appendWorkspaceLayoutPanel(workspaceBody);
   root.appendChild(workspaceSection);
+
+  const backupSection = document.createElement("section");
+  backupSection.className = "settings-section";
+  const backupHeading = document.createElement("h3");
+  backupHeading.textContent = t("settings.grandmaBackup");
+  const backupLead = document.createElement("p");
+  backupLead.className = "viewer-note";
+  backupLead.textContent = t("settings.grandmaBackupLead");
+  const backupRow = document.createElement("div");
+  backupRow.className = "settings-row settings-button-row";
+  const exportBackupBtn = document.createElement("button");
+  exportBackupBtn.type = "button";
+  exportBackupBtn.textContent = t("settings.grandmaExport");
+  exportBackupBtn.onclick = async () => {
+    try {
+      const path = await invoke<string | null>("export_grandma_backup_file");
+      if (path) {
+        showToast(t("settings.grandmaExported", { path }), "info");
+      }
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  const importBackupBtn = document.createElement("button");
+  importBackupBtn.type = "button";
+  importBackupBtn.textContent = t("settings.grandmaImport");
+  importBackupBtn.onclick = async () => {
+    try {
+      await invoke("import_grandma_backup_file");
+      showToast(t("settings.grandmaImported"), "info");
+      const next = await invoke<PrefsDto>("get_preferences");
+      langSelect.value = next.ui_locale === "en-US" ? "en-US" : "en-NZ";
+      setLocale(next.ui_locale as LocaleId);
+      const { applyChromeI18n } = await import("./chromeI18n");
+      applyChromeI18n();
+      await loadThemePreference();
+      applyThemeToDocument();
+      setCommandManagerDense(next.command_manager_dense);
+      applyCommandManagerDensity(next.command_manager_dense);
+      setHighContrast(next.high_contrast);
+      applyHighContrastToDocument(next.high_contrast);
+      setReduceMotion(next.reduce_motion as ReduceMotionPref);
+      applyReduceMotionToDocument();
+      void invoke("reload_keybindings");
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  backupRow.appendChild(exportBackupBtn);
+  backupRow.appendChild(importBackupBtn);
+  backupSection.appendChild(backupHeading);
+  backupSection.appendChild(backupLead);
+  backupSection.appendChild(backupRow);
+  root.appendChild(backupSection);
 
   const ntpSection = document.createElement("section");
   ntpSection.className = "settings-section";

@@ -39,6 +39,7 @@ mod workspace_layouts;
 mod rhai_host;
 mod session;
 mod state;
+mod user_backup;
 
 pub use state::open_file_document;
 mod webview;
@@ -204,7 +205,12 @@ pub fn run() {
             commands::begin_file_compare,
             commands::set_ui_theme,
             commands::get_epub_chapter,
+            commands::list_epub_chapters,
+            commands::get_epub_read_position,
+            commands::remember_epub_chapter_position,
             commands::search_epub_in_book,
+            commands::export_grandma_backup_file,
+            commands::import_grandma_backup_file,
             commands::export_unibrow_project,
             commands::export_unibrow_share_package,
             commands::import_unibrow_share_package,
