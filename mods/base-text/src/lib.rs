@@ -177,11 +177,6 @@ fn font_enable(doc: &DocumentSession) -> Enablement {
             reason: "Format does not support font size".into(),
         };
     }
-    if !doc.backend.selection().has_text_selection {
-        return Enablement::Disabled {
-            reason: "Select text first".into(),
-        };
-    }
     Enablement::Enabled
 }
 

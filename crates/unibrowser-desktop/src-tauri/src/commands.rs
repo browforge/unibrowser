@@ -113,6 +113,9 @@ pub struct PaletteEntryDto {
     pub chord: Option<String>,
     pub enabled: bool,
     pub reason: Option<String>,
+    /// When set, the shell opens this path instead of `execute_command`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_path: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -220,6 +223,8 @@ pub struct DocumentViewerDto {
     pub midi_note_preview: Option<Vec<MidiNoteOnDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pdf_engines: Option<Vec<crate::pdf_proving::PdfEngineLineDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reader_font_pt: Option<f32>,
 }
 
 #[derive(Serialize)]
@@ -534,6 +539,7 @@ fn document_viewer_dto(
             midi_scrub_audio_enabled: Some(prefs.midi_scrub_audio_enabled),
             midi_note_preview: None,
             pdf_engines: None,
+            reader_font_pt: None,
         });
     }
     if doc.backend.backend_id() == crate::settings_stub::BACKEND_ID {
@@ -554,6 +560,7 @@ fn document_viewer_dto(
             midi_scrub_audio_enabled: None,
             midi_note_preview: None,
             pdf_engines: None,
+            reader_font_pt: None,
         });
     }
     if doc.backend.backend_id() == crate::about_stub::BACKEND_ID {
@@ -574,6 +581,7 @@ fn document_viewer_dto(
             midi_scrub_audio_enabled: None,
             midi_note_preview: None,
             pdf_engines: None,
+            reader_font_pt: None,
         });
     }
     if doc.backend.backend_id() == crate::keys_stub::BACKEND_ID {
@@ -594,6 +602,7 @@ fn document_viewer_dto(
             midi_scrub_audio_enabled: None,
             midi_note_preview: None,
             pdf_engines: None,
+            reader_font_pt: None,
         });
     }
     if doc.backend.backend_id() == crate::midi_stub::BACKEND_ID {
@@ -631,6 +640,7 @@ fn document_viewer_dto(
             midi_scrub_audio_enabled: None,
             midi_note_preview: Some(notes),
             pdf_engines: None,
+            reader_font_pt: None,
         });
     }
     let viewer = match doc.backend.backend_id() {
@@ -662,6 +672,7 @@ fn document_viewer_dto(
     } else {
         None
     };
+    let reader_font_pt = reader_font_pt_for_doc(doc);
     Some(DocumentViewerDto {
         path: doc.path.clone(),
         viewer: viewer.into(),
@@ -679,7 +690,21 @@ fn document_viewer_dto(
         midi_scrub_audio_enabled: None,
         midi_note_preview: None,
         pdf_engines,
+        reader_font_pt,
     })
+}
+
+fn reader_font_pt_for_doc(doc: &mut unibrowser_engine::DocumentSession) -> Option<f32> {
+    if let Some(b) = base_docx::try_docx_backend(&mut *doc.backend) {
+        return Some(b.reader_font_pt);
+    }
+    if let Some(b) = crate::epub_stub::try_epub_backend(&mut *doc.backend) {
+        return Some(b.reader_font_pt);
+    }
+    if let Some(b) = base_svg::try_svg_backend(&mut *doc.backend) {
+        return Some(b.font_size_pt);
+    }
+    None
 }
 
 fn tab_pane_dtos(
@@ -2073,6 +2098,9 @@ pub fn execute_command(window: tauri::Window,
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
     }
+    if command_id == "mod.hello" {
+        return Ok("Hello from native mod (stub handler)".into());
+    }
     if command_id == unibrowser_mod_api::commands::SCRIPT_DEMO_HELLO {
         let allow_doc = {
             let _sess_tabs = ws(&state, &window)?;
@@ -2234,6 +2262,8 @@ pub fn dispatch_key_chord(window: tauri::Window,
 
 #[tauri::command]
 pub fn palette_search(window: tauri::Window, query: String, state: State<AppState>) -> Result<Vec<PaletteEntryDto>, String> {
+    use unibrowser_engine::palette::fuzzy_score;
+
     let _sess_tabs = ws(&state, &window)?;
     let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab().ok_or("no tab")?;
@@ -2254,7 +2284,7 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
         .vsix_host_commands
         .lock()
         .map_err(|e| e.to_string())?;
-    Ok(search_commands(&registry, &ctx, &query)
+    let mut out: Vec<PaletteEntryDto> = search_commands(&registry, &ctx, &query)
         .into_iter()
         .map(|e| {
             let (enabled, reason) = if host_cmds.contains(&e.command_id) {
@@ -2277,9 +2307,65 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                 chord,
                 enabled,
                 reason,
+                open_path: None,
             }
         })
-        .collect())
+        .collect();
+
+    let prefs = load_preferences();
+    let q = query.trim();
+    if !q.is_empty() {
+        for entry in &prefs.recent_files {
+            let score = fuzzy_score(q, &entry.label).max(fuzzy_score(q, &entry.path));
+            if score > 0 {
+                out.push(PaletteEntryDto {
+                    command_id: "unibrowser.places.open".into(),
+                    title: format!("Open recent: {}", entry.label),
+                    chord: None,
+                    enabled: true,
+                    reason: Some(entry.path.clone()),
+                    open_path: Some(entry.path.clone()),
+                });
+            }
+        }
+        for path in &prefs.folder_favorites {
+            let label = std::path::Path::new(path)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.clone());
+            let score = fuzzy_score(q, &label).max(fuzzy_score(q, path));
+            if score > 0 {
+                out.push(PaletteEntryDto {
+                    command_id: "unibrowser.places.open".into(),
+                    title: format!("Open folder: {}", label),
+                    chord: None,
+                    enabled: true,
+                    reason: Some(path.clone()),
+                    open_path: Some(path.clone()),
+                });
+            }
+        }
+        let home = std::env::var("HOME").unwrap_or_else(|_| state.cwd.to_string_lossy().to_string());
+        let pins = if prefs.pinned_locations.is_empty() {
+            default_pinned_locations(&home)
+        } else {
+            prefs.pinned_locations.clone()
+        };
+        for pin in pins {
+            let score = fuzzy_score(q, &pin.label).max(fuzzy_score(q, &pin.location));
+            if score > 0 {
+                out.push(PaletteEntryDto {
+                    command_id: "unibrowser.places.open".into(),
+                    title: format!("Place: {}", pin.label),
+                    chord: None,
+                    enabled: true,
+                    reason: Some(pin.location.clone()),
+                    open_path: Some(pin.location.clone()),
+                });
+            }
+        }
+    }
+    Ok(out)
 }
 
 #[tauri::command]

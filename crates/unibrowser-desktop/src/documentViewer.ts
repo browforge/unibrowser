@@ -77,6 +77,7 @@ export interface DocumentViewerDto {
   midi_scrub_audio_enabled?: boolean;
   midi_note_preview?: MidiNoteOnDto[];
   pdf_engines?: PdfEngineLineDto[];
+  reader_font_pt?: number;
 }
 
 interface PdfEngineLineDto {
@@ -312,7 +313,7 @@ function applyDocxSearchHighlights(article: HTMLElement, query: string): HTMLEle
   return marks;
 }
 
-async function renderDocx(path: string, root: HTMLElement) {
+async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   const bytes = await readBytes(path);
   const result = await mammoth.convertToHtml(
     { arrayBuffer: toArrayBuffer(bytes) },
@@ -400,6 +401,7 @@ async function renderDocx(path: string, root: HTMLElement) {
 
   const article = document.createElement("article");
   article.className = "docx-view";
+  article.style.fontSize = `${readerFontPt}pt`;
   article.innerHTML = result.value;
 
   root.innerHTML = "";
@@ -2545,7 +2547,8 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
     label.textContent = `${ch.title} (${ch.index + 1} / ${ch.total})`;
     prev.disabled = ch.index <= 0;
     next.disabled = ch.index + 1 >= ch.total;
-    frame.srcdoc = ch.html;
+    const pt = viewer.reader_font_pt ?? 12;
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-size:${pt}pt;line-height:1.45;font-family:system-ui,sans-serif;margin:0.75rem;}</style></head><body>${ch.html}</body></html>`;
   }
 
   prev.onclick = () => loadChapter(chapterIndex - 1).catch(showEpubError);
@@ -2628,6 +2631,9 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
   frame.className = "svg-preview-frame";
   frame.title = "SVG preview";
   frame.src = convertFileSrc(viewer.path);
+  const fontPt = viewer.reader_font_pt ?? 14;
+  frame.style.transformOrigin = "top left";
+  frame.style.transform = `scale(${fontPt / 14})`;
   preview.appendChild(frame);
   const ta = document.createElement("textarea");
   ta.className = "svg-source";
@@ -2711,7 +2717,8 @@ function viewerCacheKey(viewer: DocumentViewerDto): string {
   const nodeCount = viewer.project_nodes?.length ?? 0;
   const scale = viewer.pdf_scale ?? 0;
   const page = viewer.pdf_page ?? 0;
-  return `${viewer.viewer}:${viewer.path}:${scale}:${page}:${nodeCount}`;
+  const font = viewer.reader_font_pt ?? 0;
+  return `${viewer.viewer}:${viewer.path}:${scale}:${page}:${font}:${nodeCount}`;
 }
 
 export const documentViewer = {
@@ -2742,7 +2749,7 @@ export const documentViewer = {
       el.appendChild(body);
       switch (viewer.viewer) {
         case "docx":
-          await renderDocx(viewer.path, body);
+          await renderDocx(viewer.path, body, viewer.reader_font_pt ?? 12);
           break;
         case "pdf":
           await renderPdf(

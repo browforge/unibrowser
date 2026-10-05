@@ -1,7 +1,10 @@
 use std::path::Path;
 
-use unibrowser_engine::CommandRegistry;
-use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
+use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
+use unibrowser_mod_api::{
+    Capabilities, Enablement, Mode, SelectionSnapshot,
+    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID},
+};
 
 pub const BACKEND_ID: &str = "base-docx";
 pub const VIEWER_KIND: &str = "docx";
@@ -9,6 +12,7 @@ pub const VIEWER_KIND: &str = "docx";
 pub struct DocxBackend {
     pub path: String,
     pub byte_len: u64,
+    pub reader_font_pt: f32,
 }
 
 impl DocxBackend {
@@ -17,6 +21,7 @@ impl DocxBackend {
         Ok(Self {
             path: path.to_string_lossy().into_owned(),
             byte_len: meta.len(),
+            reader_font_pt: 12.0,
         })
     }
 }
@@ -43,21 +48,24 @@ impl unibrowser_engine::document::DocumentBackend for DocxBackend {
         SelectionSnapshot {
             has_text_selection: true,
             text_length: 1,
-            font_size_pt: Some(12.0),
+            font_size_pt: Some(self.reader_font_pt),
             ..Default::default()
         }
     }
     fn increase_font_size(&mut self) -> Result<f32, String> {
-        Ok(13.0)
+        self.reader_font_pt = (self.reader_font_pt + 1.0).min(96.0);
+        Ok(self.reader_font_pt)
     }
     fn decrease_font_size(&mut self) -> Result<f32, String> {
-        Ok(11.0)
+        self.reader_font_pt = (self.reader_font_pt - 1.0).max(6.0);
+        Ok(self.reader_font_pt)
     }
     fn set_demo_text_selection(&mut self, _selected: bool) {}
     fn status_line(&self) -> String {
         format!(
-            "DOCX · {} · {} bytes (mammoth HTML view)",
+            "DOCX · {} · {:.1} pt preview · {} bytes",
             self.path,
+            self.reader_font_pt,
             self.byte_len
         )
     }
@@ -66,7 +74,52 @@ impl unibrowser_engine::document::DocumentBackend for DocxBackend {
     }
 }
 
-pub fn register(_registry: &mut CommandRegistry) {}
+fn font_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Wrong backend".into(),
+        };
+    }
+    if !doc.backend.capabilities().font_size {
+        return Enablement::Disabled {
+            reason: "Format does not support font size".into(),
+        };
+    }
+    Enablement::Enabled
+}
+
+fn exec_increase(doc: &mut DocumentSession) -> Result<String, String> {
+    let en = font_enable(doc);
+    if !en.is_enabled() {
+        return Err(en.disabled_reason().unwrap_or("disabled").into());
+    }
+    let pt = doc.backend.increase_font_size()?;
+    Ok(format!("DOCX preview font: {:.1} pt", pt))
+}
+
+fn exec_decrease(doc: &mut DocumentSession) -> Result<String, String> {
+    let en = font_enable(doc);
+    if !en.is_enabled() {
+        return Err(en.disabled_reason().unwrap_or("disabled").into());
+    }
+    let pt = doc.backend.decrease_font_size()?;
+    Ok(format!("DOCX preview font: {:.1} pt", pt))
+}
+
+pub fn register(registry: &mut CommandRegistry) {
+    registry.register_handler(HandlerRegistration {
+        command_id: FONT_INCREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: exec_increase,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: FONT_DECREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: exec_decrease,
+    });
+}
 
 pub fn open_file(path: &Path) -> Result<Box<dyn unibrowser_engine::document::DocumentBackend>, String> {
     Ok(Box::new(DocxBackend::from_path(path)?))

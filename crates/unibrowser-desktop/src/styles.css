@@ -38,6 +38,34 @@
   color: #111;
 }
 
+#command-manager {
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 0.25rem 0.35rem 0.35rem;
+  background: #222228;
+}
+
+[data-theme="light"] #command-manager,
+[data-theme="light"] .command-manager-commands {
+  background: #f0f0f4;
+  border-color: #bbb;
+}
+
+[data-theme="light"] .floating-bar {
+  background: #f5f5f8;
+  border-color: #999;
+  color: #111;
+}
+
+[data-theme="dark"] .floating-bar {
+  color: #eee;
+}
+
+[data-high-contrast="true"] #command-manager,
+[data-high-contrast="true"] .floating-bar {
+  border-width: 2px;
+}
+
 [data-theme="light"] .cm-tab,
 [data-theme="light"] .ui-command {
   background: #e8e8ec;
@@ -962,6 +990,54 @@ body {
 [data-theme="light"] .files-side-panel {
   background: #f4f4f6;
   border-left-color: #ccc;
+}
+
+.files-places {
+  margin: 0.35rem 0 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #222228;
+}
+
+.files-places h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.files-places-sub {
+  margin: 0.35rem 0 0.15rem;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.files-places-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+
+.files-place-link {
+  font-size: 0.8rem;
+  background: transparent;
+  border: none;
+  color: #9cf;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+[data-theme="light"] .files-places {
+  background: #f4f4f8;
+  border-color: #ccc;
+}
+
+[data-theme="light"] .files-place-link {
+  color: #0645ad;
 }
 
 .files-nav {

@@ -156,6 +156,7 @@ interface PaletteEntryDto {
   chord: string | null;
   enabled: boolean;
   reason: string | null;
+  open_path?: string | null;
 }
 
 const omnibox = document.getElementById("omnibox") as HTMLInputElement;
@@ -345,7 +346,14 @@ async function persistFilesView(view: FilesViewDto) {
 const folderFavoritesCache: string[] = [];
 let lastBrowseFolderPath = "";
 
-function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto, browsePath: string, favorites: string[]) {
+function renderFiles(
+  entries: DirEntry[] | null,
+  filesView: FilesViewDto,
+  browsePath: string,
+  favorites: string[],
+  recentFiles: RecentFileDto[],
+  pinnedPlaces: PinnedLocationDto[],
+) {
   filesPanel.innerHTML = "";
   if (!entries) {
     filesBrowserWrap.classList.add("hidden");
@@ -362,6 +370,8 @@ function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto, browse
     filesView,
     browsePath,
     folderFavorites: folderFavoritesCache,
+    recentFiles,
+    pinnedPlaces,
     sidePanel: filesSidePanel,
     onApplyState: (data) => applyState(data as TabContentDto),
     persistFilesView,
@@ -855,6 +865,8 @@ async function applyState(data: TabContentDto) {
         data.files_view ?? { sort: "name", sort_ascending: true, show_hidden: false },
         data.browse_folder_path,
         data.folder_favorites ?? [],
+        data.recent_files ?? [],
+        data.pinned_locations ?? [],
       );
     }
   }
@@ -1239,6 +1251,15 @@ paletteQuery.addEventListener("input", async () => {
     row.textContent = entry.title + chord + (entry.enabled ? "" : " (greyed)");
     row.disabled = !entry.enabled;
     row.onclick = () => {
+      if (entry.open_path) {
+        void invoke<TabContentDto>("open_path", { path: entry.open_path }).then((d) => {
+          if (d) {
+            void applyState(d);
+          }
+          togglePalette();
+        });
+        return;
+      }
       invoke<string>("execute_command", { commandId: entry.command_id }).then((msg) => {
         if (entry.command_id === "unibrowser.script.demo.hello") {
           appendScriptOutput(String(msg));

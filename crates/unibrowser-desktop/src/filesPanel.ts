@@ -139,11 +139,25 @@ async function applySnapshot(deps: FilesPanelDeps, data: unknown) {
   }
 }
 
+export interface RecentFileEntry {
+  path: string;
+  label: string;
+  pinned: boolean;
+}
+
+export interface PinnedPlaceEntry {
+  id: string;
+  label: string;
+  location: string;
+}
+
 export interface FilesPanelDeps {
   entries: DirEntry[];
   filesView: FilesViewDto;
   browsePath: string;
   folderFavorites: string[];
+  recentFiles?: RecentFileEntry[];
+  pinnedPlaces?: PinnedPlaceEntry[];
   sidePanel: HTMLElement;
   onApplyState: (data: unknown) => void | Promise<void>;
   persistFilesView: (view: FilesViewDto) => Promise<void>;
@@ -905,6 +919,61 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       favRow.appendChild(btn);
     });
     host.appendChild(favRow);
+  }
+
+  const recent = deps.recentFiles ?? [];
+  const pins = deps.pinnedPlaces ?? [];
+  if (recent.length || pins.length) {
+    const places = document.createElement("section");
+    places.className = "files-places";
+    places.setAttribute("aria-label", t("files.placesHeading"));
+    const heading = document.createElement("h3");
+    heading.textContent = t("files.placesHeading");
+    places.appendChild(heading);
+
+    if (recent.length) {
+      const sub = document.createElement("p");
+      sub.className = "files-places-sub";
+      sub.textContent = t("files.placesRecent");
+      places.appendChild(sub);
+      const list = document.createElement("ul");
+      list.className = "files-places-list";
+      recent.slice(0, 12).forEach((entry) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "files-place-link";
+        btn.textContent = (entry.pinned ? "★ " : "") + entry.label;
+        btn.title = entry.path;
+        btn.onclick = () => void openPath(entry.path, deps);
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+      places.appendChild(list);
+    }
+
+    if (pins.length) {
+      const sub = document.createElement("p");
+      sub.className = "files-places-sub";
+      sub.textContent = t("files.placesFolders");
+      places.appendChild(sub);
+      const list = document.createElement("ul");
+      list.className = "files-places-list";
+      pins.forEach((pin) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "files-place-link";
+        btn.textContent = pin.label;
+        btn.title = pin.location;
+        btn.onclick = () => void openPath(pin.location, deps);
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+      places.appendChild(list);
+    }
+
+    host.appendChild(places);
   }
 
   const toolbar = document.createElement("div");

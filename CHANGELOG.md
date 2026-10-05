@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- Unified **Increase font size** demo: `unibrowser.font.size.increase` on Monaco/text, SVG preview, DOCX/EPUB HTML, HTTP user-style; matrix in [`docs/commands-cross-format.md`](docs/commands-cross-format.md).
+- **Places**: recent files + pinned folders in Files manager; palette entries (`unibrowser.places.open`) with `open_path`.
+- Theme persistence (light / dark / system) applies to Command Manager chrome and floating toolbars; high-contrast borders on CM + bars.
+- Hello-world **`.ubmod`** sample (`examples/hello-world.ubmod`, `scripts/build-hello-ubmod.sh`); [`docs/plugin-sdk.md`](docs/plugin-sdk.md).
 - Onboarding: skippable first-run tour (`onboarding_tour_skipped_forever`), non-blocking card; [`docs/onboarding.md`](docs/onboarding.md).
 - DXF **proving mod** (`base-dxf`): geometry summary, wireframe/SVG proxy, greyed CAD commands; [`docs/proving-mod-dxf.md`](docs/proving-mod-dxf.md).
 - Palette command **Run demo Rhai script** → script output panel + optional font-size bump on text tabs.

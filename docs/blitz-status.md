@@ -14,7 +14,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Viewers | Monaco text, PDF (multi-engine proving banner + lazy raster proxy), DOCX, SVG, CSV, EPUB search, images, video/audio, MIDI stub, `.unibrow` board/timeline + MIDI scrub status |
 | Projects | Templates, `project.json` autosave backup, share zip import/export; timeline **H.264 export** (ffmpeg, fast/balanced) with progress toasts |
 | Mods | Bundled `base-*`, mod portal (context install panel + Open VSX / `.ubmod` stubs), Rhai scripts, Linux user `mods/` + dynamic cdylib (feature flag); VSIX `activationEvents` stored |
-| Toolbars | Floating bars drag-anywhere; positions in `toolbars.json` as screen coords ([toolbars.md](toolbars.md)) |
+| Toolbars | Floating bars drag-anywhere; positions in `toolbars.json` as screen coords ([toolbars.md](toolbars.md)); theme + high-contrast on CM and floating bars |
+| Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style ([commands-cross-format.md](commands-cross-format.md)) |
+| Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
+| Plugin sample | `examples/hello-world.ubmod` + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
 | Recovery | Text/SVG crash backups (opt-in); `.unibrow` `project.json` debounced backups + launch prompt when project autosave or crash recovery is on |
 | Downloads | Linux WebKit `on_download` → shell; optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
 | A11y prefs | High contrast, reduce motion, skippable first-run tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |

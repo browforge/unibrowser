@@ -118,6 +118,7 @@ fn build_command_registry(
             vsix_host_commands,
         );
     }
+    crate::epub_stub::register_handlers(&mut registry);
     let mut mods_line = mod_host.load_order.join(", ");
     #[cfg(feature = "dynamic-mods")]
     let mut dynamic_libs = Vec::new();

@@ -153,9 +153,9 @@ fn font_enable(doc: &DocumentSession) -> Enablement {
             reason: "Wrong backend".into(),
         };
     }
-    if !doc.backend.selection().has_text_selection {
+    if !doc.backend.capabilities().font_size {
         return Enablement::Disabled {
-            reason: "Select vector text".into(),
+            reason: "Format does not support font size".into(),
         };
     }
     Enablement::Enabled

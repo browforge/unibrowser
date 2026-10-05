@@ -30,7 +30,7 @@ impl unibrowser_engine::document::DocumentBackend for WebBackend {
         Mode::Web
     }
     fn capabilities(&self) -> Capabilities {
-        Capabilities { font_size: false }
+        Capabilities { font_size: true }
     }
     fn selection(&self) -> SelectionSnapshot {
         SelectionSnapshot::default()
@@ -72,14 +72,12 @@ fn web_font_enable(doc: &DocumentSession) -> Enablement {
             reason: "Wrong backend".into(),
         };
     }
-    Enablement::Disabled {
-        reason: "Web font size requires user-style injection (deferred)".into(),
-    }
+    Enablement::Enabled
 }
 
 fn web_font_exec(doc: &mut DocumentSession) -> Result<String, String> {
     let _ = doc;
-    Err("Web font commands not yet wired to page content".into())
+    Err("Use host user-style injection (execute_command intercept)".into())
 }
 
 pub fn register(registry: &mut CommandRegistry) {

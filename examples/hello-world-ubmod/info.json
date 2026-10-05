@@ -1,0 +1,7 @@
+{
+  "name": "hello-world",
+  "version": "0.1.0",
+  "title": "Hello world mod",
+  "unibrowser_api": "0.1.0",
+  "library": "libub_mod_cdylib_stub.so"
+}

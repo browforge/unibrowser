@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import enNz from "./i18n/en-NZ.json";
 import enUs from "./i18n/en-US.json";
 
@@ -22,7 +23,6 @@ export function supportedLocales(): LocaleId[] {
 
 export async function loadUiLocale(): Promise<LocaleId> {
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
     const prefs = await invoke<{ ui_locale: string }>("get_preferences");
     const id = prefs.ui_locale === "en-US" ? "en-US" : "en-NZ";
     setLocale(id);
