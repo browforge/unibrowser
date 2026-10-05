@@ -62,6 +62,13 @@ impl CommandRegistry {
             aliases: &["zoom out", "smaller page"],
         });
         reg.register_command(CommandMeta {
+            id: commands::PAGE_ZOOM_RESET_ALL,
+            title: "Reset zoom for all sites",
+            icon: "zoom-reset",
+            default_keybinding: None,
+            aliases: &["zoom reset all", "clear site zoom"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::FIND_IN_DOCUMENT,
             title: "Find in document",
             icon: "search",
@@ -304,6 +311,7 @@ impl CommandRegistry {
             || command_id == commands::CLOSE_TABS_TO_RIGHT
             || command_id == commands::REOPEN_CLOSED_TAB
             || command_id == commands::TOGGLE_TAB_MUTE
+            || command_id == commands::PAGE_ZOOM_RESET_ALL
         {
             return Enablement::Enabled;
         }

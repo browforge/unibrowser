@@ -279,10 +279,9 @@ impl AppState {
     ) -> (BrowserLocation, bool, Option<DocumentSession>) {
         if let BrowserLocation::Http { url } = &location {
             if web_handles(&location) {
-                let doc = DocumentSession::new(
-                    url.clone(),
-                    Box::new(WebBackend::new(url.clone())),
-                );
+                let mut backend = WebBackend::new(url.clone());
+                backend.reader_mode = crate::web_reader_prefs::get_origin_reader_mode(url);
+                let doc = DocumentSession::new(url.clone(), Box::new(backend));
                 return (location, false, Some(doc));
             }
         }
@@ -361,7 +360,12 @@ impl AppState {
     }
 
     pub fn navigate_input(&self, input: &str, window_label: &str) -> Result<BrowserLocation, String> {
-        let loc = parse_user_input(input, &self.cwd);
+        let loc = if input.trim().starts_with("file://") {
+            let path = crate::path_security::resolve_file_url_input(input.trim(), &self.cwd)?;
+            BrowserLocation::File { path }
+        } else {
+            parse_user_input(input, &self.cwd)
+        };
         let (loc, is_dir, doc) = self.resolve_location(loc);
         let loc = match loc {
             BrowserLocation::File { path } => {

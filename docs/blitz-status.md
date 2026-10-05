@@ -10,7 +10,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | --- | --- |
 | Shell | Tauri 2 desktop: tabs, omnibox (`file://`, paths, `https://`, `unibrowser://`), multi-window, **split view** (experimental vertical split, [split-view.md](split-view.md)), **session restore** ([session-restore.md](session-restore.md)), downloads (default open in tab) |
 | Downloads UI | `unibrowser://downloads` manager: history, retry failed, clear list |
-| Security | Trust banners, remote-web chrome hint, click-to-play media ([security.md](security.md)) |
+| Security | Trust banners, remote-web chrome hint, click-to-play media; omnibox `file://` paths percent-decoded and traversal-checked ([security.md](security.md)) |
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
@@ -68,7 +68,8 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Projects | Templates, `project.json` autosave backup, share zip import/export; timeline **H.264 export** (ffmpeg, fast/balanced) with progress toasts |
 | Mods | Bundled `base-*`, mod portal (context install panel + Open VSX / `.ubmod` stubs), Rhai scripts, Linux user `mods/` + dynamic cdylib (feature flag); VSIX `activationEvents` stored |
 | Toolbars | Floating bars drag-anywhere; screen coords across monitors/DPI ([toolbars.md](toolbars.md)); right-click **Reset this toolbar**; theme + high-contrast on CM and floating bars |
-| Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style ([commands-cross-format.md](commands-cross-format.md)) |
+| Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style; per-origin page zoom (+/-) with palette **Reset zoom for all sites** ([commands-cross-format.md](commands-cross-format.md)) |
+| Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
 | Recovery | Text/SVG crash backups (opt-in); `.unibrow` `project.json` debounced backups + launch prompt when project autosave or crash recovery is on |

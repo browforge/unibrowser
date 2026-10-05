@@ -2,6 +2,8 @@
 
 use std::path::{Component, Path, PathBuf};
 
+use url::Url;
+
 pub fn reject_traversal(path: &Path) -> Result<(), String> {
     if path.as_os_str().is_empty() {
         return Err("empty path".into());
@@ -26,6 +28,48 @@ pub fn reject_traversal(path: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Resolve omnibox-style `file://` input (percent-decoding, then traversal guard).
+pub fn resolve_file_url_input(input: &str, cwd: &Path) -> Result<PathBuf, String> {
+    let trimmed = input.trim();
+    let rest = trimmed
+        .strip_prefix("file://")
+        .ok_or_else(|| "not a file URL".to_string())?;
+    let decoded = percent_decode_lossy(rest);
+    let probe = PathBuf::from(decoded.trim());
+    reject_traversal(&probe)?;
+    let path = if probe.is_absolute() {
+        probe
+    } else {
+        let as_url = format!("file:///{}", decoded.trim_start_matches('/'));
+        let parsed = Url::parse(&as_url).map_err(|e| e.to_string())?;
+        parsed
+            .to_file_path()
+            .map_err(|_| "invalid file URL path".to_string())?
+    };
+    reject_traversal(&path)?;
+    resolve_open_path(&path.to_string_lossy(), cwd)
+}
+
+fn percent_decode_lossy(input: &str) -> String {
+    let mut out = Vec::new();
+    let bytes = input.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(pair) = std::str::from_utf8(&bytes[i + 1..i + 3]) {
+                if let Ok(byte) = u8::from_str_radix(pair, 16) {
+                    out.push(byte);
+                    i += 3;
+                    continue;
+                }
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// Resolve a user-supplied path against `cwd` (absolute paths allowed after traversal check).
@@ -92,6 +136,16 @@ mod tests {
     #[test]
     fn rejects_embedded_null() {
         assert!(reject_traversal(Path::new("a\0b")).is_err());
+    }
+
+    #[test]
+    fn file_url_rejects_parent_dir() {
+        let dir = std::env::temp_dir().join("ub-file-url-guard");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        assert!(resolve_file_url_input("file://../../../etc/passwd", &dir).is_err());
+        assert!(resolve_file_url_input("file://%2e%2e%2f%2e%2e%2fetc%2fpasswd", &dir).is_err());
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

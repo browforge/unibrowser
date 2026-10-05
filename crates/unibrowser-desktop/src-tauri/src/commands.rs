@@ -44,8 +44,9 @@ use crate::epub_preview::{EpubChapterDto, EpubChapterListItem, EpubSearchHitDto}
 use crate::user_backup::{self, GrandmaBackupV1};
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
 use crate::webview::{
-    adjust_page_font_for_url, adjust_page_zoom_for_url, reset_page_font_for_url,
-    reset_page_zoom_for_url, sync_content_bounds, sync_content_webview_for_window,
+    adjust_page_font_for_url, adjust_page_zoom_for_url, inject_page_zoom_percent,
+    reset_page_font_for_url, reset_page_zoom_for_url, sync_content_bounds,
+    sync_content_webview_for_window,
 };
 use unibrowser_mod_api::handlers::{
     CONTEXT_HELP_ID, DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
@@ -2934,6 +2935,17 @@ enum CloseTabsMode {
     ToRight,
 }
 
+fn reset_all_web_zoom_prefs(app: &AppHandle) -> Result<String, String> {
+    let count = crate::web_zoom_prefs::reset_all_origin_zoom_prefs()?;
+    for (label, _) in app.webview_windows() {
+        let _ = inject_page_zoom_percent(app, &label, 100);
+    }
+    Ok(format!(
+        "Cleared saved zoom for {} site(s); open web tabs set to 100%",
+        count
+    ))
+}
+
 fn reopen_closed_tab(
     window: &tauri::Window,
     app: &AppHandle,
@@ -3117,6 +3129,9 @@ fn execute_command_impl(
     if command_id == unibrowser_mod_api::commands::TOGGLE_TAB_MUTE {
         return toggle_active_tab_muted(&window, &app, &state);
     }
+    if command_id == unibrowser_mod_api::commands::PAGE_ZOOM_RESET_ALL {
+        return reset_all_web_zoom_prefs(&app);
+    }
     if command_id == unibrowser_mod_api::commands::WORKSPACE_QUICK_OPEN {
         return Ok("workspace-quick-open".into());
     }
@@ -3151,7 +3166,8 @@ fn execute_command_impl(
             .ok_or("reader mode is only for https pages")?;
         web.reader_mode = !web.reader_mode;
         let loc = tab.location.clone();
-        if let BrowserLocation::Http { .. } = &loc {
+        if let BrowserLocation::Http { url } = &loc {
+            crate::web_reader_prefs::set_origin_reader_mode(url, web.reader_mode)?;
             crate::webview::apply_reader_mode(&app, window.label(), web.reader_mode)?;
         }
         return Ok(if web.reader_mode {

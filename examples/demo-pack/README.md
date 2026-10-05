@@ -23,6 +23,7 @@ Use this folder for a **~10 minute** walkthrough. Open `examples/demo-pack` in U
 | `sample.txt` | Monaco text editor, **Ctrl+S** save |
 | `sample.svg` | SVG viewer |
 | `sample.png` | Image viewer |
+| `sample.pdf` | PDF text layer (select + Copy) |
 | `sample.unibrow/` | Board/timeline project (`project.json` format v2) |
 
 Narrative and gap list: [docs/blitz-status.md](../docs/blitz-status.md) (demo script section).

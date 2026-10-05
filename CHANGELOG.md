@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Web zoom:** Palette **Reset zoom for all sites** clears `web-zoom-prefs.json` and sets open https tabs to 100%.
+- **Reader mode:** Last on/off per origin persisted (`web-reader-prefs.json`) when toggling reader mode.
+- **Security:** Omnibox `file://` URLs use percent-decoding plus existing traversal guards (`resolve_file_url_input`); unit test for encoded `..` segments.
+- **Demo pack:** `examples/demo-pack/sample.pdf` (minimal original PDF for text-layer demo).
 - **Tabs:** **Reopen closed tab** (`Ctrl+Shift+T`, stack of last 10 file paths / URLs); **Mute tab** stub on https (injected `video`/`audio` mute) and media file tabs (strip control + viewer `muted`).
 - **PDF:** Text-layer select + **Copy** / **Print selection** when pdf.js exposes a text layer; raster-only pages remain a documented gap.
 - **Docs:** [CONTRIBUTING.md](docs/CONTRIBUTING.md) lists `./scripts/blitz-metrics.sh` and `./scripts/lint-doc-links.sh`.

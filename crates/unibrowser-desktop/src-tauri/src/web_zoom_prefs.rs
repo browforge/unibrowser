@@ -80,3 +80,12 @@ pub fn reset_origin_zoom_percent(url: &str) -> Result<u8, String> {
     save_store(&store)?;
     Ok(DEFAULT_PERCENT)
 }
+
+/// Clear every saved per-origin zoom; returns how many origins were removed.
+pub fn reset_all_origin_zoom_prefs() -> Result<usize, String> {
+    let mut store = load_store();
+    let count = store.origins.len();
+    store.origins.clear();
+    save_store(&store)?;
+    Ok(count)
+}

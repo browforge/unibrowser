@@ -28,6 +28,7 @@ mod diagnostic_log;
 mod capture;
 mod web_font_prefs;
 mod web_zoom_prefs;
+mod web_reader_prefs;
 mod crash_recovery;
 mod crash_log;
 mod process_status;
