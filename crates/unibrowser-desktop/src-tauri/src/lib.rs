@@ -251,6 +251,8 @@ pub fn run() {
             commands::set_ui_locale,
             commands::set_accessibility_prefs,
             commands::set_command_manager_dense,
+            commands::set_chrome_focus_mode,
+            commands::set_larger_hit_targets,
             commands::complete_onboarding_checklist_step,
             commands::set_onboarding_checklist_skip_forever,
             commands::save_window_geometry,

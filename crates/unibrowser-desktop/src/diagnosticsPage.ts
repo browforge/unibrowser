@@ -46,6 +46,8 @@ interface DiagnosticsInfoDto {
   memory_rss_kb: number | null;
   memory_detail: string;
   crash_logs_dir: string | null;
+  wasm_proving_stub: boolean;
+  wasm_runtime_linked: boolean;
 }
 
 export async function renderDiagnostics(root: HTMLElement) {
@@ -82,6 +84,10 @@ export async function renderDiagnostics(root: HTMLElement) {
         })
       : t("diagnostics.safeModeOff"),
     `${t("diagnostics.memory")}: ${info.memory_detail}`,
+    info.wasm_proving_stub
+      ? t("diagnostics.wasmProvingOn")
+      : t("diagnostics.wasmProvingOff"),
+    `${t("diagnostics.wasmRuntime")}: ${info.wasm_runtime_linked ? t("diagnostics.wasmRuntimeLinked") : t("diagnostics.wasmRuntimeStub")}`,
   ].forEach((line) => {
     const li = document.createElement("li");
     li.textContent = line;

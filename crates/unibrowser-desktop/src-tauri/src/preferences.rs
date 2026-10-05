@@ -138,6 +138,12 @@ pub struct Preferences {
     /// Skip user `mods/` and dev cdylib loads (bundled mods only). Requires restart.
     #[serde(default)]
     pub disable_user_mods: bool,
+    /// Denser chrome: compact Command Manager and smaller tabs.
+    #[serde(default)]
+    pub chrome_focus_mode: bool,
+    /// Larger minimum hit targets on tabs and command chips.
+    #[serde(default)]
+    pub larger_hit_targets: bool,
 }
 
 /// Safe mode: env wins for this process; prefs apply on next launch.
@@ -266,6 +272,8 @@ impl Default for Preferences {
             workspace_root: None,
             docx_reader_font_pt: HashMap::new(),
             disable_user_mods: false,
+            chrome_focus_mode: false,
+            larger_hit_targets: false,
         }
     }
 }

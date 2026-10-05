@@ -3066,6 +3066,65 @@ mark.docx-search-hit--current {
   min-height: 1.5rem;
 }
 
+body.chrome-focus-mode .mods-line {
+  display: none;
+}
+
+body.chrome-focus-mode .tab-strip {
+  margin-bottom: 0.2rem;
+  gap: 0.15rem;
+}
+
+body.chrome-focus-mode .tab {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.78rem;
+}
+
+body.chrome-focus-mode .command-manager {
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+}
+
+body.chrome-focus-mode .cm-tab {
+  padding: 0.12rem 0.35rem;
+  font-size: 0.75rem;
+}
+
+body.chrome-focus-mode .command-manager-commands {
+  gap: 0.2rem;
+  min-height: 1.35rem;
+}
+
+body.chrome-focus-mode .ui-command {
+  padding: 0.1rem 0.38rem;
+  font-size: 0.78rem;
+}
+
+body.chrome-focus-mode .nav-row button {
+  padding: 0.12rem 0.35rem;
+  font-size: 0.8rem;
+}
+
+html[data-large-targets="true"] .tab {
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+}
+
+html[data-large-targets="true"] .ui-command {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.55rem;
+}
+
+html[data-large-targets="true"] .nav-row button {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+}
+
+html[data-large-targets="true"] .cm-tab {
+  min-height: 2rem;
+  padding: 0.3rem 0.5rem;
+}
+
 .ui-command {
   display: inline-flex;
   align-items: center;

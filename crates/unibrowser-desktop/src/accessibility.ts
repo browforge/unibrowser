@@ -26,12 +26,22 @@ export function applyCommandManagerDensity(dense: boolean) {
   }
 }
 
+export function applyChromeFocusMode(enabled: boolean) {
+  document.body.classList.toggle("chrome-focus-mode", enabled);
+}
+
+export function applyLargerHitTargets(enabled: boolean) {
+  document.documentElement.dataset.largeTargets = enabled ? "true" : "false";
+}
+
 export async function loadAccessibilityPreferences() {
   try {
     const prefs = await invoke<{
       high_contrast: boolean;
       reduce_motion: string;
       command_manager_dense: boolean;
+      chrome_focus_mode: boolean;
+      larger_hit_targets: boolean;
     }>("get_preferences");
     applyHighContrastToDocument(prefs.high_contrast);
     const rm = prefs.reduce_motion?.toLowerCase();
@@ -40,6 +50,8 @@ export async function loadAccessibilityPreferences() {
     }
     applyReduceMotionToDocument();
     applyCommandManagerDensity(prefs.command_manager_dense);
+    applyChromeFocusMode(prefs.chrome_focus_mode);
+    applyLargerHitTargets(prefs.larger_hit_targets);
   } catch {
     applyReduceMotionToDocument();
   }
@@ -67,4 +79,14 @@ export async function setReduceMotion(pref: ReduceMotionPref) {
 export async function setCommandManagerDense(dense: boolean) {
   await invoke("set_command_manager_dense", { dense });
   applyCommandManagerDensity(dense);
+}
+
+export async function setChromeFocusMode(enabled: boolean) {
+  await invoke("set_chrome_focus_mode", { enabled });
+  applyChromeFocusMode(enabled);
+}
+
+export async function setLargerHitTargets(enabled: boolean) {
+  await invoke("set_larger_hit_targets", { enabled });
+  applyLargerHitTargets(enabled);
 }

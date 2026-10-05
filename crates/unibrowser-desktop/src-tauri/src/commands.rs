@@ -3073,6 +3073,8 @@ pub struct PreferencesDto {
     pub workspace_root: Option<String>,
     pub disable_user_mods: bool,
     pub safe_mode_env: bool,
+    pub chrome_focus_mode: bool,
+    pub larger_hit_targets: bool,
 }
 
 #[tauri::command]
@@ -3992,7 +3994,25 @@ fn preferences_dto() -> PreferencesDto {
         workspace_root: p.workspace_root.clone(),
         disable_user_mods: p.disable_user_mods,
         safe_mode_env: std::env::var("UNIBROWSER_SAFE_MODE").as_deref() == Ok("1"),
+        chrome_focus_mode: p.chrome_focus_mode,
+        larger_hit_targets: p.larger_hit_targets,
     }
+}
+
+#[tauri::command]
+pub fn set_chrome_focus_mode(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.chrome_focus_mode = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_larger_hit_targets(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.larger_hit_targets = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 fn parse_files_sort_mode(s: &str) -> crate::preferences::FilesSortMode {
@@ -4478,6 +4498,8 @@ pub struct DiagnosticsInfoDto {
     pub memory_rss_kb: Option<u64>,
     pub memory_detail: String,
     pub crash_logs_dir: Option<String>,
+    pub wasm_proving_stub: bool,
+    pub wasm_runtime_linked: bool,
 }
 
 #[tauri::command]
@@ -4528,6 +4550,8 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
         memory_detail: process_mem.detail,
         crash_logs_dir: crate::crash_log::crash_logs_dir()
             .map(|p| p.to_string_lossy().into_owned()),
+        wasm_proving_stub: unibrowser_mod_host::wasm::proving_hello_wasm_available(),
+        wasm_runtime_linked: unibrowser_mod_host::wasm::runtime_linked(),
     }
 }
 

@@ -137,6 +137,9 @@ fn build_command_registry(
     }
     crate::epub_stub::register_handlers(&mut registry);
     let mut mods_line = mod_host.load_order.join(", ");
+    if let Some(name) = unibrowser_mod_host::wasm::register_proving_hello_stub(&mut registry) {
+        append_mod_name(&mut mods_line, &name);
+    }
     #[cfg(feature = "dynamic-mods")]
     let mut dynamic_libs = Vec::new();
     #[cfg(all(feature = "dynamic-mods", target_os = "linux"))]

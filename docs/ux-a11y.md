@@ -2,6 +2,24 @@
 
 Target: keyboard-first use alongside mouse; WCAG-minded focus and labels. Full audit is out of scope for the blitz.
 
+## Reduced motion
+
+| Source | Behaviour |
+| --- | --- |
+| Settings → **Reduce motion** = **System** | Honors `prefers-reduced-motion: reduce` from the OS; updates live when the OS setting changes |
+| **On** | Forces reduced motion via `data-reduce-motion="true"` on `<html>` |
+| **Off** | Sets `data-reduce-motion="false"` so CSS animations/transitions stay enabled even if the OS prefers reduce |
+
+CSS shortens animations, transitions, and scroll smoothing when reduced motion is active ([`styles.css`](../crates/unibrowser-desktop/src/styles.css)).
+
+## Larger hit targets
+
+Settings → Accessibility → **Larger hit targets** sets `data-large-targets="true"` on `<html>` and increases minimum sizes on tabs, nav buttons, Command Manager chips, and context tabs. Independent of **Focus mode** (Appearance).
+
+## Focus mode (Appearance)
+
+**Focus mode** compacts chrome for power users: smaller tabs, tighter Command Manager, hides the mods line. Does not change content webview zoom.
+
 ## Command Manager tabs
 
 | Key | Action |
@@ -34,7 +52,7 @@ Nav buttons use `aria-label` from the same strings as tooltips (en-NZ `t()` via 
 
 ## Gaps
 
-- Monaco editor: no native spellcheck; see experimental mirror in Advanced settings.
+- Monaco editor: no native spellcheck; see experimental mirror in Advanced settings (also DOCX preview + EPUB notes when enabled).
 - Embedded webview content: inherits platform WebView focus; not fully styled by shell CSS.
 - Floating Command Manager bars: drag handle is visual only; keyboard reposition not implemented.
 

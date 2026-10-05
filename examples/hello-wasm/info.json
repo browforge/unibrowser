@@ -1,0 +1,8 @@
+{
+  "id": "hello-wasm",
+  "name": "Hello WASM proving",
+  "version": "0.0.1",
+  "unibrowser_api": "0.1",
+  "wasm_module": "hello.wasm",
+  "description": "Proving package for T2 loader inch; host registers a no-op command when hello.wasm is present."
+}

@@ -4,11 +4,15 @@ import { setLocale, supportedLocales, t, type LocaleId } from "./i18n";
 
 type I18nKey = keyof typeof enNz;
 import {
+  applyChromeFocusMode,
   applyCommandManagerDensity,
   applyHighContrastToDocument,
+  applyLargerHitTargets,
   applyReduceMotionToDocument,
+  setChromeFocusMode,
   setCommandManagerDense,
   setHighContrast,
+  setLargerHitTargets,
   setReduceMotion,
   type ReduceMotionPref,
 } from "./accessibility";
@@ -53,6 +57,8 @@ interface PrefsDto {
   bookmark_quick_links: { label: string; url: string }[];
   disable_user_mods: boolean;
   safe_mode_env: boolean;
+  chrome_focus_mode: boolean;
+  larger_hit_targets: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -139,6 +145,33 @@ export async function renderSettings(root: HTMLElement) {
   themeSection.appendChild(themeHeading);
   themeSection.appendChild(themeSelect);
   root.appendChild(themeSection);
+
+  const appearanceSection = document.createElement("section");
+  appearanceSection.className = "settings-section";
+  const appearanceHeading = document.createElement("h3");
+  appearanceHeading.textContent = t("settings.appearance");
+  appearanceSection.appendChild(appearanceHeading);
+  const focusRow = document.createElement("div");
+  focusRow.className = "settings-row";
+  const focusCb = document.createElement("input");
+  focusCb.type = "checkbox";
+  focusCb.id = "settings-chrome-focus";
+  focusCb.checked = prefs.chrome_focus_mode;
+  focusCb.onchange = async () => {
+    await setChromeFocusMode(focusCb.checked);
+    applyChromeFocusMode(focusCb.checked);
+  };
+  const focusLabel = document.createElement("label");
+  focusLabel.htmlFor = focusCb.id;
+  focusLabel.textContent = t("settings.chromeFocusMode");
+  const focusNote = document.createElement("p");
+  focusNote.className = "viewer-note";
+  focusNote.textContent = t("settings.chromeFocusModeNote");
+  focusRow.appendChild(focusCb);
+  focusRow.appendChild(focusLabel);
+  appearanceSection.appendChild(focusRow);
+  appearanceSection.appendChild(focusNote);
+  root.appendChild(appearanceSection);
 
   const bookmarkSection = document.createElement("section");
   bookmarkSection.className = "settings-section";
@@ -270,6 +303,27 @@ export async function renderSettings(root: HTMLElement) {
   };
   a11ySection.appendChild(motionLabel);
   a11ySection.appendChild(motionSelect);
+
+  const targetsRow = document.createElement("div");
+  targetsRow.className = "settings-row";
+  const targetsCb = document.createElement("input");
+  targetsCb.type = "checkbox";
+  targetsCb.id = "settings-larger-targets";
+  targetsCb.checked = prefs.larger_hit_targets;
+  targetsCb.onchange = async () => {
+    await setLargerHitTargets(targetsCb.checked);
+    applyLargerHitTargets(targetsCb.checked);
+  };
+  const targetsLabel = document.createElement("label");
+  targetsLabel.htmlFor = targetsCb.id;
+  targetsLabel.textContent = t("settings.largerHitTargets");
+  const targetsNote = document.createElement("p");
+  targetsNote.className = "viewer-note";
+  targetsNote.textContent = t("settings.largerHitTargetsNote");
+  targetsRow.appendChild(targetsCb);
+  targetsRow.appendChild(targetsLabel);
+  a11ySection.appendChild(targetsRow);
+  a11ySection.appendChild(targetsNote);
   root.appendChild(a11ySection);
 
   const cmSection = document.createElement("section");

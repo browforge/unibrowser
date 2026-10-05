@@ -4,73 +4,21 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 
 **Status:** Phase 1 MVP browser shell on **Tauri 2** (`unibrowser-desktop`). See [docs/vision.md](docs/vision.md) and [docs/roadmap.md](docs/roadmap.md).
 
-## What works today (Wed report draft)
+## What works today
 
-Use this section as the source for weekly status. Narrative + gaps: [docs/blitz-status.md](docs/blitz-status.md). Last updated during the 36h blitz on `main`.
+**Source of truth:** the shipped table, demo script, and ranked gaps live in [docs/blitz-status.md](docs/blitz-status.md) (updated each blitz week). This section is a newcomer summary only; if anything disagrees, trust blitz-status.
 
-### Browser and windows
+**In one line:** Tauri 2 desktop shell with tabs for folders, local files, and `https://`; Command Manager + palette across formats; bundled `base-*` mods; `.unibrow` projects with timeline H.264 export when ffmpeg is present; Linux-friendly user dynamic mods; VSIX metadata and stubs, not a full JS host.
 
-| Capability | Detail |
+| Area | Highlights (not exhaustive) |
 | --- | --- |
-| Tabs & omnibox | `file://`, paths, `https://`, internal `unibrowser://` pages; back/forward/reload; dirty tab marker and close confirm |
-| Multi-window | **Per-window** tabs, split view, undo stacks, compare state, chrome notices; shared prefs on disk ([docs/multi-window.md](docs/multi-window.md)) |
-| Home / NTP | Customisable sections (hero, actions, browse folder, recent); plain-text empty states |
-| Recent & session | Recent files list; optional session restore on launch |
-| Downloads | WebView / GTK hook → `handle_download_url`; default open in new tab; path traversal rejected |
-| Web content | Per-window embedded webview; optional **devtools** (Advanced settings); per-origin font zoom |
+| Shell | Multi-window, split view, session restore, downloads manager, F11 content fullscreen, go-to-tab across windows |
+| Files | Workspace tree, git dirty hints, breadcrumbs, favourites, zip peek, magic-byte sniff |
+| Viewers | Monaco, PDF, DOCX, EPUB, images, audio waveform, video; experimental compare and tab capture (platform gaps on diagnostics) |
+| Chrome | Bookmark bar, notification drawer, safe mode, focus mode + a11y prefs ([ux-a11y.md](docs/ux-a11y.md)) |
+| Mods | Portal, Rhai, hello `.ubmod`; WASM **proving** command when `examples/hello-wasm/hello.wasm` exists ([wasm-t2-status.md](docs/wasm-t2-status.md)) |
 
-### Files and formats
-
-| Capability | Detail |
-| --- | --- |
-| Folder browse | **Breadcrumbs**, parent up, **folder favourites** (star), sort (name/date/size), hidden files, **in-folder name filter** (debounced), **lazy image thumbnails** (capped), **multi-select** (open, copy paths, delete) |
-| File ops | **Copy/move** (side-panel picker), **drag-drop** onto folder tabs / current folder / **`.unibrow` board**, **compress to zip**, **properties**, create/rename/duplicate/delete; internal **Ctrl+X/C/V**; **Ctrl+Shift+F** filename search under a root (depth cap); listing **timeout/cancel** on slow paths; **recent** pin/unpin and clear unpinned |
-| Archives | **Peek** `.zip` / `.unibrow` zip; click a file entry to **extract to cache and open** when supported |
-| Magic-byte sniff | Wrong extension still opens correct viewer: PDF, PNG, JPEG, GIF, WebP, ZIP/EPUB, WAV, MP3, OGG, FLAC, RIFF/AVI → video, etc. |
-| Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |
-| Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters + in-book search |
-| Media | Video with scrub frames; **audio peak waveform** (decode or stub bars); optional LGPL sidecar pool |
-| 3D / CAD | `.unibrow` **templates** (blank / notes board / video mix), board colours, timeline markers, scrub + MIDI beeps, **project.json autosave** backup (settings), **share zip** export/import (no `derived/`), full zip export, MP4 preview |
-| Images | PNG/JPEG/GIF/WebP viewer; **Files bulk convert** to PNG or JPEG |
-
-### Commands, keys, and UI chrome
-
-| Capability | Detail |
-| --- | --- |
-| Command Manager | Context tabs, floating toolbars, import/export JSON layouts, workspace layout presets |
-| Palette | Fuzzy search (prefix/word/consecutive bonuses); **key chord** beside each command when bound |
-| Shortcuts | `keybindings.json` + VSIX contributions; `unibrowser://keys` cheatsheet page |
-| Chrome | Bookmark bar, split view, tab search, drag-drop open, status bar, toasts, en-NZ `t()` strings |
-| Compare | Side-by-side text diff (Monaco) for two files |
-| Settings | Theme, downloads, auto-save, board snap, crash recovery backups, NTP sections, advanced webview tools |
-| Themes | Light / dark / system persisted |
-
-### Mods, scripting, security
-
-| Capability | Detail |
-| --- | --- |
-| Bundled mods | `base-*` format handlers; mod portal with Open VSX search/install, VSIX enable/disable |
-| Rhai | Sandboxed scripts, per-script command allowlist |
-| API | Frozen mod API 0.1 ([docs/mod-api-stable.md](docs/mod-api-stable.md)) |
-| Security | `path_security` on open/read/drops; `.unibrow` assets confined under `assets/` |
-
-### Quality and tooling
-
-| Capability | Detail |
-| --- | --- |
-| Tests | `cargo test --workspace` (incl. **timeline CRUD fuzz** + zip roundtrip on `.unibrow`) |
-| Desktop build | `npm run build` in `crates/unibrowser-desktop` |
-| Smoke | `./scripts/smoke-desktop-qa.sh` and [docs/qa-desktop.md](docs/qa-desktop.md) |
-
-### Not yet / gaps
-
-- Save-to-disk download disposition UI polish; full VSIX JS extension host
-- Cloud sync; full spreadsheet/DXF NURBS
-- Windows/macOS cdylib runtime load (Linux + user `mods/` today; see [docs/plugin-sdk](docs/plugin-sdk/README.md))
-- Complete i18n beyond en-NZ; Monaco spellcheck
-- Windows installer signing and bundled ffmpeg in installer
-- Real timeline encode (render fades, audio mix, PDF page-per-time); batch convert beyond PNG/JPEG
-- Live multi-user collaboration (share zip is export/import only); cloud project hosting
+**Not yet (see blitz-status gaps):** VSIX JS extension host, WebView2 download wiring, OCR sidecar, full timeline/DAW encode, Win/macOS dynamic mod load, deep i18n, cloud/collab.
 
 ## Licence
 

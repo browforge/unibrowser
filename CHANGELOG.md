@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Focus mode:** Settings → Appearance → denser chrome (compact Command Manager + smaller tab strip); hides mods line.
+- **Accessibility:** `prefers-reduced-motion` honoured via reduce-motion pref; optional **larger hit targets**; documented in [ux-a11y.md](docs/ux-a11y.md).
+- **WASM proving inch:** [examples/hello-wasm/](examples/hello-wasm/) + `mod.wasm.hello` when `hello.wasm` is on disk; [wasm-t2-status.md](docs/wasm-t2-status.md); diagnostics shows proving/runtime lines.
 - **Content fullscreen:** **F11** hides chrome for focused viewing; **Escape** exits; webview bounds refresh — [fullscreen-content.md](docs/fullscreen-content.md).
 - **Picture-in-picture stub:** palette command on video/audio tabs; uses system PiP when the webview supports it.
 - **Spellcheck expansion:** experimental setting applies to DOCX preview (contenteditable) and EPUB reading notes field.
