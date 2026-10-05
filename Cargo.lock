@@ -31,6 +31,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
 dependencies = [
  "cfg-if",
+ "const-random",
  "getrandom 0.3.4",
  "once_cell",
  "version_check",
@@ -293,6 +294,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
+name = "base-audio"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-media",
+ "unibrowser-mod-api",
+]
+
+[[package]]
+name = "base-docx"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
+name = "base-dxf"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
 name = "base-files"
 version = "0.1.0"
 dependencies = [
@@ -302,7 +328,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "base-js"
+version = "0.1.0"
+dependencies = [
+ "rhai",
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+ "unibrowser-script-host",
+]
+
+[[package]]
+name = "base-pdf"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
 name = "base-png"
+version = "0.1.0"
+dependencies = [
+ "image 0.25.10",
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
+name = "base-svg"
 version = "0.1.0"
 dependencies = [
  "unibrowser-engine",
@@ -314,6 +367,15 @@ name = "base-text"
 version = "0.1.0"
 dependencies = [
  "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
+name = "base-video"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-media",
  "unibrowser-mod-api",
 ]
 
@@ -490,6 +552,12 @@ name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
+name = "byteorder-lite"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
 
 [[package]]
 name = "bytes"
@@ -755,6 +823,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "const-random"
+version = "0.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87e00182fe74b066627d63b85fd550ac2998d4b0bd86bfed477a0ae4c7c71359"
+dependencies = [
+ "const-random-macro",
+]
+
+[[package]]
+name = "const-random-macro"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
+dependencies = [
+ "getrandom 0.2.17",
+ "once_cell",
+ "tiny-keccak",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -870,6 +958,12 @@ name = "crossbeam-utils"
 version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
+
+[[package]]
+name = "crunchy"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto-common"
@@ -1204,7 +1298,7 @@ dependencies = [
  "glow",
  "glutin",
  "glutin-winit",
- "image",
+ "image 0.24.9",
  "js-sys",
  "log",
  "objc",
@@ -1681,6 +1775,17 @@ checksum = "1bd49230192a3797a9a4d6abe9b3eed6f7fa4c8a8a4947977c6f80025f92cbd8"
 dependencies = [
  "rustix 1.1.5",
  "windows-link",
+]
+
+[[package]]
+name = "getrandom"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "wasi",
 ]
 
 [[package]]
@@ -2249,6 +2354,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "image"
+version = "0.25.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104"
+dependencies = [
+ "bytemuck",
+ "byteorder-lite",
+ "moxcms",
+ "num-traits",
+ "png 0.18.1",
+]
+
+[[package]]
 name = "indexmap"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2689,6 +2807,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "moxcms"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b"
+dependencies = [
+ "num-traits",
+ "pxfm",
+]
+
+[[package]]
 name = "muda"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3055,6 +3183,9 @@ name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+dependencies = [
+ "portable-atomic",
+]
 
 [[package]]
 name = "open"
@@ -3396,6 +3527,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pxfm"
+version = "0.1.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
+
+[[package]]
 name = "quick-xml"
 version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3564,6 +3701,34 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
+]
+
+[[package]]
+name = "rhai"
+version = "1.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0334639972c0ea5a3fd366aa36116754a11431b619fec3ed559b3f73bcbcebf5"
+dependencies = [
+ "ahash",
+ "bitflags 2.13.2",
+ "num-traits",
+ "once_cell",
+ "rhai_codegen",
+ "smallvec",
+ "smartstring",
+ "thin-vec",
+ "web-time 1.1.0",
+]
+
+[[package]]
+name = "rhai_codegen"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cd3a7535e50bf36857e7be7bec276d334e8c2dfa469c2201226fd01638ea5ca"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -3941,6 +4106,17 @@ name = "smallvec"
 version = "1.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9395f0f0eee849a9b707b2f06bb92a6a422090e2123bb2ef8e87a0e61892a8e"
+
+[[package]]
+name = "smartstring"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fb72c633efbaa2dd666986505016c32c3044395ceaf881518399d2f4127ee29"
+dependencies = [
+ "autocfg",
+ "static_assertions",
+ "version_check",
+]
 
 [[package]]
 name = "smithay-client-toolkit"
@@ -4521,6 +4697,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "thin-vec"
+version = "0.2.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4568d7e143ec86d2021c338bae2afa88699e84b8e0af523626654fe6f03a1748"
+
+[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4597,6 +4779,15 @@ checksum = "7e689342a48d2ea927c87ea50cabf8594854bf940e9310208848d680d668ed85"
 dependencies = [
  "num-conv",
  "time-core",
+]
+
+[[package]]
+name = "tiny-keccak"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
+dependencies = [
+ "crunchy",
 ]
 
 [[package]]
@@ -4925,9 +5116,16 @@ dependencies = [
 name = "unibrowser-desktop"
 version = "0.1.0"
 dependencies = [
+ "base-audio",
+ "base-docx",
+ "base-dxf",
  "base-files",
+ "base-js",
+ "base-pdf",
  "base-png",
+ "base-svg",
  "base-text",
+ "base-video",
  "base-web",
  "serde",
  "serde_json",
@@ -4936,8 +5134,11 @@ dependencies = [
  "tauri-plugin-opener",
  "toy-markdown",
  "unibrowser-engine",
+ "unibrowser-media",
  "unibrowser-mod-api",
  "unibrowser-mod-host",
+ "unibrowser-project",
+ "unibrowser-script-host",
  "url",
 ]
 
@@ -4951,6 +5152,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "unibrowser-media"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "unibrowser-mod-api"
 version = "0.1.0"
 dependencies = [
@@ -4961,9 +5171,16 @@ dependencies = [
 name = "unibrowser-mod-host"
 version = "0.1.0"
 dependencies = [
+ "base-audio",
+ "base-docx",
+ "base-dxf",
  "base-files",
+ "base-js",
+ "base-pdf",
  "base-png",
+ "base-svg",
  "base-text",
+ "base-video",
  "base-web",
  "semver",
  "serde",
@@ -4972,6 +5189,24 @@ dependencies = [
  "toy-markdown",
  "unibrowser-engine",
  "unibrowser-mod-api",
+]
+
+[[package]]
+name = "unibrowser-project"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "unibrowser-script-host"
+version = "0.1.0"
+dependencies = [
+ "rhai",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
