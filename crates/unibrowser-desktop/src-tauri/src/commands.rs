@@ -9,6 +9,8 @@ use unibrowser_engine::{
 };
 use unibrowser_mod_api::{BrowserLocation, DownloadDisposition};
 
+use base_text::{TextBackend, try_text_backend};
+
 use crate::downloads::apply_download_disposition;
 use crate::state::{AppState, list_dir};
 use crate::webview::{content_webview_navigate, sync_content_bounds};
@@ -39,6 +41,15 @@ pub struct PaletteEntryDto {
 }
 
 #[derive(Serialize)]
+pub struct TextDocumentDto {
+    pub path: String,
+    pub content: String,
+    pub font_size_pt: f32,
+    pub language: String,
+    pub dirty: bool,
+}
+
+#[derive(Serialize)]
 pub struct TabContentDto {
     pub tabs: Vec<TabDto>,
     pub active_index: usize,
@@ -47,6 +58,7 @@ pub struct TabContentDto {
     pub status: String,
     pub directory_entries: Option<Vec<base_files::DirEntry>>,
     pub document_status: Option<String>,
+    pub text_document: Option<TextDocumentDto>,
 }
 
 fn location_to_omnibox(loc: &BrowserLocation) -> String {
@@ -72,31 +84,55 @@ fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
     }
 }
 
+fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<TextDocumentDto> {
+    let backend = try_text_backend(&mut *doc.backend)?;
+    Some(TextDocumentDto {
+        path: backend.path.clone(),
+        content: backend.content.clone(),
+        font_size_pt: backend.font_size_pt,
+        language: TextBackend::language_id(&backend.path).into(),
+        dirty: backend.dirty,
+    })
+}
+
 fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
-    let active = tabs.active_tab().ok_or("no active tab")?;
-    let omnibox = location_to_omnibox(&active.location);
-    let directory_entries = if active.is_directory {
-        if let BrowserLocation::File { path } = &active.location {
-            Some(list_dir(path)?)
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let omnibox = tabs
+        .active_tab()
+        .map(|t| location_to_omnibox(&t.location))
+        .ok_or("no active tab")?;
+    let directory_entries = if let Some(active) = tabs.active_tab() {
+        if active.is_directory {
+            if let BrowserLocation::File { path } = &active.location {
+                Some(list_dir(path)?)
+            } else {
+                None
+            }
         } else {
             None
         }
     } else {
         None
     };
-    let document_status = active.document.as_ref().map(|d| d.backend.status_line());
+    let document_status = tabs
+        .active_tab()
+        .and_then(|t| t.document.as_ref())
+        .map(|d| d.backend.status_line());
+    let text_document = tabs
+        .active_tab_mut()
+        .and_then(|t| t.document.as_mut())
+        .and_then(text_document_dto);
     Ok(TabContentDto {
         tabs: tabs.tabs().iter().map(build_tab_dto).collect(),
         active_index: tabs.active_index(),
         omnibox,
         mods_loaded: state.mods_loaded.clone(),
-        status: format!(
-            "{} for command palette",
-            state.keybindings.palette_chord_display()
-        ),
+        status: document_status
+            .clone()
+            .unwrap_or_else(|| format!("{} for command palette", state.keybindings.palette_chord_display())),
         directory_entries,
         document_status,
+        text_document,
     })
 }
 
@@ -185,8 +221,17 @@ pub fn go_forward(app: AppHandle, state: State<AppState>) -> Result<TabContentDt
 
 #[tauri::command]
 pub fn reload_tab(app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
-    if let Some(loc) = tabs.reload_location() {
+    let loc = {
+        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.reload_location()
+    };
+    if let Some(loc) = loc {
+        let (loc, is_dir, doc) = state.resolve_location(loc);
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+        }
         update_content_webview(&app, &loc)?;
     }
     snapshot(&state)
@@ -203,6 +248,7 @@ pub fn get_toolbar_commands(state: State<AppState>) -> Result<Vec<ToolbarCommand
     let tab = tabs.active_tab().ok_or("no tab")?;
     let doc = tab.document.as_ref().ok_or("no document for commands")?;
     let ids = [
+        unibrowser_mod_api::commands::TEXT_SAVE,
         unibrowser_mod_api::commands::FONT_SIZE_INCREASE,
         unibrowser_mod_api::commands::FONT_SIZE_DECREASE,
     ];
@@ -231,6 +277,22 @@ pub fn execute_command(command_id: String, state: State<AppState>) -> Result<Str
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("command needs an open document")?;
     state.registry.execute(&command_id, doc)
+}
+
+#[tauri::command]
+pub fn sync_text_document(
+    content: String,
+    selection_start: usize,
+    selection_end: usize,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    let doc = tab.document.as_mut().ok_or("no text document")?;
+    let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
+    backend.set_content(content);
+    backend.set_selection_range(selection_start, selection_end);
+    Ok(())
 }
 
 #[derive(Serialize)]

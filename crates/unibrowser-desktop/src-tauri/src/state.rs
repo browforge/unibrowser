@@ -118,8 +118,8 @@ fn open_file_document(path: &Path) -> DocumentSession {
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let backend: Box<dyn unibrowser_engine::document::DocumentBackend> = match ext {
         "png" => base_png::open_sample(&path_str),
-        "md" => toy_markdown::open_sample(&path_str),
-        _ => base_text::open_sample(&path_str),
+        _ => base_text::open_file(path)
+            .unwrap_or_else(|_| base_text::open_sample(&path_str)),
     };
     DocumentSession::new(path_str.to_string(), backend)
 }

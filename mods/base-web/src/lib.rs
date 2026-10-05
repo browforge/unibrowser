@@ -45,6 +45,9 @@ impl unibrowser_engine::document::DocumentBackend for WebBackend {
         format!("Web · {}", self.url)
     }
     fn set_demo_text_selection(&mut self, _selected: bool) {}
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 pub fn handles(location: &BrowserLocation) -> bool {

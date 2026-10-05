@@ -30,6 +30,7 @@ pub fn run() {
             commands::palette_search,
             commands::get_keybindings,
             commands::dispatch_key_chord,
+            commands::sync_text_document,
             commands::handle_download_url,
             commands::set_content_bounds,
         ])

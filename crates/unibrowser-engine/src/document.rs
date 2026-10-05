@@ -13,6 +13,7 @@ pub trait DocumentBackend: Send {
     fn status_line(&self) -> String;
     /// Demo hook for skeleton UI (simulates text selection).
     fn set_demo_text_selection(&mut self, selected: bool);
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
 pub struct DocumentSession {

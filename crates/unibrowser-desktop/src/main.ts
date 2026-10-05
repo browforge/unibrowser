@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
+import { textEditor, type TextDocumentDto } from "./textEditor";
 
 interface TabDto {
   id: number;
@@ -24,6 +25,7 @@ interface TabContentDto {
   status: string;
   directory_entries: DirEntry[] | null;
   document_status: string | null;
+  text_document: TextDocumentDto | null;
 }
 
 interface ToolbarCommandDto {
@@ -51,6 +53,7 @@ const palette = document.getElementById("palette")!;
 const paletteQuery = document.getElementById("palette-query") as HTMLInputElement;
 const paletteResults = document.getElementById("palette-results")!;
 const contentHost = document.getElementById("content-host")!;
+const textEditorHost = document.getElementById("text-editor-host")!;
 
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
 
@@ -109,9 +112,9 @@ function renderFiles(entries: DirEntry[] | null) {
   filesPanel.appendChild(table);
 }
 
-function renderDoc(status: string | null) {
+function renderDoc(status: string | null, hasTextEditor: boolean) {
   docPanel.innerHTML = "";
-  if (!status) {
+  if (!status || hasTextEditor) {
     docPanel.classList.add("hidden");
     return;
   }
@@ -130,11 +133,13 @@ async function refreshToolbar() {
       btn.title = cmd.reason ?? "";
       btn.className = cmd.enabled ? "" : "disabled";
       btn.onclick = () =>
-        invoke<string>("execute_command", { commandId: cmd.id }).then((msg) => {
-          statusLine.textContent = msg;
-          refreshToolbar();
-          refreshState();
-        });
+        textEditor.flush().then(() =>
+          invoke<string>("execute_command", { commandId: cmd.id }).then((msg) => {
+            statusLine.textContent = msg;
+            refreshToolbar();
+            refreshState();
+          }),
+        );
       toolbar.appendChild(btn);
     });
   } catch {
@@ -144,9 +149,20 @@ async function refreshToolbar() {
 }
 
 async function applyState(data: TabContentDto) {
+  const active = data.tabs[data.active_index];
+  const showText = Boolean(data.text_document) && !active?.is_http;
   renderTabs(data);
-  renderFiles(data.directory_entries);
-  renderDoc(data.document_status);
+  if (showText) {
+    filesPanel.classList.add("hidden");
+  } else {
+    renderFiles(data.directory_entries);
+  }
+  renderDoc(data.document_status, showText);
+  if (showText && data.text_document) {
+    await textEditor.apply(data.text_document, textEditorHost);
+  } else {
+    textEditor.hide(textEditorHost);
+  }
   statusLine.textContent = data.status;
   await refreshToolbar();
   await syncContentBounds();
@@ -159,6 +175,7 @@ async function refreshState() {
 }
 
 async function selectTab(index: number) {
+  await textEditor.flush();
   await invoke("select_tab", { index });
   await refreshState();
 }
@@ -214,13 +231,16 @@ async function runKeybindingCommand(commandId: string) {
     togglePalette();
     return;
   }
+  await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
   statusLine.textContent = String(msg);
   await refreshToolbar();
   await refreshState();
 }
 
-document.addEventListener("keydown", async (e) => {
+document.addEventListener(
+  "keydown",
+  async (e) => {
   if (e.repeat) {
     return;
   }
@@ -231,7 +251,9 @@ document.addEventListener("keydown", async (e) => {
   }
   e.preventDefault();
   await runKeybindingCommand(commandId);
-});
+},
+  { capture: true },
+);
 
 async function loadKeybindingHints() {
   try {

@@ -82,8 +82,21 @@ body {
 #content-host {
   flex: 1;
   position: relative;
-  overflow: auto;
+  overflow: hidden;
   padding: 0.5rem;
+  min-height: 0;
+}
+
+.text-editor-host {
+  position: absolute;
+  inset: 0.5rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.text-editor-host.hidden {
+  display: none;
 }
 
 .panel.hidden {

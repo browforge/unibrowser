@@ -64,6 +64,9 @@ impl unibrowser_engine::document::DocumentBackend for MarkdownBackend {
     fn set_demo_text_selection(&mut self, selected: bool) {
         self.heading_selected = selected;
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 fn font_enable(doc: &DocumentSession) -> Enablement {

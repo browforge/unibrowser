@@ -175,6 +175,9 @@ mod tests {
             fn set_demo_text_selection(&mut self, selected: bool) {
                 let _ = selected;
             }
+            fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+                self
+            }
         }
         DocumentSession::new(
             "stub.txt",

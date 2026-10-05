@@ -106,6 +106,9 @@ impl unibrowser_engine::document::DocumentBackend for PngBackend {
     fn set_demo_text_selection(&mut self, selected: bool) {
         self.text_layer_selected = selected && self.text_layer.is_some();
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 fn font_enable(doc: &DocumentSession) -> Enablement {

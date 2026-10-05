@@ -26,7 +26,8 @@ npm run tauri dev
 - Browse your home directory on first launch; open folders and files in tabs.
 - Enter `https://example.com` in the omnibox.
 - **Ctrl+Shift+P** ( **Cmd+Shift+P** on macOS) opens the command palette; override chords in `keybindings.json` under your config dir (see [docs/keybindings.md](docs/keybindings.md)).
-- Open a `.txt` file to use **Increase font size** (greyed for `.png` without text layer).
+- Open a `.txt`, `.md`, or other text file for **Monaco** editing; **Ctrl+S** saves to disk.
+- Select text in the editor for **Increase / Decrease font size** (greyed for `.png` without text layer).
 - **Demo download** exercises open-in-new-tab disposition.
 
 Release build:

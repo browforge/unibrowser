@@ -107,6 +107,7 @@ impl KeybindingMap {
             unibrowser_mod_api::commands::FONT_SIZE_DECREASE,
             "Ctrl+-",
         );
+        map.set_binding(unibrowser_mod_api::commands::TEXT_SAVE, "Ctrl+S");
         map
     }
 
