@@ -3,6 +3,7 @@ import { t } from "./i18n";
 import { applyThemeToDocument, loadThemePreference } from "./theme";
 import { configureAutoSave } from "./autoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
+import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
 
 interface PrefsDto {
   theme: string;
@@ -178,6 +179,20 @@ export async function renderSettings(root: HTMLElement) {
   recoverySection.appendChild(backupsWrap);
   void appendCrashRecoveryPanel(backupsWrap);
   root.appendChild(recoverySection);
+
+  const workspaceSection = document.createElement("section");
+  workspaceSection.className = "settings-section";
+  const workspaceHeading = document.createElement("h3");
+  workspaceHeading.textContent = t("workspaceLayout.heading");
+  const workspaceLead = document.createElement("p");
+  workspaceLead.className = "viewer-note";
+  workspaceLead.textContent = t("workspaceLayout.lead");
+  workspaceSection.appendChild(workspaceHeading);
+  workspaceSection.appendChild(workspaceLead);
+  const workspaceBody = document.createElement("div");
+  workspaceSection.appendChild(workspaceBody);
+  void appendWorkspaceLayoutPanel(workspaceBody);
+  root.appendChild(workspaceSection);
 
   const aboutLink = document.createElement("p");
   aboutLink.className = "viewer-note";

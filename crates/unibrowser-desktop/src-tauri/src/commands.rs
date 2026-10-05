@@ -1269,6 +1269,45 @@ pub fn save_command_manager_layout(
 }
 
 #[tauri::command]
+pub fn list_workspace_layout_presets(
+) -> Vec<crate::workspace_layouts::WorkspaceLayoutPresetSummaryDto> {
+    crate::workspace_layouts::list_presets()
+}
+
+#[tauri::command]
+pub fn save_workspace_layout_preset(
+    name: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<crate::workspace_layouts::WorkspaceLayoutPresetSummaryDto, String> {
+    let window = app.get_window("main").ok_or("main window missing")?;
+    let window_state = crate::preferences::capture_window_state(&window)?;
+    let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    let file = cm.to_file();
+    crate::workspace_layouts::save_preset(name, window_state, file)
+}
+
+#[tauri::command]
+pub fn load_workspace_layout_preset(
+    id: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let preset = crate::workspace_layouts::load_preset(&id)?;
+    if let Some(window) = app.get_window("main") {
+        crate::preferences::apply_window_state(&window, &preset.window)?;
+        let _ = crate::preferences::save_window_state(&preset.window);
+    }
+    save_command_manager_layout(preset.command_manager, state)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_workspace_layout_preset(id: String) -> Result<(), String> {
+    crate::workspace_layouts::delete_preset(&id)
+}
+
+#[tauri::command]
 pub fn select_command_manager_tab(tab_id: String, state: State<AppState>) -> Result<(), String> {
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     if cm.tabs.iter().any(|t| t.id == tab_id) {

@@ -26,7 +26,8 @@ Launch
   [ ] Compare: open .txt, Compare → pick second file → diff view → Close compare
   [ ] Recent panel: auto-save off by default; enable + pick interval if you want it
   [ ] unibrowser://settings — theme, downloads, auto-save, session, board snap, crash backups
-  [ ] unibrowser://about — licence, NOTICE hint, crash backup list (compact)
+  [ ] unibrowser://about — licence, privacy (no telemetry), NOTICE hint, crash backups
+  [ ] Settings — workspace layout save / load / delete
   [ ] .mid file — SMF format / track count in viewer
   [ ] Command manager: Export layout / Import layout JSON
   [ ] .unibrow project: board cards drag; timeline drag reorder + type badges
@@ -41,7 +42,9 @@ Tabs and files
   [ ] Tab search (Ctrl+Shift+T) finds open tabs
 
 Viewers and zoom
-  [ ] PDF: page nav, zoom +/-, Copy selection, print
+  [ ] PDF: page nav, canvas thumbnails, zoom +/-, Copy selection, print
+  [ ] DOCX: search highlights, Prev/Next match
+  [ ] Image: Crop overlay (non-destructive), Clear crop
   [ ] CSV: Copy table button
   [ ] PNG/image: zoom, pan, rotate
   [ ] https:// page: web zoom +/- changes page text size

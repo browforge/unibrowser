@@ -1099,6 +1099,10 @@ document.getElementById("command-manager-export")!.onclick = async () => {
     showToast(t("commandManager.exported", { path }), "info");
   }
 };
+window.addEventListener("unibrowser-workspace-layout-loaded", () => {
+  void refreshCommandManager();
+});
+
 document.getElementById("command-manager-import")!.onclick = async () => {
   try {
     await invoke("import_command_manager_layout_file");

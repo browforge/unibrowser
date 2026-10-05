@@ -114,6 +114,65 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
+function clearDocxSearchMarks(article: HTMLElement) {
+  article.querySelectorAll("mark.docx-search-hit").forEach((mark) => {
+    const parent = mark.parentNode;
+    if (!parent) {
+      return;
+    }
+    parent.replaceChild(document.createTextNode(mark.textContent ?? ""), mark);
+    parent.normalize();
+  });
+}
+
+function findDocxTextRanges(
+  article: HTMLElement,
+  query: string,
+): { node: Text; start: number; end: number }[] {
+  if (!query.trim()) {
+    return [];
+  }
+  const q = query.toLowerCase();
+  const out: { node: Text; start: number; end: number }[] = [];
+  const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode() as Text | null;
+  while (node) {
+    const text = node.data;
+    const lower = text.toLowerCase();
+    let idx = 0;
+    while (idx < lower.length) {
+      const found = lower.indexOf(q, idx);
+      if (found < 0) {
+        break;
+      }
+      out.push({ node, start: found, end: found + q.length });
+      idx = found + q.length;
+    }
+    node = walker.nextNode() as Text | null;
+  }
+  return out;
+}
+
+function applyDocxSearchHighlights(article: HTMLElement, query: string): HTMLElement[] {
+  clearDocxSearchMarks(article);
+  const ranges = findDocxTextRanges(article, query);
+  const marks: HTMLElement[] = [];
+  for (const r of [...ranges].reverse()) {
+    const range = document.createRange();
+    range.setStart(r.node, r.start);
+    range.setEnd(r.node, r.end);
+    const mark = document.createElement("mark");
+    mark.className = "docx-search-hit";
+    try {
+      range.surroundContents(mark);
+      marks.push(mark);
+    } catch {
+      // Range crossed element boundaries; skip this match.
+    }
+  }
+  return marks;
+}
+
 async function renderDocx(path: string, root: HTMLElement) {
   const bytes = await readBytes(path);
   const result = await mammoth.convertToHtml(
@@ -130,6 +189,60 @@ async function renderDocx(path: string, root: HTMLElement) {
 
   const toolbar = document.createElement("div");
   toolbar.className = "docx-toolbar";
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.className = "docx-search-input";
+  searchInput.placeholder = "Search in document";
+  const searchStatus = document.createElement("span");
+  searchStatus.className = "docx-search-status";
+  let hits: HTMLElement[] = [];
+  let hitIndex = -1;
+  const focusHit = (index: number) => {
+    if (!hits.length) {
+      hitIndex = -1;
+      searchStatus.textContent = searchInput.value.trim() ? "0 matches" : "";
+      return;
+    }
+    hitIndex = ((index % hits.length) + hits.length) % hits.length;
+    hits.forEach((h, i) => {
+      h.classList.toggle("docx-search-hit--current", i === hitIndex);
+    });
+    hits[hitIndex].scrollIntoView({ block: "nearest", behavior: "smooth" });
+    searchStatus.textContent = `${hitIndex + 1} / ${hits.length}`;
+  };
+  const runSearch = () => {
+    hits = applyDocxSearchHighlights(article, searchInput.value.trim());
+    focusHit(0);
+  };
+  searchInput.onkeydown = (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      if (ev.shiftKey) {
+        focusHit(hitIndex - 1);
+      } else if (hits.length) {
+        focusHit(hitIndex + 1);
+      } else {
+        runSearch();
+      }
+    }
+  };
+  const findBtn = document.createElement("button");
+  findBtn.type = "button";
+  findBtn.textContent = "Find";
+  findBtn.onclick = () => runSearch();
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.textContent = "Prev";
+  prevBtn.onclick = () => focusHit(hitIndex - 1);
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.textContent = "Next";
+  nextBtn.onclick = () => focusHit(hitIndex + 1);
+  toolbar.appendChild(searchInput);
+  toolbar.appendChild(findBtn);
+  toolbar.appendChild(prevBtn);
+  toolbar.appendChild(nextBtn);
+  toolbar.appendChild(searchStatus);
   const printBtn = document.createElement("button");
   printBtn.type = "button";
   printBtn.textContent = "Print";
@@ -287,28 +400,83 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
     prev.disabled = pageNum <= 1;
     next.disabled = pageNum >= doc.numPages;
     jumpInput.value = String(pageNum);
+    updateThumbActive();
   };
 
   const thumbs = document.createElement("div");
   thumbs.className = "pdf-thumbs";
-  const thumbMax = Math.min(doc.numPages, 8);
-  for (let n = 1; n <= thumbMax; n += 1) {
+  const THUMB_EAGER = 12;
+  const THUMB_SCALE = 0.22;
+
+  const updateThumbActive = () => {
+    thumbs.querySelectorAll<HTMLButtonElement>(".pdf-thumb-btn").forEach((btn) => {
+      const page = Number.parseInt(btn.dataset.page ?? "", 10);
+      btn.classList.toggle("pdf-thumb-btn--active", page === currentPage);
+    });
+  };
+
+  const renderThumbCanvas = async (pageNum: number, host: HTMLButtonElement) => {
+    if (host.dataset.rendered === "1") {
+      return;
+    }
+    const page = await doc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: THUMB_SCALE });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.className = "pdf-thumb-canvas";
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    host.textContent = "";
+    host.appendChild(canvas);
+    const cap = document.createElement("span");
+    cap.className = "pdf-thumb-label";
+    cap.textContent = String(pageNum);
+    host.appendChild(cap);
+    host.dataset.rendered = "1";
+  };
+
+  const goToPage = async (n: number) => {
+    currentPage = n;
+    await invoke("sync_pdf_page", { page: currentPage });
+    await drawPage(currentPage);
+    updateThumbActive();
+  };
+
+  const addThumb = (n: number, lazy: boolean) => {
     const tb = document.createElement("button");
     tb.type = "button";
     tb.className = "pdf-thumb-btn";
+    tb.dataset.page = String(n);
+    tb.title = `Page ${n}`;
     tb.textContent = String(n);
-    tb.onclick = async () => {
-      currentPage = n;
-      await invoke("sync_pdf_page", { page: currentPage });
-      await drawPage(currentPage);
-    };
+    tb.onclick = () => void goToPage(n);
     thumbs.appendChild(tb);
+    if (lazy) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            void renderThumbCanvas(n, tb);
+            observer.disconnect();
+          }
+        },
+        { root: thumbs, rootMargin: "48px" },
+      );
+      observer.observe(tb);
+    } else {
+      void renderThumbCanvas(n, tb);
+    }
+  };
+
+  const eager = Math.min(doc.numPages, THUMB_EAGER);
+  for (let n = 1; n <= eager; n += 1) {
+    addThumb(n, false);
   }
-  if (doc.numPages > thumbMax) {
-    const more = document.createElement("span");
-    more.className = "viewer-note";
-    more.textContent = `… ${doc.numPages} pages`;
-    thumbs.appendChild(more);
+  for (let n = eager + 1; n <= doc.numPages; n += 1) {
+    addThumb(n, true);
   }
   root.appendChild(thumbs);
 
@@ -352,9 +520,11 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
   reportViewerZoom(currentScale, "pdf");
 
   await drawPage(currentPage);
+  updateThumbActive();
   const meta = document.createElement("p");
   meta.className = "viewer-note";
-  meta.textContent = "Select text for font-size commands · use zoom buttons or the status bar";
+  meta.textContent =
+    "Select text for font-size commands · thumbnails render for the first pages (lazy for the rest)";
   root.appendChild(meta);
 }
 
@@ -638,16 +808,19 @@ async function renderImage(path: string, root: HTMLElement) {
   const rotateBtn = document.createElement("button");
   rotateBtn.type = "button";
   rotateBtn.textContent = "Rotate 90°";
-  const cropStub = document.createElement("button");
-  cropStub.type = "button";
-  cropStub.disabled = true;
-  cropStub.title = "Crop coming in base-png mod";
-  cropStub.textContent = "Crop (soon)";
+  const cropBtn = document.createElement("button");
+  cropBtn.type = "button";
+  cropBtn.textContent = "Crop";
+  const clearCropBtn = document.createElement("button");
+  clearCropBtn.type = "button";
+  clearCropBtn.textContent = "Clear crop";
+  clearCropBtn.disabled = true;
   toolbar.appendChild(zoomOut);
   toolbar.appendChild(zoomIn);
   toolbar.appendChild(resetBtn);
   toolbar.appendChild(rotateBtn);
-  toolbar.appendChild(cropStub);
+  toolbar.appendChild(cropBtn);
+  toolbar.appendChild(clearCropBtn);
   root.appendChild(toolbar);
 
   const viewport = document.createElement("div");
@@ -657,8 +830,19 @@ async function renderImage(path: string, root: HTMLElement) {
   const img = document.createElement("img");
   img.className = "image-view";
   img.alt = path;
+  img.draggable = false;
   img.src = convertFileSrc(path);
-  stage.appendChild(img);
+  const cropHost = document.createElement("div");
+  cropHost.className = "image-crop-host";
+  const cropLayer = document.createElement("div");
+  cropLayer.className = "image-crop-layer";
+  cropLayer.hidden = true;
+  const cropRect = document.createElement("div");
+  cropRect.className = "image-crop-rect";
+  cropLayer.appendChild(cropRect);
+  cropHost.appendChild(img);
+  cropHost.appendChild(cropLayer);
+  stage.appendChild(cropHost);
   viewport.appendChild(stage);
   root.appendChild(viewport);
 
@@ -666,6 +850,11 @@ async function renderImage(path: string, root: HTMLElement) {
   let rotation = 0;
   let panX = 0;
   let panY = 0;
+  let cropMode = false;
+  let cropDragging = false;
+  let cropStartX = 0;
+  let cropStartY = 0;
+  let cropRectNorm: { x: number; y: number; w: number; h: number } | null = null;
 
   const applyTransform = () => {
     stage.style.transform = `translate(${panX}px, ${panY}px) scale(${scale}) rotate(${rotation}deg)`;
@@ -684,11 +873,54 @@ async function renderImage(path: string, root: HTMLElement) {
   zoomOut.onclick = () => bumpImageZoom(-1);
   viewerZoomAdjust = bumpImageZoom;
   reportViewerZoom(scale, "image");
+  const imageLocalPoint = (clientX: number, clientY: number) => {
+    const rect = img.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    return { x, y };
+  };
+
+  const applyCropVisual = () => {
+    if (!cropRectNorm || cropRectNorm.w < 0.5 || cropRectNorm.h < 0.5) {
+      cropRect.hidden = true;
+      clearCropBtn.disabled = true;
+      return;
+    }
+    cropRect.hidden = false;
+    clearCropBtn.disabled = false;
+    const { x, y, w, h } = cropRectNorm;
+    cropRect.style.left = `${x}%`;
+    cropRect.style.top = `${y}%`;
+    cropRect.style.width = `${w}%`;
+    cropRect.style.height = `${h}%`;
+  };
+
+  cropBtn.onclick = () => {
+    cropMode = !cropMode;
+    cropBtn.classList.toggle("image-toolbar-active", cropMode);
+    cropLayer.hidden = !cropMode;
+    viewport.classList.toggle("image-viewport--crop", cropMode);
+    if (!cropMode) {
+      cropDragging = false;
+    }
+  };
+
+  clearCropBtn.onclick = () => {
+    cropRectNorm = null;
+    applyCropVisual();
+  };
+
   resetBtn.onclick = () => {
     scale = 1;
     panX = 0;
     panY = 0;
     rotation = 0;
+    cropRectNorm = null;
+    cropMode = false;
+    cropBtn.classList.remove("image-toolbar-active");
+    cropLayer.hidden = true;
+    viewport.classList.remove("image-viewport--crop");
+    applyCropVisual();
     applyTransform();
   };
   rotateBtn.onclick = () => {
@@ -700,6 +932,16 @@ async function renderImage(path: string, root: HTMLElement) {
   let lastX = 0;
   let lastY = 0;
   viewport.onpointerdown = (e) => {
+    if (cropMode) {
+      cropDragging = true;
+      const p = imageLocalPoint(e.clientX, e.clientY);
+      cropStartX = p.x;
+      cropStartY = p.y;
+      cropRectNorm = { x: p.x, y: p.y, w: 0, h: 0 };
+      applyCropVisual();
+      viewport.setPointerCapture(e.pointerId);
+      return;
+    }
     dragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
@@ -707,8 +949,19 @@ async function renderImage(path: string, root: HTMLElement) {
   };
   viewport.onpointerup = () => {
     dragging = false;
+    cropDragging = false;
   };
   viewport.onpointermove = (e) => {
+    if (cropDragging && cropMode) {
+      const p = imageLocalPoint(e.clientX, e.clientY);
+      const x1 = Math.max(0, Math.min(100, Math.min(cropStartX, p.x)));
+      const y1 = Math.max(0, Math.min(100, Math.min(cropStartY, p.y)));
+      const x2 = Math.max(0, Math.min(100, Math.max(cropStartX, p.x)));
+      const y2 = Math.max(0, Math.min(100, Math.max(cropStartY, p.y)));
+      cropRectNorm = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+      applyCropVisual();
+      return;
+    }
     if (!dragging) {
       return;
     }
@@ -728,7 +981,8 @@ async function renderImage(path: string, root: HTMLElement) {
   applyTransform();
   const note = document.createElement("p");
   note.className = "viewer-note";
-  note.textContent = "Pan: drag · Zoom: wheel or ± · Rotate is display-only (non-destructive).";
+  note.textContent =
+    "Pan: drag (when Crop is off) · Crop draws a non-destructive overlay only · file on disk is unchanged.";
   root.appendChild(note);
 }
 

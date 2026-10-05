@@ -18,6 +18,17 @@ export async function renderAbout(root: HTMLElement) {
   licence.appendChild(lp);
   root.appendChild(licence);
 
+  const privacy = document.createElement("section");
+  privacy.className = "about-section";
+  const ph = document.createElement("h3");
+  ph.textContent = "Privacy and telemetry";
+  privacy.appendChild(ph);
+  const pp = document.createElement("p");
+  pp.textContent =
+    "This build does not collect or send usage telemetry by default. There is no analytics SDK, crash reporter, or background metrics channel in the desktop shell. Network access happens only for actions you choose (for example opening https:// pages, downloads, or optional Open VSX when you opt in).";
+  privacy.appendChild(pp);
+  root.appendChild(privacy);
+
   const third = document.createElement("section");
   third.className = "about-section";
   const th = document.createElement("h3");

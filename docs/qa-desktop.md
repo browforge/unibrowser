@@ -20,6 +20,7 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 | Restore session | Off | Enable → restart → tabs return |
 | Board snap to grid | Off | Enable → drag `.unibrow` cards snap to 24px grid |
 | Crash recovery | Off | Enable → edit text/SVG → backups list on Settings/About; Restore / Dismiss (inline, no modal) |
+| Workspace layout | (none) | Settings → save named preset → resize window / rearrange toolbars → Load restores both |
 
 ## Downloads
 
@@ -41,6 +42,10 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 - Settings / About: crash recovery list + restore (debounced writes under config `crash-recovery/`).
 - `unibrowser://about` shows Apache-2.0; run `./scripts/generate-notice.sh` for NOTICE.md.
 - Large PDF: set `UNIBROWSER_PROFILE_OPEN=1` and open a PDF; stderr logs resolve+open timing.
+- PDF viewer: canvas thumbnails (first 12 eager, rest lazy on scroll).
+- DOCX: Find / Prev / Next search in Mammoth HTML preview.
+- PNG/image: Crop overlay (non-destructive); Clear crop resets overlay.
+- About: Privacy section states no telemetry by default.
 
 ## Command manager
 

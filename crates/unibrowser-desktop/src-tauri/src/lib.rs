@@ -17,6 +17,7 @@ mod settings_stub;
 mod about_stub;
 mod web_font_prefs;
 mod crash_recovery;
+mod workspace_layouts;
 mod rhai_host;
 mod session;
 mod state;
@@ -118,6 +119,10 @@ pub fn run() {
             commands::list_crash_recovery_backups,
             commands::dismiss_crash_recovery_backup,
             commands::restore_crash_recovery_backup,
+            commands::list_workspace_layout_presets,
+            commands::save_workspace_layout_preset,
+            commands::load_workspace_layout_preset,
+            commands::delete_workspace_layout_preset,
             commands::add_unibrow_timeline_clip,
             commands::remove_unibrow_timeline_clip,
             commands::reorder_unibrow_timeline_clips,

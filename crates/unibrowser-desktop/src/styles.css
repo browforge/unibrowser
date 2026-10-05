@@ -1089,7 +1089,110 @@ body {
 }
 
 .pdf-thumb-btn {
-  min-width: 2rem;
+  position: relative;
+  min-width: 2.5rem;
+  min-height: 3.25rem;
+  padding: 0.15rem;
+  overflow: hidden;
+}
+
+.pdf-thumb-btn--active {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: 1px;
+}
+
+.pdf-thumb-canvas {
+  display: block;
+  max-width: 4.5rem;
+  height: auto;
+}
+
+.pdf-thumb-label {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  font-size: 0.65rem;
+  padding: 0 0.2rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 2px;
+}
+
+.docx-search-input {
+  min-width: 10rem;
+  margin-right: 0.35rem;
+}
+
+.docx-search-status {
+  font-size: 0.85rem;
+  margin-left: 0.35rem;
+  color: var(--text-muted, #555);
+}
+
+mark.docx-search-hit {
+  background: #ffe08a;
+  color: inherit;
+  padding: 0 0.05rem;
+}
+
+mark.docx-search-hit--current {
+  background: #ffb347;
+  outline: 1px solid #c60;
+}
+
+.image-crop-host {
+  position: relative;
+  display: inline-block;
+}
+
+.image-crop-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.image-crop-rect {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px dashed #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.image-viewport--crop {
+  cursor: crosshair;
+}
+
+.image-toolbar-active {
+  font-weight: 600;
+  outline: 1px solid var(--accent, #3b82f6);
+}
+
+.workspace-layout-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.workspace-layout-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-subtle, #ddd);
+}
+
+.workspace-layout-name {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.workspace-layout-actions {
+  display: flex;
+  gap: 0.35rem;
 }
 
 .dxf-toolbar {
