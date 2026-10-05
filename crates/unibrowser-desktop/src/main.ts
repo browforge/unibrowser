@@ -131,7 +131,9 @@ interface PaletteEntryDto {
 
 const omnibox = document.getElementById("omnibox") as HTMLInputElement;
 const tabStrip = document.getElementById("tab-strip")!;
+const filesBrowserWrap = document.getElementById("files-browser-wrap")!;
 const filesPanel = document.getElementById("files-panel")!;
+const filesSidePanel = document.getElementById("files-side-panel")!;
 const docPanel = document.getElementById("doc-panel")!;
 const commandManagerTabs = document.getElementById("command-manager-tabs")!;
 const commandManagerCommands = document.getElementById("command-manager-commands")!;
@@ -292,10 +294,12 @@ const folderFavoritesCache: string[] = [];
 function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto, browsePath: string, favorites: string[]) {
   filesPanel.innerHTML = "";
   if (!entries) {
-    filesPanel.classList.add("hidden");
+    filesBrowserWrap.classList.add("hidden");
+    filesSidePanel.classList.add("hidden");
+    filesSidePanel.innerHTML = "";
     return;
   }
-  filesPanel.classList.remove("hidden");
+  filesBrowserWrap.classList.remove("hidden");
   folderFavoritesCache.length = 0;
   folderFavoritesCache.push(...favorites);
   renderFilesPanel(filesPanel, {
@@ -303,8 +307,10 @@ function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto, browse
     filesView,
     browsePath,
     folderFavorites: folderFavoritesCache,
+    sidePanel: filesSidePanel,
     onApplyState: (data) => applyState(data as TabContentDto),
     persistFilesView,
+    onRefresh: refreshState,
   });
 }
 
@@ -668,7 +674,7 @@ async function applyState(data: TabContentDto) {
     diffEditorView.hide(diffEditorHost);
   }
   if (showHome) {
-    filesPanel.classList.add("hidden");
+    filesBrowserWrap.classList.add("hidden");
     renderNewTabPage(newTabPageHost, {
       entries: data.directory_entries,
       recent: data.recent_files ?? [],
@@ -692,7 +698,8 @@ async function applyState(data: TabContentDto) {
   } else {
     hideNewTabPage(newTabPageHost);
     if (showText || showViewer || active?.is_http) {
-      filesPanel.classList.add("hidden");
+      filesBrowserWrap.classList.add("hidden");
+      filesSidePanel.classList.add("hidden");
     } else {
       renderFiles(
         data.directory_entries,

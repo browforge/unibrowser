@@ -1233,6 +1233,66 @@ pub fn peek_archive_entries(
 }
 
 #[tauri::command]
+pub fn open_archive_entry(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+    archive_path: String,
+    entry_path: String,
+) -> Result<TabContentDto, String> {
+    let archive = resolve_open_path(&archive_path, &state.cwd)?;
+    let dest_root = crate::config::archive_peek_extract_dir()
+        .ok_or("could not resolve archive extract directory")?;
+    std::fs::create_dir_all(&dest_root).map_err(|e| e.to_string())?;
+    let extracted = unibrowser_project::extract_zip_archive_entry(&archive, &entry_path, &dest_root)
+        .map_err(|e| e.to_string())?;
+    allow_asset_protocol_file(&app, &extracted);
+    let loc = BrowserLocation::File {
+        path: extracted.clone(),
+    };
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    if extracted.is_file() {
+        touch_recent_file(&extracted);
+    }
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.navigate_active(loc.clone(), is_dir, doc);
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+fn guard_deletable(path: &Path) -> Result<(), String> {
+    if !path.exists() {
+        return Err(format!("not found: {}", path.display()));
+    }
+    if let Some(cfg) = crate::config::config_dir() {
+        let cfg = cfg.canonicalize().map_err(|e| e.to_string())?;
+        let canon = path.canonicalize().map_err(|e| e.to_string())?;
+        if canon == cfg {
+            return Err("cannot delete application config directory".into());
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_paths(
+    window: tauri::Window,
+    state: State<AppState>,
+    paths: Vec<String>,
+) -> Result<TabContentDto, String> {
+    if paths.is_empty() {
+        return Err("no paths to delete".into());
+    }
+    for raw in paths {
+        let p = resolve_open_path(&raw, &state.cwd)?;
+        guard_deletable(&p)?;
+        crate::trash::trash_or_remove(&p)?;
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
 pub fn go_back(window: tauri::Window, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;

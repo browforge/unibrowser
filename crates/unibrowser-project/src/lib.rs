@@ -109,6 +109,14 @@ pub fn list_zip_archive_entries(
     zip_bundle::list_zip_entries(path, max_entries)
 }
 
+pub fn extract_zip_archive_entry(
+    archive_path: &Path,
+    entry_path: &str,
+    dest_root: &Path,
+) -> Result<PathBuf, ProjectError> {
+    zip_bundle::extract_zip_entry(archive_path, entry_path, dest_root)
+}
+
 /// Directory containing `project.json` — materialises zip packages when needed.
 pub fn resolve_package_root(path: &Path, zip_cache_dir: &Path) -> Result<PathBuf, ProjectError> {
     if path.is_dir() && path.join(PROJECT_FILE).is_file() {
