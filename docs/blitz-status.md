@@ -78,6 +78,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Palette history | Last **10** executed commands at top of palette (**Recent:**); stored in config only |
 | Context help | **F1** / **What's this** opens `unibrowser://docs/{slug}` from repo `docs/` (dev checkout) |
 | PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |
+| In-app docs | `unibrowser://docs/*` with TOC from [index.md](index.md), back link, in-page search |
+| SVG edit lite | Inline preview; fill/stroke panel for path/text; grey path boolean/simplify |
+| Timeline ducking | Audio clip **Duck under video** stores `duck_under_video` in `project.json` (encode not wired) |
 | i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
 | Scripting | Rhai demo from palette → output panel; `.rhai` / `.js` script viewer |
 | DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |
@@ -102,8 +105,8 @@ Counts are approximate for the blitz branch; re-run before publishing.
 
 | Metric | Value (snapshot) |
 | --- | --- |
-| Workspace Rust sources (`crates/` + `mods/`) | ~116 `.rs` files |
-| Desktop TypeScript (`crates/unibrowser-desktop/src`) | ~54 `.ts` files |
+| Workspace Rust sources (`crates/` + `mods/`) | ~121 `.rs` files |
+| Desktop TypeScript (`crates/unibrowser-desktop/src`) | ~57 `.ts` files |
 | Bundled format mods (`mods/`) | 12 packages (`base-*` + `toy-markdown`) |
 | Architecture decision records | 19 in `docs/adr/` |
 | Workspace crates (root `Cargo.toml` members) | 25 members incl. desktop, engine, mod-host, media, project, VSIX, cdylib stub |
@@ -141,7 +144,7 @@ Counts are approximate for the blitz branch; re-run before publishing.
 | 1 | VSIX JS extension host | Largest compat promise vs delivery |
 | 2 | WebView2 download wiring | Windows default browser workaround |
 | 3 | OCR sidecar | Announced stub, no Tesseract pool |
-| 4 | Full timeline / DAW encode | ffmpeg H.264 only; no mix/fades |
+| 4 | Full timeline / DAW encode | ffmpeg H.264 only; duck/fade/mix intents in JSON only |
 | 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
 | 6 | EPUB/DOCX fidelity | Asset URLs; Mammoth layout |
 | 7 | i18n depth | Chrome only (`en-NZ` / `en-US`) |
@@ -154,7 +157,7 @@ Counts are approximate for the blitz branch; re-run before publishing.
 | VSIX JS extension host | Metadata + stub execute ([extension-host.md](extension-host.md)); no `main` JS |
 | OCR | UI placeholder; Tesseract sidecar not built ([ocr-sidecar.md](ocr-sidecar.md)) |
 | Spellcheck | Monaco still has no built-in dictionary; experimental browser spellcheck covers text mirror + DOCX + EPUB notes |
-| Timeline encode | H.264 path when ffmpeg present; no audio mix / cross-fades; preview concat still copy-only |
+| Timeline encode | H.264 when ffmpeg present; `duck_under_video` + fade stubs in manifest only; no mix in export |
 | Windows/macOS dynamic mods | Linux user `mods/` today |
 | i18n | Viewer copy not fully translated; only chrome catalogues today |
 | Cloud / collab | Share zip only; no live multi-user |

@@ -88,6 +88,13 @@ pub struct TimelineClip {
     pub color: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub clip_markers: Vec<ClipMarker>,
+    /// Encode-time intent: lower this audio when a video clip is active (not applied in blitz encode).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub duck_under_video: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 /// Chapter / cue point on the timeline ruler.
@@ -335,6 +342,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 label: "Notes intro".into(),
                 color: None,
                 clip_markers: Vec::new(),
+                duck_under_video: false,
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -344,6 +352,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
                 label: "References".into(),
                 color: None,
                 clip_markers: Vec::new(),
+                duck_under_video: false,
             },
         ],
         transitions: vec![TimelineTransition {
@@ -405,6 +414,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 label: "Intro".into(),
                 color: Some("blue".into()),
                 clip_markers: Vec::new(),
+                duck_under_video: false,
             },
             TimelineClip {
                 id: "clip-2".into(),
@@ -414,6 +424,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 label: "B-roll".into(),
                 color: Some("amber".into()),
                 clip_markers: Vec::new(),
+                duck_under_video: false,
             },
             TimelineClip {
                 id: "clip-3".into(),
@@ -423,6 +434,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
                 label: "Outro".into(),
                 color: Some("violet".into()),
                 clip_markers: Vec::new(),
+                duck_under_video: false,
             },
         ],
         transitions: vec![TimelineTransition {
@@ -483,10 +495,28 @@ pub fn append_timeline_clip_for_node(
         label: node.label.clone(),
         color: node.color.clone(),
         clip_markers: Vec::new(),
+        duck_under_video: false,
     };
     package.manifest.timeline.clips.push(clip.clone());
     write_manifest(&package.root, &package.manifest)?;
     Ok(clip)
+}
+
+pub fn set_timeline_clip_duck_under_video(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    duck_under_video: bool,
+) -> Result<(), ProjectError> {
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    clip.duck_under_video = duck_under_video;
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
 }
 
 pub fn upsert_fade_transition(

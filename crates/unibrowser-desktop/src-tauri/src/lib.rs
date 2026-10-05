@@ -155,6 +155,8 @@ pub fn run() {
             commands::ensure_pdf_raster_proxy,
             commands::sync_pdf_scale,
             commands::get_help_doc_markdown,
+            commands::get_help_doc_toc,
+            commands::set_unibrow_timeline_clip_duck,
             commands::list_pdf_highlights,
             commands::add_pdf_highlight,
             commands::web_page_zoom,

@@ -9,6 +9,7 @@ import { copyImageFile, copyText, readClipboardImagePath } from "./clipboard";
 import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
 import { renderDocs } from "./docsPage";
+import { mountSvgInspector } from "./svgInspector";
 import { renderKeys } from "./keysPage";
 import { renderDiagnostics } from "./diagnosticsPage";
 import { emptyStateBlock } from "./emptyState";
@@ -132,6 +133,7 @@ export interface ProjectClipDto {
   label: string;
   color?: string | null;
   clip_markers?: ClipMarkerDto[];
+  duck_under_video?: boolean;
 }
 
 interface ProjectMarkerDto {
@@ -146,6 +148,10 @@ interface ProjectTransitionDto {
   after_clip_id: string;
   kind: string;
   duration_sec: number;
+}
+
+function clipIsAudio(nodeType: string): boolean {
+  return nodeType.toLowerCase().includes("audio");
 }
 
 function clipIsVideo(nodeType: string): boolean {
@@ -2517,6 +2523,28 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     });
     li.appendChild(clipColor);
 
+    if (clipIsAudio(clip.node_type)) {
+      const duckRow = document.createElement("div");
+      duckRow.className = "unibrow-timeline-duck-row";
+      const duckCb = document.createElement("input");
+      duckCb.type = "checkbox";
+      duckCb.checked = Boolean(clip.duck_under_video);
+      const duckLbl = document.createElement("label");
+      duckLbl.textContent = "Duck under video (encode later)";
+      duckLbl.prepend(duckCb);
+      duckCb.onchange = () => {
+        void invoke("set_unibrow_timeline_clip_duck", {
+          projectPath: viewer.path,
+          clipId: clip.id,
+          duckUnderVideo: duckCb.checked,
+        }).then((data) => {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        });
+      };
+      duckRow.appendChild(duckLbl);
+      li.appendChild(duckRow);
+    }
+
     if (clipIsVideo(clip.node_type)) {
       const markerSec = document.createElement("div");
       markerSec.className = "unibrow-clip-markers";
@@ -3185,23 +3213,17 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
   await ensureAssetAllowed(viewer.path);
   const text = new TextDecoder().decode(await readBytes(viewer.path));
   const layout = document.createElement("div");
-  layout.className = "svg-editor-layout";
+  layout.className = "svg-editor-layout svg-editor-layout--lite";
+  const previewRow = document.createElement("div");
+  previewRow.className = "svg-preview-row";
   const preview = document.createElement("div");
-  preview.className = "svg-preview";
-  const frame = document.createElement("iframe");
-  frame.className = "svg-preview-frame";
-  frame.title = "SVG preview";
-  frame.src = convertFileSrc(viewer.path);
-  const fontPt = viewer.reader_font_pt ?? 14;
-  frame.style.transformOrigin = "top left";
-  frame.style.transform = `scale(${fontPt / 14})`;
-  preview.appendChild(frame);
+  preview.className = "svg-preview svg-preview--inline";
   const ta = document.createElement("textarea");
   ta.className = "svg-source";
   applySpellcheckToEditable(ta, true);
   ta.value = text;
   let timer: ReturnType<typeof setTimeout> | null = null;
-  ta.oninput = () => {
+  const syncRust = () => {
     if (timer) {
       clearTimeout(timer);
     }
@@ -3209,11 +3231,15 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
       invoke("sync_svg_document", { content: ta.value }).catch(() => {});
     }, 300);
   };
+  ta.oninput = () => syncRust();
+  previewRow.appendChild(preview);
+  layout.appendChild(previewRow);
+  layout.appendChild(ta);
+  mountSvgInspector(preview, ta, syncRust);
   const note = document.createElement("p");
   note.className = "viewer-note";
-  note.textContent = "Edit source; Save with Ctrl+S or the command palette.";
-  layout.appendChild(preview);
-  layout.appendChild(ta);
+  note.textContent =
+    "Click shapes in the preview to edit fill/stroke; advanced path commands stay grey in the palette.";
   root.appendChild(layout);
   root.appendChild(note);
 }

@@ -161,6 +161,12 @@ pub struct ProjectClipDto {
     pub color: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub clip_markers: Vec<ClipMarkerDto>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub duck_under_video: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 #[derive(Serialize)]
@@ -589,6 +595,7 @@ fn document_viewer_dto(
                                 label: m.label.clone(),
                             })
                             .collect(),
+                        duck_under_video: c.duck_under_video,
                     }
                 })
                 .collect()
@@ -3386,6 +3393,11 @@ pub fn get_help_doc_markdown(slug: String) -> Result<HelpDocDto, String> {
 }
 
 #[tauri::command]
+pub fn get_help_doc_toc() -> Result<Vec<crate::docs_content::DocTocEntry>, String> {
+    crate::docs_content::toc_from_index()
+}
+
+#[tauri::command]
 pub fn list_pdf_highlights(path: String) -> Result<Vec<crate::pdf_annotations::PdfHighlightDto>, String> {
     let p = Path::new(&path);
     crate::pdf_annotations::list_highlights(p)
@@ -3902,6 +3914,29 @@ pub fn set_unibrow_node_color(
     let raw = color.as_deref();
     unibrowser_project::set_node_label_color(&mut package, &node_id, raw)
         .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn set_unibrow_timeline_clip_duck(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    duck_under_video: bool,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::set_timeline_clip_duck_under_video(
+        &mut package,
+        &clip_id,
+        duck_under_video,
+    )
+    .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
     update_content_webview(&app, window.label(), &loc)?;

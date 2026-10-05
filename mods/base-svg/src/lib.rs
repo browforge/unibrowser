@@ -3,7 +3,7 @@ use std::path::Path;
 
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
-    Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot, commands,
+    Capabilities, CommandMeta, Enablement, Mode, SelectionDomain, SelectionSnapshot, commands,
     handlers::{DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, FONT_DECREASE_ID, FONT_INCREASE_ID},
 };
 
@@ -186,7 +186,39 @@ fn exec_save(doc: &mut DocumentSession) -> Result<String, String> {
     Ok("Saved SVG".into())
 }
 
+fn advanced_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "Advanced path tools not implemented (use fill/stroke panel)".into(),
+    }
+}
+
 pub fn register(registry: &mut CommandRegistry) {
+    registry.register_command(CommandMeta {
+        id: commands::SVG_PATH_BOOLEAN,
+        title: "Path boolean (not available)",
+        icon: "path",
+        default_keybinding: None,
+        aliases: &["union", "subtract paths"],
+    });
+    registry.register_command(CommandMeta {
+        id: commands::SVG_PATH_SIMPLIFY,
+        title: "Simplify path (not available)",
+        icon: "path",
+        default_keybinding: None,
+        aliases: &["reduce nodes"],
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: commands::SVG_PATH_BOOLEAN.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: advanced_disabled,
+        execute: |_| Err("disabled".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: commands::SVG_PATH_SIMPLIFY.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: advanced_disabled,
+        execute: |_| Err("disabled".into()),
+    });
     registry.register_handler(HandlerRegistration {
         command_id: FONT_INCREASE_ID.into(),
         backend_id: BACKEND_ID.into(),

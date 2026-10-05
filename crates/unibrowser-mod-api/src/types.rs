@@ -124,4 +124,6 @@ pub mod commands {
     pub const PDF_ANNOTATE_HIGHLIGHT: &str = "unibrowser.pdf.annotate.highlight";
     pub const PDF_ANNOTATE_STAMP: &str = "unibrowser.pdf.annotate.stamp";
     pub const PDF_ANNOTATE_INK: &str = "unibrowser.pdf.annotate.ink";
+    pub const SVG_PATH_BOOLEAN: &str = "unibrowser.svg.path.boolean";
+    pub const SVG_PATH_SIMPLIFY: &str = "unibrowser.svg.path.simplify";
 }

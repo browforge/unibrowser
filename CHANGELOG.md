@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Docs viewer:** TOC from `docs/index.md`, back to index, in-page search on `unibrowser://docs/*`.
+- **SVG edit lite:** Inline preview with fill/stroke side panel; path boolean/simplify grey in palette.
+- **Timeline ducking stub:** Audio clips can set `duck_under_video` in `project.json` (encode later).
 - **Command history:** Palette shows the last 10 executed commands as **Recent:** entries (`command-history.json` in config).
 - **Context help:** **F1** or palette **What's this** opens matching `docs/*.md` in `unibrowser://docs/…` (dev tree).
 - **PDF highlight stub:** Sidecar `{name}.pdf.ub-annotations.json`; palette highlight + drag on page; stamp/ink grey.
