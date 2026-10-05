@@ -11,7 +11,7 @@ Use this folder for a **~10 minute** walkthrough. Open `examples/demo-pack` in U
 | 5 | Increase font size (cross-format demo) | Palette: **Increase font size** or bound chord |
 | 6 | Pin Command Manager tab | **Pin commands tab** on the CM strip |
 | 7 | Open `sample.png` | Eyedropper stub in image toolbar |
-| 8 | Open `sample.unibrow/` | Timeline: optional **Export MP4 (H.264)** if ffmpeg is on PATH |
+| 8 | Open `sample.unibrow/` | Timeline shows **title**, **SVG**, **PDF page**, and **MIDI** proxies; try **Add PDF page…** / **Add title card**; **Export MP4 (H.264)** when ffmpeg (+ pdftoppm for PDF) are on PATH |
 | 9 | Go to any tab quickly | **Ctrl+Shift+A** (**Go to tab**) |
 | 10 | Settings + diagnostics | Omnibox: `unibrowser://settings` then `unibrowser://diagnostics` |
 

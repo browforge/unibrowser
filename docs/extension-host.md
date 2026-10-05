@@ -11,8 +11,12 @@ VSIX packages install metadata and (optionally) run extension JavaScript through
 | **Color themes** | Valid `contributes.themes` JSON converted to Monaco (`tokenColors` + `colors`); picker in **Settings → Appearance → Editor theme** |
 | **Grammars** | `contributes.grammars` listed as **recognised, not applied** (see below) |
 | `contributes.commands` | Registered in `CommandRegistry`; palette + **Command Manager → Extensions** |
-| **Node host** | Opt-in Advanced pref; `execute_command` loads `main` via `examples/vsix-node-host/host.mjs` |
-| Trust / lifecycle | Per-extension trust prompt; Node restart backoff; `deactivate` on disable |
+| `contributes.keybindings` | Merged into `keybindings.json` after defaults (user overrides win) |
+| `activationEvents` | `onCommand:<id>` recorded when the command runs (Rust activation log) |
+| **Node host** | Settings → Advanced → **Node extension host (experimental)** (default **off**). When on and `node` is on PATH, `execute_command` loads `extension/main` via `examples/vsix-node-host/host.mjs` |
+| Diagnostics | `unibrowser://diagnostics` lists activation records, host version, Node pid/alive/restart count/last error |
+| Trust | First enable per extension id shows a blocking trust dialog; trusted ids stored in preferences |
+| Disable | Turning an extension off sends `deactivate` to the Node host for that id |
 
 ### Why grammars stay “not applied”
 
@@ -25,6 +29,16 @@ Monaco in the desktop shell already bundles built-in Monarch grammars for common
 | `auto` | Follow app light/dark (`vs` / `vs-dark`) |
 | `vs` / `vs-dark` | Built-in Monaco themes |
 | `vsix:{extensionId}:{slug}` | Theme from an installed, enabled VSIX |
+
+### Enablement (palette / Command Manager)
+
+| Condition | VSIX contributed commands |
+| --- | --- |
+| Pref **off** | Grey — enable Node extension host in Settings → Advanced |
+| Pref **on**, not trusted / user cancelled trust | Enable blocked until trusted |
+| Pref **on**, no `node` on PATH | Grey — Node.js not found on PATH |
+| Pref **on**, no `package.json` `main` | Grey — extension has no `main` entry |
+| Pref **on**, `node` + `main` + trusted | **Enabled** — runs JS handler |
 
 ## Compatibility matrix (shimmed `vscode.*` APIs)
 
@@ -45,25 +59,43 @@ Static install scan compares extension `main` against this set. Anything else re
 | `Position`, `Range`, `Selection`, `TextEdit`, `WorkspaceEdit` | Edit builders |
 | `TextEdit.insert` / `replace` / `delete` | Treated as shimmed when scanned |
 
+**Not implemented:** LSP, webviews, secrets, full workspace FS API, terminal, debug, SCM, tests, authentication, applying TextMate grammars from the VSIX, etc.
+
 ## Node sidecar protocol
 
-Ops: `ping`, `activate`, `deactivate`, `execute`, `host_results`, `format_document`.
+- **Script:** `examples/vsix-node-host/host.mjs` (override with `UNIBROWSER_VSIX_NODE_HOST`).
+- **Transport:** one JSON object per line on stdin; one response line on stdout (multi-round `execute` until `complete`).
+- **Ops:** `ping`, `activate`, `deactivate`, `execute`, `host_results` (builtin or workspace-edit round-trip), `format_document` (run registered formatting providers).
+
+The desktop shell keeps a single long-lived Node process per session (`unibrowser-extension-host::node_host`). If the child exits unexpectedly, the pool respawns with exponential backoff (cap 30s) on the next request.
+
+## Lifecycle and security
+
+| Topic | Behaviour |
+| --- | --- |
+| **cwd** | On `activate`, the host sets `process.chdir(install_dir)` so relative imports resolve inside the extension install tree |
+| **Environment** | Child is spawned with `env_clear()` and only `PATH` set (no app secrets or API keys) |
+| **stderr** | Discarded to avoid leaking host paths in UI |
+| **Shutdown** | Session end can call `shutdown_node_host()` to drop the child |
 
 ## Sample & smoke fixtures
 
 | Path | Role |
 | --- | --- |
-| [examples/vsix-sample-extension](../examples/vsix-sample-extension/) | Hand-written sample commands + formatter |
+| [examples/vsix-sample-extension](../examples/vsix-sample-extension/) | Hand-written sample commands + formatter (`sayHello`, `probeEditor`, `formatViaEdit`) |
 | [examples/vsix-openvsx-fixture](../examples/vsix-openvsx-fixture/) | **Apache-2.0** synthetic “Open VSX style” extension (theme + formatter + grammar note); `openvsx_fixture_install_smoke` in `unibrowser-vsix` |
+
+Tests (`unibrowser-extension-host`, skip if `node` missing): sample command, probe/builtin bus, format provider, workspace edit host call.
 
 ## Crate map
 
 | Crate | Role |
 | --- | --- |
-| `unibrowser-vsix` | Install, compatibility, theme discovery, Monaco theme resolve |
+| `unibrowser-vsix` | Install, compatibility, theme discovery, Monaco theme resolve, keybindings metadata |
 | `unibrowser-extension-host` | Node host, shim registry, `monaco_theme` conversion, text edits |
 | Desktop `editor_themes.rs` | Tauri commands for theme list + resolve |
 | Desktop `monacoEditorTheme.ts` | `defineTheme` + apply preference |
+| Desktop `vsix_host.rs` | Editor snapshot, edits, format document, builtin bridge |
 
 ## Related
 

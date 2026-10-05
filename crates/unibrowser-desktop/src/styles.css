@@ -2423,6 +2423,53 @@ select:focus-visible,
   opacity: 0.92;
 }
 
+.unibrow-timeline-block--proxy {
+  padding: 0;
+  color: #fff;
+}
+
+.unibrow-timeline-block-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.unibrow-timeline-block-title {
+  display: block;
+  padding: 0 0.2rem;
+  font-size: 0.55rem;
+  line-height: 1.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unibrow-timeline-block-midi {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: color-mix(in srgb, var(--accent, #3b82f6) 25%, #1a1a24);
+}
+
+.unibrow-timeline-block-midi-note {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  height: 45%;
+  background: #f2f2f8;
+  border-radius: 1px;
+  left: calc(var(--i, 0) * 4px);
+}
+
+.unibrow-timeline-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
 .unibrow-timeline-edge-handle {
   position: absolute;
   top: 0;

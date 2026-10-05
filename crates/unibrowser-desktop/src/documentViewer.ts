@@ -184,6 +184,9 @@ export interface ProjectClipDto {
   duck_under_video?: boolean;
   fade_in_sec?: number;
   fade_out_sec?: number;
+  asset?: string | null;
+  pdf_page?: number | null;
+  title_text?: string | null;
 }
 
 interface ProjectMarkerDto {
@@ -228,7 +231,66 @@ function clipTypeAbbrev(nodeType: string): string {
   if (t.includes("pdf")) {
     return "PDF";
   }
+  if (t.includes("title")) {
+    return "TTL";
+  }
   return "AST";
+}
+
+async function applyTimelineBlockPreview(
+  block: HTMLElement,
+  projectPath: string,
+  clip: ProjectClipDto,
+) {
+  block.replaceChildren();
+  block.classList.add("unibrow-timeline-block--proxy");
+  try {
+    const preview = await invoke<TimelineScrubPreview>("timeline_clip_block_preview", {
+      projectPath,
+      clipId: clip.id,
+    });
+    if (preview.label_text) {
+      const span = document.createElement("span");
+      span.className = "unibrow-timeline-block-title";
+      span.textContent = preview.label_text;
+      block.appendChild(span);
+      return;
+    }
+    if (preview.midi_notes && preview.midi_notes.length > 0) {
+      const lane = document.createElement("div");
+      lane.className = "unibrow-timeline-block-midi";
+      const minNote = 36;
+      const maxNote = 96;
+      preview.midi_notes.forEach((n, i) => {
+        const bar = document.createElement("span");
+        bar.className = "unibrow-timeline-block-midi-note";
+        const pct = ((n.note - minNote) / (maxNote - minNote)) * 100;
+        bar.style.bottom = `${Math.min(92, Math.max(4, pct))}%`;
+        bar.style.left = `${4 + i * 5}px`;
+        bar.style.opacity = String(0.35 + (n.velocity / 127) * 0.65);
+        lane.appendChild(bar);
+      });
+      block.appendChild(lane);
+      return;
+    }
+    if (preview.image_path) {
+      const img = document.createElement("img");
+      img.className = "unibrow-timeline-block-thumb";
+      img.alt = "";
+      await ensureAssetAllowed(preview.image_path);
+      img.src = convertFileSrc(preview.image_path);
+      block.appendChild(img);
+      return;
+    }
+  } catch {
+    /* fallback abbrev */
+  }
+  block.textContent = clipTypeAbbrev(clip.node_type);
+}
+
+async function pickOpenFilePath(): Promise<string | null> {
+  const picked = await invoke<string | null>("pick_open_file");
+  return picked ?? null;
 }
 
 const LABEL_COLORS = ["", "blue", "green", "amber", "rose", "violet", "slate"];
@@ -296,6 +358,7 @@ type TimelineScrubPreview = {
   image_path?: string;
   image_mime?: string;
   midi_notes?: MidiNoteOnDto[];
+  label_text?: string;
 };
 
 function findClipAtTime(clips: ProjectClipDto[], timeSec: number): ProjectClipDto | null {
@@ -2447,7 +2510,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     block.title = clip.label;
     block.style.left = `${(clip.start_sec / totalSec) * 100}%`;
     block.style.width = `${Math.max((clip.duration_sec / totalSec) * 100, 2)}%`;
-    block.textContent = clipTypeAbbrev(clip.node_type);
+    void applyTimelineBlockPreview(block, viewer.path, clip);
     const nodeColor = boardNodes.find((n) => n.id === clip.node_id)?.color;
     applyLabelColor(block, clip.color ?? nodeColor);
 
@@ -2663,6 +2726,9 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
         scrubImg.classList.remove("hidden");
       } else if (preview.midi_notes) {
         showMidiNotes(preview.midi_notes);
+      } else if (preview.label_text) {
+        scrubNote.textContent = preview.label_text;
+        scrubNote.classList.remove("hidden");
       } else if (preview.kind === "audio") {
         scrubNote.textContent = "Audio clip — open asset for waveform.";
         scrubNote.classList.remove("hidden");
@@ -2801,9 +2867,92 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       showToast(String(err), "error");
     }
   };
+  const addPdfBtn = document.createElement("button");
+  addPdfBtn.type = "button";
+  addPdfBtn.textContent = t("unibrow.addPdfPage");
+  addPdfBtn.title = t("unibrow.addPdfPageHint");
+  addPdfBtn.onclick = async () => {
+    const path = await pickOpenFilePath();
+    if (!path) {
+      return;
+    }
+    const pageRaw = window.prompt(t("unibrow.pdfPagePrompt"), "1");
+    if (pageRaw === null) {
+      return;
+    }
+    const page = Math.max(1, Number.parseInt(pageRaw, 10) || 1);
+    try {
+      const data = await invoke("add_unibrow_pdf_page_timeline_clip", {
+        projectPath: viewer.path,
+        sourcePath: path,
+        page,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  const addSvgBtn = document.createElement("button");
+  addSvgBtn.type = "button";
+  addSvgBtn.textContent = t("unibrow.addSvgStill");
+  addSvgBtn.onclick = async () => {
+    const path = await pickOpenFilePath();
+    if (!path) {
+      return;
+    }
+    try {
+      const data = await invoke("add_unibrow_svg_still_timeline_clip", {
+        projectPath: viewer.path,
+        sourcePath: path,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  const addTitleBtn = document.createElement("button");
+  addTitleBtn.type = "button";
+  addTitleBtn.textContent = t("unibrow.addTitleCard");
+  addTitleBtn.onclick = async () => {
+    const text = window.prompt(t("unibrow.titleCardPrompt"), t("unibrow.titleCardDefault"));
+    if (!text?.trim()) {
+      return;
+    }
+    try {
+      const data = await invoke("add_unibrow_title_timeline_clip", {
+        projectPath: viewer.path,
+        titleText: text.trim(),
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  const addMidiBtn = document.createElement("button");
+  addMidiBtn.type = "button";
+  addMidiBtn.textContent = t("unibrow.addMidiTrack");
+  addMidiBtn.onclick = async () => {
+    const path = await pickOpenFilePath();
+    if (!path) {
+      return;
+    }
+    try {
+      const data = await invoke("add_unibrow_midi_timeline_clip", {
+        projectPath: viewer.path,
+        sourcePath: path,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
   timelineAddRow.appendChild(nodeSelect);
   timelineAddRow.appendChild(addBtn);
   timelineAddRow.appendChild(pasteStillBtn);
+  timelineAddRow.appendChild(addPdfBtn);
+  timelineAddRow.appendChild(addSvgBtn);
+  timelineAddRow.appendChild(addTitleBtn);
+  timelineAddRow.appendChild(addMidiBtn);
   timeline.appendChild(timelineAddRow);
   const ol = document.createElement("ol");
   ol.className = "unibrow-timeline-clips";
@@ -2879,6 +3028,51 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
     });
     li.appendChild(label);
+
+    if (clip.node_type === "title" || clip.title_text) {
+      const titleRow = document.createElement("label");
+      titleRow.className = "unibrow-timeline-title-text";
+      titleRow.textContent = t("unibrow.titleCardText");
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.value = clip.title_text ?? clip.label;
+      titleInput.addEventListener("change", () => {
+        void invoke("set_unibrow_timeline_clip_title_text", {
+          projectPath: viewer.path,
+          clipId: clip.id,
+          titleText: titleInput.value,
+        }).then((data) => {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        });
+      });
+      titleRow.appendChild(titleInput);
+      li.appendChild(titleRow);
+    }
+    if (
+      clip.node_type === "pdf" ||
+      (clip.asset && clip.asset.toLowerCase().endsWith(".pdf"))
+    ) {
+      const pageRow = document.createElement("label");
+      pageRow.className = "unibrow-timeline-pdf-page";
+      pageRow.textContent = t("unibrow.pdfPage");
+      const pageInput = document.createElement("input");
+      pageInput.type = "number";
+      pageInput.min = "1";
+      pageInput.step = "1";
+      pageInput.value = String(clip.pdf_page ?? 1);
+      pageInput.addEventListener("change", () => {
+        const page = Math.max(1, Number.parseInt(pageInput.value, 10) || 1);
+        void invoke("set_unibrow_timeline_clip_pdf_page", {
+          projectPath: viewer.path,
+          clipId: clip.id,
+          page,
+        }).then((data) => {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        });
+      });
+      pageRow.appendChild(pageInput);
+      li.appendChild(pageRow);
+    }
 
     const timing = document.createElement("div");
     timing.className = "unibrow-timeline-timing";

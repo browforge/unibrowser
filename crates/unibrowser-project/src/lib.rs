@@ -1095,6 +1095,107 @@ pub fn unique_asset_file_name_excluding(
     candidate
 }
 
+pub fn insert_project_node(
+    package: &mut ProjectPackage,
+    node_type: &str,
+    label: &str,
+    asset: Option<String>,
+) -> Result<ProjectNode, ProjectError> {
+    let id = format!("node-{}", package.manifest.nodes.len() + 1);
+    let (x, y) = default_board_position(package.manifest.nodes.len());
+    let node = ProjectNode {
+        id,
+        node_type: node_type.into(),
+        label: label.into(),
+        asset,
+        x,
+        y,
+        color: None,
+    };
+    package.manifest.nodes.push(node.clone());
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(node)
+}
+
+pub fn set_timeline_clip_pdf_page(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    page: u32,
+) -> Result<(), ProjectError> {
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    clip.pdf_page = Some(page.max(1));
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn set_timeline_clip_title_text(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    title_text: &str,
+) -> Result<(), ProjectError> {
+    let text = title_text.trim();
+    if text.is_empty() {
+        return Err(ProjectError::Msg("title text must not be empty".into()));
+    }
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    clip.title_text = Some(text.to_string());
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn add_pdf_page_timeline_clip(
+    package: &mut ProjectPackage,
+    source: &Path,
+    page: u32,
+    label: &str,
+) -> Result<TimelineClip, ProjectError> {
+    let node = add_asset_copy(package, source, "pdf", label)?;
+    let clip = append_timeline_clip_for_node(package, &node.id)?;
+    set_timeline_clip_pdf_page(package, &clip.id, page)?;
+    package
+        .manifest
+        .timeline
+        .clips
+        .iter()
+        .find(|c| c.id == clip.id)
+        .cloned()
+        .ok_or_else(|| ProjectError::Msg("clip missing after add".into()))
+}
+
+pub fn add_asset_timeline_clip(
+    package: &mut ProjectPackage,
+    source: &Path,
+    label: &str,
+) -> Result<TimelineClip, ProjectError> {
+    let node_type = guess_asset_node_type(source);
+    let node = add_asset_copy(package, source, node_type, label)?;
+    append_timeline_clip_for_node(package, &node.id)
+}
+
+pub fn add_title_card_timeline_clip(
+    package: &mut ProjectPackage,
+    title_text: &str,
+) -> Result<TimelineClip, ProjectError> {
+    let text = title_text.trim();
+    if text.is_empty() {
+        return Err(ProjectError::Msg("title text must not be empty".into()));
+    }
+    let node = insert_project_node(package, "title", text, None)?;
+    append_timeline_clip_for_node(package, &node.id)
+}
+
 pub fn add_asset_copy(
     package: &mut ProjectPackage,
     source: &Path,

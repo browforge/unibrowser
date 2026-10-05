@@ -187,6 +187,12 @@ pub struct ProjectClipDto {
     pub fade_in_sec: f32,
     #[serde(default, skip_serializing_if = "is_zero_f32")]
     pub fade_out_sec: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub asset: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pdf_page: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title_text: Option<String>,
 }
 
 fn is_zero_f32(v: &f32) -> bool {
@@ -230,6 +236,8 @@ pub struct TimelineScrubPreviewDto {
     pub image_mime: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub midi_notes: Option<Vec<MidiNoteOnDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_text: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -657,13 +665,11 @@ fn document_viewer_dto(
                 .clips
                 .iter()
                 .map(|c| {
-                    let node_type = pkg
-                        .manifest
-                        .nodes
-                        .iter()
-                        .find(|n| n.id == c.node_id)
+                    let node = pkg.manifest.nodes.iter().find(|n| n.id == c.node_id);
+                    let node_type = node
                         .map(|n| n.node_type.clone())
                         .unwrap_or_else(|| "asset".into());
+                    let asset = node.and_then(|n| n.asset.clone());
                     ProjectClipDto {
                         id: c.id.clone(),
                         node_id: c.node_id.clone(),
@@ -684,6 +690,9 @@ fn document_viewer_dto(
                         duck_under_video: c.duck_under_video,
                         fade_in_sec: c.fade_in_sec,
                         fade_out_sec: c.fade_out_sec,
+                        asset,
+                        pdf_page: c.pdf_page,
+                        title_text: c.title_text.clone(),
                     }
                 })
                 .collect()
@@ -4813,15 +4822,12 @@ pub fn batch_convert_images(
 }
 
 #[tauri::command]
-pub fn timeline_clip_scrub_preview(
-    window: tauri::Window,
-    state: State<AppState>,
-    project_path: String,
-    clip_id: String,
+fn timeline_clip_preview_at(
+    project: &Path,
+    package: &unibrowser_project::ProjectPackage,
+    clip_id: &str,
     offset_sec: f64,
 ) -> Result<TimelineScrubPreviewDto, String> {
-    let project = resolve_open_path(&project_path, &state.cwd)?;
-    let package = open_unibrow_package(&project)?;
     let clip = package
         .manifest
         .timeline
@@ -4835,9 +4841,31 @@ pub fn timeline_clip_scrub_preview(
         .iter()
         .find(|n| n.id == clip.node_id)
         .ok_or_else(|| "clip node missing".to_string())?;
-    let asset_name = node.asset.as_ref().ok_or("clip has no asset")?;
-    let asset_path = resolve_unibrow_asset_file(&project, asset_name)?;
     let node_type = node.node_type.to_ascii_lowercase();
+    if node_type == "title" || clip.title_text.is_some() {
+        let text = clip
+            .title_text
+            .clone()
+            .filter(|t| !t.trim().is_empty())
+            .unwrap_or_else(|| clip.label.clone());
+        return Ok(TimelineScrubPreviewDto {
+            kind: "title".into(),
+            image_path: None,
+            image_mime: None,
+            midi_notes: None,
+            label_text: Some(text),
+        });
+    }
+    let asset_name = node
+        .asset
+        .as_ref()
+        .ok_or("clip has no asset")?;
+    let asset_path = resolve_unibrow_asset_file(project, asset_name)?;
+    let ext = asset_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
     if node_type == "video" {
         let frame = unibrowser_media::video_frame_thumbnail(&asset_path, offset_sec)
             .map_err(|e| e.to_string())?;
@@ -4846,18 +4874,30 @@ pub fn timeline_clip_scrub_preview(
             image_path: Some(frame.path),
             image_mime: Some(frame.mime),
             midi_notes: None,
+            label_text: None,
         });
     }
-    if node_type == "pdf" {
-        let path = crate::pdf_preview::pdf_first_page_preview(&asset_path)?;
+    if node_type == "pdf" || ext == "pdf" {
+        let page = clip.pdf_page.unwrap_or(1).max(1);
+        let path = crate::pdf_preview::pdf_page_preview(&asset_path, page)?;
         return Ok(TimelineScrubPreviewDto {
             kind: "pdf".into(),
             image_path: Some(path.to_string_lossy().into_owned()),
             image_mime: Some("image/jpeg".into()),
             midi_notes: None,
+            label_text: None,
         });
     }
-    if node_type == "midi" {
+    if ext == "svg" {
+        return Ok(TimelineScrubPreviewDto {
+            kind: "svg".into(),
+            image_path: Some(asset_path.to_string_lossy().into_owned()),
+            image_mime: Some("image/svg+xml".into()),
+            midi_notes: None,
+            label_text: None,
+        });
+    }
+    if node_type == "midi" || ext == "mid" || ext == "midi" {
         let notes = crate::smf::note_on_events_near_time(
             &asset_path,
             offset_sec,
@@ -4878,6 +4918,16 @@ pub fn timeline_clip_scrub_preview(
             image_path: None,
             image_mime: None,
             midi_notes: Some(mapped),
+            label_text: None,
+        });
+    }
+    if ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "webp" || ext == "gif" {
+        return Ok(TimelineScrubPreviewDto {
+            kind: "image".into(),
+            image_path: Some(asset_path.to_string_lossy().into_owned()),
+            image_mime: None,
+            midi_notes: None,
+            label_text: None,
         });
     }
     if node_type == "audio" {
@@ -4886,9 +4936,35 @@ pub fn timeline_clip_scrub_preview(
             image_path: None,
             image_mime: None,
             midi_notes: None,
+            label_text: None,
         });
     }
     Err(format!("scrub preview not available for {}", node_type))
+}
+
+#[tauri::command]
+pub fn timeline_clip_scrub_preview(
+    _window: tauri::Window,
+    state: State<AppState>,
+    project_path: String,
+    clip_id: String,
+    offset_sec: f64,
+) -> Result<TimelineScrubPreviewDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let package = open_unibrow_package(&project)?;
+    timeline_clip_preview_at(&project, &package, &clip_id, offset_sec)
+}
+
+#[tauri::command]
+pub fn timeline_clip_block_preview(
+    _window: tauri::Window,
+    state: State<AppState>,
+    project_path: String,
+    clip_id: String,
+) -> Result<TimelineScrubPreviewDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let package = open_unibrow_package(&project)?;
+    timeline_clip_preview_at(&project, &package, &clip_id, 0.0)
 }
 
 #[tauri::command]
@@ -6459,6 +6535,151 @@ pub fn paste_unibrow_still_clip(
     let node = unibrowser_project::add_asset_copy(&mut package, &source, node_type, &label)
         .map_err(|e| e.to_string())?;
     unibrowser_project::append_timeline_clip_for_node(&mut package, &node.id)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn add_unibrow_pdf_page_timeline_clip(
+    window: tauri::Window,
+    project_path: String,
+    source_path: String,
+    page: u32,
+    label: Option<String>,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let source = resolve_open_path(&source_path, &state.cwd)?;
+    let label = label.unwrap_or_else(|| {
+        source
+            .file_stem()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "PDF page".into())
+    });
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::add_pdf_page_timeline_clip(&mut package, &source, page, &label)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn add_unibrow_svg_still_timeline_clip(
+    window: tauri::Window,
+    project_path: String,
+    source_path: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let source = resolve_open_path(&source_path, &state.cwd)?;
+    let ext = source
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if ext != "svg" {
+        return Err("SVG still clip needs a .svg file".into());
+    }
+    let label = source
+        .file_stem()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "SVG".into());
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::add_asset_timeline_clip(&mut package, &source, &label)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn add_unibrow_title_timeline_clip(
+    window: tauri::Window,
+    project_path: String,
+    title_text: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::add_title_card_timeline_clip(&mut package, &title_text)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn add_unibrow_midi_timeline_clip(
+    window: tauri::Window,
+    project_path: String,
+    source_path: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let source = resolve_open_path(&source_path, &state.cwd)?;
+    let ext = source
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if ext != "mid" && ext != "midi" {
+        return Err("MIDI track clip needs a .mid or .midi file".into());
+    }
+    let label = source
+        .file_stem()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "MIDI".into());
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::add_asset_timeline_clip(&mut package, &source, &label)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn set_unibrow_timeline_clip_pdf_page(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    page: u32,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::set_timeline_clip_pdf_page(&mut package, &clip_id, page)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn set_unibrow_timeline_clip_title_text(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    title_text: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::set_timeline_clip_title_text(&mut package, &clip_id, &title_text)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };

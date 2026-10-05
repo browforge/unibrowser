@@ -1,19 +1,98 @@
 {
   "format_version": 2,
-  "title": "Blitz demo board",
-  "description": "Sample .unibrow project for the 10-minute demo script.",
+  "title": "Blitz lazy-encode demo",
+  "description": "Timeline with title card, SVG still, PDF page, and MIDI (native until H.264 export).",
   "nodes": [
     {
-      "id": "note-1",
-      "type": "note",
-      "label": "Welcome — add timeline clips from the command palette",
-      "x": 48,
-      "y": 40
+      "id": "node-1",
+      "type": "title",
+      "label": "Unibrowser",
+      "x": 40,
+      "y": 48
+    },
+    {
+      "id": "node-2",
+      "type": "image",
+      "label": "Logo",
+      "asset": "logo.svg",
+      "x": 200,
+      "y": 48
+    },
+    {
+      "id": "node-3",
+      "type": "pdf",
+      "label": "Sample page",
+      "asset": "demo.pdf",
+      "x": 360,
+      "y": 48
+    },
+    {
+      "id": "node-4",
+      "type": "midi",
+      "label": "Chime",
+      "asset": "chime.mid",
+      "x": 520,
+      "y": 48
     }
   ],
   "timeline": {
-    "clips": [],
+    "clips": [
+      {
+        "id": "clip-1",
+        "node_id": "node-1",
+        "start_sec": 0,
+        "duration_sec": 3,
+        "label": "Title",
+        "clip_markers": [],
+        "duck_under_video": false,
+        "fade_in_sec": 0,
+        "fade_out_sec": 0,
+        "title_text": "Unibrowser",
+        "title_font_pt": 48
+      },
+      {
+        "id": "clip-2",
+        "node_id": "node-2",
+        "start_sec": 3,
+        "duration_sec": 2.5,
+        "label": "Logo",
+        "clip_markers": [],
+        "duck_under_video": false,
+        "fade_in_sec": 0,
+        "fade_out_sec": 0
+      },
+      {
+        "id": "clip-3",
+        "node_id": "node-3",
+        "start_sec": 5.5,
+        "duration_sec": 3,
+        "label": "PDF",
+        "clip_markers": [],
+        "duck_under_video": false,
+        "fade_in_sec": 0,
+        "fade_out_sec": 0,
+        "pdf_page": 1
+      },
+      {
+        "id": "clip-4",
+        "node_id": "node-4",
+        "start_sec": 0,
+        "duration_sec": 8.5,
+        "label": "Chime",
+        "clip_markers": [],
+        "duck_under_video": true,
+        "fade_in_sec": 0,
+        "fade_out_sec": 0
+      }
+    ],
     "transitions": [],
-    "markers": []
+    "markers": [
+      {
+        "id": "marker-1",
+        "time_sec": 0,
+        "title": "Intro",
+        "color": "amber"
+      }
+    ]
   }
 }

@@ -6,6 +6,10 @@ use std::process::Command;
 use unibrowser_media::find_binary;
 
 pub fn pdf_first_page_preview(path: &Path) -> Result<PathBuf, String> {
+    pdf_page_preview(path, 1)
+}
+
+pub fn pdf_page_preview(path: &Path, page: u32) -> Result<PathBuf, String> {
     if !path.is_file() {
         return Err("not a file".into());
     }
@@ -17,6 +21,7 @@ pub fn pdf_first_page_preview(path: &Path) -> Result<PathBuf, String> {
     if ext != "pdf" {
         return Err("not a pdf".into());
     }
+    let page = page.max(1);
     let cache = std::env::temp_dir().join("unibrowser-pdf-preview");
     std::fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
     let stem = path
@@ -24,19 +29,19 @@ pub fn pdf_first_page_preview(path: &Path) -> Result<PathBuf, String> {
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "page".into());
     let len = path.metadata().map(|m| m.len()).unwrap_or(0);
-    let out = cache.join(format!("{}-{}-p1.jpg", stem, len));
+    let out = cache.join(format!("{}-{}-p{}.jpg", stem, len, page));
     if out.is_file() {
         return Ok(out);
     }
 
     if let Some(pdftoppm) = find_binary("pdftoppm") {
-        let prefix = cache.join(format!("{}-{}-p1", stem, len));
+        let prefix = cache.join(format!("{}-{}-p{}", stem, len, page));
         let status = Command::new(&pdftoppm)
             .args([
                 "-f",
-                "1",
+                &page.to_string(),
                 "-l",
-                "1",
+                &page.to_string(),
                 "-jpeg",
                 "-r",
                 "120",
@@ -52,25 +57,27 @@ pub fn pdf_first_page_preview(path: &Path) -> Result<PathBuf, String> {
         }
     }
 
-    if let Some(ffmpeg) = find_binary("ffmpeg") {
-        let status = Command::new(&ffmpeg)
-            .args([
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                "-i",
-                path.to_string_lossy().as_ref(),
-                "-frames:v",
-                "1",
-                "-q:v",
-                "4",
-                "-y",
-                out.to_string_lossy().as_ref(),
-            ])
-            .status()
-            .map_err(|e| e.to_string())?;
-        if status.success() && out.is_file() {
-            return Ok(out);
+    if page == 1 {
+        if let Some(ffmpeg) = find_binary("ffmpeg") {
+            let status = Command::new(&ffmpeg)
+                .args([
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-i",
+                    path.to_string_lossy().as_ref(),
+                    "-frames:v",
+                    "1",
+                    "-q:v",
+                    "4",
+                    "-y",
+                    out.to_string_lossy().as_ref(),
+                ])
+                .status()
+                .map_err(|e| e.to_string())?;
+            if status.success() && out.is_file() {
+                return Ok(out);
+            }
         }
     }
 

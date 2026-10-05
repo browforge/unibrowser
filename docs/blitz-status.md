@@ -102,7 +102,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |
 | In-app docs | `unibrowser://docs/*` with TOC from [index.md](index.md), back link, in-page search |
 | SVG edit lite | Inline preview; fill/stroke panel for path/text; grey path boolean/simplify |
-| Timeline encode intents | H.264 export honours **fade** (two visual clips), **clip fade in/out**, and **duck_under_video** on audio/MIDI (approx); **lazy encode** for PDF page (`pdftoppm`), SVG/title (`resvg`), MIDI (`fluidsynth` when available); [timeline-encode-intents.md](timeline-encode-intents.md), [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) |
+| Timeline encode intents | H.264 export honours **fade** (two visual clips), **clip fade in/out**, and **duck_under_video** on audio/MIDI (approx); **lazy encode** for PDF page (`pdftoppm`), SVG/title (`resvg`), MIDI (`fluidsynth` when available); timeline **Add** buttons + block proxies; [timeline-encode-intents.md](timeline-encode-intents.md), [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) |
 | Deep find | **Ctrl+Shift+F** filename + text scan; opens text at line; limits in [deep-find.md](deep-find.md) |
 | **base-js** | `.js`/`.jsx`/`.mjs`/`.cjs`/`.ts`/`.tsx` open in Monaco (`javascript` / `typescript` language ids); `.rhai` stays plain text |
 | Scripting tip | Shown only when JS/TS still open in **base-text**; hidden when **base-js** handles the file |
@@ -224,7 +224,7 @@ Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** pol
 1. **Home + chrome** — Open a folder tab; drag a tab to reorder; Ctrl+click to pin; omnibox: pick a **Place** or recent path, Enter to open. ([chrome.md](chrome.md))
 2. **Command Manager pin** — Open a `.md` file; pin the Command Manager context (pin control); switch to another doc and show commands stay on the pinned tab; unpin to auto-follow.
 3. **Cross-format font** — Same **Increase font size** on Markdown preview, DOCX, and an HTTP tab; mention status bar font/zoom. ([commands-cross-format.md](commands-cross-format.md))
-4. **`.unibrow` H.264** — New project (Notes template); add a timeline clip; **Export MP4 (H.264)**; watch status bar encode % (ffmpeg required).
+4. **`.unibrow` lazy timeline** — Open [examples/demo-pack/sample.unibrow](../examples/demo-pack/sample.unibrow/) (title + SVG + PDF + MIDI proxies); try **Add title card**; **Export MP4 (H.264)** (ffmpeg; PDF page needs pdftoppm).
 5. **Mod portal** — Open a file with no handler; mod portal panel suggests Open VSX / `.ubmod` without blocking the tab.
 6. **Onboarding skip** — `unibrowser://settings` → dismiss checklist or skip tour forever; session restore still optional.
 7. **Optional** — Open an MP3: waveform + play; show grey DAW toolbar; palette lists disabled DAW commands with reasons.
