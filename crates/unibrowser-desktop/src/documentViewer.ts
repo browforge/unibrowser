@@ -641,6 +641,28 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   root.appendChild(note);
 }
 
+interface RhaiScriptInfoDto {
+  allowlist: string[] | null;
+  effective_commands: string[];
+  document_commands_blocked: boolean;
+}
+
+async function refreshRhaiMeta(
+  source: string,
+  metaEl: HTMLElement,
+  allowDoc: HTMLInputElement,
+) {
+  const info = await invoke<RhaiScriptInfoDto>("describe_rhai_script", { source });
+  const allowPart = info.allowlist?.length
+    ? `allow-commands: ${info.allowlist.join(", ")}`
+    : "allow-commands: (all registry ids)";
+  metaEl.textContent = `${allowPart} · ${info.effective_commands.length} callable · palette browse-only without doc`;
+  allowDoc.disabled = !info.document_commands_blocked;
+  if (!info.document_commands_blocked) {
+    allowDoc.checked = false;
+  }
+}
+
 async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
   const ta = document.createElement("textarea");
@@ -648,22 +670,53 @@ async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {
   ta.spellcheck = false;
   const bytes = await readBytes(viewer.path);
   ta.value = new TextDecoder().decode(bytes);
+  const meta = document.createElement("p");
+  meta.className = "script-meta viewer-note";
+  const allowDoc = document.createElement("input");
+  allowDoc.type = "checkbox";
+  allowDoc.id = "rhai-allow-doc-cmds";
+  const allowLabel = document.createElement("label");
+  allowLabel.htmlFor = allowDoc.id;
+  allowLabel.textContent = "Allow execute_command on open document";
   const run = document.createElement("button");
   run.type = "button";
   run.textContent = "Run (Rhai)";
   const out = document.createElement("pre");
   out.className = "script-output";
+  const syncMeta = () => refreshRhaiMeta(ta.value, meta, allowDoc).catch(() => {});
+  ta.addEventListener("input", () => {
+    void syncMeta();
+  });
   run.onclick = async () => {
-    const result = await invoke<string>("run_rhai_script", { source: ta.value });
-    out.textContent = result;
+    try {
+      const result = await invoke<string>("run_rhai_script", {
+        source: ta.value,
+        allowDocumentCommands: allowDoc.checked,
+      });
+      out.textContent = result;
+    } catch (err) {
+      out.textContent = String(err);
+    }
   };
   root.appendChild(ta);
+  root.appendChild(meta);
+  const allowRow = document.createElement("div");
+  allowRow.className = "script-allow-row";
+  allowRow.appendChild(allowDoc);
+  allowRow.appendChild(allowLabel);
+  root.appendChild(allowRow);
   root.appendChild(run);
   root.appendChild(out);
-  const demo = await invoke<string>("run_rhai_script", {
-    source: "list_commands().to_string()",
-  });
-  out.textContent = `list_commands(): ${demo}`;
+  await syncMeta();
+  try {
+    const demo = await invoke<string>("run_rhai_script", {
+      source: "list_commands().to_string()",
+      allowDocumentCommands: false,
+    });
+    out.textContent = `list_commands(): ${demo}`;
+  } catch (err) {
+    out.textContent = String(err);
+  }
 }
 
 function viewerCacheKey(viewer: DocumentViewerDto): string {

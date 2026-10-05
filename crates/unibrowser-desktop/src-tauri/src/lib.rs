@@ -2,6 +2,7 @@ mod commands;
 mod config;
 mod downloads;
 mod mod_portal;
+mod open_vsx;
 mod preferences;
 mod project_backend;
 mod rhai_host;
@@ -71,6 +72,8 @@ pub fn run() {
             commands::save_window_geometry,
             commands::create_unibrow_project,
             commands::open_mod_portal,
+            commands::search_open_vsx_catalog,
+            rhai_host::describe_rhai_script,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

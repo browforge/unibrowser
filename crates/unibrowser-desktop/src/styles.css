@@ -475,6 +475,32 @@ body {
   cursor: pointer;
 }
 
+.mod-portal-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.mod-portal-query {
+  flex: 1 1 12rem;
+  min-width: 8rem;
+  padding: 0.25rem 0.4rem;
+}
+
+.mod-portal-search-status {
+  margin: 0.35rem 0 0;
+}
+
+.floating-toolbar-drop-host {
+  min-height: 2.5rem;
+}
+
+.script-meta {
+  margin: 0.35rem 0;
+}
+
 .floating-bar .drag-handle {
   cursor: grab;
   padding: 0 0.25rem;

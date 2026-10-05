@@ -34,7 +34,9 @@ jobs:
       - name: cargo test
         run: cargo test --workspace
       - name: cargo build Tauri (debug)
-        run: cargo build -p unibrowser-desktop
+        run: |
+          cargo build -p unibrowser-media --bin unibrowser-media-sidecar
+          cargo build -p unibrowser-desktop
       - name: cargo build egui spike
         run: cargo build -p unibrowser-app
 

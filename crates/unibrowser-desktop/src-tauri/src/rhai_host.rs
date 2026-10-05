@@ -2,12 +2,20 @@
 
 use std::cell::RefCell;
 
+use serde::Serialize;
 use tauri::State;
 use unibrowser_engine::keybinding::COMMAND_PALETTE_TOGGLE;
 use unibrowser_script_host::allowlist::{filter_registry_ids, parse_allowlist_from_source};
 use unibrowser_script_host::{eval_with_host, with_execute_hook, HostApi};
 
 use crate::state::AppState;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RhaiScriptInfoDto {
+    pub allowlist: Option<Vec<String>>,
+    pub effective_commands: Vec<String>,
+    pub document_commands_blocked: bool,
+}
 
 thread_local! {
     static RHAI_STATE: RefCell<Option<*const AppState>> = const { RefCell::new(None) };
@@ -20,7 +28,11 @@ fn browse_script_command(command_id: &str) -> Option<String> {
     None
 }
 
-pub fn execute_command_for_script(state: &AppState, command_id: &str) -> Result<String, String> {
+pub fn execute_command_for_script(
+    state: &AppState,
+    command_id: &str,
+    allow_document_commands: bool,
+) -> Result<String, String> {
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Err("command blocked in scripts when a document is open".into());
     }
@@ -40,32 +52,71 @@ pub fn execute_command_for_script(state: &AppState, command_id: &str) -> Result<
                 .into(),
         );
     }
+    if !allow_document_commands {
+        return Err(
+            "execute_command on open document blocked (enable in script panel)".into(),
+        );
+    }
     let doc = tab.document.as_mut().unwrap();
     state.registry.execute(command_id, doc)
+}
+
+thread_local! {
+    static RHAI_ALLOW_DOC: RefCell<bool> = const { RefCell::new(false) };
 }
 
 fn rhai_execute(command_id: String) -> Result<String, String> {
     let ptr = RHAI_STATE
         .with(|s| *s.borrow())
         .ok_or("script host not active")?;
+    let allow_doc = RHAI_ALLOW_DOC.with(|c| *c.borrow());
     let state = unsafe { &*ptr };
-    execute_command_for_script(state, &command_id)
+    execute_command_for_script(state, &command_id, allow_doc)
 }
 
-#[tauri::command]
-pub fn run_rhai_script(source: String, state: State<AppState>) -> Result<String, String> {
+fn build_host_api(state: &AppState, source: &str) -> HostApi {
     let registry_ids = state.registry.sorted_command_ids();
-    let allowlist = parse_allowlist_from_source(&source);
+    let allowlist = parse_allowlist_from_source(source);
     let mut command_ids = filter_registry_ids(&registry_ids, allowlist.as_deref());
     if !command_ids.iter().any(|id| id == COMMAND_PALETTE_TOGGLE) {
         command_ids.push(COMMAND_PALETTE_TOGGLE.to_string());
     }
     command_ids.sort();
-    let api = HostApi::from_registry_ids(command_ids, &[]);
+    HostApi::from_registry_ids(command_ids, &[])
+}
+
+#[tauri::command]
+pub fn describe_rhai_script(source: String, state: State<AppState>) -> Result<RhaiScriptInfoDto, String> {
+    let allowlist = parse_allowlist_from_source(&source);
+    let api = build_host_api(state.inner(), &source);
+    let document_commands_blocked = match state.tabs.lock() {
+        Ok(tabs) => tabs
+            .active_tab()
+            .map(|t| t.document.is_some())
+            .unwrap_or(false),
+        Err(_) => false,
+    };
+    Ok(RhaiScriptInfoDto {
+        allowlist,
+        effective_commands: api.command_ids,
+        document_commands_blocked,
+    })
+}
+
+#[tauri::command]
+pub fn run_rhai_script(
+    source: String,
+    allow_document_commands: Option<bool>,
+    state: State<AppState>,
+) -> Result<String, String> {
+    let allow_doc = allow_document_commands.unwrap_or(false);
+    let api = build_host_api(state.inner(), &source);
     let inner: &AppState = state.inner();
     RHAI_STATE.with(|slot| {
         *slot.borrow_mut() = Some(inner);
+        RHAI_ALLOW_DOC.with(|c| *c.borrow_mut() = allow_doc);
         let result = with_execute_hook(Box::new(rhai_execute), || eval_with_host(&source, &api));
+        RHAI_ALLOW_DOC.with(|c| *c.borrow_mut() = false);
         *slot.borrow_mut() = None;
         result
     })

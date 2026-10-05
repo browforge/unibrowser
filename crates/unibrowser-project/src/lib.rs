@@ -120,7 +120,42 @@ pub fn guess_asset_node_type(path: &Path) -> &'static str {
     }
 }
 
+pub fn sanitize_label_for_filename(label: &str) -> String {
+    let mut s: String = label
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else if c.is_whitespace() || c == '.' {
+                '-'
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    while s.contains("--") {
+        s = s.replace("--", "-");
+    }
+    s = s.trim_matches('-').to_string();
+    if s.is_empty() {
+        "asset".into()
+    } else {
+        s
+    }
+}
+
 pub fn unique_asset_file_name(package: &ProjectPackage, original: &str) -> String {
+    unique_asset_file_name_excluding(package, original, None)
+}
+
+/// Pick a non-colliding name under `assets/`; `exclude` is the current file (may be reused).
+pub fn unique_asset_file_name_excluding(
+    package: &ProjectPackage,
+    original: &str,
+    exclude: Option<&str>,
+) -> String {
     let assets_dir = package.root.join(DIR_ASSETS);
     let path = Path::new(original);
     let stem = path
@@ -132,7 +167,10 @@ pub fn unique_asset_file_name(package: &ProjectPackage, original: &str) -> Strin
         .map(|e| e.to_string_lossy().to_string());
     let mut candidate = original.to_string();
     let mut n = 2u32;
-    while assets_dir.join(&candidate).exists() {
+    while {
+        let dest = assets_dir.join(&candidate);
+        dest.exists() && exclude.map(|e| e != candidate).unwrap_or(true)
+    } {
         candidate = match &ext {
             Some(ext) if !ext.is_empty() => format!("{}-{}.{}", stem, n, ext),
             _ => format!("{}-{}", stem, n),
@@ -197,12 +235,37 @@ pub fn rename_node_label(
     if label.is_empty() {
         return Err(ProjectError::Msg("label cannot be empty".into()));
     }
-    let node = package
+    let idx = package
         .manifest
         .nodes
-        .iter_mut()
-        .find(|n| n.id == node_id)
+        .iter()
+        .position(|n| n.id == node_id)
         .ok_or_else(|| ProjectError::Msg(format!("unknown node {}", node_id)))?;
+    let old_name = package.manifest.nodes[idx].asset.clone();
+    let mut new_asset = old_name.clone();
+    if let Some(ref old_name) = old_name {
+        let assets_dir = package.root.join(DIR_ASSETS);
+        let old_path = assets_dir.join(old_name);
+        if old_path.is_file() {
+            let ext = Path::new(old_name)
+                .extension()
+                .map(|e| e.to_string_lossy().to_string());
+            let base = sanitize_label_for_filename(label);
+            let desired = match &ext {
+                Some(ext) if !ext.is_empty() => format!("{}.{}", base, ext),
+                _ => base.clone(),
+            };
+            let new_name =
+                unique_asset_file_name_excluding(package, &desired, Some(old_name));
+            if new_name != *old_name {
+                let new_path = assets_dir.join(&new_name);
+                fs::rename(&old_path, &new_path)?;
+            }
+            new_asset = Some(new_name);
+        }
+    }
+    let node = &mut package.manifest.nodes[idx];
+    node.asset = new_asset;
     node.label = label.to_string();
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
@@ -241,6 +304,23 @@ mod tests {
         remove_node(&mut pkg, &id).expect("remove");
         assert!(pkg.manifest.nodes.is_empty());
         assert!(!dir.join(DIR_ASSETS).join("x.txt").is_file());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn rename_node_renames_asset_file() {
+        let dir = std::env::temp_dir().join("unibrow-test-rename");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Ren").expect("create");
+        let src = dir.join("incoming.txt");
+        fs::write(&src, b"hi").unwrap();
+        let node = add_asset_copy(&mut pkg, &src, "file", "Old Label").expect("add");
+        let id = node.id.clone();
+        rename_node_label(&mut pkg, &id, "My Asset").expect("rename");
+        assert_eq!(pkg.manifest.nodes[0].label, "My Asset");
+        assert_eq!(pkg.manifest.nodes[0].asset.as_deref(), Some("my-asset.txt"));
+        assert!(dir.join(DIR_ASSETS).join("my-asset.txt").is_file());
+        assert!(!dir.join(DIR_ASSETS).join("incoming.txt").is_file());
         let _ = fs::remove_dir_all(&dir);
     }
 

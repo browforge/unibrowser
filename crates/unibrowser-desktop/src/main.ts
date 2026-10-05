@@ -32,6 +32,15 @@ interface ModPortalDto {
   sideload_hint: string;
 }
 
+interface OpenVsxHitDto {
+  extension_id: string;
+  name: string;
+  version: string;
+  publisher: string;
+  license: string | null;
+  url: string;
+}
+
 interface TabContentDto {
   tabs: TabDto[];
   active_index: number;
@@ -158,6 +167,59 @@ function renderModPortal(portal: ModPortalDto | null) {
   side.className = "sideload";
   side.textContent = portal.sideload_hint;
   modPortalPanel.appendChild(side);
+
+  const searchRow = document.createElement("div");
+  searchRow.className = "mod-portal-search";
+  const optIn = document.createElement("input");
+  optIn.type = "checkbox";
+  optIn.id = "open-vsx-opt-in";
+  const optLabel = document.createElement("label");
+  optLabel.htmlFor = "open-vsx-opt-in";
+  optLabel.textContent = "Allow network (Open VSX)";
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.placeholder = "Search Open VSX (FOSS catalog)";
+  searchInput.className = "mod-portal-query";
+  const searchBtn = document.createElement("button");
+  searchBtn.type = "button";
+  searchBtn.textContent = "Search";
+  const searchStatus = document.createElement("p");
+  searchStatus.className = "mod-portal-search-status viewer-note";
+  const results = document.createElement("div");
+  results.className = "mod-portal-results";
+  searchBtn.onclick = async () => {
+    results.innerHTML = "";
+    searchStatus.textContent = "Searching…";
+    try {
+      const hits = await invoke<OpenVsxHitDto[]>("search_open_vsx_catalog", {
+        query: searchInput.value,
+        networkOptIn: optIn.checked,
+      });
+      searchStatus.textContent = hits.length
+        ? `${hits.length} results (cached ~5 min)`
+        : "No results";
+      hits.forEach((hit) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "mod-suggestion";
+        row.textContent = `${hit.name} v${hit.version} · ${hit.publisher}`;
+        row.title = `${hit.extension_id}${hit.license ? ` · ${hit.license}` : ""}\n${hit.url}`;
+        row.onclick = () => {
+          statusLine.textContent = `Install ${hit.extension_id} — download stub (${hit.url})`;
+        };
+        results.appendChild(row);
+      });
+    } catch (err) {
+      searchStatus.textContent = String(err);
+    }
+  };
+  searchRow.appendChild(optIn);
+  searchRow.appendChild(optLabel);
+  searchRow.appendChild(searchInput);
+  searchRow.appendChild(searchBtn);
+  modPortalPanel.appendChild(searchRow);
+  modPortalPanel.appendChild(searchStatus);
+  modPortalPanel.appendChild(results);
 }
 
 function renderDoc(

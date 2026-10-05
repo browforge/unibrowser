@@ -96,6 +96,34 @@ function renderCommandButtons(
   });
 }
 
+async function addCommandToFloatingBar(
+  commandId: string,
+  barId?: string,
+  position?: { x: number; y: number },
+) {
+  if (!lastSnapshot) {
+    return;
+  }
+  const file = snapshotToFile(lastSnapshot);
+  if (barId) {
+    const bar = file.floating_bars.find((b) => b.id === barId);
+    if (bar && !bar.commands.some((c) => c.command_id === commandId)) {
+      bar.commands.push({ command_id: commandId });
+    }
+  } else {
+    const id = `float-${Date.now()}`;
+    file.floating_bars.push({
+      id,
+      label: "Custom",
+      anchor: "floating",
+      x: position?.x ?? 96,
+      y: position?.y ?? 96,
+      commands: [{ command_id: commandId }],
+    });
+  }
+  await invoke("save_command_manager_layout", { layout: file });
+}
+
 async function reorderActiveTabCommands(fromId: string, toId: string) {
   if (!lastSnapshot) {
     return;
@@ -202,6 +230,24 @@ export const commandManager = {
       commandsEl.innerHTML = "";
     }
     floatingEl.innerHTML = "";
+    floatingEl.classList.add("floating-toolbar-drop-host");
+    floatingEl.ondragover = (e) => {
+      if (dragCommandId) {
+        e.preventDefault();
+      }
+    };
+    floatingEl.ondrop = (e) => {
+      e.preventDefault();
+      const id =
+        dragCommandId ?? e.dataTransfer?.getData("text/plain") ?? "";
+      dragCommandId = null;
+      if (!id) {
+        return;
+      }
+      addCommandToFloatingBar(id, undefined, { x: e.clientX - 48, y: e.clientY - 24 }).catch(
+        () => {},
+      );
+    };
     snapshot.floating_bars.forEach((bar) => {
       const wrap = document.createElement("div");
       wrap.className =
@@ -216,6 +262,21 @@ export const commandManager = {
       wrap.appendChild(label);
       const row = document.createElement("div");
       row.className = "floating-bar-commands";
+      row.ondragover = (e) => {
+        if (dragCommandId) {
+          e.preventDefault();
+        }
+      };
+      row.ondrop = (e) => {
+        e.preventDefault();
+        const id =
+          dragCommandId ?? e.dataTransfer?.getData("text/plain") ?? "";
+        dragCommandId = null;
+        if (!id) {
+          return;
+        }
+        addCommandToFloatingBar(id, bar.id).catch(() => {});
+      };
       renderCommandButtons(row, bar.commands, onRun, false);
       wrap.appendChild(row);
       if (bar.anchor === "floating") {

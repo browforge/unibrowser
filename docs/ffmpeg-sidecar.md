@@ -21,13 +21,9 @@ Video and audio engines use **ffmpeg** as an **LGPL sidecar** ([ADR 0007](adr/00
 Ship the sidecar next to the desktop app (LGPL, not linked):
 
 1. Build: `cargo build -p unibrowser-media --release` (produces `unibrowser-media-sidecar`).
-2. In `crates/unibrowser-desktop/src-tauri/tauri.conf.json`, add under `bundle`:
+2. `tauri.conf.json` lists `"externalBin": ["binaries/unibrowser-media-sidecar"]`. Place `unibrowser-media-sidecar-<target-triple>` under `src-tauri/binaries/`, or let `build.rs` copy from `target/<profile>/unibrowser-media-sidecar` when you build the sidecar first.
 
-```json
-"externalBin": ["../../../../target/release/unibrowser-media-sidecar"]
-```
-
-Adjust the path for your CI output dir, or copy/rename the binary into `src-tauri/binaries/` per [Tauri external binaries](https://v2.tauri.app/develop/resources/) and list the stub name there. Set `UNIBROWSER_MEDIA_SIDECAR_BIN` at runtime if the install layout differs.
+Set `UNIBROWSER_MEDIA_SIDECAR_BIN` at runtime if the install layout differs.
 
 CI (`.github/workflows/ci.yml`) builds the sidecar with:
 

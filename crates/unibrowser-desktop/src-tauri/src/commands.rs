@@ -962,6 +962,14 @@ pub fn create_unibrow_project(
 }
 
 #[tauri::command]
+pub fn search_open_vsx_catalog(
+    query: String,
+    network_opt_in: bool,
+) -> Result<Vec<crate::open_vsx::OpenVsxHitDto>, String> {
+    crate::open_vsx::search_open_vsx(&query, network_opt_in)
+}
+
+#[tauri::command]
 pub fn open_mod_portal(
     ext: Option<String>,
     app: AppHandle,
