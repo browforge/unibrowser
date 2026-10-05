@@ -41,6 +41,29 @@ export interface TextDocumentDto {
   font_size_pt: number;
   language: string;
   dirty: boolean;
+  encoding: string;
+}
+
+export interface CursorStatus {
+  line: number;
+  column: number;
+}
+
+let cursorListener: ((status: CursorStatus) => void) | null = null;
+
+export function setCursorStatusListener(fn: ((status: CursorStatus) => void) | null) {
+  cursorListener = fn;
+}
+
+function emitCursorStatus() {
+  if (!editor || !cursorListener) {
+    return;
+  }
+  const pos = editor.getPosition();
+  if (!pos) {
+    return;
+  }
+  cursorListener({ line: pos.lineNumber, column: pos.column });
 }
 
 function isMarkdownPath(path: string): boolean {
@@ -172,6 +195,7 @@ async function ensureEditor(host: HTMLElement) {
   host.innerHTML = "";
   const monacoTheme =
     document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
+  // Spellcheck: Monaco has no built-in dictionary; see docs/qa-desktop.md.
   editor = api.editor.create(host, {
     theme: monacoTheme,
     automaticLayout: true,
@@ -181,7 +205,11 @@ async function ensureEditor(host: HTMLElement) {
   });
   bindFindShortcut(api);
   editor.onDidChangeModelContent(() => scheduleSync());
-  editor.onDidChangeCursorSelection(() => scheduleSync());
+  editor.onDidChangeCursorSelection(() => {
+    scheduleSync();
+    emitCursorStatus();
+  });
+  editor.onDidChangeCursorPosition(() => emitCursorStatus());
 }
 
 export const textEditor = {
@@ -247,5 +275,6 @@ export const textEditor = {
     if (markdownPreview && previewEl) {
       previewEl.innerHTML = marked.parse(doc.content, { async: false }) as string;
     }
+    emitCursorStatus();
   },
 };

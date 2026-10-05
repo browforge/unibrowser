@@ -131,6 +131,7 @@ pub struct TextDocumentDto {
     pub font_size_pt: f32,
     pub language: String,
     pub dirty: bool,
+    pub encoding: String,
 }
 
 #[derive(Serialize)]
@@ -152,6 +153,8 @@ pub struct TabContentDto {
     pub split_text_document: Option<TextDocumentDto>,
     pub split_document_viewer: Option<DocumentViewerDto>,
     pub split_status: Option<String>,
+    pub show_new_tab_page: bool,
+    pub browse_folder_path: String,
 }
 
 #[derive(Serialize)]
@@ -352,6 +355,25 @@ fn listing_cwd(state: &AppState, tabs: &unibrowser_engine::TabManager) -> PathBu
     state.cwd.clone()
 }
 
+fn detect_text_encoding(path: &str) -> String {
+    use std::io::Read;
+    let path = Path::new(path);
+    let mut head = [0u8; 4];
+    let n = std::fs::File::open(path)
+        .and_then(|mut f| f.read(&mut head))
+        .unwrap_or(0);
+    let b = &head[..n];
+    if b.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        "UTF-8 with BOM".into()
+    } else if b.len() >= 2 && b[0] == 0xFF && b[1] == 0xFE {
+        "UTF-16 LE".into()
+    } else if b.len() >= 2 && b[0] == 0xFE && b[1] == 0xFF {
+        "UTF-16 BE".into()
+    } else {
+        "UTF-8".into()
+    }
+}
+
 fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<TextDocumentDto> {
     let backend = try_text_backend(&mut *doc.backend)?;
     Some(TextDocumentDto {
@@ -360,7 +382,15 @@ fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<Tex
         font_size_pt: backend.font_size_pt,
         language: TextBackend::language_id(&backend.path).into(),
         dirty: backend.dirty,
+        encoding: detect_text_encoding(&backend.path),
     })
+}
+
+fn tab_is_new_tab_home(tab: &unibrowser_engine::tabs::Tab) -> bool {
+    matches!(
+        &tab.location,
+        BrowserLocation::Internal { page } if page == "home"
+    )
 }
 
 fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
@@ -370,8 +400,11 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         .active_tab()
         .map(|t| location_to_omnibox(&t.location))
         .ok_or("no active tab")?;
+    let browse_folder_path = listing_cwd(state, &tabs).to_string_lossy().into_owned();
     let directory_entries = if let Some(active) = tabs.active_tab() {
-        if active.is_directory {
+        if tab_is_new_tab_home(active) {
+            Some(list_dir(Path::new(&browse_folder_path))?)
+        } else if active.is_directory {
             if let BrowserLocation::File { path } = &active.location {
                 Some(list_dir(path)?)
             } else {
@@ -383,6 +416,10 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
     } else {
         None
     };
+    let show_new_tab_page = tabs
+        .active_tab()
+        .map(tab_is_new_tab_home)
+        .unwrap_or(false);
     let document_status = tabs
         .active_tab()
         .and_then(|t| t.document.as_ref())
@@ -457,6 +494,8 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         split_text_document,
         split_document_viewer,
         split_status,
+        show_new_tab_page,
+        browse_folder_path,
     })
 }
 
@@ -517,7 +556,7 @@ pub fn get_browser_state(state: State<AppState>) -> Result<TabContentDto, String
 #[tauri::command]
 pub fn new_tab(state: State<AppState>) -> Result<TabContentDto, String> {
     let loc = BrowserLocation::Internal {
-        page: format!("files?path={}", state.cwd.display()),
+        page: "home".into(),
     };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
@@ -1136,6 +1175,43 @@ pub fn sync_pdf_page(page: u32, state: State<AppState>) -> Result<(), String> {
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
     pdf.set_page_index(page);
     Ok(())
+}
+
+#[tauri::command]
+pub fn sync_pdf_scale(scale: f32, state: State<AppState>) -> Result<(), String> {
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    let doc = tab.document.as_mut().ok_or("no document")?;
+    let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+    pdf.set_render_scale(scale);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn web_page_zoom(delta_px: i32, app: AppHandle) -> Result<(), String> {
+    inject_page_font_scale(&app, delta_px)
+}
+
+#[tauri::command]
+pub async fn pick_open_file(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Open a file")
+        .blocking_pick_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
+#[tauri::command]
+pub async fn pick_browse_folder(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Choose a folder")
+        .blocking_pick_folder();
+    Ok(picked.map(|p| p.to_string()))
 }
 
 #[tauri::command]

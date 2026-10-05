@@ -43,6 +43,10 @@ impl PdfBackend {
     pub fn set_page_index(&mut self, page: u32) {
         self.page_index = page.max(1);
     }
+
+    pub fn set_render_scale(&mut self, scale: f32) {
+        self.render_scale = scale.clamp(0.5, 4.0);
+    }
 }
 
 impl unibrowser_engine::document::DocumentBackend for PdfBackend {

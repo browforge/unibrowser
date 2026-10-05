@@ -394,9 +394,144 @@ body {
   gap: 0.25rem;
 }
 
-.status-line {
-  font-size: 0.8rem;
+.status-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-top: 1px solid #333;
+  font-size: 0.75rem;
   color: #aaa;
+  min-height: 1.5rem;
+}
+
+.status-segment {
+  white-space: nowrap;
+}
+
+.status-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-hint {
+  margin-left: auto;
+  color: #777;
+  font-size: 0.7rem;
+}
+
+.status-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-zoom-btn {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  line-height: 1;
+  font-size: 1rem;
+}
+
+.status-segment.hidden,
+.status-zoom-btn.hidden {
+  display: none;
+}
+
+[data-theme="light"] .status-bar {
+  border-top-color: #ccc;
+}
+
+.new-tab-page-host {
+  position: absolute;
+  inset: 0.5rem;
+  overflow: auto;
+  padding: 1rem 1.25rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #1e1e24;
+}
+
+.new-tab-page-host.hidden {
+  display: none;
+}
+
+[data-theme="light"] .new-tab-page-host {
+  background: #fff;
+  border-color: #ccc;
+  color: #111;
+}
+
+.ntp-hero h1 {
+  font-size: 1.35rem;
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.ntp-lead {
+  margin: 0 0 1rem;
+  color: #aaa;
+  max-width: 36rem;
+}
+
+[data-theme="light"] .ntp-lead {
+  color: #555;
+}
+
+.ntp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.ntp-primary {
+  font-weight: 600;
+}
+
+.ntp-section h2 {
+  font-size: 0.95rem;
+  margin: 0 0 0.35rem;
+}
+
+.ntp-path {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0 0 0.5rem;
+}
+
+.ntp-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ntp-file-link {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.2rem 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ntp-empty {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.web-zoom-toolbar {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
 }
 
 #content-host {

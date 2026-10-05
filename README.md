@@ -11,7 +11,7 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 | **Browser** | Tabs, omnibox (`file://` + `https://`), back/forward/reload, home dir browse; **recent files** list (optional, persisted) | WebView2/GTK download hooks |
 | **Editors** | **Lazy-loaded** Monaco text + save, **Ctrl+F find**; Markdown preview on `.md` | Full WYSIWYG markdown |
 | **Viewers** | Lazy pdf.js / three.js; PDF; DOCX; images; DXF layers; **CSV/TSV table** (read-only stub); video/audio; Rhai; SVG; EPUB | Full spreadsheet edit; DXF NURBS |
-| **Shell** | Omnibox autocomplete; **dirty tab •** + close confirm; **session restore** (opt-in); tab search (Ctrl+Shift+T); OS **drag-drop** open; split view; undo sketch; toast errors ([ADR 0013](docs/adr/0013-dual-audience-foss-and-everyday-users.md)) | Persistent unified undo |
+| **Shell** | Omnibox autocomplete; **dirty tab •** + close confirm; **session restore** (opt-in); tab search (Ctrl+Shift+T); OS **drag-drop** open; **status bar** (path, encoding, line/col, zoom); **new-tab start page**; split view; undo sketch; toast errors ([ADR 0013](docs/adr/0013-dual-audience-foss-and-everyday-users.md)); `./scripts/smoke-desktop-qa.sh` | Persistent unified undo; Monaco spellcheck |
 | **Projects** | `.unibrow` folder or zip, export zip, asset CRUD, drag-drop | Cloud sync |
 | **Commands** | Command Manager tabs (keyboard roving), floating bars, palette, keybindings | Full audio/image toolbars |
 | **UI** | Light/dark/system theme persisted; optional onboarding tip | — |

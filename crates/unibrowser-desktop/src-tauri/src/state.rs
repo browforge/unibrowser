@@ -181,6 +181,9 @@ impl AppState {
             }
         }
         if let BrowserLocation::Internal { page } = &location {
+            if page == "home" {
+                return (location, false, None);
+            }
             if page.starts_with("files") {
                 let path = internal_files_path(page, &self.cwd);
                 return (

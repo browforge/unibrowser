@@ -22,7 +22,13 @@ impl BrowserLocation {
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_else(|| path.display().to_string()),
             BrowserLocation::Http { url } => url.clone(),
-            BrowserLocation::Internal { page } => page.clone(),
+            BrowserLocation::Internal { page } => {
+                if page == "home" {
+                    "New tab".into()
+                } else {
+                    page.clone()
+                }
+            }
         }
     }
 

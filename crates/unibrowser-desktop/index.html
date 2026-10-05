@@ -48,7 +48,6 @@
         <div id="command-manager-commands" class="command-manager-commands"></div>
       </section>
       <div id="floating-toolbar-host" class="floating-toolbar-host"></div>
-      <div id="status-line" class="status-line">Ctrl+Shift+P for command palette</div>
       <div id="toast-host" class="toast-host hidden" role="status" aria-live="polite"></div>
     </header>
     <div id="onboarding-banner" class="onboarding-banner hidden" role="status">
@@ -56,6 +55,7 @@
       <button type="button" id="onboarding-dismiss">Dismiss</button>
     </div>
     <main id="content-host" class="content-host">
+      <div id="new-tab-page-host" class="new-tab-page-host hidden" aria-label="Start page"></div>
       <div id="split-primary" class="split-pane">
         <div id="files-panel" class="panel"></div>
         <div id="text-editor-host" class="text-editor-host hidden"></div>
@@ -69,6 +69,17 @@
         <div id="split-doc-panel" class="panel doc-panel hidden"></div>
       </div>
     </main>
+    <footer id="status-bar" class="status-bar" aria-label="Status">
+      <span id="status-path" class="status-segment status-path"></span>
+      <span id="status-encoding" class="status-segment"></span>
+      <span id="status-cursor" class="status-segment"></span>
+      <span class="status-zoom-controls">
+        <button type="button" id="status-zoom-out" class="status-zoom-btn hidden" title="Zoom out">−</button>
+        <span id="status-zoom-label" class="status-segment"></span>
+        <button type="button" id="status-zoom-in" class="status-zoom-btn hidden" title="Zoom in">+</button>
+      </span>
+      <span id="status-hint" class="status-hint"></span>
+    </footer>
     <div id="tab-search" class="palette hidden" role="dialog" aria-label="Search open tabs">
       <input id="tab-search-query" type="text" placeholder="Filter open tabs…" />
       <div id="tab-search-results"></div>

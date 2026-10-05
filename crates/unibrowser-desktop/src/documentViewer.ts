@@ -1,6 +1,13 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import * as mammoth from "mammoth";
 import { loadPdfJs, loadThree } from "./lazyModules";
+import { reportViewerZoom } from "./viewerZoom";
+
+let viewerZoomAdjust: ((delta: number) => void) | null = null;
+
+export function adjustViewerZoom(delta: number) {
+  viewerZoomAdjust?.(delta);
+}
 
 export interface ProjectNodeDto {
   id: string;
@@ -113,6 +120,7 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
   const bytes = await readBytes(path);
   const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
   let currentPage = Math.min(Math.max(startPage, 1), doc.numPages);
+  let currentScale = scale;
   root.innerHTML = "";
   const wrap = document.createElement("div");
   wrap.className = "pdf-page-wrap";
@@ -141,12 +149,20 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
   nav.appendChild(next);
   nav.appendChild(jumpInput);
   nav.appendChild(jumpBtn);
+  const zoomOut = document.createElement("button");
+  zoomOut.type = "button";
+  zoomOut.textContent = "Zoom −";
+  const zoomIn = document.createElement("button");
+  zoomIn.type = "button";
+  zoomIn.textContent = "Zoom +";
+  nav.appendChild(zoomOut);
+  nav.appendChild(zoomIn);
   const printBtn = document.createElement("button");
   printBtn.type = "button";
   printBtn.textContent = "Print";
   printBtn.onclick = async () => {
     const page = await doc.getPage(currentPage);
-    const viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale: currentScale });
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) {
@@ -164,7 +180,7 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
   const drawPage = async (pageNum: number) => {
     wrap.innerHTML = "";
     const page = await doc.getPage(pageNum);
-    const viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale: currentScale });
     const canvas = document.createElement("canvas");
     canvas.className = "pdf-page";
     const ctx = canvas.getContext("2d");
@@ -248,10 +264,22 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
     await drawPage(currentPage);
   };
 
+  const bumpZoom = (delta: number) => {
+    const factor = delta > 0 ? 1.12 : 1 / 1.12;
+    currentScale = Math.min(4, Math.max(0.5, currentScale * factor));
+    void invoke("sync_pdf_scale", { scale: currentScale }).catch(() => {});
+    reportViewerZoom(currentScale, "pdf");
+    void drawPage(currentPage);
+  };
+  zoomIn.onclick = () => bumpZoom(1);
+  zoomOut.onclick = () => bumpZoom(-1);
+  viewerZoomAdjust = bumpZoom;
+  reportViewerZoom(currentScale, "pdf");
+
   await drawPage(currentPage);
   const meta = document.createElement("p");
   meta.className = "viewer-note";
-  meta.textContent = `Select text for font-size commands · scale ${scale.toFixed(2)}`;
+  meta.textContent = "Select text for font-size commands · use zoom buttons or the status bar";
   root.appendChild(meta);
 }
 
@@ -554,14 +582,19 @@ async function renderImage(path: string, root: HTMLElement) {
     stage.style.transform = `translate(${panX}px, ${panY}px) scale(${scale}) rotate(${rotation}deg)`;
   };
 
-  zoomIn.onclick = () => {
-    scale = Math.min(8, scale * 1.15);
+  const bumpImageZoom = (delta: number) => {
+    if (delta > 0) {
+      scale = Math.min(8, scale * 1.15);
+    } else {
+      scale = Math.max(0.15, scale / 1.15);
+    }
     applyTransform();
+    reportViewerZoom(scale, "image");
   };
-  zoomOut.onclick = () => {
-    scale = Math.max(0.15, scale / 1.15);
-    applyTransform();
-  };
+  zoomIn.onclick = () => bumpImageZoom(1);
+  zoomOut.onclick = () => bumpImageZoom(-1);
+  viewerZoomAdjust = bumpImageZoom;
+  reportViewerZoom(scale, "image");
   resetBtn.onclick = () => {
     scale = 1;
     panX = 0;
@@ -1180,6 +1213,7 @@ export const documentViewer = {
     }
   },
   hide(el: HTMLElement) {
+    viewerZoomAdjust = null;
     el.classList.add("hidden");
   },
 };

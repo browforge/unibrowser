@@ -2,12 +2,15 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import { commandManager } from "./commandManager";
-import { textEditor, type TextDocumentDto } from "./textEditor";
-import { documentViewer, type DocumentViewerDto } from "./documentViewer";
+import { textEditor, type TextDocumentDto, setCursorStatusListener } from "./textEditor";
+import { documentViewer, adjustViewerZoom, type DocumentViewerDto } from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
 import { invokeWithToast, showToast } from "./toast";
+import { bindStatusBar, setZoomHandler, updateStatusBar } from "./statusBar";
+import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
+import { setViewerZoomListener } from "./viewerZoom";
 
 interface TabDto {
   id: number;
@@ -82,6 +85,8 @@ interface TabContentDto {
   split_text_document: TextDocumentDto | null;
   split_document_viewer: DocumentViewerDto | null;
   split_status: string | null;
+  show_new_tab_page: boolean;
+  browse_folder_path: string;
 }
 
 interface RecentFileDto {
@@ -104,7 +109,13 @@ const commandManagerTabs = document.getElementById("command-manager-tabs")!;
 const commandManagerCommands = document.getElementById("command-manager-commands")!;
 const commandManagerPin = document.getElementById("command-manager-pin")!;
 const floatingToolbarHost = document.getElementById("floating-toolbar-host")!;
-const statusLine = document.getElementById("status-line")!;
+const statusBarEl = document.getElementById("status-bar")!;
+const newTabPageHost = document.getElementById("new-tab-page-host")!;
+let paletteChordHint = "Ctrl+Shift+P for command palette";
+let webZoomPx = 16;
+let lastViewerZoomLabel = "";
+let editorLine = 1;
+let editorCol = 1;
 const modsLine = document.getElementById("mods-line")!;
 const palette = document.getElementById("palette")!;
 const paletteQuery = document.getElementById("palette-query") as HTMLInputElement;
@@ -126,6 +137,35 @@ const recentToggle = document.getElementById("btn-recent")!;
 let recentPanelOpen = false;
 
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
+
+function refreshStatusBar(
+  data: TabContentDto,
+  active: TabDto | undefined,
+  showText: boolean,
+  showViewer: boolean,
+) {
+  const path =
+    active?.is_http
+      ? data.omnibox
+      : data.text_document?.path ??
+        data.document_viewer?.path ??
+        (data.show_new_tab_page ? data.browse_folder_path : data.omnibox.replace(/^file:\/\//, ""));
+  const encoding = showText && data.text_document ? data.text_document.encoding : "";
+  const cursor = showText && data.text_document ? `Ln ${editorLine}, Col ${editorCol}` : "";
+  let zoom = "";
+  if (active?.is_http) {
+    zoom = `Web ${webZoomPx}px`;
+  } else if (showViewer && data.document_viewer) {
+    zoom = lastViewerZoomLabel;
+  }
+  updateStatusBar({
+    path,
+    encoding,
+    cursor,
+    zoom,
+    hint: data.status.includes("command palette") ? paletteChordHint : data.status,
+  });
+}
 
 const tabSearchPanel = document.getElementById("tab-search")!;
 const tabSearchQuery = document.getElementById("tab-search-query") as HTMLInputElement;
@@ -248,7 +288,7 @@ function renderModPortal(portal: ModPortalDto | null) {
     btn.textContent = `${s.title} (${s.mod_id})`;
     btn.title = s.reason;
     btn.onclick = () => {
-      statusLine.textContent = `Install ${s.mod_id} — catalog stub (sideload always allowed)`;
+      showToast(`Install ${s.mod_id} — catalog stub (sideload always allowed)`, "info");
     };
     modPortalPanel.appendChild(btn);
   });
@@ -298,10 +338,13 @@ function renderModPortal(portal: ModPortalDto | null) {
   sideloadBtn.onclick = async () => {
     try {
       const rec = await invoke<InstalledVsixDto>("pick_and_install_vsix");
-      statusLine.textContent = `Installed ${rec.extension_id} (${rec.command_count} commands, ${rec.keybinding_count} keybindings in metadata)`;
+      showToast(
+        `Installed ${rec.extension_id} (${rec.command_count} commands, ${rec.keybinding_count} keybindings in metadata)`,
+        "info",
+      );
       await refreshInstalledVsix(installedList);
     } catch (err) {
-      statusLine.textContent = String(err);
+      showToast(String(err), "error");
     }
   };
   modPortalPanel.appendChild(sideloadBtn);
@@ -309,17 +352,20 @@ function renderModPortal(portal: ModPortalDto | null) {
   void refreshInstalledVsix(installedList);
 
   async function installFromOpenVsx(hit: OpenVsxHitDto) {
-    statusLine.textContent = `Downloading ${hit.extension_id}…`;
+    showToast(`Downloading ${hit.extension_id}…`, "info");
     try {
       const rec = await invoke<InstalledVsixDto>("download_install_vsix", {
         url: hit.url,
         networkOptIn: optIn.checked,
         license: hit.license,
       });
-      statusLine.textContent = `Installed ${rec.extension_id} — palette lists V1 commands (extension host not run)`;
+      showToast(
+        `Installed ${rec.extension_id} — palette lists V1 commands (extension host not run)`,
+        "info",
+      );
       await refreshInstalledVsix(installedList);
     } catch (err) {
-      statusLine.textContent = String(err);
+      showToast(String(err), "error");
     }
   }
 
@@ -377,7 +423,7 @@ async function refreshInstalledVsix(container: HTMLElement) {
       remove.textContent = "Uninstall";
       remove.onclick = async () => {
         await invoke("uninstall_vsix_extension", { extensionId: ext.extension_id });
-        statusLine.textContent = `Removed ${ext.extension_id}`;
+        showToast(`Removed ${ext.extension_id}`, "info");
         await refreshInstalledVsix(container);
       };
       row.appendChild(label);
@@ -469,7 +515,7 @@ function renderRecentFiles(entries: RecentFileDto[]) {
 async function runUiCommand(commandId: string) {
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
-  statusLine.textContent = String(msg);
+  showToast(String(msg), "info");
   await refreshCommandManager();
   await refreshState();
 }
@@ -533,11 +579,31 @@ async function applyState(data: TabContentDto) {
   const active = data.tabs[data.active_index];
   const showText = Boolean(data.text_document) && !active?.is_http;
   const showViewer = Boolean(data.document_viewer) && !active?.is_http;
+  const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
-  if (showText || showViewer) {
+  if (showHome) {
     filesPanel.classList.add("hidden");
+    renderNewTabPage(newTabPageHost, {
+      entries: data.directory_entries,
+      recent: data.recent_files ?? [],
+      browsePath: data.browse_folder_path,
+      onOpenPath: (path) =>
+        invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d)),
+      onNewProject: () => document.getElementById("btn-new-project")!.click(),
+      onPickFolder: async () => {
+        const folder = await invoke<string | null>("pick_browse_folder");
+        if (folder) {
+          await invoke<TabContentDto>("open_path", { path: folder }).then((d) => d && applyState(d));
+        }
+      },
+    });
   } else {
-    renderFiles(data.directory_entries);
+    hideNewTabPage(newTabPageHost);
+    if (showText || showViewer || active?.is_http) {
+      filesPanel.classList.add("hidden");
+    } else {
+      renderFiles(data.directory_entries);
+    }
   }
   renderModPortal(data.mod_portal);
   const hasPortal = Boolean(data.mod_portal);
@@ -556,7 +622,23 @@ async function applyState(data: TabContentDto) {
     documentViewer.hide(documentViewerHost);
   }
   await applySplitPane(data);
-  statusLine.textContent = data.status;
+  if (active?.is_http) {
+    setZoomHandler("web", (delta) => {
+      webZoomPx = Math.min(96, Math.max(8, webZoomPx + delta));
+      void invoke("web_page_zoom", { deltaPx: delta });
+      refreshStatusBar(data, active, showText, showViewer);
+    });
+  } else if (showViewer && data.document_viewer) {
+    const kind = data.document_viewer.viewer;
+    if (kind === "pdf" || kind === "image") {
+      setZoomHandler("viewer", (delta) => adjustViewerZoom(delta));
+    } else {
+      setZoomHandler("hidden", null);
+    }
+  } else {
+    setZoomHandler("hidden", null);
+  }
+  refreshStatusBar(data, active, showText, showViewer);
   await refreshCommandManager();
   await syncContentBounds();
   window.requestAnimationFrame(() => syncContentBounds());
@@ -754,7 +836,7 @@ async function runKeybindingCommand(commandId: string) {
   }
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
-  statusLine.textContent = String(msg);
+  showToast(String(msg), "info");
   await refreshCommandManager();
   await refreshState();
 }
@@ -806,6 +888,7 @@ async function loadKeybindingHints() {
     const palette = bindings.find((b) => b.command_id === PALETTE_TOGGLE);
     if (palette) {
       paletteChordLabel = palette.chord;
+      paletteChordHint = `${paletteChordLabel} for command palette`;
       paletteQuery.placeholder = `Search commands (${paletteChordLabel})`;
     }
   } catch {
@@ -825,7 +908,7 @@ paletteQuery.addEventListener("input", async () => {
     row.disabled = !entry.enabled;
     row.onclick = () => {
       invoke<string>("execute_command", { commandId: entry.command_id }).then((msg) => {
-        statusLine.textContent = String(msg);
+        showToast(String(msg), "info");
         togglePalette();
         refreshCommandManager();
         refreshState();
@@ -859,6 +942,20 @@ commandManager.bindPinControl(
 );
 
 bindRovingTablist(tabStrip, () => tabButtons);
+
+bindStatusBar(statusBarEl);
+setCursorStatusListener((pos) => {
+  editorLine = pos.line;
+  editorCol = pos.column;
+});
+setViewerZoomListener((_scale, label) => {
+  lastViewerZoomLabel = label;
+  const zoomEl = document.getElementById("status-zoom-label");
+  if (zoomEl && lastViewerZoomLabel) {
+    zoomEl.textContent = lastViewerZoomLabel;
+    zoomEl.classList.remove("hidden");
+  }
+});
 
 loadKeybindingHints();
 void loadThemePreference().then(() => {
