@@ -1,7 +1,6 @@
 //! Single-frame thumbnails via ffmpeg (direct or sidecar).
 
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 

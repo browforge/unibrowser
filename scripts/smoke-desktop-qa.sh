@@ -59,7 +59,7 @@ Shell
 
 Formats (spot check)
   [ ] CSV large file: capped rows + status line
-  [ ] EPUB chapter + print; DOCX read-only preview
+  [ ] EPUB chapter nav + in-book search; DOCX read-only preview
 
 Mods (optional)
   [ ] Mod portal opens; VSIX install disabled without network opt-in

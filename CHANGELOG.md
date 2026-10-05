@@ -6,6 +6,8 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- Docs hub [`docs/index.md`](docs/index.md), FOSS [`docs/getting-started.md`](docs/getting-started.md), and [`docs/report-visuals.md`](docs/report-visuals.md) + `scripts/capture-report-screenshots.sh`.
+- EPUB in-book search (spine text scan + chapter jump in viewer).
 - File-type badges in the files panel; compact Command Manager option in Settings.
 - High-contrast mode and reduce-motion preference (system / on / off).
 - Non-blocking onboarding checklist in Settings with hide forever.
@@ -38,3 +40,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 ### Changed
 
 - README “what works” table tracks blitz capabilities.
+
+### Fixed
+
+- Removed unused import in `unibrowser-media` (`frame.rs`) that failed `cargo test` warnings-as-errors in strict CI.

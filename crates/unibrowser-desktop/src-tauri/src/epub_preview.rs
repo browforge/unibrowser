@@ -15,6 +15,65 @@ pub struct EpubChapterDto {
     pub html: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct EpubSearchHitDto {
+    pub chapter_index: usize,
+    pub title: String,
+    pub snippet: String,
+    pub match_count: usize,
+}
+
+const SEARCH_SNIPPET_CHARS: usize = 72;
+pub fn search_in_book(
+    path: &Path,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<EpubSearchHitDto>, String> {
+    let needle = query.trim();
+    if needle.is_empty() {
+        return Ok(Vec::new());
+    }
+    let file = File::open(path).map_err(|e| e.to_string())?;
+    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let container = read_zip_entry(&mut archive, "META-INF/container.xml")?;
+    let opf_path = extract_attr(&container, "full-path").ok_or("container: no full-path")?;
+    let opf = read_zip_entry(&mut archive, &opf_path)?;
+    let opf_dir = opf_parent(&opf_path);
+    let spine_ids = parse_spine_itemrefs(&opf);
+    let manifest = parse_manifest_hrefs(&opf);
+    if spine_ids.is_empty() {
+        return Err("EPUB spine empty".into());
+    }
+    let needle_lc = needle.to_lowercase();
+    let cap = limit.max(1).min(200);
+    let mut hits = Vec::new();
+    for (chapter_index, id) in spine_ids.iter().enumerate() {
+        if hits.len() >= cap {
+            break;
+        }
+        let href = manifest.get(id).ok_or_else(|| format!("manifest missing spine id {}", id))?;
+        let chapter_path = resolve_href(&opf_dir, href);
+        let html = read_zip_entry(&mut archive, &chapter_path)?;
+        let plain = html_to_plain(&html);
+        let plain_lc = plain.to_lowercase();
+        let match_count = count_substr(&plain_lc, &needle_lc);
+        if match_count == 0 {
+            continue;
+        }
+        let title = parse_title(&html).unwrap_or_else(|| format!("Chapter {}", chapter_index + 1));
+        let snippet = snippet_around_match(&plain, &needle_lc).unwrap_or_else(|| {
+            plain.chars().take(SEARCH_SNIPPET_CHARS).collect()
+        });
+        hits.push(EpubSearchHitDto {
+            chapter_index,
+            title,
+            snippet,
+            match_count,
+        });
+    }
+    Ok(hits)
+}
+
 pub fn preview_chapter(path: &Path, index: usize) -> Result<EpubChapterDto, String> {
     let file = File::open(path).map_err(|e| e.to_string())?;
     let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
@@ -150,8 +209,71 @@ mod tests {
         assert_eq!(ch.total, 1);
         assert_eq!(ch.title, "Hello EPUB");
         assert!(ch.html.contains("One"));
+        let hits = search_in_book(&path, "one", 10).expect("search");
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].chapter_index, 0);
+        assert!(hits[0].snippet.to_ascii_lowercase().contains("one"));
         let _ = std::fs::remove_file(path);
     }
+}
+
+fn html_to_plain(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut in_tag = false;
+    for ch in html.chars() {
+        if ch == '<' {
+            in_tag = true;
+            if !out.ends_with(' ') && !out.is_empty() {
+                out.push(' ');
+            }
+            continue;
+        }
+        if ch == '>' {
+            in_tag = false;
+            continue;
+        }
+        if !in_tag {
+            out.push(ch);
+        }
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn count_substr(haystack: &str, needle: &str) -> usize {
+    if needle.is_empty() {
+        return 0;
+    }
+    let mut count = 0;
+    let mut start = 0;
+    while let Some(pos) = haystack[start..].find(needle) {
+        count += 1;
+        start += pos + needle.len();
+    }
+    count
+}
+
+fn snippet_around_match(plain: &str, needle_lc: &str) -> Option<String> {
+    let plain_lc = plain.to_lowercase();
+    let byte_off = plain_lc.find(needle_lc)?;
+    let start_char = plain[..byte_off].chars().count().saturating_sub(SEARCH_SNIPPET_CHARS / 3);
+    let excerpt: String = plain
+        .chars()
+        .skip(start_char)
+        .take(SEARCH_SNIPPET_CHARS)
+        .collect();
+    let trimmed = excerpt.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let mut snippet = String::new();
+    if start_char > 0 {
+        snippet.push('…');
+    }
+    snippet.push_str(trimmed);
+    if start_char + SEARCH_SNIPPET_CHARS < plain.chars().count() {
+        snippet.push('…');
+    }
+    Some(snippet)
 }
 
 fn parse_title(html: &str) -> Option<String> {

@@ -36,7 +36,7 @@ use crate::preferences::{
 };
 use crate::state::FileCompareState;
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
-use crate::epub_preview::EpubChapterDto;
+use crate::epub_preview::{EpubChapterDto, EpubSearchHitDto};
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
 use crate::webview::{adjust_page_font_for_url, sync_content_bounds, sync_content_webview_for_window};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
@@ -3317,6 +3317,16 @@ pub fn set_ui_theme(theme: String) -> Result<PreferencesDto, String> {
 #[tauri::command]
 pub fn get_epub_chapter(window: tauri::Window, path: String, index: usize) -> Result<EpubChapterDto, String> {
     crate::epub_preview::preview_chapter(Path::new(&path), index)
+}
+
+#[tauri::command]
+pub fn search_epub_in_book(
+    path: String,
+    query: String,
+    limit: Option<usize>,
+) -> Result<Vec<EpubSearchHitDto>, String> {
+    let cap = limit.unwrap_or(48);
+    crate::epub_preview::search_in_book(Path::new(&path), &query, cap)
 }
 
 #[tauri::command]

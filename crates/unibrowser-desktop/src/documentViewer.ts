@@ -11,6 +11,7 @@ import { emptyStateBlock } from "./emptyState";
 import { pathsFromDataTransfer } from "./filesDrag";
 import { showToast } from "./toast";
 import { playMidiScrubBeeps } from "./midiScrubAudio";
+import { t } from "./i18n";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -2365,18 +2366,39 @@ interface EpubChapterDto {
   html: string;
 }
 
+interface EpubSearchHitDto {
+  chapter_index: number;
+  title: string;
+  snippet: string;
+  match_count: number;
+}
+
 async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
   let chapterIndex = 0;
+
+  const searchRow = document.createElement("div");
+  searchRow.className = "epub-search-row";
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.className = "epub-search-input";
+  searchInput.placeholder = t("epub.searchPlaceholder");
+  const searchStatus = document.createElement("span");
+  searchStatus.className = "epub-search-status";
+  searchRow.appendChild(searchInput);
+  searchRow.appendChild(searchStatus);
+
+  const results = document.createElement("ul");
+  results.className = "epub-search-results";
 
   const nav = document.createElement("div");
   nav.className = "epub-nav";
   const prev = document.createElement("button");
   prev.type = "button";
-  prev.textContent = "Previous";
+  prev.textContent = t("epub.previous");
   const next = document.createElement("button");
   next.type = "button";
-  next.textContent = "Next";
+  next.textContent = t("epub.next");
   const label = document.createElement("span");
   label.className = "epub-chapter-label";
 
@@ -2409,9 +2431,51 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
     label.textContent = String(err);
   }
 
+  let searchTimer: ReturnType<typeof setTimeout> | null = null;
+  async function runEpubSearch() {
+    const q = searchInput.value.trim();
+    results.innerHTML = "";
+    if (!q) {
+      searchStatus.textContent = "";
+      return;
+    }
+    const hits = await invoke<EpubSearchHitDto[]>("search_epub_in_book", {
+      path: viewer.path,
+      query: q,
+      limit: 48,
+    });
+    if (!hits.length) {
+      searchStatus.textContent = t("epub.searchEmpty");
+      return;
+    }
+    const totalMatches = hits.reduce((n, h) => n + h.match_count, 0);
+    searchStatus.textContent = t("epub.searchStatus", { count: totalMatches });
+    for (const hit of hits) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "epub-search-hit";
+      btn.textContent = `${hit.title}: ${hit.snippet}`;
+      btn.onclick = () => loadChapter(hit.chapter_index).catch(showEpubError);
+      li.appendChild(btn);
+      results.appendChild(li);
+    }
+  }
+
+  searchInput.oninput = () => {
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+    }
+    searchTimer = setTimeout(() => {
+      runEpubSearch().catch((err) => {
+        searchStatus.textContent = String(err);
+      });
+    }, 280);
+  };
+
   const printBtn = document.createElement("button");
   printBtn.type = "button";
-  printBtn.textContent = "Print chapter";
+  printBtn.textContent = t("epub.printChapter");
   printBtn.onclick = () => {
     const html = frame.srcdoc || "";
     printHtmlDocument(viewer.path, html);
@@ -2420,6 +2484,8 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   nav.appendChild(label);
   nav.appendChild(next);
   nav.appendChild(printBtn);
+  root.appendChild(searchRow);
+  root.appendChild(results);
   root.appendChild(nav);
   root.appendChild(frame);
   root.appendChild(note);

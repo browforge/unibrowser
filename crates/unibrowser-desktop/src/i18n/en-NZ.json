@@ -259,5 +259,11 @@
   "project.templateVideoHint": "Three video slots, markers, and a fade stub",
   "project.cancel": "Cancel",
   "project.create": "Create project",
-  "settings.projectAutosave": "Auto-save project.json backup for open .unibrow tabs"
+  "settings.projectAutosave": "Auto-save project.json backup for open .unibrow tabs",
+  "epub.searchPlaceholder": "Search in book",
+  "epub.searchStatus": "{count} matches",
+  "epub.searchEmpty": "No matches",
+  "epub.previous": "Previous",
+  "epub.next": "Next",
+  "epub.printChapter": "Print chapter"
 }

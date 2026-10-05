@@ -4,8 +4,8 @@ Thank you for helping build a unified file and web browser shell. This project i
 
 ## Before you start
 
-1. Read `README.md` and `docs/architecture.md` for the engine / mod / shell split.
-2. Skim relevant ADRs in `docs/adr/` when your change touches navigation, downloads, projects, or UI commands.
+1. Read `README.md`, [docs/getting-started.md](docs/getting-started.md), and `docs/architecture.md` for the engine / mod / shell split.
+2. Skim relevant ADRs via [docs/index.md](docs/index.md) when your change touches navigation, downloads, projects, or UI commands.
 3. Run the automated gate locally:
 
 ```bash

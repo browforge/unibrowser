@@ -28,7 +28,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 | Archives | **Peek** `.zip` / `.unibrow` zip; click a file entry to **extract to cache and open** when supported |
 | Magic-byte sniff | Wrong extension still opens correct viewer: PDF, PNG, JPEG, GIF, WebP, ZIP/EPUB, WAV, MP3, OGG, FLAC, RIFF/AVI → video, etc. |
 | Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |
-| Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters |
+| Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters + in-book search |
 | Media | Video with scrub frames; **audio peak waveform** (decode or stub bars); optional LGPL sidecar pool |
 | 3D / CAD | `.unibrow` **templates** (blank / notes board / video mix), board colours, timeline markers, scrub + MIDI beeps, **project.json autosave** backup (settings), **share zip** export/import (no `derived/`), full zip export, MP4 preview |
 | Images | PNG/JPEG/GIF/WebP viewer; **Files bulk convert** to PNG or JPEG |
@@ -175,4 +175,4 @@ Enable targets in `src-tauri/tauri.conf.json` under `bundle.targets` if a format
 
 ## Repository layout
 
-See [docs/architecture.md](docs/architecture.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
+See [docs/index.md](docs/index.md) (ADRs, getting started) and [docs/architecture.md](docs/architecture.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).

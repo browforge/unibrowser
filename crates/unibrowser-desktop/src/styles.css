@@ -1168,12 +1168,49 @@ body {
 }
 
 .docx-toolbar,
-.epub-nav {
+.epub-nav,
+.epub-search-row {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   margin: 0.5rem 0;
   flex-wrap: wrap;
+}
+
+.epub-search-input {
+  flex: 1;
+  min-width: 10rem;
+  max-width: 24rem;
+}
+
+.epub-search-status {
+  font-size: 0.85rem;
+  color: #9a9aa8;
+}
+
+.epub-search-results {
+  list-style: none;
+  margin: 0 0 0.35rem;
+  padding: 0;
+  max-height: 8rem;
+  overflow: auto;
+}
+
+.epub-search-hit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.25rem 0.35rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.epub-search-hit:hover,
+.epub-search-hit:focus-visible {
+  background: #2a2a34;
 }
 
 .epub-chapter-frame {
