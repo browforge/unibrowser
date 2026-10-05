@@ -54,6 +54,8 @@ pub struct TabDto {
     pub is_directory: bool,
     pub is_http: bool,
     pub dirty: bool,
+    /// Folder path when this tab can receive file drops (browse / directory tabs).
+    pub browse_path: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -286,6 +288,7 @@ pub struct OmniboxSuggestionDto {
 pub struct RecentFileDto {
     pub path: String,
     pub label: String,
+    pub pinned: bool,
 }
 
 #[derive(Serialize)]
@@ -324,7 +327,27 @@ fn tab_is_dirty(tab: &unibrowser_engine::tabs::Tab) -> bool {
         .unwrap_or(false)
 }
 
-fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
+fn tab_browse_path(
+    state: &AppState,
+    tabs: &unibrowser_engine::TabManager,
+    tab: &unibrowser_engine::tabs::Tab,
+) -> Option<String> {
+    if tab_is_new_tab_home(tab) {
+        return Some(listing_cwd(state, tabs).to_string_lossy().into_owned());
+    }
+    if tab.is_directory {
+        if let BrowserLocation::File { path } = &tab.location {
+            return Some(path.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
+fn build_tab_dto(
+    state: &AppState,
+    tabs: &unibrowser_engine::TabManager,
+    tab: &unibrowser_engine::tabs::Tab,
+) -> TabDto {
     let (kind, is_http) = match &tab.location {
         BrowserLocation::File { .. } => ("file", false),
         BrowserLocation::Http { .. } => ("http", true),
@@ -337,6 +360,7 @@ fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
         is_directory: tab.is_directory,
         is_http,
         dirty: tab_is_dirty(tab),
+        browse_path: tab_browse_path(state, tabs, tab),
     }
 }
 
@@ -592,6 +616,45 @@ fn tab_pane_dtos(
     (text, viewer, status)
 }
 
+fn recent_files_dto(prefs: &crate::preferences::Preferences) -> Vec<RecentFileDto> {
+    let mut entries: Vec<_> = prefs
+        .recent_files
+        .iter()
+        .map(|e| RecentFileDto {
+            path: e.path.clone(),
+            label: e.label.clone(),
+            pinned: e.pinned,
+        })
+        .collect();
+    entries.sort_by(|a, b| b.pinned.cmp(&a.pinned));
+    entries
+}
+
+fn list_dir_timed(path: &Path) -> Result<Vec<base_files::DirEntry>, String> {
+    use std::sync::Arc;
+    use std::time::Duration;
+    let cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let timeout = Duration::from_millis(12_000);
+    let prefs = load_preferences();
+    let raw = crate::listing_control::list_dir_with_timeout(path, cancel, timeout)?;
+    Ok(crate::files_listing::apply_files_view(raw, &prefs.files_view))
+}
+
+fn list_dir_snapshot(
+    sess: &crate::window_session::SharedWindowSession,
+    path: &Path,
+) -> Result<Vec<base_files::DirEntry>, String> {
+    match list_dir_timed(path) {
+        Ok(entries) => Ok(entries),
+        Err(e) => {
+            if let Ok(mut notice) = sess.chrome_notice.lock() {
+                *notice = Some(e.clone());
+            }
+            Ok(Vec::new())
+        }
+    }
+}
+
 fn listing_cwd(state: &AppState, tabs: &unibrowser_engine::TabManager) -> PathBuf {
     if let Some(tab) = tabs.active_tab() {
         if let BrowserLocation::File { path } = &tab.location {
@@ -655,10 +718,10 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
     let browse_folder_path = listing_cwd(state, &tabs).to_string_lossy().into_owned();
     let directory_entries = if let Some(active) = tabs.active_tab() {
         if tab_is_new_tab_home(active) {
-            Some(list_dir(Path::new(&browse_folder_path))?)
+            Some(list_dir_snapshot(&sess, Path::new(&browse_folder_path))?)
         } else if active.is_directory {
             if let BrowserLocation::File { path } = &active.location {
-                Some(list_dir(path)?)
+                Some(list_dir_snapshot(&sess, path)?)
             } else {
                 None
             }
@@ -723,7 +786,11 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .map_err(|e| e.to_string())?
         .take();
     Ok(TabContentDto {
-        tabs: tabs.tabs().iter().map(build_tab_dto).collect(),
+        tabs: tabs
+            .tabs()
+            .iter()
+            .map(|t| build_tab_dto(state, &tabs, t))
+            .collect(),
         active_index: tabs.active_index(),
         omnibox,
         mods_loaded: state.mods_loaded.clone(),
@@ -745,14 +812,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         mod_portal,
         document_viewer,
         show_onboarding: !prefs.onboarding_dismissed,
-        recent_files: prefs
-            .recent_files
-            .iter()
-            .map(|e| RecentFileDto {
-                path: e.path.clone(),
-                label: e.label.clone(),
-            })
-            .collect(),
+        recent_files: recent_files_dto(&prefs),
         split_view_enabled: split_enabled,
         split_index: if split_enabled { split_index } else { None },
         split_text_document,
@@ -1510,8 +1570,132 @@ pub fn reload_tab(window: tauri::Window, app: AppHandle, state: State<AppState>)
 }
 
 #[tauri::command]
-pub fn list_directory(window: tauri::Window, path: String) -> Result<Vec<base_files::DirEntry>, String> {
-    list_dir(PathBuf::from(path).as_path())
+pub fn begin_directory_listing(state: State<AppState>) -> u64 {
+    state.listing_control.register().0
+}
+
+#[tauri::command]
+pub fn cancel_directory_listing(listing_id: u64, state: State<AppState>) {
+    state.listing_control.cancel(listing_id);
+}
+
+#[tauri::command]
+pub fn list_directory(
+    path: String,
+    listing_id: Option<u64>,
+    timeout_ms: Option<u64>,
+    state: State<AppState>,
+) -> Result<Vec<base_files::DirEntry>, String> {
+    use std::sync::Arc;
+    use std::time::Duration;
+    let p = PathBuf::from(path);
+    let cancel = if let Some(id) = listing_id {
+        state
+            .listing_control
+            .token(id)
+            .ok_or("unknown listing id")?
+    } else {
+        Arc::new(std::sync::atomic::AtomicBool::new(false))
+    };
+    let timeout = Duration::from_millis(timeout_ms.unwrap_or(30_000).clamp(1_000, 120_000));
+    let prefs = load_preferences();
+    let result = crate::listing_control::list_dir_with_timeout(&p, cancel, timeout);
+    if let Some(id) = listing_id {
+        state.listing_control.finish(id);
+    }
+    let raw = result?;
+    Ok(crate::files_listing::apply_files_view(raw, &prefs.files_view))
+}
+
+#[tauri::command]
+pub fn drop_paths_on_tab(
+    window: tauri::Window,
+    state: State<AppState>,
+    tab_index: usize,
+    paths: Vec<String>,
+    mode: String,
+) -> Result<TabContentDto, String> {
+    if paths.is_empty() {
+        return Err("no paths to drop".into());
+    }
+    let copy = match mode.as_str() {
+        "copy" => true,
+        "move" => false,
+        _ => return Err("mode must be copy or move".into()),
+    };
+    let dest = {
+        let sess = ws(&state, &window)?;
+        let tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs
+            .tabs()
+            .get(tab_index)
+            .ok_or("invalid tab index")?;
+        let path = tab_browse_path(state.inner(), &tabs, tab)
+            .ok_or("tab is not a folder browse view")?;
+        PathBuf::from(path)
+    };
+    let sources: Vec<PathBuf> = paths
+        .iter()
+        .map(|p| resolve_open_path(p, &state.cwd))
+        .collect::<Result<Vec<_>, _>>()?;
+    crate::file_ops::transfer_paths(&sources, &dest, copy)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn toggle_recent_pin(
+    window: tauri::Window,
+    path: String,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _ = resolve_open_path(&path, &state.cwd)?;
+    let mut prefs = load_preferences();
+    crate::preferences::toggle_recent_pin(&mut prefs, &path);
+    save_preferences(&prefs)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn clear_recent_files(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let mut prefs = load_preferences();
+    crate::preferences::clear_unpinned_recent(&mut prefs);
+    save_preferences(&prefs)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn cancel_filename_search(state: State<AppState>) {
+    state
+        .filename_search_cancel
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+#[tauri::command]
+pub fn search_filenames(
+    root: String,
+    query: String,
+    max_depth: Option<u32>,
+    max_results: Option<usize>,
+    state: State<AppState>,
+) -> Result<Vec<crate::dir_search::FilenameHitDto>, String> {
+    use std::sync::atomic::Ordering;
+    state.filename_search_cancel.store(false, Ordering::SeqCst);
+    let root = resolve_open_path(&root, &state.cwd)?;
+    if !root.is_dir() {
+        return Err("root is not a directory".into());
+    }
+    let depth = max_depth.unwrap_or(8).min(16);
+    let cap = max_results.unwrap_or(200).clamp(1, 500);
+    crate::dir_search::search_filenames(
+        &root,
+        &query,
+        depth,
+        cap,
+        &state.filename_search_cancel,
+    )
 }
 
 fn phase_name(phase: ToolbarPhase) -> &'static str {

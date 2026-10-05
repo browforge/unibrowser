@@ -101,6 +101,18 @@
       <input id="palette-query" type="text" placeholder="Search commands (Ctrl+Shift+P)" />
       <div id="palette-results"></div>
     </div>
+    <div id="filename-search" class="palette hidden" role="dialog" aria-label="Find files">
+      <div class="filename-search-head">
+        <input id="filename-search-query" type="search" placeholder="Filename…" />
+        <button type="button" id="filename-search-cancel">Cancel search</button>
+        <button type="button" id="filename-search-close">Close</button>
+      </div>
+      <label class="filename-search-root-label">
+        Search under
+        <input id="filename-search-root" type="text" class="files-search-input" />
+      </label>
+      <div id="filename-search-results"></div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -22,6 +22,9 @@ mod document_limits;
 mod content_sniff;
 mod files_listing;
 mod file_ops;
+mod dir_list;
+mod dir_search;
+mod listing_control;
 mod trash;
 mod window_session;
 mod workspace_layouts;
@@ -87,6 +90,13 @@ pub fn run() {
             commands::go_forward,
             commands::reload_tab,
             commands::list_directory,
+            commands::begin_directory_listing,
+            commands::cancel_directory_listing,
+            commands::drop_paths_on_tab,
+            commands::toggle_recent_pin,
+            commands::clear_recent_files,
+            commands::search_filenames,
+            commands::cancel_filename_search,
             commands::get_command_manager,
             commands::save_command_manager_layout,
             commands::export_command_manager_layout_file,

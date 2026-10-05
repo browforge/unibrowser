@@ -5,6 +5,7 @@ import {
   filesClipboardPeek,
   filesClipboardSet,
 } from "./filesClipboard";
+import { pathsFromDataTransfer, setPathsOnDataTransfer } from "./filesDrag";
 import { t } from "./i18n";
 import { showToast } from "./toast";
 import type { DirEntry, FilesViewDto } from "./filesPanelTypes";
@@ -554,8 +555,26 @@ function showDestinationPicker(
     list.innerHTML = `<li class="viewer-note">${t("files.peekLoading")}</li>`;
     panel.appendChild(list);
 
-    void invoke<DirEntry[]>("list_directory", { path: destPath })
-      .then((entries) => {
+    const cancelList = document.createElement("button");
+    cancelList.type = "button";
+    cancelList.textContent = t("files.deleteCancel");
+    cancelList.className = "files-dest-cancel-list";
+    let listingId: number | null = null;
+    cancelList.onclick = () => {
+      if (listingId != null) {
+        void invoke("cancel_directory_listing", { listingId });
+      }
+    };
+    nav.appendChild(cancelList);
+
+    void (async () => {
+      try {
+        listingId = await invoke<number>("begin_directory_listing");
+        const entries = await invoke<DirEntry[]>("list_directory", {
+          path: destPath,
+          listingId,
+          timeoutMs: 12000,
+        });
         list.innerHTML = "";
         entries
           .filter((e) => e.is_dir)
@@ -574,10 +593,12 @@ function showDestinationPicker(
         if (!list.childElementCount) {
           list.innerHTML = `<li class="viewer-note">—</li>`;
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         list.innerHTML = `<li class="viewer-note">${String(err)}</li>`;
-      });
+      } finally {
+        listingId = null;
+      }
+    })();
 
     const actions = document.createElement("div");
     actions.className = "files-side-actions";
@@ -1082,8 +1103,45 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
+  host.ondragover = (e) => {
+    if (pathsFromDataTransfer(e.dataTransfer).length) {
+      e.preventDefault();
+      host.classList.add("files-drop-target");
+    }
+  };
+  host.ondragleave = () => host.classList.remove("files-drop-target");
+  host.ondrop = (e) => {
+    host.classList.remove("files-drop-target");
+    const paths = pathsFromDataTransfer(e.dataTransfer);
+    if (!paths.length) {
+      return;
+    }
+    e.preventDefault();
+    const mode = e.shiftKey ? "move" : "copy";
+    void (async () => {
+      try {
+        const data = await invoke("transfer_paths", {
+          paths,
+          destinationDir: deps.browsePath,
+          mode,
+        });
+        await applySnapshot(deps, data);
+      } catch (err) {
+        showToast(String(err), "error");
+      }
+    })();
+  };
+
   visibleEntries.forEach((entry, index) => {
     const row = document.createElement("tr");
+    row.draggable = renamingPath !== entry.path;
+    row.addEventListener("dragstart", (e) => {
+      const paths =
+        selectedPaths.has(entry.path) && selectedPaths.size > 0
+          ? [...selectedPaths]
+          : [entry.path];
+      setPathsOnDataTransfer(e.dataTransfer!, paths);
+    });
     if (selectedPaths.has(entry.path)) {
       row.classList.add("files-row-selected");
     }

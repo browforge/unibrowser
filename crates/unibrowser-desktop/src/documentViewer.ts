@@ -8,6 +8,8 @@ import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
 import { renderKeys } from "./keysPage";
 import { emptyStateBlock } from "./emptyState";
+import { pathsFromDataTransfer } from "./filesDrag";
+import { showToast } from "./toast";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -1388,6 +1390,38 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     });
     canvas.appendChild(card);
   }
+  viewport.addEventListener("dragover", (e) => {
+    if (pathsFromDataTransfer(e.dataTransfer).length) {
+      e.preventDefault();
+      viewport.classList.add("unibrow-drop-target");
+    }
+  });
+  viewport.addEventListener("dragleave", () => viewport.classList.remove("unibrow-drop-target"));
+  viewport.addEventListener("drop", (e) => {
+    viewport.classList.remove("unibrow-drop-target");
+    const paths = pathsFromDataTransfer(e.dataTransfer);
+    if (!paths.length) {
+      return;
+    }
+    e.preventDefault();
+    void (async () => {
+      try {
+        let data: unknown = null;
+        for (const path of paths) {
+          data = await invoke("add_unibrow_asset", {
+            projectPath: viewer.path,
+            sourcePath: path,
+          });
+        }
+        if (data) {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        }
+      } catch (err) {
+        showToast(String(err), "error");
+      }
+    })();
+  });
+
   viewport.appendChild(canvas);
   root.appendChild(viewport);
 

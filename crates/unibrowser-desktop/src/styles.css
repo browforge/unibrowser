@@ -884,6 +884,81 @@ body {
   color: #ddd;
 }
 
+.files-drop-target {
+  outline: 2px dashed #6a8fc7;
+  outline-offset: -2px;
+}
+
+.tab-drop-target {
+  outline: 2px solid #6a8fc7;
+  border-radius: 4px;
+}
+
+.unibrow-drop-target {
+  outline: 2px dashed #c9a227;
+  outline-offset: -4px;
+}
+
+.filename-search-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.filename-search-head input[type="search"] {
+  flex: 1;
+  min-width: 10rem;
+}
+
+.filename-search-root-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 0.5rem;
+}
+
+.filename-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.filename-search-hit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.filename-search-hit:hover {
+  background: #333;
+}
+
+.recent-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.35rem;
+}
+
+.recent-item {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.recent-pin {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.35rem;
+}
+
 [data-theme="light"] .files-side-panel {
   background: #f4f4f6;
   border-left-color: #ccc;

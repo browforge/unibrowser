@@ -19,6 +19,8 @@ import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
 import { emptyStateBlock } from "./emptyState";
 import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./filesPanel";
+import { pathsFromDataTransfer } from "./filesDrag";
+import { initGlobalFind, toggleGlobalFind } from "./globalFind";
 import type { DirEntry as FilesDirEntry, FilesViewDto } from "./filesPanelTypes";
 
 interface TabDto {
@@ -28,6 +30,7 @@ interface TabDto {
   is_directory: boolean;
   is_http: boolean;
   dirty: boolean;
+  browse_path?: string | null;
 }
 
 interface TabSearchHit {
@@ -119,6 +122,7 @@ interface PinnedLocationDto {
 interface RecentFileDto {
   path: string;
   label: string;
+  pinned: boolean;
 }
 
 interface PaletteEntryDto {
@@ -262,6 +266,30 @@ function renderTabs(data: TabContentDto) {
     };
     const wrap = document.createElement("span");
     wrap.className = "tab-wrap";
+    if (tab.browse_path) {
+      wrap.dataset.dropFolder = tab.browse_path;
+      wrap.addEventListener("dragover", (e) => {
+        if (pathsFromDataTransfer(e.dataTransfer).length) {
+          e.preventDefault();
+          wrap.classList.add("tab-drop-target");
+        }
+      });
+      wrap.addEventListener("dragleave", () => wrap.classList.remove("tab-drop-target"));
+      wrap.addEventListener("drop", (e) => {
+        wrap.classList.remove("tab-drop-target");
+        const paths = pathsFromDataTransfer(e.dataTransfer);
+        if (!paths.length) {
+          return;
+        }
+        e.preventDefault();
+        const mode = e.shiftKey ? "move" : "copy";
+        void invoke<TabContentDto>("drop_paths_on_tab", {
+          tabIndex: index,
+          paths,
+          mode,
+        }).then((d) => d && applyState(d));
+      });
+    }
     wrap.appendChild(btn);
     wrap.appendChild(close);
     tabStrip.appendChild(wrap);
@@ -290,6 +318,7 @@ async function persistFilesView(view: FilesViewDto) {
 }
 
 const folderFavoritesCache: string[] = [];
+let lastBrowseFolderPath = "";
 
 function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto, browsePath: string, favorites: string[]) {
   filesPanel.innerHTML = "";
@@ -574,18 +603,39 @@ function renderRecentFiles(entries: RecentFileDto[]) {
     );
     return;
   }
+  const head = document.createElement("div");
+  head.className = "recent-head";
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "recent-clear";
+  clearBtn.textContent = t("recent.clear");
+  clearBtn.onclick = () =>
+    invoke<TabContentDto>("clear_recent_files").then((d) => d && applyState(d));
+  head.appendChild(clearBtn);
+  recentPanel.appendChild(head);
+
   const list = document.createElement("ul");
   list.className = "recent-list";
   entries.forEach((entry) => {
     const li = document.createElement("li");
+    li.className = entry.pinned ? "recent-item pinned" : "recent-item";
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "recent-link";
-    btn.textContent = entry.label;
+    btn.textContent = (entry.pinned ? "★ " : "") + entry.label;
     btn.title = entry.path;
     btn.onclick = () =>
       invoke<TabContentDto>("open_path", { path: entry.path }).then(applyState);
+    const pin = document.createElement("button");
+    pin.type = "button";
+    pin.className = "recent-pin";
+    pin.textContent = entry.pinned ? t("recent.unpin") : t("recent.pin");
+    pin.onclick = () =>
+      invoke<TabContentDto>("toggle_recent_pin", { path: entry.path }).then(
+        (d) => d && applyState(d),
+      );
     li.appendChild(btn);
+    li.appendChild(pin);
     list.appendChild(li);
   });
   recentPanel.appendChild(list);
@@ -658,6 +708,9 @@ async function applySplitPane(data: TabContentDto) {
 async function applyState(data: TabContentDto) {
   if (data.chrome_notice) {
     showToast(data.chrome_notice, "info");
+  }
+  if (data.browse_folder_path) {
+    lastBrowseFolderPath = data.browse_folder_path;
   }
   const active = data.tabs[data.active_index];
   const showText = Boolean(data.text_document) && !active?.is_http;
@@ -993,6 +1046,11 @@ document.addEventListener(
   if (!filesBrowserWrap.classList.contains("hidden") && handleFilesKeyDown(e)) {
     return;
   }
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    toggleGlobalFind(lastBrowseFolderPath);
+    return;
+  }
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "t") {
     e.preventDefault();
     toggleTabSearch();
@@ -1113,6 +1171,12 @@ window.addEventListener("unibrowser-refresh", (event) => {
 bindRovingTablist(tabStrip, () => tabButtons);
 
 bindStatusBar(statusBarEl);
+initGlobalFind({
+  defaultRoot: lastBrowseFolderPath,
+  onOpenPath: (path) => {
+    void invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d));
+  },
+});
 setPathCopyHandler((path) => {
   void copyText(path, () => showToast(t("status.pathCopied"), "info"));
 });

@@ -31,6 +31,8 @@ pub enum DownloadPreference {
 pub struct RecentFileEntry {
     pub path: String,
     pub label: String,
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -216,17 +218,36 @@ mod tests {
 }
 
 pub fn push_recent_file(prefs: &mut Preferences, path: String, label: String) {
+    let pinned = prefs
+        .recent_files
+        .iter()
+        .find(|e| e.path == path)
+        .map(|e| e.pinned)
+        .unwrap_or(false);
     prefs.recent_files.retain(|e| e.path != path);
     prefs.recent_files.insert(
         0,
         RecentFileEntry {
             path,
             label,
+            pinned,
         },
     );
     if prefs.recent_files.len() > RECENT_FILES_MAX {
         prefs.recent_files.truncate(RECENT_FILES_MAX);
     }
+}
+
+pub fn toggle_recent_pin(prefs: &mut Preferences, path: &str) -> bool {
+    if let Some(entry) = prefs.recent_files.iter_mut().find(|e| e.path == path) {
+        entry.pinned = !entry.pinned;
+        return entry.pinned;
+    }
+    false
+}
+
+pub fn clear_unpinned_recent(prefs: &mut Preferences) {
+    prefs.recent_files.retain(|e| e.pinned);
 }
 
 pub fn load_preferences() -> Preferences {

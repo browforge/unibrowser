@@ -24,7 +24,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 | Capability | Detail |
 | --- | --- |
 | Folder browse | **Breadcrumbs**, parent up, **folder favourites** (star), sort (name/date/size), hidden files, **in-folder name filter** (debounced), **lazy image thumbnails** (capped), **multi-select** (open, copy paths, delete) |
-| File ops | **Copy/move** selected items (side-panel destination picker), **new folder** / **new text file**, **rename** in place, **duplicate**, delete to rubbish bin; context menu (open, new tab, copy path, reveal, peek archive, rename, duplicate) |
+| File ops | **Copy/move** (side-panel picker), **drag-drop** onto folder tabs / current folder / **`.unibrow` board**, **compress to zip**, **properties**, create/rename/duplicate/delete; internal **Ctrl+X/C/V**; **Ctrl+Shift+F** filename search under a root (depth cap); listing **timeout/cancel** on slow paths; **recent** pin/unpin and clear unpinned |
 | Archives | **Peek** `.zip` / `.unibrow` zip; click a file entry to **extract to cache and open** when supported |
 | Magic-byte sniff | Wrong extension still opens correct viewer: PDF, PNG, JPEG, GIF, WebP, ZIP/EPUB, WAV, MP3, OGG, FLAC, RIFF/AVI → video, etc. |
 | Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |

@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
+
+use crate::listing_control::ListingControl;
 
 use base_files::list_directory;
 use base_web::{WebBackend, handles as web_handles};
@@ -35,6 +38,8 @@ pub struct AppState {
     pub command_manager: Mutex<CommandManagerState>,
     pub vsix_host_commands: Mutex<HashSet<String>>,
     pub key_sequences: Mutex<KeySequenceMatcher>,
+    pub listing_control: ListingControl,
+    pub filename_search_cancel: AtomicBool,
     pub _mod_host: ModHost,
 }
 
@@ -116,6 +121,8 @@ impl AppState {
             command_manager,
             vsix_host_commands,
             key_sequences: Mutex::new(KeySequenceMatcher::default()),
+            listing_control: ListingControl::new(),
+            filename_search_cancel: AtomicBool::new(false),
             _mod_host: mod_host,
         }
     }
