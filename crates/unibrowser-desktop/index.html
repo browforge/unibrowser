@@ -8,7 +8,7 @@
   <body>
     <header id="chrome">
       <div id="mods-line" class="mods-line"></div>
-      <div id="tab-strip" class="tab-strip"></div>
+      <div id="tab-strip" class="tab-strip" role="tablist" aria-label="Open tabs"></div>
       <div class="nav-row">
         <button type="button" id="btn-back" title="Back">←</button>
         <button type="button" id="btn-forward" title="Forward">→</button>
@@ -16,13 +16,19 @@
         <input id="omnibox" type="text" placeholder="file://, https://, or path" />
         <button type="button" id="btn-mod-portal" title="Browse and install mods">Mods</button>
         <button type="button" id="btn-new-project" title="Create a .unibrow project folder">New project</button>
+        <button type="button" id="btn-theme" title="Cycle light / dark / system theme">Theme</button>
         <button type="button" id="btn-demo-download" class="muted" title="Simulate download → new tab">
           Demo download
         </button>
       </div>
       <section id="command-manager" class="command-manager" aria-label="Command manager">
         <div class="command-manager-header">
-          <div id="command-manager-tabs" class="command-manager-tabs"></div>
+          <div
+            id="command-manager-tabs"
+            class="command-manager-tabs"
+            role="tablist"
+            aria-label="Command manager phases"
+          ></div>
           <button
             type="button"
             id="command-manager-pin"

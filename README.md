@@ -10,9 +10,10 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 | --- | --- | --- |
 | **Browser** | Tabs, omnibox (`file://` + `https://`), back/forward/reload, home dir browse | WebView2/GTK download hooks |
 | **Editors** | Monaco text + save; **Markdown preview** toggle on `.md` | Full WYSIWYG markdown |
-| **Viewers** | PDF (page + thumbs), DOCX HTML (view; edit via native model later), DXF (layers, pan/zoom), video/audio, Rhai scripts, **SVG source + preview + save**, **EPUB stub** | PDF raster thumbs; DXF NURBS; EPUB spine |
-| **Projects** | `.unibrow` create/open, add/rename/remove assets (rename renames file on disk), drag-drop | Cloud sync |
-| **Commands** | Command Manager tabs, floating bars (drag commands), palette, keybindings file | Full audio/image toolbars |
+| **Viewers** | PDF (page + thumbs), **DOCX** Mammoth HTML + print/export + view-only banner, DXF (layers, pan/zoom), video/audio, Rhai scripts, **SVG source + preview + save**, **EPUB spine HTML** (Rust zip/OPF, no AGPL epub.js) | PDF raster thumbs; DXF NURBS; EPUB embedded assets |
+| **Projects** | `.unibrow` folder or **zip package**, export zip, add/rename/remove assets, drag-drop | Cloud sync |
+| **Commands** | Command Manager tabs (**keyboard roving**), floating bars (drag commands), palette, keybindings file | Full audio/image toolbars |
+| **UI** | **Light/dark/system** theme persisted (`preferences.json`); optional onboarding tip | — |
 | **Mods** | Bundled `base-*` mods; **Mod portal** with Open VSX search/install, VSIX enable/disable/uninstall, V1 commands + keybindings (user `keybindings.json` wins), palette shows **needs extension host** | VSIX JS execution, `.ubmod` store |
 | **Media** | ffprobe; optional **LGPL sidecar** pool (`UNIBROWSER_MEDIA_USE_SIDECAR=1`) | Bundled ffmpeg in installer |
 | **Scripting** | Rhai sandbox, per-script allowlist, browse-only palette without doc | Script panel UX polish |

@@ -1,6 +1,7 @@
 mod commands;
 mod config;
 mod downloads;
+mod epub_preview;
 mod epub_stub;
 mod mod_portal;
 mod open_vsx;
@@ -71,6 +72,9 @@ pub fn run() {
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
             commands::get_preferences,
+            commands::set_ui_theme,
+            commands::get_epub_chapter,
+            commands::export_unibrow_project,
             commands::dismiss_onboarding,
             commands::save_window_geometry,
             commands::create_unibrow_project,

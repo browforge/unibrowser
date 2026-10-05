@@ -2,6 +2,61 @@
   font-family: system-ui, sans-serif;
   color: #e8e8e8;
   background: #1a1a1f;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color: #1a1a1f;
+  background: #f4f4f6;
+  color-scheme: light;
+}
+
+[data-theme="light"] #chrome {
+  border-bottom-color: #ccc;
+}
+
+[data-theme="light"] .mods-line,
+[data-theme="light"] .status-line,
+[data-theme="light"] .muted {
+  color: #555;
+}
+
+[data-theme="light"] .tab {
+  background: #e8e8ec;
+  border-color: #bbb;
+  color: #222;
+}
+
+[data-theme="light"] .tab.active {
+  background: #4a6fa5;
+  color: #fff;
+}
+
+[data-theme="light"] #omnibox {
+  background: #fff;
+  border-color: #bbb;
+  color: #111;
+}
+
+[data-theme="light"] .cm-tab,
+[data-theme="light"] .ui-command {
+  background: #e8e8ec;
+  border-color: #bbb;
+  color: #222;
+}
+
+[data-theme="light"] .cm-tab.active {
+  background: #4a6fa5;
+  color: #fff;
+}
+
+[data-theme="light"] .docx-view,
+[data-theme="light"] .viewer-body {
+  color: #111;
+}
+
+[data-theme="light"] .epub-chapter-frame {
+  background: #fff;
 }
 
 body {
@@ -220,6 +275,27 @@ body {
 .docx-view {
   max-width: 48rem;
   line-height: 1.5;
+}
+
+.docx-toolbar,
+.epub-nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.epub-chapter-frame {
+  width: 100%;
+  min-height: 20rem;
+  border: 1px solid #444;
+  background: #111;
+}
+
+.docx-limit {
+  border-left: 3px solid #3d5a80;
+  padding-left: 0.5rem;
 }
 
 .viewer-title {

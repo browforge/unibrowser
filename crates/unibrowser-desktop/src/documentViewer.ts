@@ -46,12 +46,67 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 
 async function renderDocx(path: string, root: HTMLElement) {
   const bytes = await readBytes(path);
-  const result = await mammoth.convertToHtml({ arrayBuffer: toArrayBuffer(bytes) });
-  root.innerHTML = `<article class="docx-view">${result.value}</article>`;
+  const result = await mammoth.convertToHtml(
+    { arrayBuffer: toArrayBuffer(bytes) },
+    {
+      includeDefaultStyleMap: true,
+      ignoreEmptyParagraphs: false,
+    },
+  );
+  const banner = document.createElement("p");
+  banner.className = "viewer-note docx-limit";
+  banner.textContent =
+    "View-only preview (Mammoth HTML). Word layout, fields, and tracked changes are not editable here; export or print HTML below.";
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "docx-toolbar";
+  const printBtn = document.createElement("button");
+  printBtn.type = "button";
+  printBtn.textContent = "Print";
+  printBtn.onclick = () => {
+    const w = window.open("", "_blank", "noopener");
+    if (!w) {
+      return;
+    }
+    w.document.write(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${path}</title></head><body>${result.value}</body></html>`,
+    );
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+  const exportBtn = document.createElement("button");
+  exportBtn.type = "button";
+  exportBtn.textContent = "Export HTML";
+  exportBtn.onclick = () => {
+    const blob = new Blob(
+      [
+        `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${path}</title></head><body>${result.value}</body></html>`,
+      ],
+      { type: "text/html;charset=utf-8" },
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${path.split(/[/\\]/).pop()?.replace(/\.docx$/i, "") ?? "document"}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  toolbar.appendChild(printBtn);
+  toolbar.appendChild(exportBtn);
+
+  const article = document.createElement("article");
+  article.className = "docx-view";
+  article.innerHTML = result.value;
+
+  root.innerHTML = "";
+  root.appendChild(banner);
+  root.appendChild(toolbar);
+  root.appendChild(article);
   if (result.messages.length) {
     const note = document.createElement("p");
     note.className = "viewer-note";
-    note.textContent = `mammoth: ${result.messages.length} message(s)`;
+    note.textContent = `mammoth: ${result.messages.length} conversion note(s)`;
     root.appendChild(note);
   }
 }
@@ -639,6 +694,24 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   note.className = "viewer-note";
   note.textContent = "Copies the file into project assets/ and updates project.json.";
   root.appendChild(note);
+
+  const exportBtn = document.createElement("button");
+  exportBtn.type = "button";
+  exportBtn.textContent = "Export .unibrow zip…";
+  exportBtn.onclick = async () => {
+    try {
+      const dest = await invoke<string>("export_unibrow_project", {
+        projectPath: viewer.path,
+      });
+      const status = document.createElement("p");
+      status.className = "viewer-note";
+      status.textContent = `Exported to ${dest}`;
+      root.appendChild(status);
+    } catch (err) {
+      window.alert(String(err));
+    }
+  };
+  root.appendChild(exportBtn);
 }
 
 interface RhaiScriptInfoDto {
@@ -663,16 +736,64 @@ async function refreshRhaiMeta(
   }
 }
 
+interface EpubChapterDto {
+  index: number;
+  total: number;
+  title: string;
+  html: string;
+}
+
 async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
+  let chapterIndex = 0;
+
+  const nav = document.createElement("div");
+  nav.className = "epub-nav";
+  const prev = document.createElement("button");
+  prev.type = "button";
+  prev.textContent = "Previous";
+  const next = document.createElement("button");
+  next.type = "button";
+  next.textContent = "Next";
+  const label = document.createElement("span");
+  label.className = "epub-chapter-label";
+
+  const frame = document.createElement("iframe");
+  frame.className = "epub-chapter-frame";
+  frame.title = "EPUB chapter";
+  frame.sandbox.add("allow-same-origin");
+
   const note = document.createElement("p");
   note.className = "viewer-note";
   note.textContent =
-    "EPUB preview stub — package opens; spine/HTML rendering will live in a future base-epub mod. DOCX remains view-first (Mammoth HTML); structured edit is on the roadmap.";
+    "Spine HTML preview (Rust zip/OPF). Images and fonts may be missing until asset URLs are resolved.";
+
+  async function loadChapter(index: number) {
+    const ch = await invoke<EpubChapterDto>("get_epub_chapter", {
+      path: viewer.path,
+      index,
+    });
+    chapterIndex = ch.index;
+    label.textContent = `${ch.title} (${ch.index + 1} / ${ch.total})`;
+    prev.disabled = ch.index <= 0;
+    next.disabled = ch.index + 1 >= ch.total;
+    frame.srcdoc = ch.html;
+  }
+
+  prev.onclick = () => loadChapter(chapterIndex - 1).catch(showEpubError);
+  next.onclick = () => loadChapter(chapterIndex + 1).catch(showEpubError);
+
+  function showEpubError(err: unknown) {
+    label.textContent = String(err);
+  }
+
+  nav.appendChild(prev);
+  nav.appendChild(label);
+  nav.appendChild(next);
+  root.appendChild(nav);
+  root.appendChild(frame);
   root.appendChild(note);
-  const path = document.createElement("code");
-  path.textContent = viewer.path;
-  root.appendChild(path);
+  await loadChapter(0);
 }
 
 async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {

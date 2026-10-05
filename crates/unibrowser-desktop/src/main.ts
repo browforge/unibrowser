@@ -4,6 +4,8 @@ import "./styles.css";
 import { commandManager } from "./commandManager";
 import { textEditor, type TextDocumentDto } from "./textEditor";
 import { documentViewer, type DocumentViewerDto } from "./documentViewer";
+import { bindRovingTablist, setTabA11y } from "./rovingTabs";
+import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 
 interface TabDto {
   id: number;
@@ -108,19 +110,28 @@ async function syncContentBounds() {
   });
 }
 
+const tabButtons: HTMLButtonElement[] = [];
+
 function renderTabs(data: TabContentDto) {
   tabStrip.innerHTML = "";
+  tabButtons.length = 0;
   data.tabs.forEach((tab, index) => {
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "tab" + (index === data.active_index ? " active" : "");
     btn.textContent = tab.label;
     btn.title = tab.location_kind;
+    setTabA11y(btn, index === data.active_index, `browser-tab-${index}`);
     btn.onclick = () => selectTab(index);
     tabStrip.appendChild(btn);
+    tabButtons.push(btn);
   });
   const plus = document.createElement("button");
+  plus.type = "button";
   plus.className = "tab new-tab";
   plus.textContent = "+";
+  plus.setAttribute("aria-label", "New tab");
+  plus.tabIndex = -1;
   plus.onclick = () => invoke<TabContentDto>("new_tab").then(applyState);
   tabStrip.appendChild(plus);
   omnibox.value = data.omnibox;
@@ -417,6 +428,12 @@ document.getElementById("btn-demo-download")!.onclick = () =>
 document.getElementById("btn-mod-portal")!.onclick = () =>
   invoke<TabContentDto>("open_mod_portal", { ext: null }).then(applyState);
 
+const themeBtn = document.getElementById("btn-theme") as HTMLButtonElement;
+themeBtn.onclick = async () => {
+  await cycleTheme();
+  themeBtn.textContent = themeButtonLabel();
+};
+
 document.getElementById("btn-new-project")!.onclick = async () => {
   const name = window.prompt("Project name", "MyProject");
   if (!name) {
@@ -567,5 +584,10 @@ commandManager.bindPinControl(
   runUiCommand,
 );
 
+bindRovingTablist(tabStrip, () => tabButtons);
+
 loadKeybindingHints();
+void loadThemePreference().then(() => {
+  themeBtn.textContent = themeButtonLabel();
+});
 refreshState();

@@ -2,16 +2,33 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use crate::config::preferences_file_path;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum UiTheme {
+    Light,
+    Dark,
+    System,
+}
+
+impl Default for UiTheme {
+    fn default() -> Self {
+        Self::System
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Preferences {
     #[serde(default)]
     pub onboarding_dismissed: bool,
+    #[serde(default)]
+    pub theme: UiTheme,
 }
 
 impl Default for Preferences {
     fn default() -> Self {
         Self {
             onboarding_dismissed: false,
+            theme: UiTheme::default(),
         }
     }
 }

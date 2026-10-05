@@ -5,6 +5,15 @@ import { invoke } from "@tauri-apps/api/core";
 
 loader.config({ monaco });
 
+window.addEventListener("unibrowser-theme", () => {
+  if (!editor || !monacoApi) {
+    return;
+  }
+  const theme =
+    document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
+  monacoApi.editor.setTheme(theme);
+});
+
 export interface TextDocumentDto {
   path: string;
   content: string;
@@ -125,8 +134,10 @@ async function ensureEditor(host: HTMLElement) {
   const api = await getMonaco();
   hostEl = host;
   host.innerHTML = "";
+  const monacoTheme =
+    document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
   editor = api.editor.create(host, {
-    theme: "vs-dark",
+    theme: monacoTheme,
     automaticLayout: true,
     minimap: { enabled: false },
     fontSize: 14,

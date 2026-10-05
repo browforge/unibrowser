@@ -42,3 +42,4 @@ unibrowser-extension-host = { path = "../../unibrowser-extension-host" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }

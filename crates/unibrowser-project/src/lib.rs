@@ -1,5 +1,7 @@
 //! Minimal `.unibrow` directory bundle ([ADR 0015](../../docs/adr/0015-native-project-format.md)).
 
+mod zip_bundle;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -21,6 +23,8 @@ pub enum ProjectError {
     Json(#[from] serde_json::Error),
     #[error("not a .unibrow package (missing {0})")]
     NotPackage(String),
+    #[error("zip: {0}")]
+    Zip(#[from] zip::result::ZipError),
     #[error("{0}")]
     Msg(String),
 }
@@ -59,7 +63,29 @@ pub struct ProjectPackage {
 }
 
 pub fn is_unibrow_path(path: &Path) -> bool {
-    path.is_dir() && path.join(PROJECT_FILE).is_file()
+    if path.is_dir() && path.join(PROJECT_FILE).is_file() {
+        return true;
+    }
+    zip_bundle::is_unibrow_zip_file(path)
+}
+
+pub fn export_package_to_zip(root: &Path, dest_zip: &Path) -> Result<(), ProjectError> {
+    zip_bundle::export_directory_to_zip(root, dest_zip)
+}
+
+pub fn materialize_zip_package(zip_path: &Path, cache_dir: &Path) -> Result<PathBuf, ProjectError> {
+    zip_bundle::materialize_zip_package(zip_path, cache_dir)
+}
+
+/// Directory containing `project.json` — materialises zip packages when needed.
+pub fn resolve_package_root(path: &Path, zip_cache_dir: &Path) -> Result<PathBuf, ProjectError> {
+    if path.is_dir() && path.join(PROJECT_FILE).is_file() {
+        return Ok(path.to_path_buf());
+    }
+    if zip_bundle::is_unibrow_zip_file(path) {
+        return zip_bundle::materialize_zip_package(path, zip_cache_dir);
+    }
+    Err(ProjectError::NotPackage(PROJECT_FILE.into()))
 }
 
 pub fn create_package(root: &Path, title: &str) -> Result<ProjectPackage, ProjectError> {
@@ -333,5 +359,22 @@ mod tests {
         let again = open_package(&dir).expect("open");
         assert_eq!(again.manifest.title, "Demo");
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn zip_export_and_materialize() {
+        let dir = std::env::temp_dir().join("unibrow-test-zip");
+        let _ = fs::remove_dir_all(&dir);
+        let _pkg = create_package(&dir, "ZipMe").expect("create");
+        let zip_path = dir.with_extension("unibrow");
+        export_package_to_zip(&dir, &zip_path).expect("export");
+        assert!(zip_path.is_file());
+        assert!(is_unibrow_path(&zip_path));
+        let cache = dir.join("cache");
+        let materialized = materialize_zip_package(&zip_path, &cache).expect("materialize");
+        let opened = open_package(&materialized).expect("open");
+        assert_eq!(opened.manifest.title, "ZipMe");
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::remove_dir_all(&zip_path);
     }
 }

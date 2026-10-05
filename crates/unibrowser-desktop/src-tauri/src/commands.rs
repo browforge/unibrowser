@@ -15,7 +15,8 @@ use crate::config::toolbars_file_path;
 use crate::downloads::apply_download_disposition;
 use crate::state::{AppState, list_dir};
 use crate::mod_portal::{ModSuggestionDto, suggest_mods_for_unknown_path};
-use crate::preferences::{load_preferences, save_preferences, WindowState};
+use crate::preferences::{load_preferences, save_preferences, UiTheme, WindowState};
+use crate::epub_preview::EpubChapterDto;
 use crate::webview::{content_webview_navigate, inject_page_font_scale, sync_content_bounds};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
 use unibrowser_engine::{
@@ -188,13 +189,19 @@ fn open_file_tabs_dto(state: &AppState) -> Vec<OpenFileTabDto> {
         .collect()
 }
 
+fn open_unibrow_package(path: &Path) -> Result<unibrowser_project::ProjectPackage, String> {
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    let root = unibrowser_project::resolve_package_root(path, &cache).map_err(|e| e.to_string())?;
+    unibrowser_project::open_package(&root).map_err(|e| e.to_string())
+}
+
 fn document_viewer_dto(
     doc: &mut unibrowser_engine::DocumentSession,
     state: &AppState,
 ) -> Option<DocumentViewerDto> {
     if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
         let root = Path::new(&doc.path);
-        let opened = unibrowser_project::open_package(root).ok();
+        let opened = open_unibrow_package(root).ok();
         let nodes = opened.as_ref().map(|pkg| {
             pkg.manifest
                 .nodes
@@ -800,6 +807,7 @@ pub fn set_content_bounds(
 #[derive(Serialize)]
 pub struct PreferencesDto {
     pub onboarding_dismissed: bool,
+    pub theme: String,
 }
 
 #[tauri::command]
@@ -860,7 +868,7 @@ pub fn add_unibrow_asset(
     if !source.is_file() {
         return Err("source is not a file".into());
     }
-    let mut package = unibrowser_project::open_package(&project).map_err(|e| e.to_string())?;
+    let mut package = open_unibrow_package(&project)?;
     let node_type = unibrowser_project::guess_asset_node_type(&source);
     let label = source
         .file_name()
@@ -879,7 +887,7 @@ fn reload_unibrow_project_tab(
     project: &Path,
     project_path: String,
 ) -> Result<(), String> {
-    let package = unibrowser_project::open_package(project).map_err(|e| e.to_string())?;
+    let package = open_unibrow_package(project)?;
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     let project_index = tabs.tabs().iter().position(|t| {
         matches!(&t.location, BrowserLocation::File { path } if path == project)
@@ -904,7 +912,7 @@ pub fn remove_unibrow_node(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = PathBuf::from(&project_path);
-    let mut package = unibrowser_project::open_package(&project).map_err(|e| e.to_string())?;
+    let mut package = open_unibrow_package(&project)?;
     unibrowser_project::remove_node(&mut package, &node_id).map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(&state, &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
@@ -921,7 +929,7 @@ pub fn rename_unibrow_node(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = PathBuf::from(&project_path);
-    let mut package = unibrowser_project::open_package(&project).map_err(|e| e.to_string())?;
+    let mut package = open_unibrow_package(&project)?;
     unibrowser_project::rename_node_label(&mut package, &node_id, &label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(&state, &project, project_path)?;
@@ -945,7 +953,68 @@ pub fn get_preferences() -> PreferencesDto {
     let p = load_preferences();
     PreferencesDto {
         onboarding_dismissed: p.onboarding_dismissed,
+        theme: theme_to_str(&p.theme),
     }
+}
+
+fn theme_to_str(theme: &UiTheme) -> String {
+    match theme {
+        UiTheme::Light => "light".into(),
+        UiTheme::Dark => "dark".into(),
+        UiTheme::System => "system".into(),
+    }
+}
+
+fn parse_ui_theme(theme: &str) -> Result<UiTheme, String> {
+    match theme.to_ascii_lowercase().as_str() {
+        "light" => Ok(UiTheme::Light),
+        "dark" => Ok(UiTheme::Dark),
+        "system" => Ok(UiTheme::System),
+        _ => Err("theme must be light, dark, or system".into()),
+    }
+}
+
+#[tauri::command]
+pub fn set_ui_theme(theme: String) -> Result<PreferencesDto, String> {
+    let parsed = parse_ui_theme(&theme)?;
+    let mut p = load_preferences();
+    p.theme = parsed;
+    save_preferences(&p)?;
+    Ok(get_preferences())
+}
+
+#[tauri::command]
+pub fn get_epub_chapter(path: String, index: usize) -> Result<EpubChapterDto, String> {
+    crate::epub_preview::preview_chapter(Path::new(&path), index)
+}
+
+#[tauri::command]
+pub async fn export_unibrow_project(
+    app: AppHandle,
+    project_path: String,
+) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let project = PathBuf::from(&project_path);
+    if !unibrowser_project::is_unibrow_path(&project) {
+        return Err("not a .unibrow project".into());
+    }
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    let root = unibrowser_project::resolve_package_root(&project, &cache).map_err(|e| e.to_string())?;
+    let pkg = unibrowser_project::open_package(&root).map_err(|e| e.to_string())?;
+    let default_name = format!(
+        "{}.unibrow",
+        unibrowser_project::sanitize_label_for_filename(&pkg.manifest.title)
+    );
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export .unibrow package")
+        .set_file_name(&default_name)
+        .blocking_save_file();
+    let dest = picked.ok_or("export cancelled")?;
+    let dest_path = PathBuf::from(dest.to_string());
+    unibrowser_project::export_package_to_zip(&root, &dest_path).map_err(|e| e.to_string())?;
+    Ok(dest_path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]

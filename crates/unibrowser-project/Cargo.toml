@@ -9,3 +9,4 @@ description = "Native .unibrow project package (ADR 0015)"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+zip = { version = "2", default-features = false, features = ["deflate"] }

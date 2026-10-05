@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 
 export interface UiCommandDto {
   command_id: string;
@@ -56,6 +57,7 @@ type RunCommand = (commandId: string) => Promise<void>;
 
 let lastSnapshot: CommandManagerDto | null = null;
 let dragCommandId: string | null = null;
+let cmTabButtons: HTMLButtonElement[] = [];
 
 function renderCommandButtons(
   container: HTMLElement,
@@ -199,6 +201,7 @@ export const commandManager = {
     lastSnapshot = snapshot;
     updatePinControl(pinEl, snapshot);
     tabsEl.innerHTML = "";
+    cmTabButtons = [];
     snapshot.tabs.forEach((tab) => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -206,6 +209,7 @@ export const commandManager = {
         "cm-tab" +
         (tab.selected ? " active" : "") +
         (tab.phase === "planned" ? " planned" : "");
+      setTabA11y(btn, tab.selected, `cm-tab-${tab.id}`, "command-manager-commands");
       const autoMatch =
         !snapshot.context_pinned && tab.id === snapshot.auto_context;
       btn.textContent = autoMatch ? `${tab.label} *` : tab.label;
@@ -222,7 +226,14 @@ export const commandManager = {
         await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
       };
       tabsEl.appendChild(btn);
+      cmTabButtons.push(btn);
     });
+    if (!tabsEl.dataset.rovingBound) {
+      tabsEl.dataset.rovingBound = "1";
+      bindRovingTablist(tabsEl, () => cmTabButtons);
+    }
+    commandsEl.id = "command-manager-commands";
+    commandsEl.setAttribute("role", "tabpanel");
     const active = snapshot.tabs.find((t) => t.selected) ?? snapshot.tabs[0];
     if (active) {
       renderCommandButtons(commandsEl, active.commands, onRun, true);

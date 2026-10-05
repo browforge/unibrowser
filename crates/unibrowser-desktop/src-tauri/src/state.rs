@@ -208,7 +208,13 @@ fn internal_files_path(page: &str, cwd: &Path) -> PathBuf {
 pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
     let path_str = path.to_string_lossy().to_string();
     if unibrowser_project::is_unibrow_path(path) {
-        let package = unibrowser_project::open_package(path).map_err(|e| e.to_string());
+        let root = crate::config::unibrow_zip_cache_dir()
+            .ok_or_else(|| "config path unavailable".to_string());
+        let package = root
+            .and_then(|cache| {
+                unibrowser_project::resolve_package_root(path, &cache).map_err(|e| e.to_string())
+            })
+            .and_then(|root| unibrowser_project::open_package(&root).map_err(|e| e.to_string()));
         if let Ok(pkg) = package {
             use crate::project_backend::UnibrowBackend;
             return Some(DocumentSession::new(
