@@ -22,6 +22,10 @@ fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
+pub fn record_info(message: impl Into<String>, details: Option<String>) {
+    record_error(message, details);
+}
+
 pub fn record_error(message: impl Into<String>, details: Option<String>) {
     let msg = message.into();
     let trimmed = msg.trim();

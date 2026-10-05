@@ -39,6 +39,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Text compare (stub) | Palette **Compare text files (experimental)** — Monaco diff, side-by-side or unified toggle |
 | Clip markers | Named markers on **video** timeline clips in `.unibrow`; jump from clip list |
 | Contributing | [docs/CONTRIBUTING.md](CONTRIBUTING.md) — build, checks, proving mod, PR expectations |
+| WebView2 downloads | Gap documented + issue template; `webview_download.rs` spike (`DownloadStarting` stub on Windows) — [browser-shell.md](browser-shell.md) |
+| VSIX activation | `onCommand:` activation at stub execute; activated extensions on diagnostics |
+| Image eyedropper | Stub on PNG/JPEG viewer: sample RGB in status bar |
+| Architecture | Runtime mermaid (shell ↔ engine ↔ mods ↔ sidecars) in [architecture.md](architecture.md) |
 | Image compare (stub) | Palette **Compare images** side-by-side with split slider + synced zoom; grey off image tabs |
 | Diagnostics | `unibrowser://diagnostics` — mods, ffmpeg, WebView stack, recent error log ring buffer |
 | Settings search | Filter Settings sections by typing in the search field |

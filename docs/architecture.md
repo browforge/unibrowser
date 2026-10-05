@@ -4,6 +4,49 @@ Unibrowser is a **unified browser shell** (files + web in one tab strip; see [AD
 
 **Product emphasis:** world-class **context switching** (stable chrome, auto Command Manager tab, grey-out, pin/customise), **mixed-format projects** with **lazy conversion** ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md), [ADR 0012](adr/0012-context-switching-ux-benchmarks.md)), and **dual audience** design — everyday defaults, FOSS depth without user-space interference ([ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md), [vision.md](vision.md)).
 
+## Runtime: shell, engines, mods, sidecars
+
+```mermaid
+flowchart TB
+  subgraph Shell["unibrowser-desktop (Tauri shell)"]
+    UI[Web UI TypeScript]
+    CMD[Tauri commands / events]
+    WV[Per-window content webview]
+  end
+
+  subgraph Engine["unibrowser-engine"]
+    REG[Command registry + palette]
+    CM[Command Manager state]
+    DOC[Document session + enablement]
+  end
+
+  subgraph Mods["Mods & extensions"]
+    BASE[bundled base-* backends]
+    VSIX[VSIX metadata + stub host]
+    HOST[unibrowser-mod-host loader]
+  end
+
+  subgraph Sidecars["T3 sidecars & bridges"]
+    FF[ffmpeg / unibrowser-media]
+    SCR[Rhai script host]
+    OCR[OCR placeholder]
+  end
+
+  UI --> CMD
+  CMD --> REG
+  CMD --> DOC
+  REG --> HOST
+  HOST --> BASE
+  VSIX --> REG
+  DOC --> BASE
+  CMD --> WV
+  CMD --> FF
+  CMD --> SCR
+  UI -.->|lazy| OCR
+```
+
+Heavy or copyleft stacks stay **out of process** where ADR 0007 requires it; the shell calls sidecars over stdio/HTTP stubs rather than linking them into `unibrowser-engine`.
+
 ## Engines in the product, formats in mods
 
 Bear’s direction: the **shipped product** owns **engine fundamentals** (session lifecycle, command wiring, surface hosting, conversion contracts). Each **engine lane** is **proven end-to-end** by one bundled **`base-*` mod** on a concrete format. **Format mods may compose multiple engines** (see below). Community mods extend the same APIs; they do not replace the host engine.

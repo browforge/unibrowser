@@ -25,6 +25,7 @@ import { copyText, readClipboardText } from "./clipboard";
 import { t } from "./i18n";
 import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
 import { setViewerZoomListener } from "./viewerZoom";
+import { clearImagePixelSample, getImagePixelSample } from "./viewerPixelSample";
 import { applyChromeI18n, modsLineText } from "./chromeI18n";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
@@ -256,7 +257,15 @@ function refreshStatusBar(
         data.document_viewer?.path ??
         (data.show_new_tab_page ? data.browse_folder_path : data.omnibox.replace(/^file:\/\//, ""));
   const encoding = showText && data.text_document ? data.text_document.encoding : "";
-  const cursor = showText && data.text_document ? `Ln ${editorLine}, Col ${editorCol}` : "";
+  const viewerKind = data.document_viewer?.viewer;
+  let cursor = showText && data.text_document ? `Ln ${editorLine}, Col ${editorCol}` : "";
+  if (!cursor && showViewer && viewerKind === "image") {
+    const sample = getImagePixelSample();
+    cursor = sample;
+  }
+  if (showViewer && viewerKind !== "image") {
+    clearImagePixelSample();
+  }
   let zoom = "";
   if (active?.is_http) {
     zoom = t("status.webZoom", { percent: String(webZoomPercent) });

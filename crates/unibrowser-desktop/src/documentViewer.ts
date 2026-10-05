@@ -14,7 +14,11 @@ import { emptyStateBlock } from "./emptyState";
 import { pathsFromDataTransfer } from "./filesDrag";
 import { showErrorToast, showToast } from "./toast";
 import { playMidiScrubBeeps } from "./midiScrubAudio";
-import { setStatusHint } from "./statusBar";
+import { patchStatusCursor, setStatusHint } from "./statusBar";
+import {
+  clearImagePixelSample,
+  setImagePixelSample,
+} from "./viewerPixelSample";
 import { t } from "./i18n";
 import {
   downloadPrintFriendlyHtml,
@@ -1133,6 +1137,18 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   copyImgBtn.type = "button";
   copyImgBtn.textContent = t("image.copy");
   copyImgBtn.onclick = () => void copyImageFile(path);
+  const eyedropBtn = document.createElement("button");
+  eyedropBtn.type = "button";
+  eyedropBtn.textContent = t("image.eyedropper");
+  eyedropBtn.title = t("image.eyedropperHint");
+  let eyedropActive = false;
+  eyedropBtn.onclick = () => {
+    eyedropActive = !eyedropActive;
+    eyedropBtn.classList.toggle("image-toolbar-active", eyedropActive);
+    if (!eyedropActive) {
+      clearImagePixelSample();
+    }
+  };
   toolbar.appendChild(zoomOut);
   toolbar.appendChild(zoomIn);
   toolbar.appendChild(resetBtn);
@@ -1146,6 +1162,7 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   toolbar.appendChild(saveCropBtn);
   toolbar.appendChild(ocrBtn);
   toolbar.appendChild(copyImgBtn);
+  toolbar.appendChild(eyedropBtn);
   root.appendChild(toolbar);
 
   const viewport = document.createElement("div");
@@ -1170,6 +1187,23 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   stage.appendChild(cropHost);
   viewport.appendChild(stage);
   root.appendChild(viewport);
+
+  const sampleCanvas = document.createElement("canvas");
+  const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
+  let sampleReady = false;
+  const refreshSampleSurface = () => {
+    if (!sampleCtx || !img.naturalWidth) {
+      return;
+    }
+    sampleCanvas.width = img.naturalWidth;
+    sampleCanvas.height = img.naturalHeight;
+    sampleCtx.drawImage(img, 0, 0);
+    sampleReady = true;
+  };
+  img.addEventListener("load", refreshSampleSurface);
+  if (img.complete) {
+    void img.decode().then(refreshSampleSurface).catch(() => undefined);
+  }
 
   let scale = initialZoom;
   let rotation = 0;
@@ -1254,6 +1288,39 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
     const y = ((clientY - rect.top) / rect.height) * 100;
     return { x, y };
   };
+
+  const samplePixelAt = (clientX: number, clientY: number) => {
+    if (!eyedropActive || !sampleReady || !sampleCtx || !img.naturalWidth) {
+      return;
+    }
+    const rect = img.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+    const px = Math.min(
+      img.naturalWidth - 1,
+      Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * img.naturalWidth)),
+    );
+    const py = Math.min(
+      img.naturalHeight - 1,
+      Math.max(0, Math.floor(((clientY - rect.top) / rect.height) * img.naturalHeight)),
+    );
+    const data = sampleCtx.getImageData(px, py, 1, 1).data;
+    const hex = `#${[data[0], data[1], data[2]]
+      .map((v) => v.toString(16).padStart(2, "0"))
+      .join("")}`;
+    const line = `${hex} rgb(${data[0]}, ${data[1]}, ${data[2]})`;
+    setImagePixelSample(line);
+    patchStatusCursor(line);
+  };
+
+  img.addEventListener("mousemove", (ev) => samplePixelAt(ev.clientX, ev.clientY));
+  img.addEventListener("mouseleave", () => {
+    if (eyedropActive) {
+      clearImagePixelSample();
+      patchStatusCursor("");
+    }
+  });
 
   const updateCropActions = () => {
     const hasCrop = Boolean(cropRectNorm && cropRectNorm.w >= 0.5 && cropRectNorm.h >= 0.5);

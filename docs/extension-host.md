@@ -9,13 +9,14 @@ VSIX packages install metadata today; JavaScript execution is still a stub ([ADR
 | Install | `.vsix` → `vsix-extensions/` under config; `install.json` + extracted `extension/` tree |
 | `contributes.commands` | Registered in `CommandRegistry`; titles appear in **palette** and **Command Manager → Extensions** tab |
 | `contributes.keybindings` | Merged into `keybindings.json` after defaults (user overrides win) |
-| `activationEvents` | Parsed from `package.json` and stored on the install record (not evaluated yet) |
+| `activationEvents` | Parsed from `package.json`; **`onCommand:&lt;id&gt;`** is evaluated when that command runs (stub activation, no JS) |
 | Run | `execute_command` / palette / chords call **`unibrowser-extension-host` stub** — returns a message, no `main` JS |
+| Diagnostics | `unibrowser://diagnostics` lists activated extensions and host stub version |
 
 ## Remaining gaps (full host)
 
 - No `vscode` API surface (`executeCommand`, workspace, window, languages).
-- No activation scheduler (`onCommand:`, `onLanguage:`, workspaceContains, etc.).
+- No full activation scheduler (`onLanguage:`, workspaceContains, `*` startup, etc.) — only **`onCommand:`** matching at stub execute time.
 - No extension `main` module load (Node, worker, or WASM T2).
 - No webview or language-server contributions.
 - Command enablement still assumes document handlers for non-VSIX commands; VSIX ids bypass document handlers.

@@ -2508,11 +2508,18 @@ pub fn execute_command(window: tauri::Window,
             let (extension_id, activation_events) =
                 unibrowser_vsix::lookup_vsix_command(&root, &command_id)
                     .ok_or_else(|| format!("VSIX command not found: {}", command_id))?;
-            return Ok(unibrowser_extension_host::execute_vsix_stub(
+            let msg = unibrowser_extension_host::execute_vsix_stub(
                 &command_id,
                 &extension_id,
                 &activation_events,
-            ));
+            );
+            if msg.contains("activated via `") && !msg.contains("already activated") {
+                crate::diagnostic_log::record_info(
+                    format!("VSIX activated: {}", extension_id),
+                    Some(msg.clone()),
+                );
+            }
+            return Ok(msg);
         }
     }
     let _sess_tabs = ws(&state, &window)?;
@@ -4299,6 +4306,22 @@ pub fn record_diagnostic_error(message: String, details: Option<String>) {
 }
 
 #[derive(Serialize)]
+pub struct VsixActivationDto {
+    pub extension_id: String,
+    pub matched_event: String,
+    pub command_id: String,
+    pub at_ms: u64,
+}
+
+#[derive(Serialize)]
+pub struct ExtensionHostDiagnosticsDto {
+    pub host_version: String,
+    pub host_running: bool,
+    pub host_message: String,
+    pub activated_extensions: Vec<VsixActivationDto>,
+}
+
+#[derive(Serialize)]
 pub struct DiagnosticsInfoDto {
     pub mods_loaded: String,
     pub mod_catalog_count: u32,
@@ -4306,6 +4329,9 @@ pub struct DiagnosticsInfoDto {
     pub webview_stack: String,
     pub web_capture_native: bool,
     pub web_capture_detail: String,
+    pub web_download_hook_wired: bool,
+    pub web_download_hook_detail: String,
+    pub extension_host: ExtensionHostDiagnosticsDto,
     pub target_os: String,
     pub target_arch: String,
     pub recent_errors: Vec<crate::diagnostic_log::DiagnosticLogEntry>,
@@ -4323,6 +4349,17 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
         "WRY embedded webview"
     };
     let web_capture = crate::webview_capture::web_capture_status();
+    let (download_detail, download_wired) = crate::webview_download::platform_download_hook_status();
+    let host_status = unibrowser_extension_host::status();
+    let activated = unibrowser_extension_host::activated_extensions()
+        .into_iter()
+        .map(|r| VsixActivationDto {
+            extension_id: r.extension_id,
+            matched_event: r.matched_event,
+            command_id: r.command_id,
+            at_ms: r.at_ms,
+        })
+        .collect();
     DiagnosticsInfoDto {
         mods_loaded: state.mods_loaded_line(),
         mod_catalog_count: state.bundled_mod_count() as u32,
@@ -4330,6 +4367,14 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
         webview_stack: webview_stack.into(),
         web_capture_native: web_capture.native_available,
         web_capture_detail: web_capture.detail,
+        web_download_hook_wired: download_wired,
+        web_download_hook_detail: download_detail.into(),
+        extension_host: ExtensionHostDiagnosticsDto {
+            host_version: unibrowser_extension_host::HOST_VERSION.into(),
+            host_running: host_status.running,
+            host_message: host_status.message,
+            activated_extensions: activated,
+        },
         target_os: std::env::consts::OS.into(),
         target_arch: std::env::consts::ARCH.into(),
         recent_errors: crate::diagnostic_log::recent_entries(),

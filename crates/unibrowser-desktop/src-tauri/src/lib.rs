@@ -47,6 +47,7 @@ mod user_backup;
 pub use state::open_file_document;
 mod webview;
 mod webview_capture;
+mod webview_download;
 
 use state::AppState;
 use tauri::Manager;

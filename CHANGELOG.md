@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **WebView2 downloads:** acceptance criteria + GitHub issue template; shared `emit_unibrowser_download` and Windows `webview2_download_starting_stub` spike ([browser-shell.md](docs/browser-shell.md)).
+- **VSIX activation (stub):** evaluate `onCommand:` when a contributed command runs; log activation and list activated extensions on diagnostics.
+- **Image eyedropper stub:** toggle on image viewer; pixel RGB/hex in status bar.
+- **Architecture:** runtime mermaid diagram (shell, engine, mods, sidecars) in [architecture.md](docs/architecture.md).
 - **HTTPS tab capture (Linux)**: WebKitGTK visible-region snapshot for https tabs; other platforms document the gap on `unibrowser://diagnostics` and grey **Capture visible tab** with an explicit reason.
 - **Video clip markers**: named markers on video clips in `.unibrow` timelines; add at playhead, jump from clip marker list.
 - **Text compare (experimental)**: palette **Compare text files** opens Monaco diff (side-by-side or unified); text-only picker validation.

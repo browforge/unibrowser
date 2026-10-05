@@ -1,0 +1,30 @@
+name: WebView2 download hook
+description: Wire ICoreWebView2 DownloadStarting to unibrowser-download (Windows)
+title: "WebView2: wire DownloadStarting → unibrowser-download"
+labels:
+  - platform/windows
+  - area/downloads
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See [docs/browser-shell.md](docs/browser-shell.md#issue-webview2-downloadstarting-windows) for platform table and spike (`webview_download.rs`).
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance checklist
+      value: |
+        - [ ] https download emits `unibrowser-download` with url + optional destination
+        - [ ] `main.ts` disposition + system-browser pref unchanged
+        - [ ] `apply_download_disposition` parity with Linux
+        - [ ] Diagnostics `web_download_hook_wired` true on Windows
+        - [ ] Manual QA notes attached
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Implementation notes
+      description: WRY/Tauri API used, PR link, blockers
+    validations:
+      required: false

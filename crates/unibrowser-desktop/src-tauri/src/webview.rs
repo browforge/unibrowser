@@ -1,7 +1,8 @@
-use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl};
+use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl};
 use url::Url;
 
 use crate::downloads::DownloadEventPayload;
+use crate::webview_download::emit_unibrowser_download;
 
 pub fn content_label_for_capture(window_label: &str) -> String {
     format!("content-{}", window_label)
@@ -29,9 +30,7 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
                         url: url.to_string(),
                         destination: Some(destination.to_string_lossy().into_owned()),
                     };
-                    let _ = webview
-                        .app_handle()
-                        .emit("unibrowser-download", payload);
+                    emit_unibrowser_download(webview.app_handle(), payload);
                     return false;
                 }
                 DownloadEvent::Finished {
@@ -44,7 +43,7 @@ pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(),
                         url: file_url,
                         destination: Some(path.to_string_lossy().into_owned()),
                     };
-                    let _ = webview.app_handle().emit("unibrowser-download", payload);
+                    emit_unibrowser_download(webview.app_handle(), payload);
                     return false;
                 }
                 _ => {}

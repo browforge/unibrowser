@@ -13,6 +13,20 @@ interface DiagnosticLogEntry {
   details?: string | null;
 }
 
+interface VsixActivationDto {
+  extension_id: string;
+  matched_event: string;
+  command_id: string;
+  at_ms: number;
+}
+
+interface ExtensionHostDiagnosticsDto {
+  host_version: string;
+  host_running: boolean;
+  host_message: string;
+  activated_extensions: VsixActivationDto[];
+}
+
 interface DiagnosticsInfoDto {
   mods_loaded: string;
   mod_catalog_count: number;
@@ -20,6 +34,9 @@ interface DiagnosticsInfoDto {
   webview_stack: string;
   web_capture_native: boolean;
   web_capture_detail: string;
+  web_download_hook_wired: boolean;
+  web_download_hook_detail: string;
+  extension_host: ExtensionHostDiagnosticsDto;
   target_os: string;
   target_arch: string;
   recent_errors: DiagnosticLogEntry[];
@@ -76,6 +93,46 @@ export async function renderDiagnostics(root: HTMLElement) {
   capDetail.textContent = info.web_capture_detail;
   capSec.appendChild(capDetail);
   root.appendChild(capSec);
+
+  const dlSec = document.createElement("section");
+  dlSec.className = "settings-section";
+  const dlH = document.createElement("h3");
+  dlH.textContent = t("diagnostics.webDownload");
+  dlSec.appendChild(dlH);
+  const dlP = document.createElement("p");
+  dlP.textContent = info.web_download_hook_wired
+    ? t("diagnostics.webDownloadOk")
+    : t("diagnostics.webDownloadGap");
+  dlSec.appendChild(dlP);
+  const dlDetail = document.createElement("p");
+  dlDetail.className = "viewer-note";
+  dlDetail.textContent = info.web_download_hook_detail;
+  dlSec.appendChild(dlDetail);
+  root.appendChild(dlSec);
+
+  const extSec = document.createElement("section");
+  extSec.className = "settings-section";
+  const extH = document.createElement("h3");
+  extH.textContent = t("diagnostics.extensionHost");
+  extSec.appendChild(extH);
+  const extP = document.createElement("p");
+  extP.textContent = `${info.extension_host.host_version} — ${info.extension_host.host_message}`;
+  extSec.appendChild(extP);
+  const actList = document.createElement("ul");
+  actList.className = "diagnostics-list";
+  if (!info.extension_host.activated_extensions.length) {
+    const li = document.createElement("li");
+    li.textContent = t("diagnostics.vsixNotActivated");
+    actList.appendChild(li);
+  } else {
+    info.extension_host.activated_extensions.forEach((a) => {
+      const li = document.createElement("li");
+      li.textContent = `${a.extension_id} via ${a.matched_event} (${a.command_id})`;
+      actList.appendChild(li);
+    });
+  }
+  extSec.appendChild(actList);
+  root.appendChild(extSec);
 
   const ffSec = document.createElement("section");
   ffSec.className = "settings-section";
