@@ -22,6 +22,7 @@ mod document_limits;
 mod content_sniff;
 mod files_listing;
 mod file_ops;
+mod batch_images;
 mod dir_list;
 mod dir_search;
 mod listing_control;
@@ -163,6 +164,10 @@ pub fn run() {
             commands::add_unibrow_timeline_clip,
             commands::remove_unibrow_timeline_clip,
             commands::reorder_unibrow_timeline_clips,
+            commands::update_unibrow_timeline_clip,
+            commands::video_scrub_thumbnail,
+            commands::export_unibrow_mp4_preview,
+            commands::batch_convert_images,
             commands::auto_save_active_document,
             commands::pick_and_compare,
             commands::close_file_compare,

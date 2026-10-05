@@ -15,6 +15,11 @@ use crate::{MediaError, MediaFileProbe, find_binary};
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum SidecarRequest {
     ProbeFile { path: String },
+    FrameAt {
+        path: String,
+        time_sec: f64,
+        dest_path: String,
+    },
     Ping,
 }
 
@@ -26,6 +31,8 @@ pub struct SidecarResponse {
     pub summary: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frame_mime: Option<String>,
     #[serde(default)]
     pub pong: bool,
 }
@@ -98,6 +105,23 @@ pub fn init_sidecar_pool() -> Result<(), MediaError> {
 }
 
 /// Reuse one sidecar process for multiple probes (desktop / `UNIBROWSER_MEDIA_USE_SIDECAR=1`).
+pub fn sidecar_request_pooled(req: &SidecarRequest) -> Result<SidecarResponse, MediaError> {
+    let mut guard = SIDECAR_POOL
+        .lock()
+        .map_err(|e| MediaError::Sidecar(e.to_string()))?;
+    if guard.is_none() {
+        *guard = Some(SidecarSession::spawn()?);
+    }
+    let session = guard.as_mut().unwrap();
+    match session.request(req) {
+        Ok(resp) => Ok(resp),
+        Err(e) => {
+            *guard = None;
+            Err(e)
+        }
+    }
+}
+
 pub fn probe_file_pooled(path: &Path) -> Result<MediaFileProbe, MediaError> {
     let mut guard = SIDECAR_POOL
         .lock()

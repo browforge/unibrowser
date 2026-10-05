@@ -1362,6 +1362,85 @@ body {
   margin: 0 0 0.75rem;
 }
 
+.unibrow-timeline-ruler {
+  position: relative;
+  height: 1.25rem;
+  margin: 0.25rem 0 0.15rem;
+  border-bottom: 1px solid var(--border, #ccc);
+  font-size: 0.65rem;
+  color: var(--text-muted, #666);
+}
+
+.unibrow-timeline-ruler-tick {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.unibrow-timeline-track {
+  position: relative;
+  height: 1.5rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface-muted, #eee);
+  border-radius: 4px;
+}
+
+.unibrow-timeline-block {
+  position: absolute;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  min-width: 2px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent, #3b82f6) 55%, #fff);
+  font-size: 0.6rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-align: center;
+  line-height: 1.2rem;
+}
+
+.unibrow-timeline-timing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.unibrow-timeline-timing input {
+  width: 4.5rem;
+  margin-left: 0.25rem;
+}
+
+.video-scrub {
+  margin-top: 0.5rem;
+  max-width: 40rem;
+}
+
+.video-scrub-label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.video-scrub-range {
+  width: 100%;
+}
+
+.video-scrub-time {
+  font-size: 0.8rem;
+  color: var(--text-muted, #666);
+}
+
+.video-scrub-thumb {
+  display: block;
+  max-width: 100%;
+  max-height: 10rem;
+  margin-top: 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--border, #ccc);
+}
+
 .unibrow-timeline-clips {
   margin: 0;
   padding-left: 1.25rem;

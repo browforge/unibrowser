@@ -556,6 +556,79 @@ async function renderVideo(path: string, root: HTMLElement, note?: string) {
   video.controls = true;
   video.src = convertFileSrc(path);
   root.appendChild(video);
+
+  const scrubWrap = document.createElement("div");
+  scrubWrap.className = "video-scrub";
+  const scrubLabel = document.createElement("label");
+  scrubLabel.className = "video-scrub-label";
+  scrubLabel.textContent = "Scrub preview";
+  const scrubInput = document.createElement("input");
+  scrubInput.type = "range";
+  scrubInput.className = "video-scrub-range";
+  scrubInput.min = "0";
+  scrubInput.max = "1000";
+  scrubInput.value = "0";
+  scrubInput.disabled = true;
+  const scrubTime = document.createElement("span");
+  scrubTime.className = "video-scrub-time";
+  scrubTime.textContent = "0.0s";
+  const thumb = document.createElement("img");
+  thumb.className = "video-scrub-thumb hidden";
+  thumb.alt = "";
+  const scrubNote = document.createElement("p");
+  scrubNote.className = "viewer-note video-scrub-fallback hidden";
+  scrubNote.textContent = "Frame preview needs ffmpeg on PATH.";
+  scrubWrap.appendChild(scrubLabel);
+  scrubWrap.appendChild(scrubInput);
+  scrubWrap.appendChild(scrubTime);
+  scrubWrap.appendChild(thumb);
+  scrubWrap.appendChild(scrubNote);
+  root.appendChild(scrubWrap);
+
+  let scrubTimer: number | undefined;
+  let thumbEnabled = true;
+
+  const syncScrubMax = () => {
+    const dur = video.duration;
+    if (Number.isFinite(dur) && dur > 0) {
+      scrubInput.disabled = false;
+      scrubInput.max = String(Math.max(1, Math.floor(dur * 10)));
+    }
+  };
+  video.addEventListener("loadedmetadata", syncScrubMax);
+  syncScrubMax();
+
+  const requestThumb = (timeSec: number) => {
+    if (!thumbEnabled) {
+      return;
+    }
+    void invoke<{ path: string; mime: string }>("video_scrub_thumbnail", {
+      path,
+      timeSec,
+    })
+      .then(async (frame) => {
+        await ensureAssetAllowed(frame.path);
+        thumb.src = convertFileSrc(frame.path);
+        thumb.classList.remove("hidden");
+        scrubNote.classList.add("hidden");
+      })
+      .catch(() => {
+        thumb.classList.add("hidden");
+        scrubNote.classList.remove("hidden");
+        thumbEnabled = false;
+      });
+  };
+
+  scrubInput.addEventListener("input", () => {
+    const t = Number.parseFloat(scrubInput.value) / 10;
+    scrubTime.textContent = `${t.toFixed(1)}s`;
+    if (Number.isFinite(t)) {
+      video.currentTime = t;
+    }
+    window.clearTimeout(scrubTimer);
+    scrubTimer = window.setTimeout(() => requestThumb(t), 120);
+  });
+
   appendMediaNote(root, note);
 }
 
@@ -1426,11 +1499,46 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   root.appendChild(viewport);
 
   const clips = viewer.project_clips ?? [];
+  const timelineTotalSec = (list: typeof clips) => {
+    const end = list.reduce(
+      (max, c) => Math.max(max, c.start_sec + c.duration_sec),
+      0,
+    );
+    return Math.max(1, end);
+  };
+  const totalSec = timelineTotalSec(clips);
+
   const timeline = document.createElement("section");
   timeline.className = "unibrow-timeline";
   const tlTitle = document.createElement("h3");
   tlTitle.textContent = "Timeline";
   timeline.appendChild(tlTitle);
+
+  const ruler = document.createElement("div");
+  ruler.className = "unibrow-timeline-ruler";
+  ruler.setAttribute("aria-hidden", "true");
+  const tickStep = totalSec > 30 ? 5 : totalSec > 12 ? 2 : 1;
+  for (let t = 0; t <= totalSec; t += tickStep) {
+    const tick = document.createElement("span");
+    tick.className = "unibrow-timeline-ruler-tick";
+    tick.style.left = `${(t / totalSec) * 100}%`;
+    tick.textContent = `${t}s`;
+    ruler.appendChild(tick);
+  }
+  timeline.appendChild(ruler);
+
+  const track = document.createElement("div");
+  track.className = "unibrow-timeline-track";
+  clips.forEach((clip) => {
+    const block = document.createElement("div");
+    block.className = "unibrow-timeline-block";
+    block.title = clip.label;
+    block.style.left = `${(clip.start_sec / totalSec) * 100}%`;
+    block.style.width = `${Math.max((clip.duration_sec / totalSec) * 100, 2)}%`;
+    block.textContent = clipTypeAbbrev(clip.node_type);
+    track.appendChild(block);
+  });
+  timeline.appendChild(track);
   const timelineAddRow = document.createElement("div");
   timelineAddRow.className = "unibrow-timeline-add";
   const nodeSelect = document.createElement("select");
@@ -1528,8 +1636,46 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
 
     const label = document.createElement("span");
     label.className = "unibrow-timeline-clip-label";
-    label.textContent = `${clip.start_sec.toFixed(1)}s · ${clip.duration_sec.toFixed(1)}s — ${clip.label}`;
+    label.textContent = clip.label;
     li.appendChild(label);
+
+    const timing = document.createElement("div");
+    timing.className = "unibrow-timeline-timing";
+    const startLabel = document.createElement("label");
+    startLabel.textContent = "Start (s)";
+    const startInput = document.createElement("input");
+    startInput.type = "number";
+    startInput.min = "0";
+    startInput.step = "0.1";
+    startInput.value = String(clip.start_sec);
+    startLabel.appendChild(startInput);
+    const durLabel = document.createElement("label");
+    durLabel.textContent = "Duration (s)";
+    const durInput = document.createElement("input");
+    durInput.type = "number";
+    durInput.min = "0.1";
+    durInput.step = "0.1";
+    durInput.value = String(clip.duration_sec);
+    durLabel.appendChild(durInput);
+    const applyTiming = async () => {
+      const start = Number.parseFloat(startInput.value);
+      const duration = Number.parseFloat(durInput.value);
+      if (!Number.isFinite(start) || !Number.isFinite(duration)) {
+        return;
+      }
+      const data = await invoke("update_unibrow_timeline_clip", {
+        projectPath: viewer.path,
+        clipId: clip.id,
+        startSec: start,
+        durationSec: duration,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    };
+    startInput.addEventListener("change", () => void applyTiming());
+    durInput.addEventListener("change", () => void applyTiming());
+    timing.appendChild(startLabel);
+    timing.appendChild(durLabel);
+    li.appendChild(timing);
     const up = document.createElement("button");
     up.type = "button";
     up.textContent = "↑";
@@ -1737,6 +1883,26 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     }
   };
   root.appendChild(exportBtn);
+
+  const exportMp4Btn = document.createElement("button");
+  exportMp4Btn.type = "button";
+  exportMp4Btn.textContent = "Export MP4 (preview)";
+  exportMp4Btn.onclick = async () => {
+    try {
+      const result = await invoke<{ path: string; mode: string; message: string }>(
+        "export_unibrow_mp4_preview",
+        { projectPath: viewer.path },
+      );
+      showToast(result.message, result.mode === "encoded" ? "info" : "info");
+      const status = document.createElement("p");
+      status.className = "viewer-note";
+      status.textContent = `${result.message} (${result.path})`;
+      root.appendChild(status);
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  root.appendChild(exportMp4Btn);
 }
 
 interface RhaiScriptInfoDto {

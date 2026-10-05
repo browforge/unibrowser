@@ -8,6 +8,7 @@ use std::process::Command;
 use serde::Serialize;
 use thiserror::Error;
 
+pub mod frame;
 pub mod sidecar;
 
 #[derive(Debug, Error)]
@@ -94,6 +95,17 @@ pub fn warm_sidecar_pool() -> Result<(), MediaError> {
         return Ok(());
     }
     sidecar::init_sidecar_pool()
+}
+
+pub fn video_frame_thumbnail(
+    path: &Path,
+    time_sec: f64,
+) -> Result<frame::VideoFrameThumbnail, MediaError> {
+    frame::video_frame_thumbnail(path, time_sec)
+}
+
+pub fn concat_mp4_videos(inputs: &[PathBuf], dest: &Path) -> Result<(), MediaError> {
+    frame::concat_mp4_videos(inputs, dest)
 }
 
 #[cfg(test)]

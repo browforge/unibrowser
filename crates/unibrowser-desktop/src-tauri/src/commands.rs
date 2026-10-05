@@ -2492,6 +2492,139 @@ pub fn remove_unibrow_timeline_clip(window: tauri::Window,
 }
 
 #[tauri::command]
+pub fn update_unibrow_timeline_clip(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    start_sec: f32,
+    duration_sec: f32,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::update_timeline_clip_timing(
+        &mut package,
+        &clip_id,
+        start_sec,
+        duration_sec,
+    )
+    .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn video_scrub_thumbnail(
+    window: tauri::Window,
+    path: String,
+    time_sec: f64,
+) -> Result<unibrowser_media::frame::VideoFrameThumbnail, String> {
+    let p = PathBuf::from(&path);
+    if !p.is_file() {
+        return Err("file not found".into());
+    }
+    unibrowser_media::video_frame_thumbnail(&p, time_sec).map_err(|e| e.to_string())
+}
+
+#[derive(serde::Serialize)]
+pub struct Mp4PreviewExportDto {
+    pub path: String,
+    /// `encoded` when ffmpeg concat succeeded; otherwise `stub`.
+    pub mode: String,
+    pub message: String,
+}
+
+#[tauri::command]
+pub fn export_unibrow_mp4_preview(
+    window: tauri::Window,
+    project_path: String,
+) -> Result<Mp4PreviewExportDto, String> {
+    let project = PathBuf::from(&project_path);
+    if !unibrowser_project::is_unibrow_path(&project) {
+        return Err("not a .unibrow project".into());
+    }
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    let root = unibrowser_project::resolve_package_root(&project, &cache).map_err(|e| e.to_string())?;
+    let pkg = unibrowser_project::open_package(&root).map_err(|e| e.to_string())?;
+    if pkg.manifest.timeline.clips.is_empty() {
+        let path = unibrowser_project::write_mp4_export_stub(&pkg, "timeline has no clips")
+            .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: "Added export notes under derived/ (no clips).".into(),
+        });
+    }
+    let resolved = unibrowser_project::clip_asset_paths(&pkg);
+    if resolved.len() != pkg.manifest.timeline.clips.len() {
+        let path = unibrowser_project::write_mp4_export_stub(
+            &pkg,
+            "some clips are missing board assets",
+        )
+        .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: "Added export notes under derived/ (missing assets).".into(),
+        });
+    }
+    if !resolved.iter().all(|(_, _, ty)| ty == "video") {
+        let path = unibrowser_project::write_mp4_export_stub(
+            &pkg,
+            "preview concat needs video-only clips",
+        )
+        .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: "Added export notes under derived/ (mixed clip types).".into(),
+        });
+    }
+    let probe = unibrowser_media::probe_ffmpeg_install();
+    if !probe.available {
+        let path = unibrowser_project::write_mp4_export_stub(&pkg, "ffmpeg not on PATH")
+            .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: "Added export notes under derived/ (install ffmpeg for concat).".into(),
+        });
+    }
+    let inputs: Vec<PathBuf> = resolved.into_iter().map(|(_, p, _)| p).collect();
+    let dest = unibrowser_project::derived_mp4_preview_path(&pkg);
+    if let Err(err) = unibrowser_media::concat_mp4_videos(&inputs, &dest) {
+        let reason = err.to_string();
+        let path = unibrowser_project::write_mp4_export_stub(&pkg, &reason)
+            .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: format!("Concat failed; wrote notes: {}", reason),
+        });
+    }
+    Ok(Mp4PreviewExportDto {
+        path: dest.to_string_lossy().into_owned(),
+        mode: "encoded".into(),
+        message: "Concatenated MP4 clips to derived/timeline-preview.mp4.".into(),
+    })
+}
+
+#[tauri::command]
+pub fn batch_convert_images(
+    window: tauri::Window,
+    paths: Vec<String>,
+    format: String,
+) -> Result<Vec<String>, String> {
+    if paths.is_empty() {
+        return Err("no paths selected".into());
+    }
+    crate::batch_images::batch_convert_images(&paths, &format)
+}
+
+#[tauri::command]
 pub fn reorder_unibrow_timeline_clips(window: tauri::Window, 
     project_path: String,
     from_index: usize,

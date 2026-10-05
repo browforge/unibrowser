@@ -29,9 +29,9 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 | Magic-byte sniff | Wrong extension still opens correct viewer: PDF, PNG, JPEG, GIF, WebP, ZIP/EPUB, WAV, MP3, OGG, FLAC, RIFF/AVI → video, etc. |
 | Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |
 | Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters |
-| Media | Video (mp4/webm/avi), audio (wav/mp3/ogg/flac) with ffprobe; optional LGPL sidecar pool |
-| 3D / CAD | DXF layers (three.js); `.unibrow` project board, assets, timeline clips, export zip |
-| Images | PNG/JPEG/GIF/WebP viewer |
+| Media | Video (mp4/webm/avi), audio (wav/mp3/ogg/flac) with ffprobe; optional LGPL sidecar pool; **scrub frame preview** when ffmpeg is available |
+| 3D / CAD | DXF layers (three.js); `.unibrow` project board, assets, **timeline ruler** with editable clip start/duration, export zip, **Export MP4 (preview)** (ffmpeg concat when all clips are MP4 video, else `derived/` notes) |
+| Images | PNG/JPEG/GIF/WebP viewer; **Files bulk convert** to PNG or JPEG |
 
 ### Commands, keys, and UI chrome
 
@@ -68,6 +68,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 - Runtime cdylib mod load; cloud sync; full spreadsheet/DXF NURBS
 - Complete i18n beyond en-NZ; Monaco spellcheck
 - Windows installer signing and bundled ffmpeg in installer
+- Real timeline encode (transitions, audio mix); batch convert beyond PNG/JPEG
 
 ## Licence
 

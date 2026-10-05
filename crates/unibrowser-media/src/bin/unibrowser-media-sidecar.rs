@@ -2,6 +2,7 @@
 
 use std::io::{self, BufRead, Write};
 
+use unibrowser_media::frame::frame_thumbnail_to_dest;
 use unibrowser_media::sidecar::{SidecarRequest, SidecarResponse};
 use unibrowser_media::sidecar::probe_file_direct;
 
@@ -17,6 +18,7 @@ fn main() -> io::Result<()> {
                 ok: true,
                 summary: None,
                 error: None,
+                frame_mime: None,
                 pong: true,
             },
             Ok(SidecarRequest::ProbeFile { path }) => {
@@ -26,12 +28,38 @@ fn main() -> io::Result<()> {
                         ok: true,
                         summary: probe.ffprobe_summary,
                         error: None,
+                        frame_mime: None,
                         pong: false,
                     },
                     Err(e) => SidecarResponse {
                         ok: false,
                         summary: None,
                         error: Some(e.to_string()),
+                        frame_mime: None,
+                        pong: false,
+                    },
+                }
+            }
+            Ok(SidecarRequest::FrameAt {
+                path,
+                time_sec,
+                dest_path,
+            }) => {
+                let p = std::path::Path::new(&path);
+                let dest = std::path::Path::new(&dest_path);
+                match frame_thumbnail_to_dest(p, time_sec, dest) {
+                    Ok(()) => SidecarResponse {
+                        ok: true,
+                        summary: None,
+                        error: None,
+                        frame_mime: Some("image/jpeg".into()),
+                        pong: false,
+                    },
+                    Err(e) => SidecarResponse {
+                        ok: false,
+                        summary: None,
+                        error: Some(e.to_string()),
+                        frame_mime: None,
                         pong: false,
                     },
                 }
@@ -40,6 +68,7 @@ fn main() -> io::Result<()> {
                 ok: false,
                 summary: None,
                 error: Some(format!("bad request: {}", e)),
+                frame_mime: None,
                 pong: false,
             },
         };

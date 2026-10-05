@@ -254,6 +254,93 @@ pub fn reorder_timeline_clip(
     Ok(())
 }
 
+pub fn update_timeline_clip_timing(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    start_sec: f32,
+    duration_sec: f32,
+) -> Result<(), ProjectError> {
+    if start_sec < 0.0 || !start_sec.is_finite() {
+        return Err(ProjectError::Msg("start_sec must be a non-negative number".into()));
+    }
+    if duration_sec <= 0.0 || !duration_sec.is_finite() {
+        return Err(ProjectError::Msg("duration_sec must be positive".into()));
+    }
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    clip.start_sec = start_sec;
+    clip.duration_sec = duration_sec;
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+/// Timeline span for UI ruler (max of clip end times).
+pub fn timeline_duration_sec(clips: &[TimelineClip]) -> f32 {
+    timeline_end_sec(clips)
+}
+
+/// Resolved on-disk asset for each clip (video export / preview).
+pub fn clip_asset_paths(package: &ProjectPackage) -> Vec<(TimelineClip, PathBuf, String)> {
+    let assets = package.root.join(DIR_ASSETS);
+    package
+        .manifest
+        .timeline
+        .clips
+        .iter()
+        .filter_map(|clip| {
+            let node = package
+                .manifest
+                .nodes
+                .iter()
+                .find(|n| n.id == clip.node_id)?;
+            let file = node.asset.as_ref()?;
+            Some((
+                clip.clone(),
+                assets.join(file),
+                node.node_type.clone(),
+            ))
+        })
+        .collect()
+}
+
+const EXPORT_STUB_NAME: &str = "export-mp4-preview.txt";
+const EXPORT_MP4_NAME: &str = "timeline-preview.mp4";
+
+/// Write a human-readable stub or return path when encode is handled elsewhere.
+pub fn write_mp4_export_stub(
+    package: &ProjectPackage,
+    reason: impl Into<String>,
+) -> Result<PathBuf, ProjectError> {
+    fs::create_dir_all(package.root.join(DIR_DERIVED))?;
+    let path = package.root.join(DIR_DERIVED).join(EXPORT_STUB_NAME);
+    let mut body = String::from("Export MP4 (preview)\n\n");
+    body.push_str("Full timeline encode is not available yet.\n");
+    body.push_str(&format!("Reason: {}\n\n", reason.into()));
+    body.push_str("Timeline clips:\n");
+    for clip in &package.manifest.timeline.clips {
+        body.push_str(&format!(
+            "  - {} @ {:.2}s for {:.2}s (node {})\n",
+            clip.label, clip.start_sec, clip.duration_sec, clip.node_id
+        ));
+    }
+    body.push_str("\nWhen all clips are MP4 video assets and ffmpeg is on PATH, Unibrowser can concat to derived/timeline-preview.mp4.\n");
+    fs::write(&path, body)?;
+    Ok(path)
+}
+
+pub fn derived_mp4_preview_path(package: &ProjectPackage) -> PathBuf {
+    package.root.join(DIR_DERIVED).join(EXPORT_MP4_NAME)
+}
+
+pub fn export_stub_document_path(package: &ProjectPackage) -> PathBuf {
+    package.root.join(DIR_DERIVED).join(EXPORT_STUB_NAME)
+}
+
 pub fn set_node_board_position(
     package: &mut ProjectPackage,
     node_id: &str,
@@ -547,6 +634,10 @@ mod tests {
         assert_eq!(pkg.manifest.timeline.clips.len(), 2);
         reorder_timeline_clip(&mut pkg, 1, 0).expect("reorder");
         assert_eq!(pkg.manifest.timeline.clips[0].node_id, "node-2");
+        let clip_id = pkg.manifest.timeline.clips[0].id.clone();
+        update_timeline_clip_timing(&mut pkg, &clip_id, 1.5, 4.0).expect("update timing");
+        assert_eq!(pkg.manifest.timeline.clips[0].start_sec, 1.5);
+        assert_eq!(pkg.manifest.timeline.clips[0].duration_sec, 4.0);
         let _ = fs::remove_dir_all(&dir);
     }
 

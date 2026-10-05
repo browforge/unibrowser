@@ -12,6 +12,20 @@ import type { DirEntry, FilesViewDto } from "./filesPanelTypes";
 
 export type { DirEntry, FilesViewDto } from "./filesPanelTypes";
 
+const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp"]);
+
+function pathIsConvertibleImage(path: string): boolean {
+  const dot = path.lastIndexOf(".");
+  if (dot < 0) {
+    return false;
+  }
+  return IMAGE_EXT.has(path.slice(dot + 1).toLowerCase());
+}
+
+function selectionAllConvertibleImages(paths: string[]): boolean {
+  return paths.length > 0 && paths.every(pathIsConvertibleImage);
+}
+
 const THUMB_MAX_BYTES = 8_000_000;
 const THUMB_MAX_ACTIVE = 24;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -1057,6 +1071,47 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     showCompressPanel([...selectedPaths], deps, () => renderFilesPanel(host, deps));
   };
   bulkBar.appendChild(zipBtn);
+
+  const selectedList = [...selectedPaths];
+  if (selectionAllConvertibleImages(selectedList)) {
+    const convertBtn = document.createElement("button");
+    convertBtn.type = "button";
+    convertBtn.textContent = t("files.convertImages");
+    convertBtn.onclick = () => {
+      const panel = document.createElement("div");
+      panel.className = "files-compress-panel";
+      const title = document.createElement("h3");
+      title.textContent = t("files.convertImagesTitle");
+      panel.appendChild(title);
+      const formatRow = document.createElement("div");
+      formatRow.className = "files-compress-row";
+      const pngBtn = document.createElement("button");
+      pngBtn.type = "button";
+      pngBtn.textContent = t("files.convertFormatPng");
+      const jpegBtn = document.createElement("button");
+      jpegBtn.type = "button";
+      jpegBtn.textContent = t("files.convertFormatJpeg");
+      const run = (format: string) => {
+        void invoke<string[]>("batch_convert_images", {
+          paths: selectedList,
+          format,
+        })
+          .then((out) => {
+            showToast(`Converted ${out.length} file(s)`, "info");
+            panel.remove();
+            renderFilesPanel(host, deps);
+          })
+          .catch((err) => showToast(String(err), "error"));
+      };
+      pngBtn.onclick = () => run("png");
+      jpegBtn.onclick = () => run("jpeg");
+      formatRow.appendChild(pngBtn);
+      formatRow.appendChild(jpegBtn);
+      panel.appendChild(formatRow);
+      host.appendChild(panel);
+    };
+    bulkBar.appendChild(convertBtn);
+  }
 
   const delSel = document.createElement("button");
   delSel.type = "button";
