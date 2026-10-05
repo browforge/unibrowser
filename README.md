@@ -6,7 +6,7 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 
 ## What works today (Wed report draft)
 
-Use this section as the source for weekly status. Last updated during the 36h blitz on `main`.
+Use this section as the source for weekly status. Narrative + gaps: [docs/blitz-status.md](docs/blitz-status.md). Last updated during the 36h blitz on `main`.
 
 ### Browser and windows
 

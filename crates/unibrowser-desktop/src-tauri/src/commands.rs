@@ -2292,6 +2292,7 @@ pub struct PreferencesDto {
     pub crash_recovery_enabled: bool,
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
+    pub advanced_experimental_spellcheck: bool,
     pub files_view: FilesViewDto,
 }
 
@@ -2984,6 +2985,7 @@ fn preferences_dto() -> PreferencesDto {
         crash_recovery_enabled: p.crash_recovery_enabled,
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,
+        advanced_experimental_spellcheck: p.advanced_experimental_spellcheck,
         files_view: files_view_dto(&p),
     }
 }
@@ -3047,6 +3049,14 @@ pub fn set_advanced_webview_devtools(
     p.advanced_webview_devtools = enabled;
     save_preferences(&p)?;
     crate::webview::set_content_webview_devtools(&app, window.label(), enabled)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_advanced_experimental_spellcheck(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.advanced_experimental_spellcheck = enabled;
+    save_preferences(&p)?;
     Ok(preferences_dto())
 }
 

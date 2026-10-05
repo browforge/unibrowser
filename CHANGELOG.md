@@ -6,6 +6,8 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- Living Wed report [`docs/blitz-status.md`](docs/blitz-status.md); printer-friendly HTML export for Markdown/DOCX previews.
+- OCR UI stub + [`docs/ocr-sidecar.md`](docs/ocr-sidecar.md); experimental browser spellcheck in Advanced settings.
 - Docs hub [`docs/index.md`](docs/index.md), FOSS [`docs/getting-started.md`](docs/getting-started.md), and [`docs/report-visuals.md`](docs/report-visuals.md) + `scripts/capture-report-screenshots.sh`.
 - EPUB in-book search (spine text scan + chapter jump in viewer).
 - File-type badges in the files panel; compact Command Manager option in Settings.

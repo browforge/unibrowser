@@ -265,5 +265,9 @@
   "epub.searchEmpty": "No matches",
   "epub.previous": "Previous",
   "epub.next": "Next",
-  "epub.printChapter": "Print chapter"
+  "epub.printChapter": "Print chapter",
+  "image.ocr": "Extract text (OCR)",
+  "image.ocrDisabledReason": "OCR sidecar not installed yet. See docs/ocr-sidecar.md.",
+  "settings.experimentalSpellcheck": "Experimental browser spellcheck (text editor)",
+  "settings.experimentalSpellcheckNote": "Shows a read-only spellcheck field under the editor. Monaco itself has no native dictionary."
 }

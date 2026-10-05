@@ -63,4 +63,8 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 
 ## Spellcheck
 
-Monaco in the desktop shell does not ship with a spellchecker extension. Enabling real spellcheck needs either a Monaco contribution (dictionary + markers) or moving plain prose to a native control. **Deferred** until extension-host or a small bundled dictionary mod is justified.
+Monaco has no built-in dictionary. **Advanced → Experimental browser spellcheck** mirrors editor text in a read-only `textarea` with native `spellcheck` (en-NZ). SVG source uses the same flag when enabled. Full in-editor markers remain future work.
+
+## OCR
+
+Image viewer **Extract text (OCR)** is disabled until a Tesseract sidecar ships ([ocr-sidecar.md](./ocr-sidecar.md)).

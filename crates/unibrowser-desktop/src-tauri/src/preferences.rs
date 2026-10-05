@@ -84,6 +84,9 @@ pub struct Preferences {
     /// When true, embedded https webviews may open WebKit/Chromium devtools (advanced).
     #[serde(default)]
     pub advanced_webview_devtools: bool,
+    /// Read-only browser spellcheck mirror under the text editor (experimental).
+    #[serde(default)]
+    pub advanced_experimental_spellcheck: bool,
     #[serde(default)]
     pub files_view: FilesViewPrefs,
     /// Favourite folder paths (bookmarked from files view).
@@ -190,6 +193,7 @@ impl Default for Preferences {
             crash_recovery_enabled: false,
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,
+            advanced_experimental_spellcheck: false,
             files_view: FilesViewPrefs::default(),
             folder_favorites: Vec::new(),
             command_manager_dense: false,

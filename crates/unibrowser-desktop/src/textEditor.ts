@@ -1,6 +1,13 @@
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import { bindPreviewLinks } from "./previewLinks";
+import { openPrintFriendlyDocument } from "./printExport";
+import {
+  attachSpellcheckPane,
+  detachSpellcheckPane,
+  isExperimentalSpellcheckEnabled,
+  syncSpellcheckPane,
+} from "./experimentalSpellcheck";
 
 type Monaco = typeof import("monaco-editor");
 type MonacoEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
@@ -100,6 +107,9 @@ async function pushToHost() {
     previewEl.innerHTML = marked.parse(model.getValue(), { async: false }) as string;
     bindPreviewLinks(previewEl, loadedPath);
   }
+  if (isExperimentalSpellcheckEnabled()) {
+    syncSpellcheckPane(model.getValue());
+  }
 }
 
 function scheduleSync() {
@@ -163,16 +173,7 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
     const html = markdownPreview && previewEl
       ? previewEl.innerHTML
       : `<pre>${editor.getValue()}</pre>`;
-    const w = window.open("", "_blank", "noopener");
-    if (!w) {
-      return;
-    }
-    w.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${path}</title></head><body>${html}</body></html>`,
-    );
-    w.document.close();
-    w.focus();
-    w.print();
+    openPrintFriendlyDocument(path, html);
   };
   toolbarEl.appendChild(printBtn);
   host.parentElement?.insertBefore(toolbarEl, host);
@@ -234,6 +235,7 @@ export const textEditor = {
 
   hide(host: HTMLElement) {
     host.classList.add("hidden");
+    detachSpellcheckPane();
     loadedPath = null;
     markdownPreview = false;
     if (previewEl) {
@@ -278,6 +280,26 @@ export const textEditor = {
     if (markdownPreview && previewEl) {
       previewEl.innerHTML = marked.parse(doc.content, { async: false }) as string;
     }
+    const editorWrap = host.parentElement;
+    if (isExperimentalSpellcheckEnabled() && editorWrap) {
+      attachSpellcheckPane(editorWrap);
+      syncSpellcheckPane(doc.content);
+    } else {
+      detachSpellcheckPane();
+    }
     emitCursorStatus();
   },
 };
+
+window.addEventListener("unibrowser-spellcheck-pref", () => {
+  if (!hostEl || !editor || !loadedPath) {
+    return;
+  }
+  const wrap = hostEl.parentElement;
+  if (isExperimentalSpellcheckEnabled() && wrap) {
+    attachSpellcheckPane(wrap);
+    syncSpellcheckPane(editor.getValue());
+  } else {
+    detachSpellcheckPane();
+  }
+});

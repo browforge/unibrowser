@@ -7,6 +7,7 @@ import { textEditor, type TextDocumentDto, setCursorStatusListener } from "./tex
 import { documentViewer, adjustViewerZoom, type DocumentViewerDto } from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { loadAccessibilityPreferences } from "./accessibility";
+import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
 import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
@@ -1289,6 +1290,7 @@ void loadThemePreference().then(() => {
   themeBtn.textContent = themeButtonLabel();
 });
 void loadAccessibilityPreferences();
+void loadExperimentalSpellcheckPref();
 void refreshState();
 
 deferNonCriticalInit(() => {

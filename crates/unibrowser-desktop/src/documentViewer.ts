@@ -12,6 +12,11 @@ import { pathsFromDataTransfer } from "./filesDrag";
 import { showToast } from "./toast";
 import { playMidiScrubBeeps } from "./midiScrubAudio";
 import { t } from "./i18n";
+import {
+  downloadPrintFriendlyHtml,
+  openPrintFriendlyDocument,
+} from "./printExport";
+import { applySpellcheckToEditable } from "./experimentalSpellcheck";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -373,33 +378,14 @@ async function renderDocx(path: string, root: HTMLElement) {
   printBtn.type = "button";
   printBtn.textContent = "Print";
   printBtn.onclick = () => {
-    const w = window.open("", "_blank", "noopener");
-    if (!w) {
-      return;
-    }
-    w.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${path}</title></head><body>${result.value}</body></html>`,
-    );
-    w.document.close();
-    w.focus();
-    w.print();
+    openPrintFriendlyDocument(path, result.value);
   };
   const exportBtn = document.createElement("button");
   exportBtn.type = "button";
-  exportBtn.textContent = "Export HTML";
+  exportBtn.textContent = "Export print HTML";
   exportBtn.onclick = () => {
-    const blob = new Blob(
-      [
-        `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${path}</title></head><body>${result.value}</body></html>`,
-      ],
-      { type: "text/html;charset=utf-8" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${path.split(/[/\\]/).pop()?.replace(/\.docx$/i, "") ?? "document"}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const name = path.split(/[/\\]/).pop() ?? "document";
+    downloadPrintFriendlyHtml(path, result.value, name);
   };
   toolbar.appendChild(printBtn);
   toolbar.appendChild(exportBtn);
@@ -923,16 +909,7 @@ async function copyViewerSelection(): Promise<void> {
 }
 
 function printHtmlDocument(title: string, bodyHtml: string) {
-  const w = window.open("", "_blank", "noopener");
-  if (!w) {
-    return;
-  }
-  w.document.write(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body>${bodyHtml}</body></html>`,
-  );
-  w.document.close();
-  w.focus();
-  w.print();
+  openPrintFriendlyDocument(title, bodyHtml);
 }
 
 async function renderSpreadsheet(path: string, root: HTMLElement) {
@@ -1009,6 +986,11 @@ async function renderImage(path: string, root: HTMLElement) {
   saveCropBtn.type = "button";
   saveCropBtn.textContent = "Save cropped as…";
   saveCropBtn.disabled = true;
+  const ocrBtn = document.createElement("button");
+  ocrBtn.type = "button";
+  ocrBtn.textContent = t("image.ocr");
+  ocrBtn.disabled = true;
+  ocrBtn.title = t("image.ocrDisabledReason");
   toolbar.appendChild(zoomOut);
   toolbar.appendChild(zoomIn);
   toolbar.appendChild(resetBtn);
@@ -1016,6 +998,7 @@ async function renderImage(path: string, root: HTMLElement) {
   toolbar.appendChild(cropBtn);
   toolbar.appendChild(clearCropBtn);
   toolbar.appendChild(saveCropBtn);
+  toolbar.appendChild(ocrBtn);
   root.appendChild(toolbar);
 
   const viewport = document.createElement("div");
@@ -2507,7 +2490,7 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
   preview.appendChild(frame);
   const ta = document.createElement("textarea");
   ta.className = "svg-source";
-  ta.spellcheck = false;
+  applySpellcheckToEditable(ta, true);
   ta.value = text;
   let timer: ReturnType<typeof setTimeout> | null = null;
   ta.oninput = () => {

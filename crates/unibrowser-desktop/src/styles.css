@@ -1220,6 +1220,22 @@ body {
   background: #111;
 }
 
+.spellcheck-experiment-pane {
+  display: block;
+  width: 100%;
+  min-height: 4rem;
+  max-height: 8rem;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  resize: vertical;
+  border: 1px dashed #5a6a5a;
+  background: #1a1a20;
+  color: inherit;
+}
+
 .docx-limit {
   border-left: 3px solid #3d5a80;
   padding-left: 0.5rem;

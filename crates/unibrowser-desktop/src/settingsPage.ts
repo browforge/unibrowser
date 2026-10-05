@@ -18,6 +18,7 @@ import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
+import { setExperimentalSpellcheckEnabled } from "./experimentalSpellcheck";
 
 interface NtpSectionsDto {
   show_hero: boolean;
@@ -44,6 +45,7 @@ interface PrefsDto {
   crash_recovery_enabled: boolean;
   ntp_sections: NtpSectionsDto;
   advanced_webview_devtools: boolean;
+  advanced_experimental_spellcheck: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -418,6 +420,28 @@ export async function renderSettings(root: HTMLElement) {
   devtoolsRow.appendChild(devtoolsLabel);
   advancedSection.appendChild(devtoolsRow);
   advancedSection.appendChild(devtoolsNote);
+  const spellRow = document.createElement("div");
+  spellRow.className = "settings-row";
+  const spellCb = document.createElement("input");
+  spellCb.type = "checkbox";
+  spellCb.id = "settings-experimental-spellcheck";
+  spellCb.checked = prefs.advanced_experimental_spellcheck;
+  spellCb.onchange = async () => {
+    await invoke<PrefsDto>("set_advanced_experimental_spellcheck", {
+      enabled: spellCb.checked,
+    });
+    setExperimentalSpellcheckEnabled(spellCb.checked);
+  };
+  const spellLabel = document.createElement("label");
+  spellLabel.htmlFor = spellCb.id;
+  spellLabel.textContent = t("settings.experimentalSpellcheck");
+  const spellNote = document.createElement("p");
+  spellNote.className = "viewer-note";
+  spellNote.textContent = t("settings.experimentalSpellcheckNote");
+  spellRow.appendChild(spellCb);
+  spellRow.appendChild(spellLabel);
+  advancedSection.appendChild(spellRow);
+  advancedSection.appendChild(spellNote);
   root.appendChild(advancedSection);
 
   const keysLink = document.createElement("p");
