@@ -160,6 +160,7 @@ pub fn run() {
             commands::set_ntp_sections,
             commands::set_advanced_webview_devtools,
             commands::set_advanced_experimental_spellcheck,
+            commands::set_disable_user_mods,
             commands::set_files_view_prefs,
             commands::open_path_in_new_tab,
             commands::reveal_path_in_system,

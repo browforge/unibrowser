@@ -40,6 +40,8 @@ interface DiagnosticsInfoDto {
   target_os: string;
   target_arch: string;
   recent_errors: DiagnosticLogEntry[];
+  user_mods_disabled: boolean;
+  safe_mode_env: boolean;
 }
 
 export async function renderDiagnostics(root: HTMLElement) {
@@ -70,6 +72,11 @@ export async function renderDiagnostics(root: HTMLElement) {
     `${t("diagnostics.webview")}: ${info.webview_stack}`,
     `${t("diagnostics.platform")}: ${info.target_os} (${info.target_arch})`,
     `${t("diagnostics.mods")}: ${info.mods_loaded} (${info.mod_catalog_count} bundled)`,
+    info.user_mods_disabled
+      ? t("diagnostics.safeModeOn", {
+          env: info.safe_mode_env ? t("diagnostics.safeModeEnv") : t("diagnostics.safeModePref"),
+        })
+      : t("diagnostics.safeModeOff"),
   ].forEach((line) => {
     const li = document.createElement("li");
     li.textContent = line;

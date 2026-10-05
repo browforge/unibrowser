@@ -135,6 +135,17 @@ pub struct Preferences {
     /// DOCX HTML preview font size per file path (autosave / prefs).
     #[serde(default)]
     pub docx_reader_font_pt: HashMap<String, f32>,
+    /// Skip user `mods/` and dev cdylib loads (bundled mods only). Requires restart.
+    #[serde(default)]
+    pub disable_user_mods: bool,
+}
+
+/// Safe mode: env wins for this process; prefs apply on next launch.
+pub fn user_mods_disabled() -> bool {
+    if std::env::var("UNIBROWSER_SAFE_MODE").as_deref() == Ok("1") {
+        return true;
+    }
+    load_preferences().disable_user_mods
 }
 
 fn default_bookmark_bar_enabled() -> bool {
@@ -254,6 +265,7 @@ impl Default for Preferences {
             bookmark_quick_links: Vec::new(),
             workspace_root: None,
             docx_reader_font_pt: HashMap::new(),
+            disable_user_mods: false,
         }
     }
 }

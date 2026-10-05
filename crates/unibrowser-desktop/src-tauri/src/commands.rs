@@ -3010,6 +3010,16 @@ pub struct PreferencesDto {
     pub bookmark_bar_enabled: bool,
     pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
     pub workspace_root: Option<String>,
+    pub disable_user_mods: bool,
+    pub safe_mode_env: bool,
+}
+
+#[tauri::command]
+pub fn set_disable_user_mods(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.disable_user_mods = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 #[tauri::command]
@@ -3919,6 +3929,8 @@ fn preferences_dto() -> PreferencesDto {
             })
             .collect(),
         workspace_root: p.workspace_root.clone(),
+        disable_user_mods: p.disable_user_mods,
+        safe_mode_env: std::env::var("UNIBROWSER_SAFE_MODE").as_deref() == Ok("1"),
     }
 }
 
@@ -4400,6 +4412,8 @@ pub struct DiagnosticsInfoDto {
     pub target_os: String,
     pub target_arch: String,
     pub recent_errors: Vec<crate::diagnostic_log::DiagnosticLogEntry>,
+    pub user_mods_disabled: bool,
+    pub safe_mode_env: bool,
 }
 
 #[tauri::command]
@@ -4443,6 +4457,8 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
         target_os: std::env::consts::OS.into(),
         target_arch: std::env::consts::ARCH.into(),
         recent_errors: crate::diagnostic_log::recent_entries(),
+        user_mods_disabled: crate::preferences::user_mods_disabled(),
+        safe_mode_env: std::env::var("UNIBROWSER_SAFE_MODE").as_deref() == Ok("1"),
     }
 }
 

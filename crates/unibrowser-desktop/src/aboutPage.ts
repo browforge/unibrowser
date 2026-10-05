@@ -64,9 +64,17 @@ export async function renderAbout(root: HTMLElement) {
   const ph = document.createElement("h3");
   ph.textContent = t("about.privacyHeading");
   privacy.appendChild(ph);
+  const noTel = document.createElement("p");
+  noTel.className = "about-no-telemetry";
+  noTel.textContent = t("about.noTelemetry");
+  privacy.appendChild(noTel);
   const pp = document.createElement("p");
   pp.textContent = t("about.privacyBody");
   privacy.appendChild(pp);
+  const privacyDoc = document.createElement("p");
+  privacyDoc.className = "viewer-note";
+  privacyDoc.textContent = t("about.privacyDocHint");
+  privacy.appendChild(privacyDoc);
   root.appendChild(privacy);
 
   const third = document.createElement("section");

@@ -141,17 +141,21 @@ fn build_command_registry(
     let mut dynamic_libs = Vec::new();
     #[cfg(all(feature = "dynamic-mods", target_os = "linux"))]
     {
-        if let Some(root) = crate::config::user_mods_dir() {
-            if let Ok(user_libs) =
-                unibrowser_mod_host::dynamic::load_user_native_mods(&root, &mut registry)
-            {
-                for m in user_libs {
-                    append_mod_name(&mut mods_line, &m.name);
-                    dynamic_libs.push(m);
+        if !crate::preferences::user_mods_disabled() {
+            if let Some(root) = crate::config::user_mods_dir() {
+                if let Ok(user_libs) =
+                    unibrowser_mod_host::dynamic::load_user_native_mods(&root, &mut registry)
+                {
+                    for m in user_libs {
+                        append_mod_name(&mut mods_line, &m.name);
+                        dynamic_libs.push(m);
+                    }
                 }
             }
         }
-        if std::env::var("UNIBROWSER_LOAD_CDYLIB_MOD").as_deref() == Ok("1") {
+        if !crate::preferences::user_mods_disabled()
+            && std::env::var("UNIBROWSER_LOAD_CDYLIB_MOD").as_deref() == Ok("1")
+        {
             use unibrowser_mod_host::dynamic::{default_cdylib_search_paths, load_cdylib_mod};
             for path in default_cdylib_search_paths() {
                 if let Ok(m) = load_cdylib_mod(None, &path, &mut registry) {

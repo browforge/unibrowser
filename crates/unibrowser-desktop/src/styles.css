@@ -662,6 +662,126 @@ button.proving-disabled,
   font-weight: 600;
 }
 
+.status-notifications-btn {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  border: 1px solid #444;
+  background: #2a2a32;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.status-notifications-btn.status-notifications-has-items {
+  border-color: #4a6fa5;
+  color: #cce;
+}
+
+.notification-drawer {
+  position: fixed;
+  right: 0.5rem;
+  bottom: 1.85rem;
+  width: min(22rem, calc(100vw - 1rem));
+  max-height: min(40vh, 16rem);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e24;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.45);
+}
+
+.notification-drawer.hidden {
+  display: none;
+}
+
+.notification-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.notification-drawer-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.notification-drawer-clear,
+.notification-drawer-close {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid #555;
+  background: #2a2a32;
+  color: #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.notification-drawer-body {
+  overflow: auto;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.notification-drawer-empty {
+  margin: 0;
+  color: #888;
+}
+
+.notification-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-drawer-item {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #2a2a30;
+}
+
+.notification-drawer-item:last-child {
+  border-bottom: none;
+}
+
+.notification-drawer-item-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #777;
+  font-size: 0.65rem;
+}
+
+.notification-drawer-message {
+  margin: 0.15rem 0 0;
+  color: #ddd;
+}
+
+.notification-drawer-item.notification-error .notification-drawer-message {
+  color: #fcc;
+}
+
+.notification-drawer-copy {
+  margin-left: auto;
+  font-size: 0.65rem;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid #666;
+  background: transparent;
+  color: inherit;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.about-no-telemetry {
+  font-weight: 600;
+  color: #9c9;
+}
+
 .status-hint {
   margin-left: auto;
   color: #777;

@@ -2,6 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "./i18n";
+import { pushNotification } from "./notifications";
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -46,6 +47,7 @@ export function showToast(
   kind: "error" | "info" = "error",
   details?: string,
 ) {
+  pushNotification(message, kind, details);
   const host = document.getElementById("toast-host");
   if (!host) {
     return;

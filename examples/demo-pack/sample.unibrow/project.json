@@ -1,0 +1,19 @@
+{
+  "format_version": 2,
+  "title": "Blitz demo board",
+  "description": "Sample .unibrow project for the 10-minute demo script.",
+  "nodes": [
+    {
+      "id": "note-1",
+      "type": "note",
+      "label": "Welcome — add timeline clips from the command palette",
+      "x": 48,
+      "y": 40
+    }
+  ],
+  "timeline": {
+    "clips": [],
+    "transitions": [],
+    "markers": []
+  }
+}

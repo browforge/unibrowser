@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Notification center:** status bar **Alerts** opens a history drawer (last 20); ephemeral chrome toasts still show for new events.
+- **Safe mode:** `UNIBROWSER_SAFE_MODE=1` or Settings → disable user mods; diagnostics shows state — [safe-mode.md](docs/safe-mode.md).
+- **Privacy:** [docs/privacy.md](docs/privacy.md); About states **No telemetry** (no analytics SDKs).
+- **Demo pack:** [examples/demo-pack/](examples/demo-pack/) with sample txt, md, svg, png, and `.unibrow` project.
 - **Workspace folders:** pin a workspace root in Files; capped BFS tree (1200 entries / depth 10); open files from tree — [workspace-folders.md](docs/workspace-folders.md).
 - **Git status lite:** dirty badges in Files listing and workspace tree when `git` is available; SCM commands registered but disabled.
 - **Autosave:** interval auto-save for text/SVG and DOCX reader font persistence; default **off** with power-user note in Settings.

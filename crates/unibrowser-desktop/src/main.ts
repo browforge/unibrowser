@@ -11,6 +11,7 @@ import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
 import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
+import { initNotificationCenter } from "./notifications";
 import { invokeWithToast, showToast } from "./toast";
 import {
   bindStatusBar,
@@ -1699,6 +1700,7 @@ window.addEventListener("unibrowser-refresh", (event) => {
 bindRovingTablist(tabStrip, () => tabButtons);
 
 bindStatusBar(statusBarEl);
+initNotificationCenter(statusBarEl);
 initGlobalFind({
   defaultRoot: lastBrowseFolderPath,
   onOpenPath: (path) => {

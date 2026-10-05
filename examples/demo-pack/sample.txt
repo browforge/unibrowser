@@ -1,0 +1,5 @@
+Unibrowser demo — plain text
+
+Edit this file to try undo, find in document, and optional auto-save in Settings.
+
+Line three for cursor / status bar checks.

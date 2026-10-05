@@ -47,6 +47,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Workspace folders | Files **Set workspace** → capped recursive tree; open files from tree; [workspace-folders.md](workspace-folders.md) |
 | Git status lite | Dirty **●** on listed paths when folder is in a git repo (`git status --porcelain`); Commit/Push/Sync grey in palette |
 | Document autosave | Settings interval for text/SVG save + DOCX reader font prefs; **off by default** |
+| Notification center | Status bar **Alerts** drawer (last 20); chrome toasts unchanged |
+| Safe mode | `UNIBROWSER_SAFE_MODE=1` or Settings → disable user mods; [safe-mode.md](safe-mode.md) |
+| Privacy | No analytics SDKs; [privacy.md](privacy.md) + About **No telemetry** line |
+| Demo pack | [examples/demo-pack/](../examples/demo-pack/) sample txt/md/svg/png/unibrow |
 | Diagnostics | `unibrowser://diagnostics` — mods, ffmpeg, WebView stack, recent error log ring buffer |
 | Settings search | Filter Settings sections by typing in the search field |
 | Roadmap | [roadmap.md](roadmap.md) refreshed vs blitz shipped vs open (VSIX JS, WebView2 downloads, OCR, full encode) |
@@ -104,6 +108,7 @@ Report screenshots: [report-visuals.md](report-visuals.md) and `./scripts/captur
 
 ## Demo script (~10 min)
 
+0. **Sample pack** — Open `examples/demo-pack` in Files; skim `sample.md`, `sample.png`, and `sample.unibrow` ([examples/demo-pack/README.md](../examples/demo-pack/README.md)).
 1. **Home + chrome** — Open a folder tab; drag a tab to reorder; Ctrl+click to pin; omnibox: pick a **Place** or recent path, Enter to open. ([chrome.md](chrome.md))
 2. **Command Manager pin** — Open a `.md` file; pin the Command Manager context (pin control); switch to another doc and show commands stay on the pinned tab; unpin to auto-follow.
 3. **Cross-format font** — Same **Increase font size** on Markdown preview, DOCX, and an HTTP tab; mention status bar font/zoom. ([commands-cross-format.md](commands-cross-format.md))

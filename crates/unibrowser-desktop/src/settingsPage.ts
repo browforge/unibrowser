@@ -51,6 +51,8 @@ interface PrefsDto {
   open_downloads_in_system_browser: boolean;
   bookmark_bar_enabled: boolean;
   bookmark_quick_links: { label: string; url: string }[];
+  disable_user_mods: boolean;
+  safe_mode_env: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -670,6 +672,35 @@ export async function renderSettings(root: HTMLElement) {
   dlBrowserRow.appendChild(dlBrowserLabel);
   advancedSection.appendChild(dlBrowserRow);
   advancedSection.appendChild(dlBrowserNote);
+  const safeRow = document.createElement("div");
+  safeRow.className = "settings-row";
+  const safeCb = document.createElement("input");
+  safeCb.type = "checkbox";
+  safeCb.id = "settings-disable-user-mods";
+  safeCb.checked = prefs.disable_user_mods || prefs.safe_mode_env;
+  safeCb.disabled = prefs.safe_mode_env;
+  safeCb.onchange = async () => {
+    try {
+      const next = await invoke<PrefsDto>("set_disable_user_mods", { enabled: safeCb.checked });
+      showToast(t("settings.safeModeRestart"), "info");
+      safeCb.checked = next.disable_user_mods || next.safe_mode_env;
+      safeCb.disabled = next.safe_mode_env;
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  const safeLabel = document.createElement("label");
+  safeLabel.htmlFor = safeCb.id;
+  safeLabel.textContent = t("settings.safeMode");
+  const safeNote = document.createElement("p");
+  safeNote.className = "viewer-note";
+  safeNote.textContent = prefs.safe_mode_env
+    ? t("settings.safeModeEnvActive")
+    : t("settings.safeModeNote");
+  safeRow.appendChild(safeCb);
+  safeRow.appendChild(safeLabel);
+  advancedSection.appendChild(safeRow);
+  advancedSection.appendChild(safeNote);
   root.appendChild(advancedSection);
 
   const keysLink = document.createElement("p");
