@@ -795,9 +795,45 @@ async function renderVideo(path: string, root: HTMLElement, note?: string) {
   appendMediaNote(root, note);
 }
 
+function drawAudioPeakArray(
+  g: CanvasRenderingContext2D,
+  peaks: number[],
+  width: number,
+  height: number,
+) {
+  g.clearRect(0, 0, width, height);
+  g.fillStyle = "#3d5a80";
+  const mid = height / 2;
+  const step = peaks.length / width;
+  for (let x = 0; x < width; x++) {
+    const i = Math.min(peaks.length - 1, Math.floor(x * step));
+    const h = Math.max(2, peaks[i] * (height * 0.9));
+    g.fillRect(x, mid - h / 2, 1, h);
+  }
+}
+
 async function renderAudio(path: string, root: HTMLElement, note?: string) {
   await ensureAssetAllowed(path);
   root.innerHTML = "";
+  const banner = document.createElement("p");
+  banner.className = "viewer-note";
+  banner.textContent =
+    "Audio proving viewer: HTML playback plus waveform sketch. Multitrack tools stay grey until a DAW engine ships.";
+  root.appendChild(banner);
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "audio-proving-toolbar";
+  for (const label of ["Split clip", "Export stem", "Automation"]) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.disabled = true;
+    btn.className = "proving-disabled";
+    btn.title = "Requires DAW / multitrack engine (see Command Manager when audio tab is active)";
+    btn.textContent = label;
+    toolbar.appendChild(btn);
+  }
+  root.appendChild(toolbar);
+
   const audio = document.createElement("audio");
   audio.className = "media-view";
   audio.controls = true;
@@ -810,6 +846,7 @@ async function renderAudio(path: string, root: HTMLElement, note?: string) {
   canvas.width = 640;
   canvas.height = 48;
   root.appendChild(canvas);
+  let waveformNote = "";
   try {
     const bytes = await readBytes(path);
     const ctx = new AudioContext();
@@ -820,12 +857,28 @@ async function renderAudio(path: string, root: HTMLElement, note?: string) {
       drawAudioPeaks(g, ch, canvas.width, canvas.height);
     }
     await ctx.close();
+    waveformNote = "Waveform from Web Audio decode.";
   } catch {
-    const g = canvas.getContext("2d");
-    if (g) {
-      drawAudioStubBars(g, canvas.width, canvas.height);
+    try {
+      const peaks = await invoke<number[]>("audio_waveform_peaks", {
+        path,
+        maxPoints: canvas.width,
+      });
+      const g = canvas.getContext("2d");
+      if (g && peaks.length) {
+        drawAudioPeakArray(g, peaks, canvas.width, canvas.height);
+        waveformNote = "Waveform from ffmpeg PCM decode.";
+      }
+    } catch {
+      const g = canvas.getContext("2d");
+      if (g) {
+        drawAudioStubBars(g, canvas.width, canvas.height);
+      }
+      waveformNote = "Waveform stub; install ffmpeg for decode or use a browser-supported codec.";
     }
-    appendMediaNote(root, "Waveform uses stub bars; playback still works.");
+  }
+  if (waveformNote) {
+    appendMediaNote(root, waveformNote);
   }
   appendMediaNote(root, note);
 }

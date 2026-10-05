@@ -188,6 +188,32 @@ body {
   align-items: stretch;
 }
 
+.tab-wrap.tab-pinned .tab {
+  border-color: #6a5a2a;
+}
+
+.tab-wrap.tab-dragging {
+  opacity: 0.55;
+}
+
+.tab-wrap.tab-drop-target .tab {
+  outline: 2px solid #3d5a80;
+  outline-offset: 1px;
+}
+
+.audio-proving-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+button.proving-disabled,
+.proving-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .tab-wrap .tab {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;

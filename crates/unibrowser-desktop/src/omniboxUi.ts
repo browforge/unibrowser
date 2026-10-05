@@ -7,11 +7,17 @@ export interface OmniboxSuggestion {
   score: number;
 }
 
+export interface OmniboxAutocompleteHandle {
+  hide: () => void;
+  applyActiveSuggestion: () => boolean;
+  hasVisibleSuggestions: () => boolean;
+}
+
 export function bindOmniboxAutocomplete(
   input: HTMLInputElement,
   listEl: HTMLElement,
   onPick: (value: string) => void,
-) {
+): OmniboxAutocompleteHandle {
   let active = -1;
   let suggestions: OmniboxSuggestion[] = [];
 
@@ -21,6 +27,9 @@ export function bindOmniboxAutocomplete(
     active = -1;
     suggestions = [];
   };
+
+  const hasVisibleSuggestions = () =>
+    suggestions.length > 0 && !listEl.classList.contains("hidden");
 
   const render = () => {
     listEl.innerHTML = "";
@@ -33,7 +42,17 @@ export function bindOmniboxAutocomplete(
       const row = document.createElement("button");
       row.type = "button";
       row.className = "omnibox-suggestion" + (i === active ? " active" : "");
-      row.textContent = s.label;
+      const kind =
+        s.kind === "place"
+          ? "Place"
+          : s.kind === "recent"
+            ? "Recent"
+            : s.kind === "url"
+              ? "URL"
+              : s.kind === "dir"
+                ? "Folder"
+                : "File";
+      row.textContent = `${kind}: ${s.label}`;
       row.title = s.value;
       row.onclick = () => {
         input.value = s.value;
@@ -52,6 +71,15 @@ export function bindOmniboxAutocomplete(
     render();
   };
 
+  const applyActiveSuggestion = (): boolean => {
+    if (!hasVisibleSuggestions() || active < 0) {
+      return false;
+    }
+    input.value = suggestions[active].value;
+    hide();
+    return true;
+  };
+
   input.addEventListener("input", () => {
     void refresh();
   });
@@ -66,7 +94,7 @@ export function bindOmniboxAutocomplete(
       hide();
       return;
     }
-    if (!suggestions.length || listEl.classList.contains("hidden")) {
+    if (!hasVisibleSuggestions()) {
       return;
     }
     if (e.key === "ArrowDown") {
@@ -79,10 +107,9 @@ export function bindOmniboxAutocomplete(
       render();
     } else if (e.key === "Tab" && active >= 0) {
       e.preventDefault();
-      input.value = suggestions[active].value;
-      hide();
+      applyActiveSuggestion();
     }
   });
 
-  return { hide };
+  return { hide, applyActiveSuggestion, hasVisibleSuggestions };
 }

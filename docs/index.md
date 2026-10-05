@@ -23,6 +23,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [commands-cross-format.md](commands-cross-format.md) | Font-size, find, and page zoom per viewer |
 | [commands-undo-redo.md](commands-undo-redo.md) | Undo/redo and PDF export matrix |
 | [packaging.md](packaging.md) | Planned MSI/NSIS/AppImage/deb artefacts |
+| [chrome.md](chrome.md) | Tabs, omnibox, status bar chrome |
 | [session-restore.md](session-restore.md) | Tabs/windows on launch preference |
 | [split-view.md](split-view.md) | Experimental side-by-side tabs |
 | [security.md](security.md) | Trust model and UI signals |

@@ -16,6 +16,8 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt, zoom, encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
 | Undo / PDF | Document undo/redo on text + SVG; export PDF from Markdown/DOCX print HTML (headless Chromium / wkhtmltopdf on Linux); matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
+| Chrome | Tab drag reorder, middle-click close, pin (Ctrl+click); omnibox Places/recent/URL suggestions; [chrome.md](chrome.md) |
+| Audio proving | `wav`/`mp3`/`flac`/`ogg` viewer: HTML audio + waveform (Web Audio or ffmpeg PCM); grey DAW commands on `base-audio` |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |
 | Commands | Command Manager (dense mode), palette + chords (`Ctrl+Shift+P` default, user override via `keybindings.json`), workspace layout presets, import/export JSON; VSIX commands on **Extensions** tab (stub run) |
@@ -68,13 +70,15 @@ Report screenshots: [report-visuals.md](report-visuals.md) and `./scripts/captur
 - Spellcheck experiment does not underline inside Monaco; mirror textarea only.
 - OCR button stays disabled until sidecar ships.
 
-## This week’s demo script (5 min)
+## Demo script (~10 min)
 
-1. Open home folder tab → show file-type badges.
-2. `Ctrl+Shift+P` → palette with chord hints.
-3. Open PDF or EPUB → search (EPUB) or thumbnails (PDF).
-4. `unibrowser://settings` → theme, accessibility, checklist.
-5. New project (Notes template) → board + timeline.
+1. **Home + chrome** — Open a folder tab; drag a tab to reorder; Ctrl+click to pin; omnibox: pick a **Place** or recent path, Enter to open. ([chrome.md](chrome.md))
+2. **Command Manager pin** — Open a `.md` file; pin the Command Manager context (pin control); switch to another doc and show commands stay on the pinned tab; unpin to auto-follow.
+3. **Cross-format font** — Same **Increase font size** on Markdown preview, DOCX, and an HTTP tab; mention status bar font/zoom. ([commands-cross-format.md](commands-cross-format.md))
+4. **`.unibrow` H.264** — New project (Notes template); add a timeline clip; **Export MP4 (H.264)**; watch status bar encode % (ffmpeg required).
+5. **Mod portal** — Open a file with no handler; mod portal panel suggests Open VSX / `.ubmod` without blocking the tab.
+6. **Onboarding skip** — `unibrowser://settings` → dismiss checklist or skip tour forever; session restore still optional.
+7. **Optional** — Open an MP3: waveform + play; show grey DAW toolbar; palette lists disabled DAW commands with reasons.
 
 ## Links
 

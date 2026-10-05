@@ -8,6 +8,7 @@ use std::process::Command;
 use serde::Serialize;
 use thiserror::Error;
 
+pub mod audio;
 pub mod encode;
 pub mod frame;
 pub mod sidecar;

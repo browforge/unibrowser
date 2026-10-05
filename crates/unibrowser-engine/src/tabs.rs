@@ -10,6 +10,8 @@ pub struct Tab {
     pub document: Option<DocumentSession>,
     /// Directory listing tab (no document backend).
     pub is_directory: bool,
+    /// Pinned tabs stay identifiable in the strip; middle-click close is ignored until unpinned.
+    pub pinned: bool,
 }
 
 #[derive(Default)]
@@ -64,6 +66,7 @@ impl TabManager {
             history_index: 0,
             document: None,
             is_directory: false,
+            pinned: false,
         };
         self.tabs.push(tab);
         self.active = self.tabs.len() - 1;
@@ -156,9 +159,35 @@ impl TabManager {
                 history_index: 0,
                 document: None,
                 is_directory: false,
+                pinned: false,
             });
         }
         self.active = active.min(self.tabs.len() - 1);
+    }
+
+    pub fn move_tab(&mut self, from: usize, to: usize) -> bool {
+        if from >= self.tabs.len() || to >= self.tabs.len() || from == to {
+            return false;
+        }
+        let active_id = self.tabs.get(self.active).map(|t| t.id);
+        let item = self.tabs.remove(from);
+        self.tabs.insert(to, item);
+        if let Some(id) = active_id {
+            self.active = self
+                .tabs
+                .iter()
+                .position(|t| t.id == id)
+                .unwrap_or(0);
+        }
+        true
+    }
+
+    pub fn set_tab_pinned(&mut self, index: usize, pinned: bool) -> bool {
+        if let Some(tab) = self.tabs.get_mut(index) {
+            tab.pinned = pinned;
+            return true;
+        }
+        false
     }
 
     pub fn close_tab(&mut self, index: usize) -> bool {
@@ -216,6 +245,23 @@ mod tests {
         }
         assert_eq!(mgr.tab_count(), 20);
         assert!(mgr.active_tab().is_some());
+    }
+
+    #[test]
+    fn move_tab_preserves_active() {
+        let home = BrowserLocation::File {
+            path: PathBuf::from("/tmp"),
+        };
+        let mut mgr = TabManager::new_with_home(home);
+        mgr.open_tab(BrowserLocation::File {
+            path: PathBuf::from("/a"),
+        });
+        mgr.open_tab(BrowserLocation::File {
+            path: PathBuf::from("/b"),
+        });
+        mgr.set_active(2);
+        assert!(mgr.move_tab(0, 2));
+        assert_eq!(mgr.active_index(), 1);
     }
 
     #[test]

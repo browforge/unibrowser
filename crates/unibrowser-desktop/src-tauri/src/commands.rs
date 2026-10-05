@@ -60,6 +60,7 @@ pub struct TabDto {
     pub is_directory: bool,
     pub is_http: bool,
     pub dirty: bool,
+    pub pinned: bool,
     /// Folder path when this tab can receive file drops (browse / directory tabs).
     pub browse_path: Option<String>,
 }
@@ -448,6 +449,7 @@ fn build_tab_dto(
         is_directory: tab.is_directory,
         is_http,
         dirty: tab_is_dirty(tab),
+        pinned: tab.pinned,
         browse_path: tab_browse_path(state, tabs, tab),
     }
 }
@@ -1182,6 +1184,9 @@ pub fn close_tab(window: tauri::Window,
         }
         if !force {
             let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
+            if tab.pinned {
+                return Err("pinned: unpin tab before closing".into());
+            }
             if tab_is_dirty(tab) {
                 return Err(ERR_UNSAVED_CLOSE.into());
             }
@@ -1202,6 +1207,40 @@ pub fn close_tab(window: tauri::Window,
             .ok_or("no tab")?
     };
     update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn reorder_tabs(
+    window: tauri::Window,
+    from_index: usize,
+    to_index: usize,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    if !tabs.move_tab(from_index, to_index) {
+        return Err("invalid tab reorder".into());
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn toggle_tab_pin(
+    window: tauri::Window,
+    index: usize,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let pinned = tabs
+        .tabs()
+        .get(index)
+        .map(|t| t.pinned)
+        .ok_or("invalid tab")?;
+    if !tabs.set_tab_pinned(index, !pinned) {
+        return Err("invalid tab".into());
+    }
     snapshot(&state, window.label())
 }
 
@@ -4448,6 +4487,19 @@ pub fn omnibox_completions(window: tauri::Window,
     let cwd = listing_cwd(&state, &tabs);
     let mut out: Vec<OmniboxSuggestionDto> = Vec::new();
     let prefs = load_preferences();
+    for pin in &prefs.pinned_locations {
+        let score = fuzzy_score(&query, &pin.label)
+            .max(fuzzy_score(&query, &pin.location));
+        if score < 0 && !query.is_empty() {
+            continue;
+        }
+        out.push(OmniboxSuggestionDto {
+            label: format!("★ {}", pin.label),
+            value: pin.location.clone(),
+            kind: "place".into(),
+            score: score.max(0) + 60,
+        });
+    }
     for entry in &prefs.recent_files {
         let score = fuzzy_score(&query, &entry.label)
             .max(fuzzy_score(&query, &entry.path));
@@ -4460,6 +4512,29 @@ pub fn omnibox_completions(window: tauri::Window,
             kind: "recent".into(),
             score: score.max(0) + 50,
         });
+    }
+    let trimmed = query.trim();
+    if !trimmed.is_empty() {
+        if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+            out.push(OmniboxSuggestionDto {
+                label: trimmed.to_string(),
+                value: trimmed.to_string(),
+                kind: "url".into(),
+                score: 90,
+            });
+        } else if !trimmed.contains(' ') && (trimmed.contains('.') || trimmed.starts_with("localhost")) {
+            let guess = if trimmed.contains("://") {
+                trimmed.to_string()
+            } else {
+                format!("https://{}", trimmed)
+            };
+            out.push(OmniboxSuggestionDto {
+                label: format!("Open {}", guess),
+                value: guess,
+                kind: "url".into(),
+                score: 70,
+            });
+        }
     }
     if let Ok(entries) = list_dir(&cwd) {
         for entry in entries {
@@ -4483,8 +4558,19 @@ pub fn omnibox_completions(window: tauri::Window,
         }
     }
     out.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.label.cmp(&b.label)));
-    out.truncate(16);
+    out.truncate(20);
     Ok(out)
+}
+
+#[tauri::command]
+pub fn audio_waveform_peaks(
+    path: String,
+    max_points: Option<usize>,
+    state: State<AppState>,
+) -> Result<Vec<f32>, String> {
+    let p = resolve_open_path(&path, &state.cwd)?;
+    let points = max_points.unwrap_or(320).clamp(32, 2048);
+    unibrowser_media::audio::waveform_peaks(&p, points).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

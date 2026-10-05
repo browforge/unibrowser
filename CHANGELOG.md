@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Tab chrome**: drag reorder, middle-click close, Ctrl+click pin; documented in [chrome.md](docs/chrome.md).
+- **Omnibox**: Places + recent + cwd + URL suggestions; Enter applies selection then navigates.
+- **Audio proving**: waveform via Web Audio or ffmpeg PCM; grey DAW commands on `base-audio`; MP3/WAV/FLAC/OGG open path.
 - **Status bar**: Command Manager context (pinned/auto), unsaved label, font pt, web/viewer zoom, timeline encode progress (toast on completion only).
 - **Undo/redo** commands in palette with per-backend enablement; text + SVG wired to Rust undo stack; matrix in [commands-undo-redo.md](docs/commands-undo-redo.md).
 - **Export PDF** (`unibrowser.export.printPdf`) from Markdown preview or DOCX Mammoth HTML via save dialog + headless print on Linux.

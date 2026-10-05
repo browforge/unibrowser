@@ -1,10 +1,14 @@
 use std::path::Path;
 
-use unibrowser_engine::CommandRegistry;
-use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
+use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
+use unibrowser_mod_api::{Capabilities, CommandMeta, Enablement, Mode, SelectionSnapshot};
 
 pub const BACKEND_ID: &str = "base-audio";
 pub const VIEWER_KIND: &str = "audio";
+
+pub const CMD_SPLIT_CLIP: &str = "audio.splitClip";
+pub const CMD_EXPORT_STEM: &str = "audio.exportStem";
+pub const CMD_AUTOMATE: &str = "audio.automation";
 
 pub struct AudioBackend {
     pub path: String,
@@ -59,7 +63,37 @@ impl unibrowser_engine::document::DocumentBackend for AudioBackend {
     }
 }
 
-pub fn register(_registry: &mut CommandRegistry) {}
+fn daw_tool_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "Proving viewer: needs a DAW / multitrack engine (not bundled)".into(),
+    }
+}
+
+fn daw_tool_stub(_doc: &mut DocumentSession) -> Result<String, String> {
+    Err("DAW tool not available in audio proving viewer".into())
+}
+
+pub fn register(registry: &mut CommandRegistry) {
+    for (id, title) in [
+        (CMD_SPLIT_CLIP, "Split clip (DAW)"),
+        (CMD_EXPORT_STEM, "Export stem (DAW)"),
+        (CMD_AUTOMATE, "Volume automation (DAW)"),
+    ] {
+        registry.register_command(CommandMeta {
+            id,
+            title,
+            icon: "extension",
+            default_keybinding: None,
+            aliases: &[],
+        });
+        registry.register_handler(HandlerRegistration {
+            command_id: id.into(),
+            backend_id: BACKEND_ID.into(),
+            enable: daw_tool_disabled,
+            execute: daw_tool_stub,
+        });
+    }
+}
 
 pub fn open_file(path: &Path) -> Result<Box<dyn unibrowser_engine::document::DocumentBackend>, String> {
     Ok(Box::new(AudioBackend::from_path(path)?))

@@ -56,6 +56,7 @@ interface TabDto {
   is_directory: boolean;
   is_http: boolean;
   dirty: boolean;
+  pinned: boolean;
   browse_path?: string | null;
 }
 
@@ -315,12 +316,40 @@ function renderTabs(data: TabContentDto) {
       (index === data.active_index ? " active" : "") +
       (isSplit ? " split-pane-tab" : "");
     const dirtyMark = tab.dirty ? " •" : "";
-    btn.textContent = tab.label + dirtyMark + (isSplit ? " |" : "");
+    const pinMark = tab.pinned ? " ★" : "";
+    btn.textContent = tab.label + pinMark + dirtyMark + (isSplit ? " |" : "");
+    btn.draggable = true;
     btn.title = isSplit
-      ? `${tab.location_kind} (split pane; Shift+click to move split here)`
-      : `${tab.location_kind} (Shift+click for split pane)`;
+      ? `${tab.location_kind} (split pane; Shift+click to move split here; Ctrl+click pin)`
+      : `${tab.location_kind} (Shift+click split; Ctrl+click pin; drag to reorder)`;
     setTabA11y(btn, index === data.active_index, `browser-tab-${index}`);
+    btn.addEventListener("dragstart", (e) => {
+      e.dataTransfer?.setData("text/tab-index", String(index));
+      e.dataTransfer!.effectAllowed = "move";
+      wrap.classList.add("tab-dragging");
+    });
+    btn.addEventListener("dragend", () => wrap.classList.remove("tab-dragging"));
+    btn.addEventListener("auxclick", (e) => {
+      if (e.button !== 1) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      if (tab.pinned) {
+        showToast(t("tabs.pinnedNoClose"), "info");
+        return;
+      }
+      void closeTabAt(index, tab.dirty);
+    });
     btn.onclick = (e) => {
+      if (e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        void invokeWithToast(
+          () => invoke<TabContentDto>("toggle_tab_pin", { index }),
+          t("tabs.pinFailed"),
+        ).then((d) => d && applyState(d));
+        return;
+      }
       if (e.shiftKey) {
         void invokeWithToast(
           () => invoke<TabContentDto>("set_split_tab", { index }),
@@ -340,7 +369,31 @@ function renderTabs(data: TabContentDto) {
       void closeTabAt(index, tab.dirty);
     };
     const wrap = document.createElement("span");
-    wrap.className = "tab-wrap";
+    wrap.className = "tab-wrap" + (tab.pinned ? " tab-pinned" : "");
+    wrap.addEventListener("dragover", (e) => {
+      if (e.dataTransfer?.types.includes("text/tab-index")) {
+        e.preventDefault();
+        wrap.classList.add("tab-drop-target");
+      }
+    });
+    wrap.addEventListener("dragleave", () => wrap.classList.remove("tab-drop-target"));
+    wrap.addEventListener("drop", (e) => {
+      wrap.classList.remove("tab-drop-target");
+      const raw = e.dataTransfer?.getData("text/tab-index");
+      if (!raw) {
+        return;
+      }
+      const from = Number.parseInt(raw, 10);
+      if (!Number.isFinite(from) || from === index) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      void invokeWithToast(
+        () => invoke<TabContentDto>("reorder_tabs", { fromIndex: from, toIndex: index }),
+        t("tabs.reorderFailed"),
+      ).then((d) => d && applyState(d));
+    });
     if (tab.browse_path) {
       wrap.dataset.dropFolder = tab.browse_path;
       wrap.addEventListener("dragover", (e) => {
@@ -1070,6 +1123,8 @@ function navigateOmnibox() {
 
 omnibox.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
+    e.preventDefault();
+    omniboxAutocomplete.applyActiveSuggestion();
     navigateOmnibox();
     return;
   }
@@ -1084,7 +1139,9 @@ omnibox.addEventListener("keydown", (e) => {
   }
 });
 
-bindOmniboxAutocomplete(omnibox, omniboxSuggestions, () => navigateOmnibox());
+const omniboxAutocomplete = bindOmniboxAutocomplete(omnibox, omniboxSuggestions, () =>
+  navigateOmnibox(),
+);
 
 document.getElementById("btn-tab-search")!.onclick = () => toggleTabSearch();
 tabSearchQuery.addEventListener("input", () => void refreshTabSearchResults());
