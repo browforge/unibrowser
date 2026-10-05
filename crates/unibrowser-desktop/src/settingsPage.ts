@@ -52,6 +52,7 @@ interface PrefsDto {
   ntp_sections: NtpSectionsDto;
   advanced_webview_devtools: boolean;
   advanced_experimental_spellcheck: boolean;
+  advanced_node_extension_host: boolean;
   open_downloads_in_system_browser: boolean;
   bookmark_bar_enabled: boolean;
   bookmark_quick_links: { label: string; url: string }[];
@@ -793,6 +794,27 @@ export async function renderSettings(root: HTMLElement) {
   spellRow.appendChild(spellLabel);
   advancedSection.appendChild(spellRow);
   advancedSection.appendChild(spellNote);
+  const nodeHostRow = document.createElement("div");
+  nodeHostRow.className = "settings-row";
+  const nodeHostCb = document.createElement("input");
+  nodeHostCb.type = "checkbox";
+  nodeHostCb.id = "settings-node-extension-host";
+  nodeHostCb.checked = prefs.advanced_node_extension_host;
+  nodeHostCb.onchange = async () => {
+    await invoke<PrefsDto>("set_advanced_node_extension_host", {
+      enabled: nodeHostCb.checked,
+    });
+  };
+  const nodeHostLabel = document.createElement("label");
+  nodeHostLabel.htmlFor = nodeHostCb.id;
+  nodeHostLabel.textContent = t("settings.nodeExtensionHost");
+  const nodeHostNote = document.createElement("p");
+  nodeHostNote.className = "viewer-note";
+  nodeHostNote.textContent = t("settings.nodeExtensionHostNote");
+  nodeHostRow.appendChild(nodeHostCb);
+  nodeHostRow.appendChild(nodeHostLabel);
+  advancedSection.appendChild(nodeHostRow);
+  advancedSection.appendChild(nodeHostNote);
   const dlBrowserRow = document.createElement("div");
   dlBrowserRow.className = "settings-row";
   const dlBrowserCb = document.createElement("input");

@@ -2,10 +2,15 @@
 //! See [docs/extension-host.md](../../docs/extension-host.md).
 
 mod activation;
+mod node_host;
 
 pub use activation::{ActivationRecord, activated_extensions, matching_on_command_event, record_command_activation};
+pub use node_host::{
+    execute_extension_command, host_script_path, node_on_path, vsix_palette_enablement,
+    NodeExecuteResult, VSIX_NODE_HOST_NO_MAIN, VSIX_NODE_HOST_NO_NODE, VSIX_NODE_HOST_PREF_OFF,
+};
 
-pub const HOST_VERSION: &str = "0.1.0-stub";
+pub const HOST_VERSION: &str = "0.2.0-node-spike";
 
 pub const VSIX_STUB_ENABLED_HINT: &str =
     "VSIX stub — JavaScript extension host not started (see docs/extension-host.md)";
@@ -24,13 +29,22 @@ pub struct HostStatus {
 }
 
 pub fn status() -> HostStatus {
+    let node = node_on_path();
+    let script = host_script_path().is_some();
+    let message = if node && script {
+        "Node sidecar available (opt-in via Settings → Advanced).".into()
+    } else if !node {
+        "Node.js not on PATH — VSIX JavaScript host unavailable.".into()
+    } else {
+        "Node host script missing — VSIX JavaScript host unavailable.".into()
+    };
     HostStatus {
-        running: false,
+        running: node && script,
         capabilities: vec![
             HostCapability::CommandsMetadata,
             HostCapability::KeybindingsMetadata,
         ],
-        message: "Extension host not started — contributed commands run stub handlers only.".into(),
+        message,
     }
 }
 

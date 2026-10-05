@@ -97,6 +97,9 @@ pub struct Preferences {
     /// Read-only browser spellcheck mirror under the text editor (experimental).
     #[serde(default)]
     pub advanced_experimental_spellcheck: bool,
+    /// Run installed VSIX `main` modules via Node sidecar (experimental).
+    #[serde(default)]
+    pub advanced_node_extension_host: bool,
     /// Interim: hand https downloads to the system browser (WebView2 gap on Windows).
     #[serde(default)]
     pub open_downloads_in_system_browser: bool,
@@ -290,6 +293,7 @@ impl Default for Preferences {
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,
             advanced_experimental_spellcheck: false,
+            advanced_node_extension_host: false,
             open_downloads_in_system_browser: false,
             files_view: FilesViewPrefs::default(),
             folder_favorites: Vec::new(),

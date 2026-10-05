@@ -36,6 +36,7 @@ mod process_status;
 mod project_recovery;
 mod project_undo;
 mod project_undo_handlers;
+mod vsix_host;
 mod document_limits;
 mod content_sniff;
 mod files_listing;
@@ -197,6 +198,7 @@ pub fn run() {
             commands::set_ntp_sections,
             commands::set_advanced_webview_devtools,
             commands::set_advanced_experimental_spellcheck,
+            commands::set_advanced_node_extension_host,
             commands::set_disable_user_mods,
             commands::set_files_view_prefs,
             commands::open_path_in_new_tab,

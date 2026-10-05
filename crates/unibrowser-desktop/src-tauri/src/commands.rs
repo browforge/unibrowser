@@ -2841,12 +2841,16 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 selected: false,
                 commands: details
                     .into_iter()
-                    .map(|d| UiCommandDto {
-                        command_id: d.command_id,
-                        title: d.title,
-                        icon: "vsix".into(),
-                        enabled: true,
-                        reason: Some(unibrowser_extension_host::VSIX_STUB_ENABLED_HINT.into()),
+                    .map(|d| {
+                        let (enabled, reason) =
+                            crate::vsix_host::vsix_command_palette_state(&vsix_root, &d.command_id);
+                        UiCommandDto {
+                            command_id: d.command_id,
+                            title: d.title,
+                            icon: "vsix".into(),
+                            enabled,
+                            reason,
+                        }
                     })
                     .collect(),
             });
@@ -3332,21 +3336,35 @@ fn execute_command_impl(
             .map_err(|e| e.to_string())?;
         if host_cmds.contains(&command_id) {
             let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
-            let (extension_id, activation_events) =
-                unibrowser_vsix::lookup_vsix_command(&root, &command_id)
-                    .ok_or_else(|| format!("VSIX command not found: {}", command_id))?;
-            let msg = unibrowser_extension_host::execute_vsix_stub(
+            let (enabled, reason) =
+                crate::vsix_host::vsix_command_palette_state(&root, &command_id);
+            if !enabled {
+                return Err(reason.unwrap_or_else(|| "VSIX command unavailable".into()));
+            }
+            let ctx = unibrowser_vsix::lookup_vsix_command_context(&root, &command_id)
+                .ok_or_else(|| format!("VSIX command not found: {}", command_id))?;
+            let main = unibrowser_vsix::read_extension_main(&ctx.install_dir).ok_or_else(|| {
+                unibrowser_extension_host::VSIX_NODE_HOST_NO_MAIN.to_string()
+            })?;
+            let activated = unibrowser_extension_host::record_command_activation(
+                &ctx.extension_id,
                 &command_id,
-                &extension_id,
-                &activation_events,
+                &ctx.activation_events,
             );
-            if msg.contains("activated via `") && !msg.contains("already activated") {
+            let ext_root = ctx.install_dir.join("extension");
+            let result = unibrowser_extension_host::execute_extension_command(
+                &ext_root,
+                &main,
+                &ctx.extension_id,
+                &command_id,
+            )?;
+            if let Some((rec, true)) = activated {
                 crate::diagnostic_log::record_info(
-                    format!("VSIX activated: {}", extension_id),
-                    Some(msg.clone()),
+                    format!("VSIX activated: {}", ctx.extension_id),
+                    Some(format!("matched `{}`", rec.matched_event)),
                 );
             }
-            return Ok(msg);
+            return Ok(result.toast.unwrap_or(result.message));
         }
     }
     let _sess_tabs = ws(&state, &window)?;
@@ -3600,10 +3618,9 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
         .into_iter()
         .map(|e| {
             let (enabled, reason) = if host_cmds.contains(&e.command_id) {
-                (
-                    true,
-                    Some(unibrowser_extension_host::VSIX_STUB_ENABLED_HINT.to_string()),
-                )
+                crate::config::vsix_extensions_dir()
+                    .map(|root| crate::vsix_host::vsix_command_palette_state(&root, &e.command_id))
+                    .unwrap_or((false, Some("VSIX directory unavailable".into())))
             } else {
                 (
                     e.enablement.is_enabled(),
@@ -3713,10 +3730,9 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                 continue;
             }
             let (enabled, reason) = if host_cmds.contains(&id) {
-                (
-                    true,
-                    Some(unibrowser_extension_host::VSIX_STUB_ENABLED_HINT.to_string()),
-                )
+                crate::config::vsix_extensions_dir()
+                    .map(|root| crate::vsix_host::vsix_command_palette_state(&root, &id))
+                    .unwrap_or((false, Some("VSIX directory unavailable".into())))
             } else if let Some(doc) = tab.document.as_ref() {
                 let en = registry.enablement(&id, doc);
                 (
@@ -3921,6 +3937,7 @@ pub struct PreferencesDto {
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
     pub advanced_experimental_spellcheck: bool,
+    pub advanced_node_extension_host: bool,
     pub open_downloads_in_system_browser: bool,
     pub files_view: FilesViewDto,
     pub bookmark_bar_enabled: bool,
@@ -5154,6 +5171,7 @@ fn preferences_dto() -> PreferencesDto {
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,
         advanced_experimental_spellcheck: p.advanced_experimental_spellcheck,
+        advanced_node_extension_host: p.advanced_node_extension_host,
         open_downloads_in_system_browser: p.open_downloads_in_system_browser,
         files_view: files_view_dto(&p),
         bookmark_bar_enabled: p.bookmark_bar_enabled,
@@ -5290,6 +5308,14 @@ pub fn set_advanced_webview_devtools(
 pub fn set_advanced_experimental_spellcheck(enabled: bool) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.advanced_experimental_spellcheck = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_advanced_node_extension_host(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.advanced_node_extension_host = enabled;
     save_preferences(&p)?;
     Ok(preferences_dto())
 }

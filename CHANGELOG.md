@@ -6,6 +6,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **VSIX Node host (spike):** Opt-in Advanced pref runs installed VSIX `main` via `examples/vsix-node-host/host.mjs` when `node` is on PATH; minimal `vscode` shim (`commands.registerCommand`, `window.showInformationMessage` → toast). Sample extension under `examples/vsix-sample-extension/`; documented in [extension-host.md](docs/extension-host.md).
 - **Markdown preview:** Table of contents sidebar from headings (click to scroll); **Export HTML** saves a standalone `.html` with inline CSS and base64 images; fenced code blocks use lazy Monaco `colorize`.
 - **Licences:** [Mermaid](https://github.com/mermaid-js/mermaid) (MIT) noted in [docs/licenses/third-party.md](docs/licenses/third-party.md).
 - **Markdown preview:** Lazy **Mermaid** rendering in preview (falls back to the fenced code block on failure); relative `img` paths resolve next to the `.md` file.

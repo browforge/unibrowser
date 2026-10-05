@@ -177,21 +177,45 @@ pub fn uninstall_extension(root: &Path, extension_id: &str) -> Result<(), VsixEr
     Err(VsixError::Msg(format!("extension not installed: {}", extension_id)))
 }
 
+#[derive(Debug, Clone)]
+pub struct VsixCommandContext {
+    pub extension_id: String,
+    pub activation_events: Vec<String>,
+    pub install_dir: PathBuf,
+}
+
 pub fn lookup_vsix_command(root: &Path, command_id: &str) -> Option<(String, Vec<String>)> {
+    lookup_vsix_command_context(root, command_id).map(|c| {
+        (c.extension_id.clone(), c.activation_events.clone())
+    })
+}
+
+pub fn lookup_vsix_command_context(root: &Path, command_id: &str) -> Option<VsixCommandContext> {
     for rec in list_installed(root).unwrap_or_default() {
         if !rec.enabled {
             continue;
         }
         for cmd in &rec.contributions.commands {
             if cmd.command == command_id {
-                return Some((
-                    rec.extension_id.clone(),
-                    rec.contributions.activation_events.clone(),
-                ));
+                return Some(VsixCommandContext {
+                    extension_id: rec.extension_id.clone(),
+                    activation_events: rec.contributions.activation_events.clone(),
+                    install_dir: PathBuf::from(&rec.install_dir),
+                });
             }
         }
     }
     None
+}
+
+/// Relative `main` path inside the `extension/` folder (VS Code layout).
+pub fn read_extension_main(install_dir: &Path) -> Option<String> {
+    let pkg_path = install_dir.join("extension/package.json");
+    let data = fs::read_to_string(pkg_path).ok()?;
+    let pkg: serde_json::Value = serde_json::from_str(&data).ok()?;
+    pkg.get("main")
+        .and_then(|m| m.as_str())
+        .map(|s| s.to_string())
 }
 
 pub fn enabled_command_details(installed: &[InstalledVsixRecord]) -> Vec<VsixCommandDetail> {
@@ -448,6 +472,14 @@ mod tests {
         let list = list_installed(&dir).expect("list");
         assert!(enabled_keybindings(&list).is_empty());
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn sample_extension_declares_main() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/vsix-sample-extension");
+        let main = read_extension_main(&root).expect("main");
+        assert!(main.ends_with("main.js"));
     }
 
     #[test]

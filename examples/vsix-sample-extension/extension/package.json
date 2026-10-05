@@ -1,0 +1,21 @@
+{
+  "name": "hello-sample",
+  "publisher": "unibrowser",
+  "version": "0.1.0",
+  "displayName": "Unibrowser hello sample",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "./main.js",
+  "activationEvents": ["onCommand:unibrowser.helloSample.sayHello"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "unibrowser.helloSample.sayHello",
+        "title": "Say hello",
+        "category": "VSIX sample"
+      }
+    ]
+  }
+}

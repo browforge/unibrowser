@@ -14,6 +14,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, **word count / reading time** (text + DOCX), font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
+| VSIX / extensions | Opt-in **Node extension host** (Advanced); sample `examples/vsix-sample-extension`; palette runs `main` with `registerCommand` + `showInformationMessage` shim |
 | Markdown preview | TOC sidebar (heading jump); **Export HTML** (standalone file, embedded images); Monaco code colour in preview; Mermaid (lazy); relative images via `convertFileSrc`; links via `resolve_preview_link` |
 | Undo / PDF | Document undo/redo on text, SVG, and `.unibrow` timeline (grey when stack empty); PDF thumb strip syncs active page; plain-text print preview; export PDF from Markdown/DOCX print HTML; matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
@@ -177,7 +178,7 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 
 | Rank | Gap | Why it matters |
 | --- | --- | --- |
-| 1 | VSIX JS extension host | Largest compat promise vs delivery |
+| 1 | VSIX JS extension host (full) | Node sidecar spike ships (`main` + minimal shim); most `vscode` API still missing |
 | 2 | WebView2 download wiring | Windows default browser workaround |
 | 3 | OCR sidecar | Announced stub, no Tesseract pool |
 | 4 | Full timeline / DAW encode | ffmpeg H.264 + approximate duck/fade; no full DAW mix bus |
@@ -192,7 +193,7 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 
 | Item | Notes |
 | --- | --- |
-| VSIX JS extension host | Metadata + stub execute ([extension-host.md](extension-host.md)); no `main` JS |
+| VSIX JS extension host | Opt-in Node sidecar + sample extension ([extension-host.md](extension-host.md)); not a full VS Code host |
 | OCR | UI placeholder; Tesseract sidecar not built ([ocr-sidecar.md](ocr-sidecar.md)) |
 | Spellcheck | Monaco still has no built-in dictionary; experimental browser spellcheck covers text mirror + DOCX + EPUB notes |
 | Timeline encode | H.264 when ffmpeg present; duck/fade approximations only; no stem/mix bus export |
@@ -209,7 +210,7 @@ Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** pol
 | P1 | WebView2 downloads (Windows) | `DownloadStarting` not wired; Linux WebKit path improved (fetch to hinted path, no Finished duplicate). Use Advanced → system browser on Windows ([browser-shell.md](browser-shell.md)). |
 | P2 | EPUB assets | Spine HTML only; embedded images/fonts often missing until asset URL resolution. |
 | P2 | DOCX fidelity | Mammoth layout limits; no `.docx` write-back (HTML sibling only — [docx-roundtrip.md](docx-roundtrip.md)). |
-| P2 | VSIX JS host | Stub execute only; no extension `main` runtime ([extension-host.md](extension-host.md)). |
+| P2 | VSIX JS host | Node spike only; grey when pref off or `node` missing ([extension-host.md](extension-host.md)). |
 | P2 | Web proxy prefs | Persisted but **not applied** to embedded https webviews ([network-proxy.md](network-proxy.md)). |
 | P3 | PDF text copy | Needs pdf.js **text layer**; scanned/raster-only pages have no selectable text (Copy / Print selection grey). |
 | P3 | Large PDF open | Profile with `UNIBROWSER_PROFILE_OPEN=1` if open feels slow. |
