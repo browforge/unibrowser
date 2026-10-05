@@ -6,6 +6,8 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Markdown preview:** Table of contents sidebar from headings (click to scroll); **Export HTML** saves a standalone `.html` with inline CSS and base64 images; fenced code blocks use lazy Monaco `colorize`.
+- **Licences:** [Mermaid](https://github.com/mermaid-js/mermaid) (MIT) noted in [docs/licenses/third-party.md](docs/licenses/third-party.md).
 - **Markdown preview:** Lazy **Mermaid** rendering in preview (falls back to the fenced code block on failure); relative `img` paths resolve next to the `.md` file.
 - **Status bar:** Word count and estimated reading time for Monaco text/Markdown and DOCX preview (`status.reading`).
 - **A11y:** Status encoding/cursor/reading `role="status"`; encode progress `aria-live`; floating CM toolbar keyboard nudge on the drag handle ([ux-a11y.md](docs/ux-a11y.md)).

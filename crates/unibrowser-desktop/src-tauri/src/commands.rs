@@ -4017,6 +4017,23 @@ pub async fn pick_save_image_path(window: tauri::Window,
 }
 
 #[tauri::command]
+pub async fn pick_save_html_path(
+    _window: tauri::Window,
+    app: AppHandle,
+    suggested_name: String,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Save HTML")
+        .set_file_name(suggested_name)
+        .add_filter("HTML", &["html", "htm"])
+        .blocking_save_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
+#[tauri::command]
 pub async fn export_print_pdf(
     app: AppHandle,
     html_body: String,

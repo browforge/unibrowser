@@ -10,6 +10,7 @@ Short attributions for components users commonly ask about. Full Rust crate lice
 | [pdf.js](https://github.com/mozilla/pdf.js) | Apache-2.0 | PDF viewer (`pdfjs-dist`) |
 | [mammoth.js](https://github.com/mwilliamson/mammoth.js) | BSD-2-Clause | DOCX → HTML preview (lazy import) |
 | [marked](https://github.com/markedjs/marked) | MIT | Markdown preview in Monaco split view |
+| [Mermaid](https://github.com/mermaid-js/mermaid) | MIT | Diagram rendering in Markdown preview (lazy `import()`; bundles transitive libs such as [cytoscape](https://github.com/cytoscape/cytoscape.js) MIT and [KaTeX](https://github.com/KaTeX/KaTeX) MIT) |
 | [Vite](https://github.com/vitejs/vite) / [Rolldown](https://github.com/rolldown/rolldown) | MIT | Front-end build (dev/build only) |
 
 Monaco and pdf.js retain their own copyright notices in `node_modules` and in production bundles.

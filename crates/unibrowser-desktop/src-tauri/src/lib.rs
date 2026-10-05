@@ -233,6 +233,7 @@ pub fn run() {
             commands::delete_workspace_layout_preset,
             commands::write_document_bytes,
             commands::pick_save_image_path,
+            commands::pick_save_html_path,
             commands::resolve_preview_link,
             commands::open_new_browser_window,
             commands::add_unibrow_timeline_clip,

@@ -1,6 +1,7 @@
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import { applyMarkdownPreview } from "./markdownPreview";
+import { exportMarkdownToHtmlFile } from "./markdownExport";
 import { textReadingStats } from "./textStats";
 import { t } from "./i18n";
 import { openPrintPreviewDocument, plainTextPrintBody } from "./printExport";
@@ -22,6 +23,8 @@ let loadedPath: string | null = null;
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let suppressSync = false;
 let markdownPreview = false;
+let previewShellEl: HTMLElement | null = null;
+let previewTocEl: HTMLElement | null = null;
 let previewEl: HTMLElement | null = null;
 let toolbarEl: HTMLElement | null = null;
 let plainToolbarEl: HTMLDivElement | null = null;
@@ -136,7 +139,7 @@ async function pushToHost() {
     selectionEnd: end,
   });
   if (markdownPreview && previewEl && loadedPath) {
-    await applyMarkdownPreview(previewEl, model.getValue(), loadedPath);
+    await applyMarkdownPreview(previewEl, model.getValue(), loadedPath, previewTocEl);
   }
   if (isExperimentalSpellcheckEnabled()) {
     syncSpellcheckPane(model.getValue());
@@ -165,10 +168,7 @@ function ensurePlainTextPrintToolbar(host: HTMLElement, path: string) {
     toolbarEl = null;
   }
   markdownPreview = false;
-  if (previewEl) {
-    previewEl.remove();
-    previewEl = null;
-  }
+  tearDownPreviewShell();
   if (plainToolbarEl && plainToolbarPath === path) {
     return;
   }
@@ -190,6 +190,35 @@ function ensurePlainTextPrintToolbar(host: HTMLElement, path: string) {
   };
   plainToolbarEl.appendChild(printBtn);
   host.parentElement?.insertBefore(plainToolbarEl, host);
+}
+
+function tearDownPreviewShell() {
+  if (previewShellEl) {
+    previewShellEl.remove();
+    previewShellEl = null;
+    previewTocEl = null;
+    previewEl = null;
+  }
+}
+
+function ensurePreviewShell(host: HTMLElement) {
+  if (previewShellEl) {
+    return;
+  }
+  const parent = host.parentElement;
+  if (!parent) {
+    return;
+  }
+  previewShellEl = document.createElement("div");
+  previewShellEl.className = "md-preview-shell hidden";
+  previewTocEl = document.createElement("nav");
+  previewTocEl.className = "md-toc hidden";
+  previewTocEl.setAttribute("aria-label", t("markdown.tocAria"));
+  previewEl = document.createElement("article");
+  previewEl.className = "md-preview-body";
+  previewShellEl.appendChild(previewTocEl);
+  previewShellEl.appendChild(previewEl);
+  parent.insertBefore(previewShellEl, host.nextSibling);
 }
 
 function ensureMarkdownToolbar(host: HTMLElement, path: string) {
@@ -218,20 +247,26 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
   toggle.onclick = () => {
     markdownPreview = !markdownPreview;
     toggle.textContent = markdownPreview ? "Edit only" : "Preview";
-    if (!previewEl && host.parentElement) {
-      previewEl = document.createElement("article");
-      previewEl.className = "md-preview";
-      host.parentElement.insertBefore(previewEl, host.nextSibling);
-    }
-    if (previewEl) {
-      previewEl.classList.toggle("hidden", !markdownPreview);
+    ensurePreviewShell(host);
+    if (previewShellEl) {
+      previewShellEl.classList.toggle("hidden", !markdownPreview);
     }
     if (markdownPreview && editor && previewEl) {
-      void applyMarkdownPreview(previewEl, editor.getValue(), path);
+      void applyMarkdownPreview(previewEl, editor.getValue(), path, previewTocEl);
     }
     host.classList.toggle("md-split", markdownPreview);
   };
   toolbarEl.appendChild(toggle);
+  const exportHtmlBtn = document.createElement("button");
+  exportHtmlBtn.type = "button";
+  exportHtmlBtn.textContent = t("markdown.exportHtml");
+  exportHtmlBtn.onclick = () => {
+    if (!editor) {
+      return;
+    }
+    void exportMarkdownToHtmlFile(path, editor.getValue());
+  };
+  toolbarEl.appendChild(exportHtmlBtn);
   const printBtn = document.createElement("button");
   printBtn.type = "button";
   printBtn.textContent = t("print.preview");
@@ -357,8 +392,8 @@ export const textEditor = {
     detachSpellcheckPane();
     loadedPath = null;
     markdownPreview = false;
-    if (previewEl) {
-      previewEl.classList.add("hidden");
+    if (previewShellEl) {
+      previewShellEl.classList.add("hidden");
     }
     host.classList.remove("md-split");
   },
@@ -402,7 +437,7 @@ export const textEditor = {
       editor!.setPosition({ lineNumber: line, column: 1 });
     }
     if (markdownPreview && previewEl) {
-      await applyMarkdownPreview(previewEl, doc.content, doc.path);
+      await applyMarkdownPreview(previewEl, doc.content, doc.path, previewTocEl);
     }
     const editorWrap = host.parentElement;
     if (isExperimentalSpellcheckEnabled() && editorWrap) {
