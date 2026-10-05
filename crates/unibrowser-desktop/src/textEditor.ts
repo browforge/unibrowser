@@ -1,5 +1,6 @@
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
+import { bindPreviewLinks } from "./previewLinks";
 
 type Monaco = typeof import("monaco-editor");
 type MonacoEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
@@ -95,8 +96,9 @@ async function pushToHost() {
     selectionStart: start,
     selectionEnd: end,
   });
-  if (markdownPreview && previewEl) {
+  if (markdownPreview && previewEl && loadedPath) {
     previewEl.innerHTML = marked.parse(model.getValue(), { async: false }) as string;
+    bindPreviewLinks(previewEl, loadedPath);
   }
 }
 
@@ -146,6 +148,7 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
     }
     if (markdownPreview && editor && previewEl) {
       previewEl.innerHTML = marked.parse(editor.getValue(), { async: false }) as string;
+      bindPreviewLinks(previewEl, path);
     }
     host.classList.toggle("md-split", markdownPreview);
   };

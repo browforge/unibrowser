@@ -20,7 +20,7 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 | Restore session | Off | Enable → restart → tabs return |
 | Board snap to grid | Off | Enable → drag `.unibrow` cards snap to 24px grid |
 | Crash recovery | Off | Enable → edit text/SVG → backups list on Settings/About; Restore / Dismiss (inline, no modal) |
-| Workspace layout | (none) | Settings → save named preset → resize window / rearrange toolbars → Load restores both |
+| Workspace layout | (none) | Settings → save preset → includes bookmarks + split → Load restores window, toolbars, pins, split |
 
 ## Downloads
 
@@ -44,7 +44,10 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 - Large PDF: set `UNIBROWSER_PROFILE_OPEN=1` and open a PDF; stderr logs resolve+open timing.
 - PDF viewer: canvas thumbnails (first 12 eager, rest lazy on scroll).
 - DOCX: Find / Prev / Next search in Mammoth HTML preview.
-- PNG/image: Crop overlay (non-destructive); Clear crop resets overlay.
+- PNG/image: Crop overlay; **Save cropped as…** writes new PNG; original unchanged.
+- Markdown / DOCX preview: `https://` and `file://` links navigate via omnibox (blocked: `javascript:`, `data:`).
+- Settings → **Open another window** (shared tabs; per-window web overlay).
+- Undo stacks capped per document and total tracked paths; large read/sync limits enforced.
 - About: Privacy section states no telemetry by default.
 
 ## Command manager

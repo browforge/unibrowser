@@ -44,7 +44,9 @@ Tabs and files
 Viewers and zoom
   [ ] PDF: page nav, canvas thumbnails, zoom +/-, Copy selection, print
   [ ] DOCX: search highlights, Prev/Next match
-  [ ] Image: Crop overlay (non-destructive), Clear crop
+  [ ] Image: Crop overlay, Save cropped as… (new file), Clear crop
+  [ ] Markdown preview: click https/file link opens safely
+  [ ] Settings: Open another window
   [ ] CSV: Copy table button
   [ ] PNG/image: zoom, pan, rotate
   [ ] https:// page: web zoom +/- changes page text size

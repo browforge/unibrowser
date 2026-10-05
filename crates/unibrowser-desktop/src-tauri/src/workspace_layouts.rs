@@ -8,7 +8,17 @@ use serde::{Deserialize, Serialize};
 use unibrowser_engine::CommandManagerFile;
 
 use crate::config::config_dir;
-use crate::preferences::WindowState;
+use crate::preferences::{PinnedLocation, WindowState};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkspaceChromeState {
+    #[serde(default)]
+    pub pinned_locations: Vec<PinnedLocation>,
+    #[serde(default)]
+    pub split_view_enabled: bool,
+    #[serde(default)]
+    pub split_secondary_index: Option<usize>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceLayoutPreset {
@@ -17,6 +27,8 @@ pub struct WorkspaceLayoutPreset {
     pub saved_at_ms: u64,
     pub window: WindowState,
     pub command_manager: CommandManagerFile,
+    #[serde(default)]
+    pub chrome: WorkspaceChromeState,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +95,7 @@ pub fn save_preset(
     name: String,
     window: WindowState,
     command_manager: CommandManagerFile,
+    chrome: WorkspaceChromeState,
 ) -> Result<WorkspaceLayoutPresetSummaryDto, String> {
     let trimmed = name.trim();
     if trimmed.is_empty() {
@@ -96,6 +109,7 @@ pub fn save_preset(
         saved_at_ms: now_ms(),
         window,
         command_manager,
+        chrome,
     };
     file.presets.push(preset);
     save_file(&file)?;
@@ -135,6 +149,7 @@ mod tests {
             "   ".into(),
             WindowState::default(),
             CommandManagerFile::factory_default(),
+            WorkspaceChromeState::default(),
         );
         assert!(err.is_err());
     }

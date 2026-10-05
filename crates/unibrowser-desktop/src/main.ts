@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import { commandManager } from "./commandManager";
@@ -204,6 +205,7 @@ async function syncContentBounds() {
     y: rect.top,
     width: rect.width,
     height: rect.height,
+    windowLabel: getCurrentWebviewWindow().label,
   });
 }
 

@@ -26,9 +26,7 @@ use crate::state::FileCompareState;
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
 use crate::epub_preview::EpubChapterDto;
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
-use crate::webview::{
-    adjust_page_font_for_url, apply_persisted_web_font, content_webview_navigate, sync_content_bounds,
-};
+use crate::webview::{adjust_page_font_for_url, sync_all_content_webviews, sync_content_bounds};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -1277,29 +1275,53 @@ pub fn list_workspace_layout_presets(
 #[tauri::command]
 pub fn save_workspace_layout_preset(
     name: String,
-    app: AppHandle,
+    window: tauri::Window,
     state: State<AppState>,
 ) -> Result<crate::workspace_layouts::WorkspaceLayoutPresetSummaryDto, String> {
-    let window = app.get_window("main").ok_or("main window missing")?;
     let window_state = crate::preferences::capture_window_state(&window)?;
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let file = cm.to_file();
-    crate::workspace_layouts::save_preset(name, window_state, file)
+    let prefs = load_preferences();
+    let split = state.split_view.lock().map_err(|e| e.to_string())?;
+    let chrome = crate::workspace_layouts::WorkspaceChromeState {
+        pinned_locations: if prefs.pinned_locations.is_empty() {
+            default_pinned_locations(
+                &state
+                    .cwd
+                    .to_string_lossy()
+                    .to_string(),
+            )
+        } else {
+            prefs.pinned_locations.clone()
+        },
+        split_view_enabled: split.enabled,
+        split_secondary_index: split.secondary_index,
+    };
+    crate::workspace_layouts::save_preset(name, window_state, file, chrome)
 }
 
 #[tauri::command]
 pub fn load_workspace_layout_preset(
     id: String,
+    window: tauri::Window,
     app: AppHandle,
     state: State<AppState>,
-) -> Result<(), String> {
+) -> Result<TabContentDto, String> {
     let preset = crate::workspace_layouts::load_preset(&id)?;
-    if let Some(window) = app.get_window("main") {
+    if window.label() == "main" || app.get_webview_window(window.label()).is_some() {
         crate::preferences::apply_window_state(&window, &preset.window)?;
         let _ = crate::preferences::save_window_state(&preset.window);
     }
-    save_command_manager_layout(preset.command_manager, state)?;
-    Ok(())
+    let mut prefs = load_preferences();
+    prefs.pinned_locations = preset.chrome.pinned_locations.clone();
+    save_preferences(&prefs)?;
+    {
+        let mut split = state.split_view.lock().map_err(|e| e.to_string())?;
+        split.enabled = preset.chrome.split_view_enabled;
+        split.secondary_index = preset.chrome.split_secondary_index;
+    }
+    save_command_manager_layout(preset.command_manager, state.clone())?;
+    snapshot(&state)
 }
 
 #[tauri::command]
@@ -1356,6 +1378,9 @@ pub fn sync_text_document(
     selection_end: usize,
     state: State<AppState>,
 ) -> Result<(), String> {
+    if content.len() > crate::document_limits::MAX_SYNC_TEXT_CHARS {
+        return Err(crate::document_limits::sync_limit_error(content.len()));
+    }
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no text document")?;
@@ -1546,9 +1571,10 @@ pub fn set_content_bounds(
     y: f64,
     width: f64,
     height: f64,
+    window_label: String,
     app: AppHandle,
 ) -> Result<(), String> {
-    sync_content_bounds(&app, x, y, width, height)
+    sync_content_bounds(&app, &window_label, x, y, width, height)
 }
 
 #[derive(Serialize)]
@@ -1569,7 +1595,85 @@ pub fn read_document_bytes(path: String, state: State<AppState>) -> Result<Vec<u
     if !p.is_file() {
         return Err("not a file".into());
     }
+    let meta = std::fs::metadata(&p).map_err(|e| e.to_string())?;
+    let len = meta.len() as usize;
+    if len > crate::document_limits::MAX_READ_BYTES {
+        return Err(crate::document_limits::read_limit_error(len));
+    }
     std::fs::read(&p).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn write_document_bytes(path: String, bytes: Vec<u8>, state: State<AppState>) -> Result<(), String> {
+    if bytes.len() > crate::document_limits::MAX_WRITE_BYTES {
+        return Err(crate::document_limits::write_limit_error(bytes.len()));
+    }
+    let p = resolve_open_path(&path, &state.cwd)?;
+    if let Some(parent) = p.parent() {
+        if !parent.exists() {
+            return Err("parent directory does not exist".into());
+        }
+    }
+    std::fs::write(&p, bytes).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn pick_save_image_path(
+    app: AppHandle,
+    suggested_name: String,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Save image")
+        .set_file_name(suggested_name)
+        .add_filter("PNG", &["png"])
+        .blocking_save_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
+#[tauri::command]
+pub fn resolve_preview_link(
+    base_path: String,
+    href: String,
+    state: State<AppState>,
+) -> Result<String, String> {
+    let trimmed = href.trim();
+    let lower = trimmed.to_lowercase();
+    if lower.starts_with("javascript:") || lower.starts_with("data:") {
+        return Err("unsupported link scheme".into());
+    }
+    if lower.starts_with("https://") || lower.starts_with("http://") {
+        return Ok(trimmed.to_string());
+    }
+    if lower.starts_with("file://") {
+        let p = resolve_open_path(trimmed.trim_start_matches("file://"), &state.cwd)?;
+        return Ok(format!("file://{}", p.display()));
+    }
+    let base = resolve_open_path(&base_path, &state.cwd)?;
+    let parent = base.parent().ok_or("base file has no parent directory")?;
+    let joined = parent.join(trimmed);
+    let resolved = resolve_open_path(&joined.to_string_lossy(), &state.cwd)?;
+    Ok(format!("file://{}", resolved.display()))
+}
+
+#[tauri::command]
+pub fn open_new_browser_window(app: AppHandle) -> Result<String, String> {
+    use tauri::{WebviewUrl, WebviewWindowBuilder};
+    let mut n = app.webview_windows().len().max(1) + 1;
+    let mut label = format!("browser-{}", n);
+    while app.get_webview_window(&label).is_some() {
+        n += 1;
+        label = format!("browser-{}", n);
+    }
+    let _window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::App("index.html".into()))
+        .title("Unibrowser")
+        .inner_size(1200.0, 800.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+    crate::webview::ensure_content_webview(&app, &label)?;
+    Ok(label)
 }
 
 #[tauri::command]
@@ -2271,6 +2375,9 @@ pub async fn pick_and_install_vsix(
 
 #[tauri::command]
 pub fn sync_svg_document(content: String, state: State<AppState>) -> Result<(), String> {
+    if content.len() > crate::document_limits::MAX_SYNC_TEXT_CHARS {
+        return Err(crate::document_limits::sync_limit_error(content.len()));
+    }
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no document")?;
@@ -2416,14 +2523,5 @@ pub fn get_csv_preview(
 }
 
 fn update_content_webview(app: &AppHandle, loc: &BrowserLocation) -> Result<(), String> {
-    match loc {
-        BrowserLocation::Http { url } => {
-            content_webview_navigate(app, url)?;
-            apply_persisted_web_font(app, url)?;
-        }
-        _ => {
-            content_webview_navigate(app, "about:blank")?;
-        }
-    }
-    Ok(())
+    sync_all_content_webviews(app, loc)
 }

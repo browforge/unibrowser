@@ -17,6 +17,7 @@ mod settings_stub;
 mod about_stub;
 mod web_font_prefs;
 mod crash_recovery;
+mod document_limits;
 mod workspace_layouts;
 mod rhai_host;
 mod session;
@@ -35,7 +36,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
         .setup(|app| {
-            webview::ensure_content_webview(app.handle())?;
+            webview::ensure_content_webview(app.handle(), "main")?;
             if let Some(window) = app.get_window("main") {
                 let saved = preferences::load_window_state();
                 let _ = preferences::apply_window_state(&window, &saved);
@@ -123,6 +124,10 @@ pub fn run() {
             commands::save_workspace_layout_preset,
             commands::load_workspace_layout_preset,
             commands::delete_workspace_layout_preset,
+            commands::write_document_bytes,
+            commands::pick_save_image_path,
+            commands::resolve_preview_link,
+            commands::open_new_browser_window,
             commands::add_unibrow_timeline_clip,
             commands::remove_unibrow_timeline_clip,
             commands::reorder_unibrow_timeline_clips,

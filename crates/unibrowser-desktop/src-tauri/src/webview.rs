@@ -3,15 +3,20 @@ use url::Url;
 
 use crate::downloads::DownloadEventPayload;
 
-const CONTENT_LABEL: &str = "content";
+fn content_label(window_label: &str) -> String {
+    format!("content-{}", window_label)
+}
 
-pub fn ensure_content_webview(app: &AppHandle) -> Result<(), String> {
-    if app.get_webview(CONTENT_LABEL).is_some() {
+pub fn ensure_content_webview(app: &AppHandle, window_label: &str) -> Result<(), String> {
+    let label = content_label(window_label);
+    if app.get_webview(&label).is_some() {
         return Ok(());
     }
-    let window = app.get_window("main").ok_or("main window missing")?;
+    let window = app
+        .get_window(window_label)
+        .ok_or_else(|| format!("window {} missing", window_label))?;
     let blank: Url = "about:blank".parse().map_err(|e: url::ParseError| e.to_string())?;
-    let builder = tauri::webview::WebviewBuilder::new(CONTENT_LABEL, WebviewUrl::External(blank))
+    let builder = tauri::webview::WebviewBuilder::new(&label, WebviewUrl::External(blank))
         .on_download(|webview, event| {
             use tauri::webview::DownloadEvent;
             match event {
@@ -23,7 +28,6 @@ pub fn ensure_content_webview(app: &AppHandle) -> Result<(), String> {
                     let _ = webview
                         .app_handle()
                         .emit("unibrowser-download", payload);
-                    // Cancel WebKitGTK default save when the shell handles disposition.
                     return false;
                 }
                 DownloadEvent::Finished {
@@ -50,7 +54,7 @@ pub fn ensure_content_webview(app: &AppHandle) -> Result<(), String> {
             LogicalSize::new(800.0, 600.0),
         )
         .map_err(|e| e.to_string())?;
-    if let Some(wv) = app.get_webview(CONTENT_LABEL) {
+    if let Some(wv) = app.get_webview(&label) {
         let _ = wv.hide();
     }
     Ok(())
@@ -58,13 +62,15 @@ pub fn ensure_content_webview(app: &AppHandle) -> Result<(), String> {
 
 pub fn sync_content_bounds(
     app: &AppHandle,
+    window_label: &str,
     x: f64,
     y: f64,
     width: f64,
     height: f64,
 ) -> Result<(), String> {
-    ensure_content_webview(app)?;
-    let wv = app.get_webview(CONTENT_LABEL).ok_or("content webview missing")?;
+    ensure_content_webview(app, window_label)?;
+    let label = content_label(window_label);
+    let wv = app.get_webview(&label).ok_or("content webview missing")?;
     wv.set_position(LogicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
     wv.set_size(LogicalSize::new(width, height))
@@ -73,9 +79,10 @@ pub fn sync_content_bounds(
 }
 
 /// Apply absolute root font size via injected user stylesheet.
-pub fn inject_page_font_px(app: &AppHandle, px: u8) -> Result<(), String> {
-    ensure_content_webview(app)?;
-    let wv = app.get_webview(CONTENT_LABEL).ok_or("content webview missing")?;
+pub fn inject_page_font_px(app: &AppHandle, window_label: &str, px: u8) -> Result<(), String> {
+    ensure_content_webview(app, window_label)?;
+    let label = content_label(window_label);
+    let wv = app.get_webview(&label).ok_or("content webview missing")?;
     let script = format!(
         "(function(){{try{{if(!document.head){{return;}}var s=document.getElementById('unibrowser-user-style');if(!s){{s=document.createElement('style');s.id='unibrowser-user-style';document.head.appendChild(s);}}s.dataset.ubFont='{px}';s.textContent='html{{font-size:{px}px!important;}}';}}catch(e){{}}}})();",
         px = px
@@ -84,22 +91,29 @@ pub fn inject_page_font_px(app: &AppHandle, px: u8) -> Result<(), String> {
     Ok(())
 }
 
-/// Adjust font for a page URL, persist per origin, and inject.
-pub fn adjust_page_font_for_url(app: &AppHandle, url: &str, delta: i32) -> Result<u8, String> {
-    let px = crate::web_font_prefs::adjust_origin_font_px(url, delta)?;
-    inject_page_font_px(app, px)?;
-    Ok(px)
-}
-
-pub fn apply_persisted_web_font(app: &AppHandle, url: &str) -> Result<(), String> {
+pub fn apply_persisted_web_font(app: &AppHandle, window_label: &str, url: &str) -> Result<(), String> {
     let px = crate::web_font_prefs::get_origin_font_px(url);
-    inject_page_font_px(app, px)?;
+    inject_page_font_px(app, window_label, px)?;
     Ok(())
 }
 
-pub fn content_webview_navigate(app: &AppHandle, url: &str) -> Result<(), String> {
-    ensure_content_webview(app)?;
-    let wv = app.get_webview(CONTENT_LABEL).ok_or("content webview missing")?;
+/// Adjust font for a page URL, persist per origin, and inject into every open window.
+pub fn adjust_page_font_for_url(app: &AppHandle, url: &str, delta: i32) -> Result<u8, String> {
+    let px = crate::web_font_prefs::adjust_origin_font_px(url, delta)?;
+    for (label, _) in app.webview_windows() {
+        inject_page_font_px(app, &label, px)?;
+    }
+    Ok(px)
+}
+
+pub fn content_webview_navigate(
+    app: &AppHandle,
+    window_label: &str,
+    url: &str,
+) -> Result<(), String> {
+    ensure_content_webview(app, window_label)?;
+    let label = content_label(window_label);
+    let wv = app.get_webview(&label).ok_or("content webview missing")?;
     if url == "about:blank" {
         wv.hide().map_err(|e| e.to_string())?;
         return Ok(());
@@ -107,5 +121,21 @@ pub fn content_webview_navigate(app: &AppHandle, url: &str) -> Result<(), String
     let parsed: Url = url.parse().map_err(|e: url::ParseError| e.to_string())?;
     wv.navigate(parsed).map_err(|e| e.to_string())?;
     wv.show().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Keep embedded http views in sync across all open windows (shared tab model).
+pub fn sync_all_content_webviews(app: &AppHandle, loc: &unibrowser_mod_api::BrowserLocation) -> Result<(), String> {
+    for (label, _) in app.webview_windows() {
+        let _ = match loc {
+            unibrowser_mod_api::BrowserLocation::Http { url } => {
+                content_webview_navigate(app, &label, url)?;
+                apply_persisted_web_font(app, &label, url)?;
+            }
+            _ => {
+                content_webview_navigate(app, &label, "about:blank")?;
+            }
+        };
+    }
     Ok(())
 }

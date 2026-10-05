@@ -194,6 +194,31 @@ export async function renderSettings(root: HTMLElement) {
   void appendWorkspaceLayoutPanel(workspaceBody);
   root.appendChild(workspaceSection);
 
+  const windowSection = document.createElement("section");
+  windowSection.className = "settings-section";
+  const windowHeading = document.createElement("h3");
+  windowHeading.textContent = t("settings.windows");
+  const windowRow = document.createElement("div");
+  windowRow.className = "settings-row";
+  const newWindowBtn = document.createElement("button");
+  newWindowBtn.type = "button";
+  newWindowBtn.textContent = t("settings.newWindow");
+  newWindowBtn.onclick = async () => {
+    try {
+      await invoke("open_new_browser_window");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const windowNote = document.createElement("p");
+  windowNote.className = "viewer-note";
+  windowNote.textContent = t("settings.newWindowNote");
+  windowRow.appendChild(newWindowBtn);
+  windowSection.appendChild(windowHeading);
+  windowSection.appendChild(windowRow);
+  windowSection.appendChild(windowNote);
+  root.appendChild(windowSection);
+
   const aboutLink = document.createElement("p");
   aboutLink.className = "viewer-note";
   const link = document.createElement("button");

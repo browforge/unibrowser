@@ -25,7 +25,7 @@ export async function renderAbout(root: HTMLElement) {
   privacy.appendChild(ph);
   const pp = document.createElement("p");
   pp.textContent =
-    "This build does not collect or send usage telemetry by default. There is no analytics SDK, crash reporter, or background metrics channel in the desktop shell. Network access happens only for actions you choose (for example opening https:// pages, downloads, or optional Open VSX when you opt in).";
+    "This build does not collect or send usage telemetry by default. There is no analytics SDK, crash reporter, or background metrics channel in the desktop shell. Network access happens only for actions you choose (for example opening https:// pages, downloads, or optional Open VSX when you opt in). Preferences, bookmarks, and workspace layouts are stored locally on your device.";
   privacy.appendChild(pp);
   root.appendChild(privacy);
 

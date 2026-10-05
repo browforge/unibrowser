@@ -54,10 +54,11 @@ export async function appendWorkspaceLayoutPanel(root: HTMLElement) {
       loadBtn.onclick = async () => {
         loadBtn.disabled = true;
         try {
-          await invoke("load_workspace_layout_preset", { id: preset.id });
+          const data = await invoke("load_workspace_layout_preset", { id: preset.id });
           status.textContent = t("workspaceLayout.loaded", { name: preset.name });
           status.hidden = false;
           window.dispatchEvent(new CustomEvent("unibrowser-workspace-layout-loaded"));
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
         } catch (err) {
           status.textContent =
             err instanceof Error ? err.message : t("toast.errorDefault");

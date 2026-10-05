@@ -2,6 +2,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import * as mammoth from "mammoth";
 import { loadPdfJs, loadThree } from "./lazyModules";
 import { reportViewerZoom } from "./viewerZoom";
+import { bindPreviewLinks } from "./previewLinks";
 import { copyText } from "./clipboard";
 import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
@@ -286,6 +287,7 @@ async function renderDocx(path: string, root: HTMLElement) {
   root.appendChild(banner);
   root.appendChild(toolbar);
   root.appendChild(article);
+  bindPreviewLinks(article, path);
   if (result.messages.length) {
     const note = document.createElement("p");
     note.className = "viewer-note";
@@ -815,12 +817,17 @@ async function renderImage(path: string, root: HTMLElement) {
   clearCropBtn.type = "button";
   clearCropBtn.textContent = "Clear crop";
   clearCropBtn.disabled = true;
+  const saveCropBtn = document.createElement("button");
+  saveCropBtn.type = "button";
+  saveCropBtn.textContent = "Save cropped as…";
+  saveCropBtn.disabled = true;
   toolbar.appendChild(zoomOut);
   toolbar.appendChild(zoomIn);
   toolbar.appendChild(resetBtn);
   toolbar.appendChild(rotateBtn);
   toolbar.appendChild(cropBtn);
   toolbar.appendChild(clearCropBtn);
+  toolbar.appendChild(saveCropBtn);
   root.appendChild(toolbar);
 
   const viewport = document.createElement("div");
@@ -880,14 +887,23 @@ async function renderImage(path: string, root: HTMLElement) {
     return { x, y };
   };
 
+  const updateCropActions = () => {
+    const hasCrop = Boolean(cropRectNorm && cropRectNorm.w >= 0.5 && cropRectNorm.h >= 0.5);
+    saveCropBtn.disabled = !hasCrop || rotation !== 0;
+    saveCropBtn.title =
+      rotation !== 0 ? "Reset rotation before exporting a crop" : "Write a new PNG; original file is unchanged";
+  };
+
   const applyCropVisual = () => {
     if (!cropRectNorm || cropRectNorm.w < 0.5 || cropRectNorm.h < 0.5) {
       cropRect.hidden = true;
       clearCropBtn.disabled = true;
+      updateCropActions();
       return;
     }
     cropRect.hidden = false;
     clearCropBtn.disabled = false;
+    updateCropActions();
     const { x, y, w, h } = cropRectNorm;
     cropRect.style.left = `${x}%`;
     cropRect.style.top = `${y}%`;
@@ -926,6 +942,47 @@ async function renderImage(path: string, root: HTMLElement) {
   rotateBtn.onclick = () => {
     rotation = (rotation + 90) % 360;
     applyTransform();
+    updateCropActions();
+  };
+
+  saveCropBtn.onclick = async () => {
+    if (!cropRectNorm || cropRectNorm.w < 0.5 || cropRectNorm.h < 0.5) {
+      return;
+    }
+    await img.decode();
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    const sx = Math.max(0, Math.round((cropRectNorm.x / 100) * nw));
+    const sy = Math.max(0, Math.round((cropRectNorm.y / 100) * nh));
+    const sw = Math.min(nw - sx, Math.round((cropRectNorm.w / 100) * nw));
+    const sh = Math.min(nh - sy, Math.round((cropRectNorm.h / 100) * nh));
+    if (sw < 1 || sh < 1) {
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), "image/png");
+    });
+    if (!blob) {
+      return;
+    }
+    const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
+    const base = path.split(/[/\\]/).pop() ?? "image.png";
+    const suggested = `${base.replace(/\.[^.]+$/i, "")}-crop.png`;
+    const dest = await invoke<string | null>("pick_save_image_path", { suggestedName: suggested });
+    if (!dest) {
+      return;
+    }
+    await invoke("write_document_bytes", { path: dest, bytes });
+    const fileUrl = dest.startsWith("file://") ? dest : `file://${dest}`;
+    window.dispatchEvent(new CustomEvent("unibrowser-navigate", { detail: fileUrl }));
   };
 
   let dragging = false;
