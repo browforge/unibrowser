@@ -72,6 +72,19 @@ Implement [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) for real:
 
 - Signed mods; WASM tier; studio presets (Affinity-style shared layouts).
 - Crash reporting; sandbox audit; REUSE/SPDX CI.
+- **VSIX compat** (phased, [ADR 0014](adr/0014-vsix-compatibility-layer.md)): optional Open VSX (power UI, opt-in).
+
+## VSIX compatibility (parallel track)
+
+Native `info.json` mods stay canonical ([mod-system.md](mod-system.md)). `.vsix` is import/compat only.
+
+| Phase | Deliverable |
+| --- | --- |
+| V0 | ADR + contribution mapping |
+| V1 | Unpack `.vsix`; `contributes.commands` / keybindings |
+| V2 | Languages, grammars, snippets, themes → Monaco |
+| V3 | Sandboxed JS + stub `vscode` module |
+| V4 | Optional Open VSX browse/install |
 
 ## MVP format mod order (unchanged, aligned to manager tabs)
 
