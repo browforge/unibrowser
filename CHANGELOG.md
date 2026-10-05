@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Timeline redo:** `document_redo` restores forward snapshots for `.unibrow` timeline edits; undo/redo commands grey in the palette and Command Manager when the stack is empty.
+- **PDF thumbs:** Thumbnail strip buttons jump to the page; active page is highlighted and scrolled into view in the strip.
+- **Plain text print:** Non-Markdown text tabs get a **Print preview** toolbar (same styled HTML path as Markdown/DOCX).
+- **Blitz status:** [blitz-status.md](docs/blitz-status.md) header lists the last blitz commit hash and date from git.
 - **Timeline undo:** Clip move/trim, duck, and fade record `project.json` snapshots; **Undo** (`document_undo`) restores the previous manifest for the active `.unibrow` tab.
 - **PDF:** Multi-page documents show a horizontal **lazy** thumbnail strip above the canvas (intersection observer after the first eight pages).
 - **Mod toggles:** VSIX enable/disable returns `restart_recommended: false` with an honest toast; native mod **disable** may recommend restart if cdylib commands linger.

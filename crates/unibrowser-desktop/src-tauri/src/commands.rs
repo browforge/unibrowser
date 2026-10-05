@@ -2648,6 +2648,28 @@ fn patch_tab_shell_enablement(
     (enabled, reason)
 }
 
+fn patch_undo_redo_enablement(
+    command_id: &str,
+    enabled: bool,
+    reason: Option<String>,
+    can_undo: bool,
+    can_redo: bool,
+) -> (bool, Option<String>) {
+    if command_id == DOCUMENT_UNDO_ID {
+        if !can_undo {
+            return (false, Some("Nothing to undo".into()));
+        }
+        return (true, None);
+    }
+    if command_id == DOCUMENT_REDO_ID {
+        if !can_redo {
+            return (false, Some("Nothing to redo".into()));
+        }
+        return (true, None);
+    }
+    (enabled, reason)
+}
+
 fn patch_web_find_enablement(
     command_id: &str,
     enabled: bool,
@@ -2674,6 +2696,8 @@ fn map_ui_commands(
     active_index: usize,
     closed_count: usize,
     mute_available: bool,
+    can_undo: bool,
+    can_redo: bool,
 ) -> Vec<UiCommandDto> {
     cmds.into_iter()
         .map(|c| {
@@ -2693,6 +2717,13 @@ fn map_ui_commands(
                 active_index,
                 closed_count,
                 mute_available,
+            );
+            let (enabled, reason) = patch_undo_redo_enablement(
+                &c.command_id,
+                enabled,
+                reason,
+                can_undo,
+                can_redo,
             );
             UiCommandDto {
                 command_id: c.command_id,
@@ -2725,6 +2756,19 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .map_err(|e| e.to_string())?
         .len();
     let mute_available = active.map(tab_mute_available).unwrap_or(false);
+    let doc_path = active
+        .and_then(|t| t.document.as_ref())
+        .map(|d| d.path.clone());
+    let (can_undo, can_redo) = {
+        let stacks = _sess_tabs_guard
+            .undo_stacks
+            .lock()
+            .map_err(|e| e.to_string())?;
+        match doc_path.as_deref() {
+            Some(path) => (stacks.can_undo(path), stacks.can_redo(path)),
+            None => (false, false),
+        }
+    };
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
@@ -2740,6 +2784,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 active_index,
                 closed_count,
                 mute_available,
+                can_undo,
+                can_redo,
             );
             ManagerTabDto {
                 id: tab.id.clone(),
@@ -2762,6 +2808,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 active_index,
                 closed_count,
                 mute_available,
+                can_undo,
+                can_redo,
             );
             FloatingBarDto {
                 id: bar.id.clone(),
@@ -3534,6 +3582,13 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
         .map_err(|e| e.to_string())?
         .len();
     let mute_available = tab_mute_available(tab);
+    let (can_undo, can_redo) = {
+        let stacks = _sess_tabs.undo_stacks.lock().map_err(|e| e.to_string())?;
+        match tab.document.as_ref().map(|d| d.path.as_str()) {
+            Some(path) => (stacks.can_undo(path), stacks.can_redo(path)),
+            None => (false, false),
+        }
+    };
     let history = crate::command_history::list();
     let mut scored = search_commands(&registry, &ctx, &query);
     for entry in &mut scored {
@@ -3575,6 +3630,13 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                 tabs.active_index(),
                 closed_count,
                 mute_available,
+            );
+            let (enabled, reason) = patch_undo_redo_enablement(
+                &e.command_id,
+                enabled,
+                reason,
+                can_undo,
+                can_redo,
             );
             let chord = keybindings
                 .chord_for_command(&e.command_id)
@@ -6549,6 +6611,10 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             backend.content.clone()
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.content.clone()
+        } else if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
+            let project = std::path::PathBuf::from(&path);
+            let root = unibrow_package_root(&project)?;
+            crate::project_undo::read_manifest_json(&root)?
         } else {
             return Err("redo not available for this document".into());
         };
@@ -6561,6 +6627,11 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             backend.set_content(next);
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.set_content(next);
+        } else if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
+            let project = std::path::PathBuf::from(&path);
+            let root = unibrow_package_root(&project)?;
+            crate::project_undo::write_manifest_json(&root, &next)?;
+            reload_unibrow_project_tab(state.inner(), window.label(), &project, path.clone())?;
         }
     }
     snapshot(&state, window.label())

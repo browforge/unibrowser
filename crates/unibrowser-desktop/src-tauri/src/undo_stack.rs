@@ -62,6 +62,20 @@ impl UndoStacks {
         self.order.retain(|p| p != path);
     }
 
+    pub fn can_undo(&self, path: &str) -> bool {
+        self.by_path
+            .get(path)
+            .map(|s| !s.undo.is_empty())
+            .unwrap_or(false)
+    }
+
+    pub fn can_redo(&self, path: &str) -> bool {
+        self.by_path
+            .get(path)
+            .map(|s| !s.redo.is_empty())
+            .unwrap_or(false)
+    }
+
     pub fn tracked_path_count(&self) -> usize {
         self.by_path.len()
     }
@@ -85,8 +99,11 @@ mod tests {
         let mut stacks = UndoStacks::default();
         stacks.record_change("/a", "one".into(), "two");
         stacks.record_change("/a", "two".into(), "three");
+        assert!(stacks.can_undo("/a"));
+        assert!(!stacks.can_redo("/a"));
         let u = stacks.undo("/a", "three").expect("undo");
         assert_eq!(u, "two");
+        assert!(stacks.can_redo("/a"));
         let r = stacks.redo("/a", "two").expect("redo");
         assert_eq!(r, "three");
     }

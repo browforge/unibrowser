@@ -80,6 +80,10 @@ export function openPrintPreviewDocument(
   return w;
 }
 
+export function plainTextPrintBody(content: string): string {
+  return `<pre>${escapeHtml(content)}</pre>`;
+}
+
 export function openPrintFriendlyDocument(title: string, bodyInnerHtml: string): void {
   const w = openPrintPreviewDocument(title, bodyInnerHtml);
   if (!w) {

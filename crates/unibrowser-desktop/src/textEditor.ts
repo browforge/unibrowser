@@ -1,7 +1,7 @@
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import { bindPreviewLinks } from "./previewLinks";
-import { openPrintPreviewDocument } from "./printExport";
+import { openPrintPreviewDocument, plainTextPrintBody } from "./printExport";
 import { t } from "./i18n";
 import {
   attachSpellcheckPane,
@@ -23,6 +23,8 @@ let suppressSync = false;
 let markdownPreview = false;
 let previewEl: HTMLElement | null = null;
 let toolbarEl: HTMLElement | null = null;
+let plainToolbarEl: HTMLDivElement | null = null;
+let plainToolbarPath: string | null = null;
 let findBound = false;
 
 async function getMonaco(): Promise<Monaco> {
@@ -126,18 +128,56 @@ function scheduleSync() {
   }, 250);
 }
 
+function ensurePlainTextPrintToolbar(host: HTMLElement, path: string) {
+  if (isMarkdownPath(path)) {
+    return;
+  }
+  if (toolbarEl) {
+    toolbarEl.remove();
+    toolbarEl = null;
+  }
+  markdownPreview = false;
+  if (previewEl) {
+    previewEl.remove();
+    previewEl = null;
+  }
+  if (plainToolbarEl && plainToolbarPath === path) {
+    return;
+  }
+  if (plainToolbarEl) {
+    plainToolbarEl.remove();
+    plainToolbarEl = null;
+  }
+  plainToolbarPath = path;
+  plainToolbarEl = document.createElement("div");
+  plainToolbarEl.className = "md-editor-toolbar text-print-toolbar";
+  const printBtn = document.createElement("button");
+  printBtn.type = "button";
+  printBtn.textContent = t("print.preview");
+  printBtn.onclick = () => {
+    if (!editor) {
+      return;
+    }
+    openPrintPreviewDocument(path, plainTextPrintBody(editor.getValue()));
+  };
+  plainToolbarEl.appendChild(printBtn);
+  host.parentElement?.insertBefore(plainToolbarEl, host);
+}
+
 function ensureMarkdownToolbar(host: HTMLElement, path: string) {
   if (!isMarkdownPath(path)) {
-    if (toolbarEl) {
-      toolbarEl.remove();
-      toolbarEl = null;
+    if (plainToolbarEl) {
+      plainToolbarEl.remove();
+      plainToolbarEl = null;
+      plainToolbarPath = null;
     }
-    markdownPreview = false;
-    if (previewEl) {
-      previewEl.remove();
-      previewEl = null;
-    }
+    ensurePlainTextPrintToolbar(host, path);
     return;
+  }
+  if (plainToolbarEl) {
+    plainToolbarEl.remove();
+    plainToolbarEl = null;
+    plainToolbarPath = null;
   }
   if (toolbarEl) {
     return;

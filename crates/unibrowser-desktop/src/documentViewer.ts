@@ -693,6 +693,25 @@ async function renderPdf(
   nav.appendChild(printBtn);
   root.appendChild(nav);
 
+  const thumbs = document.createElement("div");
+  thumbs.className = "pdf-thumbs pdf-thumbs--strip";
+  thumbs.setAttribute("role", "navigation");
+  thumbs.setAttribute("aria-label", "PDF page thumbnails");
+  const THUMB_EAGER = 8;
+  const THUMB_SCALE = 0.22;
+
+  const updateThumbActive = () => {
+    thumbs.querySelectorAll<HTMLButtonElement>(".pdf-thumb-btn").forEach((btn) => {
+      const page = Number.parseInt(btn.dataset.page ?? "", 10);
+      const active = page === currentPage;
+      btn.classList.toggle("pdf-thumb-btn--active", active);
+      btn.setAttribute("aria-current", active ? "page" : "false");
+      if (active) {
+        btn.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    });
+  };
+
   const drawPage = async (pageNum: number) => {
     wrap.innerHTML = "";
     const page = await doc.getPage(pageNum);
@@ -804,20 +823,6 @@ async function renderPdf(
     updateThumbActive();
   };
 
-  const thumbs = document.createElement("div");
-  thumbs.className = "pdf-thumbs pdf-thumbs--strip";
-  thumbs.setAttribute("role", "navigation");
-  thumbs.setAttribute("aria-label", "PDF page thumbnails");
-  const THUMB_EAGER = 8;
-  const THUMB_SCALE = 0.22;
-
-  const updateThumbActive = () => {
-    thumbs.querySelectorAll<HTMLButtonElement>(".pdf-thumb-btn").forEach((btn) => {
-      const page = Number.parseInt(btn.dataset.page ?? "", 10);
-      btn.classList.toggle("pdf-thumb-btn--active", page === currentPage);
-    });
-  };
-
   const renderThumbCanvas = async (pageNum: number, host: HTMLButtonElement) => {
     if (host.dataset.rendered === "1") {
       return;
@@ -890,26 +895,20 @@ async function renderPdf(
     if (!Number.isFinite(n) || n < 1 || n > doc.numPages) {
       return;
     }
-    currentPage = Math.floor(n);
-    await invoke("sync_pdf_page", { page: currentPage });
-    await drawPage(currentPage);
+    await goToPage(Math.floor(n));
   };
 
   prev.onclick = async () => {
     if (currentPage <= 1) {
       return;
     }
-    currentPage -= 1;
-    await invoke("sync_pdf_page", { page: currentPage });
-    await drawPage(currentPage);
+    await goToPage(currentPage - 1);
   };
   next.onclick = async () => {
     if (currentPage >= doc.numPages) {
       return;
     }
-    currentPage += 1;
-    await invoke("sync_pdf_page", { page: currentPage });
-    await drawPage(currentPage);
+    await goToPage(currentPage + 1);
   };
 
   const bumpZoom = (delta: number) => {

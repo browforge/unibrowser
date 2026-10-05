@@ -35,6 +35,7 @@ mod crash_log;
 mod process_status;
 mod project_recovery;
 mod project_undo;
+mod project_undo_handlers;
 mod document_limits;
 mod content_sniff;
 mod files_listing;

@@ -19,7 +19,7 @@ Commands:
 | EPUB chapter HTML | Grey | — | Spine preview only |
 | HTTP tab | Grey | — | Browser history is separate |
 | Files browser | Grey | — | No document session |
-| `.unibrow` project | Yes (timeline) | `project.json` snapshot on clip move/trim, duck, fade | `document_undo` / palette **Undo** restores last manifest; one level per edit (shared stack depth with text) |
+| `.unibrow` project | Yes (timeline) | `project.json` snapshot on clip move/trim, duck, fade | **Undo** / **Redo** mirror the per-path stack (`document_undo` / `document_redo`); grey when empty |
 
 Palette and Command Manager show the **disabled reason** from the mod registry when a handler is missing.
 
@@ -31,7 +31,7 @@ Uses the same HTML body as **Print** / **Export print HTML** in the Markdown and
 | --- | --- | --- |
 | Markdown (`.md`, `base-text`) | Yes | Preview pane HTML when split preview is on; otherwise `<pre>` of source |
 | DOCX (`base-docx`) | Yes | Mammoth article HTML (live DOM when exported) |
-| Plain text / code | Grey | Enable Markdown preview path or open DOCX |
+| Plain text / code (`base-text`, non-Markdown) | Yes (print) | Monaco source in `<pre>` via **Print preview** toolbar | Export PDF matrix still Markdown/DOCX-first |
 | EPUB | Grey | Use per-chapter **Print** until export is wired |
 | PDF | Grey | Open PDF in a viewer that supports export |
 

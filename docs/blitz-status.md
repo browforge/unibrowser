@@ -1,6 +1,6 @@
 # 36h blitz status (living Wed report)
 
-**Branch:** `main` · **Version:** 0.1.0 blitz · **Last updated:** during active blitz (edit this file each Wed).
+**Branch:** `main` · **Version:** 0.1.0 blitz · **Last updated:** during active blitz (edit this file each Wed) · **Last blitz commit:** `c6b8ff4` (2026-10-05T22:23:20+00:00)
 
 Use this page for weekly status posts. Capability tables in [README.md](../README.md) stay detailed; this doc is the narrative plus gaps and runbook.
 
@@ -14,7 +14,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
-| Undo / PDF | Document undo/redo on text + SVG; export PDF from Markdown/DOCX print HTML (headless Chromium / wkhtmltopdf on Linux); matrix in [commands-undo-redo.md](commands-undo-redo.md) |
+| Undo / PDF | Document undo/redo on text, SVG, and `.unibrow` timeline (grey when stack empty); PDF thumb strip syncs active page; plain-text print preview; export PDF from Markdown/DOCX print HTML; matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
 | Chrome | Tab drag reorder, duplicate tab (Ctrl+Shift+K), **reopen closed tab** (Ctrl+Shift+T, last 10 paths/URLs), close others / close to the right, **mute tab** stub (https + media), middle-click close, pin (Ctrl+click); omnibox Places/recent/URL suggestions; [chrome.md](chrome.md) |
 | Audio proving | `wav`/`mp3`/`flac`/`ogg` viewer: HTML audio + waveform (Web Audio or ffmpeg PCM); grey DAW commands on `base-audio` |
