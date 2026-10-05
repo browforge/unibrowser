@@ -11,7 +11,7 @@ Apache-2.0. See [LICENSE](LICENSE) and [docs/adr/0007-licensing.md](docs/adr/000
 ## Requirements
 
 - Rust 1.75+ (stable)
-- **Linux:** GTK3 / X11 or Wayland dev packages for `eframe` (see CI workflow)
+- **Linux:** GTK3 / X11 or Wayland dev packages for `eframe` (see CI workflow). At runtime you may also need `libxkbcommon-x11-0` on X11 (Ubuntu: `sudo apt install libxkbcommon-x11-0`).
 - **Windows:** MSVC toolchain for native builds; cross-check uses `cargo-xwin`
 
 ## Build and run (Linux)
