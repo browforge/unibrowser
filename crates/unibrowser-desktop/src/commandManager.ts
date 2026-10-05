@@ -28,12 +28,14 @@ export interface FloatingBarDto {
 export interface CommandManagerDto {
   auto_context: string;
   selected_tab: string;
+  context_pinned: boolean;
   tabs: ManagerTabDto[];
   floating_bars: FloatingBarDto[];
 }
 
 export interface CommandManagerFile {
   selected_tab: string;
+  context_pin?: string | null;
   tabs: {
     id: string;
     label: string;
@@ -114,9 +116,15 @@ async function reorderActiveTabCommands(fromId: string, toId: string) {
   await invoke("save_command_manager_layout", { layout: file });
 }
 
+function contextLabel(id: string, tabs: ManagerTabDto[]): string {
+  const tab = tabs.find((t) => t.id === id);
+  return tab?.label ?? id;
+}
+
 function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: string[]): CommandManagerFile {
   return {
     selected_tab: snapshot.selected_tab,
+    context_pin: snapshot.context_pinned ? snapshot.selected_tab : null,
     tabs: snapshot.tabs.map((tab) => ({
       id: tab.id,
       label: tab.label,
@@ -137,15 +145,31 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
   };
 }
 
+function updatePinControl(pinEl: HTMLElement, snapshot: CommandManagerDto) {
+  pinEl.classList.toggle("pinned", snapshot.context_pinned);
+  pinEl.classList.toggle("auto-follow", !snapshot.context_pinned);
+  if (snapshot.context_pinned) {
+    pinEl.textContent = "Follow context";
+    pinEl.title =
+      `Pinned to ${contextLabel(snapshot.selected_tab, snapshot.tabs)}. Click to auto-follow document context (${contextLabel(snapshot.auto_context, snapshot.tabs)}).`;
+  } else {
+    pinEl.textContent = "Pin tab";
+    pinEl.title =
+      `Auto-following ${contextLabel(snapshot.auto_context, snapshot.tabs)}. Click to keep the current tab while you switch documents.`;
+  }
+}
+
 export const commandManager = {
   async refresh(
     tabsEl: HTMLElement,
     commandsEl: HTMLElement,
     floatingEl: HTMLElement,
+    pinEl: HTMLElement,
     onRun: RunCommand,
   ) {
     const snapshot = await invoke<CommandManagerDto>("get_command_manager");
     lastSnapshot = snapshot;
+    updatePinControl(pinEl, snapshot);
     tabsEl.innerHTML = "";
     snapshot.tabs.forEach((tab) => {
       const btn = document.createElement("button");
@@ -154,16 +178,20 @@ export const commandManager = {
         "cm-tab" +
         (tab.selected ? " active" : "") +
         (tab.phase === "planned" ? " planned" : "");
-      btn.textContent = tab.label;
+      const autoMatch =
+        !snapshot.context_pinned && tab.id === snapshot.auto_context;
+      btn.textContent = autoMatch ? `${tab.label} *` : tab.label;
       btn.title =
         tab.phase === "planned"
           ? `${tab.label} (coming soon)`
-          : tab.id === snapshot.auto_context
-            ? `${tab.label} (auto)`
-            : tab.label;
+          : autoMatch
+            ? `${tab.label} (matches document context)`
+            : tab.selected && snapshot.context_pinned
+              ? `${tab.label} (pinned)`
+              : tab.label;
       btn.onclick = async () => {
         await invoke("select_command_manager_tab", { tabId: tab.id });
-        await commandManager.refresh(tabsEl, commandsEl, floatingEl, onRun);
+        await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
       };
       tabsEl.appendChild(btn);
     });
@@ -216,6 +244,26 @@ export const commandManager = {
         });
       }
       floatingEl.appendChild(wrap);
+    });
+  },
+
+  bindPinControl(
+    pinEl: HTMLElement,
+    tabsEl: HTMLElement,
+    commandsEl: HTMLElement,
+    floatingEl: HTMLElement,
+    onRun: RunCommand,
+  ) {
+    pinEl.addEventListener("click", async () => {
+      if (!lastSnapshot) {
+        return;
+      }
+      if (lastSnapshot.context_pinned) {
+        await invoke("clear_command_manager_context_pin");
+      } else {
+        await invoke("pin_command_manager_context");
+      }
+      await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
     });
   },
 };

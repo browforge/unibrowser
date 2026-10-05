@@ -19,7 +19,17 @@
         </button>
       </div>
       <section id="command-manager" class="command-manager" aria-label="Command manager">
-        <div id="command-manager-tabs" class="command-manager-tabs"></div>
+        <div class="command-manager-header">
+          <div id="command-manager-tabs" class="command-manager-tabs"></div>
+          <button
+            type="button"
+            id="command-manager-pin"
+            class="cm-pin"
+            title="Pin the current tab (stop following document context)"
+          >
+            Pin tab
+          </button>
+        </div>
         <div id="command-manager-commands" class="command-manager-commands"></div>
       </section>
       <div id="floating-toolbar-host" class="floating-toolbar-host"></div>

@@ -43,8 +43,9 @@ Unibrowser must **excel at context switching**: stable chrome, auto-relevant too
 
 ### Auto context + pin (Blender workspaces + SOLIDWORKS)
 
-- **Auto**: `CommandContext` from active document ([`infer_context`](../architecture.md)).
-- **Pin**: user can freeze manager tab while switching documents — `context_pin` in `toolbars.json` (engine hook; UI toggle next).
+- **Auto (default)**: `CommandContext` from active document ([`infer_context`](../architecture.md)); Command Manager tab follows until pinned.
+- **Pin tab (decided)**: separate **Pin tab** / **Follow context** control in the shell — not implicit on manual tab click. Pin sets `context_pin` in `toolbars.json` and freezes the selected tab; **Follow context** clears pin and resumes auto-follow.
+- **Manual tab click**: temporary preview of another tab’s commands only; does **not** set pin or persist sticky behaviour.
 - **Poll analogue**: handler `enable` predicates = Blender `poll()` — command visible, often greyed.
 
 ### Operator search (Blender, SOLIDWORKS search)
@@ -66,6 +67,5 @@ Unibrowser must **excel at context switching**: stable chrome, auto-relevant too
 
 ## Open questions
 
-- Pin indicator in tab strip (“Auto” vs “Pinned to Code”)?
 - Resolve-style **page** switcher for future Video vs Browse vs Edit — one strip or nested?
 - GIMP-style **single-column** tool palette vs horizontal Command Manager on small screens?

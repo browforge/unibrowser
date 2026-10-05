@@ -28,7 +28,7 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 | Download → new tab | **Working / stub** ([downloads.md](downloads.md)) |
 | Palette, keybindings, Command Manager + `toolbars.json` | **Working** |
 | Monaco text edit + save (text context) | **Working** |
-| Context pin hook (`context_pin` in layout; Tauri pin/clear API) | **Engine + API** (UI toggle next) |
+| Context pin (`context_pin`, Pin tab / Follow context in shell) | **Working** |
 | Office / audio manager tabs (`planned`) | **Stub** |
 | Vision + ADR 0011/0012 (conversion + UX benchmarks) | **Done** |
 

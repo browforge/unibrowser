@@ -42,6 +42,7 @@ const filesPanel = document.getElementById("files-panel")!;
 const docPanel = document.getElementById("doc-panel")!;
 const commandManagerTabs = document.getElementById("command-manager-tabs")!;
 const commandManagerCommands = document.getElementById("command-manager-commands")!;
+const commandManagerPin = document.getElementById("command-manager-pin")!;
 const floatingToolbarHost = document.getElementById("floating-toolbar-host")!;
 const statusLine = document.getElementById("status-line")!;
 const modsLine = document.getElementById("mods-line")!;
@@ -132,6 +133,7 @@ async function refreshCommandManager() {
       commandManagerTabs,
       commandManagerCommands,
       floatingToolbarHost,
+      commandManagerPin,
       runUiCommand,
     );
   } catch {
@@ -289,6 +291,14 @@ window.addEventListener("resize", () => syncContentBounds());
 listen<string>("unibrowser-download", (event) => {
   invoke<TabContentDto>("handle_download_url", { url: event.payload }).then(applyState);
 });
+
+commandManager.bindPinControl(
+  commandManagerPin,
+  commandManagerTabs,
+  commandManagerCommands,
+  floatingToolbarHost,
+  runUiCommand,
+);
 
 loadKeybindingHints();
 refreshState();

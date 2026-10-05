@@ -41,9 +41,11 @@ Order: **Text → Office → Code → Image → Audio** (plus Browse/Web from sh
 | Image | active | Font on text layers; raster tools later |
 | Audio | planned | MIDI/audio native-until-encode ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)) |
 
-**Auto context:** engine sets `auto_context` from the active document (`infer_context`).
+**Auto context (default):** engine sets `auto_context` from the active document (`infer_context`) and switches the selected Command Manager tab to match.
 
-**Pin:** optional `context_pin` in `toolbars.json` — when set, auto context updates but the selected tab does not change until pin is cleared. Tauri: `pin_command_manager_context`, `clear_command_manager_context_pin` (UI toggle not shipped yet).
+**Pin tab (explicit control):** use **Pin tab** in the shell to lock the current manager tab. While pinned, `auto_context` still updates in the background but the visible tab does not change. **Follow context** clears the pin and jumps to the tab that matches the current document. **Clicking another tab without pinning does not stick** — the next context change will auto-follow again unless you pin.
+
+Persisted as `context_pin` in `toolbars.json`. Tauri: `pin_command_manager_context`, `clear_command_manager_context_pin`.
 
 ## Config file: `toolbars.json`
 
