@@ -1,9 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 import { documentViewer } from "./documentViewer";
-import { getPrintHtmlForPdf, textEditor } from "./textEditor";
-import { openPrintPreviewDocument } from "./printExport";
+import { getPrintHtmlForPdf, getPrintSelectionHtml, textEditor } from "./textEditor";
+import { openPrintFriendlyDocument, openPrintPreviewDocument } from "./printExport";
 import { showErrorToast, showToast } from "./toast";
 import { t } from "./i18n";
+
+export async function runPrintSelection(viewerHost: HTMLElement) {
+  await textEditor.flush();
+  const payload =
+    getPrintSelectionHtml() ?? documentViewer.getPrintSelectionHtml(viewerHost);
+  if (!payload) {
+    showToast(t("print.selection.none"), "error");
+    return;
+  }
+  openPrintFriendlyDocument(payload.title, payload.html);
+}
 
 export async function runExportPrintPdf(viewerHost: HTMLElement) {
   await textEditor.flush();

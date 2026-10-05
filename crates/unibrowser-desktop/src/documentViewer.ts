@@ -3550,4 +3550,24 @@ export const documentViewer = {
     const title = titleEl?.textContent?.trim() || "document";
     return { title, html: article.innerHTML };
   },
+  getPrintSelectionHtml(el: HTMLElement): { title: string; html: string } | null {
+    const article = el.querySelector(".docx-view");
+    if (!article) {
+      return null;
+    }
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      return null;
+    }
+    const anchor = sel.anchorNode;
+    if (!anchor || !article.contains(anchor)) {
+      return null;
+    }
+    const range = sel.getRangeAt(0);
+    const holder = document.createElement("div");
+    holder.appendChild(range.cloneContents());
+    const titleEl = el.querySelector(".viewer-title");
+    const title = titleEl?.textContent?.trim() || "document";
+    return { title: `${title} (selection)`, html: holder.innerHTML };
+  },
 };

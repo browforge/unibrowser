@@ -186,6 +186,17 @@ body {
   cursor: pointer;
 }
 
+.tab.tab-sleeping {
+  opacity: 0.72;
+  font-style: italic;
+}
+
+.tab.tab-sleeping::after {
+  content: " z";
+  font-size: 0.75em;
+  opacity: 0.85;
+}
+
 .tab.active {
   background: #3d5a80;
   color: #fff;

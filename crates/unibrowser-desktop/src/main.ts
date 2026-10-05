@@ -32,7 +32,13 @@ import {
   updateStatusBar,
 } from "./statusBar";
 import { getEncodeProgress, setEncodeProgress } from "./encodeProgress";
-import { runExportPrintPdf } from "./exportPdf";
+import { runExportPrintPdf, runPrintSelection } from "./exportPdf";
+import {
+  isTabSleeping,
+  pruneTabActivity,
+  TAB_SLEEP_IDLE_MS,
+  touchTabActivity,
+} from "./tabSleep";
 import { copyText, readClipboardText } from "./clipboard";
 import { t } from "./i18n";
 import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
@@ -353,7 +359,37 @@ async function syncContentBounds() {
 
 const tabButtons: HTMLButtonElement[] = [];
 
+let lastTabSnapshot: TabContentDto | null = null;
+
+function applyTabSleepMarks() {
+  if (!lastTabSnapshot) {
+    return;
+  }
+  const data = lastTabSnapshot;
+  data.tabs.forEach((tab, index) => {
+    const btn = tabButtons[index];
+    if (!btn) {
+      return;
+    }
+    const sleeping =
+      tab.is_http &&
+      index !== data.active_index &&
+      isTabSleeping(tab.id, tab.is_http, index === data.active_index);
+    btn.classList.toggle("tab-sleeping", sleeping);
+    const fullTitle = btn.dataset.fullTitle ?? tab.location_kind;
+    btn.title = sleeping
+      ? `${fullTitle} — ${t("tabs.sleepingHint", { minutes: Math.round(TAB_SLEEP_IDLE_MS / 60000) })}`
+      : fullTitle;
+  });
+}
+
 function renderTabs(data: TabContentDto) {
+  lastTabSnapshot = data;
+  pruneTabActivity(data.tabs.map((t) => t.id));
+  const active = data.tabs[data.active_index];
+  if (active) {
+    touchTabActivity(active.id);
+  }
   tabStrip.innerHTML = "";
   tabButtons.length = 0;
   data.tabs.forEach((tab, index) => {
@@ -371,9 +407,11 @@ function renderTabs(data: TabContentDto) {
     const pinMark = tab.pinned ? " ★" : "";
     btn.textContent = tab.label + pinMark + dirtyMark + (isSplit ? " |" : "");
     btn.draggable = true;
-    btn.title = isSplit
+    const fullTitle = isSplit
       ? `${tab.location_kind} (split pane; Shift+click to move split here; Ctrl+click pin)`
       : `${tab.location_kind} (Shift+click split; Ctrl+click pin; drag to reorder)`;
+    btn.dataset.fullTitle = fullTitle;
+    btn.title = fullTitle;
     setTabA11y(btn, index === data.active_index, `browser-tab-${index}`);
     btn.addEventListener("dragstart", (e) => {
       e.dataTransfer?.setData("text/tab-index", String(index));
@@ -409,6 +447,7 @@ function renderTabs(data: TabContentDto) {
         ).then((d) => d && applyState(d));
         return;
       }
+      touchTabActivity(tab.id);
       void selectTab(index);
     };
     const close = document.createElement("button");
@@ -484,7 +523,10 @@ function renderTabs(data: TabContentDto) {
   plus.onclick = () => invoke<TabContentDto>("new_tab").then(applyState);
   tabStrip.appendChild(plus);
   omnibox.value = data.omnibox;
+  applyTabSleepMarks();
 }
+
+window.setInterval(() => applyTabSleepMarks(), 30_000);
 
 async function persistFilesView(view: FilesViewDto) {
   await invoke("set_files_view_prefs", {
@@ -998,6 +1040,10 @@ async function handleShellCommandMessage(msg: string): Promise<boolean> {
   }
   if (msg === "export-print-pdf") {
     await runExportPrintPdf(documentViewerHost);
+    return false;
+  }
+  if (msg === "export-print-selection") {
+    await runPrintSelection(documentViewerHost);
     return false;
   }
   if (msg === "devtools-open" || msg === "devtools-close") {

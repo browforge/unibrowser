@@ -5,6 +5,7 @@ use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionSnapshot,
     handlers::{
         EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID,
+        PRINT_SELECTION_ID,
     },
 };
 
@@ -139,6 +140,12 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: font_enable,
         execute: |_doc| Ok("export-print-pdf".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PRINT_SELECTION_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: |_doc| Ok("export-print-selection".into()),
     });
 }
 

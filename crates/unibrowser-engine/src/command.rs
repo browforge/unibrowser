@@ -90,6 +90,13 @@ impl CommandRegistry {
             aliases: &["print pdf", "save as pdf"],
         });
         reg.register_command(CommandMeta {
+            id: commands::PRINT_SELECTION,
+            title: "Print selection",
+            icon: "export",
+            default_keybinding: None,
+            aliases: &["print selected text", "print highlight"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::TOGGLE_WEB_DEVTOOLS,
             title: "Toggle developer tools",
             icon: "tools",
@@ -298,6 +305,14 @@ impl CommandRegistry {
             }
             return Enablement::Disabled {
                 reason: "PDF export needs printable HTML (Markdown or DOCX preview)".into(),
+            };
+        }
+        if command_id == commands::PRINT_SELECTION {
+            if self.resolve_handler(command_id, &ctx.backend_id).is_some() {
+                return Enablement::Enabled;
+            }
+            return Enablement::Disabled {
+                reason: "Print selection needs Monaco or DOCX preview".into(),
             };
         }
         // Handlers need full session for precise enable; palette uses snapshot approximation.

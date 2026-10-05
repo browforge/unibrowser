@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Tab sleep stub:** Background https tabs marked sleeping in the tab strip after 10 min idle (UI only); [tab-sleep.md](docs/tab-sleep.md).
+- **Print selection:** Command `unibrowser.export.printSelection` prints the Monaco or DOCX selection through shared print CSS.
+- **A11y checklist:** Done vs open table in [ux-a11y.md](docs/ux-a11y.md).
+- **ADR 0020:** Linux web download fetch → file tab — [adr/0020-linux-download-open-as-tab.md](docs/adr/0020-linux-download-open-as-tab.md).
 - **Linux web downloads (hardening):** `Content-Disposition` filename when the platform hint is generic; download errors surface in toast and download history.
 - **Settings reset:** Separate confirmable actions for onboarding, all recent files, and floating toolbars only.
 - **Command Manager overflow:** Max height with scrollable commands; horizontal tab scroll; sticky header keeps pin and layout controls visible.

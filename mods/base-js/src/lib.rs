@@ -7,7 +7,7 @@ use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot, commands,
     handlers::{
         DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID,
-        FONT_INCREASE_ID,
+        FONT_INCREASE_ID, PRINT_SELECTION_ID,
     },
 };
 
@@ -218,6 +218,28 @@ pub fn register(registry: &mut CommandRegistry) {
         enable: undo_redo_enable,
         execute: |_doc| Ok("document-redo".into()),
     });
+    registry.register_handler(HandlerRegistration {
+        command_id: PRINT_SELECTION_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: print_selection_enable,
+        execute: |_doc| Ok("export-print-selection".into()),
+    });
+}
+
+fn print_selection_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Wrong backend".into(),
+        };
+    }
+    let sel = doc.backend.selection();
+    if sel.has_text_selection && sel.text_length > 0 {
+        Enablement::Enabled
+    } else {
+        Enablement::Disabled {
+            reason: "Select text first".into(),
+        }
+    }
 }
 
 pub fn open_file(path: &Path) -> Result<Box<dyn unibrowser_engine::document::DocumentBackend>, String> {

@@ -355,6 +355,25 @@ function escapeForPre(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+export function getPrintSelectionHtml(): { title: string; html: string } | null {
+  if (!loadedPath || !editor) {
+    return null;
+  }
+  const model = editor.getModel();
+  const sel = editor.getSelection();
+  if (!model || !sel || sel.isEmpty()) {
+    return null;
+  }
+  const text = model.getValueInRange(sel);
+  if (!text.trim()) {
+    return null;
+  }
+  const html = isMarkdownPath(loadedPath)
+    ? (marked.parse(text, { async: false }) as string)
+    : `<pre>${escapeForPre(text)}</pre>`;
+  return { title: `${loadedPath} (selection)`, html };
+}
+
 export function getPrintHtmlForPdf(): { title: string; html: string } | null {
   if (!loadedPath || !editor || !isMarkdownPath(loadedPath)) {
     return null;

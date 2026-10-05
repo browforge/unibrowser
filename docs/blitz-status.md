@@ -121,7 +121,7 @@ Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10
 | Workspace Rust sources (`crates/` + `mods/`) | 125 `.rs` files · ~23.7k lines |
 | Desktop TypeScript (`crates/unibrowser-desktop/src`) | 59 `.ts` files · ~12.9k lines |
 | Bundled format mods (`mods/`) | 12 packages (`base-*` + `toy-markdown`) |
-| Architecture decision records | 19 in `docs/adr/` |
+| Architecture decision records | 20 in `docs/adr/` |
 | Workspace crates (root `Cargo.toml` members) | 25 members incl. desktop, engine, mod-host, media, project, VSIX, cdylib stub |
 
 ### Workspace crates (core)

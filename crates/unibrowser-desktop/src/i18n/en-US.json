@@ -485,6 +485,8 @@
   "settings.webProxyNote": "Saved for https tabs only. The embedded webview does not apply this setting yet — see docs/network-proxy.md.",
   "download.openedSystemBrowser": "Opened download URL in your system browser.",
   "download.failed": "Download failed",
+  "print.selection.none": "Select text in the editor or DOCX preview first",
+  "tabs.sleepingHint": "sleeping ({minutes} min idle, UI only)",
   "settings.resetHeading": "Reset local data",
   "settings.resetLead": "These actions only affect this device. Each step asks for confirmation.",
   "settings.resetOnboarding": "Reset onboarding",

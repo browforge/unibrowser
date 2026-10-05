@@ -2,6 +2,28 @@
 
 Target: keyboard-first use alongside mouse; WCAG-minded focus and labels. Full audit is out of scope for the blitz.
 
+## Blitz checklist (2026-10-05)
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Reduce motion pref (system / on / off) | Done | `data-reduce-motion` on `<html>`; live OS listener |
+| Larger hit targets pref | Done | `data-large-targets` on tabs, CM chips, nav |
+| Focus mode (compact chrome) | Done | Appearance setting; independent of hit targets |
+| Command Manager roving tablist | Done | Arrow keys, Home/End; `bindRovingTablist` |
+| Command Manager overflow scroll | Done | Sticky header; scrollable tabs + command row |
+| Command palette dialog semantics | Done | `role="dialog"`, `aria-modal`, Escape closes |
+| Chrome nav `aria-label` | Done | `applyChromeI18n()` |
+| `:focus-visible` rings | Done | Accent blue; high-contrast green variant |
+| Tab strip roving focus | Done | `bindRovingTablist` on `#tab-strip` |
+| Tab close control labels | Done | `aria-label` per tab |
+| Status bar segments | Partial | Path/zoom; not all segments exposed to AT |
+| Monaco accessibility | Open | Relies on Monaco; mirror spellcheck is experimental |
+| Embedded webview content | Open | Platform focus ring; no shell CSS inside page |
+| Floating CM bars keyboard move | Open | Drag only |
+| Screen reader live regions | Partial | Toasts `aria-live`; encode progress in status bar |
+| Colour contrast audit | Open | High-contrast mode helps chrome; viewers not audited |
+| i18n beyond chrome | Open | `en-NZ` / `en-US` catalogues only |
+
 ## Reduced motion
 
 | Source | Behaviour |
