@@ -1,6 +1,7 @@
 /target
 # Large local Unibrowser project exports (see CONTRIBUTING.md)
 **/*.unibrow/assets/**
+!examples/demo-pack/sample.unibrow/assets/**
 uploads/
 examples/hello-world.ubmod
 report-screenshots/
