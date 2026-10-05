@@ -15,6 +15,7 @@ pub struct DocxBackend {
     pub path: String,
     pub byte_len: u64,
     pub reader_font_pt: f32,
+    pub font_dirty: bool,
 }
 
 impl DocxBackend {
@@ -24,6 +25,7 @@ impl DocxBackend {
             path: path.to_string_lossy().into_owned(),
             byte_len: meta.len(),
             reader_font_pt: 12.0,
+            font_dirty: false,
         })
     }
 }
@@ -56,11 +58,16 @@ impl unibrowser_engine::document::DocumentBackend for DocxBackend {
     }
     fn increase_font_size(&mut self) -> Result<f32, String> {
         self.reader_font_pt = (self.reader_font_pt + 1.0).min(96.0);
+        self.font_dirty = true;
         Ok(self.reader_font_pt)
     }
     fn decrease_font_size(&mut self) -> Result<f32, String> {
         self.reader_font_pt = (self.reader_font_pt - 1.0).max(6.0);
+        self.font_dirty = true;
         Ok(self.reader_font_pt)
+    }
+    fn is_dirty(&self) -> bool {
+        self.font_dirty
     }
     fn set_demo_text_selection(&mut self, _selected: bool) {}
     fn status_line(&self) -> String {

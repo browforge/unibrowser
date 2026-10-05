@@ -289,6 +289,11 @@ pub struct TabContentDto {
     pub ntp_sections: NtpSectionsDto,
     pub files_view: FilesViewDto,
     pub folder_favorites: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_root: Option<String>,
+    pub git_is_repo: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub git_dirty_paths: Vec<String>,
     pub download_history: Vec<DownloadHistoryEntryDto>,
     pub bookmark_bar_enabled: bool,
     pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
@@ -1054,6 +1059,8 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .lock()
         .map_err(|e| e.to_string())?
         .take();
+    let (git_is_repo, git_dirty_paths) =
+        crate::git_status::status_for_folder(Path::new(&browse_folder_path));
     Ok(TabContentDto {
         tabs: tabs
             .tabs()
@@ -1097,6 +1104,9 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         ntp_sections: ntp_sections_dto(&prefs),
         files_view: files_view_dto(&prefs),
         folder_favorites: prefs.folder_favorites.clone(),
+        workspace_root: prefs.workspace_root.clone(),
+        git_is_repo,
+        git_dirty_paths: git_dirty_paths.into_iter().collect(),
         download_history: download_history_dto(),
         bookmark_bar_enabled: prefs.bookmark_bar_enabled,
         bookmark_quick_links: prefs
@@ -1691,6 +1701,48 @@ pub fn toggle_folder_favorite(path: String, state: State<AppState>) -> Result<Ve
     crate::preferences::toggle_folder_favorite(&mut prefs, &path_str);
     save_preferences(&prefs)?;
     Ok(prefs.folder_favorites.clone())
+}
+
+#[tauri::command]
+pub fn set_workspace_root(
+    window: tauri::Window,
+    path: String,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let resolved = resolve_open_path(&path, &state.cwd)?;
+    if !resolved.is_dir() {
+        return Err("workspace root must be a folder".into());
+    }
+    let mut prefs = load_preferences();
+    prefs.workspace_root = Some(resolved.to_string_lossy().into_owned());
+    save_preferences(&prefs)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn clear_workspace_root(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
+    let mut prefs = load_preferences();
+    prefs.workspace_root = None;
+    save_preferences(&prefs)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn list_workspace_tree(
+    max_entries: Option<usize>,
+    state: State<AppState>,
+) -> Result<Vec<crate::workspace_tree::WorkspaceTreeEntryDto>, String> {
+    let prefs = load_preferences();
+    let root = prefs
+        .workspace_root
+        .as_deref()
+        .ok_or("no workspace root set")?;
+    let resolved = resolve_open_path(root, &state.cwd)?;
+    crate::workspace_tree::list_workspace_tree(
+        &resolved,
+        max_entries.unwrap_or(crate::workspace_tree::DEFAULT_MAX_ENTRIES),
+        crate::workspace_tree::DEFAULT_MAX_DEPTH,
+    )
 }
 
 #[derive(Serialize)]
@@ -2957,6 +3009,7 @@ pub struct PreferencesDto {
     pub files_view: FilesViewDto,
     pub bookmark_bar_enabled: bool,
     pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
+    pub workspace_root: Option<String>,
 }
 
 #[tauri::command]
@@ -3865,6 +3918,7 @@ fn preferences_dto() -> PreferencesDto {
                 url: l.url.clone(),
             })
             .collect(),
+        workspace_root: p.workspace_root.clone(),
     }
 }
 
@@ -4121,6 +4175,17 @@ pub fn auto_save_active_document(window: tauri::Window, state: State<AppState>) 
         return Ok(String::new());
     }
     let backend_id = doc.backend.backend_id();
+    if backend_id == base_docx::BACKEND_ID {
+        if let Some(b) = base_docx::try_docx_backend(&mut *doc.backend) {
+            if !b.font_dirty {
+                return Ok(String::new());
+            }
+            crate::preferences::remember_docx_reader_font(&doc.path, b.reader_font_pt);
+            b.font_dirty = false;
+            return Ok("saved".into());
+        }
+        return Ok(String::new());
+    }
     if backend_id != base_text::BACKEND_ID && backend_id != base_svg::BACKEND_ID {
         return Ok(String::new());
     }

@@ -39,6 +39,8 @@ mod listing_control;
 mod trash;
 pub mod window_session;
 mod workspace_layouts;
+mod workspace_tree;
+mod git_status;
 mod rhai_host;
 mod session;
 mod state;
@@ -162,6 +164,9 @@ pub fn run() {
             commands::open_path_in_new_tab,
             commands::reveal_path_in_system,
             commands::toggle_folder_favorite,
+            commands::set_workspace_root,
+            commands::clear_workspace_root,
+            commands::list_workspace_tree,
             commands::peek_archive_entries,
             commands::open_archive_entry,
             commands::delete_paths,

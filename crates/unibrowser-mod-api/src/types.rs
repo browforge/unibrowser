@@ -115,4 +115,7 @@ pub mod commands {
     pub const CAPTURE_VISIBLE_TAB: &str = "unibrowser.capture.visibleTab";
     pub const COMPARE_IMAGES: &str = "unibrowser.image.compare";
     pub const COMPARE_TEXT: &str = "unibrowser.text.compare";
+    pub const GIT_COMMIT: &str = "unibrowser.git.commit";
+    pub const GIT_PUSH: &str = "unibrowser.git.push";
+    pub const GIT_SYNC: &str = "unibrowser.git.sync";
 }

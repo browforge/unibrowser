@@ -151,11 +151,21 @@ export interface PinnedPlaceEntry {
   location: string;
 }
 
+export interface WorkspaceTreeEntry {
+  path: string;
+  name: string;
+  depth: number;
+  is_dir: boolean;
+}
+
 export interface FilesPanelDeps {
   entries: DirEntry[];
   filesView: FilesViewDto;
   browsePath: string;
   folderFavorites: string[];
+  workspaceRoot?: string | null;
+  gitIsRepo?: boolean;
+  gitDirtyPaths?: Set<string>;
   recentFiles?: RecentFileEntry[];
   pinnedPlaces?: PinnedPlaceEntry[];
   sidePanel: HTMLElement;
@@ -209,6 +219,23 @@ function parentPath(path: string): string | null {
 function clearSidePanel(sidePanel: HTMLElement) {
   sidePanel.classList.add("hidden");
   sidePanel.innerHTML = "";
+}
+
+function pathLooksGitDirty(path: string, name: string, dirty?: Set<string>): boolean {
+  if (!dirty?.size) {
+    return false;
+  }
+  if (dirty.has(path)) {
+    return true;
+  }
+  const norm = path.replace(/\\/g, "/");
+  for (const d of dirty) {
+    const dn = d.replace(/\\/g, "/");
+    if (dn === norm || dn.endsWith(`/${name}`)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function filterEntries(entries: DirEntry[]): DirEntry[] {
@@ -903,7 +930,83 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     await deps.onRefresh?.();
   };
   nav.appendChild(favCurrent);
+  const workspaceBtn = document.createElement("button");
+  workspaceBtn.type = "button";
+  workspaceBtn.className = "files-workspace-btn";
+  workspaceBtn.textContent = t("files.setWorkspace");
+  workspaceBtn.title = t("files.setWorkspaceHint");
+  workspaceBtn.onclick = async () => {
+    await invoke("set_workspace_root", { path: deps.browsePath });
+    await deps.onRefresh?.();
+  };
+  nav.appendChild(workspaceBtn);
+  if (deps.workspaceRoot) {
+    const clearWs = document.createElement("button");
+    clearWs.type = "button";
+    clearWs.className = "files-workspace-clear";
+    clearWs.textContent = t("files.clearWorkspace");
+    clearWs.onclick = async () => {
+      await invoke("clear_workspace_root");
+      await deps.onRefresh?.();
+    };
+    nav.appendChild(clearWs);
+  }
   host.appendChild(nav);
+
+  if (deps.workspaceRoot) {
+    const wsSec = document.createElement("section");
+    wsSec.className = "files-workspace-tree";
+    wsSec.setAttribute("aria-label", t("files.workspaceHeading"));
+    const wsH = document.createElement("h3");
+    wsH.textContent = t("files.workspaceHeading");
+    wsSec.appendChild(wsH);
+    const wsNote = document.createElement("p");
+    wsNote.className = "viewer-note";
+    wsNote.textContent = t("files.workspaceCapped", { root: deps.workspaceRoot });
+    wsSec.appendChild(wsNote);
+    const treeList = document.createElement("ul");
+    treeList.className = "files-workspace-list";
+    treeList.innerHTML = `<li class="viewer-note">${t("files.peekLoading")}</li>`;
+    wsSec.appendChild(treeList);
+    host.appendChild(wsSec);
+    void (async () => {
+      try {
+        const tree = await invoke<WorkspaceTreeEntry[]>("list_workspace_tree", {
+          maxEntries: 1200,
+        });
+        treeList.innerHTML = "";
+        tree.forEach((node) => {
+          if (node.depth === 0) {
+            return;
+          }
+          const li = document.createElement("li");
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "files-workspace-node";
+          btn.style.paddingLeft = `${8 + node.depth * 14}px`;
+          const dirty =
+            deps.gitDirtyPaths?.has(node.path) ||
+            (deps.gitDirtyPaths?.has(node.path.replace(/\\/g, "/")) ?? false);
+          btn.textContent = `${node.is_dir ? "▸ " : "· "}${node.name}${dirty ? " ●" : ""}`;
+          btn.title = node.path;
+          btn.onclick = () => {
+            if (node.is_dir) {
+              void openPath(node.path, deps);
+            } else {
+              void openPathNewTab(node.path, deps);
+            }
+          };
+          li.appendChild(btn);
+          treeList.appendChild(li);
+        });
+        if (!treeList.childElementCount) {
+          treeList.innerHTML = `<li class="viewer-note">${t("files.workspaceEmpty")}</li>`;
+        }
+      } catch (err) {
+        treeList.innerHTML = `<li class="viewer-note">${String(err)}</li>`;
+      }
+    })();
+  }
 
   if (deps.folderFavorites.length) {
     const favRow = document.createElement("div");
@@ -1355,6 +1458,13 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
         void openPath(entry.path, deps);
       };
       nameCell.appendChild(link);
+      if (pathLooksGitDirty(entry.path, entry.name, deps.gitDirtyPaths)) {
+        const badge = document.createElement("span");
+        badge.className = "files-git-dirty";
+        badge.textContent = "●";
+        badge.title = t("files.gitDirty");
+        nameCell.appendChild(badge);
+      }
     }
     if (entry.is_dir) {
       const star = document.createElement("button");

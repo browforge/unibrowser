@@ -1229,6 +1229,62 @@ button.proving-disabled,
   margin-bottom: 0.5rem;
 }
 
+.files-workspace-btn,
+.files-workspace-clear {
+  font-size: 0.75rem;
+  background: #2a2a32;
+  border: 1px solid #444;
+  color: #ccc;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.files-workspace-tree {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #1a1a1f;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.files-workspace-tree h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+}
+
+.files-workspace-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.files-workspace-node {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 0.78rem;
+  background: transparent;
+  border: none;
+  color: #ccc;
+  padding: 0.12rem 0.25rem;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.files-workspace-node:hover {
+  background: #2a2a32;
+}
+
+.files-git-dirty {
+  margin-left: 0.35rem;
+  color: #e8a838;
+  font-size: 0.65rem;
+  vertical-align: middle;
+}
+
 .files-breadcrumbs {
   display: flex;
   flex-wrap: wrap;

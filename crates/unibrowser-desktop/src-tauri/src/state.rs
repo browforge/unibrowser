@@ -421,7 +421,16 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
     {
         "png" | "jpg" | "jpeg" | "gif" | "webp" => Some(base_png::open_file(path)),
         "svg" => Some(base_svg::open_file(path)),
-        "docx" => base_docx::open_file(path).ok(),
+        "docx" => {
+            let mut backend = base_docx::open_file(path).ok()?;
+            let path_key = path.to_string_lossy();
+            if let Some(pt) = crate::preferences::docx_reader_font(path_key.as_ref()) {
+                if let Some(b) = base_docx::try_docx_backend(&mut *backend) {
+                    b.reader_font_pt = pt;
+                }
+            }
+            Some(backend)
+        }
         "pdf" => base_pdf::open_file(path).ok(),
         "dxf" => base_dxf::open_file(path).ok(),
         "js" | "rhai" => base_js::open_file(path).ok(),

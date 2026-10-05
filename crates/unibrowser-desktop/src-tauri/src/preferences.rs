@@ -129,6 +129,12 @@ pub struct Preferences {
     /// Extra https/file links shown on the bookmark bar after pins.
     #[serde(default)]
     pub bookmark_quick_links: Vec<BookmarkQuickLink>,
+    /// Workspace root for capped recursive Files tree ([docs/workspace-folders.md]).
+    #[serde(default)]
+    pub workspace_root: Option<String>,
+    /// DOCX HTML preview font size per file path (autosave / prefs).
+    #[serde(default)]
+    pub docx_reader_font_pt: HashMap<String, f32>,
 }
 
 fn default_bookmark_bar_enabled() -> bool {
@@ -246,6 +252,8 @@ impl Default for Preferences {
             epub_chapter_by_path: HashMap::new(),
             bookmark_bar_enabled: default_bookmark_bar_enabled(),
             bookmark_quick_links: Vec::new(),
+            workspace_root: None,
+            docx_reader_font_pt: HashMap::new(),
         }
     }
 }
@@ -458,6 +466,21 @@ pub fn apply_window_state(window: &tauri::Window, state: &WindowState) -> Result
             .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+pub fn docx_reader_font(path: &str) -> Option<f32> {
+    load_preferences()
+        .docx_reader_font_pt
+        .get(path)
+        .copied()
+}
+
+pub fn remember_docx_reader_font(path: &str, pt: f32) {
+    let mut prefs = load_preferences();
+    prefs
+        .docx_reader_font_pt
+        .insert(path.to_string(), pt);
+    let _ = save_preferences(&prefs);
 }
 
 pub fn capture_window_state(window: &tauri::Window) -> Result<WindowState, String> {

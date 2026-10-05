@@ -166,6 +166,9 @@ interface TabContentDto {
   };
   files_view: FilesViewDto;
   folder_favorites: string[];
+  workspace_root?: string | null;
+  git_is_repo?: boolean;
+  git_dirty_paths?: string[];
   download_history?: DownloadHistoryEntryDto[];
   bookmark_bar_enabled?: boolean;
   bookmark_quick_links?: BookmarkQuickLinkDto[];
@@ -481,6 +484,9 @@ function renderFiles(
   favorites: string[],
   recentFiles: RecentFileDto[],
   pinnedPlaces: PinnedLocationDto[],
+  workspaceRoot: string | null | undefined,
+  gitIsRepo: boolean,
+  gitDirtyPaths: string[],
 ) {
   filesPanel.innerHTML = "";
   if (!entries) {
@@ -498,6 +504,9 @@ function renderFiles(
     filesView,
     browsePath,
     folderFavorites: folderFavoritesCache,
+    workspaceRoot: workspaceRoot ?? null,
+    gitIsRepo,
+    gitDirtyPaths: new Set(gitDirtyPaths),
     recentFiles,
     pinnedPlaces,
     sidePanel: filesSidePanel,
@@ -1169,6 +1178,9 @@ async function applyState(data: TabContentDto) {
         data.folder_favorites ?? [],
         data.recent_files ?? [],
         data.pinned_locations ?? [],
+        data.workspace_root,
+        data.git_is_repo ?? false,
+        data.git_dirty_paths ?? [],
       );
     }
   }

@@ -359,8 +359,12 @@ export async function renderSettings(root: HTMLElement) {
   autoRow.appendChild(autoCb);
   autoRow.appendChild(autoLabel);
   autoRow.appendChild(intervalSelect);
+  const autoNote = document.createElement("p");
+  autoNote.className = "viewer-note";
+  autoNote.textContent = t("autosave.powerHint");
   autoSection.appendChild(autoHeading);
   autoSection.appendChild(autoRow);
+  autoSection.appendChild(autoNote);
   root.appendChild(autoSection);
 
   const sessionSection = document.createElement("section");

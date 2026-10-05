@@ -44,6 +44,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Image eyedropper | Stub on PNG/JPEG viewer: sample RGB in status bar |
 | Architecture | Runtime mermaid (shell ↔ engine ↔ mods ↔ sidecars) in [architecture.md](architecture.md) |
 | Image compare (stub) | Palette **Compare images** side-by-side with split slider + synced zoom; grey off image tabs |
+| Workspace folders | Files **Set workspace** → capped recursive tree; open files from tree; [workspace-folders.md](workspace-folders.md) |
+| Git status lite | Dirty **●** on listed paths when folder is in a git repo (`git status --porcelain`); Commit/Push/Sync grey in palette |
+| Document autosave | Settings interval for text/SVG save + DOCX reader font prefs; **off by default** |
 | Diagnostics | `unibrowser://diagnostics` — mods, ffmpeg, WebView stack, recent error log ring buffer |
 | Settings search | Filter Settings sections by typing in the search field |
 | Roadmap | [roadmap.md](roadmap.md) refreshed vs blitz shipped vs open (VSIX JS, WebView2 downloads, OCR, full encode) |

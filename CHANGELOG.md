@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Workspace folders:** pin a workspace root in Files; capped BFS tree (1200 entries / depth 10); open files from tree — [workspace-folders.md](docs/workspace-folders.md).
+- **Git status lite:** dirty badges in Files listing and workspace tree when `git` is available; SCM commands registered but disabled.
+- **Autosave:** interval auto-save for text/SVG and DOCX reader font persistence; default **off** with power-user note in Settings.
+- **ADR index:** [docs/index.md](docs/index.md) **Implemented (blitz)** column for ADRs 0001–0019.
 - **WebView2 downloads:** acceptance criteria + GitHub issue template; shared `emit_unibrowser_download` and Windows `webview2_download_starting_stub` spike ([browser-shell.md](docs/browser-shell.md)).
 - **VSIX activation (stub):** evaluate `onCommand:` when a contributed command runs; log activation and list activated extensions on diagnostics.
 - **Image eyedropper stub:** toggle on image viewer; pixel RGB/hex in status bar.

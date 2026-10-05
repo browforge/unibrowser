@@ -2,7 +2,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use unibrowser_engine::CommandRegistry;
+use unibrowser_engine::{
+    CommandRegistry, HandlerRegistration, document::DocumentSession,
+};
+use unibrowser_mod_api::{Enablement, commands};
 
 pub const BACKEND_ID: &str = "base-files";
 
@@ -79,6 +82,19 @@ pub fn handles_directory(path: &Path) -> bool {
     path.is_dir()
 }
 
-pub fn register(_registry: &mut CommandRegistry) {
-    // Files mod contributes navigation only in Phase 1; commands come from format mods.
+fn git_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "Git SCM UI not built — dirty badges only in Files manager".into(),
+    }
+}
+
+pub fn register(registry: &mut CommandRegistry) {
+    for id in [commands::GIT_COMMIT, commands::GIT_PUSH, commands::GIT_SYNC] {
+        registry.register_handler(HandlerRegistration {
+            command_id: id.into(),
+            backend_id: BACKEND_ID.into(),
+            enable: git_disabled,
+            execute: |_doc| Err("Git SCM commands are not available in this build".into()),
+        });
+    }
 }

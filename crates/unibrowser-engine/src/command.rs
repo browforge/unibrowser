@@ -138,6 +138,27 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["text diff", "diff two files", "unified diff"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::GIT_COMMIT,
+            title: "Git commit (not available)",
+            icon: "git",
+            default_keybinding: None,
+            aliases: &["scm commit"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::GIT_PUSH,
+            title: "Git push (not available)",
+            icon: "git",
+            default_keybinding: None,
+            aliases: &["scm push"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::GIT_SYNC,
+            title: "Git sync (not available)",
+            icon: "git",
+            default_keybinding: None,
+            aliases: &["pull", "fetch"],
+        });
         reg
     }
 
