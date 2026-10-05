@@ -1,6 +1,6 @@
 # 36h blitz status (living Wed report)
 
-**Branch:** `main` · **Version:** 0.1.0 blitz · **Last updated:** during active blitz (edit this file each Wed) · **Last blitz commit:** `c6b8ff4` (2026-10-05T22:23:20+00:00)
+**Branch:** `main` · **Version:** 0.1.0 blitz · **Last updated:** during active blitz (edit this file each Wed) · **Last blitz commit:** `ae215fc` (2026-10-05T22:23:36+00:00)
 
 Use this page for weekly status posts. Capability tables in [README.md](../README.md) stay detailed; this doc is the narrative plus gaps and runbook.
 
