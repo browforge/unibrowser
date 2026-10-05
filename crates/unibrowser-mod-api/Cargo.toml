@@ -1,0 +1,9 @@
+[package]
+name = "unibrowser-mod-api"
+description = "Stable, versioned API surface for Unibrowser mods"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }

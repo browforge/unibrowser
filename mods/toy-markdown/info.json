@@ -1,0 +1,12 @@
+{
+  "name": "toy-markdown",
+  "version": "0.1.0",
+  "title": "Toy Markdown",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "Minimal Markdown document mod demonstrating third bundled mod",
+  "capabilities": ["font-size"]
+}

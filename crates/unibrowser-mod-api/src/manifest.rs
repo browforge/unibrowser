@@ -1,0 +1,25 @@
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+/// Factorio-style mod manifest (`info.json`).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ModManifest {
+    pub name: String,
+    pub version: String,
+    pub title: String,
+    #[serde(default)]
+    pub author: String,
+    /// Semver of `unibrowser-mod-api` this mod targets.
+    pub unibrowser_api: String,
+    #[serde(default)]
+    pub dependencies: BTreeMap<String, String>,
+    #[serde(default)]
+    pub optional_dependencies: BTreeMap<String, String>,
+    #[serde(default)]
+    pub description: String,
+    /// Optional native library file name (platform-specific).
+    #[serde(default)]
+    pub library: Option<String>,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+}

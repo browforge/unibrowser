@@ -1,0 +1,21 @@
+[package]
+name = "unibrowser-app"
+description = "Unibrowser desktop shell (egui proof of concept)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "unibrowser"
+path = "src/main.rs"
+
+[dependencies]
+unibrowser-engine = { path = "../unibrowser-engine" }
+unibrowser-mod-host = { path = "../unibrowser-mod-host" }
+unibrowser-mod-api = { path = "../unibrowser-mod-api" }
+base-text = { path = "../../mods/base-text" }
+base-png = { path = "../../mods/base-png" }
+toy-markdown = { path = "../../mods/toy-markdown" }
+eframe = { version = "0.27", default-features = false, features = ["default_fonts", "glow"] }
+egui = "0.27"
+tracing-subscriber = "0.3"

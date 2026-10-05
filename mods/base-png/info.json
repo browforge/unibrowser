@@ -1,0 +1,12 @@
+{
+  "name": "base-png",
+  "version": "0.1.0",
+  "title": "PNG raster",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "PNG images with optional text layer metadata (font size when text layer selected)",
+  "capabilities": ["font-size"]
+}

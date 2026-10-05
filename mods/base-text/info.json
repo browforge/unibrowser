@@ -1,0 +1,12 @@
+{
+  "name": "base-text",
+  "version": "0.1.0",
+  "title": "Plain text",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "Plain text documents with selectable text and font size",
+  "capabilities": ["font-size"]
+}
