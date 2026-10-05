@@ -1067,6 +1067,9 @@ pub fn close_tab(window: tauri::Window,
                 return Err(ERR_UNSAVED_CLOSE.into());
             }
         }
+        if let Some(tab) = tabs.tabs().get(index) {
+            _sess_tabs.purge_tab_resources(tab);
+        }
         if !tabs.close_tab(index) {
             return Err("cannot close last tab".into());
         }

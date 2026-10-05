@@ -56,6 +56,15 @@ impl UndoStacks {
         stacks.undo.push(current.to_string());
         Some(next)
     }
+
+    pub fn remove_path(&mut self, path: &str) {
+        self.by_path.remove(path);
+        self.order.retain(|p| p != path);
+    }
+
+    pub fn tracked_path_count(&self) -> usize {
+        self.by_path.len()
+    }
 }
 
 #[cfg(test)]

@@ -14,8 +14,15 @@ pub fn reject_traversal(path: &Path) -> Result<(), String> {
         return Err("invalid path".into());
     }
     for component in path.components() {
-        if component == Component::ParentDir {
-            return Err("path must not contain ..".into());
+        match component {
+            Component::ParentDir => return Err("path must not contain ..".into()),
+            Component::Normal(seg) => {
+                let s = seg.to_string_lossy();
+                if s == ".." || s.contains('\0') {
+                    return Err("invalid path segment".into());
+                }
+            }
+            _ => {}
         }
     }
     Ok(())
@@ -80,6 +87,11 @@ mod tests {
     #[test]
     fn rejects_parent_dir() {
         assert!(reject_traversal(Path::new("../etc/passwd")).is_err());
+    }
+
+    #[test]
+    fn rejects_embedded_null() {
+        assert!(reject_traversal(Path::new("a\0b")).is_err());
     }
 
     #[test]

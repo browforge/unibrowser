@@ -29,3 +29,5 @@ libloading = { version = "0.8", optional = true }
 [features]
 default = []
 dynamic-mods = ["dep:libloading"]
+# Reserved for T2 loader (wasmtime dependency added when wiring lands; see ADR 0019).
+wasm-mods = []

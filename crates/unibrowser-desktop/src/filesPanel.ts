@@ -29,6 +29,10 @@ function selectionAllConvertibleImages(paths: string[]): boolean {
 const THUMB_MAX_BYTES = 8_000_000;
 const THUMB_MAX_ACTIVE = 24;
 const SEARCH_DEBOUNCE_MS = 250;
+/** Beyond this, rows are windowed while scrolling (10k+ listings stay usable). */
+const VIRTUALIZE_THRESHOLD = 500;
+const FILE_ROW_HEIGHT_PX = 40;
+const VIRTUAL_VIEWPORT_PX = 520;
 let thumbLoadCount = 0;
 
 const selectedPaths = new Set<string>();
@@ -1187,7 +1191,10 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     })();
   };
 
-  visibleEntries.forEach((entry, index) => {
+  const useVirtual = visibleEntries.length > VIRTUALIZE_THRESHOLD;
+  table.classList.toggle("files-virtualized", useVirtual);
+
+  const createFileRow = (entry: DirEntry, index: number) => {
     const row = document.createElement("tr");
     row.draggable = renamingPath !== entry.path;
     row.addEventListener("dragstart", (e) => {
@@ -1325,10 +1332,59 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     row.appendChild(thumbCell);
     row.appendChild(nameCell);
     row.appendChild(metaCell);
-    tbody.appendChild(row);
-  });
+    return row;
+  };
+
+  const paintRows = (start: number, end: number) => {
+    tbody.replaceChildren();
+    if (useVirtual && start > 0) {
+      const pad = document.createElement("tr");
+      pad.className = "files-virtual-pad";
+      const cell = document.createElement("td");
+      cell.colSpan = 4;
+      cell.style.height = `${start * FILE_ROW_HEIGHT_PX}px`;
+      cell.style.padding = "0";
+      cell.style.border = "0";
+      pad.appendChild(cell);
+      tbody.appendChild(pad);
+    }
+    for (let index = start; index < end; index++) {
+      tbody.appendChild(createFileRow(visibleEntries[index], index));
+    }
+    if (useVirtual && end < visibleEntries.length) {
+      const pad = document.createElement("tr");
+      pad.className = "files-virtual-pad";
+      const cell = document.createElement("td");
+      cell.colSpan = 4;
+      cell.style.height = `${(visibleEntries.length - end) * FILE_ROW_HEIGHT_PX}px`;
+      cell.style.padding = "0";
+      cell.style.border = "0";
+      pad.appendChild(cell);
+      tbody.appendChild(pad);
+    }
+  };
+
   table.appendChild(tbody);
-  host.appendChild(table);
+  if (useVirtual) {
+    const scroll = document.createElement("div");
+    scroll.className = "files-virtual-scroll";
+    const update = () => {
+      const count = Math.ceil(VIRTUAL_VIEWPORT_PX / FILE_ROW_HEIGHT_PX) + 8;
+      const start = Math.max(
+        0,
+        Math.floor(scroll.scrollTop / FILE_ROW_HEIGHT_PX) - 4,
+      );
+      const end = Math.min(visibleEntries.length, start + count);
+      paintRows(start, end);
+    };
+    scroll.addEventListener("scroll", update, { passive: true });
+    scroll.appendChild(table);
+    host.appendChild(scroll);
+    update();
+  } else {
+    paintRows(0, visibleEntries.length);
+    host.appendChild(table);
+  }
 
   panelContext = { host, deps };
 }

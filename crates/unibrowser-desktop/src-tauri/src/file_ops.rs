@@ -149,7 +149,13 @@ pub fn transfer_paths(
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .ok_or("missing source name")?;
+        validate_entry_name(&name)?;
         let target = dest_canon.join(&name);
+        if let Ok(target_canon) = target.canonicalize() {
+            if !target_canon.starts_with(&dest_canon) {
+                return Err("transfer target escapes destination".into());
+            }
+        }
         if is_same_or_descendant(src, &dest_canon) && !copy {
             return Err("cannot move a folder into itself".into());
         }

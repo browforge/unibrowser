@@ -1086,6 +1086,23 @@ body {
   color: #aaa;
 }
 
+.files-virtual-scroll {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--border-subtle, #333);
+}
+
+.files-virtual-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--chrome-surface, #1a1a1a);
+}
+
+.files-table.files-virtualized tbody tr {
+  height: 40px;
+}
+
 .files-table {
   width: 100%;
 }

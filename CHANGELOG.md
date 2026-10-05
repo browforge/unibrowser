@@ -6,6 +6,13 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- Security fuzz tests for `path_security` and `transfer_paths`; transfer name validation and dest escape guard.
+- ADR 0019 WASM T2 sandbox notes; `unibrowser-mod-host/wasm-mods` wasmtime feature stub.
+- Large directory listing perf test (`UB_LIST_STRESS=1` for 10k); virtualized files table when >500 entries.
+- Tab close purges undo stacks; `window_session_cleanup` regression test.
+
+### Added (previous)
+
 - User mods dir (`~/.config/unibrowser/mods` on Linux): discover `info.json`, load enabled cdylibs when `dynamic-mods` is on (not env-only).
 - Mod portal: enable/disable **native mods** and **VSIX** in separate lists.
 - T1 signing stub: [docs/plugin-sdk/signing.md](docs/plugin-sdk/signing.md); `UNIBROWSER_REQUIRE_SIGNED_MODS=1` refuses unsigned loads.

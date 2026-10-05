@@ -18,6 +18,15 @@ pub struct WindowSession {
 }
 
 impl WindowSession {
+    /// Drop per-tab undo stacks when a document tab closes (avoids unbounded retention).
+    pub fn purge_tab_resources(&self, tab: &unibrowser_engine::tabs::Tab) {
+        if let Some(doc) = &tab.document {
+            if let Ok(mut stacks) = self.undo_stacks.lock() {
+                stacks.remove_path(&doc.path);
+            }
+        }
+    }
+
     pub fn new_with_home(cwd: &Path) -> Self {
         let home = BrowserLocation::File {
             path: cwd.to_path_buf(),

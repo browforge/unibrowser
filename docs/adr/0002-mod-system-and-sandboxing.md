@@ -48,7 +48,7 @@ Alternatives for **payload** execution:
 - **No interference:** mods install to a user-controlled mods directory; uninstall removes manifest + binaries; no hidden data exfiltration channels in the base design.
 - **Fail closed:** incompatible `unibrowser_api` major → refuse load with clear error.
 
-Skeleton implements **T0** manifest discovery + **optional** `library` dynamic load + dev static registration; WASM and sidecars documented only.
+Skeleton implements **T0** manifest discovery + **optional** `library` dynamic load + dev static registration; **T2 WASM** design and `wasm-mods` feature stub ([ADR 0019](0019-wasm-t2-sandbox.md)); sidecars documented only.
 
 ## API versioning
 
