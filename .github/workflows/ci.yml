@@ -14,9 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: crates/unibrowser-desktop/package-lock.json
       - name: Install Linux deps (Tauri + egui)
         run: |
           sudo apt-get update
@@ -47,5 +52,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
       - name: cargo check (Windows MSVC, engine + mods)
         run: cargo check --workspace --exclude unibrowser-desktop --target x86_64-pc-windows-msvc

@@ -18,6 +18,15 @@ impl Default for UiTheme {
 
 pub const RECENT_FILES_MAX: usize = 12;
 
+/// How completed downloads are handled (ADR 0009). Default: open in a new tab.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum DownloadPreference {
+    #[default]
+    OpenInNewTab,
+    SaveToDisk,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RecentFileEntry {
     pub path: String,
@@ -43,6 +52,8 @@ pub struct Preferences {
     pub auto_save_interval_secs: u32,
     #[serde(default)]
     pub pinned_locations: Vec<PinnedLocation>,
+    #[serde(default)]
+    pub download_preference: DownloadPreference,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -66,6 +77,7 @@ impl Default for Preferences {
             auto_save_enabled: false,
             auto_save_interval_secs: default_auto_save_interval(),
             pinned_locations: Vec::new(),
+            download_preference: DownloadPreference::default(),
         }
     }
 }

@@ -94,6 +94,12 @@ interface TabContentDto {
   browse_folder_path: string;
   diff_view: DiffViewDto | null;
   pinned_locations: PinnedLocationDto[];
+  chrome_notice?: string | null;
+}
+
+interface DownloadEventPayload {
+  url: string;
+  destination?: string | null;
 }
 
 interface PinnedLocationDto {
@@ -539,6 +545,30 @@ async function renderSessionOptIn() {
     row.appendChild(cb);
     row.appendChild(label);
     row.appendChild(autoRow);
+    const dlRow = document.createElement("div");
+    dlRow.className = "session-restore-row";
+    const dlLabel = document.createElement("label");
+    dlLabel.htmlFor = "download-pref";
+    dlLabel.textContent = t("download.preferenceLabel");
+    const dlSelect = document.createElement("select");
+    dlSelect.id = "download-pref";
+    const openOpt = document.createElement("option");
+    openOpt.value = "open_in_new_tab";
+    openOpt.textContent = t("download.openInTab");
+    const saveOpt = document.createElement("option");
+    saveOpt.value = "save_to_disk";
+    saveOpt.textContent = t("download.saveToDisk");
+    dlSelect.appendChild(openOpt);
+    dlSelect.appendChild(saveOpt);
+    void invoke<{ download_preference: string }>("get_preferences").then((prefs) => {
+      dlSelect.value = prefs.download_preference;
+      dlSelect.onchange = async () => {
+        await invoke("set_download_preference", { preference: dlSelect.value });
+      };
+    });
+    dlRow.appendChild(dlLabel);
+    dlRow.appendChild(dlSelect);
+    row.appendChild(dlRow);
   } catch {
     /* optional */
   }
@@ -665,6 +695,9 @@ async function applySplitPane(data: TabContentDto) {
 }
 
 async function applyState(data: TabContentDto) {
+  if (data.chrome_notice) {
+    showToast(data.chrome_notice, "info");
+  }
   const active = data.tabs[data.active_index];
   const showText = Boolean(data.text_document) && !active?.is_http;
   const showViewer = Boolean(data.document_viewer) && !active?.is_http;
@@ -829,6 +862,7 @@ document.getElementById("btn-reload")!.onclick = () =>
 document.getElementById("btn-demo-download")!.onclick = () =>
   invoke<TabContentDto>("handle_download_url", {
     url: "https://example.com/",
+    destination: null,
   }).then(applyState);
 
 document.getElementById("btn-compare")!.onclick = () => {
@@ -1056,15 +1090,29 @@ paletteQuery.addEventListener("input", async () => {
 
 window.addEventListener("resize", () => syncContentBounds());
 
-listen<string>("unibrowser-download", (event) => {
+listen<DownloadEventPayload | string>("unibrowser-download", (event) => {
+  const payload =
+    typeof event.payload === "string"
+      ? { url: event.payload, destination: null }
+      : event.payload;
   void invokeWithToast(
-    () => invoke<TabContentDto>("handle_download_url", { url: event.payload }),
+    () =>
+      invoke<TabContentDto>("handle_download_url", {
+        url: payload.url,
+        destination: payload.destination ?? null,
+      }),
     t("toast.errorDefault"),
-  ).then((data) => {
-    if (data) {
-      showToast(t("download.openedTab"), "info");
-      void applyState(data);
+  ).then(async (data) => {
+    if (!data) {
+      return;
     }
+    if (!data.chrome_notice) {
+      const prefs = await invoke<{ download_preference: string }>("get_preferences");
+      if (prefs.download_preference === "open_in_new_tab") {
+        showToast(t("download.openedTab"), "info");
+      }
+    }
+    void applyState(data);
   });
 });
 
@@ -1103,6 +1151,22 @@ setViewerZoomListener((_scale, label) => {
     zoomEl.classList.remove("hidden");
   }
 });
+
+document.getElementById("command-manager-export")!.onclick = async () => {
+  const path = await invoke<string | null>("export_command_manager_layout_file");
+  if (path) {
+    showToast(t("commandManager.exported", { path }), "info");
+  }
+};
+document.getElementById("command-manager-import")!.onclick = async () => {
+  try {
+    await invoke("import_command_manager_layout_file");
+    showToast(t("commandManager.imported"), "info");
+    await refreshCommandManager();
+  } catch (err) {
+    showToast(String(err), "error");
+  }
+};
 
 applyChromeI18n();
 loadKeybindingHints();

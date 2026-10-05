@@ -37,6 +37,12 @@ pub struct ProjectNode {
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asset: Option<String>,
+    /// Board X in document space (infinite-canvas precursor).
+    #[serde(default)]
+    pub x: f32,
+    /// Board Y in document space.
+    #[serde(default)]
+    pub y: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -101,6 +107,58 @@ pub fn create_package(root: &Path, title: &str) -> Result<ProjectPackage, Projec
         root: root.to_path_buf(),
         manifest,
     })
+}
+
+/// Two starter text assets on a simple 2D board (sketch / teaching layout).
+pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectError> {
+    let notes = package.root.join(DIR_ASSETS).join("notes.txt");
+    fs::write(&notes, b"Project notes\n")?;
+    let refs = package.root.join(DIR_ASSETS).join("refs.txt");
+    fs::write(&refs, b"Reference links\n")?;
+    package.manifest.nodes = vec![
+        ProjectNode {
+            id: "node-1".into(),
+            node_type: "file".into(),
+            label: "Notes".into(),
+            asset: Some("notes.txt".into()),
+            x: 48.0,
+            y: 56.0,
+        },
+        ProjectNode {
+            id: "node-2".into(),
+            node_type: "file".into(),
+            label: "References".into(),
+            asset: Some("refs.txt".into()),
+            x: 280.0,
+            y: 160.0,
+        },
+    ];
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn default_board_position(node_index: usize) -> (f32, f32) {
+    let col = (node_index % 4) as f32;
+    let row = (node_index / 4) as f32;
+    (32.0 + col * 168.0, 40.0 + row * 128.0)
+}
+
+pub fn set_node_board_position(
+    package: &mut ProjectPackage,
+    node_id: &str,
+    x: f32,
+    y: f32,
+) -> Result<(), ProjectError> {
+    let node = package
+        .manifest
+        .nodes
+        .iter_mut()
+        .find(|n| n.id == node_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown node {}", node_id)))?;
+    node.x = x;
+    node.y = y;
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
 }
 
 pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
@@ -223,11 +281,14 @@ pub fn add_asset_copy(
     let file_name = unique_asset_file_name(package, &original_name);
     let dest = package.root.join(DIR_ASSETS).join(&file_name);
     fs::copy(source, &dest)?;
+    let (x, y) = default_board_position(package.manifest.nodes.len());
     let node = ProjectNode {
         id,
         node_type: node_type.into(),
         label: label.into(),
         asset: Some(file_name),
+        x,
+        y,
     };
     package.manifest.nodes.push(node.clone());
     write_manifest(&package.root, &package.manifest)?;
@@ -358,6 +419,18 @@ mod tests {
         assert!(dir.join(DIR_ASSETS).is_dir());
         let again = open_package(&dir).expect("open");
         assert_eq!(again.manifest.title, "Demo");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn board_sketch_has_two_positioned_nodes() {
+        let dir = std::env::temp_dir().join("unibrow-test-board");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Board").expect("create");
+        seed_board_sketch(&mut pkg).expect("seed");
+        assert_eq!(pkg.manifest.nodes.len(), 2);
+        assert_eq!(pkg.manifest.nodes[0].x, 48.0);
+        assert_eq!(pkg.manifest.nodes[1].y, 160.0);
         let _ = fs::remove_dir_all(&dir);
     }
 

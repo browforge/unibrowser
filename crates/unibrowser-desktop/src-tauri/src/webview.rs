@@ -1,6 +1,8 @@
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl};
 use url::Url;
 
+use crate::downloads::DownloadEventPayload;
+
 const CONTENT_LABEL: &str = "content";
 
 pub fn ensure_content_webview(app: &AppHandle) -> Result<(), String> {
@@ -12,11 +14,32 @@ pub fn ensure_content_webview(app: &AppHandle) -> Result<(), String> {
     let builder = tauri::webview::WebviewBuilder::new(CONTENT_LABEL, WebviewUrl::External(blank))
         .on_download(|webview, event| {
             use tauri::webview::DownloadEvent;
-            if let DownloadEvent::Requested { url, destination: _ } = event {
-                let url_str = url.to_string();
-                let _ = webview.app_handle().emit("unibrowser-download", url_str);
-                // Return false to cancel default "save to downloads folder" when platform allows.
-                return false;
+            match event {
+                DownloadEvent::Requested { url, destination } => {
+                    let payload = DownloadEventPayload {
+                        url: url.to_string(),
+                        destination: Some(destination.to_string_lossy().into_owned()),
+                    };
+                    let _ = webview
+                        .app_handle()
+                        .emit("unibrowser-download", payload);
+                    // Cancel WebKitGTK default save when the shell handles disposition.
+                    return false;
+                }
+                DownloadEvent::Finished {
+                    path: Some(path),
+                    success: true,
+                    ..
+                } => {
+                    let file_url = format!("file://{}", path.display());
+                    let payload = DownloadEventPayload {
+                        url: file_url,
+                        destination: Some(path.to_string_lossy().into_owned()),
+                    };
+                    let _ = webview.app_handle().emit("unibrowser-download", payload);
+                    return false;
+                }
+                _ => {}
             }
             true
         });

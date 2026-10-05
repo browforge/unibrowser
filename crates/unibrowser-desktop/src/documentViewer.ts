@@ -15,6 +15,8 @@ export interface ProjectNodeDto {
   node_type: string;
   label: string;
   asset: string | null;
+  x: number;
+  y: number;
 }
 
 export interface OpenFileTabDto {
@@ -818,6 +820,63 @@ async function renderDxf(path: string, root: HTMLElement) {
 
 async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
+  const board = document.createElement("div");
+  board.className = "unibrow-board";
+  board.setAttribute("role", "img");
+  board.setAttribute("aria-label", "Project board");
+  const nodesOnBoard = viewer.project_nodes ?? [];
+  for (const node of nodesOnBoard) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "unibrow-board-card";
+    card.style.left = `${node.x}px`;
+    card.style.top = `${node.y}px`;
+    card.textContent = node.label;
+    card.title = node.asset ? `${node.label} · ${node.asset}` : node.label;
+    let dragX = 0;
+    let dragY = 0;
+    let moved = false;
+    card.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) {
+        return;
+      }
+      e.preventDefault();
+      card.setPointerCapture(e.pointerId);
+      moved = false;
+      dragX = e.clientX - node.x;
+      dragY = e.clientY - node.y;
+    });
+    card.addEventListener("pointermove", (e) => {
+      if (!card.hasPointerCapture(e.pointerId)) {
+        return;
+      }
+      moved = true;
+      const x = Math.max(0, e.clientX - dragX);
+      const y = Math.max(0, e.clientY - dragY);
+      card.style.left = `${x}px`;
+      card.style.top = `${y}px`;
+    });
+    card.addEventListener("pointerup", async (e) => {
+      if (!card.hasPointerCapture(e.pointerId)) {
+        return;
+      }
+      card.releasePointerCapture(e.pointerId);
+      if (!moved) {
+        return;
+      }
+      const x = Math.max(0, e.clientX - dragX);
+      const y = Math.max(0, e.clientY - dragY);
+      const data = await invoke("set_unibrow_node_position", {
+        projectPath: viewer.path,
+        nodeId: node.id,
+        x,
+        y,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    });
+    board.appendChild(card);
+  }
+  root.appendChild(board);
   const list = document.createElement("ul");
   list.className = "unibrow-nodes";
   const nodes = viewer.project_nodes ?? [];

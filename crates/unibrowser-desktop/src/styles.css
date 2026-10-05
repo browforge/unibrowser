@@ -803,6 +803,44 @@ body {
   background: rgba(100, 160, 255, 0.45);
 }
 
+.unibrow-board {
+  position: relative;
+  min-height: 14rem;
+  margin: 0 0 0.75rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 23px,
+    #2a2a2a 24px
+  );
+  overflow: auto;
+}
+
+.unibrow-board-card {
+  position: absolute;
+  min-width: 6rem;
+  max-width: 10rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: grab;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: #333;
+  color: inherit;
+}
+
+.unibrow-board-card:active {
+  cursor: grabbing;
+}
+
+.command-manager-header .cm-layout-btn {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+}
+
 .unibrow-nodes {
   list-style: none;
   padding: 0;

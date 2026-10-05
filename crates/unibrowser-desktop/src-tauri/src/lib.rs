@@ -9,7 +9,7 @@ mod undo_stack;
 mod mod_portal;
 mod open_vsx;
 mod path_security;
-mod preferences;
+pub mod preferences;
 mod project_backend;
 mod rhai_host;
 mod session;
@@ -75,6 +75,8 @@ pub fn run() {
             commands::list_directory,
             commands::get_command_manager,
             commands::save_command_manager_layout,
+            commands::export_command_manager_layout_file,
+            commands::import_command_manager_layout_file,
             commands::select_command_manager_tab,
             commands::pin_command_manager_context,
             commands::clear_command_manager_context_pin,
@@ -96,6 +98,7 @@ pub fn run() {
             commands::add_unibrow_asset,
             commands::remove_unibrow_node,
             commands::rename_unibrow_node,
+            commands::set_unibrow_node_position,
             commands::pick_unibrow_asset_file,
             commands::allow_asset_path,
             commands::allow_unibrow_asset,
@@ -103,6 +106,7 @@ pub fn run() {
             commands::get_home_dir,
             commands::get_preferences,
             commands::set_auto_save_settings,
+            commands::set_download_preference,
             commands::auto_save_active_document,
             commands::pick_and_compare,
             commands::close_file_compare,

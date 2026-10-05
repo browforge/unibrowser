@@ -37,6 +37,7 @@ pub struct AppState {
     pub split_view: Mutex<SplitViewState>,
     pub key_sequences: Mutex<KeySequenceMatcher>,
     pub file_compare: Mutex<Option<FileCompareState>>,
+    pub chrome_notice: Mutex<Option<String>>,
     pub _mod_host: ModHost,
 }
 
@@ -113,6 +114,7 @@ impl AppState {
             split_view: Mutex::new(SplitViewState::default()),
             key_sequences: Mutex::new(KeySequenceMatcher::default()),
             file_compare: Mutex::new(None),
+            chrome_notice: Mutex::new(None),
             _mod_host: mod_host,
         }
     }

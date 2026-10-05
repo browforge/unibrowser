@@ -12,12 +12,15 @@ use unibrowser_mod_api::{BrowserLocation, DownloadDisposition};
 use base_text::{TextBackend, try_text_backend};
 
 use crate::config::toolbars_file_path;
-use crate::downloads::apply_download_disposition;
+use crate::downloads::{
+    apply_download_disposition, copy_file_to_path, download_http_to_file,
+    suggested_download_filename,
+};
 use crate::state::{AppState, list_dir};
 use crate::mod_portal::{ModSuggestionDto, suggest_mods_for_unknown_path};
 use crate::preferences::{
-    default_pinned_locations, load_preferences, push_recent_file, save_preferences, PinnedLocation,
-    UiTheme, WindowState,
+    default_pinned_locations, load_preferences, push_recent_file, save_preferences,
+    DownloadPreference, PinnedLocation, UiTheme, WindowState,
 };
 use crate::state::FileCompareState;
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
@@ -102,6 +105,8 @@ pub struct ProjectNodeDto {
     pub node_type: String,
     pub label: String,
     pub asset: Option<String>,
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Serialize)]
@@ -161,6 +166,8 @@ pub struct TabContentDto {
     pub browse_folder_path: String,
     pub diff_view: Option<DiffViewDto>,
     pub pinned_locations: Vec<PinnedLocationDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chrome_notice: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -279,6 +286,8 @@ fn document_viewer_dto(
                     node_type: n.node_type.clone(),
                     label: n.label.clone(),
                     asset: n.asset.clone(),
+                    x: n.x,
+                    y: n.y,
                 })
                 .collect()
         });
@@ -487,6 +496,11 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         (text_document, document_viewer)
     };
     let pinned_locations = pinned_locations_dto(&prefs);
+    let chrome_notice = state
+        .chrome_notice
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take();
     Ok(TabContentDto {
         tabs: tabs.tabs().iter().map(build_tab_dto).collect(),
         active_index: tabs.active_index(),
@@ -527,6 +541,7 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         browse_folder_path,
         diff_view,
         pinned_locations,
+        chrome_notice,
     })
 }
 
@@ -1040,6 +1055,52 @@ pub fn clear_command_manager_context_pin(state: State<AppState>) -> Result<(), S
     Ok(())
 }
 
+fn export_command_manager_layout(state: State<AppState>) -> Result<String, String> {
+    let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    serde_json::to_string_pretty(&cm.to_file()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn export_command_manager_layout_file(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let json = export_command_manager_layout(state)?;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export command manager layout")
+        .add_filter("JSON", &["json"])
+        .set_file_name("command-manager.json")
+        .blocking_save_file();
+    if let Some(path) = picked {
+        let dest = PathBuf::from(path.to_string());
+        std::fs::write(&dest, json).map_err(|e| e.to_string())?;
+        Ok(Some(dest.to_string_lossy().into_owned()))
+    } else {
+        Ok(None)
+    }
+}
+
+#[tauri::command]
+pub async fn import_command_manager_layout_file(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Import command manager layout")
+        .add_filter("JSON", &["json"])
+        .blocking_pick_file();
+    let path = picked.ok_or_else(|| "import cancelled".to_string())?;
+    let data = std::fs::read_to_string(path.to_string()).map_err(|e| e.to_string())?;
+    let layout: CommandManagerFile = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+    save_command_manager_layout(layout, state)
+}
+
 #[tauri::command]
 pub fn save_command_manager_layout(
     layout: CommandManagerFile,
@@ -1212,12 +1273,23 @@ pub fn palette_search(query: String, state: State<AppState>) -> Result<Vec<Palet
 }
 
 #[tauri::command]
-pub fn handle_download_url(
+pub async fn handle_download_url(
     url: String,
+    destination: Option<String>,
     app: AppHandle,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<TabContentDto, String> {
-    let disposition = apply_download_disposition(&url, None, &state.cwd)?;
+    use tauri_plugin_dialog::DialogExt;
+
+    let prefs = load_preferences();
+    let has_dest_hint = destination.is_some();
+    let hinted = destination.as_ref().map(|s| PathBuf::from(s.as_str()));
+    let disposition = apply_download_disposition(
+        &url,
+        hinted,
+        &state.cwd,
+        prefs.download_preference,
+    )?;
     match disposition {
         DownloadDisposition::OpenInNewTab { suggested_location } => {
             let (loc, is_dir, doc) = state.resolve_location(suggested_location);
@@ -1230,7 +1302,43 @@ pub fn handle_download_url(
             update_content_webview(&app, &loc)?;
             snapshot(&state)
         }
-        DownloadDisposition::SaveToDisk { .. } => Err("Save to disk not implemented in MVP".into()),
+        DownloadDisposition::SaveToDisk { path } => {
+            let dest = if has_dest_hint {
+                path
+            } else {
+                let default = path;
+                let picked = app
+                    .dialog()
+                    .file()
+                    .set_title("Save download")
+                    .set_file_name(
+                        default
+                            .file_name()
+                            .map(|s| s.to_string_lossy().to_string())
+                            .unwrap_or_else(|| suggested_download_filename(&url)),
+                    )
+                    .blocking_save_file();
+                picked
+                    .map(|p| PathBuf::from(p.to_string()))
+                    .ok_or_else(|| "save cancelled".to_string())?
+            };
+            let trimmed = url.trim();
+            if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+                download_http_to_file(trimmed, &dest)?;
+            } else {
+                let source = if trimmed.starts_with("file://") {
+                    resolve_open_path(trimmed.trim_start_matches("file://"), &state.cwd)?
+                } else {
+                    resolve_open_path(trimmed, &state.cwd)?
+                };
+                copy_file_to_path(&source, &dest)?;
+            }
+            *state
+                .chrome_notice
+                .lock()
+                .map_err(|e| e.to_string())? = Some(format!("Saved to {}", dest.display()));
+            snapshot(&state)
+        }
     }
 }
 
@@ -1252,6 +1360,7 @@ pub struct PreferencesDto {
     pub restore_session_on_launch: bool,
     pub auto_save_enabled: bool,
     pub auto_save_interval_secs: u32,
+    pub download_preference: String,
 }
 
 #[tauri::command]
@@ -1402,6 +1511,25 @@ pub fn remove_unibrow_node(
 }
 
 #[tauri::command]
+pub fn set_unibrow_node_position(
+    project_path: String,
+    node_id: String,
+    x: f32,
+    y: f32,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::set_node_board_position(&mut package, &node_id, x, y)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(&state, &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+#[tauri::command]
 pub fn rename_unibrow_node(
     project_path: String,
     node_id: String,
@@ -1438,7 +1566,30 @@ pub fn get_preferences() -> PreferencesDto {
         restore_session_on_launch: p.restore_session_on_launch,
         auto_save_enabled: p.auto_save_enabled,
         auto_save_interval_secs: p.auto_save_interval_secs,
+        download_preference: download_pref_to_str(&p.download_preference),
     }
+}
+
+fn download_pref_to_str(pref: &DownloadPreference) -> String {
+    match pref {
+        DownloadPreference::OpenInNewTab => "open_in_new_tab".into(),
+        DownloadPreference::SaveToDisk => "save_to_disk".into(),
+    }
+}
+
+fn download_pref_from_str(s: &str) -> DownloadPreference {
+    match s {
+        "save_to_disk" => DownloadPreference::SaveToDisk,
+        _ => DownloadPreference::OpenInNewTab,
+    }
+}
+
+#[tauri::command]
+pub fn set_download_preference(preference: String) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.download_preference = download_pref_from_str(&preference);
+    save_preferences(&p)?;
+    Ok(get_preferences())
 }
 
 #[tauri::command]
@@ -1650,7 +1801,8 @@ pub fn create_unibrow_project(
 ) -> Result<TabContentDto, String> {
     let parent = PathBuf::from(parent_dir);
     let root = parent.join(format!("{}.unibrow", name));
-    let _package = unibrowser_project::create_package(&root, &name).map_err(|e| e.to_string())?;
+    let mut package = unibrowser_project::create_package(&root, &name).map_err(|e| e.to_string())?;
+    unibrowser_project::seed_board_sketch(&mut package).map_err(|e| e.to_string())?;
     let loc = BrowserLocation::File { path: root.clone() };
     let doc = crate::state::open_file_document(&root);
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;

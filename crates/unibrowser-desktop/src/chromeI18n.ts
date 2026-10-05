@@ -35,6 +35,16 @@ export function applyChromeI18n() {
     pin.textContent = t("commandManager.pin");
     pin.title = t("commandManager.pinTitle");
   }
+  const cmExport = document.getElementById("command-manager-export");
+  if (cmExport) {
+    cmExport.textContent = t("commandManager.exportLayout");
+    cmExport.title = t("commandManager.exportLayoutTitle");
+  }
+  const cmImport = document.getElementById("command-manager-import");
+  if (cmImport) {
+    cmImport.textContent = t("commandManager.importLayout");
+    cmImport.title = t("commandManager.importLayoutTitle");
+  }
   const dismiss = document.getElementById("onboarding-dismiss");
   if (dismiss) {
     dismiss.textContent = t("onboarding.dismiss");
