@@ -82,13 +82,16 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | SVG edit lite | Inline preview; fill/stroke panel for path/text; grey path boolean/simplify |
 | Timeline encode intents | H.264 export honours **fade** (two video clips), **clip fade in/out**, and **duck_under_video** on audio (approx); timeline UI for video fades; [timeline-encode-intents.md](timeline-encode-intents.md) |
 | Deep find | **Ctrl+Shift+F** filename + text scan; opens text at line; limits in [deep-find.md](deep-find.md) |
-| Scripting tip | JS/TS opened as plain text → dismissable bottom bar suggesting **base-js** / mods (not modal) |
+| **base-js** | `.js`/`.jsx`/`.mjs`/`.cjs`/`.ts`/`.tsx` open in Monaco (`javascript` / `typescript` language ids); `.rhai` stays plain text |
+| Scripting tip | Shown only when JS/TS still open in **base-text**; hidden when **base-js** handles the file |
+| Bottom panel | **Output** (Rhai) + grey **Terminal** tab (planned) — [terminal-panel.md](terminal-panel.md) |
+| Web proxy prefs | System / direct / manual host+port persisted; not applied to webviews yet — [network-proxy.md](network-proxy.md) |
 | Branding | Window title **Unibrowser — {tab}**; icons documented in [branding.md](branding.md) |
 | Workspace quick open | **Ctrl+P** fuzzy file find under pinned workspace root (separate from omnibox / deep find **Ctrl+Shift+F**) |
 | MIDI audio render stub | Viewer + palette command grey unless **ffmpeg** and **fluidsynth** on PATH — [midi-audio-render.md](midi-audio-render.md) |
 | Demo artifacts | `examples/demo-pack/` stays small; `hello-world.ubmod` built locally (`scripts/build-hello-ubmod.sh`), not committed |
 | i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
-| Scripting | Rhai demo from palette → output panel; `.rhai` / `.js` script viewer |
+| Scripting | Rhai demo from palette → output panel; `.rhai` plain text; JS/TS via **base-js** Monaco |
 | DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |
 | Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), ADRs 0001–0019 |
 | Quality | `cargo test --workspace`, path/transfer fuzz tests, `./scripts/smoke-desktop-qa.sh` |
@@ -150,7 +153,7 @@ Counts are approximate for the blitz branch; re-run before publishing.
 | 1 | VSIX JS extension host | Largest compat promise vs delivery |
 | 2 | WebView2 download wiring | Windows default browser workaround |
 | 3 | OCR sidecar | Announced stub, no Tesseract pool |
-| 4 | Full timeline / DAW encode | ffmpeg H.264 only; duck/fade/mix intents in JSON only |
+| 4 | Full timeline / DAW encode | ffmpeg H.264 + approximate duck/fade; no full DAW mix bus |
 | 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
 | 6 | EPUB/DOCX fidelity | Asset URLs; Mammoth layout |
 | 7 | i18n depth | Chrome only (`en-NZ` / `en-US`) |
@@ -163,19 +166,26 @@ Counts are approximate for the blitz branch; re-run before publishing.
 | VSIX JS extension host | Metadata + stub execute ([extension-host.md](extension-host.md)); no `main` JS |
 | OCR | UI placeholder; Tesseract sidecar not built ([ocr-sidecar.md](ocr-sidecar.md)) |
 | Spellcheck | Monaco still has no built-in dictionary; experimental browser spellcheck covers text mirror + DOCX + EPUB notes |
-| Timeline encode | H.264 when ffmpeg present; `duck_under_video` + fade stubs in manifest only; no mix in export |
+| Timeline encode | H.264 when ffmpeg present; duck/fade approximations only; no stem/mix bus export |
 | Windows/macOS dynamic mods | Linux user `mods/` today |
 | i18n | Viewer copy not fully translated; only chrome catalogues today |
 | Cloud / collab | Share zip only; no live multi-user |
 
 ## Known bugs / rough edges
 
-- EPUB preview: spine HTML only; embedded images/fonts often missing until asset URL resolution lands.
-- DOCX: layout fidelity limited (Mammoth); tracked changes not editable.
-- Large PDFs: use profiling env `UNIBROWSER_PROFILE_OPEN=1` if open feels slow.
-- WebView downloads: Linux wired; **WebView2 `DownloadStarting` not wired** — use Advanced → system browser ([browser-shell.md](browser-shell.md), [downloads.md](downloads.md)).
-- Spellcheck experiment does not underline inside Monaco; mirror textarea only.
-- OCR button stays disabled until sidecar ships.
+Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** polish / edge case.
+
+| Sev | Issue | Notes |
+| --- | --- | --- |
+| P1 | WebView2 downloads | `DownloadStarting` not wired on Windows; use Advanced → system browser ([browser-shell.md](browser-shell.md)). |
+| P2 | EPUB assets | Spine HTML only; embedded images/fonts often missing until asset URL resolution. |
+| P2 | DOCX fidelity | Mammoth layout limits; tracked changes not editable. |
+| P2 | VSIX JS host | Stub execute only; no extension `main` runtime ([extension-host.md](extension-host.md)). |
+| P2 | Web proxy prefs | Persisted but **not applied** to embedded https webviews ([network-proxy.md](network-proxy.md)). |
+| P3 | Large PDF open | Profile with `UNIBROWSER_PROFILE_OPEN=1` if open feels slow. |
+| P3 | Spellcheck experiment | No underlines inside Monaco; mirror textarea / DOCX / EPUB notes only. |
+| P3 | OCR | Button disabled until Tesseract sidecar ships ([ocr-sidecar.md](ocr-sidecar.md)). |
+| P3 | Integrated terminal | Bottom **Terminal** tab disabled; use system shell ([terminal-panel.md](terminal-panel.md)). |
 
 ## Demo script (~10 min)
 

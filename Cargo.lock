@@ -340,10 +340,8 @@ dependencies = [
 name = "base-js"
 version = "0.1.0"
 dependencies = [
- "rhai",
  "unibrowser-engine",
  "unibrowser-mod-api",
- "unibrowser-script-host",
 ]
 
 [[package]]

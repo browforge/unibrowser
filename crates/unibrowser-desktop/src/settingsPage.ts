@@ -59,6 +59,7 @@ interface PrefsDto {
   safe_mode_env: boolean;
   chrome_focus_mode: boolean;
   larger_hit_targets: boolean;
+  web_proxy: { mode: string; host: string; port: number };
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -726,6 +727,80 @@ export async function renderSettings(root: HTMLElement) {
   dlBrowserRow.appendChild(dlBrowserLabel);
   advancedSection.appendChild(dlBrowserRow);
   advancedSection.appendChild(dlBrowserNote);
+  const proxyNote = document.createElement("p");
+  proxyNote.className = "viewer-note";
+  proxyNote.textContent = t("settings.webProxyNote");
+  advancedSection.appendChild(proxyNote);
+  const proxyModeRow = document.createElement("div");
+  proxyModeRow.className = "settings-row";
+  const proxyModeLabel = document.createElement("label");
+  proxyModeLabel.textContent = t("settings.webProxyMode");
+  proxyModeLabel.htmlFor = "settings-web-proxy-mode";
+  const proxyModeSelect = document.createElement("select");
+  proxyModeSelect.id = "settings-web-proxy-mode";
+  for (const value of ["system", "direct", "manual"] as const) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = t(`settings.webProxyMode.${value}`);
+    proxyModeSelect.appendChild(opt);
+  }
+  proxyModeSelect.value = prefs.web_proxy?.mode ?? "system";
+  const proxyHostInput = document.createElement("input");
+  proxyHostInput.type = "text";
+  proxyHostInput.id = "settings-web-proxy-host";
+  proxyHostInput.placeholder = t("settings.webProxyHostPlaceholder");
+  proxyHostInput.value = prefs.web_proxy?.host ?? "";
+  const proxyPortInput = document.createElement("input");
+  proxyPortInput.type = "number";
+  proxyPortInput.id = "settings-web-proxy-port";
+  proxyPortInput.min = "0";
+  proxyPortInput.max = "65535";
+  proxyPortInput.value = String(prefs.web_proxy?.port ?? 0);
+  const syncProxyManualFields = () => {
+    const manual = proxyModeSelect.value === "manual";
+    proxyHostInput.disabled = !manual;
+    proxyPortInput.disabled = !manual;
+  };
+  syncProxyManualFields();
+  const persistWebProxy = async () => {
+    try {
+      const next = await invoke<PrefsDto>("set_web_proxy_prefs", {
+        input: {
+          mode: proxyModeSelect.value,
+          host: proxyHostInput.value,
+          port: Number(proxyPortInput.value) || 0,
+        },
+      });
+      proxyModeSelect.value = next.web_proxy.mode;
+      proxyHostInput.value = next.web_proxy.host;
+      proxyPortInput.value = String(next.web_proxy.port);
+      syncProxyManualFields();
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  proxyModeSelect.onchange = () => {
+    syncProxyManualFields();
+    void persistWebProxy();
+  };
+  proxyHostInput.onchange = () => void persistWebProxy();
+  proxyPortInput.onchange = () => void persistWebProxy();
+  proxyModeRow.appendChild(proxyModeLabel);
+  proxyModeRow.appendChild(proxyModeSelect);
+  advancedSection.appendChild(proxyModeRow);
+  const proxyManualRow = document.createElement("div");
+  proxyManualRow.className = "settings-row";
+  const proxyHostLabel = document.createElement("label");
+  proxyHostLabel.htmlFor = proxyHostInput.id;
+  proxyHostLabel.textContent = t("settings.webProxyHost");
+  const proxyPortLabel = document.createElement("label");
+  proxyPortLabel.htmlFor = proxyPortInput.id;
+  proxyPortLabel.textContent = t("settings.webProxyPort");
+  proxyManualRow.appendChild(proxyHostLabel);
+  proxyManualRow.appendChild(proxyHostInput);
+  proxyManualRow.appendChild(proxyPortLabel);
+  proxyManualRow.appendChild(proxyPortInput);
+  advancedSection.appendChild(proxyManualRow);
   const safeRow = document.createElement("div");
   safeRow.className = "settings-row";
   const safeCb = document.createElement("input");

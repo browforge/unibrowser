@@ -469,6 +469,14 @@
   "epub.readingNotesPlaceholder": "Reading notes (experimental spellcheck when enabled in Settings)",
   "settings.openDownloadsSystemBrowser": "Open web downloads in system browser",
   "settings.openDownloadsSystemBrowserNote": "Interim workaround when the embedded webview cannot intercept downloads (e.g. WebView2 on Windows). See docs/browser-shell.md.",
+  "settings.webProxyMode": "Web tab proxy",
+  "settings.webProxyMode.system": "System",
+  "settings.webProxyMode.direct": "Direct (no proxy)",
+  "settings.webProxyMode.manual": "Manual",
+  "settings.webProxyHost": "Proxy host",
+  "settings.webProxyPort": "Port",
+  "settings.webProxyHostPlaceholder": "proxy.example.com",
+  "settings.webProxyNote": "Saved for https tabs only. The embedded webview does not apply this setting yet — see docs/network-proxy.md.",
   "download.openedSystemBrowser": "Opened download URL in your system browser.",
   "encode.progress": "Encode {percent}% — {stage}"
 }

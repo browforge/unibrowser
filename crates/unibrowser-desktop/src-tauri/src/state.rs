@@ -452,7 +452,8 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         }
         "pdf" => base_pdf::open_file(path).ok(),
         "dxf" => base_dxf::open_file(path).ok(),
-        "js" | "rhai" => base_js::open_file(path).ok(),
+        "js" | "mjs" | "cjs" | "jsx" | "ts" | "tsx" => base_js::open_file(path).ok(),
+        "rhai" => base_text::open_file(path).ok(),
         "csv" | "tsv" => Some(crate::csv_stub::open_file(path)),
         "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
         "mp4" | "webm" | "avi" => base_video::open_file(path).ok(),
@@ -494,11 +495,6 @@ pub fn is_known_text_extension(ext: &str) -> bool {
             | "h"
             | "cpp"
             | "hpp"
-            | "ts"
-            | "tsx"
-            | "js"
-            | "jsx"
-            | "mjs"
             | "py"
             | "go"
             | "java"

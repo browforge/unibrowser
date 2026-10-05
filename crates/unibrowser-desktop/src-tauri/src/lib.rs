@@ -226,6 +226,7 @@ pub fn run() {
             commands::export_unibrow_mp4_h264,
             commands::open_url_externally,
             commands::set_open_downloads_in_system_browser,
+            commands::set_web_proxy_prefs,
             commands::batch_convert_images,
             commands::timeline_clip_scrub_preview,
             commands::set_unibrow_timeline_transition,

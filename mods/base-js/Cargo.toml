@@ -7,5 +7,3 @@ license.workspace = true
 [dependencies]
 unibrowser-mod-api = { path = "../../crates/unibrowser-mod-api" }
 unibrowser-engine = { path = "../../crates/unibrowser-engine" }
-rhai = "1.22"
-unibrowser-script-host = { path = "../../crates/unibrowser-script-host" }

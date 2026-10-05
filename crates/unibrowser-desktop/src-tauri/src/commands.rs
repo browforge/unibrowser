@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 pub struct PathPropertiesDto {
@@ -21,6 +21,7 @@ use unibrowser_engine::{
 };
 use unibrowser_mod_api::{BrowserLocation, DownloadDisposition};
 
+use base_js::JsMonacoBackend;
 use base_text::{TextBackend, try_text_backend};
 
 use crate::config::toolbars_file_path;
@@ -848,7 +849,6 @@ fn document_viewer_dto(
         base_docx::BACKEND_ID => base_docx::VIEWER_KIND,
         base_pdf::BACKEND_ID => base_pdf::VIEWER_KIND,
         base_dxf::BACKEND_ID => base_dxf::VIEWER_KIND,
-        base_js::BACKEND_ID => base_js::VIEWER_KIND,
         base_video::BACKEND_ID => base_video::VIEWER_KIND,
         base_audio::BACKEND_ID => base_audio::VIEWER_KIND,
         base_svg::BACKEND_ID => base_svg::VIEWER_KIND,
@@ -1031,12 +1031,23 @@ fn text_document_dto(
     doc: &mut unibrowser_engine::DocumentSession,
     reveal_line: Option<u32>,
 ) -> Option<TextDocumentDto> {
-    let backend = try_text_backend(&mut *doc.backend)?;
+    if let Some(backend) = try_text_backend(&mut *doc.backend) {
+        return Some(TextDocumentDto {
+            path: backend.path.clone(),
+            content: backend.content.clone(),
+            font_size_pt: backend.font_size_pt,
+            language: TextBackend::language_id(&backend.path).into(),
+            dirty: backend.dirty,
+            encoding: detect_text_encoding(&backend.path),
+            reveal_line,
+        });
+    }
+    let backend = base_js::try_js_backend(&mut *doc.backend)?;
     Some(TextDocumentDto {
         path: backend.path.clone(),
         content: backend.content.clone(),
         font_size_pt: backend.font_size_pt,
-        language: TextBackend::language_id(&backend.path).into(),
+        language: JsMonacoBackend::language_id(&backend.path).into(),
         dirty: backend.dirty,
         encoding: detect_text_encoding(&backend.path),
         reveal_line,
@@ -2861,7 +2872,24 @@ pub fn sync_text_document(window: tauri::Window,
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no text document")?;
-    let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
+    if let Some(backend) = try_text_backend(&mut *doc.backend) {
+        let before = backend.content.clone();
+        let path = backend.path.clone();
+        backend.set_content(content);
+        backend.set_selection_range(selection_start, selection_end);
+        let _sess_stacks = ws(&state, &window)?;
+        let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
+        stacks.record_change(&path, before, &backend.content);
+        if backend.dirty {
+            crate::crash_recovery::maybe_backup_dirty(
+                &path,
+                base_text::BACKEND_ID,
+                &backend.content,
+            );
+        }
+        return Ok(());
+    }
+    let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not a text document")?;
     let before = backend.content.clone();
     let path = backend.path.clone();
     backend.set_content(content);
@@ -2870,7 +2898,7 @@ pub fn sync_text_document(window: tauri::Window,
     let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
     stacks.record_change(&path, before, &backend.content);
     if backend.dirty {
-        crate::crash_recovery::maybe_backup_dirty(&path, base_text::BACKEND_ID, &backend.content);
+        crate::crash_recovery::maybe_backup_dirty(&path, base_js::BACKEND_ID, &backend.content);
     }
     Ok(())
 }
@@ -3267,6 +3295,14 @@ pub struct PreferencesDto {
     pub safe_mode_env: bool,
     pub chrome_focus_mode: bool,
     pub larger_hit_targets: bool,
+    pub web_proxy: WebProxyPrefsDto,
+}
+
+#[derive(Serialize)]
+pub struct WebProxyPrefsDto {
+    pub mode: String,
+    pub host: String,
+    pub port: u16,
 }
 
 #[tauri::command]
@@ -4331,6 +4367,32 @@ fn preferences_dto() -> PreferencesDto {
         safe_mode_env: std::env::var("UNIBROWSER_SAFE_MODE").as_deref() == Ok("1"),
         chrome_focus_mode: p.chrome_focus_mode,
         larger_hit_targets: p.larger_hit_targets,
+        web_proxy: web_proxy_prefs_dto(&p.web_proxy),
+    }
+}
+
+fn web_proxy_prefs_dto(p: &crate::preferences::WebProxyPrefs) -> WebProxyPrefsDto {
+    WebProxyPrefsDto {
+        mode: web_proxy_mode_to_str(&p.mode),
+        host: p.host.clone(),
+        port: p.port,
+    }
+}
+
+fn web_proxy_mode_to_str(mode: &crate::preferences::WebProxyMode) -> String {
+    match mode {
+        crate::preferences::WebProxyMode::System => "system",
+        crate::preferences::WebProxyMode::Direct => "direct",
+        crate::preferences::WebProxyMode::Manual => "manual",
+    }
+    .into()
+}
+
+fn web_proxy_mode_from_str(s: &str) -> crate::preferences::WebProxyMode {
+    match s {
+        "direct" => crate::preferences::WebProxyMode::Direct,
+        "manual" => crate::preferences::WebProxyMode::Manual,
+        _ => crate::preferences::WebProxyMode::System,
     }
 }
 
@@ -4428,6 +4490,23 @@ pub fn set_open_downloads_in_system_browser(enabled: bool) -> Result<Preferences
     Ok(preferences_dto())
 }
 
+#[derive(Deserialize)]
+pub struct WebProxyPrefsInput {
+    pub mode: String,
+    pub host: String,
+    pub port: u16,
+}
+
+#[tauri::command]
+pub fn set_web_proxy_prefs(input: WebProxyPrefsInput) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.web_proxy.mode = web_proxy_mode_from_str(input.mode.trim());
+    p.web_proxy.host = input.host.trim().to_string();
+    p.web_proxy.port = input.port.min(65535);
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
 #[tauri::command]
 pub fn open_url_externally(url: String, app: AppHandle) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
@@ -4489,6 +4568,9 @@ pub fn restore_crash_recovery_backup(window: tauri::Window,
     }
     if record.backend_id == base_text::BACKEND_ID {
         let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
+        backend.set_content(record.content);
+    } else if record.backend_id == base_js::BACKEND_ID {
+        let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not a script document")?;
         backend.set_content(record.content);
     } else if record.backend_id == base_svg::BACKEND_ID {
         let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
@@ -4614,7 +4696,10 @@ pub fn auto_save_active_document(window: tauri::Window, state: State<AppState>) 
         }
         return Ok(String::new());
     }
-    if backend_id != base_text::BACKEND_ID && backend_id != base_svg::BACKEND_ID {
+    if backend_id != base_text::BACKEND_ID
+        && backend_id != base_js::BACKEND_ID
+        && backend_id != base_svg::BACKEND_ID
+    {
         return Ok(String::new());
     }
     state
@@ -5626,6 +5711,8 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let path = doc.path.clone();
         let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.content.clone()
+        } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {
+            backend.content.clone()
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.content.clone()
         } else {
@@ -5635,6 +5722,8 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
         let prev = stacks.undo(&path, &current).ok_or("nothing to undo")?;
         if let Some(backend) = try_text_backend(&mut *doc.backend) {
+            backend.set_content(prev);
+        } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {
             backend.set_content(prev);
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.set_content(prev);
@@ -5653,6 +5742,8 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let path = doc.path.clone();
         let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.content.clone()
+        } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {
+            backend.content.clone()
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.content.clone()
         } else {
@@ -5662,6 +5753,8 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
         let next = stacks.redo(&path, &current).ok_or("nothing to redo")?;
         if let Some(backend) = try_text_backend(&mut *doc.backend) {
+            backend.set_content(next);
+        } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {
             backend.set_content(next);
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.set_content(next);

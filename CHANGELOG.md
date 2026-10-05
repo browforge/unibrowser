@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **base-js proving:** Bundled mod opens `.js`/`.ts` (and related extensions) in Monaco with `javascript` / `typescript` language ids; scripting recommendation tip only when files still use plain **base-text**.
+- **Bottom panel:** **Output** tab (Rhai) plus disabled **Terminal** tab (planned); [terminal-panel.md](docs/terminal-panel.md).
+- **Web proxy prefs:** Settings stub (system / direct / manual host+port); persist only — [network-proxy.md](docs/network-proxy.md).
+- **Blitz status:** Known issues table with severity (P1–P3).
 - **Clip fade UI:** Video timeline clips expose fade in/out (seconds) on `project.json`; honoured on H.264 export.
 - **Deep find:** Content search with line numbers for text files; open at line; [deep-find.md](docs/deep-find.md).
 - **Scripting extension tip:** Bottom bar for `.js`/`.ts` opened as plain text; dismiss forever; links to mod portal.

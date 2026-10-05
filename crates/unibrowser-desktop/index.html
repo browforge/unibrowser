@@ -87,12 +87,20 @@
         <div id="split-doc-panel" class="panel doc-panel hidden"></div>
       </div>
     </main>
-    <aside id="script-output-panel" class="script-output-panel hidden" aria-label="Script output">
+    <aside id="script-output-panel" class="script-output-panel hidden" aria-label="Bottom panel">
       <div class="script-output-head">
-        <span>Script output</span>
-        <button type="button" id="script-output-close" aria-label="Close script output">×</button>
+        <div class="bottom-panel-tabs" role="tablist" aria-label="Bottom panel tabs">
+          <button type="button" id="bottom-panel-tab-output" class="bottom-panel-tab is-active" role="tab" aria-selected="true" aria-controls="bottom-panel-output-pane">Output</button>
+          <button type="button" id="bottom-panel-tab-terminal" class="bottom-panel-tab bottom-panel-tab--planned" role="tab" aria-selected="false" aria-disabled="true" title="Planned" disabled>Terminal</button>
+        </div>
+        <button type="button" id="script-output-close" aria-label="Close bottom panel">×</button>
       </div>
-      <div id="script-output-log" class="script-output-log"></div>
+      <div id="bottom-panel-output-pane" class="bottom-panel-pane" role="tabpanel">
+        <div id="script-output-log" class="script-output-log"></div>
+      </div>
+      <div id="bottom-panel-terminal-pane" class="bottom-panel-pane bottom-panel-pane--planned hidden" role="tabpanel" aria-hidden="true">
+        <p class="bottom-panel-planned-note">Integrated terminal is planned. Use your system shell for now.</p>
+      </div>
     </aside>
     <div id="extension-tip" class="extension-tip hidden" role="status" aria-live="polite">
       <span id="extension-tip-message" class="extension-tip-message"></span>

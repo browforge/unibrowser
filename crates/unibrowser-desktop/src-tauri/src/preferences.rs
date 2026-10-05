@@ -147,6 +147,29 @@ pub struct Preferences {
     /// Larger minimum hit targets on tabs and command chips.
     #[serde(default)]
     pub larger_hit_targets: bool,
+    /// Web tab proxy preference (persisted; not applied to WRY webviews in blitz).
+    #[serde(default)]
+    pub web_proxy: WebProxyPrefs,
+}
+
+/// How https/file web tabs should reach the network (prefs only until webview proxy API lands).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WebProxyMode {
+    #[default]
+    System,
+    Direct,
+    Manual,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct WebProxyPrefs {
+    #[serde(default)]
+    pub mode: WebProxyMode,
+    #[serde(default)]
+    pub host: String,
+    #[serde(default)]
+    pub port: u16,
 }
 
 /// Safe mode: env wins for this process; prefs apply on next launch.
@@ -278,6 +301,7 @@ impl Default for Preferences {
             chrome_focus_mode: false,
             larger_hit_targets: false,
             scripting_extension_tip_dismissed_forever: false,
+            web_proxy: WebProxyPrefs::default(),
         }
     }
 }
