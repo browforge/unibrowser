@@ -100,6 +100,9 @@ pub struct Preferences {
     /// Run installed VSIX `main` modules via Node sidecar (experimental).
     #[serde(default)]
     pub advanced_node_extension_host: bool,
+    /// Extension IDs the user trusted to run JavaScript (Node host).
+    #[serde(default)]
+    pub vsix_trusted_extensions: Vec<String>,
     /// Interim: hand https downloads to the system browser (WebView2 gap on Windows).
     #[serde(default)]
     pub open_downloads_in_system_browser: bool,
@@ -294,6 +297,7 @@ impl Default for Preferences {
             advanced_webview_devtools: false,
             advanced_experimental_spellcheck: false,
             advanced_node_extension_host: false,
+            vsix_trusted_extensions: Vec::new(),
             open_downloads_in_system_browser: false,
             files_view: FilesViewPrefs::default(),
             folder_favorites: Vec::new(),

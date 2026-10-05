@@ -8,12 +8,20 @@
     "vscode": "^1.85.0"
   },
   "main": "./main.js",
-  "activationEvents": ["onCommand:unibrowser.helloSample.sayHello"],
+  "activationEvents": [
+    "onCommand:unibrowser.helloSample.sayHello",
+    "onCommand:unibrowser.helloSample.probeEditor"
+  ],
   "contributes": {
     "commands": [
       {
         "command": "unibrowser.helloSample.sayHello",
         "title": "Say hello",
+        "category": "VSIX sample"
+      },
+      {
+        "command": "unibrowser.helloSample.probeEditor",
+        "title": "Probe editor + font increase",
         "category": "VSIX sample"
       }
     ]

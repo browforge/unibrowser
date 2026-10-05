@@ -1595,6 +1595,11 @@ listen("browser-state-updated", () => {
   void refreshState();
 });
 
+listen<{ message: string; severity?: string }>("unibrowser-extension-toast", (event) => {
+  const severity = event.payload.severity ?? "info";
+  showToast(event.payload.message, severity === "error" ? "error" : "info");
+});
+
 btnSplit.onclick = () => {
   void invokeWithToast(() => invoke<TabContentDto>("toggle_split_view"), t("chrome.splitFailed")).then(
     (data) => {

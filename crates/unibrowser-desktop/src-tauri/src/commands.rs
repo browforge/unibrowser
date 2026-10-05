@@ -3027,7 +3027,7 @@ pub fn execute_command(
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<String, String> {
-    let result = execute_command_impl(window, command_id.clone(), app, state);
+    let result = execute_command_impl(window, command_id.clone(), app, state, false);
     if result.is_ok() {
         crate::command_history::record(&command_id);
     }
@@ -3188,11 +3188,21 @@ fn close_tabs_relative(
     Ok(format!("Closed {} tab(s)", closed))
 }
 
+pub(crate) fn execute_builtin_from_extension_host(
+    window: tauri::Window,
+    command_id: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<String, String> {
+    execute_command_impl(window, command_id, app, state, true)
+}
+
 fn execute_command_impl(
     window: tauri::Window,
     command_id: String,
     app: AppHandle,
     state: State<AppState>,
+    skip_vsix_host: bool,
 ) -> Result<String, String> {
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
@@ -3334,7 +3344,7 @@ fn execute_command_impl(
             .vsix_host_commands
             .lock()
             .map_err(|e| e.to_string())?;
-        if host_cmds.contains(&command_id) {
+        if !skip_vsix_host && host_cmds.contains(&command_id) {
             let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
             let (enabled, reason) =
                 crate::vsix_host::vsix_command_palette_state(&root, &command_id);
@@ -3343,6 +3353,7 @@ fn execute_command_impl(
             }
             let ctx = unibrowser_vsix::lookup_vsix_command_context(&root, &command_id)
                 .ok_or_else(|| format!("VSIX command not found: {}", command_id))?;
+            let extension_id_log = ctx.extension_id.clone();
             let main = unibrowser_vsix::read_extension_main(&ctx.install_dir).ok_or_else(|| {
                 unibrowser_extension_host::VSIX_NODE_HOST_NO_MAIN.to_string()
             })?;
@@ -3351,17 +3362,25 @@ fn execute_command_impl(
                 &command_id,
                 &ctx.activation_events,
             );
-            let ext_root = ctx.install_dir.join("extension");
-            let result = unibrowser_extension_host::execute_extension_command(
-                &ext_root,
-                &main,
-                &ctx.extension_id,
-                &command_id,
+            let result = crate::vsix_host::run_vsix_node_command(
+                window.clone(),
+                app.clone(),
+                state.clone(),
+                ctx,
+                main,
+                command_id.clone(),
             )?;
             if let Some((rec, true)) = activated {
                 crate::diagnostic_log::record_info(
-                    format!("VSIX activated: {}", ctx.extension_id),
+                    format!("VSIX activated: {}", extension_id_log),
                     Some(format!("matched `{}`", rec.matched_event)),
+                );
+            }
+            if let Some(toast) = &result.toast {
+                let severity = result.toast_severity.as_deref().unwrap_or("info");
+                let _ = app.emit(
+                    "unibrowser-extension-toast",
+                    serde_json::json!({ "message": toast, "severity": severity }),
                 );
             }
             return Ok(result.toast.unwrap_or(result.message));
@@ -5770,6 +5789,10 @@ pub struct ExtensionHostDiagnosticsDto {
     pub host_version: String,
     pub host_running: bool,
     pub host_message: String,
+    pub node_pid: Option<u32>,
+    pub node_alive: bool,
+    pub node_restart_count: u32,
+    pub node_last_error: Option<String>,
     pub activated_extensions: Vec<VsixActivationDto>,
 }
 
@@ -5810,6 +5833,7 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
     let web_capture = crate::webview_capture::web_capture_status();
     let (download_detail, download_wired) = crate::webview_download::platform_download_hook_status();
     let host_status = unibrowser_extension_host::status();
+    let node_runtime = unibrowser_extension_host::runtime_status();
     let activated = unibrowser_extension_host::activated_extensions()
         .into_iter()
         .map(|r| VsixActivationDto {
@@ -5833,6 +5857,10 @@ pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
             host_version: unibrowser_extension_host::HOST_VERSION.into(),
             host_running: host_status.running,
             host_message: host_status.message,
+            node_pid: node_runtime.pid,
+            node_alive: node_runtime.alive,
+            node_restart_count: node_runtime.restart_count,
+            node_last_error: node_runtime.last_error,
             activated_extensions: activated,
         },
         target_os: std::env::consts::OS.into(),
@@ -6465,14 +6493,41 @@ pub struct ModToggleResultDto {
 }
 
 #[tauri::command]
-pub fn set_vsix_extension_enabled(window: tauri::Window, 
+pub fn set_vsix_extension_enabled(
+    window: tauri::Window,
     extension_id: String,
     enabled: bool,
+    app: AppHandle,
     state: State<AppState>,
 ) -> Result<ModToggleResultDto, String> {
+    if enabled && crate::vsix_host::node_extension_host_enabled() {
+        let mut prefs = load_preferences();
+        if !prefs.vsix_trusted_extensions.iter().any(|id| id == &extension_id) {
+            use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+            let label = extension_id.clone();
+            let confirm = app
+                .dialog()
+                .message(format!(
+                    "Enable extension “{}”?\n\nIt can run JavaScript via the Node host (experimental). Only enable extensions you trust.",
+                    label
+                ))
+                .title("Trust VSIX extension")
+                .kind(MessageDialogKind::Warning)
+                .buttons(MessageDialogButtons::OkCancel)
+                .blocking_show();
+            if !confirm {
+                return Err("Extension not trusted".into());
+            }
+            prefs.vsix_trusted_extensions.push(extension_id.clone());
+            save_preferences(&prefs)?;
+        }
+    }
     let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
     unibrowser_vsix::set_extension_enabled(&root, &extension_id, enabled)
         .map_err(|e| e.to_string())?;
+    if !enabled {
+        let _ = unibrowser_extension_host::deactivate_extension(&extension_id);
+    }
     state.refresh_extension_catalog()?;
     Ok(ModToggleResultDto {
         restart_recommended: false,

@@ -37,6 +37,7 @@ mod project_recovery;
 mod project_undo;
 mod project_undo_handlers;
 mod vsix_host;
+mod vsix_extension_config;
 mod document_limits;
 mod content_sniff;
 mod files_listing;

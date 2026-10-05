@@ -1,36 +1,102 @@
 //! Opt-in Node sidecar for loading extension `main` modules ([docs/extension-host.md](../../docs/extension-host.md)).
 
 use std::io::{BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
+use std::thread;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub const VSIX_NODE_HOST_PREF_OFF: &str =
     "Enable “Node extension host (experimental)” in Settings → Advanced";
 pub const VSIX_NODE_HOST_NO_NODE: &str = "Node.js not found on PATH (extension host unavailable)";
 pub const VSIX_NODE_HOST_NO_MAIN: &str = "Extension package.json has no main entry for the Node host";
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EditorSnapshot {
+    pub language_id: String,
+    pub text: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct VsixInvokeContext {
+    pub install_dir: PathBuf,
+    pub extension_root: PathBuf,
+    pub main_rel: String,
+    pub extension_id: String,
+    pub command_id: String,
+    pub editor: Option<EditorSnapshot>,
+    pub configuration: Value,
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeExecuteResult {
+    pub message: String,
+    pub toast: Option<String>,
+    pub toast_severity: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NodeHostRuntimeStatus {
+    pub pid: Option<u32>,
+    pub alive: bool,
+    pub restart_count: u32,
+    pub last_error: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 enum NodeHostRequest {
     Ping,
     Activate {
+        install_dir: String,
         extension_dir: String,
         main: String,
         extension_id: String,
     },
+    Deactivate {
+        extension_id: String,
+    },
     Execute {
+        execute_token: u64,
+        install_dir: String,
+        extension_dir: String,
+        main: String,
         extension_id: String,
         command_id: String,
+        editor: Option<EditorSnapshot>,
+        configuration: Value,
     },
+    HostResults {
+        execute_token: u64,
+        results: Vec<HostCallResult>,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct HostCallResult {
+    id: String,
+    ok: bool,
+    #[serde(default)]
+    result: Option<String>,
+    #[serde(default)]
+    error: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 struct NodeHostToast {
     message: String,
+    #[serde(default)]
     severity: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct HostCallOut {
+    id: String,
+    command_id: String,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -40,15 +106,23 @@ struct NodeHostResponse {
     #[serde(default)]
     pong: bool,
     #[serde(default)]
+    complete: bool,
+    #[serde(default)]
     error: Option<String>,
     #[serde(default)]
     toast: Option<NodeHostToast>,
+    #[serde(default)]
+    host_calls: Vec<HostCallOut>,
+    #[serde(default)]
+    execute_token: u64,
 }
 
-#[derive(Debug, Clone)]
-pub struct NodeExecuteResult {
-    pub message: String,
-    pub toast: Option<String>,
+static EXECUTE_TOKEN: Mutex<u64> = Mutex::new(1);
+
+fn next_execute_token() -> u64 {
+    let mut guard = EXECUTE_TOKEN.lock().unwrap();
+    *guard += 1;
+    *guard
 }
 
 pub fn node_on_path() -> bool {
@@ -91,11 +165,21 @@ struct NodeSidecar {
     reader: BufReader<std::process::ChildStdout>,
 }
 
-impl NodeSidecar {
-    fn spawn() -> Result<Self, String> {
+struct SidecarPool {
+    session: Option<NodeSidecar>,
+    restart_count: u32,
+    backoff_ms: u64,
+    last_error: Option<String>,
+}
+
+impl SidecarPool {
+    fn spawn_child() -> Result<NodeSidecar, String> {
         let script = host_script_path().ok_or("VSIX Node host script not found")?;
+        let path_env = std::env::var("PATH").unwrap_or_default();
         let mut child = Command::new("node")
             .arg(&script)
+            .env_clear()
+            .env("PATH", path_env)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -105,7 +189,7 @@ impl NodeSidecar {
             .stdout
             .take()
             .ok_or_else(|| "node stdout unavailable".to_string())?;
-        let mut session = Self {
+        let mut session = NodeSidecar {
             child,
             reader: BufReader::new(stdout),
         };
@@ -116,6 +200,49 @@ impl NodeSidecar {
         Ok(session)
     }
 
+    fn ensure(&mut self) -> Result<&mut NodeSidecar, String> {
+        if let Some(session) = self.session.as_mut() {
+            if let Ok(Some(status)) = session.child.try_wait() {
+                self.last_error = Some(format!("node host exited: {}", status));
+                self.session = None;
+            }
+        }
+        if self.session.is_none() {
+            if self.backoff_ms > 0 {
+                thread::sleep(Duration::from_millis(self.backoff_ms));
+            }
+            match Self::spawn_child() {
+                Ok(s) => {
+                    self.session = Some(s);
+                    self.restart_count += 1;
+                    self.backoff_ms = 200;
+                }
+                Err(e) => {
+                    self.last_error = Some(e.clone());
+                    self.backoff_ms = (self.backoff_ms * 2).min(8_000);
+                    return Err(e);
+                }
+            }
+        }
+        Ok(self.session.as_mut().unwrap())
+    }
+
+    fn drop_session(&mut self) {
+        if let Some(mut s) = self.session.take() {
+            let _ = s.child.kill();
+            let _ = s.child.wait();
+        }
+    }
+}
+
+static SIDECAR: Mutex<SidecarPool> = Mutex::new(SidecarPool {
+    session: None,
+    restart_count: 0,
+    backoff_ms: 200,
+    last_error: None,
+});
+
+impl NodeSidecar {
     fn request(&mut self, req: &NodeHostRequest) -> Result<NodeHostResponse, String> {
         let line = serde_json::to_string(req).map_err(|e| e.to_string())?;
         let stdin = self
@@ -135,55 +262,131 @@ impl NodeSidecar {
     }
 }
 
-static SIDECAR: Mutex<Option<NodeSidecar>> = Mutex::new(None);
-
-fn with_sidecar<R>(f: impl FnOnce(&mut NodeSidecar) -> Result<R, String>) -> Result<R, String> {
-    let mut guard = SIDECAR.lock().map_err(|e| e.to_string())?;
-    if guard.is_none() {
-        *guard = Some(NodeSidecar::spawn()?);
-    }
-    let session = guard.as_mut().unwrap();
-    match f(session) {
-        Ok(v) => Ok(v),
-        Err(e) => {
-            *guard = None;
-            Err(e)
-        }
+pub fn runtime_status() -> NodeHostRuntimeStatus {
+    let mut guard = SIDECAR.lock().unwrap();
+    let pid = guard.session.as_ref().map(|s| s.child.id());
+    let alive = guard
+        .session
+        .as_mut()
+        .map(|s| s.child.try_wait().ok().flatten().is_none())
+        .unwrap_or(false);
+    NodeHostRuntimeStatus {
+        pid,
+        alive,
+        restart_count: guard.restart_count,
+        last_error: guard.last_error.clone(),
     }
 }
 
-pub fn execute_extension_command(
-    extension_root: &Path,
-    main_rel: &str,
-    extension_id: &str,
-    command_id: &str,
-) -> Result<NodeExecuteResult, String> {
-    let extension_dir = extension_root.to_string_lossy().to_string();
-    with_sidecar(|session| {
-        let activate = session.request(&NodeHostRequest::Activate {
-            extension_dir,
-            main: main_rel.to_string(),
-            extension_id: extension_id.to_string(),
-        })?;
-        if !activate.ok {
-            return Err(activate
-                .error
-                .unwrap_or_else(|| "activate failed".into()));
+pub fn shutdown_node_host() {
+    let mut guard = SIDECAR.lock().unwrap();
+    guard.drop_session();
+}
+
+pub fn deactivate_extension(extension_id: &str) -> Result<(), String> {
+    let mut guard = SIDECAR.lock().map_err(|e| e.to_string())?;
+    if guard.session.is_none() {
+        return Ok(());
+    }
+    match guard.ensure() {
+        Ok(session) => {
+            let resp = session.request(&NodeHostRequest::Deactivate {
+                extension_id: extension_id.to_string(),
+            })?;
+            if !resp.ok {
+                return Err(resp
+                    .error
+                    .unwrap_or_else(|| "deactivate failed".into()));
+            }
         }
-        let exec = session.request(&NodeHostRequest::Execute {
-            extension_id: extension_id.to_string(),
-            command_id: command_id.to_string(),
-        })?;
-        if !exec.ok {
-            return Err(exec
-                .error
-                .unwrap_or_else(|| "execute failed".into()));
+        Err(_) => {}
+    }
+    Ok(())
+}
+
+pub fn execute_extension_command<F>(
+    ctx: VsixInvokeContext,
+    mut on_builtin: F,
+) -> Result<NodeExecuteResult, String>
+where
+    F: FnMut(&str) -> Result<String, String>,
+{
+    let install_dir = ctx.install_dir.to_string_lossy().to_string();
+    let extension_dir = ctx.extension_root.to_string_lossy().to_string();
+    let token = next_execute_token();
+
+    let mut guard = SIDECAR.lock().map_err(|e| e.to_string())?;
+    let session = guard.ensure()?;
+
+    let activate = session.request(&NodeHostRequest::Activate {
+        install_dir: install_dir.clone(),
+        extension_dir: extension_dir.clone(),
+        main: ctx.main_rel.clone(),
+        extension_id: ctx.extension_id.clone(),
+    })?;
+    if !activate.ok {
+        guard.drop_session();
+        return Err(activate
+            .error
+            .unwrap_or_else(|| "activate failed".into()));
+    }
+
+    let mut resp = session.request(&NodeHostRequest::Execute {
+        execute_token: token,
+        install_dir,
+        extension_dir,
+        main: ctx.main_rel,
+        extension_id: ctx.extension_id.clone(),
+        command_id: ctx.command_id.clone(),
+        editor: ctx.editor,
+        configuration: ctx.configuration,
+    })?;
+    if !resp.ok {
+        guard.drop_session();
+        return Err(resp
+            .error
+            .unwrap_or_else(|| "execute failed".into()));
+    }
+
+    while !resp.complete {
+        let mut results = Vec::new();
+        for call in &resp.host_calls {
+            match on_builtin(&call.command_id) {
+                Ok(msg) => results.push(HostCallResult {
+                    id: call.id.clone(),
+                    ok: true,
+                    result: Some(msg),
+                    error: None,
+                }),
+                Err(e) => results.push(HostCallResult {
+                    id: call.id.clone(),
+                    ok: false,
+                    result: None,
+                    error: Some(e),
+                }),
+            }
         }
-        let toast = exec.toast.map(|t| t.message);
-        let message = toast.clone().unwrap_or_else(|| {
-            format!("VSIX `{}` executed via Node host", command_id)
-        });
-        Ok(NodeExecuteResult { message, toast })
+        resp = session.request(&NodeHostRequest::HostResults {
+            execute_token: resp.execute_token,
+            results,
+        })?;
+        if !resp.ok {
+            guard.drop_session();
+            return Err(resp
+                .error
+                .unwrap_or_else(|| "host results failed".into()));
+        }
+    }
+
+    let toast = resp.toast.as_ref().map(|t| t.message.clone());
+    let toast_severity = resp.toast.as_ref().and_then(|t| t.severity.clone());
+    let message = toast.clone().unwrap_or_else(|| {
+        format!("VSIX `{}` executed via Node host", ctx.command_id)
+    });
+    Ok(NodeExecuteResult {
+        message,
+        toast,
+        toast_severity,
     })
 }
 
@@ -192,9 +395,11 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    fn sample_extension_root() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../examples/vsix-sample-extension/extension")
+    fn sample_paths() -> (PathBuf, PathBuf) {
+        let install = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/vsix-sample-extension");
+        let extension = install.join("extension");
+        (install, extension)
     }
 
     #[test]
@@ -206,13 +411,18 @@ mod tests {
         if host_script_path().is_none() {
             panic!("host.mjs missing");
         }
-        let root = sample_extension_root();
-        assert!(root.join("main.js").is_file());
+        let (install, extension) = sample_paths();
         let out = execute_extension_command(
-            &root,
-            "./main.js",
-            "unibrowser.hello-sample",
-            "unibrowser.helloSample.sayHello",
+            VsixInvokeContext {
+                install_dir: install,
+                extension_root: extension,
+                main_rel: "./main.js".into(),
+                extension_id: "unibrowser.hello-sample".into(),
+                command_id: "unibrowser.helloSample.sayHello".into(),
+                editor: None,
+                configuration: Value::Object(serde_json::Map::new()),
+            },
+            |_| Ok("noop".into()),
         )
         .expect("execute");
         assert!(
@@ -220,5 +430,41 @@ mod tests {
             "unexpected toast: {:?}",
             out.toast
         );
+    }
+
+    #[test]
+    fn node_host_probe_editor_and_builtin_command() {
+        if !node_on_path() {
+            eprintln!("skip node_host_probe_editor_and_builtin_command: node not on PATH");
+            return;
+        }
+        let (install, extension) = sample_paths();
+        let mut builtin_ran = false;
+        let out = execute_extension_command(
+            VsixInvokeContext {
+                install_dir: install,
+                extension_root: extension,
+                main_rel: "./main.js".into(),
+                extension_id: "unibrowser.hello-sample".into(),
+                command_id: "unibrowser.helloSample.probeEditor".into(),
+                editor: Some(EditorSnapshot {
+                    language_id: "markdown".into(),
+                    text: "# Title\n\nBody text for the sample extension.".into(),
+                }),
+                configuration: serde_json::json!({ "helloSample": { "previewChars": 12 } }),
+            },
+            |cmd| {
+                if cmd == "unibrowser.font.size.increase" {
+                    builtin_ran = true;
+                    return Ok("font increased".into());
+                }
+                Err(format!("unexpected builtin {}", cmd))
+            },
+        )
+        .expect("execute");
+        assert!(builtin_ran, "builtin command bus not invoked");
+        let toast = out.toast.as_deref().unwrap_or("");
+        assert!(toast.contains("markdown"), "toast: {}", toast);
+        assert!(toast.contains("Title"), "toast: {}", toast);
     }
 }

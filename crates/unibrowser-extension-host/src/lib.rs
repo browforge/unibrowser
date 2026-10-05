@@ -6,11 +6,13 @@ mod node_host;
 
 pub use activation::{ActivationRecord, activated_extensions, matching_on_command_event, record_command_activation};
 pub use node_host::{
-    execute_extension_command, host_script_path, node_on_path, vsix_palette_enablement,
-    NodeExecuteResult, VSIX_NODE_HOST_NO_MAIN, VSIX_NODE_HOST_NO_NODE, VSIX_NODE_HOST_PREF_OFF,
+    deactivate_extension, execute_extension_command, host_script_path, node_on_path,
+    runtime_status, shutdown_node_host, vsix_palette_enablement, EditorSnapshot,
+    NodeExecuteResult, NodeHostRuntimeStatus, VsixInvokeContext, VSIX_NODE_HOST_NO_MAIN,
+    VSIX_NODE_HOST_NO_NODE, VSIX_NODE_HOST_PREF_OFF,
 };
 
-pub const HOST_VERSION: &str = "0.2.0-node-spike";
+pub const HOST_VERSION: &str = "0.3.0-node-shim";
 
 pub const VSIX_STUB_ENABLED_HINT: &str =
     "VSIX stub — JavaScript extension host not started (see docs/extension-host.md)";

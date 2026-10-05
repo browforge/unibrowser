@@ -25,6 +25,10 @@ interface ExtensionHostDiagnosticsDto {
   host_version: string;
   host_running: boolean;
   host_message: string;
+  node_pid: number | null;
+  node_alive: boolean;
+  node_restart_count: number;
+  node_last_error: string | null;
   activated_extensions: VsixActivationDto[];
 }
 
@@ -136,6 +140,26 @@ export async function renderDiagnostics(root: HTMLElement) {
   const extP = document.createElement("p");
   extP.textContent = `${info.extension_host.host_version} — ${info.extension_host.host_message}`;
   extSec.appendChild(extP);
+  const nodeList = document.createElement("ul");
+  nodeList.className = "diagnostics-list";
+  const pidLine =
+    info.extension_host.node_pid != null
+      ? `Node pid ${info.extension_host.node_pid} (${info.extension_host.node_alive ? "alive" : "not running"})`
+      : "Node sidecar not started";
+  [
+    pidLine,
+    `Restarts: ${info.extension_host.node_restart_count}`,
+    info.extension_host.node_last_error
+      ? `Last error: ${info.extension_host.node_last_error}`
+      : null,
+  ]
+    .filter((line): line is string => line != null)
+    .forEach((line) => {
+      const li = document.createElement("li");
+      li.textContent = line;
+      nodeList.appendChild(li);
+    });
+  extSec.appendChild(nodeList);
   const actList = document.createElement("ul");
   actList.className = "diagnostics-list";
   if (!info.extension_host.activated_extensions.length) {
