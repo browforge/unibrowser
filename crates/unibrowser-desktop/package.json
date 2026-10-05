@@ -18,8 +18,12 @@
     "marked": "^15.0.12",
     "mermaid": "^11.17.2",
     "monaco-editor": "^0.57.0",
+    "monaco-editor-textmate": "^4.0.0",
+    "monaco-textmate": "^3.0.1",
     "pdfjs-dist": "^6.4.299",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

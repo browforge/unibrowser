@@ -1,51 +1,58 @@
-# Packaging (stubs for CI later)
+# Packaging
 
-Unibrowser ships from source during the blitz. This page records intended release artefacts so CI can grow without re-deciding formats.
+Unibrowser bundles via **Tauri 2** (`tauri.conf.json` targets: `deb`, `appimage`, `nsis`, `msi`).
 
-## Windows
+## CI / automation status
 
-| Artefact | Tooling (planned) | Notes |
-| --- | --- | --- |
-| MSI | WiX v4 or `cargo-wix` against the Tauri `bundle` output | Per-machine install under `Program Files`; optional Start Menu shortcut |
-| NSIS | Tauri `bundle.targets = ["nsis"]` | Smaller download; same `unibrowser-desktop` binary + WebView2 bootstrapper check |
+This repository is hosted on **Origin** (`origin.cursor.com`). The workflow file [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the **intended** contract, but **automated runs are not confirmed** on Origin for this project (no linked GitHub Actions mirror observed). Treat bundle steps below as what CI *should* run once a forge executes the workflow; local `./scripts/check-workspace.sh` remains the reliable gate until then.
 
-**Stub steps (local smoke, not wired in CI yet):**
+## Linux (VM / `ubuntu-latest`)
 
-```powershell
-cd crates/unibrowser-desktop
-npm ci
-npm run tauri build
-# Inspect crates/unibrowser-desktop/src-tauri/target/release/bundle/nsis/ and msi/ when targets are enabled in tauri.conf.json
-```
-
-Document WebView2 runtime requirement in the installer welcome text ([browser-shell.md](browser-shell.md)).
-
-## Linux
-
-| Artefact | Tooling (planned) | Notes |
-| --- | --- | --- |
-| AppImage | `tauri-bundler` AppImage target + `linuxdeploy` | Portable; ships GTK/WebKit deps where possible |
-| `.deb` | `dpkg-deb` from bundle `deb` target | Depends on `libwebkit2gtk-4.1-0`, `libayatana-appindicator3-1` (or distro equivalents) |
-
-**Stub steps:**
+**Prerequisites:** same GTK/WebKit packages as [ci.md](ci.md) `linux` job, plus `fuse`, `libfuse2`, `patchelf` for AppImage.
 
 ```bash
 cd crates/unibrowser-desktop
 npm ci
+cargo build -p unibrowser-media --bin unibrowser-media-sidecar --release
 npm run tauri build
-# bundle/deb and bundle/appimage under src-tauri/target/release/bundle/
 ```
 
-Headless PDF export on Linux expects `chromium` or `wkhtmltopdf` on the **user** PATH ([commands-undo-redo.md](commands-undo-redo.md)); installers do not need to bundle a browser for that.
+**Outputs (workspace target dir):**
 
-## macOS (out of scope for blitz CI)
+| Artefact | Typical path |
+| --- | --- |
+| `.deb` | `target/release/bundle/deb/unibrowser_*_amd64.deb` |
+| AppImage | `target/release/bundle/appimage/unibrowser_*_amd64.AppImage` |
 
-DMG via Tauri `dmg` target when Apple signing is available.
+**Cloud VM smoke (2026-10-05):** `npm run tauri build` succeeded on Ubuntu (GTK/WebKit deps from CI list; `patchelf` present; system `fuse` package conflict did not block bundler).
+
+| Artefact | Size | Headless smoke |
+| --- | --- | --- |
+| `Unibrowser_0.1.0_amd64.deb` | ~17.3 MiB (bundler) | `dpkg-deb -I` shows package metadata |
+| `Unibrowser_0.1.0_amd64.AppImage` | ~91.1 MiB (bundler) | `./Unibrowser_0.1.0_amd64.AppImage --appimage-version` → `Version: effce44` |
+
+Full GUI launch was not exercised in the headless VM; use Bear's desktop for an interactive smoke.
+
+## Windows (Bear machine / `windows-latest`)
+
+```powershell
+cd crates\unibrowser-desktop
+npm ci
+cargo build -p unibrowser-media --bin unibrowser-media-sidecar --release
+npm run tauri build
+```
+
+| Artefact | Typical path |
+| --- | --- |
+| NSIS | `target\release\bundle\nsis\Unibrowser_*-setup.exe` |
+| MSI | `target\release\bundle\msi\Unibrowser_*_x64_en-US.msi` |
+
+WebView2: bundle config uses `downloadBootstrapper` so the installer can fetch the runtime when missing ([browser-shell.md](browser-shell.md)).
 
 ## Versioning
 
-Release version follows `Cargo.toml` / `tauri.conf.json` `version` field and [CHANGELOG.md](../CHANGELOG.md).
+`Cargo.toml` / `tauri.conf.json` `version` and [CHANGELOG.md](../CHANGELOG.md).
 
 ## File associations
 
-Unibrowser does not register OS default handlers in this blitz. See [file-associations.md](file-associations.md) for current behaviour and planned opt-in association steps for FOSS installers.
+Still not registered in installers; see [file-associations.md](file-associations.md).

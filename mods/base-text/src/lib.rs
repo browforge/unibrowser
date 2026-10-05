@@ -90,6 +90,7 @@ impl TextBackend {
             Some(ext) if ext == "toml" => "toml",
             Some(ext) if ext == "yaml" || ext == "yml" => "yaml",
             Some(ext) if ext == "xml" => "xml",
+            Some(ext) if ext == "fixturelang" => "fixturelang",
             _ => "plaintext",
         }
     }

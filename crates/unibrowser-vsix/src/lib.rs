@@ -1,6 +1,11 @@
 //! Install `.vsix` packages to the user config dir and import V1 metadata ([ADR 0014](../../docs/adr/0014-vsix-compatibility-layer.md)).
 
 mod themes;
+mod grammars;
+pub use grammars::{
+    discover_grammars_on_install, list_enabled_grammars, resolve_grammar_for_language,
+    MonacoGrammarDto, VsixGrammarEntry,
+};
 pub use themes::{discover_themes_on_install, list_editor_themes, resolve_monaco_theme, EditorThemeSummary, VsixThemeEntry};
 
 use std::collections::HashSet;
@@ -82,6 +87,8 @@ pub struct InstalledVsixRecord {
     pub grammar_notes: Vec<String>,
     #[serde(default)]
     pub themes: Vec<VsixThemeEntry>,
+    #[serde(default)]
+    pub grammars: Vec<VsixGrammarEntry>,
 }
 
 fn default_enabled() -> bool {
@@ -150,7 +157,18 @@ pub fn install_vsix_bytes(
         })
         .unwrap_or_default();
     let (themes, theme_notes) = discover_themes_on_install(&extension_id, &install_dir, &theme_refs);
-    let grammar_notes = grammar_notes_from_package(&package_json);
+    let grammar_refs: Vec<(Option<String>, Option<String>, Option<String>)> = package_json
+        .contributes
+        .as_ref()
+        .map(|c| {
+            c.grammars
+                .iter()
+                .map(|g| (g.language.clone(), g.scope_name.clone(), g.path.clone()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let (grammars, grammar_notes) =
+        discover_grammars_on_install(&extension_id, &install_dir, &grammar_refs);
     let compatibility = compatibility_for_install(&install_dir);
     let record = InstalledVsixRecord {
         extension_id,
@@ -167,6 +185,7 @@ pub fn install_vsix_bytes(
         theme_notes,
         grammar_notes,
         themes,
+        grammars,
     };
     write_install_record(&install_dir, &record)?;
     Ok(record)
@@ -417,19 +436,6 @@ fn compatibility_for_install(install_dir: &Path) -> InstallCompatibility {
     }
 }
 
-fn grammar_notes_from_package(package: &PackageJson) -> Vec<String> {
-    let contributes = package.contributes.as_ref().cloned().unwrap_or_default();
-    contributes
-        .grammars
-        .into_iter()
-        .map(|g| {
-            let lang = g.language.unwrap_or_else(|| "unknown".into());
-            let path = g.path.unwrap_or_else(|| "?".into());
-            format!("{lang} grammar ({path}) — recognised, not applied")
-        })
-        .collect()
-}
-
 #[derive(Debug, Clone, Deserialize)]
 struct PackageCommand {
     command: String,
@@ -593,10 +599,14 @@ mod tests {
         assert!(
             rec.grammar_notes
                 .iter()
-                .any(|n| n.contains("recognised, not applied")),
+                .any(|n| n.contains("TextMate applied")),
             "grammar notes: {:?}",
             rec.grammar_notes
         );
+        assert_eq!(rec.grammars.len(), 1);
+        let grams = list_enabled_grammars(&dir).expect("grammars");
+        assert_eq!(grams.len(), 1);
+        assert_eq!(grams[0].language, "fixturelang");
         let themes = list_editor_themes(&dir).expect("list themes");
         assert!(
             themes.iter().any(|t| t.id.starts_with("vsix:unibrowser.openvsx-smoke-fixture")),

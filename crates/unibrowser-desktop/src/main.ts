@@ -763,6 +763,8 @@ function renderModPortal(portal: ModPortalDto | null) {
         "info",
       );
       await refreshInstalledExtensions(nativeList, installedList);
+      const { reloadVsixEditorGrammars } = await import("./textEditor");
+      await reloadVsixEditorGrammars().catch(() => {});
     } catch (err) {
       showToast(String(err), "error");
     }
@@ -781,6 +783,8 @@ function renderModPortal(portal: ModPortalDto | null) {
       });
       showToast(t("mods.installedPaletteNote", { extensionId: rec.extension_id }), "info");
       await refreshInstalledExtensions(nativeList, installedList);
+      const { reloadVsixEditorGrammars } = await import("./textEditor");
+      await reloadVsixEditorGrammars().catch(() => {});
     } catch (err) {
       showToast(String(err), "error");
     }

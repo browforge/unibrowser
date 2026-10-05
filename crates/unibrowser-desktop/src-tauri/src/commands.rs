@@ -6145,6 +6145,35 @@ pub fn get_editor_monaco_theme(
 }
 
 #[tauri::command]
+pub fn list_monaco_grammars_cmd(
+) -> Result<Vec<crate::editor_grammars::MonacoGrammarDtoOut>, String> {
+    crate::editor_grammars::list_monaco_grammars()
+}
+
+#[derive(serde::Serialize)]
+pub struct DocxSaveReportDto {
+    pub warnings: Vec<String>,
+    pub paragraphs_written: usize,
+}
+
+#[tauri::command]
+pub fn save_docx_from_preview_html(
+    path: String,
+    html: String,
+    state: State<AppState>,
+) -> Result<DocxSaveReportDto, String> {
+    let p = resolve_open_path(&path, &state.cwd)?;
+    if !p.is_file() {
+        return Err("not a file".into());
+    }
+    let report = unibrowser_docx::save_docx_from_html(&p, &html).map_err(|e| e.to_string())?;
+    Ok(DocxSaveReportDto {
+        warnings: report.warnings,
+        paragraphs_written: report.paragraphs_written,
+    })
+}
+
+#[tauri::command]
 pub fn set_editor_theme(theme_id: String) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.editor_theme_id = theme_id;

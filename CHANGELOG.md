@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **DOCX save (lite):** `unibrowser-docx` + **Save to .docx** for supported HTML; refuses complex originals; tests in crate ([docx-roundtrip.md](docs/docx-roundtrip.md)).
+- **VSIX TextMate:** `vscode-textmate` + Oniguruma WASM in Monaco; fixture `fixturelang` grammar applied; install notes updated ([extension-host.md](docs/extension-host.md)).
+- **Packaging:** Tauri bundle targets deb/AppImage/NSIS/MSI; workflow bundle + artifact upload steps; honest [packaging.md](docs/packaging.md) + [ci.md](docs/ci.md) (Origin may not run workflows).
 - **Windows target:** WebView2 `DownloadStarting` → `unibrowser-download` (`webview_download_win.rs`); Node host spawn restores SystemRoot/PATHEXT after `env_clear`; `find_binary` / media sidecar `.exe` sibling names; `windows-latest` CI job; [windows-testing.md](docs/windows-testing.md).
 - **Timeline lazy-clip UI:** Add PDF page (picker + page), SVG still, title card, and MIDI track; block proxies (raster thumb, title text, MIDI note bars). Demo `sample.unibrow` preloaded; `timeline_lazy_encode_e2e` integration test (skips without ffmpeg/pdftoppm).
 - **Docs:** [extension-host.md](docs/extension-host.md) aligned with VSIX themes + Node shim enablement.

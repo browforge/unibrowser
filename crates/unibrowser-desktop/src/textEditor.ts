@@ -12,6 +12,7 @@ import {
   syncSpellcheckPane,
 } from "./experimentalSpellcheck";
 import { applyMonacoEditorTheme, resolveEditorThemeId } from "./monacoEditorTheme";
+import { refreshVsixTextmateGrammars } from "./monacoTextmate";
 
 type Monaco = typeof import("monaco-editor");
 type MonacoEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
@@ -38,8 +39,14 @@ async function getMonaco(): Promise<Monaco> {
     const monaco = await import("monaco-editor");
     loader.config({ monaco });
     monacoApi = await loader.init();
+    await refreshVsixTextmateGrammars(monacoApi as Monaco).catch(() => {});
   }
   return monacoApi as Monaco;
+}
+
+export async function reloadVsixEditorGrammars(): Promise<void> {
+  const api = await getMonaco();
+  await refreshVsixTextmateGrammars(api);
 }
 
 let editorThemePref = "auto";

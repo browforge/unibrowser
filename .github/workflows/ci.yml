@@ -44,6 +44,23 @@ jobs:
           cargo build -p unibrowser-desktop
       - name: cargo build egui spike
         run: cargo build -p unibrowser-app
+      - name: Install Linux bundle deps
+        run: |
+          sudo apt-get install -y fuse libfuse2 patchelf
+      - name: Tauri bundle (deb + AppImage)
+        working-directory: crates/unibrowser-desktop
+        run: |
+          cargo build -p unibrowser-media --bin unibrowser-media-sidecar --release
+          npm run tauri build
+          du -sh ../../../target/release/bundle/deb/*.deb ../../../target/release/bundle/appimage/*.AppImage 2>/dev/null || true
+      - name: Upload Linux bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-bundles
+          path: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/appimage/*.AppImage
+          if-no-files-found: warn
 
   windows-check:
     runs-on: ubuntu-latest
@@ -83,3 +100,16 @@ jobs:
         run: cargo test --workspace
       - name: cargo build Tauri (debug)
         run: cargo build -p unibrowser-desktop
+      - name: Tauri bundle (NSIS + MSI)
+        working-directory: crates/unibrowser-desktop
+        run: |
+          cargo build -p unibrowser-media --bin unibrowser-media-sidecar --release
+          npm run tauri build
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: |
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/msi/*.msi
+          if-no-files-found: warn

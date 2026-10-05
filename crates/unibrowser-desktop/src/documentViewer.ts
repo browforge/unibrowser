@@ -471,6 +471,19 @@ function docxEditHtmlSiblingPath(docxPath: string): string {
   return `${docxPath}.ub-edit.html`;
 }
 
+async function saveDocxEditsToDocx(docxPath: string, article: HTMLElement) {
+  try {
+    const report = await invoke<{ warnings: string[]; paragraphs_written: number }>(
+      "save_docx_from_preview_html",
+      { path: docxPath, html: article.innerHTML },
+    );
+    const warn = report.warnings.length ? ` ${report.warnings[0]}` : "";
+    showToast(t("docx.savedEditsDocx", { path: docxPath }) + warn, "info");
+  } catch (err) {
+    showErrorToast(err);
+  }
+}
+
 async function saveDocxEditsAsHtml(
   docxPath: string,
   article: HTMLElement,
@@ -592,9 +605,13 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   const saveHtmlBtn = document.createElement("button");
   saveHtmlBtn.type = "button";
   saveHtmlBtn.textContent = t("docx.saveEditsHtml");
+  const saveDocxBtn = document.createElement("button");
+  saveDocxBtn.type = "button";
+  saveDocxBtn.textContent = t("docx.saveEditsDocx");
   toolbar.appendChild(printBtn);
   toolbar.appendChild(exportBtn);
   toolbar.appendChild(saveHtmlBtn);
+  toolbar.appendChild(saveDocxBtn);
 
   const article = document.createElement("article");
   article.className = "docx-view";
@@ -602,6 +619,9 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   article.innerHTML = result.value;
   saveHtmlBtn.onclick = () => {
     void saveDocxEditsAsHtml(path, article, readerFontPt);
+  };
+  saveDocxBtn.onclick = () => {
+    void saveDocxEditsToDocx(path, article);
   };
   applyDocxSpellcheckExperiment(article);
   appendTrustBanner(root, "remote-html");

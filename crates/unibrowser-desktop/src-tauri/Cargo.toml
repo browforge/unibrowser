@@ -44,6 +44,7 @@ unibrowser-project = { path = "../../unibrowser-project" }
 unibrowser-media = { path = "../../unibrowser-media" }
 unibrowser-vsix = { path = "../../unibrowser-vsix" }
 unibrowser-extension-host = { path = "../../unibrowser-extension-host" }
+unibrowser-docx = { path = "../../unibrowser-docx" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"

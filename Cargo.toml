@@ -11,6 +11,7 @@ members = [
     "crates/unibrowser-script-host",
     "crates/unibrowser-vsix",
     "crates/unibrowser-extension-host",
+    "crates/unibrowser-docx",
     "crates/unibrowser-app",
     "mods/base-text",
     "mods/base-png",
@@ -25,7 +26,7 @@ members = [
     "mods/base-files",
     "mods/base-web",
     "crates/unibrowser-desktop/src-tauri",
-    "examples/ub-mod-cdylib-stub",
+    "examples/ub-mod-cdylib-stub", "crates/unibrowser-docx",
 ]
 
 [workspace.package]

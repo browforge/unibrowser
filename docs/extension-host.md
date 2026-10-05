@@ -9,7 +9,7 @@ VSIX packages install metadata and (optionally) run extension JavaScript through
 | Install | `.vsix` → `vsix-extensions/` under config; `install.json` + extracted `extension/` tree |
 | Compatibility | Static scan of `extension/main` for `vscode.*` usages vs shim registry → **Works / Partial / Unsupported** badge in mod portal |
 | **Color themes** | Valid `contributes.themes` JSON converted to Monaco (`tokenColors` + `colors`); picker in **Settings → Appearance → Editor theme** |
-| **Grammars** | `contributes.grammars` listed as **recognised, not applied** (see below) |
+| **Grammars** | `contributes.grammars` → Monaco via **vscode-textmate** + Oniguruma WASM when the editor language id matches (see below) |
 | `contributes.commands` | Registered in `CommandRegistry`; palette + **Command Manager → Extensions** |
 | `contributes.keybindings` | Merged into `keybindings.json` after defaults (user overrides win) |
 | `activationEvents` | `onCommand:<id>` recorded when the command runs (Rust activation log) |
@@ -18,9 +18,9 @@ VSIX packages install metadata and (optionally) run extension JavaScript through
 | Trust | First enable per extension id shows a blocking trust dialog; trusted ids stored in preferences |
 | Disable | Turning an extension off sends `deactivate` to the Node host for that id |
 
-### Why grammars stay “not applied”
+### TextMate grammars (applied)
 
-Monaco in the desktop shell already bundles built-in Monarch grammars for common languages. VS Code TextMate grammars need a **TextMate → Monarch/onig** pipeline (typically `vscode-textmate` + Oniguruma WASM). That is a sizeable dependency and startup cost for a blitz slice, so we only **record** grammar contributions for compatibility reporting. Colour themes reuse existing Monaco `defineTheme` and are cheap to convert.
+Enabled VSIX grammars load through `monacoTextmate.ts` (`vscode-textmate`, `vscode-oniguruma`, `monaco-editor-textmate`). Install notes show **TextMate applied in Monaco when language matches**. Smoke: install [examples/vsix-openvsx-fixture](../examples/vsix-openvsx-fixture/) and open `sample.fixturelang` (language id `fixturelang`).
 
 ### Editor themes
 

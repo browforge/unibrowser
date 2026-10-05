@@ -3,20 +3,22 @@
 ## What works
 
 - Open `.docx` via **base-docx** (Mammoth → HTML in the viewer).
-- Experimental **contenteditable** preview when spellcheck experiment is on.
-- **Save edits as HTML** writes a sibling file next to the document:
+- **Save to .docx** (toolbar): writes supported HTML back into the OOXML package via `unibrowser-docx` (`save_docx_from_preview_html`).
+  - Supported markup: paragraphs, headings `h1`–`h6`, **bold** / **italic**, lists (`ul`/`ol`/`li`), line breaks.
+  - Original files containing tables, drawings, fields, or content controls are **rejected** with an error (not silently dropped).
+  - Unsupported HTML tags in the editor are rejected before save.
+- **Save edits as HTML** still writes `{name}.docx.ub-edit.html` for diffing.
 
-  `{name}.docx.ub-edit.html`
+## Limits
 
-  The file is a minimal HTML document with your edited body markup and the current preview font size.
+- Body text is replaced for simple documents; Word styles, numbering, and complex layout are not round-tripped.
+- Save shows a warning that only the supported subset was written.
+- Mammoth conversion notes at open time still apply; re-open after save to refresh preview.
 
-- **Export print HTML** / print preview still use the original Mammoth HTML at open time until you re-open the file.
+## Tests
 
-## What does not work
+- `crates/unibrowser-docx`: `roundtrip_simple_paragraph`, `refuses_original_table`.
 
-- Saving back into `.docx` (OOXML packer) is **not** implemented in the blitz. Layout, styles, fields, and tracked changes from Word are not round-tripped.
-- The `.ub-edit.html` sibling is an honest export for diffing, archiving, or opening in a browser — not a Word replacement.
+## Related
 
-## Future
-
-- Optional zip-based DOCX writer for simple paragraph HTML only, behind a clear fidelity warning.
+- [commands-undo-redo.md](commands-undo-redo.md) (print/export)

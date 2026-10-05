@@ -38,6 +38,7 @@ mod project_undo;
 mod project_undo_handlers;
 mod vsix_host;
 mod editor_themes;
+mod editor_grammars;
 mod vsix_extension_config;
 mod document_limits;
 mod content_sniff;
@@ -285,6 +286,8 @@ pub fn run() {
             commands::begin_file_compare,
             commands::set_ui_theme,
             commands::list_editor_themes_cmd,
+            commands::list_monaco_grammars_cmd,
+            commands::save_docx_from_preview_html,
             commands::get_editor_monaco_theme,
             commands::set_editor_theme,
             commands::get_epub_chapter,

@@ -1,36 +1,38 @@
 # Continuous integration
 
-## Local check (matches CI)
+## Local check (matches intended CI)
 
 ```bash
 ./scripts/check-workspace.sh
 ```
 
-Runs `cargo test --workspace` and `npm run build` in `crates/unibrowser-desktop` (same gates as GitHub Actions).
+Runs `cargo test --workspace` and `npm run build` in `crates/unibrowser-desktop`.
 
-## GitHub Actions
+## Does CI actually run?
 
-Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
+**Plain answer:** for this **Origin-hosted** repo (`origin.cursor.com/git/bearjcc/...`), we do **not** have evidence that `.github/workflows/ci.yml` executes on push. There is no `.origin` pipeline config in-tree, and Origin does not automatically run GitHub Actions workflows just because the YAML file exists.
+
+| Expectation | Reality today |
+| --- | --- |
+| Green checks on every `main` push | **Not guaranteed** — verify manually or after you wire Origin/GitHub Actions |
+| `windows` job protects Bear's target | **Only when** a forge runs the workflow on `windows-latest` |
+| Bundle artefacts in CI | Defined in workflow (`linux-bundles`, `windows-installers` artifacts); **unverified** until CI runs |
+
+Use `./scripts/check-workspace.sh` before pushing. When you connect GitHub Actions or an Origin pipeline that invokes the same steps, update this section with a link to live runs.
+
+## Workflow file (contract)
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 
 | Job | What it does |
 | --- | --- |
-| `linux` | `npm ci` + `npm run build`, `cargo test --workspace`, debug builds for desktop + media sidecar + egui spike |
-| `windows-check` | Ubuntu cross-compile: `cargo check --workspace --exclude unibrowser-desktop --target x86_64-pc-windows-msvc` (desktop needs a real Windows host for `ring`/WebView2) |
-| `windows` | `windows-latest`: same npm build + `cargo test --workspace` + debug `unibrowser-desktop` (primary Bear target) |
+| `linux` | `npm ci` + `npm run build`, `cargo test --workspace`, debug builds, **`tauri build`** (deb + AppImage), upload `linux-bundles` |
+| `windows-check` | Ubuntu cross-compile: `cargo check --exclude unibrowser-desktop --target x86_64-pc-windows-msvc` |
+| `windows` | `windows-latest`: tests + debug build + **`tauri build`** (NSIS + MSI), upload `windows-installers` |
 
-Manual Windows QA beyond CI: [windows-testing.md](windows-testing.md).
+Manual Windows QA: [windows-testing.md](windows-testing.md). Packaging paths: [packaging.md](packaging.md).
 
-Linux packages: GTK 3, WebKit2GTK 4.1, and related Tauri deps (see workflow `apt-get` step).
-
-## Origin (Cursor cloud)
-
-When this repository is connected to **Origin** as the source of truth:
-
-1. Push to `main` or open a PR from `cursor/**` branches.
-2. Origin runs the same workflow definitions hosted on the forge (equivalent to the GitHub Actions file above unless your team adds Origin-specific steps).
-3. Use `./scripts/check-workspace.sh` on an agent or laptop before pushing to catch failures early.
-
-If CI is not wired yet on Origin, the workflow file is the contract: add a pipeline that invokes `scripts/check-workspace.sh` on Ubuntu with Rust stable and Node 20.
+Linux packages: GTK 3, WebKit2GTK 4.1, and related Tauri deps (see workflow `apt-get` steps).
 
 ## Related
 

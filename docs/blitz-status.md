@@ -4,6 +4,8 @@
 
 Use this page for weekly status posts. Capability tables in [README.md](../README.md) stay detailed; this doc is the narrative plus gaps and runbook.
 
+**CI:** [ci.md](ci.md) — workflow YAML is in-repo; **Origin does not automatically run it** (no green checks assumed).
+
 ## Shipped (highlights)
 
 | Area | What works |
@@ -14,7 +16,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Perf | Lazy Monaco/pdf.js/mammoth; [perf.md](perf.md) + `scripts/measure-cold-start.sh` |
 | Find / zoom | Ctrl+F in-document overlay (Monaco, DOCX, EPUB); page zoom for web/PDF/image ([commands-cross-format.md](commands-cross-format.md)) |
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, **word count / reading time** (text + DOCX), font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
-| VSIX / extensions | Node host + **VSIX colour themes** in Settings; compatibility badge; Open VSX smoke fixture test; grammars noted not applied |
+| VSIX / extensions | Node host + **VSIX colour themes**; **TextMate grammars** (Onig WASM) for enabled VSIX; Open VSX smoke fixture + `openvsx_fixture_install_smoke` |
 | Markdown preview | TOC sidebar (heading jump); **Export HTML** (standalone file, embedded images); Monaco code colour in preview; Mermaid (lazy); relative images via `convertFileSrc`; links via `resolve_preview_link` |
 | Undo / PDF | Document undo/redo on text, SVG, and `.unibrow` timeline (grey when stack empty); PDF thumb strip syncs active page; plain-text print preview; export PDF from Markdown/DOCX print HTML; matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
@@ -183,7 +185,7 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 | 3 | OCR sidecar | Announced stub, no Tesseract pool |
 | 4 | Full timeline / DAW encode | ffmpeg H.264 + approximate duck/fade; no full DAW mix bus |
 | 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
-| 6 | EPUB/DOCX fidelity | Asset URLs; Mammoth layout |
+| 6 | EPUB/DOCX fidelity | Lite `.docx` save for simple bodies; Mammoth layout + tables/images still gaps |
 | 7 | Web proxy applied to webviews | Prefs persist only |
 | 8 | i18n depth | Chrome only (`en-NZ` / `en-US`) |
 | 9 | Cloud / collab | Share zip only |
@@ -209,7 +211,7 @@ Severity: **P1** user-blocking or data risk · **P2** major UX gap · **P3** pol
 | --- | --- | --- |
 | P2 | WebView2 downloads (Windows) | `DownloadStarting` wired in code; not verified on Bear's machine yet. Linux WebKit path: fetch to hinted path, no Finished duplicate ([browser-shell.md](browser-shell.md), [windows-testing.md](windows-testing.md)). |
 | P2 | EPUB assets | Spine HTML only; embedded images/fonts often missing until asset URL resolution. |
-| P2 | DOCX fidelity | Mammoth layout limits; no `.docx` write-back (HTML sibling only — [docx-roundtrip.md](docx-roundtrip.md)). |
+| P2 | DOCX fidelity | Lite **Save to .docx** for paragraph/heading/bold/italic subset; rejects tables/images in source ([docx-roundtrip.md](docx-roundtrip.md)). |
 | P2 | VSIX JS host | Node spike only; grey when pref off or `node` missing ([extension-host.md](extension-host.md)). |
 | P2 | Web proxy prefs | Persisted but **not applied** to embedded https webviews ([network-proxy.md](network-proxy.md)). |
 | P3 | PDF text copy | Needs pdf.js **text layer**; scanned/raster-only pages have no selectable text (Copy / Print selection grey). |
