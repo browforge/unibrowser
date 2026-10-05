@@ -45,3 +45,7 @@ DMG via Tauri `dmg` target when Apple signing is available.
 ## Versioning
 
 Release version follows `Cargo.toml` / `tauri.conf.json` `version` field and [CHANGELOG.md](../CHANGELOG.md).
+
+## File associations
+
+Unibrowser does not register OS default handlers in this blitz. See [file-associations.md](file-associations.md) for current behaviour and planned opt-in association steps for FOSS installers.

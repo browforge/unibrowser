@@ -694,6 +694,11 @@ function renderModPortal(portal: ModPortalDto | null) {
   const nativeHeading = document.createElement("h4");
   nativeHeading.textContent = t("mods.nativeHeading");
   modPortalPanel.appendChild(nativeHeading);
+  const userModNote = document.createElement("p");
+  userModNote.className = "viewer-note";
+  userModNote.textContent = t("mods.perModToggleNote");
+  modPortalPanel.appendChild(userModNote);
+
   const nativeList = document.createElement("div");
   nativeList.className = "mod-portal-installed mod-portal-native";
   modPortalPanel.appendChild(nativeList);
@@ -816,6 +821,10 @@ async function refreshInstalledExtensions(
 ) {
   nativeContainer.innerHTML = "";
   vsixContainer.innerHTML = "";
+  const prefs = await invoke<{ disable_user_mods: boolean; safe_mode_env: boolean }>(
+    "get_preferences",
+  );
+  const userModsBlocked = prefs.disable_user_mods || prefs.safe_mode_env;
   try {
     const native = await invoke<InstalledNativeModDto[]>("list_installed_native_mods");
     if (!native.length) {
@@ -840,12 +849,16 @@ async function refreshInstalledExtensions(
         const toggle = document.createElement("button");
         toggle.type = "button";
         toggle.textContent = mod.enabled ? t("mods.disable") : t("mods.enable");
+        toggle.disabled = userModsBlocked;
+        toggle.title = userModsBlocked ? t("mods.perModBlockedBySafeMode") : "";
         toggle.onclick = async () => {
           await invoke("set_native_mod_enabled", {
             name: mod.name,
             enabled: !mod.enabled,
           });
+          showToast(t("mods.restartAfterToggle"), "info");
           await refreshInstalledExtensions(nativeContainer, vsixContainer);
+          await refreshState();
         };
         row.appendChild(label);
         row.appendChild(toggle);
@@ -874,7 +887,9 @@ async function refreshInstalledExtensions(
           extensionId: ext.extension_id,
           enabled: !ext.enabled,
         });
+        showToast(t("mods.restartAfterToggle"), "info");
         await refreshInstalledExtensions(nativeContainer, vsixContainer);
+        await refreshState();
       };
       const remove = document.createElement("button");
       remove.type = "button";

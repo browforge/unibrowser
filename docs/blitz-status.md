@@ -76,7 +76,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | https loading UX | Spinner over content host until load finish or document title; 30s slow-network message — [chrome.md](chrome.md) |
 | i18n chrome | Status bar a11y/zoom, CM tab pin tooltips, tab strip hints, downloads manager strings in en-NZ / en-US |
 | Downloads path | `get_downloads_dir` / `dirs` crate: Windows Known Folder, Linux XDG, fallback `~/Downloads` |
-| Timeline snap | Optional **Snap clip edges to playhead** on `.unibrow` track blocks + timing fields |
+| Timeline snap | Optional **Snap clip moves and edges to playhead** on `.unibrow` track (drag block body or edge handles) |
+| Mod portal | Per user native mod / VSIX **Enable** / **Disable** (independent of safe mode); restart note on toggle |
+| File associations | Documented: opens paths in-app, no OS default handler claims yet — [file-associations.md](file-associations.md) |
 | About feedback | **Report an issue** opens GitHub issue template chooser (`UNIBROWSER_REPORT_ISSUE_URL` override) |
 | Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab; **Content-Disposition** renames generic hints; failed fetch toast + history ([browser-shell.md](browser-shell.md)) |
 | Settings reset | Confirmable **Reset onboarding**, **Clear recent files**, **Reset floating toolbars** |
@@ -130,12 +132,12 @@ Report screenshots: [report-visuals.md](report-visuals.md) and `./scripts/captur
 
 ## Metrics (Wed report skeleton)
 
-Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10-05T21:36Z).
+Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10-05T22:15Z).
 
 | Metric | Value (snapshot) |
 | --- | --- |
-| Workspace Rust sources (`crates/` + `mods/`) | 126 `.rs` files · ~24.5k lines |
-| Desktop TypeScript (`crates/unibrowser-desktop/src`) | 62 `.ts` files · ~13.4k lines |
+| Workspace Rust sources (`crates/` + `mods/`) | 129 `.rs` files · ~25.2k lines |
+| Desktop TypeScript (`crates/unibrowser-desktop/src`) | 63 `.ts` files · ~13.9k lines |
 | Bundled format mods (`mods/`) | 12 packages (`base-*` + `toy-markdown`) |
 | Architecture decision records | 20 in `docs/adr/` |
 | Workspace crates (root `Cargo.toml` members) | 25 members incl. desktop, engine, mod-host, media, project, VSIX, cdylib stub |

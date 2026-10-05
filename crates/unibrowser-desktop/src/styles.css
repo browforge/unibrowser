@@ -2414,6 +2414,13 @@ select:focus-visible,
   overflow: hidden;
   text-align: center;
   line-height: 1.2rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.unibrow-timeline-block--moving {
+  cursor: grabbing;
+  opacity: 0.92;
 }
 
 .unibrow-timeline-edge-handle {

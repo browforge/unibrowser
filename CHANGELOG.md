@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Timeline:** Drag clip **body** on the track to shift start time; optional snap-to-playhead applies to moves and edge trims.
+- **File associations:** [file-associations.md](docs/file-associations.md) — Unibrowser opens files in-app but does not register OS default handlers yet (FOSS packaging notes).
+- **Mod portal:** Per user native mod / VSIX enable/disable with restart toast; safe mode disables toggles; documented in [safe-mode.md](docs/safe-mode.md).
+- **Metrics:** `blitz-metrics.sh` snapshot refreshed in [blitz-status.md](docs/blitz-status.md) (2026-10-05T22:15Z).
 - **i18n:** Status bar labels, Command Manager tab/pin/floating toolbar strings, tab strip tooltips wired to en-NZ / en-US catalogs.
 - **Downloads folder:** `get_downloads_dir` resolves OS Downloads (Windows known folder, Linux XDG via `dirs`); download manager **Open Downloads folder** uses it.
 - **Timeline:** Optional snap clip start/end to playhead when dragging track block edges or editing timing (0.25s threshold).

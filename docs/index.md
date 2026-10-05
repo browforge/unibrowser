@@ -23,6 +23,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [commands-cross-format.md](commands-cross-format.md) | Font-size, find, and page zoom per viewer |
 | [commands-undo-redo.md](commands-undo-redo.md) | Undo/redo and PDF export matrix |
 | [packaging.md](packaging.md) | Planned MSI/NSIS/AppImage/deb artefacts |
+| [file-associations.md](file-associations.md) | No OS default handlers yet; FOSS packaging notes |
 | [chrome.md](chrome.md) | Tabs, omnibox, status bar chrome |
 | [workspace-folders.md](workspace-folders.md) | Workspace root tree + git dirty hints in Files |
 | [privacy.md](privacy.md) | No telemetry; local data |

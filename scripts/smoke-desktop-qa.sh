@@ -36,7 +36,8 @@ Launch
   [ ] Command manager: arrow keys on tabs; Extensions tab shows VSIX commands (stub run)
   [ ] Command manager: Export layout / Import layout JSON
   [ ] Command palette: Escape closes without running a command
-  [ ] .unibrow project: board cards drag; timeline drag reorder + type badges; optional snap clip edges to playhead on track blocks
+  [ ] .unibrow project: board cards drag; timeline drag reorder + type badges; drag track block body to move clip; optional snap to playhead
+  [ ] Mod portal: native/VSIX Enable/Disable (with safe mode off); toast mentions restart if commands stale
   [ ] .unibrow timeline: MIDI clip scrub shows notes in panel + status bar; H.264 export (fast) when ffmpeg present
   [ ] Status bar: click path to copy; Ctrl+Shift+V paste path in omnibox
   [ ] Status bar: encoding (text), line/col (text), zoom (PDF/image/web)

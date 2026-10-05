@@ -2505,6 +2505,35 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     bindEdgeHandle("start");
     bindEdgeHandle("end");
 
+    block.addEventListener("pointerdown", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains("unibrow-timeline-edge-handle")) {
+        return;
+      }
+      e.preventDefault();
+      block.setPointerCapture(e.pointerId);
+      block.classList.add("unibrow-timeline-block--moving");
+      const pointerStartSec = secFromTrackPointer(e.clientX);
+      const originStart = clip.start_sec;
+      const duration = clip.duration_sec;
+      const onMove = (ev: PointerEvent) => {
+        const delta = secFromTrackPointer(ev.clientX) - pointerStartSec;
+        let start = snapTimelineSec(Math.max(0, originStart + delta), playheadSec);
+        block.style.left = `${(start / totalSec) * 100}%`;
+      };
+      const onUp = async (ev: PointerEvent) => {
+        block.releasePointerCapture(ev.pointerId);
+        block.classList.remove("unibrow-timeline-block--moving");
+        block.removeEventListener("pointermove", onMove);
+        block.removeEventListener("pointerup", onUp);
+        const delta = secFromTrackPointer(ev.clientX) - pointerStartSec;
+        let start = snapTimelineSec(Math.max(0, originStart + delta), playheadSec);
+        await commitClipTiming(start, duration);
+      };
+      block.addEventListener("pointermove", onMove);
+      block.addEventListener("pointerup", onUp);
+    });
+
     track.appendChild(block);
   });
   transitions.forEach((tr) => {

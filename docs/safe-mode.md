@@ -29,6 +29,12 @@ The preference is stored in `preferences.json` as `disable_user_mods`.
 
 Open `unibrowser://diagnostics`. The environment section shows whether safe mode is on and whether the launch flag or settings preference applied.
 
+## Per-mod enable (without safe mode)
+
+When safe mode is **off**, the mod portal lists **Native mods** and **VSIX** rows with **Enable** / **Disable** per package. That toggles `state.json` (native) or VSIX prefs without turning off all user mods. The shell reloads the command registry when possible; if commands still look stale, restart once.
+
+Safe mode (launch flag or Settings) blocks **all** user mod loads; per-mod toggles are disabled until you turn safe mode off.
+
 ## What safe mode does not do
 
 - It does not disable bundled mods, VSIX metadata, or Rhai palette demos wired in the shell.
