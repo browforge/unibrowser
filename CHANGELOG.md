@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Linux web downloads (hardening):** `Content-Disposition` filename when the platform hint is generic; download errors surface in toast and download history.
+- **Settings reset:** Separate confirmable actions for onboarding, all recent files, and floating toolbars only.
+- **Command Manager overflow:** Max height with scrollable commands; horizontal tab scroll; sticky header keeps pin and layout controls visible.
+- **Blitz metrics:** `./scripts/blitz-metrics.sh` for Rust/TS file and line counts in [blitz-status.md](docs/blitz-status.md).
 - **Linux web downloads:** WebKit `Requested` downloads fetch to the platform path then open a file tab (default preference); suppress duplicate `Finished` events.
 - **DOCX lite export:** **Save edits as HTML** writes `{name}.docx.ub-edit.html`; [docx-roundtrip.md](docs/docx-roundtrip.md).
 - **EPUB reading notes:** Notes persist in prefs; **Export reading notes** writes `{book}.reading-notes.txt` next to the EPUB.

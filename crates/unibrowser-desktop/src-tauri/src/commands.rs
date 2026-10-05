@@ -2319,6 +2319,37 @@ pub fn clear_recent_files(
 }
 
 #[tauri::command]
+pub fn clear_all_recent_files(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let mut prefs = load_preferences();
+    crate::preferences::clear_all_recent(&mut prefs);
+    save_preferences(&prefs)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn reset_onboarding_prefs_cmd() -> Result<PreferencesDto, String> {
+    let mut prefs = load_preferences();
+    crate::preferences::reset_onboarding_prefs(&mut prefs);
+    save_preferences(&prefs)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn reset_floating_toolbars(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    let mut file = cm.to_file();
+    file.floating_bars.clear();
+    apply_command_manager_layout(&file, &state)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
 pub fn cancel_filename_search(state: State<AppState>) {
     state
         .filename_search_cancel
@@ -3171,8 +3202,8 @@ pub async fn handle_download_url(window: tauri::Window,
         if let Some(parent) = dest.parent() {
             std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
-        download_http_to_file(trimmed, &dest)?;
-        let resolved = resolve_open_path(&dest.to_string_lossy(), &state.cwd)?;
+        let written = download_http_to_file(trimmed, &dest)?;
+        let resolved = resolve_open_path(&written.to_string_lossy(), &state.cwd)?;
         let loc = BrowserLocation::File { path: resolved };
         let (loc, is_dir, doc) = state.resolve_location(loc);
         let _sess_tabs = ws(&state, &window)?;
@@ -3186,7 +3217,7 @@ pub async fn handle_download_url(window: tauri::Window,
         crate::download_history::record_success(
             trimmed,
             crate::download_history::DownloadHistoryStatus::OpenedTab,
-            Some(dest.to_string_lossy().as_ref()),
+            Some(written.to_string_lossy().as_ref()),
         );
         return snapshot(&state, window.label());
     }
@@ -3236,7 +3267,17 @@ pub async fn handle_download_url(window: tauri::Window,
             };
             let trimmed = url.trim();
             if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
-                download_http_to_file(trimmed, &dest)?;
+                let written = download_http_to_file(trimmed, &dest)?;
+                crate::download_history::record_success(
+                    &url,
+                    crate::download_history::DownloadHistoryStatus::Saved,
+                    Some(written.to_string_lossy().as_ref()),
+                );
+                *ws(&state, &window)?
+                    .chrome_notice
+                    .lock()
+                    .map_err(|e| e.to_string())? = Some(format!("Saved to {}", written.display()));
+                return snapshot(&state, window.label());
             } else {
                 let source = if trimmed.starts_with("file://") {
                     resolve_open_path(trimmed.trim_start_matches("file://"), &state.cwd)?

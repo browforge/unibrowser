@@ -506,6 +506,17 @@ pub fn clear_unpinned_recent(prefs: &mut Preferences) {
     prefs.recent_files.retain(|e| e.pinned);
 }
 
+pub fn clear_all_recent(prefs: &mut Preferences) {
+    prefs.recent_files.clear();
+}
+
+pub fn reset_onboarding_prefs(prefs: &mut Preferences) {
+    prefs.onboarding_dismissed = false;
+    prefs.onboarding_tour_skipped_forever = false;
+    prefs.onboarding_checklist_skip_forever = false;
+    prefs.onboarding_checklist_completed.clear();
+}
+
 pub fn load_preferences() -> Preferences {
     let path = preferences_file_path();
     if let Some(path) = path {

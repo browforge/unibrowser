@@ -72,7 +72,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
 | Recovery | Text/SVG crash backups (opt-in); `.unibrow` `project.json` debounced backups + launch prompt when project autosave or crash recovery is on |
-| Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab (default pref); optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
+| Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab; **Content-Disposition** renames generic hints; failed fetch toast + history ([browser-shell.md](browser-shell.md)) |
+| Settings reset | Confirmable **Reset onboarding**, **Clear recent files**, **Reset floating toolbars** |
+| Command Manager | Scrollable command chips; horizontal tab strip; pin + layout buttons stay visible |
 | DOCX lite | Mammoth preview + **Save edits as HTML** sibling `.ub-edit.html` — [docx-roundtrip.md](docx-roundtrip.md) |
 | EPUB notes | Reading notes in prefs; **Export reading notes** → `{book}.reading-notes.txt` beside the EPUB |
 | A11y prefs | High contrast, reduce motion (system/on/off + `prefers-reduced-motion`), optional **larger hit targets**, **Focus mode** denser chrome; skippable tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
@@ -112,12 +114,12 @@ Report screenshots: [report-visuals.md](report-visuals.md) and `./scripts/captur
 
 ## Metrics (Wed report skeleton)
 
-Counts are approximate for the blitz branch; re-run before publishing.
+Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10-05 UTC).
 
 | Metric | Value (snapshot) |
 | --- | --- |
-| Workspace Rust sources (`crates/` + `mods/`) | ~121 `.rs` files |
-| Desktop TypeScript (`crates/unibrowser-desktop/src`) | ~57 `.ts` files |
+| Workspace Rust sources (`crates/` + `mods/`) | 125 `.rs` files · ~23.7k lines |
+| Desktop TypeScript (`crates/unibrowser-desktop/src`) | 59 `.ts` files · ~12.9k lines |
 | Bundled format mods (`mods/`) | 12 packages (`base-*` + `toy-markdown`) |
 | Architecture decision records | 19 in `docs/adr/` |
 | Workspace crates (root `Cargo.toml` members) | 25 members incl. desktop, engine, mod-host, media, project, VSIX, cdylib stub |

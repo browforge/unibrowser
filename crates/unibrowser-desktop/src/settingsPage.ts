@@ -660,6 +660,66 @@ export async function renderSettings(root: HTMLElement) {
   });
   root.appendChild(ntpSection);
 
+  const resetSection = document.createElement("section");
+  resetSection.className = "settings-section";
+  const resetHeading = document.createElement("h3");
+  resetHeading.textContent = t("settings.resetHeading");
+  const resetLead = document.createElement("p");
+  resetLead.className = "viewer-note";
+  resetLead.textContent = t("settings.resetLead");
+  resetSection.appendChild(resetHeading);
+  resetSection.appendChild(resetLead);
+
+  const resetOnboardingBtn = document.createElement("button");
+  resetOnboardingBtn.type = "button";
+  resetOnboardingBtn.textContent = t("settings.resetOnboarding");
+  resetOnboardingBtn.onclick = async () => {
+    if (!window.confirm(t("settings.resetOnboardingConfirm"))) {
+      return;
+    }
+    try {
+      await invoke<PrefsDto>("reset_onboarding_prefs_cmd");
+      showToast(t("settings.resetOnboardingDone"), "info");
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  const clearRecentBtn = document.createElement("button");
+  clearRecentBtn.type = "button";
+  clearRecentBtn.textContent = t("settings.clearRecentFiles");
+  clearRecentBtn.onclick = async () => {
+    if (!window.confirm(t("settings.clearRecentFilesConfirm"))) {
+      return;
+    }
+    try {
+      await invoke("clear_all_recent_files");
+      showToast(t("settings.clearRecentFilesDone"), "info");
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  const resetToolbarsBtn = document.createElement("button");
+  resetToolbarsBtn.type = "button";
+  resetToolbarsBtn.textContent = t("settings.resetFloatingToolbars");
+  resetToolbarsBtn.onclick = async () => {
+    if (!window.confirm(t("settings.resetFloatingToolbarsConfirm"))) {
+      return;
+    }
+    try {
+      await invoke("reset_floating_toolbars");
+      showToast(t("settings.resetFloatingToolbarsDone"), "info");
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  const resetRow = document.createElement("div");
+  resetRow.className = "settings-reset-row";
+  resetRow.appendChild(resetOnboardingBtn);
+  resetRow.appendChild(clearRecentBtn);
+  resetRow.appendChild(resetToolbarsBtn);
+  resetSection.appendChild(resetRow);
+  root.appendChild(resetSection);
+
   const advancedSection = document.createElement("details");
   advancedSection.className = "settings-section settings-advanced";
   const advancedSummary = document.createElement("summary");

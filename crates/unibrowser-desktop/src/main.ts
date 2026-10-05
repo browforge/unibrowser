@@ -1756,18 +1756,18 @@ listen<DownloadEventPayload | string>("unibrowser-download", (event) => {
       }
       return;
     }
-    const data = await invokeWithToast(
-      () =>
-        invoke<TabContentDto>("handle_download_url", {
-          url: payload.url,
-          destination: payload.destination ?? null,
-        }),
-      t("toast.errorDefault"),
-    );
-    if (!data) {
+    let data: TabContentDto | undefined;
+    try {
+      data = await invoke<TabContentDto>("handle_download_url", {
+        url: payload.url,
+        destination: payload.destination ?? null,
+      });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      showErrorToast(err, t("download.failed"));
       await invoke("record_download_failure", {
         url: payload.url,
-        error: t("toast.errorDefault"),
+        error: detail,
       });
       return;
     }

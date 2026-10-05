@@ -484,5 +484,17 @@
   "settings.webProxyHostPlaceholder": "proxy.example.com",
   "settings.webProxyNote": "Saved for https tabs only. The embedded webview does not apply this setting yet — see docs/network-proxy.md.",
   "download.openedSystemBrowser": "Opened download URL in your system browser.",
+  "download.failed": "Download failed",
+  "settings.resetHeading": "Reset local data",
+  "settings.resetLead": "These actions only affect this device. Each step asks for confirmation.",
+  "settings.resetOnboarding": "Reset onboarding",
+  "settings.resetOnboardingConfirm": "Show the onboarding checklist and tour again?",
+  "settings.resetOnboardingDone": "Onboarding state reset.",
+  "settings.clearRecentFiles": "Clear recent files",
+  "settings.clearRecentFilesConfirm": "Remove all recent and pinned file entries from Places?",
+  "settings.clearRecentFilesDone": "Recent files cleared.",
+  "settings.resetFloatingToolbars": "Reset floating toolbars",
+  "settings.resetFloatingToolbarsConfirm": "Remove all floating command bars? Tab layouts are kept.",
+  "settings.resetFloatingToolbarsDone": "Floating toolbars reset.",
   "encode.progress": "Encode {percent}% — {stage}"
 }
