@@ -1,0 +1,13 @@
+[package]
+name = "unibrowser-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Unibrowser version and future CLI entry"
+
+[[bin]]
+name = "unibrowser"
+path = "src/main.rs"
+
+[dependencies]
+unibrowser-build-info = { path = "../unibrowser-build-info" }

@@ -1,7 +1,28 @@
+import { invoke } from "@tauri-apps/api/core";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
+
+type BuildInfoDto = {
+  version: string;
+  version_line: string;
+  git_hash: string | null;
+};
 
 export async function renderAbout(root: HTMLElement) {
   root.innerHTML = "";
+  const build = await invoke<BuildInfoDto>("get_build_info").catch(() => null);
+  if (build) {
+    const ver = document.createElement("section");
+    ver.className = "about-section";
+    const vh = document.createElement("h3");
+    vh.textContent = "Version";
+    ver.appendChild(vh);
+    const vp = document.createElement("p");
+    vp.textContent = build.git_hash
+      ? `Unibrowser ${build.version} (git ${build.git_hash})`
+      : `Unibrowser ${build.version_line}`;
+    ver.appendChild(vp);
+    root.appendChild(ver);
+  }
   const lead = document.createElement("p");
   lead.textContent =
     "Unibrowser is a unified file and web browser shell. This build is open source under the Apache License 2.0.";

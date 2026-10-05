@@ -65,7 +65,8 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 ### Not yet / gaps
 
 - Save-to-disk download disposition UI polish; full VSIX JS extension host
-- Runtime cdylib mod load; cloud sync; full spreadsheet/DXF NURBS
+- Cloud sync; full spreadsheet/DXF NURBS
+- Production cdylib mod discovery (today: opt-in Linux load; see [docs/plugin-sdk](docs/plugin-sdk/README.md))
 - Complete i18n beyond en-NZ; Monaco spellcheck
 - Windows installer signing and bundled ffmpeg in installer
 - Real timeline encode (render fades, audio mix, PDF page-per-time); batch convert beyond PNG/JPEG
@@ -112,10 +113,17 @@ npm run tauri build
 cargo run -p unibrowser-app
 ```
 
+## CLI version
+
+```bash
+cargo run -p unibrowser-cli -- --version
+```
+
 ## Tests
 
 ```bash
 cargo test --workspace
+cargo build -p ub-mod-cdylib-stub   # optional: Linux dynamic mod smoke
 ```
 
 ## Windows

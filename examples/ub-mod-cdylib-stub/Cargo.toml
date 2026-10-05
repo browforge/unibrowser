@@ -3,7 +3,7 @@ name = "ub-mod-cdylib-stub"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-description = "Example cdylib exports for future Unibrowser mod loader (not loaded at runtime yet)"
+description = "Example cdylib mod for the Plugin SDK draft (load on Linux with UNIBROWSER_LOAD_CDYLIB_MOD=1)"
 publish = false
 
 [lib]

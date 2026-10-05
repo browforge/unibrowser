@@ -34,6 +34,8 @@ pub struct AppState {
     pub sessions: Mutex<HashMap<String, SharedWindowSession>>,
     pub cwd: PathBuf,
     pub mods_loaded: String,
+    #[cfg(feature = "dynamic-mods")]
+    _dynamic_cdylib: Option<unibrowser_mod_host::dynamic::LoadedCdylibMod>,
     pub keybindings: Mutex<KeybindingMap>,
     pub command_manager: Mutex<CommandManagerState>,
     pub vsix_host_commands: Mutex<HashSet<String>>,
@@ -97,7 +99,30 @@ impl AppState {
         if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
             unibrowser_vsix::register_enabled_contributions(&mut registry, &vsix_root, &vsix_host_commands);
         }
-        let mods_loaded = mod_host.load_order.join(", ");
+        let mut mods_loaded = mod_host.load_order.join(", ");
+        #[cfg(all(feature = "dynamic-mods", target_os = "linux"))]
+        let dynamic_cdylib = {
+            let mut loaded = None;
+            if std::env::var("UNIBROWSER_LOAD_CDYLIB_MOD").as_deref() == Ok("1") {
+                use unibrowser_mod_host::dynamic::{default_cdylib_search_paths, load_cdylib_mod};
+                for path in default_cdylib_search_paths() {
+                    match load_cdylib_mod(&path, &mut registry) {
+                        Ok(mod_lib) => {
+                            if !mods_loaded.is_empty() {
+                                mods_loaded.push_str(", ");
+                            }
+                            mods_loaded.push_str(&mod_lib.name);
+                            loaded = Some(mod_lib);
+                            break;
+                        }
+                        Err(_) => {}
+                    }
+                }
+            }
+            loaded
+        };
+        #[cfg(not(all(feature = "dynamic-mods", target_os = "linux")))]
+        let dynamic_cdylib = None;
         let cwd = std::env::var("HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("/"));
@@ -124,6 +149,8 @@ impl AppState {
             listing_control: ListingControl::new(),
             filename_search_cancel: AtomicBool::new(false),
             _mod_host: mod_host,
+            #[cfg(feature = "dynamic-mods")]
+            _dynamic_cdylib: dynamic_cdylib,
         }
     }
 

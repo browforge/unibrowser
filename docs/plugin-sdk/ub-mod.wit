@@ -1,0 +1,27 @@
+;; Unibrowser mod component (sketch — not loaded by the host yet).
+;; Maps to the C ABI in ub-mod.h for native mods; future WASM guest surface.
+
+package unibrowser:mod@0.1.0;
+
+interface mod-info {
+  record mod-metadata {
+    name: string,
+    version: string,
+    unibrowser-api: string,
+  }
+  mod-metadata: func() -> mod-metadata;
+}
+
+interface command-registration {
+  register-command: func(id: string, title: string) -> result<_, string>;
+}
+
+interface mod-lifecycle {
+  register: func() -> result<_, string>;
+}
+
+world mod-guest {
+  import command-registration;
+  export mod-info;
+  export mod-lifecycle;
+}

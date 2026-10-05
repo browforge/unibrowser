@@ -6,6 +6,10 @@ license.workspace = true
 description = "Unibrowser Tauri shell"
 authors = ["Unibrowser contributors"]
 
+[features]
+default = ["dynamic-mods"]
+dynamic-mods = ["unibrowser-mod-host/dynamic-mods"]
+
 [lib]
 name = "unibrowser_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -20,7 +24,8 @@ tauri-plugin-dialog = "2"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 unibrowser-engine = { path = "../../unibrowser-engine" }
-unibrowser-mod-host = { path = "../../unibrowser-mod-host" }
+unibrowser-mod-host = { path = "../../unibrowser-mod-host", features = ["dynamic-mods"] }
+unibrowser-build-info = { path = "../../unibrowser-build-info" }
 unibrowser-mod-api = { path = "../../unibrowser-mod-api" }
 base-files = { path = "../../../mods/base-files" }
 base-web = { path = "../../../mods/base-web" }

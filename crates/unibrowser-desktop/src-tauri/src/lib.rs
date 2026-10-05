@@ -130,6 +130,7 @@ pub fn run() {
             commands::allow_unibrow_asset,
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
+            commands::get_build_info,
             commands::get_preferences,
             commands::set_ntp_sections,
             commands::set_advanced_webview_devtools,

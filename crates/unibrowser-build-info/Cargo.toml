@@ -1,0 +1,11 @@
+[package]
+name = "unibrowser-build-info"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Compile-time version and git metadata for Unibrowser binaries"
+
+[lib]
+path = "src/lib.rs"
+
+[build-dependencies]

@@ -2938,6 +2938,22 @@ pub fn get_home_dir(window: tauri::Window) -> String {
     std::env::var("HOME").unwrap_or_else(|_| "/tmp".into())
 }
 
+#[derive(Serialize)]
+pub struct BuildInfoDto {
+    pub version: String,
+    pub version_line: String,
+    pub git_hash: Option<String>,
+}
+
+#[tauri::command]
+pub fn get_build_info() -> BuildInfoDto {
+    BuildInfoDto {
+        version: unibrowser_build_info::VERSION.into(),
+        version_line: unibrowser_build_info::version_line(),
+        git_hash: unibrowser_build_info::GIT_HASH.map(|s| s.to_string()),
+    }
+}
+
 #[tauri::command]
 fn preferences_dto() -> PreferencesDto {
     let p = load_preferences();

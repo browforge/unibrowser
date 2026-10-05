@@ -5300,6 +5300,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "unibrowser-build-info"
+version = "0.1.0"
+
+[[package]]
+name = "unibrowser-cli"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-build-info",
+]
+
+[[package]]
 name = "unibrowser-desktop"
 version = "0.1.0"
 dependencies = [
@@ -5322,6 +5333,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
  "toy-markdown",
+ "unibrowser-build-info",
  "unibrowser-engine",
  "unibrowser-extension-host",
  "unibrowser-media",
@@ -5383,6 +5395,7 @@ dependencies = [
  "base-text",
  "base-video",
  "base-web",
+ "libloading 0.8.9",
  "semver",
  "serde",
  "serde_json",

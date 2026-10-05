@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/unibrowser-build-info",
+    "crates/unibrowser-cli",
     "crates/unibrowser-mod-api",
     "crates/unibrowser-engine",
     "crates/unibrowser-mod-host",

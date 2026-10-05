@@ -28,6 +28,8 @@ pub enum ModHostError {
     UnknownMod(String),
     #[error("no info.json in {0}")]
     MissingManifest(PathBuf),
+    #[error("dynamic mod: {0}")]
+    Dynamic(String),
 }
 
 #[derive(Debug, Clone)]
