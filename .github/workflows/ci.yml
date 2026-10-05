@@ -29,6 +29,8 @@ jobs:
       - name: npm build (desktop UI)
         working-directory: crates/unibrowser-desktop
         run: npm run build
+      - name: Build media sidecar (LGPL T3 helper)
+        run: cargo build -p unibrowser-media --bin unibrowser-media-sidecar
       - name: cargo test
         run: cargo test --workspace
       - name: cargo build Tauri (debug)

@@ -301,6 +301,44 @@ body {
   margin-top: 0.5rem;
 }
 
+.unibrow-drop {
+  margin: 0.75rem 0;
+  padding: 1rem;
+  border: 1px dashed #555;
+  border-radius: 4px;
+  color: #999;
+  text-align: center;
+}
+
+.unibrow-drop.drag-over {
+  border-color: #66ccff;
+  color: #cce;
+}
+
+.pdf-jump-input {
+  width: 4rem;
+  margin-left: 0.35rem;
+}
+
+.pdf-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.pdf-thumb-btn {
+  min-width: 2rem;
+}
+
+.dxf-toolbar {
+  margin-bottom: 0.35rem;
+}
+
+.dxf-canvas-wrap canvas {
+  cursor: grab;
+}
+
 .dxf-canvas-wrap canvas {
   display: block;
   width: 100%;

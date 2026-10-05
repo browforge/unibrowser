@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use unibrowser_engine::{
     keybinding::COMMAND_PALETTE_TOGGLE,
     palette::search_commands,
@@ -403,11 +403,41 @@ pub fn navigate_omnibox(input: String, app: AppHandle, state: State<AppState>) -
     snapshot(&state)
 }
 
+fn allow_media_asset_path(app: &AppHandle, path: &Path) {
+    if !path.is_file() {
+        return;
+    }
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let is_media = matches!(
+        ext.as_str(),
+        "mp4" | "webm" | "wav" | "mid" | "midi" | "mp3" | "ogg"
+    );
+    if !is_media {
+        return;
+    }
+    let _ = app.asset_protocol_scope().allow_file(path);
+}
+
+#[tauri::command]
+pub fn allow_asset_path(path: String, app: AppHandle) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.is_file() {
+        return Err("not a file".into());
+    }
+    app.asset_protocol_scope()
+        .allow_file(&p)
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn open_path(path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
-    let loc = BrowserLocation::File {
-        path: PathBuf::from(path),
-    };
+    let file_path = PathBuf::from(&path);
+    allow_media_asset_path(&app, &file_path);
+    let loc = BrowserLocation::File { path: file_path };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     tabs.navigate_active(loc.clone(), is_dir, doc);
@@ -806,19 +836,63 @@ pub fn add_unibrow_asset(
         .unwrap_or_else(|| "asset".into());
     unibrowser_project::add_asset_copy(&mut package, &source, node_type, &label)
         .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(&state, &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+fn reload_unibrow_project_tab(
+    state: &AppState,
+    project: &Path,
+    project_path: String,
+) -> Result<(), String> {
+    let package = unibrowser_project::open_package(project).map_err(|e| e.to_string())?;
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     let project_index = tabs.tabs().iter().position(|t| {
-        matches!(&t.location, BrowserLocation::File { path } if path == &project)
+        matches!(&t.location, BrowserLocation::File { path } if path == project)
     });
     if let Some(index) = project_index {
         if let Some(tab) = tabs.tab_mut(index) {
             use crate::project_backend::UnibrowBackend;
             tab.document = Some(unibrowser_engine::DocumentSession::new(
-                project_path.clone(),
+                project_path,
                 Box::new(UnibrowBackend::open(package)),
             ));
         }
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_unibrow_node(
+    project_path: String,
+    node_id: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = PathBuf::from(&project_path);
+    let mut package = unibrowser_project::open_package(&project).map_err(|e| e.to_string())?;
+    unibrowser_project::remove_node(&mut package, &node_id).map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(&state, &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn rename_unibrow_node(
+    project_path: String,
+    node_id: String,
+    label: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = PathBuf::from(&project_path);
+    let mut package = unibrowser_project::open_package(&project).map_err(|e| e.to_string())?;
+    unibrowser_project::rename_node_label(&mut package, &node_id, &label)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(&state, &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
     update_content_webview(&app, &loc)?;
     snapshot(&state)

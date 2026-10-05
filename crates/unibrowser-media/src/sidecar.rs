@@ -5,6 +5,7 @@
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
@@ -83,14 +84,43 @@ fn response_to_probe(path: &Path, resp: SidecarResponse) -> Result<MediaFileProb
     }
 }
 
-/// When `UNIBROWSER_MEDIA_USE_SIDECAR=1`, route probes through the sidecar helper binary.
-pub fn probe_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
-    let mut session = SidecarSession::spawn()?;
+static SIDECAR_POOL: Mutex<Option<SidecarSession>> = Mutex::new(None);
+
+/// Start the pooled sidecar process if sidecar mode is on.
+pub fn init_sidecar_pool() -> Result<(), MediaError> {
+    let mut guard = SIDECAR_POOL
+        .lock()
+        .map_err(|e| MediaError::Sidecar(e.to_string()))?;
+    if guard.is_none() {
+        *guard = Some(SidecarSession::spawn()?);
+    }
+    Ok(())
+}
+
+/// Reuse one sidecar process for multiple probes (desktop / `UNIBROWSER_MEDIA_USE_SIDECAR=1`).
+pub fn probe_file_pooled(path: &Path) -> Result<MediaFileProbe, MediaError> {
+    let mut guard = SIDECAR_POOL
+        .lock()
+        .map_err(|e| MediaError::Sidecar(e.to_string()))?;
+    if guard.is_none() {
+        *guard = Some(SidecarSession::spawn()?);
+    }
     let req = SidecarRequest::ProbeFile {
         path: path.to_string_lossy().into_owned(),
     };
-    let resp = session.request(&req)?;
-    response_to_probe(path, resp)
+    let session = guard.as_mut().unwrap();
+    match session.request(&req) {
+        Ok(resp) => response_to_probe(path, resp),
+        Err(e) => {
+            *guard = None;
+            Err(e)
+        }
+    }
+}
+
+/// When `UNIBROWSER_MEDIA_USE_SIDECAR=1`, route probes through the pooled sidecar helper binary.
+pub fn probe_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
+    probe_file_pooled(path)
 }
 
 fn spawn_sidecar() -> Result<Child, MediaError> {

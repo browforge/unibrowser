@@ -3,7 +3,9 @@
 use std::cell::RefCell;
 use std::collections::HashSet;
 
-use rhai::{Engine, Scope};
+use rhai::{Engine, EvalAltResult, Scope};
+
+pub mod allowlist;
 
 #[derive(Debug, Clone)]
 pub struct SandboxLimits {
@@ -69,32 +71,38 @@ pub fn eval_with_host(source: &str, api: &HostApi) -> Result<String, String> {
     engine.register_fn("host_echo", |msg: &str| -> String {
         format!("host:{}", msg)
     });
-    engine.register_fn("execute_command", move |command_id: String| -> String {
-        EXEC_COUNT.with(|c| {
-            let mut count = c.borrow_mut();
-            *count += 1;
-            if *count > max_calls {
-                panic!(
-                    "execute_command limit exceeded (max {})",
-                    max_calls
-                );
+    engine.register_fn(
+        "execute_command",
+        move |command_id: String| -> Result<String, Box<EvalAltResult>> {
+            EXEC_COUNT.with(|c| {
+                let mut count = c.borrow_mut();
+                *count += 1;
+                if *count > max_calls {
+                    return Err::<(), Box<EvalAltResult>>(format!(
+                        "execute_command limit exceeded (max {})",
+                        max_calls
+                    )
+                    .into());
+                }
+                Ok(())
+            })?;
+            if blocked.contains(&command_id) {
+                return Err(format!("command blocked in scripts: {}", command_id).into());
             }
-        });
-        if blocked.contains(&command_id) {
-            panic!("command blocked in scripts: {}", command_id);
-        }
-        if !exec_ids.iter().any(|id| id == &command_id) {
-            panic!("unknown command: {}", command_id);
-        }
-        EXEC_HOOK.with(|cell| {
-            let hook = cell.borrow();
-            let hook = hook
-                .as_ref()
-                .expect("execute_command unavailable (no host hook)");
-            hook(command_id)
-                .unwrap_or_else(|e| panic!("{}", e))
-        })
-    });
+            if !exec_ids.iter().any(|id| id == &command_id) {
+                return Err(format!("unknown command: {}", command_id).into());
+            }
+            EXEC_HOOK.with(|cell| {
+                let hook = cell.borrow();
+                let hook = hook
+                    .as_ref()
+                    .ok_or_else(|| {
+                        Box::<EvalAltResult>::from("execute_command unavailable (no host hook)")
+                    })?;
+                hook(command_id).map_err(|e| e.into())
+            })
+        },
+    );
 
     let mut scope = Scope::new();
     let value = engine
@@ -116,8 +124,6 @@ mod tests {
 
     #[test]
     fn execute_respects_limit() {
-        use std::panic::{catch_unwind, AssertUnwindSafe};
-
         let api = HostApi {
             command_ids: vec!["x".into()],
             blocked_command_ids: HashSet::new(),
@@ -126,9 +132,17 @@ mod tests {
             },
         };
         let hook = Box::new(|_: String| Ok("ok".into()));
-        let caught = catch_unwind(AssertUnwindSafe(|| {
-            with_execute_hook(hook, || eval_with_host("execute_command(\"x\")", &api))
-        }));
-        assert!(caught.is_err());
+        let err = with_execute_hook(hook, || eval_with_host("execute_command(\"x\")", &api))
+            .unwrap_err();
+        assert!(err.contains("limit"));
+    }
+
+    #[test]
+    fn allowlist_parser() {
+        let ids = allowlist::parse_allowlist_from_source(
+            "// allow-commands: a, b\nlet x = 1;",
+        )
+        .unwrap();
+        assert_eq!(ids, vec!["a", "b"]);
     }
 }

@@ -29,6 +29,12 @@ Ship the sidecar next to the desktop app (LGPL, not linked):
 
 Adjust the path for your CI output dir, or copy/rename the binary into `src-tauri/binaries/` per [Tauri external binaries](https://v2.tauri.app/develop/resources/) and list the stub name there. Set `UNIBROWSER_MEDIA_SIDECAR_BIN` at runtime if the install layout differs.
 
+CI (`.github/workflows/ci.yml`) builds the sidecar with:
+
+`cargo build -p unibrowser-media --bin unibrowser-media-sidecar`
+
+Desktop calls `unibrowser_media::warm_sidecar_pool()` on startup when `UNIBROWSER_MEDIA_USE_SIDECAR=1`; probes reuse `SidecarSession` via `probe_file_pooled`.
+
 ## Packaging (future)
 
 Ship an **LGPL** ffmpeg build in the installer or document system package install. Community mods that encode must invoke the sidecar over IPC/CLI, not `dlopen`.

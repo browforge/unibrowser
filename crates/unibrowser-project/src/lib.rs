@@ -170,6 +170,44 @@ pub fn add_asset_copy(
     Ok(node)
 }
 
+pub fn remove_node(package: &mut ProjectPackage, node_id: &str) -> Result<(), ProjectError> {
+    let idx = package
+        .manifest
+        .nodes
+        .iter()
+        .position(|n| n.id == node_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown node {}", node_id)))?;
+    let node = package.manifest.nodes.remove(idx);
+    if let Some(asset) = node.asset {
+        let path = package.root.join(DIR_ASSETS).join(asset);
+        if path.is_file() {
+            let _ = fs::remove_file(path);
+        }
+    }
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+pub fn rename_node_label(
+    package: &mut ProjectPackage,
+    node_id: &str,
+    label: &str,
+) -> Result<(), ProjectError> {
+    let label = label.trim();
+    if label.is_empty() {
+        return Err(ProjectError::Msg("label cannot be empty".into()));
+    }
+    let node = package
+        .manifest
+        .nodes
+        .iter_mut()
+        .find(|n| n.id == node_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown node {}", node_id)))?;
+    node.label = label.to_string();
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,6 +226,21 @@ mod tests {
         fs::write(&second, b"2").unwrap();
         let node = add_asset_copy(&mut pkg, &second, "image", "second").expect("dup");
         assert_eq!(node.asset.as_deref(), Some("photo-2.png"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn remove_node_drops_asset() {
+        let dir = std::env::temp_dir().join("unibrow-test-remove");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Rm").expect("create");
+        let src = dir.join("x.txt");
+        fs::write(&src, b"x").unwrap();
+        let node = add_asset_copy(&mut pkg, &src, "file", "x").expect("add");
+        let id = node.id.clone();
+        remove_node(&mut pkg, &id).expect("remove");
+        assert!(pkg.manifest.nodes.is_empty());
+        assert!(!dir.join(DIR_ASSETS).join("x.txt").is_file());
         let _ = fs::remove_dir_all(&dir);
     }
 

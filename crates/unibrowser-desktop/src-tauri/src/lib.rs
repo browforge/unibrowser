@@ -23,6 +23,7 @@ pub fn run() {
                 let saved = preferences::load_window_state();
                 let _ = preferences::apply_window_state(&window, &saved);
             }
+            let _ = unibrowser_media::warm_sidecar_pool();
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -59,7 +60,10 @@ pub fn run() {
             commands::sync_pdf_viewer_state,
             commands::sync_pdf_page,
             commands::add_unibrow_asset,
+            commands::remove_unibrow_node,
+            commands::rename_unibrow_node,
             commands::pick_unibrow_asset_file,
+            commands::allow_asset_path,
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
             commands::get_preferences,

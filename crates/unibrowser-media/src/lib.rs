@@ -83,9 +83,17 @@ pub fn probe_ffmpeg_install() -> FfmpegProbe {
 
 pub fn probe_media_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
     if std::env::var("UNIBROWSER_MEDIA_USE_SIDECAR").as_deref() == Ok("1") {
-        return sidecar::probe_file(path);
+        return sidecar::probe_file_pooled(path);
     }
     sidecar::probe_file_direct(path)
+}
+
+/// Warm the sidecar pool (call from desktop setup when sidecar mode is enabled).
+pub fn warm_sidecar_pool() -> Result<(), MediaError> {
+    if std::env::var("UNIBROWSER_MEDIA_USE_SIDECAR").as_deref() != Ok("1") {
+        return Ok(());
+    }
+    sidecar::init_sidecar_pool()
 }
 
 #[cfg(test)]
