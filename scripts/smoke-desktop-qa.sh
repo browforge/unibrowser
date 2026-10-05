@@ -19,7 +19,7 @@ Launch
   [ ] New tab (+) shows friendly start page (files, recent, new project)
   [ ] Bookmark bar: Home, Downloads, New project; Pin adds current location
   [ ] Compare: open .txt, Compare → pick second file → diff view → Close compare
-  [ ] Recent panel: auto-save checkbox off by default; enable only if you want it
+  [ ] Recent panel: auto-save off by default; enable + pick interval if you want it
   [ ] Status bar: click path to copy; Ctrl+Shift+V paste path in omnibox
   [ ] Status bar: encoding (text), line/col (text), zoom (PDF/image/web)
   [ ] Ctrl+K then Ctrl+S saves text (sequence sketch)
