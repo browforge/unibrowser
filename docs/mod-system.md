@@ -4,6 +4,8 @@ Unibrowser mods are **compiled loadables** (DLL / `.so` / `.dylib` and/or **WASM
 
 **VS Code `.vsix`** is a separate **compat import** lane ([ADR 0014](adr/0014-vsix-compatibility-layer.md)) — do not conflate with the native mod ABI.
 
+**Engines vs mods:** the product ships **host engines** (text, document, image, …); each lane has a **proving `base-*` mod** on one format (e.g. Text + `base-text` + Monaco). See [architecture.md](architecture.md).
+
 ## Native mods (first-class)
 
 ### Package shape (target)

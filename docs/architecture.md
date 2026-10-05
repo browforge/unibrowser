@@ -4,6 +4,61 @@ Unibrowser is a **unified browser shell** (files + web in one tab strip; see [AD
 
 **Product emphasis:** world-class **context switching** (stable chrome, auto Command Manager tab, grey-out, pin/customise), **mixed-format projects** with **lazy conversion** ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md), [ADR 0012](adr/0012-context-switching-ux-benchmarks.md)), and **dual audience** design — everyday defaults, FOSS depth without user-space interference ([ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md), [vision.md](vision.md)).
 
+## Engines in the product, formats in mods
+
+Bear’s direction: the **shipped product** owns **engine fundamentals** (session lifecycle, command wiring, surface hosting, conversion contracts). Each engine lane is **proven end-to-end** by one bundled **`base-*` mod** that opens a concrete format. Community mods extend the same APIs; they do not replace the host engine.
+
+**Principle:** **import trusted FOSS** into engines and mods where possible — embed or bridge (Monaco for text, pdf.js for PDF view, ffmpeg as LGPL sidecar for media). **Do not rewrite** mature stacks unless the API gap is smaller than the maintenance cost ([ADR 0007](adr/0007-licensing.md): keep AGPL/GPL helpers in **T3 sidecars** or optional mods, not linked into `unibrowser-engine`).
+
+| Engine lane | Host engine owns (fundamentals) | Proving `base-*` mod | Proving format | Candidate FOSS (adopt after licence check) |
+|-------------|--------------------------------|----------------------|----------------|---------------------------------------------|
+| **Text** | Buffer sync, save/dirty, text `CommandContext`, editor host bridge | `base-text` | `.txt` (plain text) | **[Monaco](https://github.com/microsoft/monaco-editor)** (MIT) — **in use** in Tauri shell |
+| **Document** | Office context, structured doc session, export hooks | `base-docx` (planned) | DOCX | **mammoth**, **docx-preview** (permissive JS); full fidelity → **LOK** / Collabora as **T3** (MPL/AGPL) |
+| **Image** | Raster surface, selection → capabilities, encode path | `base-png` (skeleton) | PNG | **libvips** / **image** (Rust); canvas/WebGL in webview; **Squoosh** codecs (Apache WASM) for encode experiments |
+| **Scripting** | Sandboxed runtimes, extension-host hooks, mod `activate` | `base-js` (planned) | JS / user scripts | **QuickJS** / **Rhai** (in-process, policy TBD); **Extism** WASM PDK for untrusted scripts; VSIX JS → extension host ([ADR 0014](adr/0014-vsix-compatibility-layer.md)) |
+| **Browser** | `BrowserLocation`, tabs, WebView lifecycle, navigation commands | `base-web` / `base-html` | HTML / `https://` | **OS WebView** (Tauri WRY); optional **CEF** branch for parity ([ADR 0001](adr/0001-shell-and-rendering.md)) |
+| **Video** | Timeline/decode contract, proxies, encode at export ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)) | *proving mod TBD* (e.g. `base-mp4` / WebM) | *TBD* | **ffmpeg** (LGPL build, **T3 sidecar**); **WebCodecs** where available; **Etro** (MIT) for light web composition |
+| **Audio** | Clip model, preview vs bake, MIDI-native project data | *proving mod TBD* (e.g. `base-wav`, `base-midi`) | *TBD* | **ffmpeg** probe/decode sidecar; **rodio** / cpal for preview; MIDI → synth preview until PCM export |
+| **CAD** | 2D/3D scene host, units, view tools | `base-dxf` (planned) | DXF | **dxf-parser** + **three.js** (view MVP); **libdxfrw** / LibreCAD path as **GPL T3** for heavy R/W |
+
+```mermaid
+flowchart LR
+  subgraph HostEngines["Shipped engines (Rust + web hosts)"]
+    E1[Text]
+    E2[Document]
+    E3[Image]
+    E4[Scripting]
+    E5[Browser]
+    E6[Video]
+    E7[Audio]
+    E8[CAD]
+  end
+
+  subgraph ProvingMods["Bundled proving mods"]
+    M1[base-text]
+    M2[base-docx]
+    M3[base-png]
+    M4[base-js]
+    M5[base-web]
+    M6[base-video TBD]
+    M7[base-audio TBD]
+    M8[base-dxf]
+  end
+
+  E1 --> M1
+  E2 --> M2
+  E3 --> M3
+  E4 --> M4
+  E5 --> M5
+  E6 --> M6
+  E7 --> M7
+  E8 --> M8
+```
+
+**Code layout (today):** engine logic stays in `unibrowser-engine`, `unibrowser-desktop`, and shared bridges; **no separate engine crate per lane yet**. Optional future splits (e.g. `unibrowser-engine-media` as a workspace crate) only when a lane’s dependency graph forces it.
+
+**Related formats without a new engine:** PDF view (`base-pdf` + **pdf.js**), Markdown (`base-markdown`), SVG (`base-svg`) reuse **Text**, **Image**, or **Browser** hosts — see [roadmap.md](roadmap.md).
+
 ## Layer diagram
 
 ```mermaid

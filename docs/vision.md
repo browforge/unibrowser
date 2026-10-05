@@ -93,6 +93,25 @@ Convert at **preview** or **export** boundaries, not on “Open file”. Details
 - **Bundled mods** cover grandma-path basics; **optional mods** extend the FOSS path without gatekeeping open.
 - Manifests, dependencies, API versioning, and upstream API requests when mods outgrow the host.
 
+### Engines in the product, one proving mod per lane
+
+The **product** ships **core engines** (text, document, image, scripting, browser, video, audio, CAD). Each lane is validated by **one bundled `base-*` mod** on a real format — for example **Text** + `base-text` / `.txt` with **Monaco** already proving the pattern.
+
+**Do not rewrite what FOSS already does well:** embed or bridge trusted libraries (Monaco, pdf.js, ffmpeg as sidecar, dxf-parser + three.js) inside the engine/mod boundary that matches [ADR 0007](adr/0007-licensing.md). Video and audio **proving formats are still TBD**; CAD targets **DXF** via `base-dxf`.
+
+| Engine | Proving mod |
+|--------|-------------|
+| Text | `base-text` / `.txt` |
+| Document | `base-docx` / DOCX |
+| Image | `base-png` / PNG |
+| Scripting | `base-js` / JS (planned) |
+| Browser | `base-web` / HTML & HTTPS |
+| Video | proving mod TBD |
+| Audio | proving mod TBD |
+| CAD | `base-dxf` / DXF |
+
+Detail and FOSS candidates: [architecture.md](architecture.md).
+
 ### VS Code-style core
 
 - Small Rust engine; bite-sized mods; no Chromium/Firefox **fork** for v1 (embed via WebView/CEF path per ADR 0001).

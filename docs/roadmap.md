@@ -2,7 +2,25 @@
 
 Phases are capability-based, not calendar estimates. Each phase should leave the host shippable and testable.
 
-**Strategic order:** nail **context switching** and the **command/manager model** first; add format depth and **lazy conversion** pipelines without building huge editors prematurely.
+**Strategic order:** nail **context switching** and the **command/manager model** first; grow **one engine lane at a time** with a **proving `base-*` mod**; add **lazy conversion** without building huge editors prematurely.
+
+**Engine principle:** core engines live in the product; each lane ships one bundled mod on a concrete format. Prefer **embedding trusted FOSS** (Monaco, pdf.js, ffmpeg sidecar, …) over rewrites — [architecture.md](architecture.md).
+
+## Engine lanes (core + proving mod)
+
+| Lane | Engine fundamental (host) | Proving mod | Format | FOSS direction (verify before ship) |
+|------|---------------------------|-------------|--------|-------------------------------------|
+| Text | Editor bridge, save/sync | `base-text` | `.txt` | Monaco (**done** in shell) |
+| Browser | Tabs, `BrowserLocation`, WebView | `base-web`, `base-files` | HTML / HTTPS / dirs | Tauri WRY; optional CEF |
+| Image | Raster surface, capabilities | `base-png` | PNG | libvips / image crate; canvas in webview |
+| Document | Office context, structured doc | `base-docx` | DOCX | mammoth, docx-preview; LOK T3 later |
+| Code | LSP hooks, same registry | VSIX + `base-text` / grammars | source files | Monaco + Open VSX grammars |
+| Scripting | Sandbox / extension host | `base-js` | JS | QuickJS/Rhai/Extism (policy TBD) |
+| Video | Timeline + encode contract | *TBD* (`base-mp4`?) | *TBD* | ffmpeg LGPL sidecar; WebCodecs |
+| Audio | Preview vs export clips | *TBD* (`base-wav` / `base-midi`?) | *TBD* | ffmpeg; MIDI-native per ADR 0011 |
+| CAD | 2D/3D view host | `base-dxf` | DXF | dxf-parser + three.js; GPL helpers T3 |
+
+Satellite mods (reuse engines above): `base-markdown`, `base-svg`, `base-pdf` (pdf.js), EPUB — not separate engine lanes.
 
 ## Phase 0 — Prove the abstraction (this repository)
 
@@ -36,14 +54,15 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 
 ## Phase 2 — Context lanes (Text → Office → Code → Image)
 
-Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)):
+Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)). Each row = **engine fundamental** + **proving mod** milestone.
 
-| Lane | Deliverable |
+| Lane | Engine + proving mod deliverable |
 | --- | --- |
-| **Text** | Rich text where needed; keep Monaco for plain/code-like |
-| **Office** | DOCX/XLSX view-edit; optional LOK sidecar (AGPL-labelled) |
-| **Code** | LSP, format, debug hooks — same command registry |
-| **Image** | Raster + SVG; text layers; GIMP-style tool slots on floating bars |
+| **Text** | Text engine stable; `base-text` + Monaco; optional `base-markdown` |
+| **Office** | Document engine v1; **`base-docx`** view/edit (mammoth / docx-preview); optional LOK **T3** |
+| **Code** | Code context on text engine; LSP hooks; VSIX grammars (V2 track) |
+| **Image** | Image engine; **`base-png`** edit path; `base-svg`; GIMP-style floating tool slots |
+| **Scripting** | Scripting engine skeleton; **`base-js`** stub (sandbox policy) |
 
 **Toolbar UX (GIMP + SOLIDWORKS bar):**
 
@@ -59,14 +78,16 @@ Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)):
 
 Implement [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) for real:
 
-- Timeline/project mod (Resolve-style **page** inside stable chrome).
-- PDF clips vector-native; proxy raster for scrub; rasterise at encode.
-- MIDI clips; synth preview; PCM bake on export.
-- ffmpeg (LGPL) sidecar for audio/video encode — not linked into Apache core.
+- **Video engine** + proving mod (**format TBD**, candidate container: MP4/WebM) — timeline page inside stable chrome.
+- **Audio engine** + proving mod (**format TBD**, candidates: WAV + MIDI).
+- PDF clips vector-native; proxy raster for scrub; rasterise at encode (`base-pdf` + pdf.js).
+- MIDI clips native in project; synth preview; PCM bake on export.
+- **ffmpeg** (LGPL) **T3 sidecar** for probe/decode/encode — not linked into Apache core.
 
 ## Phase 4 — Document and CAD depth
 
-- EPUB; DXF view/edit; advanced web (user styles, permissions).
+- **CAD engine** + **`base-dxf`** (dxf-parser + three.js view; GPL R/W optional T3).
+- EPUB; advanced web (user styles, permissions) on **browser engine**.
 
 ## Phase 5 — Ecosystem and hardening
 
@@ -100,13 +121,17 @@ Native `info.json` mods stay canonical ([mod-system.md](mod-system.md)). `.vsix`
 | Can’t open this file → suggest mods | Grandma path for new formats |
 | Install from file | FOSS sideload (`.vsix`, `.ubmod`) |
 
-## MVP format mod order (unchanged, aligned to manager tabs)
+## Bundled mod rollout (proving mods first)
 
-1. `base-text` — plain text
-2. `base-markdown` — lightweight markup  
-3. `base-raster` / `base-svg` — image context  
-4. `base-html` / `base-web` — web context  
-5. `base-pdf` — view-first; timeline-native later  
-6. `base-docx` — office context  
-7. `base-dxf` — view-first  
-8. `base-audio` / `base-midi` — audio context (preview vs export)
+Aligned to **engine lanes** above and Command Manager tabs:
+
+1. `base-text` — **Text** engine / `.txt`
+2. `base-web` + `base-files` — **Browser** engine
+3. `base-png` — **Image** engine / PNG
+4. `base-markdown` — text engine satellite
+5. `base-pdf` — pdf.js view; timeline-native later
+6. `base-docx` — **Document** engine / DOCX
+7. `base-dxf` — **CAD** engine / DXF
+8. `base-js` — **Scripting** engine (stub)
+9. `base-audio` / `base-midi` or container pick — **Audio** engine (TBD)
+10. video proving mod — **Video** engine (TBD)
