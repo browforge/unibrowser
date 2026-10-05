@@ -6,6 +6,7 @@ import { bindPreviewLinks } from "./previewLinks";
 import { copyText } from "./clipboard";
 import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
+import { emptyStateBlock } from "./emptyState";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 
@@ -1535,7 +1536,8 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   });
   if (!clips.length) {
     const empty = document.createElement("li");
-    empty.textContent = "No clips yet.";
+    empty.className = "unibrow-empty-wrap";
+    empty.appendChild(emptyStateBlock("No clips yet", ["Add clips from the timeline tools."]));
     ol.appendChild(empty);
   }
   timeline.appendChild(ol);
@@ -1545,7 +1547,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   const nodes = viewer.project_nodes ?? [];
   if (nodes.length === 0) {
     const empty = document.createElement("li");
-    empty.textContent = "No assets yet.";
+    empty.className = "unibrow-empty-wrap";
+    empty.appendChild(
+      emptyStateBlock("No assets yet", ["Drop files onto the project or use Add asset."]),
+    );
     list.appendChild(empty);
   } else {
     for (const node of nodes) {

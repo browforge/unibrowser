@@ -588,6 +588,37 @@ body {
   font-size: 0.85rem;
 }
 
+.empty-state {
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
+.empty-state-art {
+  display: inline-block;
+  margin: 0 auto 0.35rem;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  color: #666;
+  font-family: ui-monospace, monospace;
+}
+
+.empty-state-heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.empty-state-line {
+  margin: 0.15rem 0;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.ntp-empty-wrap,
+.unibrow-empty-wrap {
+  list-style: none;
+}
+
 .web-zoom-toolbar {
   display: flex;
   gap: 0.35rem;

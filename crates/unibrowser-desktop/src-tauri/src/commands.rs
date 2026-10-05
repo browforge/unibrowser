@@ -26,7 +26,7 @@ use crate::state::FileCompareState;
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
 use crate::epub_preview::EpubChapterDto;
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
-use crate::webview::{adjust_page_font_for_url, sync_all_content_webviews, sync_content_bounds};
+use crate::webview::{adjust_page_font_for_url, sync_content_bounds, sync_content_webview_for_window};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -241,6 +241,19 @@ pub struct ModPortalDto {
     pub sideload_hint: String,
 }
 
+
+fn ws_state(state: &AppState, window: &tauri::Window) -> Result<crate::window_session::SharedWindowSession, String> {
+    state.session(window.label())
+}
+
+fn ws(state: &State<AppState>, window: &tauri::Window) -> Result<crate::window_session::SharedWindowSession, String> {
+    ws_state(state.inner(), window)
+}
+
+fn ws_label(state: &AppState, label: &str) -> Result<crate::window_session::SharedWindowSession, String> {
+    state.session(label)
+}
+
 fn location_to_omnibox(loc: &BrowserLocation) -> String {
     match loc {
         BrowserLocation::File { path } => format!("file://{}", path.display()),
@@ -272,11 +285,14 @@ fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
     }
 }
 
-fn open_file_tabs_dto(state: &AppState) -> Vec<OpenFileTabDto> {
-    let tabs = state.tabs.lock().ok();
-    let tabs = match tabs {
-        Some(t) => t,
-        None => return Vec::new(),
+fn open_file_tabs_dto(state: &AppState, window_label: &str) -> Vec<OpenFileTabDto> {
+    let session = ws_label(state, window_label).ok();
+    let Some(sess) = session else {
+        return Vec::new();
+    };
+    let tabs = match sess.tabs.lock() {
+        Ok(t) => t,
+        Err(_) => return Vec::new(),
     };
     tabs
         .tabs()
@@ -306,6 +322,7 @@ fn open_unibrow_package(path: &Path) -> Result<unibrowser_project::ProjectPackag
 fn document_viewer_dto(
     doc: &mut unibrowser_engine::DocumentSession,
     state: &AppState,
+    window_label: &str,
 ) -> Option<DocumentViewerDto> {
     if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
         let root = Path::new(&doc.path);
@@ -359,7 +376,7 @@ fn document_viewer_dto(
             pdf_page: None,
             media_note: None,
             project_nodes: nodes,
-            open_file_tabs: Some(open_file_tabs_dto(state)),
+            open_file_tabs: Some(open_file_tabs_dto(state, window_label)),
             project_clips: clips,
             midi_summary: None,
             board_snap_to_grid: Some(prefs.board_snap_to_grid),
@@ -478,6 +495,7 @@ fn tab_pane_dtos(
     tabs: &mut unibrowser_engine::TabManager,
     index: usize,
     state: &AppState,
+    window_label: &str,
 ) -> (
     Option<TextDocumentDto>,
     Option<DocumentViewerDto>,
@@ -494,7 +512,7 @@ fn tab_pane_dtos(
     let viewer = tab
         .document
         .as_mut()
-        .and_then(|d| document_viewer_dto(d, state));
+        .and_then(|d| document_viewer_dto(d, state, window_label));
     let text = if viewer.is_some() {
         None
     } else {
@@ -555,9 +573,10 @@ fn tab_is_new_tab_home(tab: &unibrowser_engine::tabs::Tab) -> bool {
     )
 }
 
-fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
-    state.refresh_command_manager_context();
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, String> {
+    state.refresh_command_manager_context(window_label);
+    let sess = ws_label(state, window_label)?;
+    let mut tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
     let omnibox = tabs
         .active_tab()
         .map(|t| location_to_omnibox(&t.location))
@@ -591,7 +610,7 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
             let viewer = tab
                 .document
                 .as_mut()
-                .and_then(|d| document_viewer_dto(d, state));
+                .and_then(|d| document_viewer_dto(d, state, window_label));
             let text = if viewer.is_some() {
                 None
             } else {
@@ -602,7 +621,7 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         None => (None, None),
     };
     let mod_portal = active_mod_portal(tabs.active_tab());
-    let split_cfg = state.split_view.lock().map_err(|e| e.to_string())?;
+    let split_cfg = sess.split_view.lock().map_err(|e| e.to_string())?;
     let split_enabled = split_cfg.enabled;
     let split_index = split_cfg.secondary_index;
     let (split_text_document, split_document_viewer, split_status) =
@@ -615,19 +634,19 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
                     active
                 }
             });
-            tab_pane_dtos(&mut tabs, idx, state)
+            tab_pane_dtos(&mut tabs, idx, state, window_label)
         } else {
             (None, None, None)
         };
     let prefs = load_preferences();
-    let diff_view = build_diff_view(state)?;
+    let diff_view = build_diff_view(state, window_label)?;
     let (text_document, document_viewer) = if diff_view.is_some() {
         (None, None)
     } else {
         (text_document, document_viewer)
     };
     let pinned_locations = pinned_locations_dto(&prefs);
-    let chrome_notice = state
+    let chrome_notice = sess
         .chrome_notice
         .lock()
         .map_err(|e| e.to_string())?
@@ -676,20 +695,24 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
     })
 }
 
-fn build_diff_view(state: &AppState) -> Result<Option<DiffViewDto>, String> {
-    let guard = state.file_compare.lock().map_err(|e| e.to_string())?;
-    let cmp = match guard.as_ref() {
-        Some(c) => c,
+fn build_diff_view(state: &AppState, window_label: &str) -> Result<Option<DiffViewDto>, String> {
+    let sess = ws_label(state, window_label)?;
+    let guard = sess
+        .file_compare
+        .lock()
+        .map_err(|e| e.to_string())?;
+    let (left_path, right_path) = match guard.as_ref() {
+        Some(c) => (c.left_path.clone(), c.right_path.clone()),
         None => return Ok(None),
     };
-    let left = resolve_open_path(&cmp.left_path, &state.cwd)?;
-    let right = resolve_open_path(&cmp.right_path, &state.cwd)?;
+    let left = resolve_open_path(&left_path, &state.cwd)?;
+    let right = resolve_open_path(&right_path, &state.cwd)?;
     let left_content = std::fs::read_to_string(&left).map_err(|e| e.to_string())?;
     let right_content = std::fs::read_to_string(&right).map_err(|e| e.to_string())?;
-    let language = TextBackend::language_id(&cmp.left_path).into();
+    let language = TextBackend::language_id(&left_path).into();
     Ok(Some(DiffViewDto {
-        left_path: cmp.left_path.clone(),
-        right_path: cmp.right_path.clone(),
+        left_path,
+        right_path,
         left_content,
         right_content,
         language,
@@ -712,8 +735,9 @@ fn pinned_locations_dto(prefs: &crate::preferences::Preferences) -> Vec<PinnedLo
         .collect()
 }
 
-fn active_document_path(state: &AppState) -> Result<String, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+fn active_document_path(state: &AppState, window: &tauri::Window) -> Result<String, String> {
+    let _sess_tabs = ws_state(state, window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab().ok_or("no active tab")?;
     let doc = tab.document.as_ref().ok_or("no document open")?;
     Ok(doc.path.clone())
@@ -769,50 +793,53 @@ fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPo
 }
 
 #[tauri::command]
-pub fn get_browser_state(state: State<AppState>) -> Result<TabContentDto, String> {
-    snapshot(&state)
+pub fn get_browser_state(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn new_tab(state: State<AppState>) -> Result<TabContentDto, String> {
+pub fn new_tab(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
     let loc = BrowserLocation::Internal {
         page: "home".into(),
     };
     let (loc, is_dir, doc) = state.resolve_location(loc);
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.open_tab(loc.clone());
     if let Some(tab) = tabs.active_tab_mut() {
         tab.is_directory = is_dir;
         tab.document = doc;
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn select_tab(
+pub fn select_tab(window: tauri::Window, 
     index: usize,
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.set_active(index);
     let loc = tabs
         .active_tab()
         .map(|t| t.location.clone())
         .ok_or("no tab")?;
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn close_tab(
+pub fn close_tab(window: tauri::Window, 
     index: usize,
     force: bool,
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     {
-        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         if index >= tabs.tab_count() {
             return Err("invalid tab index".into());
         }
@@ -827,19 +854,21 @@ pub fn close_tab(
         }
     }
     let loc = {
-        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws(&state, &window)?;
+        let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         tabs
             .active_tab()
             .map(|t| t.location.clone())
             .ok_or("no tab")?
     };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn search_open_tabs(query: String, state: State<AppState>) -> Result<Vec<TabSearchHitDto>, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn search_open_tabs(window: tauri::Window, query: String, state: State<AppState>) -> Result<Vec<TabSearchHitDto>, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let mut hits: Vec<TabSearchHitDto> = tabs
         .tabs()
         .iter()
@@ -880,7 +909,8 @@ pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<()
         locations.push(loc);
     }
     {
-        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws_label(state, "main")?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         tabs.load_locations(locations, snap.active_index);
         let count = tabs.tab_count();
         for i in 0..count {
@@ -897,13 +927,14 @@ pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<()
         }
     }
     let loc = {
-        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws_label(state, "main")?;
+        let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         tabs
             .active_tab()
             .map(|t| t.location.clone())
             .ok_or("no tab")?
     };
-    update_content_webview(app, &loc)?;
+    update_content_webview(app, "main", &loc)?;
     Ok(())
 }
 
@@ -924,7 +955,8 @@ pub fn open_dropped_paths(
         let loc = BrowserLocation::File { path: safe };
         let (loc, is_dir, doc) = state.resolve_location(loc);
         {
-            let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+            let _sess_tabs = ws_label(state, "main")?;
+            let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
             if i == 0 {
                 tabs.navigate_active(loc.clone(), is_dir, doc);
             } else {
@@ -935,7 +967,7 @@ pub fn open_dropped_paths(
                 }
             }
         }
-        update_content_webview(app, &loc)?;
+        update_content_webview(app, "main", &loc)?;
     }
     app.emit("browser-state-updated", ())
         .map_err(|e| e.to_string())?;
@@ -943,16 +975,16 @@ pub fn open_dropped_paths(
 }
 
 #[tauri::command]
-pub fn navigate_omnibox(input: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
-    let loc = state.navigate_input(&input)?;
+pub fn navigate_omnibox(window: tauri::Window, input: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
+    let loc = state.navigate_input(&input, window.label())?;
     if let BrowserLocation::File { path } = &loc {
         allow_asset_protocol_file(&app, path);
         if path.is_file() {
             touch_recent_file(path);
         }
     }
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 fn allow_asset_protocol_file(app: &AppHandle, path: &Path) {
@@ -987,7 +1019,7 @@ fn allow_asset_protocol_file(app: &AppHandle, path: &Path) {
 }
 
 #[tauri::command]
-pub fn allow_asset_path(
+pub fn allow_asset_path(window: tauri::Window, 
     path: String,
     app: AppHandle,
     state: State<AppState>,
@@ -1002,7 +1034,7 @@ pub fn allow_asset_path(
 }
 
 #[tauri::command]
-pub fn allow_unibrow_asset(
+pub fn allow_unibrow_asset(window: tauri::Window, 
     project_path: String,
     asset_name: String,
     app: AppHandle,
@@ -1021,7 +1053,7 @@ pub fn allow_unibrow_asset(
 }
 
 #[tauri::command]
-pub fn open_path(path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
+pub fn open_path(window: tauri::Window, path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let file_path = resolve_open_path(&path, &state.cwd)?;
     let profile_open = std::env::var("UNIBROWSER_PROFILE_OPEN")
         .ok()
@@ -1045,65 +1077,70 @@ pub fn open_path(path: String, app: AppHandle, state: State<AppState>) -> Result
             started.elapsed()
         );
     }
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.navigate_active(loc.clone(), is_dir, doc);
     if let BrowserLocation::File { path } = &loc {
         if path.is_file() {
             touch_recent_file(path);
         }
     }
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn go_back(app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn go_back(window: tauri::Window, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     if let Some(loc) = tabs.go_back() {
         let (loc, is_dir, doc) = state.resolve_location(loc);
         if let Some(tab) = tabs.active_tab_mut() {
             tab.is_directory = is_dir;
             tab.document = doc;
         }
-        update_content_webview(&app, &loc)?;
+        update_content_webview(&app, window.label(), &loc)?;
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn go_forward(app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn go_forward(window: tauri::Window, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     if let Some(loc) = tabs.go_forward() {
         let (loc, is_dir, doc) = state.resolve_location(loc);
         if let Some(tab) = tabs.active_tab_mut() {
             tab.is_directory = is_dir;
             tab.document = doc;
         }
-        update_content_webview(&app, &loc)?;
+        update_content_webview(&app, window.label(), &loc)?;
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn reload_tab(app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
+pub fn reload_tab(window: tauri::Window, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let loc = {
-        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws(&state, &window)?;
+        let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         tabs.reload_location()
     };
     if let Some(loc) = loc {
         let (loc, is_dir, doc) = state.resolve_location(loc);
-        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         if let Some(tab) = tabs.active_tab_mut() {
             tab.is_directory = is_dir;
             tab.document = doc;
         }
-        update_content_webview(&app, &loc)?;
+        update_content_webview(&app, window.label(), &loc)?;
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn list_directory(path: String) -> Result<Vec<base_files::DirEntry>, String> {
+pub fn list_directory(window: tauri::Window, path: String) -> Result<Vec<base_files::DirEntry>, String> {
     list_dir(PathBuf::from(path).as_path())
 }
 
@@ -1127,9 +1164,10 @@ fn map_ui_commands(cmds: Vec<unibrowser_engine::ResolvedUiCommand>) -> Vec<UiCom
 }
 
 #[tauri::command]
-pub fn get_command_manager(state: State<AppState>) -> Result<CommandManagerDto, String> {
-    state.refresh_command_manager_context();
-    let tabs_guard = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Result<CommandManagerDto, String> {
+    state.refresh_command_manager_context(window.label());
+    let _sess_tabs_guard = ws(&state, &window)?;
+    let tabs_guard = _sess_tabs_guard.tabs.lock().map_err(|e| e.to_string())?;
     let active = tabs_guard.active_tab();
     let host = active
         .and_then(|t| t.document.as_ref())
@@ -1211,7 +1249,7 @@ fn export_command_manager_layout(state: State<AppState>) -> Result<String, Strin
 }
 
 #[tauri::command]
-pub async fn export_command_manager_layout_file(
+pub async fn export_command_manager_layout_file(window: tauri::Window, 
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<Option<String>, String> {
@@ -1234,7 +1272,7 @@ pub async fn export_command_manager_layout_file(
 }
 
 #[tauri::command]
-pub async fn import_command_manager_layout_file(
+pub async fn import_command_manager_layout_file(window: tauri::Window, 
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
@@ -1248,27 +1286,31 @@ pub async fn import_command_manager_layout_file(
     let path = picked.ok_or_else(|| "import cancelled".to_string())?;
     let data = std::fs::read_to_string(path.to_string()).map_err(|e| e.to_string())?;
     let layout: CommandManagerFile = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-    save_command_manager_layout(layout, state)
+    apply_command_manager_layout(&layout, &state)
 }
 
-#[tauri::command]
-pub fn save_command_manager_layout(
-    layout: CommandManagerFile,
-    state: State<AppState>,
-) -> Result<(), String> {
+fn apply_command_manager_layout(layout: &CommandManagerFile, state: &AppState) -> Result<(), String> {
     let path = toolbars_file_path().ok_or("config path unavailable")?;
-    save_command_manager_file(&path, &layout)?;
+    save_command_manager_file(&path, layout)?;
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     *cm = unibrowser_engine::CommandManagerState::from_file(
-        &layout,
+        layout,
         cm.auto_context,
     );
     Ok(())
 }
 
 #[tauri::command]
-pub fn list_workspace_layout_presets(
-) -> Vec<crate::workspace_layouts::WorkspaceLayoutPresetSummaryDto> {
+pub fn save_command_manager_layout(
+    _window: tauri::Window,
+    layout: CommandManagerFile,
+    state: State<AppState>,
+) -> Result<(), String> {
+    apply_command_manager_layout(&layout, state.inner())
+}
+
+#[tauri::command]
+pub fn list_workspace_layout_presets(window: tauri::Window) -> Vec<crate::workspace_layouts::WorkspaceLayoutPresetSummaryDto> {
     crate::workspace_layouts::list_presets()
 }
 
@@ -1282,7 +1324,8 @@ pub fn save_workspace_layout_preset(
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let file = cm.to_file();
     let prefs = load_preferences();
-    let split = state.split_view.lock().map_err(|e| e.to_string())?;
+    let _sess_split = ws(&state, &window)?;
+    let split = _sess_split.split_view.lock().map_err(|e| e.to_string())?;
     let chrome = crate::workspace_layouts::WorkspaceChromeState {
         pinned_locations: if prefs.pinned_locations.is_empty() {
             default_pinned_locations(
@@ -1316,21 +1359,22 @@ pub fn load_workspace_layout_preset(
     prefs.pinned_locations = preset.chrome.pinned_locations.clone();
     save_preferences(&prefs)?;
     {
-        let mut split = state.split_view.lock().map_err(|e| e.to_string())?;
+        let _sess_split = ws(&state, &window)?;
+        let mut split = _sess_split.split_view.lock().map_err(|e| e.to_string())?;
         split.enabled = preset.chrome.split_view_enabled;
         split.secondary_index = preset.chrome.split_secondary_index;
     }
-    save_command_manager_layout(preset.command_manager, state.clone())?;
-    snapshot(&state)
+    apply_command_manager_layout(&preset.command_manager, state.inner())?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn delete_workspace_layout_preset(id: String) -> Result<(), String> {
+pub fn delete_workspace_layout_preset(window: tauri::Window, id: String) -> Result<(), String> {
     crate::workspace_layouts::delete_preset(&id)
 }
 
 #[tauri::command]
-pub fn select_command_manager_tab(tab_id: String, state: State<AppState>) -> Result<(), String> {
+pub fn select_command_manager_tab(window: tauri::Window, tab_id: String, state: State<AppState>) -> Result<(), String> {
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     if cm.tabs.iter().any(|t| t.id == tab_id) {
         cm.selected_tab = tab_id;
@@ -1339,7 +1383,7 @@ pub fn select_command_manager_tab(tab_id: String, state: State<AppState>) -> Res
 }
 
 #[tauri::command]
-pub fn execute_command(
+pub fn execute_command(window: tauri::Window, 
     command_id: String,
     app: AppHandle,
     state: State<AppState>,
@@ -1347,7 +1391,8 @@ pub fn execute_command(
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
     }
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     if tab.document.is_none() {
         return Err("command needs an open document".into());
@@ -1372,7 +1417,7 @@ pub fn execute_command(
 }
 
 #[tauri::command]
-pub fn sync_text_document(
+pub fn sync_text_document(window: tauri::Window, 
     content: String,
     selection_start: usize,
     selection_end: usize,
@@ -1381,7 +1426,8 @@ pub fn sync_text_document(
     if content.len() > crate::document_limits::MAX_SYNC_TEXT_CHARS {
         return Err(crate::document_limits::sync_limit_error(content.len()));
     }
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no text document")?;
     let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
@@ -1389,7 +1435,8 @@ pub fn sync_text_document(
     let path = backend.path.clone();
     backend.set_content(content);
     backend.set_selection_range(selection_start, selection_end);
-    let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+    let _sess_stacks = ws(&state, &window)?;
+    let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
     stacks.record_change(&path, before, &backend.content);
     if backend.dirty {
         crate::crash_recovery::maybe_backup_dirty(&path, base_text::BACKEND_ID, &backend.content);
@@ -1413,7 +1460,7 @@ pub struct KeyChordInput {
 }
 
 #[tauri::command]
-pub fn get_keybindings(state: State<AppState>) -> Result<Vec<KeybindingDto>, String> {
+pub fn get_keybindings(window: tauri::Window, state: State<AppState>) -> Result<Vec<KeybindingDto>, String> {
     let kb = state.keybindings.lock().map_err(|e| e.to_string())?;
     Ok(kb
         .bindings_for_display()
@@ -1427,7 +1474,7 @@ pub fn get_keybindings(state: State<AppState>) -> Result<Vec<KeybindingDto>, Str
 
 /// Resolve a keyboard chord to a command id (e.g. `unibrowser.palette.toggle`).
 #[tauri::command]
-pub fn dispatch_key_chord(
+pub fn dispatch_key_chord(window: tauri::Window, 
     chord: KeyChordInput,
     state: State<AppState>,
 ) -> Result<Option<String>, String> {
@@ -1452,8 +1499,9 @@ pub fn dispatch_key_chord(
 }
 
 #[tauri::command]
-pub fn palette_search(query: String, state: State<AppState>) -> Result<Vec<PaletteEntryDto>, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn palette_search(window: tauri::Window, query: String, state: State<AppState>) -> Result<Vec<PaletteEntryDto>, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab().ok_or("no tab")?;
     let ctx = tab
         .document
@@ -1496,7 +1544,7 @@ pub fn palette_search(query: String, state: State<AppState>) -> Result<Vec<Palet
 }
 
 #[tauri::command]
-pub async fn handle_download_url(
+pub async fn handle_download_url(window: tauri::Window, 
     url: String,
     destination: Option<String>,
     app: AppHandle,
@@ -1516,14 +1564,15 @@ pub async fn handle_download_url(
     match disposition {
         DownloadDisposition::OpenInNewTab { suggested_location } => {
             let (loc, is_dir, doc) = state.resolve_location(suggested_location);
-            let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+            let _sess_tabs = ws(&state, &window)?;
+            let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
             tabs.open_tab(loc.clone());
             if let Some(tab) = tabs.active_tab_mut() {
                 tab.is_directory = is_dir;
                 tab.document = doc;
             }
-            update_content_webview(&app, &loc)?;
-            snapshot(&state)
+            update_content_webview(&app, window.label(), &loc)?;
+            snapshot(&state, window.label())
         }
         DownloadDisposition::SaveToDisk { path } => {
             let dest = if has_dest_hint {
@@ -1556,11 +1605,11 @@ pub async fn handle_download_url(
                 };
                 copy_file_to_path(&source, &dest)?;
             }
-            *state
+            *ws(&state, &window)?
                 .chrome_notice
                 .lock()
                 .map_err(|e| e.to_string())? = Some(format!("Saved to {}", dest.display()));
-            snapshot(&state)
+            snapshot(&state, window.label())
         }
     }
 }
@@ -1618,7 +1667,7 @@ pub fn write_document_bytes(path: String, bytes: Vec<u8>, state: State<AppState>
 }
 
 #[tauri::command]
-pub async fn pick_save_image_path(
+pub async fn pick_save_image_path(window: tauri::Window, 
     app: AppHandle,
     suggested_name: String,
 ) -> Result<Option<String>, String> {
@@ -1634,7 +1683,7 @@ pub async fn pick_save_image_path(
 }
 
 #[tauri::command]
-pub fn resolve_preview_link(
+pub fn resolve_preview_link(window: tauri::Window, 
     base_path: String,
     href: String,
     state: State<AppState>,
@@ -1659,7 +1708,7 @@ pub fn resolve_preview_link(
 }
 
 #[tauri::command]
-pub fn open_new_browser_window(app: AppHandle) -> Result<String, String> {
+pub fn open_new_browser_window(window: tauri::Window, app: AppHandle) -> Result<String, String> {
     use tauri::{WebviewUrl, WebviewWindowBuilder};
     let mut n = app.webview_windows().len().max(1) + 1;
     let mut label = format!("browser-{}", n);
@@ -1677,11 +1726,12 @@ pub fn open_new_browser_window(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn sync_pdf_viewer_state(
+pub fn sync_pdf_viewer_state(window: tauri::Window, 
     has_text_selection: bool,
     state: State<AppState>,
 ) -> Result<(), String> {
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no document")?;
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
@@ -1690,8 +1740,9 @@ pub fn sync_pdf_viewer_state(
 }
 
 #[tauri::command]
-pub fn sync_pdf_page(page: u32, state: State<AppState>) -> Result<(), String> {
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn sync_pdf_page(window: tauri::Window, page: u32, state: State<AppState>) -> Result<(), String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no document")?;
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
@@ -1700,8 +1751,9 @@ pub fn sync_pdf_page(page: u32, state: State<AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn sync_pdf_scale(scale: f32, state: State<AppState>) -> Result<(), String> {
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn sync_pdf_scale(window: tauri::Window, scale: f32, state: State<AppState>) -> Result<(), String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no document")?;
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
@@ -1710,8 +1762,9 @@ pub fn sync_pdf_scale(scale: f32, state: State<AppState>) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn web_page_zoom(delta_px: i32, app: AppHandle, state: State<AppState>) -> Result<(), String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn web_page_zoom(window: tauri::Window, delta_px: i32, app: AppHandle, state: State<AppState>) -> Result<(), String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab().ok_or("no tab")?;
     let url = match &tab.location {
         BrowserLocation::Http { url } => url.clone(),
@@ -1722,7 +1775,7 @@ pub fn web_page_zoom(delta_px: i32, app: AppHandle, state: State<AppState>) -> R
 }
 
 #[tauri::command]
-pub async fn pick_open_file(app: AppHandle) -> Result<Option<String>, String> {
+pub async fn pick_open_file(window: tauri::Window, app: AppHandle) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
     let picked = app
         .dialog()
@@ -1733,7 +1786,7 @@ pub async fn pick_open_file(app: AppHandle) -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-pub async fn pick_browse_folder(app: AppHandle) -> Result<Option<String>, String> {
+pub async fn pick_browse_folder(window: tauri::Window, app: AppHandle) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
     let picked = app
         .dialog()
@@ -1744,7 +1797,7 @@ pub async fn pick_browse_folder(app: AppHandle) -> Result<Option<String>, String
 }
 
 #[tauri::command]
-pub async fn pick_unibrow_asset_file(app: AppHandle) -> Result<Option<String>, String> {
+pub async fn pick_unibrow_asset_file(window: tauri::Window, app: AppHandle) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
     let picked = app
         .dialog()
@@ -1755,7 +1808,7 @@ pub async fn pick_unibrow_asset_file(app: AppHandle) -> Result<Option<String>, S
 }
 
 #[tauri::command]
-pub fn add_unibrow_asset(
+pub fn add_unibrow_asset(window: tauri::Window, 
     project_path: String,
     source_path: String,
     state: State<AppState>,
@@ -1777,19 +1830,21 @@ pub fn add_unibrow_asset(
         .unwrap_or_else(|| "asset".into());
     unibrowser_project::add_asset_copy(&mut package, &source, node_type, &label)
         .map_err(|e| e.to_string())?;
-    reload_unibrow_project_tab(&state, &project, project_path)?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 fn reload_unibrow_project_tab(
     state: &AppState,
+    window_label: &str,
     project: &Path,
     project_path: String,
 ) -> Result<(), String> {
     let package = open_unibrow_package(project)?;
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws_label(state, window_label)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let project_index = tabs.tabs().iter().position(|t| {
         matches!(&t.location, BrowserLocation::File { path } if path == project)
     });
@@ -1806,7 +1861,7 @@ fn reload_unibrow_project_tab(
 }
 
 #[tauri::command]
-pub fn remove_unibrow_node(
+pub fn remove_unibrow_node(window: tauri::Window, 
     project_path: String,
     node_id: String,
     state: State<AppState>,
@@ -1815,14 +1870,14 @@ pub fn remove_unibrow_node(
     let project = resolve_open_path(&project_path, &state.cwd)?;
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::remove_node(&mut package, &node_id).map_err(|e| e.to_string())?;
-    reload_unibrow_project_tab(&state, &project, project_path)?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn set_unibrow_node_position(
+pub fn set_unibrow_node_position(window: tauri::Window, 
     project_path: String,
     node_id: String,
     x: f32,
@@ -1834,14 +1889,14 @@ pub fn set_unibrow_node_position(
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::set_node_board_position(&mut package, &node_id, x, y)
         .map_err(|e| e.to_string())?;
-    reload_unibrow_project_tab(&state, &project, project_path)?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn add_unibrow_timeline_clip(
+pub fn add_unibrow_timeline_clip(window: tauri::Window, 
     project_path: String,
     node_id: String,
     state: State<AppState>,
@@ -1851,14 +1906,14 @@ pub fn add_unibrow_timeline_clip(
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::append_timeline_clip_for_node(&mut package, &node_id)
         .map_err(|e| e.to_string())?;
-    reload_unibrow_project_tab(&state, &project, project_path)?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn remove_unibrow_timeline_clip(
+pub fn remove_unibrow_timeline_clip(window: tauri::Window, 
     project_path: String,
     clip_id: String,
     state: State<AppState>,
@@ -1868,14 +1923,14 @@ pub fn remove_unibrow_timeline_clip(
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::remove_timeline_clip(&mut package, &clip_id)
         .map_err(|e| e.to_string())?;
-    reload_unibrow_project_tab(&state, &project, project_path)?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn reorder_unibrow_timeline_clips(
+pub fn reorder_unibrow_timeline_clips(window: tauri::Window, 
     project_path: String,
     from_index: usize,
     to_index: usize,
@@ -1886,14 +1941,14 @@ pub fn reorder_unibrow_timeline_clips(
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::reorder_timeline_clip(&mut package, from_index, to_index)
         .map_err(|e| e.to_string())?;
-    reload_unibrow_project_tab(&state, &project, project_path)?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn rename_unibrow_node(
+pub fn rename_unibrow_node(window: tauri::Window, 
     project_path: String,
     node_id: String,
     label: String,
@@ -1904,24 +1959,24 @@ pub fn rename_unibrow_node(
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::rename_node_label(&mut package, &node_id, &label)
         .map_err(|e| e.to_string())?;
-    reload_unibrow_project_tab(&state, &project, project_path)?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn get_ffmpeg_probe() -> unibrowser_media::FfmpegProbe {
+pub fn get_ffmpeg_probe(window: tauri::Window) -> unibrowser_media::FfmpegProbe {
     unibrowser_media::probe_ffmpeg_install()
 }
 
 #[tauri::command]
-pub fn get_home_dir() -> String {
+pub fn get_home_dir(window: tauri::Window) -> String {
     std::env::var("HOME").unwrap_or_else(|_| "/tmp".into())
 }
 
 #[tauri::command]
-pub fn get_preferences() -> PreferencesDto {
+fn preferences_dto() -> PreferencesDto {
     let p = load_preferences();
     PreferencesDto {
         onboarding_dismissed: p.onboarding_dismissed,
@@ -1936,23 +1991,28 @@ pub fn get_preferences() -> PreferencesDto {
 }
 
 #[tauri::command]
-pub fn set_crash_recovery_enabled(enabled: bool) -> Result<PreferencesDto, String> {
-    crate::crash_recovery::set_enabled(enabled)?;
-    Ok(get_preferences())
+pub fn get_preferences(_window: tauri::Window) -> PreferencesDto {
+    preferences_dto()
 }
 
 #[tauri::command]
-pub fn list_crash_recovery_backups() -> Vec<crate::crash_recovery::CrashRecoveryBackupDto> {
+pub fn set_crash_recovery_enabled(_window: tauri::Window, enabled: bool) -> Result<PreferencesDto, String> {
+    crate::crash_recovery::set_enabled(enabled)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn list_crash_recovery_backups(window: tauri::Window) -> Vec<crate::crash_recovery::CrashRecoveryBackupDto> {
     crate::crash_recovery::list_backups()
 }
 
 #[tauri::command]
-pub fn dismiss_crash_recovery_backup(backup_id: String) -> Result<(), String> {
+pub fn dismiss_crash_recovery_backup(window: tauri::Window, backup_id: String) -> Result<(), String> {
     crate::crash_recovery::dismiss_backup(&backup_id)
 }
 
 #[tauri::command]
-pub fn restore_crash_recovery_backup(
+pub fn restore_crash_recovery_backup(window: tauri::Window, 
     backup_id: String,
     app: AppHandle,
     state: State<AppState>,
@@ -1962,7 +2022,8 @@ pub fn restore_crash_recovery_backup(
     allow_asset_protocol_file(&app, &file_path);
     let loc = BrowserLocation::File { path: file_path };
     let (loc, is_dir, doc) = state.resolve_location(loc);
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.navigate_active(loc.clone(), is_dir, doc);
     if let BrowserLocation::File { path } = &loc {
         if path.is_file() {
@@ -1983,17 +2044,17 @@ pub fn restore_crash_recovery_backup(
     } else {
         return Err("unsupported backup type".into());
     }
-    update_content_webview(&app, &loc)?;
+    update_content_webview(&app, window.label(), &loc)?;
     let _ = crate::crash_recovery::dismiss_backup(&backup_id);
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn set_board_snap_to_grid(enabled: bool) -> Result<PreferencesDto, String> {
+pub fn set_board_snap_to_grid(window: tauri::Window, enabled: bool) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.board_snap_to_grid = enabled;
     save_preferences(&p)?;
-    Ok(get_preferences())
+    Ok(preferences_dto())
 }
 
 fn download_pref_to_str(pref: &DownloadPreference) -> String {
@@ -2011,15 +2072,15 @@ fn download_pref_from_str(s: &str) -> DownloadPreference {
 }
 
 #[tauri::command]
-pub fn set_download_preference(preference: String) -> Result<PreferencesDto, String> {
+pub fn set_download_preference(window: tauri::Window, preference: String) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.download_preference = download_pref_from_str(&preference);
     save_preferences(&p)?;
-    Ok(get_preferences())
+    Ok(preferences_dto())
 }
 
 #[tauri::command]
-pub fn set_auto_save_settings(
+pub fn set_auto_save_settings(window: tauri::Window, 
     enabled: bool,
     interval_secs: u32,
 ) -> Result<PreferencesDto, String> {
@@ -2027,12 +2088,13 @@ pub fn set_auto_save_settings(
     p.auto_save_enabled = enabled;
     p.auto_save_interval_secs = interval_secs.clamp(30, 600);
     save_preferences(&p)?;
-    Ok(get_preferences())
+    Ok(preferences_dto())
 }
 
 #[tauri::command]
-pub fn auto_save_active_document(state: State<AppState>) -> Result<String, String> {
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn auto_save_active_document(window: tauri::Window, state: State<AppState>) -> Result<String, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no active tab")?;
     if tab.document.is_none() {
         return Ok(String::new());
@@ -2055,53 +2117,56 @@ pub fn auto_save_active_document(state: State<AppState>) -> Result<String, Strin
 }
 
 #[tauri::command]
-pub fn begin_file_compare(
+pub fn begin_file_compare(window: tauri::Window, 
     other_path: String,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
-    let left = active_document_path(&state)?;
+    let left = active_document_path(&state, &window)?;
     let right = resolve_open_path(&other_path, &state.cwd)?;
     if !right.is_file() {
         return Err("compare target is not a file".into());
     }
     {
-        let mut cmp = state.file_compare.lock().map_err(|e| e.to_string())?;
+        let _sess_cmp = ws(&state, &window)?;
+        let mut cmp = _sess_cmp.file_compare.lock().map_err(|e| e.to_string())?;
         *cmp = Some(FileCompareState {
             left_path: left,
             right_path: right.to_string_lossy().into_owned(),
         });
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub async fn pick_and_compare(
+pub async fn pick_and_compare(window: tauri::Window, 
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<TabContentDto, String> {
     use tauri_plugin_dialog::DialogExt;
-    let _ = active_document_path(&state)?;
+    let _ = active_document_path(&state, &window)?;
     let picked = app
         .dialog()
         .file()
         .set_title("Compare with file")
         .blocking_pick_file();
     let path = picked.map(|p| p.to_string()).ok_or("no file chosen")?;
-    begin_file_compare(path, state)
+    begin_file_compare(window, path, state)
 }
 
 #[tauri::command]
-pub fn close_file_compare(state: State<AppState>) -> Result<TabContentDto, String> {
+pub fn close_file_compare(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
     {
-        let mut cmp = state.file_compare.lock().map_err(|e| e.to_string())?;
+        let _sess_cmp = ws(&state, &window)?;
+        let mut cmp = _sess_cmp.file_compare.lock().map_err(|e| e.to_string())?;
         *cmp = None;
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn pin_current_location(state: State<AppState>) -> Result<Vec<PinnedLocationDto>, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+pub fn pin_current_location(window: tauri::Window, state: State<AppState>) -> Result<Vec<PinnedLocationDto>, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let omnibox = tabs
         .active_tab()
         .map(|t| location_to_omnibox(&t.location))
@@ -2132,7 +2197,7 @@ pub fn pin_current_location(state: State<AppState>) -> Result<Vec<PinnedLocation
 #[tauri::command]
 pub fn set_restore_session_on_launch(enabled: bool) -> Result<PreferencesDto, String> {
     crate::session::set_restore_session_enabled(enabled)?;
-    Ok(get_preferences())
+    Ok(preferences_dto())
 }
 
 fn theme_to_str(theme: &UiTheme) -> String {
@@ -2158,16 +2223,16 @@ pub fn set_ui_theme(theme: String) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.theme = parsed;
     save_preferences(&p)?;
-    Ok(get_preferences())
+    Ok(preferences_dto())
 }
 
 #[tauri::command]
-pub fn get_epub_chapter(path: String, index: usize) -> Result<EpubChapterDto, String> {
+pub fn get_epub_chapter(window: tauri::Window, path: String, index: usize) -> Result<EpubChapterDto, String> {
     crate::epub_preview::preview_chapter(Path::new(&path), index)
 }
 
 #[tauri::command]
-pub async fn export_unibrow_project(
+pub async fn export_unibrow_project(window: tauri::Window, 
     app: AppHandle,
     project_path: String,
 ) -> Result<String, String> {
@@ -2196,14 +2261,14 @@ pub async fn export_unibrow_project(
 }
 
 #[tauri::command]
-pub fn dismiss_onboarding() -> Result<(), String> {
+pub fn dismiss_onboarding(window: tauri::Window) -> Result<(), String> {
     let mut p = load_preferences();
     p.onboarding_dismissed = true;
     save_preferences(&p)
 }
 
 #[tauri::command]
-pub fn save_window_geometry(
+pub fn save_window_geometry(window: tauri::Window, 
     width: f64,
     height: f64,
     x: Option<f64>,
@@ -2219,7 +2284,7 @@ pub fn save_window_geometry(
 }
 
 #[tauri::command]
-pub fn create_unibrow_project(
+pub fn create_unibrow_project(window: tauri::Window, 
     parent_dir: String,
     name: String,
     state: State<AppState>,
@@ -2231,18 +2296,19 @@ pub fn create_unibrow_project(
     unibrowser_project::seed_board_sketch(&mut package).map_err(|e| e.to_string())?;
     let loc = BrowserLocation::File { path: root.clone() };
     let doc = crate::state::open_file_document(&root);
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.open_tab(loc.clone());
     if let Some(tab) = tabs.active_tab_mut() {
         tab.is_directory = false;
         tab.document = doc;
     }
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn search_open_vsx_catalog(
+pub fn search_open_vsx_catalog(window: tauri::Window, 
     query: String,
     network_opt_in: bool,
 ) -> Result<Vec<crate::open_vsx::OpenVsxHitDto>, String> {
@@ -2250,7 +2316,7 @@ pub fn search_open_vsx_catalog(
 }
 
 #[tauri::command]
-pub fn open_mod_portal(
+pub fn open_mod_portal(window: tauri::Window, 
     ext: Option<String>,
     app: AppHandle,
     state: State<AppState>,
@@ -2261,14 +2327,15 @@ pub fn open_mod_portal(
     };
     let loc = BrowserLocation::Internal { page };
     let (loc, is_dir, doc) = state.resolve_location(loc);
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     tabs.open_tab(loc.clone());
     if let Some(tab) = tabs.active_tab_mut() {
         tab.is_directory = is_dir;
         tab.document = doc;
     }
-    update_content_webview(&app, &loc)?;
-    snapshot(&state)
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 #[derive(Serialize)]
@@ -2309,7 +2376,7 @@ fn install_vsix_bytes_and_register(
 }
 
 #[tauri::command]
-pub fn set_vsix_extension_enabled(
+pub fn set_vsix_extension_enabled(window: tauri::Window, 
     extension_id: String,
     enabled: bool,
     state: State<AppState>,
@@ -2322,7 +2389,7 @@ pub fn set_vsix_extension_enabled(
 }
 
 #[tauri::command]
-pub fn uninstall_vsix_extension(extension_id: String, state: State<AppState>) -> Result<(), String> {
+pub fn uninstall_vsix_extension(window: tauri::Window, extension_id: String, state: State<AppState>) -> Result<(), String> {
     let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
     unibrowser_vsix::uninstall_extension(&root, &extension_id).map_err(|e| e.to_string())?;
     state.refresh_vsix_catalog();
@@ -2330,20 +2397,20 @@ pub fn uninstall_vsix_extension(extension_id: String, state: State<AppState>) ->
 }
 
 #[tauri::command]
-pub fn list_installed_vsix() -> Result<Vec<InstalledVsixDto>, String> {
+pub fn list_installed_vsix(window: tauri::Window) -> Result<Vec<InstalledVsixDto>, String> {
     let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
     let list = unibrowser_vsix::list_installed(&root).map_err(|e| e.to_string())?;
     Ok(list.into_iter().map(map_installed).collect())
 }
 
 #[tauri::command]
-pub fn install_vsix_from_path(path: String, state: State<AppState>) -> Result<InstalledVsixDto, String> {
+pub fn install_vsix_from_path(window: tauri::Window, path: String, state: State<AppState>) -> Result<InstalledVsixDto, String> {
     let bytes = std::fs::read(PathBuf::from(path)).map_err(|e| e.to_string())?;
     install_vsix_bytes_and_register(state.inner(), &bytes, None)
 }
 
 #[tauri::command]
-pub fn download_install_vsix(
+pub fn download_install_vsix(window: tauri::Window, 
     url: String,
     network_opt_in: bool,
     license: Option<String>,
@@ -2354,7 +2421,7 @@ pub fn download_install_vsix(
 }
 
 #[tauri::command]
-pub async fn pick_and_install_vsix(
+pub async fn pick_and_install_vsix(window: tauri::Window, 
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<InstalledVsixDto, String> {
@@ -2374,18 +2441,20 @@ pub async fn pick_and_install_vsix(
 }
 
 #[tauri::command]
-pub fn sync_svg_document(content: String, state: State<AppState>) -> Result<(), String> {
+pub fn sync_svg_document(window: tauri::Window, content: String, state: State<AppState>) -> Result<(), String> {
     if content.len() > crate::document_limits::MAX_SYNC_TEXT_CHARS {
         return Err(crate::document_limits::sync_limit_error(content.len()));
     }
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no document")?;
     let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
     let before = backend.content.clone();
     let path = backend.path.clone();
     backend.set_content(content);
-    let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+    let _sess_stacks = ws(&state, &window)?;
+    let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
     stacks.record_change(&path, before, &backend.content);
     if backend.dirty {
         crate::crash_recovery::maybe_backup_dirty(&path, base_svg::BACKEND_ID, &backend.content);
@@ -2394,9 +2463,10 @@ pub fn sync_svg_document(content: String, state: State<AppState>) -> Result<(), 
 }
 
 #[tauri::command]
-pub fn document_undo(state: State<AppState>) -> Result<TabContentDto, String> {
+pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
     {
-        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         let tab = tabs.active_tab_mut().ok_or("no tab")?;
         let doc = tab.document.as_mut().ok_or("no document")?;
         let path = doc.path.clone();
@@ -2407,7 +2477,8 @@ pub fn document_undo(state: State<AppState>) -> Result<TabContentDto, String> {
         } else {
             return Err("undo not available for this document".into());
         };
-        let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+        let _sess_stacks = ws(&state, &window)?;
+        let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
         let prev = stacks.undo(&path, &current).ok_or("nothing to undo")?;
         if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.set_content(prev);
@@ -2415,13 +2486,14 @@ pub fn document_undo(state: State<AppState>) -> Result<TabContentDto, String> {
             backend.set_content(prev);
         }
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn document_redo(state: State<AppState>) -> Result<TabContentDto, String> {
+pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
     {
-        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         let tab = tabs.active_tab_mut().ok_or("no tab")?;
         let doc = tab.document.as_mut().ok_or("no document")?;
         let path = doc.path.clone();
@@ -2432,7 +2504,8 @@ pub fn document_redo(state: State<AppState>) -> Result<TabContentDto, String> {
         } else {
             return Err("redo not available for this document".into());
         };
-        let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+        let _sess_stacks = ws(&state, &window)?;
+        let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
         let next = stacks.redo(&path, &current).ok_or("nothing to redo")?;
         if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.set_content(next);
@@ -2440,35 +2513,39 @@ pub fn document_redo(state: State<AppState>) -> Result<TabContentDto, String> {
             backend.set_content(next);
         }
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn toggle_split_view(state: State<AppState>) -> Result<TabContentDto, String> {
-    let mut split = state.split_view.lock().map_err(|e| e.to_string())?;
+pub fn toggle_split_view(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
+    let _sess_split = ws(&state, &window)?;
+    let mut split = _sess_split.split_view.lock().map_err(|e| e.to_string())?;
     split.enabled = !split.enabled;
     if split.enabled && split.secondary_index.is_none() {
-        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let _sess_tabs = ws(&state, &window)?;
+        let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
         let active = tabs.active_index();
         split.secondary_index = Some(if active > 0 { active - 1 } else { active });
     }
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn set_split_tab(index: usize, state: State<AppState>) -> Result<TabContentDto, String> {
-    let mut split = state.split_view.lock().map_err(|e| e.to_string())?;
+pub fn set_split_tab(window: tauri::Window, index: usize, state: State<AppState>) -> Result<TabContentDto, String> {
+    let _sess_split = ws(&state, &window)?;
+    let mut split = _sess_split.split_view.lock().map_err(|e| e.to_string())?;
     split.enabled = true;
     split.secondary_index = Some(index);
-    snapshot(&state)
+    snapshot(&state, window.label())
 }
 
 #[tauri::command]
-pub fn omnibox_completions(
+pub fn omnibox_completions(window: tauri::Window, 
     query: String,
     state: State<AppState>,
 ) -> Result<Vec<OmniboxSuggestionDto>, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let cwd = listing_cwd(&state, &tabs);
     let mut out: Vec<OmniboxSuggestionDto> = Vec::new();
     let prefs = load_preferences();
@@ -2522,6 +2599,10 @@ pub fn get_csv_preview(
     crate::csv_preview::preview_file(&p, limit)
 }
 
-fn update_content_webview(app: &AppHandle, loc: &BrowserLocation) -> Result<(), String> {
-    sync_all_content_webviews(app, loc)
+fn update_content_webview(
+    app: &AppHandle,
+    window_label: &str,
+    loc: &BrowserLocation,
+) -> Result<(), String> {
+    sync_content_webview_for_window(app, window_label, loc)
 }

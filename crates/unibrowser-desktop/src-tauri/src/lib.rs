@@ -18,6 +18,8 @@ mod about_stub;
 mod web_font_prefs;
 mod crash_recovery;
 mod document_limits;
+mod content_sniff;
+mod window_session;
 mod workspace_layouts;
 mod rhai_host;
 mod session;
@@ -53,7 +55,7 @@ pub fn run() {
                     let _ = preferences::save_window_state(&state);
                 }
                 if let Some(state) = window.try_state::<AppState>() {
-                    session::persist_session_if_enabled(state.inner());
+                    session::persist_session_if_enabled(state.inner(), "main");
                 }
             }
             if let tauri::WindowEvent::DragDrop(drag) = event {

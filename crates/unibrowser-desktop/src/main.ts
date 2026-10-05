@@ -17,6 +17,7 @@ import { setViewerZoomListener } from "./viewerZoom";
 import { applyChromeI18n, modsLineText } from "./chromeI18n";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
+import { emptyStateBlock } from "./emptyState";
 
 interface TabDto {
   id: number;
@@ -545,7 +546,9 @@ function renderRecentFiles(entries: RecentFileDto[]) {
   }
   recentPanel.classList.remove("hidden");
   if (!entries.length) {
-    recentPanel.textContent = t("recent.empty");
+    recentPanel.appendChild(
+      emptyStateBlock(t("recent.empty"), [t("recent.emptyHint")]),
+    );
     return;
   }
   const list = document.createElement("ul");
@@ -1068,14 +1071,6 @@ window.addEventListener("unibrowser-refresh", (event) => {
   }
 });
 
-commandManager.bindPinControl(
-  commandManagerPin,
-  commandManagerTabs,
-  commandManagerCommands,
-  floatingToolbarHost,
-  runUiCommand,
-);
-
 bindRovingTablist(tabStrip, () => tabButtons);
 
 bindStatusBar(statusBarEl);
@@ -1095,32 +1090,55 @@ setViewerZoomListener((_scale, label) => {
   }
 });
 
-document.getElementById("command-manager-export")!.onclick = async () => {
-  const path = await invoke<string | null>("export_command_manager_layout_file");
-  if (path) {
-    showToast(t("commandManager.exported", { path }), "info");
+function deferNonCriticalInit(fn: () => void) {
+  const run = () => {
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(fn, { timeout: 2500 });
+    } else {
+      window.setTimeout(fn, 1);
+    }
+  };
+  if (document.readyState === "complete") {
+    run();
+  } else {
+    window.addEventListener("load", run, { once: true });
   }
-};
-window.addEventListener("unibrowser-workspace-layout-loaded", () => {
-  void refreshCommandManager();
-});
-
-document.getElementById("command-manager-import")!.onclick = async () => {
-  try {
-    await invoke("import_command_manager_layout_file");
-    showToast(t("commandManager.imported"), "info");
-    await refreshCommandManager();
-  } catch (err) {
-    showToast(String(err), "error");
-  }
-};
+}
 
 applyChromeI18n();
-loadKeybindingHints();
 void loadThemePreference().then(() => {
   themeBtn.textContent = themeButtonLabel();
 });
-void invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>("get_preferences").then(
-  (prefs) => configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs),
-);
-refreshState();
+void refreshState();
+
+deferNonCriticalInit(() => {
+  commandManager.bindPinControl(
+    commandManagerPin,
+    commandManagerTabs,
+    commandManagerCommands,
+    floatingToolbarHost,
+    runUiCommand,
+  );
+  document.getElementById("command-manager-export")!.onclick = async () => {
+    const path = await invoke<string | null>("export_command_manager_layout_file");
+    if (path) {
+      showToast(t("commandManager.exported", { path }), "info");
+    }
+  };
+  window.addEventListener("unibrowser-workspace-layout-loaded", () => {
+    void refreshCommandManager();
+  });
+  document.getElementById("command-manager-import")!.onclick = async () => {
+    try {
+      await invoke("import_command_manager_layout_file");
+      showToast(t("commandManager.imported"), "info");
+      await refreshCommandManager();
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  void loadKeybindingHints();
+  void invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>("get_preferences").then(
+    (prefs) => configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs),
+  );
+});

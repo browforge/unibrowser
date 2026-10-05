@@ -29,14 +29,22 @@ pub fn load_session_snapshot() -> Option<SessionSnapshot> {
     serde_json::from_str(&data).ok()
 }
 
-pub fn capture_from_state(state: &AppState) -> SessionSnapshot {
-    let tabs = state.tabs.lock().ok();
-    let tabs = match tabs {
-        Some(t) => t,
-        None => return SessionSnapshot {
+pub fn capture_from_state(state: &AppState, window_label: &str) -> SessionSnapshot {
+    let session = state.session(window_label).ok();
+    let Some(sess) = session else {
+        return SessionSnapshot {
             tab_inputs: Vec::new(),
             active_index: 0,
-        },
+        };
+    };
+    let tabs = match sess.tabs.lock() {
+        Ok(t) => t,
+        Err(_) => {
+            return SessionSnapshot {
+                tab_inputs: Vec::new(),
+                active_index: 0,
+            };
+        }
     };
     SessionSnapshot {
         tab_inputs: tabs
@@ -56,12 +64,12 @@ pub fn location_to_omnibox(loc: &BrowserLocation) -> String {
     }
 }
 
-pub fn persist_session_if_enabled(state: &AppState) {
+pub fn persist_session_if_enabled(state: &AppState, window_label: &str) {
     let prefs = load_preferences();
     if !prefs.restore_session_on_launch {
         return;
     }
-    let snap = capture_from_state(state);
+    let snap = capture_from_state(state, window_label);
     let _ = save_session_snapshot(&snap);
 }
 

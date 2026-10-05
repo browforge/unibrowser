@@ -33,6 +33,15 @@ On Linux you need GTK/WebKit dev packages (see `.github/workflows/ci.yml`). Wind
 - Add unit tests next to new Rust logic (`smf`, `downloads`, `unibrowser-project`, etc.).
 - Manual checks for UI: `docs/qa-desktop.md`.
 
+## `.unibrow` projects and large assets
+
+Unibrowser project packages use the `.unibrow` extension. They can embed or reference heavy media (video, audio, high-res images). **Do not commit large binaries inside the repo** unless they are tiny fixtures for automated tests.
+
+- Keep sample projects under a few megabytes; prefer relative asset paths and document how to fetch media locally.
+- Add `*.unibrow` trees with large `assets/` folders to your local or global gitignore when working on real projects.
+- For teams that must version big media, use **Git LFS** with explicit `*.mp4`, `*.wav`, `*.psd`, or project-specific patterns in `.gitattributes`; document the LFS setup in your fork's README. The upstream repo does not require LFS for engine or shell development.
+- Never commit secrets, licensed stock footage, or customer files inside `.unibrow` packages in this repository.
+
 ## Community
 
 Be respectful and constructive. If you are unsure whether an idea fits the vision in `docs/vision.md`, open an issue or draft PR early for feedback.

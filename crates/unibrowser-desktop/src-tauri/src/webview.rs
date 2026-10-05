@@ -124,18 +124,19 @@ pub fn content_webview_navigate(
     Ok(())
 }
 
-/// Keep embedded http views in sync across all open windows (shared tab model).
-pub fn sync_all_content_webviews(app: &AppHandle, loc: &unibrowser_mod_api::BrowserLocation) -> Result<(), String> {
-    for (label, _) in app.webview_windows() {
-        let _ = match loc {
-            unibrowser_mod_api::BrowserLocation::Http { url } => {
-                content_webview_navigate(app, &label, url)?;
-                apply_persisted_web_font(app, &label, url)?;
-            }
-            _ => {
-                content_webview_navigate(app, &label, "about:blank")?;
-            }
-        };
+pub fn sync_content_webview_for_window(
+    app: &AppHandle,
+    window_label: &str,
+    loc: &unibrowser_mod_api::BrowserLocation,
+) -> Result<(), String> {
+    match loc {
+        unibrowser_mod_api::BrowserLocation::Http { url } => {
+            content_webview_navigate(app, window_label, url)?;
+            apply_persisted_web_font(app, window_label, url)?;
+        }
+        _ => {
+            content_webview_navigate(app, window_label, "about:blank")?;
+        }
     }
     Ok(())
 }

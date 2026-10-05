@@ -46,7 +46,8 @@ pub fn execute_command_for_script(
     {
         return Err(format!("unknown command: {}", command_id));
     }
-    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let sess = state.session("main")?;
+    let mut tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     if tab.document.is_none() {
         if let Some(msg) = browse_script_command(command_id) {
@@ -102,10 +103,16 @@ fn build_host_api(state: &AppState, source: &str) -> Result<HostApi, String> {
 pub fn describe_rhai_script(source: String, state: State<AppState>) -> Result<RhaiScriptInfoDto, String> {
     let allowlist = parse_allowlist_from_source(&source);
     let api = build_host_api(state.inner(), &source)?;
-    let document_commands_blocked = match state.tabs.lock() {
-        Ok(tabs) => tabs
-            .active_tab()
-            .map(|t| t.document.is_some())
+    let document_commands_blocked = match state.session("main") {
+        Ok(sess) => sess
+            .tabs
+            .lock()
+            .map(|tabs| {
+                tabs
+                    .active_tab()
+                    .map(|t| t.document.is_some())
+                    .unwrap_or(false)
+            })
             .unwrap_or(false),
         Err(_) => false,
     };

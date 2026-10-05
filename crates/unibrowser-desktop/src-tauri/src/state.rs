@@ -10,6 +10,7 @@ use unibrowser_engine::{
 };
 
 use crate::config::{keybindings_file_path, toolbars_file_path};
+use crate::window_session::{SharedWindowSession, WindowSession};
 use unibrowser_mod_api::BrowserLocation;
 use unibrowser_mod_host::{ModHost, ModRegisterFn, default_mods_dir};
 
@@ -27,18 +28,24 @@ pub struct FileCompareState {
 
 pub struct AppState {
     pub registry: Mutex<CommandRegistry>,
-    pub tabs: Mutex<TabManager>,
+    pub sessions: Mutex<HashMap<String, SharedWindowSession>>,
     pub cwd: PathBuf,
     pub mods_loaded: String,
     pub keybindings: Mutex<KeybindingMap>,
     pub command_manager: Mutex<CommandManagerState>,
     pub vsix_host_commands: Mutex<HashSet<String>>,
-    pub undo_stacks: Mutex<crate::undo_stack::UndoStacks>,
-    pub split_view: Mutex<SplitViewState>,
     pub key_sequences: Mutex<KeySequenceMatcher>,
-    pub file_compare: Mutex<Option<FileCompareState>>,
-    pub chrome_notice: Mutex<Option<String>>,
     pub _mod_host: ModHost,
+}
+
+impl AppState {
+    pub fn session(&self, label: &str) -> Result<SharedWindowSession, String> {
+        let mut map = self.sessions.lock().map_err(|e| e.to_string())?;
+        Ok(map
+            .entry(label.to_string())
+            .or_insert_with(|| SharedWindowSession::new(WindowSession::new_with_home(&self.cwd)))
+            .clone())
+    }
 }
 
 fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
@@ -92,10 +99,8 @@ impl AppState {
         let home = BrowserLocation::File {
             path: cwd.clone(),
         };
-        let mut tab_mgr = TabManager::new_with_home(home);
-        if let Some(tab) = tab_mgr.active_tab_mut() {
-            tab.is_directory = cwd.is_dir();
-        }
+        let main_session = SharedWindowSession::new(WindowSession::new_with_home(&cwd));
+        let sessions = Mutex::new(HashMap::from([("main".to_string(), main_session)]));
         let keybindings = Mutex::new(load_merged_keybindings());
         let cm_file = load_command_manager_file(toolbars_file_path().as_deref());
         let command_manager = Mutex::new(
@@ -104,17 +109,13 @@ impl AppState {
 
         Self {
             registry: Mutex::new(registry),
-            tabs: Mutex::new(tab_mgr),
+            sessions,
             cwd,
             mods_loaded,
             keybindings,
             command_manager,
             vsix_host_commands,
-            undo_stacks: Mutex::new(crate::undo_stack::UndoStacks::default()),
-            split_view: Mutex::new(SplitViewState::default()),
             key_sequences: Mutex::new(KeySequenceMatcher::default()),
-            file_compare: Mutex::new(None),
-            chrome_notice: Mutex::new(None),
             _mod_host: mod_host,
         }
     }
@@ -140,8 +141,9 @@ impl AppState {
         }
     }
 
-    pub fn refresh_command_manager_context(&self) {
-        let tabs = self.tabs.lock().expect("tabs lock");
+    pub fn refresh_command_manager_context(&self, window_label: &str) {
+        let sess = self.session(window_label).expect("session");
+        let tabs = sess.tabs.lock().expect("tabs lock");
         let tab = tabs.active_tab();
         let ctx = if let Some(tab) = tab {
             let path = tab
@@ -224,7 +226,7 @@ impl AppState {
         (location, false, None)
     }
 
-    pub fn navigate_input(&self, input: &str) -> Result<BrowserLocation, String> {
+    pub fn navigate_input(&self, input: &str, window_label: &str) -> Result<BrowserLocation, String> {
         let loc = parse_user_input(input, &self.cwd);
         let (loc, is_dir, doc) = self.resolve_location(loc);
         let loc = match loc {
@@ -237,7 +239,8 @@ impl AppState {
             }
             other => other,
         };
-        let mut tabs = self.tabs.lock().map_err(|e| e.to_string())?;
+        let sess = self.session(window_label)?;
+        let mut tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
         tabs.navigate_active(loc.clone(), is_dir, doc);
         Ok(loc)
     }
@@ -255,6 +258,7 @@ fn internal_files_path(page: &str, cwd: &Path) -> PathBuf {
 
 pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
     let path_str = path.to_string_lossy().to_string();
+    let sniffed = crate::content_sniff::sniff_format(path);
     if unibrowser_project::is_unibrow_path(path) {
         let root = crate::config::unibrow_zip_cache_dir()
             .ok_or_else(|| "config path unavailable".to_string());
@@ -276,7 +280,15 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    let backend: Option<Box<dyn unibrowser_engine::document::DocumentBackend>> = match ext.as_str()
+    let effective = match sniffed {
+        Some(crate::content_sniff::SniffedFormat::Pdf) => "pdf",
+        Some(crate::content_sniff::SniffedFormat::Png) => "png",
+        Some(crate::content_sniff::SniffedFormat::Jpeg) => "jpeg",
+        Some(crate::content_sniff::SniffedFormat::Epub) => "epub",
+        Some(crate::content_sniff::SniffedFormat::Zip) => ext.as_str(),
+        None => ext.as_str(),
+    };
+    let backend: Option<Box<dyn unibrowser_engine::document::DocumentBackend>> = match effective
     {
         "png" | "jpg" | "jpeg" | "gif" | "webp" => Some(base_png::open_file(path)),
         "svg" => Some(base_svg::open_file(path)),

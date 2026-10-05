@@ -46,7 +46,7 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 - DOCX: Find / Prev / Next search in Mammoth HTML preview.
 - PNG/image: Crop overlay; **Save cropped as…** writes new PNG; original unchanged.
 - Markdown / DOCX preview: `https://` and `file://` links navigate via omnibox (blocked: `javascript:`, `data:`).
-- Settings → **Open another window** (shared tabs; per-window web overlay).
+- Settings → **Open another window** (independent tabs per window; shared prefs on disk).
 - Undo stacks capped per document and total tracked paths; large read/sync limits enforced.
 - About: Privacy section states no telemetry by default.
 

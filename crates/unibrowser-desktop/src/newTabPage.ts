@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { emptyStateBlock } from "./emptyState";
 import { t } from "./i18n";
 
 export interface DirEntry {
@@ -74,10 +75,10 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   list.className = "ntp-file-list";
   const entries = deps.entries ?? [];
   if (!entries.length) {
-    const empty = document.createElement("li");
-    empty.className = "ntp-empty";
-    empty.textContent = t("ntp.emptyFolder");
-    list.appendChild(empty);
+    const emptyLi = document.createElement("li");
+    emptyLi.className = "ntp-empty-wrap";
+    emptyLi.appendChild(emptyStateBlock(t("ntp.emptyFolder"), []));
+    list.appendChild(emptyLi);
   } else {
     entries.slice(0, 24).forEach((entry) => {
       const li = document.createElement("li");
