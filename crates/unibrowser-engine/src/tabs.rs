@@ -34,6 +34,10 @@ impl TabManager {
         &self.tabs
     }
 
+    pub fn tab_mut(&mut self, index: usize) -> Option<&mut Tab> {
+        self.tabs.get_mut(index)
+    }
+
     pub fn active_index(&self) -> usize {
         self.active
     }

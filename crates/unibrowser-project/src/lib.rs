@@ -102,6 +102,24 @@ pub fn write_manifest(root: &Path, manifest: &ProjectManifest) -> Result<(), Pro
     Ok(())
 }
 
+pub fn guess_asset_node_type(path: &Path) -> &'static str {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    match ext.as_str() {
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" => "image",
+        "pdf" => "pdf",
+        "docx" => "document",
+        "dxf" => "drawing",
+        "mp4" | "webm" => "video",
+        "wav" | "mid" | "midi" => "audio",
+        "js" | "rhai" => "script",
+        _ => "file",
+    }
+}
+
 pub fn add_asset_copy(
     package: &mut ProjectPackage,
     source: &Path,

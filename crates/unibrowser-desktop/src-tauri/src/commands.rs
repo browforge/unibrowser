@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
@@ -77,10 +77,31 @@ pub struct PaletteEntryDto {
 }
 
 #[derive(Serialize)]
+pub struct ProjectNodeDto {
+    pub id: String,
+    pub node_type: String,
+    pub label: String,
+    pub asset: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct OpenFileTabDto {
+    pub tab_index: usize,
+    pub path: String,
+    pub label: String,
+}
+
+#[derive(Serialize)]
 pub struct DocumentViewerDto {
     pub path: String,
     pub viewer: String,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pdf_scale: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_nodes: Option<Vec<ProjectNodeDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_file_tabs: Option<Vec<OpenFileTabDto>>,
 }
 
 #[derive(Serialize)]
@@ -138,7 +159,61 @@ fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
     }
 }
 
-fn document_viewer_dto(doc: &unibrowser_engine::DocumentSession) -> Option<DocumentViewerDto> {
+fn open_file_tabs_dto(state: &AppState) -> Vec<OpenFileTabDto> {
+    let tabs = state.tabs.lock().ok();
+    let tabs = match tabs {
+        Some(t) => t,
+        None => return Vec::new(),
+    };
+    tabs
+        .tabs()
+        .iter()
+        .enumerate()
+        .filter_map(|(index, tab)| {
+            if let BrowserLocation::File { path } = &tab.location {
+                if path.is_file() && !unibrowser_project::is_unibrow_path(path) {
+                    return Some(OpenFileTabDto {
+                        tab_index: index,
+                        path: path.to_string_lossy().into_owned(),
+                        label: tab.location.display_label(),
+                    });
+                }
+            }
+            None
+        })
+        .collect()
+}
+
+fn document_viewer_dto(
+    doc: &mut unibrowser_engine::DocumentSession,
+    state: &AppState,
+) -> Option<DocumentViewerDto> {
+    if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
+        let root = Path::new(&doc.path);
+        let opened = unibrowser_project::open_package(root).ok();
+        let nodes = opened.as_ref().map(|pkg| {
+            pkg.manifest
+                .nodes
+                .iter()
+                .map(|n| ProjectNodeDto {
+                    id: n.id.clone(),
+                    node_type: n.node_type.clone(),
+                    label: n.label.clone(),
+                    asset: n.asset.clone(),
+                })
+                .collect()
+        });
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::project_backend::VIEWER_KIND.into(),
+            title: opened
+                .map(|p| p.manifest.title.clone())
+                .unwrap_or_else(|| doc.backend.display_name().into()),
+            pdf_scale: None,
+            project_nodes: nodes,
+            open_file_tabs: Some(open_file_tabs_dto(state)),
+        });
+    }
     let viewer = match doc.backend.backend_id() {
         base_docx::BACKEND_ID => base_docx::VIEWER_KIND,
         base_pdf::BACKEND_ID => base_pdf::VIEWER_KIND,
@@ -146,10 +221,18 @@ fn document_viewer_dto(doc: &unibrowser_engine::DocumentSession) -> Option<Docum
         base_js::BACKEND_ID => base_js::VIEWER_KIND,
         _ => return None,
     };
+    let pdf_scale = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
+        base_pdf::try_pdf_backend(&mut *doc.backend).map(|b| b.render_scale)
+    } else {
+        None
+    };
     Some(DocumentViewerDto {
         path: doc.path.clone(),
         viewer: viewer.into(),
         title: doc.backend.display_name().into(),
+        pdf_scale,
+        project_nodes: None,
+        open_file_tabs: None,
     })
 }
 
@@ -188,17 +271,20 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         .active_tab()
         .and_then(|t| t.document.as_ref())
         .map(|d| d.backend.status_line());
-    let document_viewer = tabs
-        .active_tab()
-        .and_then(|t| t.document.as_ref())
-        .and_then(document_viewer_dto);
-    let text_document = if document_viewer.is_some() {
-        None
-    } else {
-        tabs
-            .active_tab_mut()
-            .and_then(|t| t.document.as_mut())
-            .and_then(text_document_dto)
+    let (document_viewer, text_document) = match tabs.active_tab_mut() {
+        Some(tab) => {
+            let viewer = tab
+                .document
+                .as_mut()
+                .and_then(|d| document_viewer_dto(d, state));
+            let text = if viewer.is_some() {
+                None
+            } else {
+                tab.document.as_mut().and_then(text_document_dto)
+            };
+            (viewer, text)
+        }
+        None => (None, None),
     };
     let mod_portal = active_mod_portal(tabs.active_tab());
     let prefs = load_preferences();
@@ -647,6 +733,60 @@ pub fn read_document_bytes(path: String) -> Result<Vec<u8>, String> {
 #[tauri::command]
 pub fn run_rhai_script(source: String) -> Result<String, String> {
     base_js::ScriptBackend::eval_snippet(&source)
+}
+
+#[tauri::command]
+pub fn sync_pdf_viewer_state(
+    has_text_selection: bool,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    let doc = tab.document.as_mut().ok_or("no document")?;
+    let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+    pdf.set_text_selected(has_text_selection);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn add_unibrow_asset(
+    project_path: String,
+    source_path: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = PathBuf::from(&project_path);
+    if !unibrowser_project::is_unibrow_path(&project) {
+        return Err("not a .unibrow project".into());
+    }
+    let source = PathBuf::from(&source_path);
+    if !source.is_file() {
+        return Err("source is not a file".into());
+    }
+    let mut package = unibrowser_project::open_package(&project).map_err(|e| e.to_string())?;
+    let node_type = unibrowser_project::guess_asset_node_type(&source);
+    let label = source
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "asset".into());
+    unibrowser_project::add_asset_copy(&mut package, &source, node_type, &label)
+        .map_err(|e| e.to_string())?;
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let project_index = tabs.tabs().iter().position(|t| {
+        matches!(&t.location, BrowserLocation::File { path } if path == &project)
+    });
+    if let Some(index) = project_index {
+        if let Some(tab) = tabs.tab_mut(index) {
+            use crate::project_backend::UnibrowBackend;
+            tab.document = Some(unibrowser_engine::DocumentSession::new(
+                project_path.clone(),
+                Box::new(UnibrowBackend::open(package)),
+            ));
+        }
+    }
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
 }
 
 #[tauri::command]

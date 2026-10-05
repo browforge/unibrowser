@@ -1,0 +1,12 @@
+{
+  "name": "base-audio",
+  "version": "0.1.0",
+  "title": "Audio (proving)",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "Audio files via unibrowser-media ffprobe sidecar (ADR 0007)",
+  "capabilities": []
+}

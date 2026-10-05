@@ -8,6 +8,8 @@ use std::process::Command;
 use serde::Serialize;
 use thiserror::Error;
 
+pub mod sidecar;
+
 #[derive(Debug, Error)]
 pub enum MediaError {
     #[error("ffmpeg/ffprobe not found on PATH")]
@@ -80,33 +82,10 @@ pub fn probe_ffmpeg_install() -> FfmpegProbe {
 }
 
 pub fn probe_media_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
-    let ffprobe = find_binary("ffprobe").ok_or(MediaError::NotFound)?;
-    let output = Command::new(&ffprobe)
-        .args([
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration,format_name",
-            "-of",
-            "default=noprint_wrappers=1",
-            path.to_string_lossy().as_ref(),
-        ])
-        .output()
-        .map_err(|e| MediaError::Sidecar(e.to_string()))?;
-    if !output.status.success() {
-        return Err(MediaError::Sidecar(
-            String::from_utf8_lossy(&output.stderr).into_owned(),
-        ));
+    if std::env::var("UNIBROWSER_MEDIA_USE_SIDECAR").as_deref() == Ok("1") {
+        return sidecar::probe_file(path);
     }
-    let summary = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Ok(MediaFileProbe {
-        path: path.to_string_lossy().into_owned(),
-        ffprobe_summary: if summary.is_empty() {
-            None
-        } else {
-            Some(summary)
-        },
-    })
+    sidecar::probe_file_direct(path)
 }
 
 #[cfg(test)]

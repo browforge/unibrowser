@@ -1,6 +1,9 @@
 use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
 use unibrowser_project::ProjectPackage;
 
+pub const BACKEND_ID: &str = "unibrow-project";
+pub const VIEWER_KIND: &str = "unibrow";
+
 pub struct UnibrowBackend {
     pub package: ProjectPackage,
 }
@@ -13,7 +16,7 @@ impl UnibrowBackend {
 
 impl unibrowser_engine::document::DocumentBackend for UnibrowBackend {
     fn backend_id(&self) -> &str {
-        "unibrow-project"
+        BACKEND_ID
     }
     fn doc_type(&self) -> &str {
         "application/vnd.unibrowser.project"
@@ -48,4 +51,14 @@ impl unibrowser_engine::document::DocumentBackend for UnibrowBackend {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
+}
+
+#[allow(dead_code)]
+pub fn try_unibrow_backend(
+    backend: &mut dyn unibrowser_engine::document::DocumentBackend,
+) -> Option<&mut UnibrowBackend> {
+    if backend.backend_id() != BACKEND_ID {
+        return None;
+    }
+    backend.as_any_mut().downcast_mut::<UnibrowBackend>()
 }

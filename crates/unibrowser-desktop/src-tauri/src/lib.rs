@@ -54,6 +54,8 @@ pub fn run() {
             commands::set_content_bounds,
             commands::read_document_bytes,
             commands::run_rhai_script,
+            commands::sync_pdf_viewer_state,
+            commands::add_unibrow_asset,
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
             commands::get_preferences,

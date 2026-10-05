@@ -6,8 +6,9 @@ Video and audio engines use **ffmpeg** as an **LGPL sidecar** ([ADR 0007](adr/00
 
 - Crate: `unibrowser-media`
 - `probe_ffmpeg_install()` — is `ffmpeg` on `PATH`?
-- `probe_media_file(path)` — runs `ffprobe` when available
+- `probe_media_file(path)` — runs `ffprobe` when available (direct subprocess by default)
 - Override binary: `UNIBROWSER_FFMPEG_PATH`, `UNIBROWSER_FFPROBE_PATH`
+- IPC sketch: set `UNIBROWSER_MEDIA_USE_SIDECAR=1` and optionally `UNIBROWSER_MEDIA_SIDECAR_BIN` to the `unibrowser-media-sidecar` binary (JSON request/response per line on stdin/stdout)
 
 ## Packaging (future)
 

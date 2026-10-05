@@ -30,6 +30,9 @@ base-docx = { path = "../../../mods/base-docx" }
 base-pdf = { path = "../../../mods/base-pdf" }
 base-dxf = { path = "../../../mods/base-dxf" }
 base-js = { path = "../../../mods/base-js" }
+base-video = { path = "../../../mods/base-video" }
+base-audio = { path = "../../../mods/base-audio" }
+unibrowser-script-host = { path = "../../unibrowser-script-host" }
 toy-markdown = { path = "../../../mods/toy-markdown" }
 unibrowser-project = { path = "../../unibrowser-project" }
 unibrowser-media = { path = "../../unibrowser-media" }

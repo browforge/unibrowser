@@ -5,6 +5,11 @@ edition.workspace = true
 license.workspace = true
 description = "LGPL ffmpeg/ffprobe T3 sidecar helpers (ADR 0007)"
 
+[[bin]]
+name = "unibrowser-media-sidecar"
+path = "src/bin/unibrowser-media-sidecar.rs"
+
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 thiserror = { workspace = true }

@@ -18,6 +18,8 @@ base-docx = { path = "../../mods/base-docx" }
 base-pdf = { path = "../../mods/base-pdf" }
 base-dxf = { path = "../../mods/base-dxf" }
 base-js = { path = "../../mods/base-js" }
+base-video = { path = "../../mods/base-video" }
+base-audio = { path = "../../mods/base-audio" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 semver = { workspace = true }

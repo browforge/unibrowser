@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use rhai::{Engine, Scope};
 use unibrowser_engine::CommandRegistry;
+use unibrowser_script_host::{eval_with_host, HostApiStub};
 use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
 
 pub const BACKEND_ID: &str = "base-js";
@@ -24,12 +24,7 @@ impl ScriptBackend {
     }
 
     pub fn eval_snippet(source: &str) -> Result<String, String> {
-        let engine = Engine::new();
-        let mut scope = Scope::new();
-        let value = engine
-            .eval_with_scope::<rhai::Dynamic>(&mut scope, source)
-            .map_err(|e| e.to_string())?;
-        Ok(format!("{}", value))
+        eval_with_host(source, &HostApiStub::with_sample_commands())
     }
 }
 

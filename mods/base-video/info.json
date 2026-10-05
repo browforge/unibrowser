@@ -1,0 +1,12 @@
+{
+  "name": "base-video",
+  "version": "0.1.0",
+  "title": "Video (proving)",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "Video files via unibrowser-media ffprobe sidecar (ADR 0007)",
+  "capabilities": []
+}

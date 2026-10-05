@@ -1,0 +1,11 @@
+[package]
+name = "unibrowser-script-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Curated Rhai host surface for base-js (ADR 0017)"
+
+[dependencies]
+rhai = "1.22"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }

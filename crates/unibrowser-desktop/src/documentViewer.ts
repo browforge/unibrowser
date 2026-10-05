@@ -9,10 +9,26 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+export interface ProjectNodeDto {
+  id: string;
+  node_type: string;
+  label: string;
+  asset: string | null;
+}
+
+export interface OpenFileTabDto {
+  tab_index: number;
+  path: string;
+  label: string;
+}
+
 export interface DocumentViewerDto {
   path: string;
   viewer: string;
   title: string;
+  pdf_scale?: number;
+  project_nodes?: ProjectNodeDto[];
+  open_file_tabs?: OpenFileTabDto[];
 }
 
 let loadedKey: string | null = null;
@@ -38,12 +54,17 @@ async function renderDocx(path: string, root: HTMLElement) {
   }
 }
 
-async function renderPdf(path: string, root: HTMLElement) {
+async function syncPdfSelection(selected: boolean) {
+  await invoke("sync_pdf_viewer_state", { hasTextSelection: selected }).catch(() => {});
+}
+
+async function renderPdf(path: string, root: HTMLElement, scale: number) {
   const bytes = await readBytes(path);
   const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
   const page = await doc.getPage(1);
-  const scale = 1.25;
   const viewport = page.getViewport({ scale });
+  const wrap = document.createElement("div");
+  wrap.className = "pdf-page-wrap";
   const canvas = document.createElement("canvas");
   canvas.className = "pdf-page";
   const ctx = canvas.getContext("2d");
@@ -53,32 +74,140 @@ async function renderPdf(path: string, root: HTMLElement) {
   canvas.width = viewport.width;
   canvas.height = viewport.height;
   root.innerHTML = "";
-  root.appendChild(canvas);
+  wrap.appendChild(canvas);
+  const textLayer = document.createElement("div");
+  textLayer.className = "pdf-text-layer";
+  textLayer.style.width = `${viewport.width}px`;
+  textLayer.style.height = `${viewport.height}px`;
+  wrap.appendChild(textLayer);
+  root.appendChild(wrap);
   await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  const textContent = await page.getTextContent();
+  const layer = new pdfjsLib.TextLayer({
+    textContentSource: textContent,
+    container: textLayer,
+    viewport,
+  });
+  await layer.render();
+  textLayer.addEventListener("mouseup", () => {
+    const sel = window.getSelection();
+    const has = Boolean(sel && !sel.isCollapsed && textLayer.contains(sel.anchorNode));
+    void syncPdfSelection(has);
+  });
   const meta = document.createElement("p");
   meta.className = "viewer-note";
-  meta.textContent = `Page 1 / ${doc.numPages} (pdf.js raster view; vector engine in project graph per ADR 0011)`;
+  meta.textContent = `Page 1 / ${doc.numPages} · select text for font-size commands · scale ${scale.toFixed(2)}`;
   root.appendChild(meta);
 }
 
-type DxfData = {
-  entities?: { type: string; vertices?: { x: number; y: number }[] }[];
+type DxfVertex = { x: number; y: number; z?: number };
+type DxfEntity = {
+  type: string;
+  vertices?: DxfVertex[];
+  center?: DxfVertex;
+  radius?: number;
+  startAngle?: number;
+  endAngle?: number;
 };
 
-function lineEntities(dxf: DxfData | null) {
-  const lines: THREE.Vector3[] = [];
-  if (!dxf?.entities) {
-    return lines;
+type DxfData = { entities?: DxfEntity[] };
+
+function pushPoint(points: THREE.Vector3[], x: number, y: number) {
+  points.push(new THREE.Vector3(x, y, 0));
+}
+
+function arcPoints(
+  center: DxfVertex,
+  radius: number,
+  startDeg: number,
+  endDeg: number,
+  segments = 32,
+): THREE.Vector3[] {
+  const pts: THREE.Vector3[] = [];
+  let start = (startDeg * Math.PI) / 180;
+  let end = (endDeg * Math.PI) / 180;
+  if (end < start) {
+    end += Math.PI * 2;
   }
-  for (const ent of dxf.entities) {
+  for (let i = 0; i <= segments; i += 1) {
+    const t = start + ((end - start) * i) / segments;
+    pts.push(new THREE.Vector3(center.x + radius * Math.cos(t), center.y + radius * Math.sin(t), 0));
+  }
+  return pts;
+}
+
+function entitySegments(ent: DxfEntity): THREE.Vector3[] {
+  const segs: THREE.Vector3[] = [];
+  const t = ent.type;
+  if ((t === "LINE" || t === "POLYLINE" || t === "LWPOLYLINE") && ent.vertices && ent.vertices.length >= 2) {
     const verts = ent.vertices;
-    if (ent.type === "LINE" && verts && verts.length >= 2) {
-      const a = verts[0];
-      const b = verts[1];
-      lines.push(new THREE.Vector3(a.x, a.y, 0), new THREE.Vector3(b.x, b.y, 0));
+    for (let i = 0; i < verts.length - 1; i += 1) {
+      const a = verts[i];
+      const b = verts[i + 1];
+      pushPoint(segs, a.x, a.y);
+      pushPoint(segs, b.x, b.y);
+    }
+    if (t !== "LINE" && verts.length > 2) {
+      const a = verts[verts.length - 1];
+      const b = verts[0];
+      pushPoint(segs, a.x, a.y);
+      pushPoint(segs, b.x, b.y);
+    }
+  } else if (t === "CIRCLE" && ent.center && ent.radius) {
+    const ring = arcPoints(ent.center, ent.radius, 0, 360, 48);
+    for (let i = 0; i < ring.length - 1; i += 1) {
+      segs.push(ring[i], ring[i + 1]);
+    }
+  } else if (t === "ARC" && ent.center && ent.radius != null && ent.startAngle != null && ent.endAngle != null) {
+    const arc = arcPoints(ent.center, ent.radius, ent.startAngle, ent.endAngle, 24);
+    for (let i = 0; i < arc.length - 1; i += 1) {
+      segs.push(arc[i], arc[i + 1]);
     }
   }
-  return lines;
+  return segs;
+}
+
+function bboxFromSegments(segs: THREE.Vector3[]) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of segs) {
+    minX = Math.min(minX, p.x);
+    minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x);
+    maxY = Math.max(maxY, p.y);
+  }
+  if (!Number.isFinite(minX)) {
+    return null;
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function fitOrthographicCamera(
+  camera: THREE.OrthographicCamera,
+  bbox: { minX: number; minY: number; maxX: number; maxY: number },
+  width: number,
+  height: number,
+) {
+  const cx = (bbox.minX + bbox.maxX) / 2;
+  const cy = (bbox.minY + bbox.maxY) / 2;
+  const worldW = Math.max(bbox.maxX - bbox.minX, 1);
+  const worldH = Math.max(bbox.maxY - bbox.minY, 1);
+  const pad = 1.12;
+  const aspect = width / height;
+  let halfW = (worldW / 2) * pad;
+  let halfH = (worldH / 2) * pad;
+  if (halfW / halfH > aspect) {
+    halfH = halfW / aspect;
+  } else {
+    halfW = halfH * aspect;
+  }
+  camera.left = cx - halfW;
+  camera.right = cx + halfW;
+  camera.top = cy + halfH;
+  camera.bottom = cy - halfH;
+  camera.updateProjectionMatrix();
 }
 
 async function renderDxf(path: string, root: HTMLElement) {
@@ -98,17 +227,79 @@ async function renderDxf(path: string, root: HTMLElement) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(width, height);
   wrap.appendChild(renderer.domElement);
-  const pts = lineEntities(dxf);
-  if (pts.length >= 2) {
-    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+  const allSegs: THREE.Vector3[] = [];
+  for (const ent of dxf?.entities ?? []) {
+    allSegs.push(...entitySegments(ent));
+  }
+  if (allSegs.length >= 2) {
+    const geom = new THREE.BufferGeometry().setFromPoints(allSegs);
     const mat = new THREE.LineBasicMaterial({ color: 0x66ccff });
     scene.add(new THREE.LineSegments(geom, mat));
+    const bbox = bboxFromSegments(allSegs);
+    if (bbox) {
+      fitOrthographicCamera(camera, bbox, width, height);
+    }
   }
   renderer.render(scene, camera);
   const meta = document.createElement("p");
   meta.className = "viewer-note";
-  meta.textContent = `DXF entities: ${dxf?.entities?.length ?? 0} (dxf-parser + three.js)`;
+  meta.textContent = `DXF entities: ${dxf?.entities?.length ?? 0} (LINE, POLYLINE, CIRCLE, ARC)`;
   root.appendChild(meta);
+}
+
+async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
+  root.innerHTML = "";
+  const list = document.createElement("ul");
+  list.className = "unibrow-nodes";
+  const nodes = viewer.project_nodes ?? [];
+  if (nodes.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "No assets yet.";
+    list.appendChild(empty);
+  } else {
+    for (const node of nodes) {
+      const li = document.createElement("li");
+      li.textContent = `${node.label} (${node.node_type})${node.asset ? ` · ${node.asset}` : ""}`;
+      list.appendChild(li);
+    }
+  }
+  root.appendChild(list);
+  const addRow = document.createElement("div");
+  addRow.className = "unibrow-add-row";
+  const select = document.createElement("select");
+  const tabs = viewer.open_file_tabs ?? [];
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = tabs.length ? "Choose open file tab…" : "Open a file in another tab first";
+  select.appendChild(placeholder);
+  for (const tab of tabs) {
+    const opt = document.createElement("option");
+    opt.value = tab.path;
+    opt.textContent = tab.label;
+    select.appendChild(opt);
+  }
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.textContent = "Add to project";
+  btn.disabled = tabs.length === 0;
+  btn.onclick = async () => {
+    const sourcePath = select.value;
+    if (!sourcePath) {
+      return;
+    }
+    const data = await invoke("add_unibrow_asset", {
+      projectPath: viewer.path,
+      sourcePath,
+    });
+    window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+  };
+  addRow.appendChild(select);
+  addRow.appendChild(btn);
+  root.appendChild(addRow);
+  const note = document.createElement("p");
+  note.className = "viewer-note";
+  note.textContent = "Copies the file into project assets/ and updates project.json.";
+  root.appendChild(note);
 }
 
 async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {
@@ -131,9 +322,15 @@ async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {
   root.appendChild(run);
   root.appendChild(out);
   const demo = await invoke<string>("run_rhai_script", {
-    source: "42",
+    source: "list_commands().len()",
   });
-  out.textContent = `demo: ${demo}`;
+  out.textContent = `host list_commands(): ${demo}`;
+}
+
+function viewerCacheKey(viewer: DocumentViewerDto): string {
+  const nodeCount = viewer.project_nodes?.length ?? 0;
+  const scale = viewer.pdf_scale ?? 0;
+  return `${viewer.viewer}:${viewer.path}:${scale}:${nodeCount}`;
 }
 
 export const documentViewer = {
@@ -144,7 +341,7 @@ export const documentViewer = {
       loadedKey = null;
       return;
     }
-    const key = `${viewer.viewer}:${viewer.path}`;
+    const key = viewerCacheKey(viewer);
     if (key === loadedKey && el.childElementCount > 0) {
       el.classList.remove("hidden");
       return;
@@ -166,13 +363,16 @@ export const documentViewer = {
           await renderDocx(viewer.path, body);
           break;
         case "pdf":
-          await renderPdf(viewer.path, body);
+          await renderPdf(viewer.path, body, viewer.pdf_scale ?? 1.25);
           break;
         case "dxf":
           await renderDxf(viewer.path, body);
           break;
         case "script":
           await renderScript(viewer, body);
+          break;
+        case "unibrow":
+          await renderUnibrow(viewer, body);
           break;
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;

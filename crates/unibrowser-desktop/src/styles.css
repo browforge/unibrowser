@@ -238,6 +238,47 @@ body {
   color: #f88;
 }
 
+.pdf-page-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.pdf-text-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  line-height: 1;
+  pointer-events: auto;
+}
+
+.pdf-text-layer span {
+  color: transparent;
+  cursor: text;
+}
+
+.pdf-text-layer ::selection {
+  background: rgba(100, 160, 255, 0.45);
+}
+
+.unibrow-nodes {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+
+.unibrow-add-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dxf-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+}
+
 .script-source {
   width: 100%;
   min-height: 8rem;

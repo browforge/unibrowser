@@ -398,6 +398,15 @@ listen<string>("unibrowser-download", (event) => {
   invoke<TabContentDto>("handle_download_url", { url: event.payload }).then(applyState);
 });
 
+window.addEventListener("unibrowser-refresh", (event) => {
+  const detail = (event as CustomEvent<TabContentDto>).detail;
+  if (detail) {
+    void applyState(detail);
+  } else {
+    void refreshState();
+  }
+});
+
 commandManager.bindPinControl(
   commandManagerPin,
   commandManagerTabs,
