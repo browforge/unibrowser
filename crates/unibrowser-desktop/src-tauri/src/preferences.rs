@@ -347,7 +347,10 @@ pub fn default_pinned_locations(home: &str) -> Vec<PinnedLocation> {
         PinnedLocation {
             id: "downloads".into(),
             label: "Downloads".into(),
-            location: format!("file://{}/Downloads", home.trim_end_matches('/')),
+            location: format!(
+                "file://{}",
+                crate::paths::user_downloads_dir().to_string_lossy()
+            ),
         },
         PinnedLocation {
             id: "download-manager".into(),

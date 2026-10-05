@@ -220,7 +220,7 @@ async function addCommandToFloatingBar(
     const py = position?.y ?? 96;
     file.floating_bars.push({
       id,
-      label: "Custom",
+      label: t("commandManager.floatingCustomLabel"),
       anchor: "floating",
       x: window.screenX + px,
       y: window.screenY + py,
@@ -342,13 +342,13 @@ export const commandManager = {
         autoMatch ? `${tab.label} *` : preview ? `${tab.label} …` : tab.label;
       btn.title =
         tab.phase === "planned"
-          ? `${tab.label} (coming soon)`
+          ? t("commandManager.tabPlannedTitle", { tab: tab.label })
           : preview
             ? t("commandManager.tabPreviewTitle", { tab: tab.label })
             : autoMatch
-              ? `${tab.label} (matches document context)`
+              ? t("commandManager.tabAutoMatchTitle", { tab: tab.label })
               : tab.selected && snapshot.context_pinned
-                ? `${tab.label} (pinned)`
+                ? t("commandManager.tabPinnedTitle", { tab: tab.label })
                 : tab.label;
       btn.setAttribute("aria-label", btn.title);
       btn.onclick = async () => {
@@ -426,7 +426,7 @@ export const commandManager = {
         const handle = document.createElement("span");
         handle.className = "drag-handle";
         handle.textContent = "⋮⋮";
-        handle.title = "Drag to another monitor or position";
+        handle.title = t("commandManager.dragToolbarTitle");
         wrap.insertBefore(handle, wrap.firstChild);
         let dragOffsetX = 0;
         let dragOffsetY = 0;

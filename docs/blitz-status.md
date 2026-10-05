@@ -74,6 +74,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
 | Recovery | Text/SVG/JS crash backups (opt-in, Settings/About); `.unibrow` `project.json` debounced backups + launch prompt; **session restore defers** paths with pending project or editor crash backups ([session-restore.md](session-restore.md)) |
 | https loading UX | Spinner over content host until load finish or document title; 30s slow-network message — [chrome.md](chrome.md) |
+| i18n chrome | Status bar a11y/zoom, CM tab pin tooltips, tab strip hints, downloads manager strings in en-NZ / en-US |
+| Downloads path | `get_downloads_dir` / `dirs` crate: Windows Known Folder, Linux XDG, fallback `~/Downloads` |
+| Timeline snap | Optional **Snap clip edges to playhead** on `.unibrow` track blocks + timing fields |
 | About feedback | **Report an issue** opens GitHub issue template chooser (`UNIBROWSER_REPORT_ISSUE_URL` override) |
 | Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab; **Content-Disposition** renames generic hints; failed fetch toast + history ([browser-shell.md](browser-shell.md)) |
 | Settings reset | Confirmable **Reset onboarding**, **Clear recent files**, **Reset floating toolbars** |

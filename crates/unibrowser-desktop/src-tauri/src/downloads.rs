@@ -33,10 +33,9 @@ pub fn suggested_download_filename(url: &str) -> String {
     "download".into()
 }
 
-pub fn default_download_path(cwd: &Path, url: &str) -> PathBuf {
+pub fn default_download_path(_cwd: &Path, url: &str) -> PathBuf {
     let name = suggested_download_filename(url);
-    let home = std::env::var("HOME").unwrap_or_else(|_| cwd.to_string_lossy().into_owned());
-    PathBuf::from(home).join("Downloads").join(name)
+    crate::paths::user_downloads_dir().join(name)
 }
 
 /// Resolve a download target disposition from URL, preference, and optional platform hint path.

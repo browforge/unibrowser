@@ -414,8 +414,8 @@ function renderTabs(data: TabContentDto) {
     btn.textContent = tab.label + pinMark + dirtyMark + muteMark + (isSplit ? " |" : "");
     btn.draggable = true;
     const fullTitle = isSplit
-      ? `${tab.location_kind} (split pane; Shift+click to move split here; Ctrl+click pin)`
-      : `${tab.location_kind} (Shift+click split; Ctrl+click pin; drag to reorder)`;
+      ? t("tabs.titleSplit", { kind: tab.location_kind })
+      : t("tabs.titleDefault", { kind: tab.location_kind });
     btn.dataset.fullTitle = fullTitle;
     btn.title = fullTitle;
     setTabA11y(btn, index === data.active_index, `browser-tab-${index}`);

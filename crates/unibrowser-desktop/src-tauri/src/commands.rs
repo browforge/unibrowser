@@ -4971,8 +4971,13 @@ pub fn get_ffmpeg_probe(window: tauri::Window) -> unibrowser_media::FfmpegProbe 
 }
 
 #[tauri::command]
-pub fn get_home_dir(window: tauri::Window) -> String {
+pub fn get_home_dir(_window: tauri::Window) -> String {
     std::env::var("HOME").unwrap_or_else(|_| "/tmp".into())
+}
+
+#[tauri::command]
+pub fn get_downloads_dir(_window: tauri::Window) -> String {
+    crate::paths::user_downloads_dir().to_string_lossy().into_owned()
 }
 
 #[derive(Serialize)]

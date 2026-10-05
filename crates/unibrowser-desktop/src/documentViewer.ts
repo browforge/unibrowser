@@ -2415,9 +2415,29 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   });
   timeline.appendChild(ruler);
 
+  let playheadSec = 0;
   const track = document.createElement("div");
   track.className = "unibrow-timeline-track";
   const transitions = viewer.project_transitions ?? [];
+  let snapClipEdgesToPlayhead = false;
+  const SNAP_EDGE_SEC = 0.25;
+
+  const snapTimelineSec = (sec: number, playheadAt: number) => {
+    if (!snapClipEdgesToPlayhead) {
+      return sec;
+    }
+    if (Math.abs(sec - playheadAt) <= SNAP_EDGE_SEC) {
+      return playheadAt;
+    }
+    return sec;
+  };
+
+  const secFromTrackPointer = (clientX: number) => {
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return ratio * totalSec;
+  };
+
   clips.forEach((clip) => {
     const block = document.createElement("div");
     block.className = "unibrow-timeline-block";
@@ -2427,6 +2447,64 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     block.textContent = clipTypeAbbrev(clip.node_type);
     const nodeColor = boardNodes.find((n) => n.id === clip.node_id)?.color;
     applyLabelColor(block, clip.color ?? nodeColor);
+
+    const commitClipTiming = async (startSec: number, durationSec: number) => {
+      const data = await invoke("update_unibrow_timeline_clip", {
+        projectPath: viewer.path,
+        clipId: clip.id,
+        startSec,
+        durationSec,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    };
+
+    const bindEdgeHandle = (edge: "start" | "end") => {
+      const handle = document.createElement("span");
+      handle.className = `unibrow-timeline-edge-handle unibrow-timeline-edge-handle--${edge}`;
+      handle.setAttribute("aria-hidden", "true");
+      handle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handle.setPointerCapture(e.pointerId);
+        const onMove = (ev: PointerEvent) => {
+          const at = secFromTrackPointer(ev.clientX);
+          if (edge === "start") {
+            let start = snapTimelineSec(at, playheadSec);
+            start = Math.max(0, Math.min(start, clip.start_sec + clip.duration_sec - 0.1));
+            const duration = clip.start_sec + clip.duration_sec - start;
+            block.style.left = `${(start / totalSec) * 100}%`;
+            block.style.width = `${Math.max((duration / totalSec) * 100, 2)}%`;
+          } else {
+            let end = snapTimelineSec(at, playheadSec);
+            end = Math.max(clip.start_sec + 0.1, end);
+            const duration = end - clip.start_sec;
+            block.style.width = `${Math.max((duration / totalSec) * 100, 2)}%`;
+          }
+        };
+        const onUp = async (ev: PointerEvent) => {
+          handle.releasePointerCapture(ev.pointerId);
+          handle.removeEventListener("pointermove", onMove);
+          handle.removeEventListener("pointerup", onUp);
+          const at = secFromTrackPointer(ev.clientX);
+          if (edge === "start") {
+            let start = snapTimelineSec(at, playheadSec);
+            start = Math.max(0, Math.min(start, clip.start_sec + clip.duration_sec - 0.1));
+            const duration = clip.start_sec + clip.duration_sec - start;
+            await commitClipTiming(start, duration);
+          } else {
+            let end = snapTimelineSec(at, playheadSec);
+            end = Math.max(clip.start_sec + 0.1, end);
+            await commitClipTiming(clip.start_sec, end - clip.start_sec);
+          }
+        };
+        handle.addEventListener("pointermove", onMove);
+        handle.addEventListener("pointerup", onUp);
+      });
+      block.appendChild(handle);
+    };
+    bindEdgeHandle("start");
+    bindEdgeHandle("end");
+
     track.appendChild(block);
   });
   transitions.forEach((tr) => {
@@ -2471,11 +2549,24 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   scrubPanel.appendChild(playheadTime);
   scrubPanel.appendChild(scrubImg);
   scrubPanel.appendChild(scrubMidi);
+  const snapRow = document.createElement("div");
+  snapRow.className = "unibrow-timeline-snap-row";
+  const snapCb = document.createElement("input");
+  snapCb.type = "checkbox";
+  snapCb.id = "unibrow-timeline-snap-playhead";
+  const snapLbl = document.createElement("label");
+  snapLbl.htmlFor = snapCb.id;
+  snapLbl.textContent = t("unibrow.timelineSnapPlayhead");
+  snapLbl.prepend(snapCb);
+  snapCb.onchange = () => {
+    snapClipEdgesToPlayhead = snapCb.checked;
+  };
+  snapRow.appendChild(snapLbl);
+  scrubPanel.appendChild(snapRow);
   scrubPanel.appendChild(scrubNote);
   timeline.appendChild(scrubPanel);
 
   let scrubDebounce: number | undefined;
-  let playheadSec = 0;
   const nodeById = new Map(boardNodes.map((n) => [n.id, n]));
 
   const showMidiNotes = (notes: MidiNoteOnDto[]) => {
@@ -2776,11 +2867,16 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     durInput.value = String(clip.duration_sec);
     durLabel.appendChild(durInput);
     const applyTiming = async () => {
-      const start = Number.parseFloat(startInput.value);
-      const duration = Number.parseFloat(durInput.value);
+      let start = Number.parseFloat(startInput.value);
+      let duration = Number.parseFloat(durInput.value);
       if (!Number.isFinite(start) || !Number.isFinite(duration)) {
         return;
       }
+      start = snapTimelineSec(start, playheadSec);
+      const end = snapTimelineSec(start + duration, playheadSec);
+      duration = Math.max(0.1, end - start);
+      startInput.value = String(start);
+      durInput.value = String(duration);
       const data = await invoke("update_unibrow_timeline_clip", {
         projectPath: viewer.path,
         clipId: clip.id,

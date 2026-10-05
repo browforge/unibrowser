@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **i18n:** Status bar labels, Command Manager tab/pin/floating toolbar strings, tab strip tooltips wired to en-NZ / en-US catalogs.
+- **Downloads folder:** `get_downloads_dir` resolves OS Downloads (Windows known folder, Linux XDG via `dirs`); download manager **Open Downloads folder** uses it.
+- **Timeline:** Optional snap clip start/end to playhead when dragging track block edges or editing timing (0.25s threshold).
+- **QA:** Smoke checklist items for recovery precedence and https loading overlay (`scripts/smoke-desktop-qa.sh`).
 - **Crash backups vs session:** Session restore also skips file tabs with pending text/SVG/JS crash backups; **Restore** reuses an open tab. [session-restore.md](docs/session-restore.md).
 - **https loading:** Content-webview page-load/title events drive a spinner overlay; 30s timeout message. [chrome.md](docs/chrome.md).
 - **About:** **Report an issue** opens the GitHub issue chooser (`open_report_issue_page`, `UNIBROWSER_REPORT_ISSUE_URL`).

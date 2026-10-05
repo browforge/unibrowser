@@ -41,8 +41,7 @@ export async function renderDownloadsManager(
   folderBtn.type = "button";
   folderBtn.textContent = t("downloads.openFolder");
   folderBtn.onclick = async () => {
-    const home = await invoke<string>("get_home_dir");
-    const path = `${home}/Downloads`;
+    const path = await invoke<string>("get_downloads_dir");
     await invoke<TabContentDto>("open_path", { path });
     await onRefresh();
   };

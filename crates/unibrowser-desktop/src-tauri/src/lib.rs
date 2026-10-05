@@ -26,6 +26,7 @@ mod docs_content;
 mod pdf_annotations;
 mod diagnostic_log;
 mod capture;
+mod paths;
 mod web_font_prefs;
 mod web_zoom_prefs;
 mod web_reader_prefs;
@@ -188,6 +189,7 @@ pub fn run() {
             commands::allow_unibrow_asset,
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
+            commands::get_downloads_dir,
             commands::get_build_info,
             commands::get_preferences,
             commands::set_ntp_sections,

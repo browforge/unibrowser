@@ -69,6 +69,25 @@ export function applyChromeI18n() {
   if (bookmarkBar) {
     bookmarkBar.setAttribute("aria-label", t("bookmark.ariaLabel"));
   }
+
+  const statusBar = document.getElementById("status-bar");
+  if (statusBar) {
+    statusBar.setAttribute("aria-label", t("status.ariaLabel"));
+  }
+  const statusDirty = document.getElementById("status-dirty");
+  if (statusDirty) {
+    statusDirty.setAttribute("aria-label", t("status.unsavedAria"));
+  }
+  const zoomOut = document.getElementById("status-zoom-out");
+  if (zoomOut) {
+    zoomOut.setAttribute("title", t("status.zoomOut"));
+    zoomOut.setAttribute("aria-label", t("status.zoomOut"));
+  }
+  const zoomIn = document.getElementById("status-zoom-in");
+  if (zoomIn) {
+    zoomIn.setAttribute("title", t("status.zoomIn"));
+    zoomIn.setAttribute("aria-label", t("status.zoomIn"));
+  }
 }
 
 export function modsLineText(list: string): string {

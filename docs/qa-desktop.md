@@ -19,7 +19,8 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 | Auto-save | Off | Enable + interval → edit `.txt`/SVG → toast after interval |
 | Restore session | Off | Enable → restart → tabs return |
 | Board snap to grid | Off | Enable → drag `.unibrow` cards snap to 24px grid |
-| Crash recovery | Off | Enable → edit text/SVG → backups list on Settings/About; Restore / Dismiss (inline, no modal) |
+| Crash recovery | Off | Enable → edit text/SVG → backups list on Settings/About; Restore / Dismiss (inline, no modal); session restore skips paths with pending backups |
+| https loading | Any https tab | Spinner until load/title; ~30s timeout message if still loading |
 | Workspace layout | (none) | Settings → save preset → includes bookmarks + split → Load restores window, toolbars, pins, split |
 
 ## Downloads

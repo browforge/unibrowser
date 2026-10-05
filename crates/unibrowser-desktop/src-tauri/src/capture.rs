@@ -6,8 +6,7 @@ use std::path::{Path, PathBuf};
 use image::ImageFormat;
 
 pub fn downloads_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
-    PathBuf::from(home).join("Downloads")
+    crate::paths::user_downloads_dir()
 }
 
 pub fn capture_png_filename() -> String {
