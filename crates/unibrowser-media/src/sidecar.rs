@@ -29,31 +29,45 @@ pub struct SidecarResponse {
     pub pong: bool,
 }
 
-/// When `UNIBROWSER_MEDIA_USE_SIDECAR=1`, route probes through the sidecar helper binary.
-pub fn probe_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
-    let child = spawn_sidecar()?;
-    let mut child = child;
-    let req = SidecarRequest::ProbeFile {
-        path: path.to_string_lossy().into_owned(),
-    };
-    let line = serde_json::to_string(&req).map_err(|e| MediaError::Sidecar(e.to_string()))?;
-    {
-        let stdin = child.stdin.as_mut().ok_or_else(|| MediaError::Sidecar("stdin".into()))?;
-        writeln!(stdin, "{}", line).map_err(|e| MediaError::Sidecar(e.to_string()))?;
+/// Long-lived sidecar process (JSON line protocol on stdin/stdout).
+pub struct SidecarSession {
+    child: Child,
+    reader: BufReader<std::process::ChildStdout>,
+}
+
+impl SidecarSession {
+    pub fn spawn() -> Result<Self, MediaError> {
+        let mut child = spawn_sidecar()?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| MediaError::Sidecar("stdout".into()))?;
+        Ok(Self {
+            child,
+            reader: BufReader::new(stdout),
+        })
     }
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| MediaError::Sidecar("stdout".into()))?;
-    let reader = BufReader::new(stdout);
-    let response_line = reader
-        .lines()
-        .next()
-        .ok_or_else(|| MediaError::Sidecar("no response".into()))?
-        .map_err(|e| MediaError::Sidecar(e.to_string()))?;
-    let _ = child.wait();
-    let resp: SidecarResponse =
-        serde_json::from_str(&response_line).map_err(|e| MediaError::Sidecar(e.to_string()))?;
+
+    pub fn request(&mut self, req: &SidecarRequest) -> Result<SidecarResponse, MediaError> {
+        let line = serde_json::to_string(req).map_err(|e| MediaError::Sidecar(e.to_string()))?;
+        let stdin = self
+            .child
+            .stdin
+            .as_mut()
+            .ok_or_else(|| MediaError::Sidecar("stdin".into()))?;
+        writeln!(stdin, "{}", line).map_err(|e| MediaError::Sidecar(e.to_string()))?;
+        let mut response_line = String::new();
+        self.reader
+            .read_line(&mut response_line)
+            .map_err(|e| MediaError::Sidecar(e.to_string()))?;
+        if response_line.trim().is_empty() {
+            return Err(MediaError::Sidecar("no response".into()));
+        }
+        serde_json::from_str(response_line.trim()).map_err(|e| MediaError::Sidecar(e.to_string()))
+    }
+}
+
+fn response_to_probe(path: &Path, resp: SidecarResponse) -> Result<MediaFileProbe, MediaError> {
     if resp.pong {
         return Err(MediaError::Sidecar("unexpected pong".into()));
     }
@@ -67,6 +81,16 @@ pub fn probe_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
             resp.error.unwrap_or_else(|| "sidecar error".into()),
         ))
     }
+}
+
+/// When `UNIBROWSER_MEDIA_USE_SIDECAR=1`, route probes through the sidecar helper binary.
+pub fn probe_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
+    let mut session = SidecarSession::spawn()?;
+    let req = SidecarRequest::ProbeFile {
+        path: path.to_string_lossy().into_owned(),
+    };
+    let resp = session.request(&req)?;
+    response_to_probe(path, resp)
 }
 
 fn spawn_sidecar() -> Result<Child, MediaError> {

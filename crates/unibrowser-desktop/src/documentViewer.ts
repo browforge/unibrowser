@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import * as mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import DxfParser from "dxf-parser";
@@ -27,6 +27,8 @@ export interface DocumentViewerDto {
   viewer: string;
   title: string;
   pdf_scale?: number;
+  pdf_page?: number;
+  media_note?: string;
   project_nodes?: ProjectNodeDto[];
   open_file_tabs?: OpenFileTabDto[];
 }
@@ -58,46 +60,149 @@ async function syncPdfSelection(selected: boolean) {
   await invoke("sync_pdf_viewer_state", { hasTextSelection: selected }).catch(() => {});
 }
 
-async function renderPdf(path: string, root: HTMLElement, scale: number) {
+async function renderPdf(path: string, root: HTMLElement, scale: number, startPage: number) {
   const bytes = await readBytes(path);
   const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
-  const page = await doc.getPage(1);
-  const viewport = page.getViewport({ scale });
+  let currentPage = Math.min(Math.max(startPage, 1), doc.numPages);
+  root.innerHTML = "";
   const wrap = document.createElement("div");
   wrap.className = "pdf-page-wrap";
-  const canvas = document.createElement("canvas");
-  canvas.className = "pdf-page";
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("canvas 2d unavailable");
-  }
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  root.innerHTML = "";
-  wrap.appendChild(canvas);
-  const textLayer = document.createElement("div");
-  textLayer.className = "pdf-text-layer";
-  textLayer.style.width = `${viewport.width}px`;
-  textLayer.style.height = `${viewport.height}px`;
-  wrap.appendChild(textLayer);
   root.appendChild(wrap);
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  const textContent = await page.getTextContent();
-  const layer = new pdfjsLib.TextLayer({
-    textContentSource: textContent,
-    container: textLayer,
-    viewport,
-  });
-  await layer.render();
-  textLayer.addEventListener("mouseup", () => {
-    const sel = window.getSelection();
-    const has = Boolean(sel && !sel.isCollapsed && textLayer.contains(sel.anchorNode));
-    void syncPdfSelection(has);
-  });
+  const nav = document.createElement("div");
+  nav.className = "pdf-nav";
+  const prev = document.createElement("button");
+  prev.type = "button";
+  prev.textContent = "Previous";
+  const next = document.createElement("button");
+  next.type = "button";
+  next.textContent = "Next";
+  const pageLabel = document.createElement("span");
+  pageLabel.className = "pdf-page-label";
+  nav.appendChild(prev);
+  nav.appendChild(pageLabel);
+  nav.appendChild(next);
+  root.appendChild(nav);
+
+  const drawPage = async (pageNum: number) => {
+    wrap.innerHTML = "";
+    const page = await doc.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.className = "pdf-page";
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("canvas 2d unavailable");
+    }
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    wrap.appendChild(canvas);
+    const textLayer = document.createElement("div");
+    textLayer.className = "pdf-text-layer";
+    textLayer.style.width = `${viewport.width}px`;
+    textLayer.style.height = `${viewport.height}px`;
+    wrap.appendChild(textLayer);
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    const textContent = await page.getTextContent();
+    const layer = new pdfjsLib.TextLayer({
+      textContentSource: textContent,
+      container: textLayer,
+      viewport,
+    });
+    await layer.render();
+    textLayer.addEventListener("mouseup", () => {
+      const sel = window.getSelection();
+      const has = Boolean(sel && !sel.isCollapsed && textLayer.contains(sel.anchorNode));
+      void syncPdfSelection(has);
+    });
+    pageLabel.textContent = `Page ${pageNum} / ${doc.numPages}`;
+    prev.disabled = pageNum <= 1;
+    next.disabled = pageNum >= doc.numPages;
+  };
+
+  prev.onclick = async () => {
+    if (currentPage <= 1) {
+      return;
+    }
+    currentPage -= 1;
+    await invoke("sync_pdf_page", { page: currentPage });
+    await drawPage(currentPage);
+  };
+  next.onclick = async () => {
+    if (currentPage >= doc.numPages) {
+      return;
+    }
+    currentPage += 1;
+    await invoke("sync_pdf_page", { page: currentPage });
+    await drawPage(currentPage);
+  };
+
+  await drawPage(currentPage);
   const meta = document.createElement("p");
   meta.className = "viewer-note";
-  meta.textContent = `Page 1 / ${doc.numPages} · select text for font-size commands · scale ${scale.toFixed(2)}`;
+  meta.textContent = `Select text for font-size commands · scale ${scale.toFixed(2)}`;
   root.appendChild(meta);
+}
+
+function appendMediaNote(root: HTMLElement, note?: string) {
+  if (!note) {
+    return;
+  }
+  const meta = document.createElement("p");
+  meta.className = "viewer-note";
+  meta.textContent = note;
+  root.appendChild(meta);
+}
+
+async function renderVideo(path: string, root: HTMLElement, note?: string) {
+  root.innerHTML = "";
+  const video = document.createElement("video");
+  video.className = "media-view";
+  video.controls = true;
+  video.src = convertFileSrc(path);
+  root.appendChild(video);
+  appendMediaNote(root, note);
+}
+
+async function renderAudio(path: string, root: HTMLElement, note?: string) {
+  root.innerHTML = "";
+  const audio = document.createElement("audio");
+  audio.className = "media-view";
+  audio.controls = true;
+  audio.src = convertFileSrc(path);
+  root.appendChild(audio);
+  const canvas = document.createElement("canvas");
+  canvas.className = "audio-waveform";
+  canvas.width = 640;
+  canvas.height = 48;
+  root.appendChild(canvas);
+  try {
+    const bytes = await readBytes(path);
+    const ctx = new AudioContext();
+    const buf = await ctx.decodeAudioData(toArrayBuffer(bytes));
+    const ch = buf.getChannelData(0);
+    const g = canvas.getContext("2d");
+    if (g) {
+      g.fillStyle = "#1a1a22";
+      g.fillRect(0, 0, canvas.width, canvas.height);
+      g.strokeStyle = "#66ccff";
+      g.beginPath();
+      const step = Math.max(1, Math.floor(ch.length / canvas.width));
+      for (let x = 0; x < canvas.width; x += 1) {
+        const i = x * step;
+        const y = (1 - ch[i]) * canvas.height * 0.5;
+        if (x === 0) {
+          g.moveTo(x, y);
+        } else {
+          g.lineTo(x, y);
+        }
+      }
+      g.stroke();
+    }
+    await ctx.close();
+  } catch {
+    appendMediaNote(root, "Waveform preview unavailable; playback still works.");
+  }
+  appendMediaNote(root, note);
 }
 
 type DxfVertex = { x: number; y: number; z?: number };
@@ -259,7 +364,21 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   } else {
     for (const node of nodes) {
       const li = document.createElement("li");
-      li.textContent = `${node.label} (${node.node_type})${node.asset ? ` · ${node.asset}` : ""}`;
+      li.className = "unibrow-node";
+      const text = document.createElement("span");
+      text.textContent = `${node.label} (${node.node_type})${node.asset ? ` · ${node.asset}` : ""}`;
+      li.appendChild(text);
+      if (node.asset) {
+        const open = document.createElement("button");
+        open.type = "button";
+        open.textContent = "Open";
+        open.onclick = async () => {
+          const assetPath = `${viewer.path}/assets/${node.asset}`;
+          const data = await invoke("open_path", { path: assetPath });
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        };
+        li.appendChild(open);
+      }
       list.appendChild(li);
     }
   }
@@ -293,8 +412,23 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     });
     window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
   };
+  const pickBtn = document.createElement("button");
+  pickBtn.type = "button";
+  pickBtn.textContent = "Add from disk…";
+  pickBtn.onclick = async () => {
+    const picked = await invoke<string | null>("pick_unibrow_asset_file");
+    if (!picked) {
+      return;
+    }
+    const data = await invoke("add_unibrow_asset", {
+      projectPath: viewer.path,
+      sourcePath: picked,
+    });
+    window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+  };
   addRow.appendChild(select);
   addRow.appendChild(btn);
+  addRow.appendChild(pickBtn);
   root.appendChild(addRow);
   const note = document.createElement("p");
   note.className = "viewer-note";
@@ -322,15 +456,16 @@ async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {
   root.appendChild(run);
   root.appendChild(out);
   const demo = await invoke<string>("run_rhai_script", {
-    source: "list_commands().len()",
+    source: "list_commands().to_string()",
   });
-  out.textContent = `host list_commands(): ${demo}`;
+  out.textContent = `list_commands(): ${demo}`;
 }
 
 function viewerCacheKey(viewer: DocumentViewerDto): string {
   const nodeCount = viewer.project_nodes?.length ?? 0;
   const scale = viewer.pdf_scale ?? 0;
-  return `${viewer.viewer}:${viewer.path}:${scale}:${nodeCount}`;
+  const page = viewer.pdf_page ?? 0;
+  return `${viewer.viewer}:${viewer.path}:${scale}:${page}:${nodeCount}`;
 }
 
 export const documentViewer = {
@@ -363,7 +498,13 @@ export const documentViewer = {
           await renderDocx(viewer.path, body);
           break;
         case "pdf":
-          await renderPdf(viewer.path, body, viewer.pdf_scale ?? 1.25);
+          await renderPdf(viewer.path, body, viewer.pdf_scale ?? 1.25, viewer.pdf_page ?? 1);
+          break;
+        case "video":
+          await renderVideo(viewer.path, body, viewer.media_note);
+          break;
+        case "audio":
+          await renderAudio(viewer.path, body, viewer.media_note);
           break;
         case "dxf":
           await renderDxf(viewer.path, body);

@@ -4,6 +4,7 @@ use unibrowser_engine::CommandRegistry;
 use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
 
 pub const BACKEND_ID: &str = "base-video";
+pub const VIEWER_KIND: &str = "video";
 
 pub struct VideoBackend {
     pub path: String,

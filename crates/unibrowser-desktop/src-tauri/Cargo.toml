@@ -16,6 +16,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 unibrowser-engine = { path = "../../unibrowser-engine" }

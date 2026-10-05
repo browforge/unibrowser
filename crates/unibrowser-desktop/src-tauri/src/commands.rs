@@ -99,6 +99,10 @@ pub struct DocumentViewerDto {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pdf_scale: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub pdf_page: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_note: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub project_nodes: Option<Vec<ProjectNodeDto>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub open_file_tabs: Option<Vec<OpenFileTabDto>>,
@@ -210,6 +214,8 @@ fn document_viewer_dto(
                 .map(|p| p.manifest.title.clone())
                 .unwrap_or_else(|| doc.backend.display_name().into()),
             pdf_scale: None,
+            pdf_page: None,
+            media_note: None,
             project_nodes: nodes,
             open_file_tabs: Some(open_file_tabs_dto(state)),
         });
@@ -219,10 +225,21 @@ fn document_viewer_dto(
         base_pdf::BACKEND_ID => base_pdf::VIEWER_KIND,
         base_dxf::BACKEND_ID => base_dxf::VIEWER_KIND,
         base_js::BACKEND_ID => base_js::VIEWER_KIND,
+        base_video::BACKEND_ID => base_video::VIEWER_KIND,
+        base_audio::BACKEND_ID => base_audio::VIEWER_KIND,
         _ => return None,
     };
-    let pdf_scale = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
-        base_pdf::try_pdf_backend(&mut *doc.backend).map(|b| b.render_scale)
+    let (pdf_scale, pdf_page) = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
+        base_pdf::try_pdf_backend(&mut *doc.backend)
+            .map(|b| (Some(b.render_scale), Some(b.page_index)))
+            .unwrap_or((None, None))
+    } else {
+        (None, None)
+    };
+    let media_note = if doc.backend.backend_id() == base_video::BACKEND_ID
+        || doc.backend.backend_id() == base_audio::BACKEND_ID
+    {
+        Some(doc.backend.status_line())
     } else {
         None
     };
@@ -231,6 +248,8 @@ fn document_viewer_dto(
         viewer: viewer.into(),
         title: doc.backend.display_name().into(),
         pdf_scale,
+        pdf_page,
+        media_note,
         project_nodes: None,
         open_file_tabs: None,
     })
@@ -731,11 +750,6 @@ pub fn read_document_bytes(path: String) -> Result<Vec<u8>, String> {
 }
 
 #[tauri::command]
-pub fn run_rhai_script(source: String) -> Result<String, String> {
-    base_js::ScriptBackend::eval_snippet(&source)
-}
-
-#[tauri::command]
 pub fn sync_pdf_viewer_state(
     has_text_selection: bool,
     state: State<AppState>,
@@ -746,6 +760,27 @@ pub fn sync_pdf_viewer_state(
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
     pdf.set_text_selected(has_text_selection);
     Ok(())
+}
+
+#[tauri::command]
+pub fn sync_pdf_page(page: u32, state: State<AppState>) -> Result<(), String> {
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    let doc = tab.document.as_mut().ok_or("no document")?;
+    let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+    pdf.set_page_index(page);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn pick_unibrow_asset_file(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Add asset to project")
+        .blocking_pick_file();
+    Ok(picked.map(|p| p.to_string()))
 }
 
 #[tauri::command]

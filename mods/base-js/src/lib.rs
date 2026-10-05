@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use unibrowser_engine::CommandRegistry;
-use unibrowser_script_host::{eval_with_host, HostApiStub};
+use unibrowser_script_host::{eval_with_host, HostApi};
 use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
 
 pub const BACKEND_ID: &str = "base-js";
@@ -24,7 +24,8 @@ impl ScriptBackend {
     }
 
     pub fn eval_snippet(source: &str) -> Result<String, String> {
-        eval_with_host(source, &HostApiStub::with_sample_commands())
+        let api = HostApi::from_registry_ids(vec![], &[]);
+        eval_with_host(source, &api)
     }
 }
 

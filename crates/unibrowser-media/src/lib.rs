@@ -91,9 +91,9 @@ pub fn probe_media_file(path: &Path) -> Result<MediaFileProbe, MediaError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn probe_install_does_not_panic() {
         let _ = probe_ffmpeg_install();
     }
+
 }

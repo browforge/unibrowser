@@ -21,6 +21,7 @@ pub struct PdfBackend {
     pub byte_len: u64,
     pub render_scale: f32,
     pub text_selected: bool,
+    pub page_index: u32,
 }
 
 impl PdfBackend {
@@ -31,11 +32,16 @@ impl PdfBackend {
             byte_len: meta.len(),
             render_scale: 1.25,
             text_selected: false,
+            page_index: 1,
         })
     }
 
     pub fn set_text_selected(&mut self, selected: bool) {
         self.text_selected = selected;
+    }
+
+    pub fn set_page_index(&mut self, page: u32) {
+        self.page_index = page.max(1);
     }
 }
 

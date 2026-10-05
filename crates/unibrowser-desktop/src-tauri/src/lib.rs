@@ -4,6 +4,7 @@ mod downloads;
 mod mod_portal;
 mod preferences;
 mod project_backend;
+mod rhai_host;
 mod state;
 mod webview;
 
@@ -14,6 +15,7 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
         .setup(|app| {
             webview::ensure_content_webview(app.handle())?;
@@ -53,9 +55,11 @@ pub fn run() {
             commands::handle_download_url,
             commands::set_content_bounds,
             commands::read_document_bytes,
-            commands::run_rhai_script,
+            rhai_host::run_rhai_script,
             commands::sync_pdf_viewer_state,
+            commands::sync_pdf_page,
             commands::add_unibrow_asset,
+            commands::pick_unibrow_asset_file,
             commands::get_ffmpeg_probe,
             commands::get_home_dir,
             commands::get_preferences,

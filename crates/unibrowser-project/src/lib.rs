@@ -120,6 +120,28 @@ pub fn guess_asset_node_type(path: &Path) -> &'static str {
     }
 }
 
+pub fn unique_asset_file_name(package: &ProjectPackage, original: &str) -> String {
+    let assets_dir = package.root.join(DIR_ASSETS);
+    let path = Path::new(original);
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "asset".into());
+    let ext = path
+        .extension()
+        .map(|e| e.to_string_lossy().to_string());
+    let mut candidate = original.to_string();
+    let mut n = 2u32;
+    while assets_dir.join(&candidate).exists() {
+        candidate = match &ext {
+            Some(ext) if !ext.is_empty() => format!("{}-{}.{}", stem, n, ext),
+            _ => format!("{}-{}", stem, n),
+        };
+        n += 1;
+    }
+    candidate
+}
+
 pub fn add_asset_copy(
     package: &mut ProjectPackage,
     source: &Path,
@@ -130,10 +152,11 @@ pub fn add_asset_copy(
         return Err(ProjectError::Msg("source is not a file".into()));
     }
     let id = format!("node-{}", package.manifest.nodes.len() + 1);
-    let file_name = source
+    let original_name = source
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "asset".into());
+    let file_name = unique_asset_file_name(package, &original_name);
     let dest = package.root.join(DIR_ASSETS).join(&file_name);
     fs::copy(source, &dest)?;
     let node = ProjectNode {
@@ -150,6 +173,23 @@ pub fn add_asset_copy(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unique_asset_name_when_taken() {
+        let dir = std::env::temp_dir().join("unibrow-test-dup");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Dup").expect("create");
+        let incoming = dir.join("incoming");
+        fs::create_dir_all(&incoming).unwrap();
+        let first = incoming.join("photo.png");
+        fs::write(&first, b"1").unwrap();
+        add_asset_copy(&mut pkg, &first, "image", "first").expect("first");
+        let second = incoming.join("photo.png");
+        fs::write(&second, b"2").unwrap();
+        let node = add_asset_copy(&mut pkg, &second, "image", "second").expect("dup");
+        assert_eq!(node.asset.as_deref(), Some("photo-2.png"));
+        let _ = fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn create_and_open_roundtrip() {

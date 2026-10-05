@@ -59,6 +59,12 @@ impl CommandRegistry {
         self.commands.get(id)
     }
 
+    pub fn sorted_command_ids(&self) -> Vec<String> {
+        let mut ids: Vec<String> = self.commands.keys().cloned().collect();
+        ids.sort();
+        ids
+    }
+
     pub fn handlers_for(&self, command_id: &str) -> Vec<&HandlerRegistration> {
         self.handlers
             .iter()

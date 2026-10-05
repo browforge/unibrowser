@@ -4,6 +4,7 @@ use unibrowser_engine::CommandRegistry;
 use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
 
 pub const BACKEND_ID: &str = "base-audio";
+pub const VIEWER_KIND: &str = "audio";
 
 pub struct AudioBackend {
     pub path: String,
