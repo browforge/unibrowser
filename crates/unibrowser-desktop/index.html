@@ -14,6 +14,8 @@
         <button type="button" id="btn-forward" title="Forward">→</button>
         <button type="button" id="btn-reload" title="Reload">↻</button>
         <input id="omnibox" type="text" placeholder="file://, https://, or path" />
+        <button type="button" id="btn-mod-portal" title="Browse and install mods">Mods</button>
+        <button type="button" id="btn-new-project" title="Create a .unibrow project folder">New project</button>
         <button type="button" id="btn-demo-download" class="muted" title="Simulate download → new tab">
           Demo download
         </button>
@@ -35,9 +37,14 @@
       <div id="floating-toolbar-host" class="floating-toolbar-host"></div>
       <div id="status-line" class="status-line">Ctrl+Shift+P for command palette</div>
     </header>
+    <div id="onboarding-banner" class="onboarding-banner hidden" role="status">
+      <span>Tip: Ctrl+Shift+P opens the command palette. Dismiss this any time.</span>
+      <button type="button" id="onboarding-dismiss">Dismiss</button>
+    </div>
     <main id="content-host">
       <div id="files-panel" class="panel"></div>
       <div id="text-editor-host" class="text-editor-host hidden"></div>
+      <div id="mod-portal-panel" class="panel mod-portal hidden"></div>
       <div id="doc-panel" class="panel doc-panel"></div>
     </main>
     <div id="palette" class="palette hidden">

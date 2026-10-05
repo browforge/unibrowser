@@ -219,20 +219,30 @@ export const commandManager = {
       renderCommandButtons(row, bar.commands, onRun, false);
       wrap.appendChild(row);
       if (bar.anchor === "floating") {
-        wrap.draggable = true;
+        const handle = document.createElement("span");
+        handle.className = "drag-handle";
+        handle.textContent = "⋮⋮";
+        handle.title = "Drag to another monitor or position";
+        wrap.insertBefore(handle, wrap.firstChild);
         let dragOffsetX = 0;
         let dragOffsetY = 0;
-        wrap.addEventListener("dragstart", (e) => {
-          const rect = wrap.getBoundingClientRect();
-          dragOffsetX = (e.clientX ?? 0) - rect.left;
-          dragOffsetY = (e.clientY ?? 0) - rect.top;
-        });
-        wrap.addEventListener("dragend", async (e) => {
+        const onMove = async (e: PointerEvent) => {
           if (!lastSnapshot) {
             return;
           }
-          const x = Math.max(0, (e.clientX ?? 0) - dragOffsetX);
-          const y = Math.max(0, (e.clientY ?? 0) - dragOffsetY);
+          const x = Math.max(0, e.clientX - dragOffsetX);
+          const y = Math.max(0, e.clientY - dragOffsetY);
+          wrap.style.left = `${x}px`;
+          wrap.style.top = `${y}px`;
+        };
+        const onUp = async (e: PointerEvent) => {
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          if (!lastSnapshot) {
+            return;
+          }
+          const x = Math.max(0, e.clientX - dragOffsetX);
+          const y = Math.max(0, e.clientY - dragOffsetY);
           const file = snapshotToFile(lastSnapshot);
           const barLayout = file.floating_bars.find((b) => b.id === bar.id);
           if (barLayout) {
@@ -241,6 +251,14 @@ export const commandManager = {
             barLayout.y = y;
             await invoke("save_command_manager_layout", { layout: file });
           }
+        };
+        handle.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          const rect = wrap.getBoundingClientRect();
+          dragOffsetX = e.clientX - rect.left;
+          dragOffsetY = e.clientY - rect.top;
+          window.addEventListener("pointermove", onMove);
+          window.addEventListener("pointerup", onUp);
         });
       }
       floatingEl.appendChild(wrap);

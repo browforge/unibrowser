@@ -18,6 +18,19 @@ interface DirEntry {
   is_dir: boolean;
 }
 
+interface ModSuggestionDto {
+  mod_id: string;
+  title: string;
+  reason: string;
+}
+
+interface ModPortalDto {
+  title: string;
+  message: string;
+  suggestions: ModSuggestionDto[];
+  sideload_hint: string;
+}
+
 interface TabContentDto {
   tabs: TabDto[];
   active_index: number;
@@ -27,6 +40,8 @@ interface TabContentDto {
   directory_entries: DirEntry[] | null;
   document_status: string | null;
   text_document: TextDocumentDto | null;
+  mod_portal: ModPortalDto | null;
+  show_onboarding: boolean;
 }
 
 interface PaletteEntryDto {
@@ -51,6 +66,9 @@ const paletteQuery = document.getElementById("palette-query") as HTMLInputElemen
 const paletteResults = document.getElementById("palette-results")!;
 const contentHost = document.getElementById("content-host")!;
 const textEditorHost = document.getElementById("text-editor-host")!;
+const modPortalPanel = document.getElementById("mod-portal-panel")!;
+const onboardingBanner = document.getElementById("onboarding-banner")!;
+const onboardingDismiss = document.getElementById("onboarding-dismiss")!;
 
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
 
@@ -109,14 +127,48 @@ function renderFiles(entries: DirEntry[] | null) {
   filesPanel.appendChild(table);
 }
 
-function renderDoc(status: string | null, hasTextEditor: boolean) {
+function renderModPortal(portal: ModPortalDto | null) {
+  modPortalPanel.innerHTML = "";
+  if (!portal) {
+    modPortalPanel.classList.add("hidden");
+    return;
+  }
+  modPortalPanel.classList.remove("hidden");
+  const h = document.createElement("h2");
+  h.textContent = portal.title;
+  modPortalPanel.appendChild(h);
+  const p = document.createElement("p");
+  p.textContent = portal.message;
+  modPortalPanel.appendChild(p);
+  portal.suggestions.forEach((s) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mod-suggestion";
+    btn.textContent = `${s.title} (${s.mod_id})`;
+    btn.title = s.reason;
+    btn.onclick = () => {
+      statusLine.textContent = `Install ${s.mod_id} — catalog stub (sideload always allowed)`;
+    };
+    modPortalPanel.appendChild(btn);
+  });
+  const side = document.createElement("p");
+  side.className = "sideload";
+  side.textContent = portal.sideload_hint;
+  modPortalPanel.appendChild(side);
+}
+
+function renderDoc(status: string | null, hasTextEditor: boolean, hasPortal: boolean) {
   docPanel.innerHTML = "";
-  if (!status || hasTextEditor) {
+  if (!status || hasTextEditor || hasPortal) {
     docPanel.classList.add("hidden");
     return;
   }
   docPanel.classList.remove("hidden");
   docPanel.textContent = status;
+}
+
+function renderOnboarding(show: boolean) {
+  onboardingBanner.classList.toggle("hidden", !show);
 }
 
 async function runUiCommand(commandId: string) {
@@ -151,7 +203,10 @@ async function applyState(data: TabContentDto) {
   } else {
     renderFiles(data.directory_entries);
   }
-  renderDoc(data.document_status, showText);
+  renderModPortal(data.mod_portal);
+  const hasPortal = Boolean(data.mod_portal);
+  renderDoc(data.document_status, showText, hasPortal);
+  renderOnboarding(data.show_onboarding);
   if (showText && data.text_document) {
     await textEditor.apply(data.text_document, textEditorHost);
   } else {
@@ -191,6 +246,42 @@ document.getElementById("btn-demo-download")!.onclick = () =>
   invoke<TabContentDto>("handle_download_url", {
     url: "https://example.com/",
   }).then(applyState);
+
+document.getElementById("btn-mod-portal")!.onclick = () =>
+  invoke<TabContentDto>("open_mod_portal", { ext: null }).then(applyState);
+
+document.getElementById("btn-new-project")!.onclick = async () => {
+  const name = window.prompt("Project name", "MyProject");
+  if (!name) {
+    return;
+  }
+  const home = await invoke<string>("get_home_dir").catch(() => "/tmp");
+  await invoke<TabContentDto>("create_unibrow_project", {
+    parentDir: home,
+    name,
+  }).then(applyState);
+};
+
+onboardingDismiss.onclick = async () => {
+  await invoke("dismiss_onboarding");
+  onboardingBanner.classList.add("hidden");
+};
+
+let geometryTimer: number | undefined;
+function scheduleGeometrySave() {
+  window.clearTimeout(geometryTimer);
+  geometryTimer = window.setTimeout(() => {
+    invoke("save_window_geometry", {
+      width: window.outerWidth,
+      height: window.outerHeight,
+      x: window.screenX,
+      y: window.screenY,
+    }).catch(() => {});
+  }, 400);
+}
+
+window.addEventListener("resize", scheduleGeometrySave);
+window.addEventListener("move", scheduleGeometrySave);
 
 function togglePalette() {
   paletteOpen = !paletteOpen;

@@ -25,5 +25,7 @@ base-files = { path = "../../../mods/base-files" }
 base-web = { path = "../../../mods/base-web" }
 base-text = { path = "../../../mods/base-text" }
 base-png = { path = "../../../mods/base-png" }
+base-svg = { path = "../../../mods/base-svg" }
 toy-markdown = { path = "../../../mods/toy-markdown" }
+unibrowser-project = { path = "../../unibrowser-project" }
 url = "2"

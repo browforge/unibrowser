@@ -49,6 +49,18 @@ pub fn sync_content_bounds(
     Ok(())
 }
 
+/// Stub user-style hook for live-page font scaling ([ADR 0016] web lane).
+pub fn inject_page_font_scale(app: &AppHandle, delta_px: i32) -> Result<(), String> {
+    ensure_content_webview(app)?;
+    let wv = app.get_webview(CONTENT_LABEL).ok_or("content webview missing")?;
+    let script = format!(
+        "(function(){{var s=document.getElementById('unibrowser-user-style');if(!s){{s=document.createElement('style');s.id='unibrowser-user-style';document.head.appendChild(s);}}var n=parseFloat(s.dataset.ubFont||'16');n=Math.min(96,Math.max(8,n+{delta}));s.dataset.ubFont=String(n);s.textContent='html{{font-size:'+n+'px!important}}';}})();",
+        delta = delta_px
+    );
+    wv.eval(&script).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn content_webview_navigate(app: &AppHandle, url: &str) -> Result<(), String> {
     ensure_content_webview(app)?;
     let wv = app.get_webview(CONTENT_LABEL).ok_or("content webview missing")?;

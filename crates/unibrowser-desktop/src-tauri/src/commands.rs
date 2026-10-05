@@ -14,7 +14,10 @@ use base_text::{TextBackend, try_text_backend};
 use crate::config::toolbars_file_path;
 use crate::downloads::apply_download_disposition;
 use crate::state::{AppState, list_dir};
-use crate::webview::{content_webview_navigate, sync_content_bounds};
+use crate::mod_portal::{ModSuggestionDto, suggest_mods_for_unknown_path};
+use crate::preferences::{load_preferences, save_preferences, WindowState};
+use crate::webview::{content_webview_navigate, inject_page_font_scale, sync_content_bounds};
+use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
 use unibrowser_engine::{
     host_context_for_browse, save_command_manager_file, CommandManagerFile, ToolbarPhase,
 };
@@ -92,6 +95,16 @@ pub struct TabContentDto {
     pub directory_entries: Option<Vec<base_files::DirEntry>>,
     pub document_status: Option<String>,
     pub text_document: Option<TextDocumentDto>,
+    pub mod_portal: Option<ModPortalDto>,
+    pub show_onboarding: bool,
+}
+
+#[derive(Serialize)]
+pub struct ModPortalDto {
+    pub title: String,
+    pub message: String,
+    pub suggestions: Vec<ModSuggestionDto>,
+    pub sideload_hint: String,
 }
 
 fn location_to_omnibox(loc: &BrowserLocation) -> String {
@@ -156,6 +169,8 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         .active_tab_mut()
         .and_then(|t| t.document.as_mut())
         .and_then(text_document_dto);
+    let mod_portal = active_mod_portal(tabs.active_tab());
+    let prefs = load_preferences();
     Ok(TabContentDto {
         tabs: tabs.tabs().iter().map(build_tab_dto).collect(),
         active_index: tabs.active_index(),
@@ -167,7 +182,45 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         directory_entries,
         document_status,
         text_document,
+        mod_portal,
+        show_onboarding: !prefs.onboarding_dismissed,
     })
+}
+
+fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPortalDto> {
+    let tab = tab?;
+    if let BrowserLocation::Internal { page } = &tab.location {
+        if page.starts_with("mods") {
+            let ext = page
+                .strip_prefix("mods?ext=")
+                .unwrap_or("");
+            let suggestions = if ext.is_empty() {
+                suggest_mods_for_unknown_path("example.unknown")
+            } else {
+                suggest_mods_for_unknown_path(&format!("file.{}", ext))
+            };
+            return Some(ModPortalDto {
+                title: "Mod portal".into(),
+                message: "Install support for formats you need. Catalog: Open VSX + native .ubmod (stub).".into(),
+                suggestions,
+                sideload_hint: "Install from file… (.vsix, .ubmod) — always allowed.".into(),
+            });
+        }
+    }
+    if let BrowserLocation::File { path } = &tab.location {
+        if tab.document.is_none() && path.is_file() {
+            let suggestions = suggest_mods_for_unknown_path(&path.to_string_lossy());
+            if !suggestions.is_empty() {
+                return Some(ModPortalDto {
+                    title: "Install support for this file".into(),
+                    message: format!("Unibrowser cannot open {} yet.", path.file_name().unwrap_or_default().to_string_lossy()),
+                    suggestions,
+                    sideload_hint: "Install from file… or browse Open VSX when online.".into(),
+                });
+            }
+        }
+    }
+    None
 }
 
 #[tauri::command]
@@ -398,13 +451,27 @@ pub fn select_command_manager_tab(tab_id: String, state: State<AppState>) -> Res
 }
 
 #[tauri::command]
-pub fn execute_command(command_id: String, state: State<AppState>) -> Result<String, String> {
+pub fn execute_command(
+    command_id: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<String, String> {
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
     }
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
-    let doc = tab.document.as_mut().ok_or("command needs an open document")?;
+    if tab.document.is_none() {
+        return Err("command needs an open document".into());
+    }
+    let doc = tab.document.as_mut().unwrap();
+    if doc.backend.backend_id() == base_web::BACKEND_ID
+        && (command_id == FONT_INCREASE_ID || command_id == FONT_DECREASE_ID)
+    {
+        let delta = if command_id == FONT_INCREASE_ID { 1 } else { -1 };
+        inject_page_font_scale(&app, delta)?;
+        return Ok(format!("Page font scale {:+}px (user style stub)", delta));
+    }
     state.registry.execute(&command_id, doc)
 }
 
@@ -529,6 +596,91 @@ pub fn set_content_bounds(
     app: AppHandle,
 ) -> Result<(), String> {
     sync_content_bounds(&app, x, y, width, height)
+}
+
+#[derive(Serialize)]
+pub struct PreferencesDto {
+    pub onboarding_dismissed: bool,
+}
+
+#[tauri::command]
+pub fn get_home_dir() -> String {
+    std::env::var("HOME").unwrap_or_else(|_| "/tmp".into())
+}
+
+#[tauri::command]
+pub fn get_preferences() -> PreferencesDto {
+    let p = load_preferences();
+    PreferencesDto {
+        onboarding_dismissed: p.onboarding_dismissed,
+    }
+}
+
+#[tauri::command]
+pub fn dismiss_onboarding() -> Result<(), String> {
+    let mut p = load_preferences();
+    p.onboarding_dismissed = true;
+    save_preferences(&p)
+}
+
+#[tauri::command]
+pub fn save_window_geometry(
+    width: f64,
+    height: f64,
+    x: Option<f64>,
+    y: Option<f64>,
+) -> Result<(), String> {
+    let state = WindowState {
+        width,
+        height,
+        x,
+        y,
+    };
+    crate::preferences::save_window_state(&state)
+}
+
+#[tauri::command]
+pub fn create_unibrow_project(
+    parent_dir: String,
+    name: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let parent = PathBuf::from(parent_dir);
+    let root = parent.join(format!("{}.unibrow", name));
+    let _package = unibrowser_project::create_package(&root, &name).map_err(|e| e.to_string())?;
+    let loc = BrowserLocation::File { path: root.clone() };
+    let doc = crate::state::open_file_document(&root);
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.open_tab(loc.clone());
+    if let Some(tab) = tabs.active_tab_mut() {
+        tab.is_directory = false;
+        tab.document = doc;
+    }
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn open_mod_portal(
+    ext: Option<String>,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let page = match ext {
+        Some(e) if !e.is_empty() => format!("mods?ext={}", e),
+        _ => "mods".into(),
+    };
+    let loc = BrowserLocation::Internal { page };
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.open_tab(loc.clone());
+    if let Some(tab) = tabs.active_tab_mut() {
+        tab.is_directory = is_dir;
+        tab.document = doc;
+    }
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
 }
 
 fn update_content_webview(app: &AppHandle, loc: &BrowserLocation) -> Result<(), String> {

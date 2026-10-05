@@ -32,6 +32,7 @@ impl AppState {
             ("base-web", base_web::register as ModRegisterFn),
             ("base-text", base_text::register as ModRegisterFn),
             ("base-png", base_png::register as ModRegisterFn),
+            ("base-svg", base_svg::register as ModRegisterFn),
             ("toy-markdown", toy_markdown::register as ModRegisterFn),
         ]
         .into_iter()
@@ -114,7 +115,7 @@ impl AppState {
             }
             if path.is_file() {
                 let doc = open_file_document(path);
-                return (location, false, Some(doc));
+                return (location, false, doc);
             }
         }
         if let BrowserLocation::Internal { page } = &location {
@@ -125,6 +126,9 @@ impl AppState {
                     true,
                     None,
                 );
+            }
+            if page.starts_with("mods") {
+                return (location, false, None);
             }
         }
         (location, false, None)
@@ -149,15 +153,32 @@ fn internal_files_path(page: &str, cwd: &Path) -> PathBuf {
     cwd.to_path_buf()
 }
 
-fn open_file_document(path: &Path) -> DocumentSession {
-    let path_str = path.to_string_lossy();
-    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-    let backend: Box<dyn unibrowser_engine::document::DocumentBackend> = match ext {
-        "png" => base_png::open_sample(&path_str),
-        _ => base_text::open_file(path)
-            .unwrap_or_else(|_| base_text::open_sample(&path_str)),
+pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
+    let path_str = path.to_string_lossy().to_string();
+    if unibrowser_project::is_unibrow_path(path) {
+        let package = unibrowser_project::open_package(path).map_err(|e| e.to_string());
+        if let Ok(pkg) = package {
+            use crate::project_backend::UnibrowBackend;
+            return Some(DocumentSession::new(
+                path_str,
+                Box::new(UnibrowBackend::open(pkg)),
+            ));
+        }
+    }
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let backend: Option<Box<dyn unibrowser_engine::document::DocumentBackend>> = match ext.as_str()
+    {
+        "png" => Some(base_png::open_file(path)),
+        "svg" => Some(base_svg::open_file(path)),
+        "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" | "js" => base_text::open_file(path).ok(),
+        "docx" | "pdf" | "dxf" | "mp4" | "webm" | "wav" | "mid" | "midi" => None,
+        _ => base_text::open_file(path).ok(),
     };
-    DocumentSession::new(path_str.to_string(), backend)
+    backend.map(|b| DocumentSession::new(path_str, b))
 }
 
 pub fn list_dir(path: &Path) -> Result<Vec<base_files::DirEntry>, String> {

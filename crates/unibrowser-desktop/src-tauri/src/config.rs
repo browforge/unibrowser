@@ -11,6 +11,16 @@ pub fn toolbars_file_path() -> Option<PathBuf> {
     Some(base.join("toolbars.json"))
 }
 
+pub fn preferences_file_path() -> Option<PathBuf> {
+    let base = config_dir()?;
+    Some(base.join("preferences.json"))
+}
+
+pub fn window_state_file_path() -> Option<PathBuf> {
+    let base = config_dir()?;
+    Some(base.join("window.json"))
+}
+
 fn config_dir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
