@@ -230,7 +230,7 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         .to_ascii_lowercase();
     let backend: Option<Box<dyn unibrowser_engine::document::DocumentBackend>> = match ext.as_str()
     {
-        "png" => Some(base_png::open_file(path)),
+        "png" | "jpg" | "jpeg" | "gif" | "webp" => Some(base_png::open_file(path)),
         "svg" => Some(base_svg::open_file(path)),
         "docx" => base_docx::open_file(path).ok(),
         "pdf" => base_pdf::open_file(path).ok(),

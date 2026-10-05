@@ -1,13 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import * as mammoth from "mammoth";
-import * as pdfjsLib from "pdfjs-dist";
-import DxfParser from "dxf-parser";
-import * as THREE from "three";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
+import { loadPdfJs, loadThree } from "./lazyModules";
 
 export interface ProjectNodeDto {
   id: string;
@@ -116,6 +109,7 @@ async function syncPdfSelection(selected: boolean) {
 }
 
 async function renderPdf(path: string, root: HTMLElement, scale: number, startPage: number) {
+  const pdfjsLib = await loadPdfJs();
   const bytes = await readBytes(path);
   const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
   let currentPage = Math.min(Math.max(startPage, 1), doc.numPages);
@@ -327,8 +321,10 @@ type DxfEntity = {
 
 type DxfData = { entities?: DxfEntity[] };
 
-function pushPoint(points: THREE.Vector3[], x: number, y: number) {
-  points.push(new THREE.Vector3(x, y, 0));
+type Vec3 = { x: number; y: number; z: number };
+
+function pushPoint(points: Vec3[], x: number, y: number) {
+  points.push({ x, y, z: 0 });
 }
 
 function arcPoints(
@@ -337,8 +333,8 @@ function arcPoints(
   startDeg: number,
   endDeg: number,
   segments = 32,
-): THREE.Vector3[] {
-  const pts: THREE.Vector3[] = [];
+): Vec3[] {
+  const pts: Vec3[] = [];
   let start = (startDeg * Math.PI) / 180;
   let end = (endDeg * Math.PI) / 180;
   if (end < start) {
@@ -346,13 +342,17 @@ function arcPoints(
   }
   for (let i = 0; i <= segments; i += 1) {
     const t = start + ((end - start) * i) / segments;
-    pts.push(new THREE.Vector3(center.x + radius * Math.cos(t), center.y + radius * Math.sin(t), 0));
+    pts.push({
+      x: center.x + radius * Math.cos(t),
+      y: center.y + radius * Math.sin(t),
+      z: 0,
+    });
   }
   return pts;
 }
 
-function entitySegments(ent: DxfEntity): THREE.Vector3[] {
-  const segs: THREE.Vector3[] = [];
+function entitySegments(ent: DxfEntity): Vec3[] {
+  const segs: Vec3[] = [];
   const t = ent.type;
   if ((t === "LINE" || t === "POLYLINE" || t === "LWPOLYLINE") && ent.vertices && ent.vertices.length >= 2) {
     const verts = ent.vertices;
@@ -385,14 +385,14 @@ function entitySegments(ent: DxfEntity): THREE.Vector3[] {
     const ratio = ent.axisRatio ?? 0.5;
     const b = a * ratio;
     const rot = Math.atan2(my, mx);
-    const pts: THREE.Vector3[] = [];
+    const pts: Vec3[] = [];
     for (let i = 0; i <= 48; i += 1) {
       const tRad = (i / 48) * Math.PI * 2;
       const lx = a * Math.cos(tRad);
       const ly = b * Math.sin(tRad);
       const x = ent.center.x + lx * Math.cos(rot) - ly * Math.sin(rot);
       const y = ent.center.y + lx * Math.sin(rot) + ly * Math.cos(rot);
-      pts.push(new THREE.Vector3(x, y, 0));
+      pts.push({ x, y, z: 0 });
     }
     for (let i = 0; i < pts.length - 1; i += 1) {
       segs.push(pts[i], pts[i + 1]);
@@ -407,7 +407,7 @@ function entitySegments(ent: DxfEntity): THREE.Vector3[] {
   return segs;
 }
 
-function bboxFromSegments(segs: THREE.Vector3[]) {
+function bboxFromSegments(segs: Vec3[]) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -424,7 +424,115 @@ function bboxFromSegments(segs: THREE.Vector3[]) {
   return { minX, minY, maxX, maxY };
 }
 
+async function renderImage(path: string, root: HTMLElement) {
+  await ensureAssetAllowed(path);
+  root.innerHTML = "";
+  const toolbar = document.createElement("div");
+  toolbar.className = "image-toolbar";
+  const zoomOut = document.createElement("button");
+  zoomOut.type = "button";
+  zoomOut.textContent = "−";
+  const zoomIn = document.createElement("button");
+  zoomIn.type = "button";
+  zoomIn.textContent = "+";
+  const resetBtn = document.createElement("button");
+  resetBtn.type = "button";
+  resetBtn.textContent = "Fit";
+  const rotateBtn = document.createElement("button");
+  rotateBtn.type = "button";
+  rotateBtn.textContent = "Rotate 90°";
+  const cropStub = document.createElement("button");
+  cropStub.type = "button";
+  cropStub.disabled = true;
+  cropStub.title = "Crop coming in base-png mod";
+  cropStub.textContent = "Crop (soon)";
+  toolbar.appendChild(zoomOut);
+  toolbar.appendChild(zoomIn);
+  toolbar.appendChild(resetBtn);
+  toolbar.appendChild(rotateBtn);
+  toolbar.appendChild(cropStub);
+  root.appendChild(toolbar);
+
+  const viewport = document.createElement("div");
+  viewport.className = "image-viewport";
+  const stage = document.createElement("div");
+  stage.className = "image-stage";
+  const img = document.createElement("img");
+  img.className = "image-view";
+  img.alt = path;
+  img.src = convertFileSrc(path);
+  stage.appendChild(img);
+  viewport.appendChild(stage);
+  root.appendChild(viewport);
+
+  let scale = 1;
+  let rotation = 0;
+  let panX = 0;
+  let panY = 0;
+
+  const applyTransform = () => {
+    stage.style.transform = `translate(${panX}px, ${panY}px) scale(${scale}) rotate(${rotation}deg)`;
+  };
+
+  zoomIn.onclick = () => {
+    scale = Math.min(8, scale * 1.15);
+    applyTransform();
+  };
+  zoomOut.onclick = () => {
+    scale = Math.max(0.15, scale / 1.15);
+    applyTransform();
+  };
+  resetBtn.onclick = () => {
+    scale = 1;
+    panX = 0;
+    panY = 0;
+    rotation = 0;
+    applyTransform();
+  };
+  rotateBtn.onclick = () => {
+    rotation = (rotation + 90) % 360;
+    applyTransform();
+  };
+
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+  viewport.onpointerdown = (e) => {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    viewport.setPointerCapture(e.pointerId);
+  };
+  viewport.onpointerup = () => {
+    dragging = false;
+  };
+  viewport.onpointermove = (e) => {
+    if (!dragging) {
+      return;
+    }
+    panX += e.clientX - lastX;
+    panY += e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    applyTransform();
+  };
+  viewport.onwheel = (e) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    scale = Math.min(8, Math.max(0.15, scale * factor));
+    applyTransform();
+  };
+
+  applyTransform();
+  const note = document.createElement("p");
+  note.className = "viewer-note";
+  note.textContent = "Pan: drag · Zoom: wheel or ± · Rotate is display-only (non-destructive).";
+  root.appendChild(note);
+}
+
 async function renderDxf(path: string, root: HTMLElement) {
+  const THREE = await loadThree();
+  const DxfParser = (await import("dxf-parser")).default;
   const text = new TextDecoder().decode(await readBytes(path));
   const parser = new DxfParser();
   const dxf = parser.parseSync(text) as DxfData | null;
@@ -432,25 +540,53 @@ async function renderDxf(path: string, root: HTMLElement) {
   const layers = Array.from(
     new Set(entities.map((e) => e.layer).filter((l): l is string => Boolean(l))),
   ).sort();
-  root.innerHTML = "";
-  const toolbar = document.createElement("div");
-  toolbar.className = "dxf-toolbar";
-  const layerSelect = document.createElement("select");
-  const allOpt = document.createElement("option");
-  allOpt.value = "";
-  allOpt.textContent = "All layers";
-  layerSelect.appendChild(allOpt);
+  const layerVisible = new Map<string, boolean>();
   for (const layer of layers) {
-    const opt = document.createElement("option");
-    opt.value = layer;
-    opt.textContent = layer;
-    layerSelect.appendChild(opt);
+    layerVisible.set(layer, true);
   }
-  toolbar.appendChild(layerSelect);
-  root.appendChild(toolbar);
+  root.innerHTML = "";
+  const layout = document.createElement("div");
+  layout.className = "dxf-layout";
+  const layerPanel = document.createElement("aside");
+  layerPanel.className = "dxf-layer-panel";
+  const panelTitle = document.createElement("h3");
+  panelTitle.textContent = "Layers";
+  layerPanel.appendChild(panelTitle);
+  const layerList = document.createElement("ul");
+  layerList.className = "dxf-layer-list";
+  for (const layer of layers) {
+    const li = document.createElement("li");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = true;
+    cb.id = `dxf-layer-${layer}`;
+    const label = document.createElement("label");
+    label.htmlFor = cb.id;
+    label.textContent = layer;
+    cb.onchange = () => {
+      layerVisible.set(layer, cb.checked);
+      rebuild();
+    };
+    li.appendChild(cb);
+    li.appendChild(label);
+    layerList.appendChild(li);
+  }
+  if (layers.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "viewer-note";
+    empty.textContent = "No layer names in file";
+    layerPanel.appendChild(empty);
+  } else {
+    layerPanel.appendChild(layerList);
+  }
+  layout.appendChild(layerPanel);
+  const canvasCol = document.createElement("div");
+  canvasCol.className = "dxf-canvas-col";
+  layout.appendChild(canvasCol);
+  root.appendChild(layout);
   const wrap = document.createElement("div");
   wrap.className = "dxf-canvas-wrap";
-  root.appendChild(wrap);
+  canvasCol.appendChild(wrap);
   const width = wrap.clientWidth || 800;
   const height = 400;
   const scene = new THREE.Scene();
@@ -469,16 +605,17 @@ async function renderDxf(path: string, root: HTMLElement) {
     while (scene.children.length > 0) {
       scene.remove(scene.children[0]);
     }
-    const layerFilter = layerSelect.value;
-    const allSegs: THREE.Vector3[] = [];
+    const allSegs: Vec3[] = [];
     for (const ent of entities) {
-      if (layerFilter && ent.layer !== layerFilter) {
+      const layer = ent.layer ?? "";
+      if (layer && layerVisible.has(layer) && !layerVisible.get(layer)) {
         continue;
       }
       allSegs.push(...entitySegments(ent));
     }
     if (allSegs.length >= 2) {
-      const geom = new THREE.BufferGeometry().setFromPoints(allSegs);
+      const points = allSegs.map((p) => new THREE.Vector3(p.x, p.y, p.z));
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
       const mat = new THREE.LineBasicMaterial({ color: 0x66ccff });
       scene.add(new THREE.LineSegments(geom, mat));
       baseBbox = bboxFromSegments(allSegs);
@@ -506,13 +643,6 @@ async function renderDxf(path: string, root: HTMLElement) {
       camera.updateProjectionMatrix();
     }
     renderer.render(scene, camera);
-  };
-
-  layerSelect.onchange = () => {
-    panX = 0;
-    panY = 0;
-    zoom = 1;
-    rebuild();
   };
 
   let dragging = false;
@@ -549,8 +679,8 @@ async function renderDxf(path: string, root: HTMLElement) {
   rebuild();
   const meta = document.createElement("p");
   meta.className = "viewer-note";
-  meta.textContent = `DXF: ${entities.length} entities · drag pan · wheel zoom · SPLINE/ELLIPSE sketch`;
-  root.appendChild(meta);
+  meta.textContent = `DXF: ${entities.length} entities · toggle layers · drag pan · wheel zoom`;
+  canvasCol.appendChild(meta);
 }
 
 async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
@@ -931,6 +1061,9 @@ export const documentViewer = {
           break;
         case "audio":
           await renderAudio(viewer.path, body, viewer.media_note);
+          break;
+        case "image":
+          await renderImage(viewer.path, body);
           break;
         case "dxf":
           await renderDxf(viewer.path, body);

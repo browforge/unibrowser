@@ -1,9 +1,30 @@
-import * as monaco from "monaco-editor";
-import loader from "@monaco-editor/loader";
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 
-loader.config({ monaco });
+type Monaco = typeof import("monaco-editor");
+type MonacoEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
+type MonacoModel = import("monaco-editor").editor.ITextModel;
+
+let monacoApi: Monaco | null = null;
+let editor: MonacoEditor | null = null;
+let hostEl: HTMLElement | null = null;
+let loadedPath: string | null = null;
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+let suppressSync = false;
+let markdownPreview = false;
+let previewEl: HTMLElement | null = null;
+let toolbarEl: HTMLElement | null = null;
+let findBound = false;
+
+async function getMonaco(): Promise<Monaco> {
+  if (!monacoApi) {
+    const loader = (await import("@monaco-editor/loader")).default;
+    const monaco = await import("monaco-editor");
+    loader.config({ monaco });
+    monacoApi = await loader.init();
+  }
+  return monacoApi as Monaco;
+}
 
 window.addEventListener("unibrowser-theme", () => {
   if (!editor || !monacoApi) {
@@ -22,30 +43,12 @@ export interface TextDocumentDto {
   dirty: boolean;
 }
 
-type Monaco = typeof monaco;
-let monacoApi: Monaco | null = null;
-let editor: monaco.editor.IStandaloneCodeEditor | null = null;
-let hostEl: HTMLElement | null = null;
-let loadedPath: string | null = null;
-let syncTimer: ReturnType<typeof setTimeout> | null = null;
-let suppressSync = false;
-let markdownPreview = false;
-let previewEl: HTMLElement | null = null;
-let toolbarEl: HTMLElement | null = null;
-
-async function getMonaco(): Promise<Monaco> {
-  if (!monacoApi) {
-    monacoApi = await loader.init();
-  }
-  return monacoApi as Monaco;
-}
-
 function isMarkdownPath(path: string): boolean {
   const lower = path.toLowerCase();
   return lower.endsWith(".md") || lower.endsWith(".markdown");
 }
 
-function selectionOffsets(model: monaco.editor.ITextModel) {
+function selectionOffsets(model: MonacoModel) {
   const sel = editor?.getSelection();
   if (!sel) {
     return { start: 0, end: 0 };
@@ -127,10 +130,21 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
   host.parentElement?.insertBefore(toolbarEl, host);
 }
 
+function bindFindShortcut(api: Monaco) {
+  if (!editor || findBound) {
+    return;
+  }
+  editor.addCommand(api.KeyMod.CtrlCmd | api.KeyCode.KeyF, () => {
+    editor?.trigger("keyboard", "actions.find", null);
+  });
+  findBound = true;
+}
+
 async function ensureEditor(host: HTMLElement) {
   if (editor && hostEl === host) {
     return;
   }
+  findBound = false;
   const api = await getMonaco();
   hostEl = host;
   host.innerHTML = "";
@@ -143,6 +157,7 @@ async function ensureEditor(host: HTMLElement) {
     fontSize: 14,
     wordWrap: "on",
   });
+  bindFindShortcut(api);
   editor.onDidChangeModelContent(() => scheduleSync());
   editor.onDidChangeCursorSelection(() => scheduleSync());
 }
@@ -183,6 +198,7 @@ export const textEditor = {
     ensureMarkdownToolbar(host, doc.path);
     await ensureEditor(host);
     const api = await getMonaco();
+    bindFindShortcut(api);
     const model = editor!.getModel();
     const pathChanged = loadedPath !== doc.path;
     if (pathChanged) {

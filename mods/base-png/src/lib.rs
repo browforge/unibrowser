@@ -8,6 +8,7 @@ use unibrowser_mod_api::{
 };
 
 pub const BACKEND_ID: &str = "base-png";
+pub const VIEWER_KIND: &str = "image";
 
 pub struct PngBackend {
     pub width: u32,

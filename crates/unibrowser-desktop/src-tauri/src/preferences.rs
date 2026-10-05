@@ -16,12 +16,22 @@ impl Default for UiTheme {
     }
 }
 
+pub const RECENT_FILES_MAX: usize = 12;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RecentFileEntry {
+    pub path: String,
+    pub label: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Preferences {
     #[serde(default)]
     pub onboarding_dismissed: bool,
     #[serde(default)]
     pub theme: UiTheme,
+    #[serde(default)]
+    pub recent_files: Vec<RecentFileEntry>,
 }
 
 impl Default for Preferences {
@@ -29,7 +39,40 @@ impl Default for Preferences {
         Self {
             onboarding_dismissed: false,
             theme: UiTheme::default(),
+            recent_files: Vec::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recent_files_dedupe_and_cap() {
+        let mut p = Preferences::default();
+        for i in 0..20 {
+            push_recent_file(&mut p, format!("/tmp/f{i}.txt"), format!("f{i}"));
+        }
+        assert_eq!(p.recent_files.len(), RECENT_FILES_MAX);
+        assert_eq!(p.recent_files[0].label, "f19");
+        push_recent_file(&mut p, "/tmp/f5.txt".into(), "f5".into());
+        assert_eq!(p.recent_files[0].path, "/tmp/f5.txt");
+        assert!(p.recent_files.iter().filter(|e| e.path == "/tmp/f5.txt").count() == 1);
+    }
+}
+
+pub fn push_recent_file(prefs: &mut Preferences, path: String, label: String) {
+    prefs.recent_files.retain(|e| e.path != path);
+    prefs.recent_files.insert(
+        0,
+        RecentFileEntry {
+            path,
+            label,
+        },
+    );
+    if prefs.recent_files.len() > RECENT_FILES_MAX {
+        prefs.recent_files.truncate(RECENT_FILES_MAX);
     }
 }
 

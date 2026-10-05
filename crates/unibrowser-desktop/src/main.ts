@@ -66,6 +66,12 @@ interface TabContentDto {
   mod_portal: ModPortalDto | null;
   document_viewer: DocumentViewerDto | null;
   show_onboarding: boolean;
+  recent_files: RecentFileDto[];
+}
+
+interface RecentFileDto {
+  path: string;
+  label: string;
 }
 
 interface PaletteEntryDto {
@@ -94,6 +100,9 @@ const documentViewerHost = document.getElementById("document-viewer-host")!;
 const modPortalPanel = document.getElementById("mod-portal-panel")!;
 const onboardingBanner = document.getElementById("onboarding-banner")!;
 const onboardingDismiss = document.getElementById("onboarding-dismiss")!;
+const recentPanel = document.getElementById("recent-panel")!;
+const recentToggle = document.getElementById("btn-recent")!;
+let recentPanelOpen = false;
 
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
 
@@ -342,6 +351,34 @@ function renderOnboarding(show: boolean) {
   onboardingBanner.classList.toggle("hidden", !show);
 }
 
+function renderRecentFiles(entries: RecentFileDto[]) {
+  recentPanel.innerHTML = "";
+  if (!recentPanelOpen) {
+    recentPanel.classList.add("hidden");
+    return;
+  }
+  recentPanel.classList.remove("hidden");
+  if (!entries.length) {
+    recentPanel.textContent = "No recent files yet.";
+    return;
+  }
+  const list = document.createElement("ul");
+  list.className = "recent-list";
+  entries.forEach((entry) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "recent-link";
+    btn.textContent = entry.label;
+    btn.title = entry.path;
+    btn.onclick = () =>
+      invoke<TabContentDto>("open_path", { path: entry.path }).then(applyState);
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+  recentPanel.appendChild(list);
+}
+
 async function runUiCommand(commandId: string) {
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
@@ -379,6 +416,7 @@ async function applyState(data: TabContentDto) {
   const hasPortal = Boolean(data.mod_portal);
   renderDoc(data.document_status, showText, hasPortal, showViewer);
   renderOnboarding(data.show_onboarding);
+  renderRecentFiles(data.recent_files ?? []);
   if (showText && data.text_document) {
     await textEditor.apply(data.text_document, textEditorHost);
     documentViewer.hide(documentViewerHost);
@@ -429,6 +467,12 @@ document.getElementById("btn-mod-portal")!.onclick = () =>
   invoke<TabContentDto>("open_mod_portal", { ext: null }).then(applyState);
 
 const themeBtn = document.getElementById("btn-theme") as HTMLButtonElement;
+recentToggle.onclick = () => {
+  recentPanelOpen = !recentPanelOpen;
+  recentToggle.setAttribute("aria-expanded", recentPanelOpen ? "true" : "false");
+  void refreshState();
+};
+
 themeBtn.onclick = async () => {
   await cycleTheme();
   themeBtn.textContent = themeButtonLabel();
@@ -511,6 +555,9 @@ document.addEventListener(
   "keydown",
   async (e) => {
   if (e.repeat) {
+    return;
+  }
+  if (textEditor.isActive() && e.ctrlKey && e.key.toLowerCase() === "f") {
     return;
   }
   const chord = chordFromKeyboardEvent(e);

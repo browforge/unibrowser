@@ -5,6 +5,23 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/monaco-editor") || id.includes("@monaco-editor")) {
+            return "monaco";
+          }
+          if (id.includes("node_modules/pdfjs-dist")) {
+            return "pdfjs";
+          }
+          if (id.includes("node_modules/three")) {
+            return "three";
+          }
+        },
+      },
+    },
+  },
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors

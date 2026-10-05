@@ -15,7 +15,9 @@ use crate::config::toolbars_file_path;
 use crate::downloads::apply_download_disposition;
 use crate::state::{AppState, list_dir};
 use crate::mod_portal::{ModSuggestionDto, suggest_mods_for_unknown_path};
-use crate::preferences::{load_preferences, save_preferences, UiTheme, WindowState};
+use crate::preferences::{
+    load_preferences, push_recent_file, save_preferences, UiTheme, WindowState,
+};
 use crate::epub_preview::EpubChapterDto;
 use crate::webview::{content_webview_navigate, inject_page_font_scale, sync_content_bounds};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
@@ -131,6 +133,13 @@ pub struct TabContentDto {
     pub mod_portal: Option<ModPortalDto>,
     pub document_viewer: Option<DocumentViewerDto>,
     pub show_onboarding: bool,
+    pub recent_files: Vec<RecentFileDto>,
+}
+
+#[derive(Serialize)]
+pub struct RecentFileDto {
+    pub path: String,
+    pub label: String,
 }
 
 #[derive(Serialize)]
@@ -235,6 +244,7 @@ fn document_viewer_dto(
         base_video::BACKEND_ID => base_video::VIEWER_KIND,
         base_audio::BACKEND_ID => base_audio::VIEWER_KIND,
         base_svg::BACKEND_ID => base_svg::VIEWER_KIND,
+        base_png::BACKEND_ID => base_png::VIEWER_KIND,
         crate::epub_stub::BACKEND_ID => crate::epub_stub::VIEWER_KIND,
         _ => return None,
     };
@@ -339,7 +349,28 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         mod_portal,
         document_viewer,
         show_onboarding: !prefs.onboarding_dismissed,
+        recent_files: prefs
+            .recent_files
+            .iter()
+            .map(|e| RecentFileDto {
+                path: e.path.clone(),
+                label: e.label.clone(),
+            })
+            .collect(),
     })
+}
+
+fn touch_recent_file(path: &Path) {
+    if !path.is_file() {
+        return;
+    }
+    let label = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.to_string_lossy().to_string());
+    let mut prefs = load_preferences();
+    push_recent_file(&mut prefs, path.to_string_lossy().into_owned(), label);
+    let _ = save_preferences(&prefs);
 }
 
 fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPortalDto> {
@@ -417,11 +448,17 @@ pub fn select_tab(
 #[tauri::command]
 pub fn navigate_omnibox(input: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let loc = state.navigate_input(&input)?;
+    if let BrowserLocation::File { path } = &loc {
+        allow_asset_protocol_file(&app, path);
+        if path.is_file() {
+            touch_recent_file(path);
+        }
+    }
     update_content_webview(&app, &loc)?;
     snapshot(&state)
 }
 
-fn allow_media_asset_path(app: &AppHandle, path: &Path) {
+fn allow_asset_protocol_file(app: &AppHandle, path: &Path) {
     if !path.is_file() {
         return;
     }
@@ -430,11 +467,23 @@ fn allow_media_asset_path(app: &AppHandle, path: &Path) {
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    let is_media = matches!(
+    let needs_asset = matches!(
         ext.as_str(),
-        "mp4" | "webm" | "wav" | "mid" | "midi" | "mp3" | "ogg"
+        "mp4"
+            | "webm"
+            | "wav"
+            | "mid"
+            | "midi"
+            | "mp3"
+            | "ogg"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "webp"
+            | "svg"
     );
-    if !is_media {
+    if !needs_asset {
         return;
     }
     let _ = app.asset_protocol_scope().allow_file(path);
@@ -454,11 +503,16 @@ pub fn allow_asset_path(path: String, app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn open_path(path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let file_path = PathBuf::from(&path);
-    allow_media_asset_path(&app, &file_path);
+    allow_asset_protocol_file(&app, &file_path);
     let loc = BrowserLocation::File { path: file_path };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     tabs.navigate_active(loc.clone(), is_dir, doc);
+    if let BrowserLocation::File { path } = &loc {
+        if path.is_file() {
+            touch_recent_file(path);
+        }
+    }
     update_content_webview(&app, &loc)?;
     snapshot(&state)
 }

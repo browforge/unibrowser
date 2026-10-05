@@ -298,6 +298,114 @@ body {
   padding-left: 0.5rem;
 }
 
+.recent-panel {
+  margin: 0.25rem 0 0.35rem;
+  padding: 0.35rem 0.5rem;
+  background: #222228;
+  border: 1px solid #444;
+  font-size: 0.85rem;
+}
+
+.recent-panel.hidden {
+  display: none;
+}
+
+.recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.recent-link {
+  background: #2a2a32;
+  border: 1px solid #555;
+  color: #ddd;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+}
+
+.dxf-layout {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.dxf-layer-panel {
+  flex: 0 0 11rem;
+  max-height: 22rem;
+  overflow: auto;
+  border: 1px solid #444;
+  padding: 0.35rem 0.5rem;
+  background: #1e1e24;
+}
+
+.dxf-layer-panel h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.dxf-layer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dxf-layer-list li {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.dxf-canvas-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.image-toolbar {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.image-viewport {
+  overflow: hidden;
+  height: 24rem;
+  border: 1px solid #444;
+  background: #111;
+  cursor: grab;
+  touch-action: none;
+}
+
+.image-stage {
+  display: inline-block;
+  transform-origin: center center;
+}
+
+.image-view {
+  max-width: none;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+[data-theme="light"] .recent-panel,
+[data-theme="light"] .dxf-layer-panel {
+  background: #eee;
+  border-color: #bbb;
+}
+
+[data-theme="light"] .recent-link {
+  background: #fff;
+  color: #222;
+}
+
 .viewer-title {
   margin: 0 0 0.5rem;
   font-size: 1rem;
