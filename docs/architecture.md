@@ -2,7 +2,7 @@
 
 Unibrowser is a **unified browser shell** (files + web in one tab strip; see [ADR 0009](adr/0009-browser-as-unified-shell.md)). The **host engine** owns navigation, commands, modes, UI chrome, and mod loading; **mods** supply document backends, web surfaces, and the bundled file browser. The skeleton uses **egui/eframe** only to prove commands and toolbars; the product shell is **Tauri + WebView** ([ADR 0001](adr/0001-shell-and-rendering.md)).
 
-**Product emphasis:** world-class **context switching** (stable chrome, auto Command Manager tab, grey-out, pin/customise) and **mixed-format projects** with **lazy conversion** ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md), [ADR 0012](adr/0012-context-switching-ux-benchmarks.md)).
+**Product emphasis:** world-class **context switching** (stable chrome, auto Command Manager tab, grey-out, pin/customise), **mixed-format projects** with **lazy conversion** ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md), [ADR 0012](adr/0012-context-switching-ux-benchmarks.md)), and **dual audience** design — everyday defaults, FOSS depth without user-space interference ([ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md), [vision.md](vision.md)).
 
 ## Layer diagram
 
@@ -174,6 +174,7 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0010 UI commands and Command Manager](adr/0010-ui-commands-and-command-manager.md)
 - [0011 Lazy conversion / native until encode](adr/0011-lazy-conversion-native-until-encode.md)
 - [0012 Context switching UX benchmarks](adr/0012-context-switching-ux-benchmarks.md)
+- [0013 Dual audience (FOSS and everyday users)](adr/0013-dual-audience-foss-and-everyday-users.md)
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)
 - [0008 API gaps and upstream requests](adr/0008-api-gap-upstream-requests.md)
