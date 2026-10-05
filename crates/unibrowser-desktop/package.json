@@ -16,6 +16,7 @@
     "dxf-parser": "^1.1.2",
     "mammoth": "^1.13.0",
     "marked": "^15.0.12",
+    "mermaid": "^11.17.2",
     "monaco-editor": "^0.57.0",
     "pdfjs-dist": "^6.4.299",
     "three": "^0.186.1"

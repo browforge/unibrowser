@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Markdown preview:** Lazy **Mermaid** rendering in preview (falls back to the fenced code block on failure); relative `img` paths resolve next to the `.md` file.
+- **Status bar:** Word count and estimated reading time for Monaco text/Markdown and DOCX preview (`status.reading`).
+- **A11y:** Status encoding/cursor/reading `role="status"`; encode progress `aria-live`; floating CM toolbar keyboard nudge on the drag handle ([ux-a11y.md](docs/ux-a11y.md)).
 - **Timeline redo:** `document_redo` restores forward snapshots for `.unibrow` timeline edits; undo/redo commands grey in the palette and Command Manager when the stack is empty.
 - **PDF thumbs:** Thumbnail strip buttons jump to the page; active page is highlighted and scrolled into view in the strip.
 - **Plain text print:** Non-Markdown text tabs get a **Print preview** toolbar (same styled HTML path as Markdown/DOCX).

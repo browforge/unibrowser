@@ -3430,6 +3430,30 @@ mark.docx-search-hit--current {
   display: none;
 }
 
+.md-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+.md-preview-img--broken {
+  outline: 1px dashed #888;
+  min-height: 2rem;
+  min-width: 4rem;
+}
+
+.mermaid-block {
+  margin: 0.75rem 0;
+  overflow-x: auto;
+}
+
+.mermaid-block .mermaid-fallback.hidden {
+  display: none;
+}
+
+.mermaid-block pre {
+  margin: 0;
+}
+
 #text-editor-host.md-split {
   max-height: 45vh;
 }
@@ -3476,6 +3500,10 @@ mark.docx-search-hit--current {
   padding: 0 0.25rem;
   color: #666;
   user-select: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  line-height: 1;
 }
 
 .ft-icon {

@@ -3,7 +3,14 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import { commandManager, getStatusContextMode } from "./commandManager";
-import { textEditor, type TextDocumentDto, setCursorStatusListener } from "./textEditor";
+import {
+  textEditor,
+  type TextDocumentDto,
+  getActiveTextContent,
+  setCursorStatusListener,
+  setReadingStatsListener,
+} from "./textEditor";
+import { textReadingStats } from "./textStats";
 import {
   armPdfHighlightMode,
   documentViewer,
@@ -28,6 +35,7 @@ import { invokeWithToast, showErrorToast, showToast } from "./toast";
 import {
   bindStatusBar,
   patchStatusCursor,
+  patchStatusReading,
   setFontResetHandler,
   setPathCopyHandler,
   setZoomHandler,
@@ -329,6 +337,28 @@ function refreshStatusBar(
     enc.active
       ? t("status.encode", { percent: String(enc.percent), stage: enc.stage })
       : "";
+  let reading = "";
+  if (showText && data.text_document) {
+    const text = getActiveTextContent() ?? data.text_document.content;
+    const stats = textReadingStats(text);
+    if (stats.words > 0) {
+      reading = t("status.reading", {
+        words: String(stats.words),
+        minutes: String(stats.minutes),
+      });
+    }
+  } else if (showViewer && viewerKind === "docx") {
+    const text = documentViewer.getReadableText(documentViewerHost);
+    if (text) {
+      const stats = textReadingStats(text);
+      if (stats.words > 0) {
+        reading = t("status.reading", {
+          words: String(stats.words),
+          minutes: String(stats.minutes),
+        });
+      }
+    }
+  }
   updateStatusBar({
     path,
     pathHint: path ? t("status.copyPath") : undefined,
@@ -339,6 +369,7 @@ function refreshStatusBar(
     font,
     zoom,
     encode,
+    reading,
     hint: data.status.includes("command palette") ? paletteChordHint : data.status,
   });
 }
@@ -1997,6 +2028,7 @@ setCursorStatusListener((pos) => {
   editorCol = pos.column;
   patchStatusCursor(`Ln ${editorLine}, Col ${editorCol}`);
 });
+setReadingStatsListener((label) => patchStatusReading(label));
 setViewerZoomListener((_scale, label) => {
   lastViewerZoomLabel = label;
   const zoomEl = document.getElementById("status-zoom-label");

@@ -8,6 +8,7 @@ export interface StatusBarModel {
   font?: string;
   zoom: string;
   encode?: string;
+  reading?: string;
   hint: string;
 }
 
@@ -19,6 +20,7 @@ let cursorEl: HTMLElement | null = null;
 let fontEl: HTMLElement | null = null;
 let zoomEl: HTMLElement | null = null;
 let encodeEl: HTMLElement | null = null;
+let readingEl: HTMLElement | null = null;
 let hintEl: HTMLElement | null = null;
 let zoomOutBtn: HTMLButtonElement | null = null;
 let zoomInBtn: HTMLButtonElement | null = null;
@@ -39,7 +41,12 @@ export function bindStatusBar(root: HTMLElement) {
   fontEl = root.querySelector("#status-font");
   zoomEl = root.querySelector("#status-zoom-label");
   encodeEl = root.querySelector("#status-encode");
+  readingEl = root.querySelector("#status-reading");
   hintEl = root.querySelector("#status-hint");
+  encodingEl?.setAttribute("role", "status");
+  cursorEl?.setAttribute("role", "status");
+  encodeEl?.setAttribute("aria-live", "polite");
+  readingEl?.setAttribute("role", "status");
   zoomOutBtn = root.querySelector("#status-zoom-out");
   zoomInBtn = root.querySelector("#status-zoom-in");
   zoomOutBtn?.addEventListener("click", () => onZoomDelta?.(-1));
@@ -99,6 +106,13 @@ export function patchStatusCursor(cursor: string) {
   }
 }
 
+export function patchStatusReading(reading: string) {
+  if (readingEl) {
+    readingEl.textContent = reading;
+    readingEl.classList.toggle("hidden", !reading);
+  }
+}
+
 function setOptional(el: HTMLElement | null, value?: string) {
   if (!el) {
     return;
@@ -112,7 +126,13 @@ export function updateStatusBar(model: StatusBarModel) {
   lastPath = model.path;
   if (pathEl) {
     pathEl.textContent = model.path;
-    pathEl.title = model.pathHint ?? model.path;
+    const hint = model.pathHint ?? model.path;
+    pathEl.title = hint;
+    if (hint) {
+      pathEl.setAttribute("aria-label", hint);
+    } else {
+      pathEl.removeAttribute("aria-label");
+    }
   }
   setOptional(contextEl, model.context);
   setOptional(dirtyEl, model.dirty);
@@ -127,6 +147,10 @@ export function updateStatusBar(model: StatusBarModel) {
     setOptional(zoomEl, model.zoom);
   }
   setOptional(encodeEl, model.encode);
+  if (encodeEl) {
+    encodeEl.setAttribute("aria-busy", model.encode ? "true" : "false");
+  }
+  setOptional(readingEl, model.reading);
   if (hintEl) {
     hintEl.textContent = model.hint;
   }

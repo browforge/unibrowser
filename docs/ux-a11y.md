@@ -16,11 +16,11 @@ Target: keyboard-first use alongside mouse; WCAG-minded focus and labels. Full a
 | `:focus-visible` rings | Done | Accent blue; high-contrast green variant |
 | Tab strip roving focus | Done | `bindRovingTablist` on `#tab-strip` |
 | Tab close control labels | Done | `aria-label` per tab |
-| Status bar segments | Partial | Path/zoom; not all segments exposed to AT |
+| Status bar segments | Partial | Path copy hint, encoding/cursor/reading `role="status"`; zoom still label-only |
 | Monaco accessibility | Open | Relies on Monaco; mirror spellcheck is experimental |
 | Embedded webview content | Open | Platform focus ring; no shell CSS inside page |
-| Floating CM bars keyboard move | Open | Drag only |
-| Screen reader live regions | Partial | Toasts `aria-live`; encode progress in status bar |
+| Floating CM bars keyboard move | Partial | Arrow keys on drag handle (8px; Shift 32px); pointer drag unchanged |
+| Screen reader live regions | Partial | Toasts `aria-live`; encode segment `aria-live="polite"` + `aria-busy` while encoding |
 | Colour contrast audit | Open | High-contrast mode helps chrome; viewers not audited |
 | i18n beyond chrome | Open | `en-NZ` / `en-US` catalogues only |
 | Media keyboard shortcuts | Done | Space / arrows on focused `.media-view` |
@@ -78,7 +78,7 @@ Nav buttons use `aria-label` from the same strings as tooltips (en-NZ `t()` via 
 
 - Monaco editor: no native spellcheck; see experimental mirror in Advanced settings (also DOCX preview + EPUB notes when enabled).
 - Embedded webview content: inherits platform WebView focus; not fully styled by shell CSS.
-- Floating Command Manager bars: drag handle is visual only; keyboard reposition not implemented.
+- Floating Command Manager bars: keyboard nudge on the drag handle; no screen-coordinate entry UI yet.
 
 ## Related
 

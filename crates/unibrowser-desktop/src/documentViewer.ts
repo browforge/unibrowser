@@ -3957,6 +3957,14 @@ export const documentViewer = {
     const title = titleEl?.textContent?.trim() || "document";
     return { title, html: article.innerHTML };
   },
+  getReadableText(el: HTMLElement): string | null {
+    const article = el.querySelector<HTMLElement>(".docx-view");
+    if (!article) {
+      return null;
+    }
+    const text = article.innerText.trim();
+    return text || null;
+  },
   getPrintSelectionHtml(el: HTMLElement): { title: string; html: string } | null {
     const pdfLayer = el.querySelector(".pdf-text-layer");
     if (pdfLayer) {

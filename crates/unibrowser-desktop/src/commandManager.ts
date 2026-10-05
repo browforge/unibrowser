@@ -423,10 +423,12 @@ export const commandManager = {
       renderCommandButtons(row, bar.commands, onRun, false);
       wrap.appendChild(row);
       if (bar.anchor === "floating") {
-        const handle = document.createElement("span");
+        const handle = document.createElement("button");
+        handle.type = "button";
         handle.className = "drag-handle";
         handle.textContent = "⋮⋮";
         handle.title = t("commandManager.dragToolbarTitle");
+        handle.setAttribute("aria-label", t("commandManager.dragToolbarKeyboard"));
         wrap.insertBefore(handle, wrap.firstChild);
         let dragOffsetX = 0;
         let dragOffsetY = 0;
@@ -470,6 +472,42 @@ export const commandManager = {
           dragOffsetY = e.clientY - rect.top;
           window.addEventListener("pointermove", onMove);
           window.addEventListener("pointerup", onUp);
+        });
+        const nudgeToolbar = async (dx: number, dy: number) => {
+          const left = Number.parseFloat(wrap.style.left) || 0;
+          const top = Number.parseFloat(wrap.style.top) || 0;
+          wrap.style.left = `${Math.max(0, left + dx)}px`;
+          wrap.style.top = `${Math.max(0, top + dy)}px`;
+          if (!lastSnapshot) {
+            return;
+          }
+          const file = snapshotToFile(lastSnapshot);
+          const barLayout = file.floating_bars.find((b) => b.id === bar.id);
+          if (!barLayout) {
+            return;
+          }
+          const rect = wrap.getBoundingClientRect();
+          barLayout.anchor = "floating";
+          barLayout.x = window.screenX + rect.left;
+          barLayout.y = window.screenY + rect.top;
+          barLayout.coord_space = "screen";
+          await invoke("save_command_manager_layout", { layout: file });
+        };
+        handle.addEventListener("keydown", (e) => {
+          const step = e.shiftKey ? 32 : 8;
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            void nudgeToolbar(-step, 0);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            void nudgeToolbar(step, 0);
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            void nudgeToolbar(0, -step);
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            void nudgeToolbar(0, step);
+          }
         });
       }
       bindFloatingBarContextMenu(wrap, bar, async () => {

@@ -1,8 +1,9 @@
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
-import { bindPreviewLinks } from "./previewLinks";
-import { openPrintPreviewDocument, plainTextPrintBody } from "./printExport";
+import { applyMarkdownPreview } from "./markdownPreview";
+import { textReadingStats } from "./textStats";
 import { t } from "./i18n";
+import { openPrintPreviewDocument, plainTextPrintBody } from "./printExport";
 import {
   attachSpellcheckPane,
   detachSpellcheckPane,
@@ -62,9 +63,36 @@ export interface CursorStatus {
 }
 
 let cursorListener: ((status: CursorStatus) => void) | null = null;
+let readingStatsListener: ((label: string) => void) | null = null;
 
 export function setCursorStatusListener(fn: ((status: CursorStatus) => void) | null) {
   cursorListener = fn;
+}
+
+export function setReadingStatsListener(fn: ((label: string) => void) | null) {
+  readingStatsListener = fn;
+}
+
+function formatReadingLabel(text: string): string {
+  const { words, minutes } = textReadingStats(text);
+  if (words === 0) {
+    return "";
+  }
+  return t("status.reading", { words: String(words), minutes: String(minutes) });
+}
+
+function emitReadingStats() {
+  if (!readingStatsListener || !editor) {
+    return;
+  }
+  readingStatsListener(formatReadingLabel(editor.getModel()?.getValue() ?? ""));
+}
+
+export function getActiveTextContent(): string | null {
+  if (!editor) {
+    return null;
+  }
+  return editor.getModel()?.getValue() ?? null;
 }
 
 function emitCursorStatus() {
@@ -108,12 +136,12 @@ async function pushToHost() {
     selectionEnd: end,
   });
   if (markdownPreview && previewEl && loadedPath) {
-    previewEl.innerHTML = marked.parse(model.getValue(), { async: false }) as string;
-    bindPreviewLinks(previewEl, loadedPath);
+    await applyMarkdownPreview(previewEl, model.getValue(), loadedPath);
   }
   if (isExperimentalSpellcheckEnabled()) {
     syncSpellcheckPane(model.getValue());
   }
+  emitReadingStats();
 }
 
 function scheduleSync() {
@@ -199,8 +227,7 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
       previewEl.classList.toggle("hidden", !markdownPreview);
     }
     if (markdownPreview && editor && previewEl) {
-      previewEl.innerHTML = marked.parse(editor.getValue(), { async: false }) as string;
-      bindPreviewLinks(previewEl, path);
+      void applyMarkdownPreview(previewEl, editor.getValue(), path);
     }
     host.classList.toggle("md-split", markdownPreview);
   };
@@ -375,7 +402,7 @@ export const textEditor = {
       editor!.setPosition({ lineNumber: line, column: 1 });
     }
     if (markdownPreview && previewEl) {
-      previewEl.innerHTML = marked.parse(doc.content, { async: false }) as string;
+      await applyMarkdownPreview(previewEl, doc.content, doc.path);
     }
     const editorWrap = host.parentElement;
     if (isExperimentalSpellcheckEnabled() && editorWrap) {
@@ -385,6 +412,7 @@ export const textEditor = {
       detachSpellcheckPane();
     }
     emitCursorStatus();
+    emitReadingStats();
   },
 };
 
