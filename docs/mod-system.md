@@ -46,22 +46,29 @@ In-tree `mods/base-*` still use **Rust source + static registration** for fast C
 |---------|---------|
 | **`.vsix`** | **File format** (zip + `package.json`). Install via sideload or download. |
 | **Open VSX** | **Open marketplace** that publishes `.vsix` packages — preferred online source ([open-vsx.org](https://open-vsx.org)). Not the same as the file format. |
-| **Microsoft Marketplace** | Separate store; **do not** treat as default catalog (redistribution / ToS risk). Users may sideload their own `.vsix`. |
-| **Mod Portal** | Built-in **Extensions-style** UI: browse, install, **recommended for context**, **“install support for this file”** when nothing can open it. |
+| **Microsoft Marketplace** | **Not** an embedded catalog (ToS / redistribution). Users may sideload their own `.vsix`. |
+| **Mod Portal** | Built-in **Extensions-style** UI: browse default catalogs, install, **recommended for context**, **“can’t open this file → install these mods”**. |
 
 See [ADR 0014](adr/0014-vsix-compatibility-layer.md).
+
+### Catalog policy (decided — FOSS path)
+
+- **Default catalogs in the portal:** [Open VSX](https://open-vsx.org) + **future native `.ubmod` registry** (format mods; added when the index ships).
+- **No Microsoft Visual Studio Marketplace** integration as a built-in store.
+- **Sideload** `.vsix` and `.ubmod` always allowed (Install from file).
+- Portal behaviour above is **product scope**, not optional “power only”.
 
 ## VSIX compat lane
 
 - Import path for VS Code-style extensions — contributions and/or extension host.
 - May **compile or adapt** into Monaco assets or registry entries; does **not** replace `library` / `wasm_module` native mods.
-- **Sideload** `.vsix` always allowed; **Open VSX** optional network catalog; native **`.ubmod`** registry later.
+- **Sideload** `.vsix` / `.ubmod` always allowed; **Open VSX** is the default online `.vsix` catalog (network may be opt-in at runtime).
 
 ## Mod Portal (everyone + power users)
 
-- **Grandma:** unsupported file → friendly prompt → install a mod that adds the capability (no jargon).
-- **FOSS:** same portal plus Open VSX browse and **Install from file** for `.vsix` / `.ubmod`.
-- **Context recommendations:** suggest mods when Command Manager context or active document type matches (metadata TBD).
+- **Grandma:** unsupported file → **“can’t open this file”** → installable mods that add the capability (plain copy).
+- **FOSS:** same portal — Open VSX + native registry browse when live, plus **Install from file**.
+- **Context recommendations:** built-in; suggest mods from Command Manager / document context (handler metadata still TBD — [ADR 0014](adr/0014-vsix-compatibility-layer.md) open questions).
 
 ## Choosing native vs VSIX
 

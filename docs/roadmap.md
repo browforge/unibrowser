@@ -89,15 +89,15 @@ Native `info.json` mods stay canonical ([mod-system.md](mod-system.md)). `.vsix`
 | V4 | **Mod Portal** + Open VSX API (opt-in); sideload `.vsix` |
 | V5 | Context recommendations; **cannot open file → suggested mods** |
 
-**Catalog policy:** prefer [Open VSX](https://open-vsx.org) over Microsoft Marketplace (ToS/redistribution); native `.ubmod` registry in parallel when ready; **sideload always**.
+**Catalog (decided — FOSS path):** built-in Mod Portal defaults to **[Open VSX](https://open-vsx.org)** + **native `.ubmod` registry** when available; **no** embedded Microsoft Visual Studio Marketplace; **sideload** `.vsix` / `.ubmod` always ([ADR 0014](adr/0014-vsix-compatibility-layer.md)).
 
-## Mod Portal (product)
+## Mod Portal (product — in scope)
 
 | Capability | Audience |
 |------------|----------|
-| Browse / search / install | Everyone (simple copy); power users see licences, compatibility |
+| Browse / search / install (Open VSX + `.ubmod` index) | Everyone (simple copy); power users see licences, compatibility |
 | Recommended for context | Command Manager / document type |
-| No handler for file → suggest mods | Grandma path for new formats |
+| Can’t open this file → suggest mods | Grandma path for new formats |
 | Install from file | FOSS sideload (`.vsix`, `.ubmod`) |
 
 ## MVP format mod order (unchanged, aligned to manager tabs)

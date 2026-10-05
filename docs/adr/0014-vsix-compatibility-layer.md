@@ -89,16 +89,29 @@ A first-party **Extensions / Mods** surface in the shell (not a web-only store):
 
 Portal copy is **capability-based** (“Open Photoshop files”, “Edit Word documents”), not “VSIX” or “Open VSX”.
 
-### Distribution policy
+### Catalog (decided — FOSS path)
+
+Bear confirmed **2026-10-05**: Unibrowser takes the **FOSS catalog path** for built-in store integration.
+
+| Decision | Detail |
+|----------|--------|
+| **Default online catalogs** | **[Open VSX](https://open-vsx.org)** for VS Code-compatible `.vsix`, plus a **future native `.ubmod` registry`** for compiled format mods (second lane in the same Mod Portal; ship when the index exists — not blocked on VSIX phases). |
+| **Microsoft Visual Studio Marketplace** | **No embedded catalog** — redistribution / product ToS are incompatible with proxying or repackaging as a default store. Users may still **sideload** a `.vsix` they obtained elsewhere. |
+| **Sideload** | **Always allowed** — “Install from file…” for `.vsix` and `.ubmod`; no account required. |
+| **Mod Portal** | **Built-in** shell UI: browse default catalogs, **recommended for context**, and **“can’t open this file → install these mods”** ([sections above](#built-in-mod-portal-product-goal)). |
+
+Implementation may gate **network** access (opt-in) for Open VSX; catalog **policy** is fixed.
+
+### Distribution policy (summary)
 
 | Source | Policy |
 |--------|--------|
-| **Open VSX** | Preferred default **online** catalog for VS Code-compatible `.vsix`; use public API; show publisher, licence, and compatibility notes. |
-| **Microsoft Marketplace** | **Do not** redistribute or embed as default catalog unless explicit legal clearance; users may still **sideload** a `.vsix` they obtained themselves. |
-| **Native registry** | Future **Unibrowser / community `.ubmod` index** for compiled format mods (parallel to Open VSX, not a replacement). |
-| **Sideload** | Always supported; no account required. |
+| **Open VSX** | **Default** embedded catalog for `.vsix`; public API; publisher, licence, compatibility badges. |
+| **Native `.ubmod` registry** | **Default** when available; parallel lane, not a replacement for Open VSX. |
+| **Microsoft Marketplace** | **Excluded** from embedded catalogs; sideload only. |
+| **Sideload** | Always supported. |
 
-Goal: **reuse existing open stores** where licence and ToS allow; **never** block sideloading.
+Goal: **reuse open stores** where licence and ToS allow; **never** block sideloading.
 
 ### Sandboxing and trust
 
@@ -129,13 +142,14 @@ VSIX may contribute **language support** and **editor commands**; it does not de
 ## Open questions
 
 1. **Extension host topology** — in-process Node vs worker vs out-of-process RPC vs LSP-only adapters for language servers?
-2. **First catalog** — **Open VSX only** at launch vs simultaneous **native `.ubmod` registry** for format mods?
-3. **Recommendation metadata** — who maintains **extension/MIME → mod id** map (bundled index vs mod manifest `provides` / `opens` fields vs Open VSX categories)?
-4. **“Cannot open” resolution** — match on file extension only, MIME sniffing, or user-visible “treat as…” override?
-5. **Licence** — MIT/Apache extensions vs copyleft; offline mirror of Open VSX vs online-only API?
-6. **Microsoft `vscode` API trademark / compatibility** — document “Unibrowser VSIX subset” without implying Microsoft endorsement.
-7. **Command ID collisions** — `publisher.name` prefixing vs raw VS Code ids for palette search?
-8. **Engine vs desktop** — unpack in `unibrowser-mod-host` vs `unibrowser-desktop` only?
+2. **Recommendation metadata** — who maintains **extension/MIME → mod id** map (bundled index vs mod manifest `provides` / `opens` fields vs Open VSX categories)?
+3. **“Cannot open” resolution** — match on file extension only, MIME sniffing, or user-visible “treat as…” override?
+4. **Licence** — MIT/Apache extensions vs copyleft; offline mirror of Open VSX vs online-only API?
+5. **Microsoft `vscode` API trademark / compatibility** — document “Unibrowser VSIX subset” without implying Microsoft endorsement.
+6. **Command ID collisions** — `publisher.name` prefixing vs raw VS Code ids for palette search?
+7. **Engine vs desktop** — unpack in `unibrowser-mod-host` vs `unibrowser-desktop` only?
+
+**Closed (catalog):** default catalogs = Open VSX + native `.ubmod` registry; no Microsoft Marketplace embed; sideload always; Mod Portal with context recommendations and missing-handler install prompts ([Catalog (decided — FOSS path)](#catalog-decided--foss-path)).
 
 ## Related
 
