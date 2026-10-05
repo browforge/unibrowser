@@ -42,6 +42,15 @@ Power tools (palette, keybindings, Command Manager customisation, pin, mod manif
 
 Decision record: [ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md).
 
+### Bear UX product rules
+
+1. **Never get in the way** — skippable onboarding; no blocking tours on every launch after reinstall or reset.
+2. **Mod suggestions** — OK when they do not cover what you were already viewing or editing.
+3. **Everything in its proper place** — chrome, commands, and errors stay where they belong ([ADR 0012](adr/0012-context-switching-ux-benchmarks.md)).
+4. **User taste is always right** — odd layouts (e.g. toolbars on a second monitor) are saved and respected without nagging.
+
+Also in [ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md) and [ADR 0016](adr/0016-foss-ux-benchmarks.md).
+
 ## Problems we are solving
 
 - **UI inconsistency**: Every application reinvents toolbars, shortcuts, and command discovery.

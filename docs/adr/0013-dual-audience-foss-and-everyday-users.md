@@ -43,9 +43,20 @@ Power features (Command Manager pin, palette, custom layouts, **sideload**, Open
 - **Depth path** — mods, keybindings, toolbars, pin, palette, export pipelines — same app, no mode switch to “expert edition”.
 - **Honest limits** — unsupported format = clear tab/message, not a crash or jargon dump.
 
+### Bear UX product rules (pet peeves)
+
+These apply to **both** audiences. FOSS UX context: [ADR 0016](0016-foss-ux-benchmarks.md).
+
+| Rule | Requirement |
+|------|-------------|
+| **Never get in the way** | First-run **onboarding is allowed** only if it is **skippable**, remembers “don’t show again”, and does **not** reappear on every launch after reinstall, profile reset, or factory defaults. No modal stacks that block open/save/browse. |
+| **Mod suggestions with consent** | **Mod Portal** prompts (missing handler, recommendations) are OK when they **do not cover or replace** the content the user was already viewing or working on — use non-blocking placement (inline tab message, side panel, toast), not a full-screen takeover of the document surface. |
+| **Everything in its proper place** | Commands, status, and chrome follow [ADR 0012](0012-context-switching-ux-benchmarks.md): stable shell vs swapping surfaces; export vs project ([ADR 0015](0015-native-project-format.md)); errors near what failed. |
+| **User taste is always right** | Layout choices the product did not predict are **supported without nagging** — e.g. floating Command Manager bars on a **second monitor**, extreme toolbar density, pin/follow preferences. Persist silently via `toolbars.json` / window state; no “are you sure?” or reset-to-our-defaults unless the user asks. |
+
 ## Consequences
 
-- Product and UX reviews ask: **does this help grandma without blocking hackers?** and **does this respect user space?**
+- Product and UX reviews ask: **does this help grandma without blocking hackers?**, **does this respect user space?**, and **does it violate a Bear UX rule above?**
 - Primary UI copy avoids implementation terms; docs and ADRs may use precise language.
 - Bundled `base-*` mods ship with the app; community mods extend, not replace, baseline usability.
 - Features that require accounts, analytics, or non-optional network calls need explicit ADR justification.

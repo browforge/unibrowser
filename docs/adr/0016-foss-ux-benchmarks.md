@@ -71,7 +71,18 @@ Mint optimises for **familiar desktop users** (Windows-like affordances) with st
 | **Discoverability** | COSMIC Launcher; Audacity 4 Home; Mint corner bar (learn-once) | **Palette** + plain “Install support”; optional **recent projects** on home ([ADR 0015](0015-native-project-format.md)) |
 | **Customisation** | Audacity workspaces; COSMIC panel/dock/applets; Mint Nemo actions editor | **`toolbars.json`**, float bars, pin context — **FOSS path**; same UI grandma uses for Mod Portal |
 | **Theming** | Audacity 4 themes; COSMIC accent; Cinnamon Styles | Light/dark + **high contrast**; accent tokens shared shell ↔ Monaco ([ADR 0001](0001-shell-and-rendering.md)) |
-| **Onboarding** | COSMIC delayed alpha for coherent apps; Audacity export in one window | Progressive disclosure ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md)); no account wall; first-run = open folder or file |
+| **Onboarding** | COSMIC delayed alpha for coherent apps; Audacity export in one window | Progressive disclosure ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md)); **skippable** first-run only; no account wall; never block nth launch |
+
+### Bear UX product rules (pet peeves)
+
+Normative rules for Unibrowser chrome and growth features — complement [ADR 0013](0013-dual-audience-foss-and-everyday-users.md).
+
+1. **Never get in the way** — Onboarding, tips, and “what’s new” may exist; they must **not block** work on the nth install or after factory reset. Always skippable; never forced every launch.
+2. **Mod suggestions** — Install/recommend prompts are fine when they **do not obscure** the file, tab, or canvas the user was already using.
+3. **Everything in its proper place** — Match FOSS lessons (single export window, native dialogs that look like the shell) and Unibrowser’s command/chrome model; avoid duplicate settings surfaces.
+4. **User taste is always right** — If someone floats toolbars to another monitor or builds an odd layout, **persist and honour it** without lectures or automatic revert.
+
+UX reviews score new UI against these four before shipping.
 
 ### What we do not copy blindly
 
@@ -83,7 +94,7 @@ Mint optimises for **familiar desktop users** (Windows-like affordances) with st
 
 - UX reviews add a **FOSS benchmark** check alongside SOLIDWORKS/GIMP criteria ([ADR 0012](0012-context-switching-ux-benchmarks.md)).
 - Roadmap theming/workspace work should cite **workspace + theme** patterns from Audacity 4 and **Styles** from Cinnamon, implemented via existing chrome/command manager — not a second preferences app.
-- Research brief ([uploads/research-brief](../../uploads/research-brief_c364.md) if present locally) remains format/licensing focused; **this ADR owns recent FOSS UX references**.
+- Format/licensing research stays in the project research brief; **this ADR owns recent FOSS UX references**.
 
 ## Open questions
 
