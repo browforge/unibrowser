@@ -72,6 +72,11 @@ pub fn run() {
             commands::save_window_geometry,
             commands::create_unibrow_project,
             commands::open_mod_portal,
+            commands::list_installed_vsix,
+            commands::install_vsix_from_path,
+            commands::download_install_vsix,
+            commands::pick_and_install_vsix,
+            commands::sync_svg_document,
             commands::search_open_vsx_catalog,
             rhai_host::describe_rhai_script,
         ])

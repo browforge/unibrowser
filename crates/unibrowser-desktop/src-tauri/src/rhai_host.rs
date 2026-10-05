@@ -37,7 +37,12 @@ pub fn execute_command_for_script(
         return Err("command blocked in scripts when a document is open".into());
     }
     if command_id != COMMAND_PALETTE_TOGGLE
-        && state.registry.command_meta(command_id).is_none()
+        && state
+            .registry
+            .lock()
+            .map_err(|e| e.to_string())?
+            .command_meta(command_id)
+            .is_none()
     {
         return Err(format!("unknown command: {}", command_id));
     }
@@ -58,7 +63,11 @@ pub fn execute_command_for_script(
         );
     }
     let doc = tab.document.as_mut().unwrap();
-    state.registry.execute(command_id, doc)
+    state
+        .registry
+        .lock()
+        .map_err(|e| e.to_string())?
+        .execute(command_id, doc)
 }
 
 thread_local! {
@@ -74,21 +83,25 @@ fn rhai_execute(command_id: String) -> Result<String, String> {
     execute_command_for_script(state, &command_id, allow_doc)
 }
 
-fn build_host_api(state: &AppState, source: &str) -> HostApi {
-    let registry_ids = state.registry.sorted_command_ids();
+fn build_host_api(state: &AppState, source: &str) -> Result<HostApi, String> {
+    let registry_ids = state
+        .registry
+        .lock()
+        .map_err(|e| e.to_string())?
+        .sorted_command_ids();
     let allowlist = parse_allowlist_from_source(source);
     let mut command_ids = filter_registry_ids(&registry_ids, allowlist.as_deref());
     if !command_ids.iter().any(|id| id == COMMAND_PALETTE_TOGGLE) {
         command_ids.push(COMMAND_PALETTE_TOGGLE.to_string());
     }
     command_ids.sort();
-    HostApi::from_registry_ids(command_ids, &[])
+    Ok(HostApi::from_registry_ids(command_ids, &[]))
 }
 
 #[tauri::command]
 pub fn describe_rhai_script(source: String, state: State<AppState>) -> Result<RhaiScriptInfoDto, String> {
     let allowlist = parse_allowlist_from_source(&source);
-    let api = build_host_api(state.inner(), &source);
+    let api = build_host_api(state.inner(), &source)?;
     let document_commands_blocked = match state.tabs.lock() {
         Ok(tabs) => tabs
             .active_tab()
@@ -110,7 +123,7 @@ pub fn run_rhai_script(
     state: State<AppState>,
 ) -> Result<String, String> {
     let allow_doc = allow_document_commands.unwrap_or(false);
-    let api = build_host_api(state.inner(), &source);
+    let api = build_host_api(state.inner(), &source)?;
     let inner: &AppState = state.inner();
     RHAI_STATE.with(|slot| {
         *slot.borrow_mut() = Some(inner);

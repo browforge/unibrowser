@@ -227,6 +227,7 @@ fn document_viewer_dto(
         base_js::BACKEND_ID => base_js::VIEWER_KIND,
         base_video::BACKEND_ID => base_video::VIEWER_KIND,
         base_audio::BACKEND_ID => base_audio::VIEWER_KIND,
+        base_svg::BACKEND_ID => base_svg::VIEWER_KIND,
         _ => return None,
     };
     let (pdf_scale, pdf_page) = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
@@ -526,6 +527,7 @@ pub fn get_command_manager(state: State<AppState>) -> Result<CommandManagerDto, 
         .unwrap_or_else(host_context_for_browse);
     let doc_ref = active.and_then(|t| t.document.as_ref());
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    let registry = state.registry.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
     let auto_context = cm.auto_context.tab_id().to_string();
     let tab_dtos = cm
@@ -533,7 +535,7 @@ pub fn get_command_manager(state: State<AppState>) -> Result<CommandManagerDto, 
         .iter()
         .map(|tab| {
             let commands = map_ui_commands(
-                cm.resolve_tab_commands(&state.registry, &host, doc_ref, &tab.id),
+                cm.resolve_tab_commands(&registry, &host, doc_ref, &tab.id),
             );
             ManagerTabDto {
                 id: tab.id.clone(),
@@ -549,7 +551,7 @@ pub fn get_command_manager(state: State<AppState>) -> Result<CommandManagerDto, 
         .iter()
         .map(|bar| {
             let commands = map_ui_commands(
-                cm.resolve_floating_bar(&state.registry, &host, doc_ref, &bar.id)
+                cm.resolve_floating_bar(&registry, &host, doc_ref, &bar.id)
                     .unwrap_or_default(),
             );
             FloatingBarDto {
@@ -639,7 +641,11 @@ pub fn execute_command(
         inject_page_font_scale(&app, delta)?;
         return Ok(format!("Page font scale {:+}px (user style stub)", delta));
     }
-    state.registry.execute(&command_id, doc)
+    state
+        .registry
+        .lock()
+        .map_err(|e| e.to_string())?
+        .execute(&command_id, doc)
 }
 
 #[tauri::command]
@@ -720,7 +726,8 @@ pub fn palette_search(query: String, state: State<AppState>) -> Result<Vec<Palet
             selection: unibrowser_mod_api::SelectionSnapshot::default(),
             capabilities: unibrowser_mod_api::Capabilities::default(),
         });
-    Ok(search_commands(&state.registry, &ctx, &query)
+    let registry = state.registry.lock().map_err(|e| e.to_string())?;
+    Ok(search_commands(&registry, &ctx, &query)
         .into_iter()
         .map(|e| PaletteEntryDto {
             command_id: e.command_id,
@@ -989,6 +996,96 @@ pub fn open_mod_portal(
     }
     update_content_webview(&app, &loc)?;
     snapshot(&state)
+}
+
+#[derive(Serialize)]
+pub struct InstalledVsixDto {
+    pub extension_id: String,
+    pub name: String,
+    pub version: String,
+    pub publisher: String,
+    pub license: Option<String>,
+    pub command_count: usize,
+    pub keybinding_count: usize,
+}
+
+fn map_installed(rec: unibrowser_vsix::InstalledVsixRecord) -> InstalledVsixDto {
+    InstalledVsixDto {
+        extension_id: rec.extension_id,
+        name: rec.name,
+        version: rec.version,
+        publisher: rec.publisher,
+        license: rec.license,
+        command_count: rec.contributions.commands.len(),
+        keybinding_count: rec.contributions.keybindings.len(),
+    }
+}
+
+fn install_vsix_bytes_and_register(
+    state: &AppState,
+    bytes: &[u8],
+    license: Option<&str>,
+) -> Result<InstalledVsixDto, String> {
+    let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
+    let rec = unibrowser_vsix::install_vsix_bytes(&root, bytes, license)
+        .map_err(|e| e.to_string())?;
+    let mut registry = state.registry.lock().map_err(|e| e.to_string())?;
+    unibrowser_vsix::register_contributions(&mut registry, &rec.contributions);
+    Ok(map_installed(rec))
+}
+
+#[tauri::command]
+pub fn list_installed_vsix() -> Result<Vec<InstalledVsixDto>, String> {
+    let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
+    let list = unibrowser_vsix::list_installed(&root).map_err(|e| e.to_string())?;
+    Ok(list.into_iter().map(map_installed).collect())
+}
+
+#[tauri::command]
+pub fn install_vsix_from_path(path: String, state: State<AppState>) -> Result<InstalledVsixDto, String> {
+    let bytes = std::fs::read(PathBuf::from(path)).map_err(|e| e.to_string())?;
+    install_vsix_bytes_and_register(state.inner(), &bytes, None)
+}
+
+#[tauri::command]
+pub fn download_install_vsix(
+    url: String,
+    network_opt_in: bool,
+    license: Option<String>,
+    state: State<AppState>,
+) -> Result<InstalledVsixDto, String> {
+    let bytes = crate::open_vsx::download_vsix_bytes(&url, network_opt_in)?;
+    install_vsix_bytes_and_register(state.inner(), &bytes, license.as_deref())
+}
+
+#[tauri::command]
+pub async fn pick_and_install_vsix(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<InstalledVsixDto, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .add_filter("VSIX", &["vsix"])
+        .set_title("Install extension (.vsix)")
+        .blocking_pick_file();
+    let path = match picked {
+        Some(p) => p.to_string(),
+        None => return Err("cancelled".into()),
+    };
+    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+    install_vsix_bytes_and_register(state.inner(), &bytes, None)
+}
+
+#[tauri::command]
+pub fn sync_svg_document(content: String, state: State<AppState>) -> Result<(), String> {
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    let doc = tab.document.as_mut().ok_or("no document")?;
+    let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
+    backend.set_content(content);
+    Ok(())
 }
 
 fn update_content_webview(app: &AppHandle, loc: &BrowserLocation) -> Result<(), String> {

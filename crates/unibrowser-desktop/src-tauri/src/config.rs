@@ -16,6 +16,10 @@ pub fn preferences_file_path() -> Option<PathBuf> {
     Some(base.join("preferences.json"))
 }
 
+pub fn vsix_extensions_dir() -> Option<PathBuf> {
+    config_dir().map(|d| d.join("vsix-extensions"))
+}
+
 pub fn window_state_file_path() -> Option<PathBuf> {
     let base = config_dir()?;
     Some(base.join("window.json"))

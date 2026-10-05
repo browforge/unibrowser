@@ -7,6 +7,7 @@ members = [
     "crates/unibrowser-project",
     "crates/unibrowser-media",
     "crates/unibrowser-script-host",
+    "crates/unibrowser-vsix",
     "crates/unibrowser-app",
     "mods/base-text",
     "mods/base-png",

@@ -1,5 +1,6 @@
 import * as monaco from "monaco-editor";
 import loader from "@monaco-editor/loader";
+import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 
 loader.config({ monaco });
@@ -19,12 +20,20 @@ let hostEl: HTMLElement | null = null;
 let loadedPath: string | null = null;
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let suppressSync = false;
+let markdownPreview = false;
+let previewEl: HTMLElement | null = null;
+let toolbarEl: HTMLElement | null = null;
 
 async function getMonaco(): Promise<Monaco> {
   if (!monacoApi) {
     monacoApi = await loader.init();
   }
   return monacoApi as Monaco;
+}
+
+function isMarkdownPath(path: string): boolean {
+  const lower = path.toLowerCase();
+  return lower.endsWith(".md") || lower.endsWith(".markdown");
 }
 
 function selectionOffsets(model: monaco.editor.ITextModel) {
@@ -51,6 +60,9 @@ async function pushToHost() {
     selectionStart: start,
     selectionEnd: end,
   });
+  if (markdownPreview && previewEl) {
+    previewEl.innerHTML = marked.parse(model.getValue(), { async: false }) as string;
+  }
 }
 
 function scheduleSync() {
@@ -63,6 +75,47 @@ function scheduleSync() {
   syncTimer = setTimeout(() => {
     pushToHost().catch(() => {});
   }, 250);
+}
+
+function ensureMarkdownToolbar(host: HTMLElement, path: string) {
+  if (!isMarkdownPath(path)) {
+    if (toolbarEl) {
+      toolbarEl.remove();
+      toolbarEl = null;
+    }
+    markdownPreview = false;
+    if (previewEl) {
+      previewEl.remove();
+      previewEl = null;
+    }
+    return;
+  }
+  if (toolbarEl) {
+    return;
+  }
+  toolbarEl = document.createElement("div");
+  toolbarEl.className = "md-editor-toolbar";
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.textContent = "Preview";
+  toggle.onclick = () => {
+    markdownPreview = !markdownPreview;
+    toggle.textContent = markdownPreview ? "Edit only" : "Preview";
+    if (!previewEl && host.parentElement) {
+      previewEl = document.createElement("article");
+      previewEl.className = "md-preview";
+      host.parentElement.insertBefore(previewEl, host.nextSibling);
+    }
+    if (previewEl) {
+      previewEl.classList.toggle("hidden", !markdownPreview);
+    }
+    if (markdownPreview && editor && previewEl) {
+      previewEl.innerHTML = marked.parse(editor.getValue(), { async: false }) as string;
+    }
+    host.classList.toggle("md-split", markdownPreview);
+  };
+  toolbarEl.appendChild(toggle);
+  host.parentElement?.insertBefore(toolbarEl, host);
 }
 
 async function ensureEditor(host: HTMLElement) {
@@ -103,6 +156,11 @@ export const textEditor = {
   hide(host: HTMLElement) {
     host.classList.add("hidden");
     loadedPath = null;
+    markdownPreview = false;
+    if (previewEl) {
+      previewEl.classList.add("hidden");
+    }
+    host.classList.remove("md-split");
   },
 
   async apply(doc: TextDocumentDto | null, host: HTMLElement) {
@@ -111,6 +169,7 @@ export const textEditor = {
       return;
     }
     this.show(host);
+    ensureMarkdownToolbar(host, doc.path);
     await ensureEditor(host);
     const api = await getMonaco();
     const model = editor!.getModel();
@@ -136,5 +195,8 @@ export const textEditor = {
       suppressSync = false;
     }
     editor!.updateOptions({ fontSize: doc.font_size_pt });
+    if (markdownPreview && previewEl) {
+      previewEl.innerHTML = marked.parse(doc.content, { async: false }) as string;
+    }
   },
 };

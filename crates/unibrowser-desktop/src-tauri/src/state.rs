@@ -15,7 +15,7 @@ use unibrowser_mod_api::BrowserLocation;
 use unibrowser_mod_host::{ModHost, ModRegisterFn, default_mods_dir};
 
 pub struct AppState {
-    pub registry: CommandRegistry,
+    pub registry: Mutex<CommandRegistry>,
     pub tabs: Mutex<TabManager>,
     pub cwd: PathBuf,
     pub mods_loaded: String,
@@ -45,6 +45,9 @@ impl AppState {
         .collect();
         let mod_host =
             ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled).expect("mods");
+        if let Some(vsix_root) = crate::config::vsix_extensions_dir() {
+            unibrowser_vsix::register_all_contributions(&mut registry, &vsix_root);
+        }
         let mods_loaded = mod_host.load_order.join(", ");
         let cwd = std::env::var("HOME")
             .map(PathBuf::from)
@@ -63,7 +66,7 @@ impl AppState {
         );
 
         Self {
-            registry,
+            registry: Mutex::new(registry),
             tabs: Mutex::new(tab_mgr),
             cwd,
             mods_loaded,

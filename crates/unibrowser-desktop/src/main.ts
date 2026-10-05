@@ -41,6 +41,16 @@ interface OpenVsxHitDto {
   url: string;
 }
 
+interface InstalledVsixDto {
+  extension_id: string;
+  name: string;
+  version: string;
+  publisher: string;
+  license: string | null;
+  command_count: number;
+  keybinding_count: number;
+}
+
 interface TabContentDto {
   tabs: TabDto[];
   active_index: number;
@@ -187,6 +197,53 @@ function renderModPortal(portal: ModPortalDto | null) {
   searchStatus.className = "mod-portal-search-status viewer-note";
   const results = document.createElement("div");
   results.className = "mod-portal-results";
+  searchRow.appendChild(optIn);
+  searchRow.appendChild(optLabel);
+  searchRow.appendChild(searchInput);
+  searchRow.appendChild(searchBtn);
+  modPortalPanel.appendChild(searchRow);
+  modPortalPanel.appendChild(searchStatus);
+  modPortalPanel.appendChild(results);
+
+  const installedHeading = document.createElement("h3");
+  installedHeading.textContent = "Installed VSIX";
+  modPortalPanel.appendChild(installedHeading);
+  const installedList = document.createElement("div");
+  installedList.className = "mod-portal-installed";
+  modPortalPanel.appendChild(installedList);
+
+  const sideloadBtn = document.createElement("button");
+  sideloadBtn.type = "button";
+  sideloadBtn.className = "mod-suggestion";
+  sideloadBtn.textContent = "Install from file (.vsix)…";
+  sideloadBtn.onclick = async () => {
+    try {
+      const rec = await invoke<InstalledVsixDto>("pick_and_install_vsix");
+      statusLine.textContent = `Installed ${rec.extension_id} (${rec.command_count} commands, ${rec.keybinding_count} keybindings in metadata)`;
+      await refreshInstalledVsix(installedList);
+    } catch (err) {
+      statusLine.textContent = String(err);
+    }
+  };
+  modPortalPanel.appendChild(sideloadBtn);
+
+  void refreshInstalledVsix(installedList);
+
+  async function installFromOpenVsx(hit: OpenVsxHitDto) {
+    statusLine.textContent = `Downloading ${hit.extension_id}…`;
+    try {
+      const rec = await invoke<InstalledVsixDto>("download_install_vsix", {
+        url: hit.url,
+        networkOptIn: optIn.checked,
+        license: hit.license,
+      });
+      statusLine.textContent = `Installed ${rec.extension_id} — palette lists V1 commands (extension host not run)`;
+      await refreshInstalledVsix(installedList);
+    } catch (err) {
+      statusLine.textContent = String(err);
+    }
+  }
+
   searchBtn.onclick = async () => {
     results.innerHTML = "";
     searchStatus.textContent = "Searching…";
@@ -202,24 +259,34 @@ function renderModPortal(portal: ModPortalDto | null) {
         const row = document.createElement("button");
         row.type = "button";
         row.className = "mod-suggestion";
-        row.textContent = `${hit.name} v${hit.version} · ${hit.publisher}`;
+        row.textContent = `Install ${hit.name} v${hit.version} · ${hit.publisher}`;
         row.title = `${hit.extension_id}${hit.license ? ` · ${hit.license}` : ""}\n${hit.url}`;
-        row.onclick = () => {
-          statusLine.textContent = `Install ${hit.extension_id} — download stub (${hit.url})`;
-        };
+        row.onclick = () => installFromOpenVsx(hit);
         results.appendChild(row);
       });
     } catch (err) {
       searchStatus.textContent = String(err);
     }
   };
-  searchRow.appendChild(optIn);
-  searchRow.appendChild(optLabel);
-  searchRow.appendChild(searchInput);
-  searchRow.appendChild(searchBtn);
-  modPortalPanel.appendChild(searchRow);
-  modPortalPanel.appendChild(searchStatus);
-  modPortalPanel.appendChild(results);
+}
+
+async function refreshInstalledVsix(container: HTMLElement) {
+  container.innerHTML = "";
+  try {
+    const list = await invoke<InstalledVsixDto[]>("list_installed_vsix");
+    if (!list.length) {
+      container.textContent = "No VSIX extensions installed yet.";
+      return;
+    }
+    list.forEach((ext) => {
+      const row = document.createElement("p");
+      row.className = "viewer-note";
+      row.textContent = `${ext.extension_id} v${ext.version} — ${ext.command_count} commands, ${ext.keybinding_count} keybindings (metadata)`;
+      container.appendChild(row);
+    });
+  } catch {
+    container.textContent = "Could not list installed extensions.";
+  }
 }
 
 function renderDoc(

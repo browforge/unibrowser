@@ -37,6 +37,7 @@ unibrowser-script-host = { path = "../../unibrowser-script-host" }
 toy-markdown = { path = "../../../mods/toy-markdown" }
 unibrowser-project = { path = "../../unibrowser-project" }
 unibrowser-media = { path = "../../unibrowser-media" }
+unibrowser-vsix = { path = "../../unibrowser-vsix" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"

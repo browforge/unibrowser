@@ -663,6 +663,41 @@ async function refreshRhaiMeta(
   }
 }
 
+async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
+  root.innerHTML = "";
+  await ensureAssetAllowed(viewer.path);
+  const text = new TextDecoder().decode(await readBytes(viewer.path));
+  const layout = document.createElement("div");
+  layout.className = "svg-editor-layout";
+  const preview = document.createElement("div");
+  preview.className = "svg-preview";
+  const frame = document.createElement("iframe");
+  frame.className = "svg-preview-frame";
+  frame.title = "SVG preview";
+  frame.src = convertFileSrc(viewer.path);
+  preview.appendChild(frame);
+  const ta = document.createElement("textarea");
+  ta.className = "svg-source";
+  ta.spellcheck = false;
+  ta.value = text;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  ta.oninput = () => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      invoke("sync_svg_document", { content: ta.value }).catch(() => {});
+    }, 300);
+  };
+  const note = document.createElement("p");
+  note.className = "viewer-note";
+  note.textContent = "Edit source; Save with Ctrl+S or the command palette.";
+  layout.appendChild(preview);
+  layout.appendChild(ta);
+  root.appendChild(layout);
+  root.appendChild(note);
+}
+
 async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
   const ta = document.createElement("textarea");
@@ -766,6 +801,9 @@ export const documentViewer = {
           break;
         case "dxf":
           await renderDxf(viewer.path, body);
+          break;
+        case "svg":
+          await renderSvg(viewer, body);
           break;
         case "script":
           await renderScript(viewer, body);

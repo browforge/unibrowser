@@ -501,6 +501,56 @@ body {
   margin: 0.35rem 0;
 }
 
+.md-editor-toolbar {
+  margin-bottom: 0.35rem;
+}
+
+.md-preview {
+  max-height: 40vh;
+  overflow: auto;
+  padding: 0.5rem 0.75rem;
+  background: #1e1e28;
+  border: 1px solid #444;
+  margin-bottom: 0.35rem;
+}
+
+.md-preview.hidden {
+  display: none;
+}
+
+#text-editor-host.md-split {
+  max-height: 45vh;
+}
+
+.svg-editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  min-height: 320px;
+}
+
+.svg-preview-frame {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid #444;
+  background: #fff;
+}
+
+.svg-source {
+  width: 100%;
+  min-height: 280px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  background: #1a1a22;
+  color: #ddd;
+  border: 1px solid #444;
+  padding: 0.35rem;
+}
+
+.mod-portal-installed {
+  margin: 0.35rem 0 0.75rem;
+}
+
 .floating-bar .drag-handle {
   cursor: grab;
   padding: 0 0.25rem;

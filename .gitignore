@@ -1,4 +1,6 @@
 /target
+crates/unibrowser-desktop/src-tauri/binaries/*
+!crates/unibrowser-desktop/src-tauri/binaries/README.md
 **/*.rs.bk
 .DS_Store
 .idea

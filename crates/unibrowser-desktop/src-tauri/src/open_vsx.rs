@@ -1,6 +1,7 @@
 //! Thin Open VSX search client ([ADR 0014](../../docs/adr/0014-vsix-compatibility-layer.md)).
 //! Opt-in network; in-memory cache; failures are soft (caller shows a message, UI stays up).
 
+use std::io::Read;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -98,6 +99,32 @@ pub fn search_open_vsx(query: &str, network_opt_in: bool) -> Result<Vec<OpenVsxH
         });
     }
     Ok(hits)
+}
+
+pub fn download_vsix_bytes(url: &str, network_opt_in: bool) -> Result<Vec<u8>, String> {
+    if !network_opt_in {
+        return Err("VSIX download needs network opt-in (Mods panel)".into());
+    }
+    let url = url.trim();
+    if url.is_empty() {
+        return Err("empty download URL".into());
+    }
+    if !url.starts_with("https://") {
+        return Err("only https VSIX downloads are supported".into());
+    }
+    let resp = ureq::get(url)
+        .timeout(std::time::Duration::from_secs(60))
+        .call()
+        .map_err(|e| format!("download failed: {}", e))?;
+    let mut reader = resp.into_reader();
+    let mut bytes = Vec::new();
+    reader
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("read body: {}", e))?;
+    if bytes.len() < 4 || bytes[0] != 0x50 || bytes[1] != 0x4b {
+        return Err("response is not a zip/vsix payload".into());
+    }
+    Ok(bytes)
 }
 
 fn map_hit(ext: ExtensionEntry) -> Option<OpenVsxHitDto> {
