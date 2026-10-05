@@ -17,6 +17,8 @@ import { setViewerZoomListener } from "./viewerZoom";
 import { applyChromeI18n, modsLineText } from "./chromeI18n";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
+import { configureProjectAutoSave } from "./projectAutoSave";
+import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
 import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./filesPanel";
 import { pathsFromDataTransfer } from "./filesDrag";
@@ -932,14 +934,15 @@ themeBtn.onclick = async () => {
 };
 
 document.getElementById("btn-new-project")!.onclick = async () => {
-  const name = window.prompt(t("project.namePrompt"), "MyProject");
-  if (!name) {
+  const choice = await openNewProjectDialog();
+  if (!choice) {
     return;
   }
   const home = await invoke<string>("get_home_dir").catch(() => "/tmp");
   await invoke<TabContentDto>("create_unibrow_project", {
     parentDir: home,
-    name,
+    name: choice.name,
+    template: choice.template,
   }).then(applyState);
 };
 
@@ -1241,7 +1244,16 @@ deferNonCriticalInit(() => {
     }
   };
   void loadKeybindingHints();
-  void invoke<{ auto_save_enabled: boolean; auto_save_interval_secs: number }>("get_preferences").then(
-    (prefs) => configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs),
-  );
+  void invoke<{
+    auto_save_enabled: boolean;
+    auto_save_interval_secs: number;
+    project_autosave_enabled: boolean;
+    project_autosave_interval_secs: number;
+  }>("get_preferences").then((prefs) => {
+    configureAutoSave(prefs.auto_save_enabled, prefs.auto_save_interval_secs);
+    configureProjectAutoSave(
+      prefs.project_autosave_enabled,
+      prefs.project_autosave_interval_secs,
+    );
+  });
 });

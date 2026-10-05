@@ -10,7 +10,7 @@ use zip::{ZipWriter, write::FileOptions};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ProjectError, PROJECT_FILE};
+use crate::{ProjectError, PROJECT_FILE, DIR_DERIVED};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ZipEntrySummary {
@@ -148,6 +148,23 @@ mod tests {
     fn sanitize_rejects_traversal() {
         assert!(sanitize_zip_entry_path("../x").is_err());
     }
+
+    #[test]
+    fn share_export_skips_derived() {
+        let dir = std::env::temp_dir().join(format!("ub-share-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(dir.join("assets")).expect("assets");
+        fs::write(dir.join(crate::PROJECT_FILE), b"{\"format_version\":1,\"title\":\"S\",\"nodes\":[],\"timeline\":{\"clips\":[],\"transitions\":[],\"markers\":[]}}").expect("manifest");
+        fs::create_dir_all(dir.join("derived")).expect("derived");
+        fs::write(dir.join("derived/proxy.txt"), b"x").expect("proxy");
+        let zip_path = dir.with_extension("share.zip");
+        export_share_package_to_zip(&dir, &zip_path).expect("export");
+        let listed = list_zip_entries(&zip_path, 50).expect("list");
+        assert!(listed.iter().any(|e| e.path.contains("project.json")));
+        assert!(!listed.iter().any(|e| e.path.contains("derived")));
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::remove_file(&zip_path);
+    }
 }
 
 fn zip_has_root_manifest(path: &Path) -> Result<bool, ProjectError> {
@@ -180,6 +197,19 @@ pub fn is_unibrow_zip_file(path: &Path) -> bool {
 }
 
 pub fn export_directory_to_zip(root: &Path, dest_zip: &Path) -> Result<(), ProjectError> {
+    export_directory_to_zip_filtered(root, dest_zip, false)
+}
+
+/// FOSS share bundle: `assets/`, `refs/`, and `project.json` without local `derived/` proxies.
+pub fn export_share_package_to_zip(root: &Path, dest_zip: &Path) -> Result<(), ProjectError> {
+    export_directory_to_zip_filtered(root, dest_zip, true)
+}
+
+fn export_directory_to_zip_filtered(
+    root: &Path,
+    dest_zip: &Path,
+    skip_derived: bool,
+) -> Result<(), ProjectError> {
     if !root.is_dir() || !root.join(PROJECT_FILE).is_file() {
         return Err(ProjectError::NotPackage(PROJECT_FILE.into()));
     }
@@ -190,9 +220,59 @@ pub fn export_directory_to_zip(root: &Path, dest_zip: &Path) -> Result<(), Proje
     let mut zip = ZipWriter::new(file);
     let options: FileOptions<'_, ()> = SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated);
-    walk_export(root, root, &mut zip, options)?;
+    walk_export(root, root, &mut zip, options, skip_derived)?;
     zip.finish().map_err(|e| ProjectError::Msg(e.to_string()))?;
     Ok(())
+}
+
+/// Import a share zip into `parent_dir/{name}.unibrow/` (directory bundle).
+pub fn import_share_zip_into_parent(
+    zip_path: &Path,
+    parent_dir: &Path,
+    folder_name: &str,
+) -> Result<PathBuf, ProjectError> {
+    if !zip_path.is_file() {
+        return Err(ProjectError::Msg("zip missing".into()));
+    }
+    let ext = zip_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if ext != "zip" && ext != "unibrow" {
+        return Err(ProjectError::Msg("not a zip share package".into()));
+    }
+    let dest = parent_dir.join(format!("{}.unibrow", folder_name));
+    if dest.exists() {
+        return Err(ProjectError::Msg(format!("already exists: {}", dest.display())));
+    }
+    fs::create_dir_all(&dest)?;
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+    for i in 0..archive.len() {
+        let mut entry = archive
+            .by_index(i)
+            .map_err(|e| ProjectError::Msg(e.to_string()))?;
+        let name = entry.name().replace('\\', "/");
+        if name.contains("..") {
+            return Err(ProjectError::Msg("invalid zip entry".into()));
+        }
+        if name.ends_with('/') {
+            fs::create_dir_all(dest.join(&name))?;
+            continue;
+        }
+        let out_path = dest.join(&name);
+        if let Some(parent) = out_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let mut out = File::create(&out_path)?;
+        std::io::copy(&mut entry, &mut out)?;
+    }
+    if !dest.join(PROJECT_FILE).is_file() {
+        let _ = fs::remove_dir_all(&dest);
+        return Err(ProjectError::NotPackage(PROJECT_FILE.into()));
+    }
+    Ok(dest)
 }
 
 fn walk_export(
@@ -200,6 +280,7 @@ fn walk_export(
     current: &Path,
     zip: &mut ZipWriter<File>,
     options: FileOptions<'_, ()>,
+    skip_derived: bool,
 ) -> Result<(), ProjectError> {
     for entry in fs::read_dir(current)? {
         let entry = entry?;
@@ -208,12 +289,15 @@ fn walk_export(
             .strip_prefix(root)
             .map_err(|_| ProjectError::Msg("strip_prefix failed".into()))?;
         let rel_str = rel.to_string_lossy().replace('\\', "/");
+        if skip_derived && (rel_str == DIR_DERIVED || rel_str.starts_with(&format!("{}/", DIR_DERIVED))) {
+            continue;
+        }
         if path.is_dir() {
             if !rel_str.is_empty() {
                 zip.add_directory(format!("{}/", rel_str), options)
                     .map_err(|e| ProjectError::Msg(e.to_string()))?;
             }
-            walk_export(root, &path, zip, options)?;
+            walk_export(root, &path, zip, options, skip_derived)?;
         } else if path.is_file() {
             zip.start_file(rel_str, options)
                 .map_err(|e| ProjectError::Msg(e.to_string()))?;

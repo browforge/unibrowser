@@ -225,5 +225,17 @@
   "editor.nothingToRedo": "Nothing to redo",
   "chrome.splitFailed": "Split view failed",
   "clipboard.copyFailed": "Could not copy to clipboard",
-  "project.namePrompt": "Project name"
+  "project.namePrompt": "Project name",
+  "project.newTitle": "New project",
+  "project.nameLabel": "Project name",
+  "project.templateLead": "Start from a template",
+  "project.templateBlank": "Blank",
+  "project.templateBlankHint": "Empty board and timeline",
+  "project.templateNotes": "Notes board",
+  "project.templateNotesHint": "Two note cards and a starter timeline",
+  "project.templateVideo": "Video mix",
+  "project.templateVideoHint": "Three video slots, markers, and a fade stub",
+  "project.cancel": "Cancel",
+  "project.create": "Create project",
+  "settings.projectAutosave": "Auto-save project.json backup for open .unibrow tabs"
 }

@@ -1358,6 +1358,54 @@ body {
   margin-bottom: 0.35rem;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.unibrow-board-card:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: 2px;
+}
+
+.new-project-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+.new-project-panel {
+  width: min(28rem, 92vw);
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #ccc);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 18%);
+}
+
+.new-project-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+.new-project-template-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.9rem;
+}
+
+.new-project-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
 .unibrow-timeline {
   margin: 0 0 0.75rem;
 }

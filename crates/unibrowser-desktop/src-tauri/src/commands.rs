@@ -2279,6 +2279,8 @@ pub struct PreferencesDto {
     pub download_preference: String,
     pub board_snap_to_grid: bool,
     pub midi_scrub_audio_enabled: bool,
+    pub project_autosave_enabled: bool,
+    pub project_autosave_interval_secs: u32,
     pub crash_recovery_enabled: bool,
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
@@ -2948,6 +2950,8 @@ fn preferences_dto() -> PreferencesDto {
         download_preference: download_pref_to_str(&p.download_preference),
         board_snap_to_grid: p.board_snap_to_grid,
         midi_scrub_audio_enabled: p.midi_scrub_audio_enabled,
+        project_autosave_enabled: p.project_autosave_enabled,
+        project_autosave_interval_secs: p.project_autosave_interval_secs,
         crash_recovery_enabled: p.crash_recovery_enabled,
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,
@@ -3299,6 +3303,103 @@ pub async fn export_unibrow_project(window: tauri::Window,
 }
 
 #[tauri::command]
+pub async fn export_unibrow_share_package(
+    window: tauri::Window,
+    app: AppHandle,
+    project_path: String,
+) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let project = PathBuf::from(&project_path);
+    if !unibrowser_project::is_unibrow_path(&project) {
+        return Err("not a .unibrow project".into());
+    }
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    let root = unibrowser_project::resolve_package_root(&project, &cache).map_err(|e| e.to_string())?;
+    let pkg = unibrowser_project::open_package(&root).map_err(|e| e.to_string())?;
+    let default_name = format!(
+        "{}-share.zip",
+        unibrowser_project::sanitize_label_for_filename(&pkg.manifest.title)
+    );
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export share package (no derived/)")
+        .set_file_name(&default_name)
+        .blocking_save_file();
+    let dest = picked.ok_or("export cancelled")?;
+    let dest_path = PathBuf::from(dest.to_string());
+    unibrowser_project::export_share_package_to_zip(&root, &dest_path)
+        .map_err(|e| e.to_string())?;
+    Ok(dest_path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn import_unibrow_share_package(
+    window: tauri::Window,
+    app: AppHandle,
+    parent_dir: String,
+    name: String,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Import share package")
+        .add_filter("Share zip", &["zip", "unibrow"])
+        .blocking_pick_file();
+    let zip_path = PathBuf::from(picked.ok_or("import cancelled")?.to_string());
+    let parent = PathBuf::from(parent_dir);
+    let root = unibrowser_project::import_share_package_zip(&zip_path, &parent, &name)
+        .map_err(|e| e.to_string())?;
+    let loc = BrowserLocation::File { path: root.clone() };
+    let doc = crate::state::open_file_document(&root);
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.open_tab(loc.clone());
+    if let Some(tab) = tabs.active_tab_mut() {
+        tab.is_directory = false;
+        tab.document = doc;
+    }
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn autosave_unibrow_active_project(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<String, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab().ok_or("no active tab")?;
+    let path = match &tab.location {
+        BrowserLocation::File { path } => path.clone(),
+        _ => return Ok(String::new()),
+    };
+    if !unibrowser_project::is_unibrow_path(&path) {
+        return Ok(String::new());
+    }
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    let root = unibrowser_project::resolve_package_root(&path, &cache).map_err(|e| e.to_string())?;
+    let dest = unibrowser_project::snapshot_project_autosave(&root).map_err(|e| e.to_string())?;
+    Ok(dest.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn set_project_autosave_settings(
+    _window: tauri::Window,
+    enabled: bool,
+    interval_secs: u32,
+) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.project_autosave_enabled = enabled;
+    p.project_autosave_interval_secs = interval_secs.clamp(30, 600);
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
 pub fn dismiss_onboarding(window: tauri::Window) -> Result<(), String> {
     let mut p = load_preferences();
     p.onboarding_dismissed = true;
@@ -3325,13 +3426,15 @@ pub fn save_window_geometry(window: tauri::Window,
 pub fn create_unibrow_project(window: tauri::Window, 
     parent_dir: String,
     name: String,
+    template: Option<String>,
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let parent = PathBuf::from(parent_dir);
     let root = parent.join(format!("{}.unibrow", name));
     let mut package = unibrowser_project::create_package(&root, &name).map_err(|e| e.to_string())?;
-    unibrowser_project::seed_board_sketch(&mut package).map_err(|e| e.to_string())?;
+    let tpl = template.as_deref().unwrap_or("notes");
+    unibrowser_project::apply_project_template(&mut package, tpl).map_err(|e| e.to_string())?;
     let loc = BrowserLocation::File { path: root.clone() };
     let doc = crate::state::open_file_document(&root);
     let _sess_tabs = ws(&state, &window)?;

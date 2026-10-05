@@ -30,7 +30,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 | Text & code | Monaco editor, save, Ctrl+F, undo/redo stacks; lazy-loaded bundles |
 | Documents | PDF (pdf.js), DOCX, SVG, CSV/TSV table stub, EPUB chapters |
 | Media | Video with scrub frames; **audio peak waveform** (decode or stub bars); optional LGPL sidecar pool |
-| 3D / CAD | DXF layers (three.js); `.unibrow` board **colour labels**, timeline **markers/chapters**, playhead scrub (PDF/MIDI/video), optional **MIDI scrub beeps** (settings), fade transitions stub, export zip, **Export MP4 (preview)** |
+| 3D / CAD | `.unibrow` **templates** (blank / notes board / video mix), board colours, timeline markers, scrub + MIDI beeps, **project.json autosave** backup (settings), **share zip** export/import (no `derived/`), full zip export, MP4 preview |
 | Images | PNG/JPEG/GIF/WebP viewer; **Files bulk convert** to PNG or JPEG |
 
 ### Commands, keys, and UI chrome
@@ -69,6 +69,7 @@ Use this section as the source for weekly status. Last updated during the 36h bl
 - Complete i18n beyond en-NZ; Monaco spellcheck
 - Windows installer signing and bundled ffmpeg in installer
 - Real timeline encode (render fades, audio mix, PDF page-per-time); batch convert beyond PNG/JPEG
+- Live multi-user collaboration (share zip is export/import only); cloud project hosting
 
 ## Licence
 

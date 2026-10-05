@@ -5,6 +5,7 @@ import { t } from "./i18n";
 type I18nKey = keyof typeof enNz;
 import { applyThemeToDocument, loadThemePreference } from "./theme";
 import { configureAutoSave } from "./autoSave";
+import { configureProjectAutoSave } from "./projectAutoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
 
@@ -23,6 +24,8 @@ interface PrefsDto {
   download_preference: string;
   board_snap_to_grid: boolean;
   midi_scrub_audio_enabled: boolean;
+  project_autosave_enabled: boolean;
+  project_autosave_interval_secs: number;
   crash_recovery_enabled: boolean;
   ntp_sections: NtpSectionsDto;
   advanced_webview_devtools: boolean;
@@ -165,6 +168,42 @@ export async function renderSettings(root: HTMLElement) {
   boardRow.appendChild(snapLabel);
   boardSection.appendChild(boardHeading);
   boardSection.appendChild(boardRow);
+  const projectAutoRow = document.createElement("div");
+  projectAutoRow.className = "settings-row";
+  const projectAutoCb = document.createElement("input");
+  projectAutoCb.type = "checkbox";
+  projectAutoCb.id = "settings-project-autosave";
+  projectAutoCb.checked = prefs.project_autosave_enabled;
+  const projectAutoLabel = document.createElement("label");
+  projectAutoLabel.htmlFor = projectAutoCb.id;
+  projectAutoLabel.textContent = t("settings.projectAutosave");
+  const projectAutoInterval = document.createElement("select");
+  projectAutoInterval.setAttribute("aria-label", t("settings.projectAutosave"));
+  [60, 120, 300].forEach((secs) => {
+    const opt = document.createElement("option");
+    opt.value = String(secs);
+    opt.textContent = t("autosave.interval", { seconds: String(secs) });
+    projectAutoInterval.appendChild(opt);
+  });
+  projectAutoInterval.value = String(prefs.project_autosave_interval_secs);
+  projectAutoInterval.disabled = !prefs.project_autosave_enabled;
+  const syncProjectAuto = async () => {
+    const next = await invoke<PrefsDto>("set_project_autosave_settings", {
+      enabled: projectAutoCb.checked,
+      intervalSecs: Number.parseInt(projectAutoInterval.value, 10) || 120,
+    });
+    projectAutoInterval.disabled = !next.project_autosave_enabled;
+    configureProjectAutoSave(
+      next.project_autosave_enabled,
+      next.project_autosave_interval_secs,
+    );
+  };
+  projectAutoCb.onchange = () => void syncProjectAuto();
+  projectAutoInterval.onchange = () => void syncProjectAuto();
+  projectAutoRow.appendChild(projectAutoCb);
+  projectAutoRow.appendChild(projectAutoLabel);
+  projectAutoRow.appendChild(projectAutoInterval);
+  boardSection.appendChild(projectAutoRow);
   root.appendChild(boardSection);
 
   const mediaSection = document.createElement("section");

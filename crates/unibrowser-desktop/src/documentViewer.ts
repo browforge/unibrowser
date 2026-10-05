@@ -1638,8 +1638,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   const timeline = document.createElement("section");
   timeline.className = "unibrow-timeline";
   const tlTitle = document.createElement("h3");
+  tlTitle.id = "unibrow-timeline-heading";
   tlTitle.textContent = "Timeline";
   timeline.appendChild(tlTitle);
+  timeline.setAttribute("aria-labelledby", "unibrow-timeline-heading");
 
   const ruler = document.createElement("div");
   ruler.className = "unibrow-timeline-ruler";
@@ -1700,6 +1702,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   const playhead = document.createElement("input");
   playhead.type = "range";
   playhead.className = "video-scrub-range";
+  playhead.setAttribute("aria-label", "Timeline playhead");
   playhead.min = "0";
   playhead.max = String(Math.max(1, Math.floor(totalSec * 10)));
   playhead.value = "0";
@@ -1826,6 +1829,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   const addMarkerBtn = document.createElement("button");
   addMarkerBtn.type = "button";
   addMarkerBtn.textContent = "Add marker at playhead";
+  addMarkerBtn.setAttribute("aria-label", "Add chapter marker at playhead");
   addMarkerBtn.onclick = async () => {
     const title = window.prompt("Marker title", `Chapter ${markers.length + 1}`);
     if (!title) {
@@ -1884,6 +1888,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   const addBtn = document.createElement("button");
   addBtn.type = "button";
   addBtn.textContent = "Add clip";
+  addBtn.setAttribute("aria-label", "Add timeline clip from board asset");
   addBtn.disabled = boardNodes.length === 0;
   addBtn.onclick = async () => {
     if (!nodeSelect.value) {
@@ -2268,6 +2273,47 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     }
   };
   root.appendChild(exportBtn);
+
+  const shareExportBtn = document.createElement("button");
+  shareExportBtn.type = "button";
+  shareExportBtn.textContent = "Export share package…";
+  shareExportBtn.setAttribute(
+    "aria-label",
+    "Export collaboration share zip without derived folder",
+  );
+  shareExportBtn.onclick = async () => {
+    try {
+      const dest = await invoke<string>("export_unibrow_share_package", {
+        projectPath: viewer.path,
+      });
+      showToast(`Share package: ${dest}`, "info");
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  root.appendChild(shareExportBtn);
+
+  const shareImportBtn = document.createElement("button");
+  shareImportBtn.type = "button";
+  shareImportBtn.textContent = "Import share package…";
+  shareImportBtn.setAttribute("aria-label", "Import collaboration share zip as new project");
+  shareImportBtn.onclick = async () => {
+    const name = window.prompt("Folder name for imported project", "SharedProject");
+    if (!name) {
+      return;
+    }
+    const home = await invoke<string>("get_home_dir").catch(() => "/tmp");
+    try {
+      const data = await invoke("import_unibrow_share_package", {
+        parentDir: home,
+        name,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  root.appendChild(shareImportBtn);
 
   const exportMp4Btn = document.createElement("button");
   exportMp4Btn.type = "button";

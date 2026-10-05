@@ -146,6 +146,47 @@ pub fn export_package_to_zip(root: &Path, dest_zip: &Path) -> Result<(), Project
     zip_bundle::export_directory_to_zip(root, dest_zip)
 }
 
+pub fn export_share_package_to_zip(root: &Path, dest_zip: &Path) -> Result<(), ProjectError> {
+    zip_bundle::export_share_package_to_zip(root, dest_zip)
+}
+
+pub fn import_share_package_zip(
+    zip_path: &Path,
+    parent_dir: &Path,
+    folder_name: &str,
+) -> Result<PathBuf, ProjectError> {
+    zip_bundle::import_share_zip_into_parent(zip_path, parent_dir, folder_name)
+}
+
+pub fn snapshot_project_autosave(root: &Path) -> Result<PathBuf, ProjectError> {
+    let src = root.join(PROJECT_FILE);
+    if !src.is_file() {
+        return Err(ProjectError::NotPackage(PROJECT_FILE.into()));
+    }
+    let dest_dir = root.join(DIR_DERIVED);
+    fs::create_dir_all(&dest_dir)?;
+    let dest = dest_dir.join("project-autosave.json");
+    fs::copy(&src, &dest)?;
+    Ok(dest)
+}
+
+pub fn apply_project_template(
+    package: &mut ProjectPackage,
+    template: &str,
+) -> Result<(), ProjectError> {
+    match template.trim().to_ascii_lowercase().as_str() {
+        "blank" | "" => Ok(()),
+        "notes" | "notes_board" | "board" => seed_notes_board(package),
+        "video" | "video_mix" | "mix" => seed_video_mix(package),
+        other => Err(ProjectError::Msg(format!("unknown project template: {}", other))),
+    }
+}
+
+/// Notes + references board with starter timeline (default teaching layout).
+pub fn seed_notes_board(package: &mut ProjectPackage) -> Result<(), ProjectError> {
+    seed_board_sketch(package)
+}
+
 pub fn materialize_zip_package(zip_path: &Path, cache_dir: &Path) -> Result<PathBuf, ProjectError> {
     zip_bundle::materialize_zip_package(zip_path, cache_dir)
 }
@@ -243,6 +284,95 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
             duration_sec: 0.5,
         }],
         markers: vec![],
+    };
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
+/// Three-slot video mix storyboard (placeholders until you drop real clips).
+pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> {
+    let intro = package.root.join(DIR_ASSETS).join("intro-slot.txt");
+    let broll = package.root.join(DIR_ASSETS).join("broll-slot.txt");
+    let outro = package.root.join(DIR_ASSETS).join("outro-slot.txt");
+    fs::write(&intro, b"Drop an MP4/WebM intro here\n")?;
+    fs::write(&broll, b"B-roll slot\n")?;
+    fs::write(&outro, b"Outro slot\n")?;
+    package.manifest.nodes = vec![
+        ProjectNode {
+            id: "node-1".into(),
+            node_type: "video".into(),
+            label: "Intro".into(),
+            asset: Some("intro-slot.txt".into()),
+            x: 40.0,
+            y: 48.0,
+            color: Some("blue".into()),
+        },
+        ProjectNode {
+            id: "node-2".into(),
+            node_type: "video".into(),
+            label: "B-roll".into(),
+            asset: Some("broll-slot.txt".into()),
+            x: 260.0,
+            y: 120.0,
+            color: Some("amber".into()),
+        },
+        ProjectNode {
+            id: "node-3".into(),
+            node_type: "video".into(),
+            label: "Outro".into(),
+            asset: Some("outro-slot.txt".into()),
+            x: 480.0,
+            y: 200.0,
+            color: Some("violet".into()),
+        },
+    ];
+    package.manifest.timeline = ProjectTimeline {
+        clips: vec![
+            TimelineClip {
+                id: "clip-1".into(),
+                node_id: "node-1".into(),
+                start_sec: 0.0,
+                duration_sec: 6.0,
+                label: "Intro".into(),
+                color: Some("blue".into()),
+            },
+            TimelineClip {
+                id: "clip-2".into(),
+                node_id: "node-2".into(),
+                start_sec: 6.0,
+                duration_sec: 12.0,
+                label: "B-roll".into(),
+                color: Some("amber".into()),
+            },
+            TimelineClip {
+                id: "clip-3".into(),
+                node_id: "node-3".into(),
+                start_sec: 18.0,
+                duration_sec: 5.0,
+                label: "Outro".into(),
+                color: Some("violet".into()),
+            },
+        ],
+        transitions: vec![TimelineTransition {
+            id: "trans-1".into(),
+            after_clip_id: "clip-1".into(),
+            kind: "fade".into(),
+            duration_sec: 0.75,
+        }],
+        markers: vec![
+            TimelineMarker {
+                id: "marker-1".into(),
+                time_sec: 0.0,
+                title: "Open".into(),
+                color: Some("green".into()),
+            },
+            TimelineMarker {
+                id: "marker-2".into(),
+                time_sec: 18.0,
+                title: "Outro".into(),
+                color: Some("rose".into()),
+            },
+        ],
     };
     write_manifest(&package.root, &package.manifest)?;
     Ok(())
@@ -857,6 +987,25 @@ mod tests {
         assert!(listed.iter().any(|e| e.path.contains("project.json")));
         let _ = fs::remove_dir_all(&dir);
         let _ = fs::remove_dir_all(&zip_path);
+    }
+
+    #[test]
+    fn project_templates_roundtrip() {
+        let dir = std::env::temp_dir().join("unibrow-test-templates");
+        let _ = fs::remove_dir_all(&dir);
+        let blank_dir = dir.join("blank");
+        let mut blank = create_package(&blank_dir, "Blank").expect("create");
+        apply_project_template(&mut blank, "blank").expect("blank");
+        assert!(blank.manifest.nodes.is_empty());
+        let notes_dir = dir.join("notes");
+        let mut notes = create_package(&notes_dir, "Notes").expect("create");
+        apply_project_template(&mut notes, "notes").expect("notes");
+        assert_eq!(notes.manifest.nodes.len(), 2);
+        let video_dir = dir.join("video");
+        let mut video = create_package(&video_dir, "Video").expect("create");
+        apply_project_template(&mut video, "video_mix").expect("video");
+        assert_eq!(video.manifest.timeline.clips.len(), 3);
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

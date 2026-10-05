@@ -62,6 +62,11 @@ pub struct Preferences {
     /// Play short Web Audio beeps when MIDI clips are scrubbed on the timeline.
     #[serde(default)]
     pub midi_scrub_audio_enabled: bool,
+    /// Backup `project.json` under `derived/` for open `.unibrow` tabs.
+    #[serde(default)]
+    pub project_autosave_enabled: bool,
+    #[serde(default = "default_auto_save_interval")]
+    pub project_autosave_interval_secs: u32,
     /// Backup dirty text/SVG buffers under config dir (off by default).
     #[serde(default)]
     pub crash_recovery_enabled: bool,
@@ -158,6 +163,8 @@ impl Default for Preferences {
             download_preference: DownloadPreference::default(),
             board_snap_to_grid: false,
             midi_scrub_audio_enabled: false,
+            project_autosave_enabled: false,
+            project_autosave_interval_secs: default_auto_save_interval(),
             crash_recovery_enabled: false,
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,
