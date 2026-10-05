@@ -2589,6 +2589,12 @@ fn execute_command_impl(
     if command_id == unibrowser_mod_api::commands::GO_TO_TAB {
         return Ok("tab-search".into());
     }
+    if command_id == unibrowser_mod_api::commands::WORKSPACE_QUICK_OPEN {
+        return Ok("workspace-quick-open".into());
+    }
+    if command_id == unibrowser_mod_api::commands::FIND_FILES_DEEP {
+        return Ok("find-files-deep".into());
+    }
     if command_id == PICTURE_IN_PICTURE_ID {
         return Ok("media-pip".into());
     }
@@ -3724,7 +3730,7 @@ pub struct EncodeProgressPayload {
     pub stage: String,
 }
 
-fn resolve_timeline_mp4_inputs(project_path: &Path) -> Result<(unibrowser_project::ProjectPackage, Vec<PathBuf>), String> {
+fn open_unibrow_package_for_export(project_path: &Path) -> Result<unibrowser_project::ProjectPackage, String> {
     if !unibrowser_project::is_unibrow_path(project_path) {
         return Err("not a .unibrow project".into());
     }
@@ -3734,15 +3740,7 @@ fn resolve_timeline_mp4_inputs(project_path: &Path) -> Result<(unibrowser_projec
     if pkg.manifest.timeline.clips.is_empty() {
         return Err("timeline has no clips".into());
     }
-    let resolved = unibrowser_project::clip_asset_paths(&pkg);
-    if resolved.len() != pkg.manifest.timeline.clips.len() {
-        return Err("some clips are missing board assets".into());
-    }
-    if !resolved.iter().all(|(_, _, ty)| ty == "video") {
-        return Err("export needs video-only mp4 clips".into());
-    }
-    let inputs: Vec<PathBuf> = resolved.into_iter().map(|(_, p, _)| p).collect();
-    Ok((pkg, inputs))
+    Ok(pkg)
 }
 
 #[tauri::command]
@@ -3753,7 +3751,11 @@ pub async fn export_unibrow_mp4_h264(
 ) -> Result<Mp4PreviewExportDto, String> {
     use tauri::Emitter;
     let preset = preset.unwrap_or_else(|| "fast".to_string());
-    let (pkg, inputs) = resolve_timeline_mp4_inputs(Path::new(&project_path))?;
+    let pkg = open_unibrow_package_for_export(Path::new(&project_path))?;
+    let intent = unibrowser_project::build_timeline_encode_intent(&pkg);
+    if unibrowser_project::video_segments(&intent).is_empty() {
+        return Err("timeline has no video clips to export".into());
+    }
     let probe = unibrowser_media::probe_ffmpeg_install();
     if !probe.available {
         let path = unibrowser_project::write_mp4_export_stub(&pkg, "ffmpeg not on PATH")
@@ -3770,9 +3772,10 @@ pub async fn export_unibrow_mp4_h264(
     let app = window.app_handle().clone();
     let label = window.label().to_string();
     let preset_copy = preset.clone();
+    let intent_copy = intent.clone();
     let encode_result = tauri::async_runtime::spawn_blocking(move || {
-        unibrowser_media::encode_h264_timeline(
-            &inputs,
+        unibrowser_media::encode_h264_timeline_intents(
+            &intent_copy,
             &dest_encode,
             &preset_copy,
             &mut |percent, stage| {
@@ -3789,24 +3792,60 @@ pub async fn export_unibrow_mp4_h264(
     })
     .await
     .map_err(|e| e.to_string())?;
-    if let Err(err) = encode_result {
-        let reason = err.to_string();
-        let path = unibrowser_project::write_mp4_export_stub(&pkg, &reason)
-            .map_err(|e| e.to_string())?;
-        return Ok(Mp4PreviewExportDto {
-            path: path.to_string_lossy().into_owned(),
-            mode: "stub".into(),
-            message: format!("H.264 export failed: {}", reason),
-        });
+    let report = match encode_result {
+        Err(err) => {
+            let reason = err.to_string();
+            let path = unibrowser_project::write_mp4_export_stub(&pkg, &reason)
+                .map_err(|e| e.to_string())?;
+            return Ok(Mp4PreviewExportDto {
+                path: path.to_string_lossy().into_owned(),
+                mode: "stub".into(),
+                message: format!("H.264 export failed: {}", reason),
+            });
+        }
+        Ok(r) => r,
+    };
+    let mut message = format!(
+        "Exported H.264 ({}) to derived/timeline-export-h264.mp4.",
+        preset
+    );
+    if report.honored_fade {
+        message.push_str(" Fade transition applied (approx).");
+    }
+    if report.honored_duck {
+        message.push_str(" Duck-under-video mix applied (approx).");
+    }
+    if !report.ignored.is_empty() {
+        let note = report.ignored.join(" · ");
+        message.push_str(format!(" Notes: {}.", note).as_str());
     }
     Ok(Mp4PreviewExportDto {
         path: dest_display,
         mode: "encoded".into(),
-        message: format!(
-            "Exported H.264 ({}) to derived/timeline-export-h264.mp4.",
-            preset
-        ),
+        message,
     })
+}
+
+#[tauri::command]
+pub fn probe_midi_audio_render() -> unibrowser_media::MidiAudioRenderProbe {
+    unibrowser_media::probe_midi_audio_render()
+}
+
+#[tauri::command]
+pub fn search_workspace_quick_files(
+    query: String,
+    max_results: Option<usize>,
+) -> Result<Vec<crate::workspace_quick_search::WorkspaceQuickHitDto>, String> {
+    let prefs = load_preferences();
+    let root = prefs
+        .workspace_root
+        .as_ref()
+        .ok_or("Set a workspace root in Files (Set workspace) first.")?;
+    crate::workspace_quick_search::fuzzy_find_workspace_files(
+        Path::new(root),
+        &query,
+        max_results.unwrap_or(40),
+    )
 }
 
 #[tauri::command]

@@ -180,6 +180,27 @@ impl CommandRegistry {
             default_keybinding: Some("F1"),
             aliases: &["help", "context help", "documentation"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::WORKSPACE_QUICK_OPEN,
+            title: "Go to file in workspace",
+            icon: "search",
+            default_keybinding: Some("Ctrl+P"),
+            aliases: &["quick open", "workspace file", "ctrl p"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::FIND_FILES_DEEP,
+            title: "Find files by name (deep search)",
+            icon: "search",
+            default_keybinding: Some("Ctrl+Shift+F"),
+            aliases: &["global find", "filename search"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::MIDI_RENDER_AUDIO,
+            title: "Render MIDI to audio (stub)",
+            icon: "export",
+            default_keybinding: None,
+            aliases: &["midi wav", "fluidsynth", "synthesize midi"],
+        });
         reg
     }
 
@@ -233,6 +254,12 @@ impl CommandRegistry {
     }
 
     pub fn enablement_ctx(&self, command_id: &str, ctx: &HostContext) -> Enablement {
+        if command_id == commands::GO_TO_TAB
+            || command_id == commands::WORKSPACE_QUICK_OPEN
+            || command_id == commands::FIND_FILES_DEEP
+        {
+            return Enablement::Enabled;
+        }
         if self.resolve_handler(command_id, &ctx.backend_id).is_none() {
             return Enablement::Disabled {
                 reason: "No handler for this document type".into(),

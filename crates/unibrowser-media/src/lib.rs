@@ -11,9 +11,13 @@ use thiserror::Error;
 pub mod audio;
 pub mod encode;
 pub mod frame;
+pub mod midi_render;
 pub mod sidecar;
+mod timeline_intent_encode;
 
 pub use encode::encode_h264_timeline;
+pub use midi_render::{probe_midi_audio_render, MidiAudioRenderProbe};
+pub use timeline_intent_encode::{encode_h264_timeline_intents, EncodeIntentReport};
 
 #[derive(Debug, Error)]
 pub enum MediaError {

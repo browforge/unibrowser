@@ -136,6 +136,7 @@ fn build_command_registry(
         );
     }
     crate::epub_stub::register_handlers(&mut registry);
+    crate::midi_stub::register_handlers(&mut registry);
     let mut mods_line = mod_host.load_order.join(", ");
     if let Some(name) = unibrowser_mod_host::wasm::register_proving_hello_stub(&mut registry) {
         append_mod_name(&mut mods_line, &name);

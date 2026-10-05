@@ -70,7 +70,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Toolbars | Floating bars drag-anywhere; positions in `toolbars.json` as screen coords ([toolbars.md](toolbars.md)); theme + high-contrast on CM and floating bars |
 | Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style ([commands-cross-format.md](commands-cross-format.md)) |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
-| Plugin sample | `examples/hello-world.ubmod` + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
+| Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |
 | Recovery | Text/SVG crash backups (opt-in); `.unibrow` `project.json` debounced backups + launch prompt when project autosave or crash recovery is on |
 | Downloads | Linux WebKit `on_download` → shell; optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
 | A11y prefs | High contrast, reduce motion (system/on/off + `prefers-reduced-motion`), optional **larger hit targets**, **Focus mode** denser chrome; skippable tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
@@ -80,7 +80,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |
 | In-app docs | `unibrowser://docs/*` with TOC from [index.md](index.md), back link, in-page search |
 | SVG edit lite | Inline preview; fill/stroke panel for path/text; grey path boolean/simplify |
-| Timeline ducking | Audio clip **Duck under video** stores `duck_under_video` in `project.json` (encode not wired) |
+| Timeline encode intents | H.264 export honours **fade** (two video clips) and **duck_under_video** on audio (approx); see [timeline-encode-intents.md](timeline-encode-intents.md) |
+| Workspace quick open | **Ctrl+P** fuzzy file find under pinned workspace root (separate from omnibox / deep find **Ctrl+Shift+F**) |
+| MIDI audio render stub | Viewer + palette command grey unless **ffmpeg** and **fluidsynth** on PATH — [midi-audio-render.md](midi-audio-render.md) |
+| Demo artifacts | `examples/demo-pack/` stays small; `hello-world.ubmod` built locally (`scripts/build-hello-ubmod.sh`), not committed |
 | i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
 | Scripting | Rhai demo from palette → output panel; `.rhai` / `.js` script viewer |
 | DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |

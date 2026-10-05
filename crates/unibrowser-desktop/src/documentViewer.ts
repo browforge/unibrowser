@@ -14,7 +14,7 @@ import { renderKeys } from "./keysPage";
 import { renderDiagnostics } from "./diagnosticsPage";
 import { emptyStateBlock } from "./emptyState";
 import { pathsFromDataTransfer } from "./filesDrag";
-import { showErrorToast, showToast } from "./toast";
+import { invokeWithToast, showErrorToast, showToast } from "./toast";
 import { playMidiScrubBeeps } from "./midiScrubAudio";
 import { patchStatusCursor, setStatusHint } from "./statusBar";
 import {
@@ -1878,8 +1878,34 @@ function renderMidi(viewer: DocumentViewerDto, root: HTMLElement) {
   root.appendChild(dl);
   const note = document.createElement("p");
   note.className = "viewer-note";
-  note.textContent = "Native SMF header only — synthesis and encode are not wired yet.";
+  note.textContent = "Native SMF header only — full synthesis is not wired yet.";
   root.appendChild(note);
+  const renderRow = document.createElement("div");
+  renderRow.className = "viewer-actions";
+  const renderBtn = document.createElement("button");
+  renderBtn.type = "button";
+  renderBtn.textContent = "Render to audio (stub)";
+  renderBtn.disabled = true;
+  renderBtn.title = "Checking tools…";
+  void invoke<{ available: boolean; hint: string }>("probe_midi_audio_render").then((probe) => {
+    renderBtn.disabled = !probe.available;
+    renderBtn.title = probe.hint;
+    if (!probe.available) {
+      renderBtn.classList.add("cmd-disabled-stub");
+    }
+  });
+  renderBtn.onclick = () => {
+    void invokeWithToast(
+      () => invoke<string>("execute_command", { commandId: "unibrowser.midi.renderAudio" }),
+      "MIDI render unavailable",
+    ).then((msg) => {
+      if (msg) {
+        showToast(String(msg), "info");
+      }
+    });
+  };
+  renderRow.appendChild(renderBtn);
+  root.appendChild(renderRow);
   const preview = viewer.midi_note_preview ?? [];
   if (preview.length > 0) {
     const h = document.createElement("h3");

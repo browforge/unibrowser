@@ -13,3 +13,4 @@ path = "src/bin/unibrowser-media-sidecar.rs"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+unibrowser-project = { path = "../unibrowser-project" }

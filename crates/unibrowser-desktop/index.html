@@ -140,6 +140,14 @@
       />
       <div id="keys-shortcuts-results" class="keys-shortcuts-results"></div>
     </div>
+    <div id="workspace-quick-open" class="palette hidden" role="dialog" aria-label="Go to file in workspace">
+      <div class="filename-search-head">
+        <input id="workspace-quick-open-query" type="search" placeholder="File name in workspace…" autocomplete="off" />
+        <button type="button" id="workspace-quick-open-close">Close</button>
+      </div>
+      <p id="workspace-quick-open-hint" class="viewer-note filename-search-root-label"></p>
+      <div id="workspace-quick-open-results"></div>
+    </div>
     <div id="filename-search" class="palette hidden" role="dialog" aria-label="Find files">
       <div class="filename-search-head">
         <input id="filename-search-query" type="search" placeholder="Filename…" />

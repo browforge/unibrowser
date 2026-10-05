@@ -55,6 +55,11 @@ import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./
 import { pathsFromDataTransfer } from "./filesDrag";
 import { initGlobalFind, toggleGlobalFind } from "./globalFind";
 import {
+  hideWorkspaceQuickOpen,
+  initWorkspaceQuickOpen,
+  toggleWorkspaceQuickOpen,
+} from "./workspaceQuickOpen";
+import {
   closeDocumentFind,
   openDocumentFind,
   setDocumentFindSurface,
@@ -1050,6 +1055,14 @@ async function processCommandResult(msg: string, commandId?: string) {
     toggleTabSearch();
     return;
   }
+  if (msg === "workspace-quick-open") {
+    toggleWorkspaceQuickOpen();
+    return;
+  }
+  if (msg === "find-files-deep") {
+    toggleGlobalFind(lastBrowseFolderPath);
+    return;
+  }
   if (msg === "media-pip") {
     void tryMediaPictureInPicture().catch((err) => showErrorToast(err));
     return;
@@ -1575,8 +1588,19 @@ document.addEventListener(
       toggleTabSearch();
       return;
     }
+    const wsQuick = document.getElementById("workspace-quick-open");
+    if (wsQuick && !wsQuick.classList.contains("hidden")) {
+      e.preventDefault();
+      hideWorkspaceQuickOpen();
+      return;
+    }
   }
   if (!filesBrowserWrap.classList.contains("hidden") && handleFilesKeyDown(e)) {
+    return;
+  }
+  if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "p") {
+    e.preventDefault();
+    toggleWorkspaceQuickOpen();
     return;
   }
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") {
@@ -1756,6 +1780,11 @@ initContentFullscreen(() => {
 });
 initGlobalFind({
   defaultRoot: lastBrowseFolderPath,
+  onOpenPath: (path) => {
+    void invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d));
+  },
+});
+initWorkspaceQuickOpen({
   onOpenPath: (path) => {
     void invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d));
   },

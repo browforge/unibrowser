@@ -1,6 +1,12 @@
 //! Minimal `.unibrow` directory bundle ([ADR 0015](../../docs/adr/0015-native-project-format.md)).
 
 mod zip_bundle;
+mod timeline_encode;
+
+pub use timeline_encode::{
+    build_timeline_encode_intent, audio_segments, video_segments, EncodeSegment,
+    SegmentMedia, TimelineEncodeIntent,
+};
 
 use std::fs;
 use std::path::{Path, PathBuf};

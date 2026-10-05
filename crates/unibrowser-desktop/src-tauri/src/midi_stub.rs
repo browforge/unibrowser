@@ -2,9 +2,12 @@
 
 use std::path::Path;
 
-use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
+use unibrowser_engine::command::{HandlerRegistration, CommandRegistry};
+use unibrowser_mod_api::{Capabilities, Enablement, Mode, SelectionSnapshot, commands};
 
 use crate::smf::{NoteOnEvent, SmfSummary};
+
+const RENDER_AUDIO_ID: &str = commands::MIDI_RENDER_AUDIO;
 
 pub const BACKEND_ID: &str = "base-midi-stub";
 pub const VIEWER_KIND: &str = "midi";
@@ -77,4 +80,36 @@ pub fn try_midi_backend(
         return None;
     }
     backend.as_any_mut().downcast_mut::<MidiStubBackend>()
+}
+
+fn render_enable(_doc: &unibrowser_engine::document::DocumentSession) -> Enablement {
+    let probe = unibrowser_media::probe_midi_audio_render();
+    if probe.available {
+        Enablement::Enabled
+    } else {
+        Enablement::Disabled {
+            reason: probe.hint,
+        }
+    }
+}
+
+fn render_execute(doc: &mut unibrowser_engine::document::DocumentSession) -> Result<String, String> {
+    let midi = try_midi_backend(&mut *doc.backend).ok_or("not a MIDI tab")?;
+    let probe = unibrowser_media::probe_midi_audio_render();
+    if !probe.available {
+        return Err(probe.hint);
+    }
+    Ok(format!(
+        "MIDI render stub for {} — fluidsynth → WAV → ffmpeg not implemented yet.",
+        midi.path
+    ))
+}
+
+pub fn register_handlers(registry: &mut CommandRegistry) {
+    registry.register_handler(HandlerRegistration {
+        command_id: RENDER_AUDIO_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: render_enable,
+        execute: render_execute,
+    });
 }

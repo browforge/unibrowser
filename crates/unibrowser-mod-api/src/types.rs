@@ -121,6 +121,9 @@ pub mod commands {
     pub const GO_TO_TAB: &str = "unibrowser.tabs.goTo";
     pub const PICTURE_IN_PICTURE: &str = "unibrowser.media.pictureInPicture";
     pub const CONTEXT_HELP: &str = "unibrowser.help.context";
+    pub const WORKSPACE_QUICK_OPEN: &str = "unibrowser.workspace.quickOpen";
+    pub const FIND_FILES_DEEP: &str = "unibrowser.find.filesDeep";
+    pub const MIDI_RENDER_AUDIO: &str = "unibrowser.midi.renderAudio";
     pub const PDF_ANNOTATE_HIGHLIGHT: &str = "unibrowser.pdf.annotate.highlight";
     pub const PDF_ANNOTATE_STAMP: &str = "unibrowser.pdf.annotate.stamp";
     pub const PDF_ANNOTATE_INK: &str = "unibrowser.pdf.annotate.ink";

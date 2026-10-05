@@ -10,7 +10,7 @@ The workspace ships:
 | --- | --- |
 | `examples/ub-mod-cdylib-stub/` | Rust `cdylib` source; registers `mod.hello` |
 | `examples/hello-world-ubmod/info.json` | Manifest for the sample pack |
-| `examples/hello-world.ubmod` | Zip bundle (Linux `.so` inside; rebuild on other OS) |
+| `examples/hello-world.ubmod` | Zip bundle (build locally; not in git — Linux `.so` inside; rebuild on other OS) |
 | `scripts/build-hello-ubmod.sh` | Build stub + zip |
 
 ### Build (Linux)

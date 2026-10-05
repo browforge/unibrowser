@@ -6,9 +6,13 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Timeline encode intents:** H.264 export applies approximate **fade** (two MP4 clips) and **duck_under_video** audio mix; [timeline-encode-intents.md](docs/timeline-encode-intents.md).
+- **Workspace quick open:** **Ctrl+P** fuzzy go-to-file under pinned workspace root; deep filename search stays **Ctrl+Shift+F**.
+- **MIDI render stub:** Palette + viewer button when ffmpeg and fluidsynth are on PATH; [midi-audio-render.md](docs/midi-audio-render.md).
+- **Artifacts:** Stop tracking large `examples/hello-world.ubmod`; build via `scripts/build-hello-ubmod.sh`.
 - **Docs viewer:** TOC from `docs/index.md`, back to index, in-page search on `unibrowser://docs/*`.
 - **SVG edit lite:** Inline preview with fill/stroke side panel; path boolean/simplify grey in palette.
-- **Timeline ducking stub:** Audio clips can set `duck_under_video` in `project.json` (encode later).
+- **Timeline ducking:** Audio clips set `duck_under_video` in `project.json`; honoured on H.264 export (approx).
 - **Command history:** Palette shows the last 10 executed commands as **Recent:** entries (`command-history.json` in config).
 - **Context help:** **F1** or palette **What's this** opens matching `docs/*.md` in `unibrowser://docs/…` (dev tree).
 - **PDF highlight stub:** Sidecar `{name}.pdf.ub-annotations.json`; palette highlight + drag on page; stamp/ink grey.

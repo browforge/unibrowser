@@ -47,6 +47,7 @@ mod trash;
 pub mod window_session;
 mod workspace_layouts;
 mod workspace_tree;
+mod workspace_quick_search;
 mod git_status;
 mod rhai_host;
 mod session;
@@ -127,6 +128,8 @@ pub fn run() {
             commands::clear_recent_files,
             commands::search_filenames,
             commands::cancel_filename_search,
+            commands::search_workspace_quick_files,
+            commands::probe_midi_audio_render,
             commands::get_command_manager,
             commands::save_command_manager_layout,
             commands::export_command_manager_layout_file,

@@ -2,6 +2,7 @@
 # Large local Unibrowser project exports (see CONTRIBUTING.md)
 **/*.unibrow/assets/**
 uploads/
+examples/hello-world.ubmod
 report-screenshots/
 crates/unibrowser-desktop/src-tauri/binaries/*
 !crates/unibrowser-desktop/src-tauri/binaries/README.md

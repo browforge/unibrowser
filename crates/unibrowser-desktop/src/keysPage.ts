@@ -11,6 +11,7 @@ interface KeyboardShortcutRow {
 }
 
 const STATIC_HINTS = [
+  { chord: "Ctrl+P", labelKey: "keys.workspaceQuickOpen" as I18nKey },
   { chord: "Ctrl+Shift+P", labelKey: "keys.palette" as I18nKey },
   { chord: "Ctrl+Shift+A", labelKey: "keys.goToTab" as I18nKey },
   { chord: "F1", labelKey: "keys.contextHelp" as I18nKey },
