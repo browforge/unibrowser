@@ -9,6 +9,7 @@ import { copyImageFile, copyText, readClipboardImagePath } from "./clipboard";
 import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
 import { renderKeys } from "./keysPage";
+import { renderDiagnostics } from "./diagnosticsPage";
 import { emptyStateBlock } from "./emptyState";
 import { pathsFromDataTransfer } from "./filesDrag";
 import { showErrorToast, showToast } from "./toast";
@@ -3059,6 +3060,9 @@ export const documentViewer = {
           break;
         case "keys":
           await renderKeys(body);
+          break;
+        case "diagnostics":
+          await renderDiagnostics(body);
           break;
         case "downloads":
           await renderDownloadsManager(

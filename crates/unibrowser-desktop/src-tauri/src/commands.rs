@@ -35,7 +35,7 @@ use crate::preferences::{
     remember_epub_chapter, save_preferences, DownloadPreference, PinnedLocation, UiTheme,
     WindowState,
 };
-use crate::state::FileCompareState;
+use crate::state::{FileCompareState, ImageCompareState};
 use unibrowser_mod_api::types::commands::TEXT_SAVE;
 use crate::epub_preview::{EpubChapterDto, EpubChapterListItem, EpubSearchHitDto};
 use crate::user_backup::{self, GrandmaBackupV1};
@@ -47,7 +47,8 @@ use crate::webview::{
 use unibrowser_mod_api::handlers::{
     DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
-    SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
+    CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, SHOW_KEYBOARD_SHORTCUTS_ID,
+    TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
 };
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -272,6 +273,7 @@ pub struct TabContentDto {
     pub show_new_tab_page: bool,
     pub browse_folder_path: String,
     pub diff_view: Option<DiffViewDto>,
+    pub image_compare_view: Option<ImageCompareViewDto>,
     pub pinned_locations: Vec<PinnedLocationDto>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chrome_notice: Option<String>,
@@ -374,6 +376,12 @@ pub struct DiffViewDto {
     pub left_content: String,
     pub right_content: String,
     pub language: String,
+}
+
+#[derive(Serialize)]
+pub struct ImageCompareViewDto {
+    pub left_path: String,
+    pub right_path: String,
 }
 
 #[derive(Serialize)]
@@ -653,6 +661,28 @@ fn document_viewer_dto(
             path: doc.path.clone(),
             viewer: crate::downloads_stub::VIEWER_KIND.into(),
             title: "Downloads".into(),
+            pdf_scale: None,
+            pdf_page: None,
+            media_note: None,
+            project_nodes: None,
+            open_file_tabs: None,
+            project_clips: None,
+            project_transitions: None,
+            project_markers: None,
+            midi_summary: None,
+            board_snap_to_grid: None,
+            midi_scrub_audio_enabled: None,
+            midi_note_preview: None,
+            pdf_engines: None,
+            reader_font_pt: None,
+            preview_zoom: None,
+        });
+    }
+    if doc.backend.backend_id() == crate::diagnostics_stub::BACKEND_ID {
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::diagnostics_stub::VIEWER_KIND.into(),
+            title: "Diagnostics".into(),
             pdf_scale: None,
             pdf_page: None,
             media_note: None,
@@ -994,7 +1024,8 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         };
     let prefs = load_preferences();
     let diff_view = build_diff_view(state, window_label)?;
-    let (text_document, document_viewer) = if diff_view.is_some() {
+    let image_compare_view = build_image_compare_view(state, window_label)?;
+    let (text_document, document_viewer) = if diff_view.is_some() || image_compare_view.is_some() {
         (None, None)
     } else {
         (text_document, document_viewer)
@@ -1042,6 +1073,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         show_new_tab_page,
         browse_folder_path,
         diff_view,
+        image_compare_view,
         pinned_locations,
         chrome_notice,
         ntp_sections: ntp_sections_dto(&prefs),
@@ -1058,6 +1090,30 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
             })
             .collect(),
     })
+}
+
+fn build_image_compare_view(
+    state: &AppState,
+    window_label: &str,
+) -> Result<Option<ImageCompareViewDto>, String> {
+    let sess = ws_label(state, window_label)?;
+    let guard = sess
+        .image_compare
+        .lock()
+        .map_err(|e| e.to_string())?;
+    let (left_path, right_path) = match guard.as_ref() {
+        Some(c) => (c.left_path.clone(), c.right_path.clone()),
+        None => return Ok(None),
+    };
+    let left = resolve_open_path(&left_path, &state.cwd)?;
+    let right = resolve_open_path(&right_path, &state.cwd)?;
+    if !crate::capture::is_raster_image_path(&left) || !crate::capture::is_raster_image_path(&right) {
+        return Ok(None);
+    }
+    Ok(Some(ImageCompareViewDto {
+        left_path,
+        right_path,
+    }))
 }
 
 fn build_diff_view(state: &AppState, window_label: &str) -> Result<Option<DiffViewDto>, String> {
@@ -2318,6 +2374,12 @@ pub fn execute_command(window: tauri::Window,
     }
     if command_id == SHOW_KEYBOARD_SHORTCUTS_ID {
         return Ok("keys-overlay".into());
+    }
+    if command_id == CAPTURE_VISIBLE_TAB_ID {
+        return Ok("capture-visible".into());
+    }
+    if command_id == COMPARE_IMAGES_ID {
+        return Ok("image-compare-pick".into());
     }
     if command_id == TOGGLE_READER_MODE_ID {
         let _sess_tabs = ws(&state, &window)?;
@@ -4011,6 +4073,208 @@ pub fn close_file_compare(window: tauri::Window, state: State<AppState>) -> Resu
     {
         let _sess_cmp = ws(&state, &window)?;
         let mut cmp = _sess_cmp.file_compare.lock().map_err(|e| e.to_string())?;
+        *cmp = None;
+    }
+    snapshot(&state, window.label())
+}
+
+fn open_capture_path_in_new_tab(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &AppState,
+    path: PathBuf,
+    notice: String,
+) -> Result<TabContentDto, String> {
+    allow_asset_protocol_file(app, &path);
+    let loc = BrowserLocation::File { path: path.clone() };
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let _sess_tabs = ws_label(state, window.label())?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.open_tab(loc.clone());
+    if let Some(tab) = tabs.active_tab_mut() {
+        tab.is_directory = is_dir;
+        tab.document = doc;
+    }
+    touch_recent_file(&path);
+    update_content_webview(app, window.label(), &loc)?;
+    {
+        let sess = ws_label(state, window.label())?;
+        let mut n = sess.chrome_notice.lock().map_err(|e| e.to_string())?;
+        *n = Some(notice);
+    }
+    snapshot(state, window.label())
+}
+
+#[derive(Serialize)]
+pub struct CaptureTabResultDto {
+    pub saved_path: Option<String>,
+    pub need_shell: bool,
+}
+
+#[tauri::command]
+pub fn capture_visible_tab(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<CaptureTabResultDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab().ok_or("no active tab")?;
+    if let BrowserLocation::Http { .. } = &tab.location {
+        match crate::webview::capture_content_webview_png(&app, window.label()) {
+            Ok(bytes) => {
+                let path = crate::capture::write_png_bytes(&bytes)?;
+                let saved = path.to_string_lossy().into_owned();
+                let notice = format!("Capture saved to {}", path.display());
+                let _ = open_capture_path_in_new_tab(&window, &app, state.inner(), path, notice)?;
+                return Ok(CaptureTabResultDto {
+                    saved_path: Some(saved),
+                    need_shell: false,
+                });
+            }
+            Err(_) => {
+                return Ok(CaptureTabResultDto {
+                    saved_path: None,
+                    need_shell: true,
+                });
+            }
+        }
+    }
+    if let Some(doc) = &tab.document {
+        let path = PathBuf::from(&doc.path);
+        if crate::capture::is_raster_image_path(&path) {
+            let bytes = crate::capture::encode_image_file_as_png(&path)?;
+            let saved = crate::capture::write_png_bytes(&bytes)?;
+            let notice = format!("Capture saved to {}", saved.display());
+            let _ = open_capture_path_in_new_tab(
+                &window,
+                &app,
+                state.inner(),
+                saved.clone(),
+                notice,
+            )?;
+            return Ok(CaptureTabResultDto {
+                saved_path: Some(saved.to_string_lossy().into_owned()),
+                need_shell: false,
+            });
+        }
+    }
+    Ok(CaptureTabResultDto {
+        saved_path: None,
+        need_shell: true,
+    })
+}
+
+#[tauri::command]
+pub fn save_tab_capture_png(
+    window: tauri::Window,
+    app: AppHandle,
+    png_base64: String,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let bytes = crate::capture::decode_png_base64(&png_base64)?;
+    let path = crate::capture::write_png_bytes(&bytes)?;
+    let notice = format!("Capture saved to {}", path.display());
+    open_capture_path_in_new_tab(&window, &app, state.inner(), path, notice)
+}
+
+#[tauri::command]
+pub fn record_diagnostic_error(message: String, details: Option<String>) {
+    crate::diagnostic_log::record_error(message, details);
+}
+
+#[derive(Serialize)]
+pub struct DiagnosticsInfoDto {
+    pub mods_loaded: String,
+    pub mod_catalog_count: u32,
+    pub ffmpeg: unibrowser_media::FfmpegProbe,
+    pub webview_stack: String,
+    pub target_os: String,
+    pub target_arch: String,
+    pub recent_errors: Vec<crate::diagnostic_log::DiagnosticLogEntry>,
+}
+
+#[tauri::command]
+pub fn get_diagnostics_info(state: State<AppState>) -> DiagnosticsInfoDto {
+    let webview_stack = if cfg!(target_os = "linux") {
+        "WebKitGTK (WRY content webview)"
+    } else if cfg!(target_os = "windows") {
+        "WebView2 (WRY content webview)"
+    } else if cfg!(target_os = "macos") {
+        "WKWebView (WRY content webview)"
+    } else {
+        "WRY embedded webview"
+    };
+    DiagnosticsInfoDto {
+        mods_loaded: state.mods_loaded_line(),
+        mod_catalog_count: state.bundled_mod_count() as u32,
+        ffmpeg: unibrowser_media::probe_ffmpeg_install(),
+        webview_stack: webview_stack.into(),
+        target_os: std::env::consts::OS.into(),
+        target_arch: std::env::consts::ARCH.into(),
+        recent_errors: crate::diagnostic_log::recent_entries(),
+    }
+}
+
+#[tauri::command]
+pub fn begin_image_compare(
+    window: tauri::Window,
+    other_path: String,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let left = active_document_path(&state, &window)?;
+    let left_path = resolve_open_path(&left, &state.cwd)?;
+    if !crate::capture::is_raster_image_path(&left_path) {
+        return Err("compare images needs a PNG or JPEG tab".into());
+    }
+    let right = resolve_open_path(&other_path, &state.cwd)?;
+    if !right.is_file() || !crate::capture::is_raster_image_path(&right) {
+        return Err("compare target must be a PNG or JPEG file".into());
+    }
+    {
+        let sess = ws(&state, &window)?;
+        {
+            let mut cmp = sess.file_compare.lock().map_err(|e| e.to_string())?;
+            *cmp = None;
+        }
+        {
+            let mut img = sess.image_compare.lock().map_err(|e| e.to_string())?;
+            *img = Some(ImageCompareState {
+                left_path: left,
+                right_path: right.to_string_lossy().into_owned(),
+            });
+        }
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub async fn pick_and_compare_images(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<TabContentDto, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let left = active_document_path(&state, &window)?;
+    let left_path = resolve_open_path(&left, &state.cwd)?;
+    if !crate::capture::is_raster_image_path(&left_path) {
+        return Err("compare images needs a PNG or JPEG tab".into());
+    }
+    let picked = app
+        .dialog()
+        .file()
+        .add_filter("Images", &["png", "jpg", "jpeg", "gif", "webp", "bmp"])
+        .set_title("Compare with image")
+        .blocking_pick_file();
+    let path = picked.map(|p| p.to_string()).ok_or("no file chosen")?;
+    begin_image_compare(window, path, state)
+}
+
+#[tauri::command]
+pub fn close_image_compare(window: tauri::Window, state: State<AppState>) -> Result<TabContentDto, String> {
+    {
+        let _sess_cmp = ws(&state, &window)?;
+        let mut cmp = _sess_cmp.image_compare.lock().map_err(|e| e.to_string())?;
         *cmp = None;
     }
     snapshot(&state, window.label())

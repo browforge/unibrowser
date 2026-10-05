@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use unibrowser_engine::TabManager;
 use unibrowser_mod_api::BrowserLocation;
 
-use crate::state::{FileCompareState, SplitViewState};
+use crate::state::{FileCompareState, ImageCompareState, SplitViewState};
 use crate::undo_stack::UndoStacks;
 
 pub struct WindowSession {
@@ -14,6 +14,7 @@ pub struct WindowSession {
     pub split_view: Mutex<SplitViewState>,
     pub undo_stacks: Mutex<UndoStacks>,
     pub file_compare: Mutex<Option<FileCompareState>>,
+    pub image_compare: Mutex<Option<ImageCompareState>>,
     pub chrome_notice: Mutex<Option<String>>,
 }
 
@@ -40,6 +41,7 @@ impl WindowSession {
             split_view: Mutex::new(SplitViewState::default()),
             undo_stacks: Mutex::new(UndoStacks::default()),
             file_compare: Mutex::new(None),
+            image_compare: Mutex::new(None),
             chrome_notice: Mutex::new(None),
         }
     }

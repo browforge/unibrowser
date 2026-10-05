@@ -18,6 +18,9 @@ mod midi_stub;
 mod settings_stub;
 mod about_stub;
 mod keys_stub;
+mod diagnostics_stub;
+mod diagnostic_log;
+mod capture;
 mod web_font_prefs;
 mod web_zoom_prefs;
 mod crash_recovery;
@@ -205,6 +208,13 @@ pub fn run() {
             commands::auto_save_active_document,
             commands::pick_and_compare,
             commands::close_file_compare,
+            commands::pick_and_compare_images,
+            commands::close_image_compare,
+            commands::begin_image_compare,
+            commands::capture_visible_tab,
+            commands::save_tab_capture_png,
+            commands::record_diagnostic_error,
+            commands::get_diagnostics_info,
             commands::pin_current_location,
             commands::begin_file_compare,
             commands::set_ui_theme,

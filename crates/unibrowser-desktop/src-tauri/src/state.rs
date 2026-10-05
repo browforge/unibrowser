@@ -29,6 +29,12 @@ pub struct FileCompareState {
     pub right_path: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ImageCompareState {
+    pub left_path: String,
+    pub right_path: String,
+}
+
 pub struct AppState {
     pub registry: Mutex<CommandRegistry>,
     pub sessions: Mutex<HashMap<String, SharedWindowSession>>,
@@ -321,6 +327,13 @@ impl AppState {
                 let doc = DocumentSession::new(
                     crate::downloads_stub::LOCATION.to_string(),
                     crate::downloads_stub::open(),
+                );
+                return (location, false, Some(doc));
+            }
+            if page == "diagnostics" {
+                let doc = DocumentSession::new(
+                    crate::diagnostics_stub::LOCATION.to_string(),
+                    crate::diagnostics_stub::open(),
                 );
                 return (location, false, Some(doc));
             }

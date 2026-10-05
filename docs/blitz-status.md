@@ -35,6 +35,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Keyboard cheat sheet | Palette **Show keyboard shortcuts** → searchable overlay (`get_keyboard_shortcuts`: defaults + `keybindings.json`); `unibrowser://keys` page |
 | Reader mode | **Toggle reader mode** on https tabs (injected declutter CSS); grey in Command Manager when not http(s) |
 | Bookmark bar lite | Optional bar under chrome (pins + up to 8 quick URLs); Settings toggle; layout uses `#content-host` bounds so webview never sits under the bar |
+| Tab capture | Palette **Capture visible tab** → PNG in Downloads + new tab (raster image encode; PDF/image canvas fallback; native https snapshot stub) |
+| Image compare (stub) | Palette **Compare images** side-by-side with split slider + synced zoom; grey off image tabs |
+| Diagnostics | `unibrowser://diagnostics` — mods, ffmpeg, WebView stack, recent error log ring buffer |
+| Settings search | Filter Settings sections by typing in the search field |
 | Roadmap | [roadmap.md](roadmap.md) refreshed vs blitz shipped vs open (VSIX JS, WebView2 downloads, OCR, full encode) |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |

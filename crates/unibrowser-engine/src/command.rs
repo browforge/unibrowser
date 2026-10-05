@@ -117,6 +117,20 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["readability", "declutter", "article mode"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::CAPTURE_VISIBLE_TAB,
+            title: "Capture visible tab",
+            icon: "camera",
+            default_keybinding: None,
+            aliases: &["screenshot", "snapshot", "save png"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::COMPARE_IMAGES,
+            title: "Compare images (experimental)",
+            icon: "compare",
+            default_keybinding: None,
+            aliases: &["image diff", "side by side images"],
+        });
         reg
     }
 

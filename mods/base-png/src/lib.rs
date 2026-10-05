@@ -4,7 +4,10 @@ use image::{GenericImageView, ImageReader};
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot,
-    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID},
+    handlers::{
+        CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, FONT_DECREASE_ID, FONT_INCREASE_ID,
+        PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
+    },
 };
 
 pub const BACKEND_ID: &str = "base-png";
@@ -214,6 +217,32 @@ pub fn register(registry: &mut CommandRegistry) {
         enable: page_zoom_enable,
         execute: exec_page_zoom_out,
     });
+    registry.register_handler(HandlerRegistration {
+        command_id: COMPARE_IMAGES_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: image_compare_enable,
+        execute: image_compare_exec,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: CAPTURE_VISIBLE_TAB_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: image_compare_enable,
+        execute: image_compare_exec,
+    });
+}
+
+fn image_compare_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Compare images needs a PNG/JPEG tab".into(),
+        };
+    }
+    Enablement::Enabled
+}
+
+fn image_compare_exec(doc: &mut DocumentSession) -> Result<String, String> {
+    let _ = doc;
+    Err("Use host compare picker (execute_command intercept)".into())
 }
 
 pub fn open_file(path: &Path) -> Box<dyn unibrowser_engine::document::DocumentBackend> {

@@ -54,6 +54,8 @@ import {
   isKeysOverlayOpen,
   openKeysOverlay,
 } from "./keysOverlay";
+import { applyImageCompare, type ImageCompareViewDto } from "./imageCompare";
+import { runCaptureVisibleTab } from "./tabCapture";
 
 interface TabDto {
   id: number;
@@ -152,6 +154,7 @@ interface TabContentDto {
   show_new_tab_page: boolean;
   browse_folder_path: string;
   diff_view: DiffViewDto | null;
+  image_compare_view?: ImageCompareViewDto | null;
   pinned_locations: PinnedLocationDto[];
   chrome_notice?: string | null;
   ntp_sections: {
@@ -218,6 +221,7 @@ let editorCol = 1;
 const modsLine = document.getElementById("mods-line")!;
 const bookmarkBar = document.getElementById("bookmark-bar")!;
 const diffEditorHost = document.getElementById("diff-editor-host")!;
+const imageCompareHost = document.getElementById("image-compare-host")!;
 const palette = document.getElementById("palette")!;
 const paletteQuery = document.getElementById("palette-query") as HTMLInputElement;
 const paletteResults = document.getElementById("palette-results")!;
@@ -970,6 +974,20 @@ async function handleShellCommandMessage(msg: string): Promise<boolean> {
     showToast(t("reader.off"), "info");
     return false;
   }
+  if (msg === "capture-visible") {
+    await runCaptureVisibleTab();
+    return false;
+  }
+  if (msg === "image-compare-pick") {
+    const data = await invokeWithToast(
+      () => invoke<TabContentDto>("pick_and_compare_images"),
+      t("imageCompare.failed"),
+    );
+    if (data) {
+      await applyState(data);
+    }
+    return false;
+  }
   const pct = msg.match(/(\d+)%/);
   if (pct) {
     webZoomPercent = Number(pct[1]);
@@ -1080,12 +1098,21 @@ async function applyState(data: TabContentDto) {
     data.bookmark_quick_links ?? [],
   );
   const showDiff = Boolean(data.diff_view);
-  if (showDiff && data.diff_view) {
-    await diffEditorView.apply(data.diff_view, diffEditorHost);
+  const showImageCompare = Boolean(data.image_compare_view);
+  if (showImageCompare && data.image_compare_view) {
+    diffEditorView.hide(diffEditorHost);
+    await applyImageCompare(data.image_compare_view, imageCompareHost);
     textEditor.hide(textEditorHost);
     documentViewer.hide(documentViewerHost);
   } else {
-    diffEditorView.hide(diffEditorHost);
+    applyImageCompare(null, imageCompareHost);
+    if (showDiff && data.diff_view) {
+      await diffEditorView.apply(data.diff_view, diffEditorHost);
+      textEditor.hide(textEditorHost);
+      documentViewer.hide(documentViewerHost);
+    } else {
+      diffEditorView.hide(diffEditorHost);
+    }
   }
   if (showHome) {
     filesBrowserWrap.classList.add("hidden");
@@ -1307,6 +1334,13 @@ diffEditorHost.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
   if (target.dataset.action === "close-diff") {
     void invoke<TabContentDto>("close_file_compare").then((d) => d && applyState(d));
+  }
+});
+
+imageCompareHost.addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  if (target.dataset.action === "close-image-compare") {
+    void invoke<TabContentDto>("close_image_compare").then((d) => d && applyState(d));
   }
 });
 

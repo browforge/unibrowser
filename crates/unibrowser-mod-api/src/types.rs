@@ -112,4 +112,6 @@ pub mod commands {
     pub const NEW_WINDOW: &str = "unibrowser.window.new";
     pub const SHOW_KEYBOARD_SHORTCUTS: &str = "unibrowser.keys.showOverlay";
     pub const TOGGLE_READER_MODE: &str = "unibrowser.web.reader.toggle";
+    pub const CAPTURE_VISIBLE_TAB: &str = "unibrowser.capture.visibleTab";
+    pub const COMPARE_IMAGES: &str = "unibrowser.image.compare";
 }

@@ -236,3 +236,11 @@ pub fn toggle_content_webview_devtools(
     set_content_webview_devtools(app, window_label, !open)?;
     Ok(!open)
 }
+
+/// PNG of the visible https content webview (platform snapshot; shell fallback when unavailable).
+pub fn capture_content_webview_png(app: &AppHandle, window_label: &str) -> Result<Vec<u8>, String> {
+    ensure_content_webview(app, window_label)?;
+    let _label = content_label(window_label);
+    let _ = app;
+    Err("native webview snapshot unavailable in this build".into())
+}

@@ -2450,6 +2450,89 @@ mark.docx-search-hit--current {
   min-width: 6rem;
 }
 
+.settings-search-wrap {
+  margin-bottom: 0.75rem;
+}
+
+.settings-search {
+  width: 100%;
+  max-width: 22rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.settings-section.settings-filtered-out,
+.settings-advanced.settings-filtered-out {
+  display: none;
+}
+
+.image-compare-host {
+  position: absolute;
+  inset: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #1e1e24;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 0.5rem;
+  z-index: 2;
+}
+
+.image-compare-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.image-compare-stage {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.image-compare-pane {
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.image-compare-pane img {
+  max-width: 100%;
+  max-height: 100%;
+  transform-origin: center center;
+}
+
+.image-compare-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.image-compare-zoom {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.diagnostics-list {
+  margin: 0.25rem 0 0 1rem;
+}
+
+.diagnostics-log {
+  font-size: 0.75rem;
+  max-height: 14rem;
+  overflow: auto;
+  background: #15151a;
+  padding: 0.5rem;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
 #palette-query {
   width: 100%;
   margin-bottom: 0.5rem;

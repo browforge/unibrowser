@@ -1,5 +1,6 @@
 /** ADR 0013: non-blocking errors in chrome, never over the document surface. */
 
+import { invoke } from "@tauri-apps/api/core";
 import { t } from "./i18n";
 
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -83,6 +84,10 @@ export function showToast(
 export function showErrorToast(err: unknown, fallback?: string) {
   const details = formatErrorDetails(err);
   const message = friendlyErrorMessage(err, fallback);
+  void invoke("record_diagnostic_error", {
+    message,
+    details,
+  }).catch(() => {});
   showToast(message, "error", details);
 }
 

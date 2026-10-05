@@ -60,6 +60,30 @@ export async function renderSettings(root: HTMLElement) {
   intro.textContent = t("settings.lead");
   root.appendChild(intro);
 
+  const searchWrap = document.createElement("div");
+  searchWrap.className = "settings-search-wrap";
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.className = "settings-search";
+  searchInput.placeholder = t("settings.searchPlaceholder");
+  searchInput.setAttribute("aria-label", t("settings.searchPlaceholder"));
+  searchWrap.appendChild(searchInput);
+  root.appendChild(searchWrap);
+
+  const filterSettings = () => {
+    const q = searchInput.value.trim().toLowerCase();
+    root.querySelectorAll(".settings-section, .settings-advanced").forEach((node) => {
+      const sec = node as HTMLElement;
+      if (!q) {
+        sec.classList.remove("settings-filtered-out");
+        return;
+      }
+      const hay = sec.innerText.toLowerCase();
+      sec.classList.toggle("settings-filtered-out", !hay.includes(q));
+    });
+  };
+  searchInput.addEventListener("input", filterSettings);
+
   const prefs = await invoke<PrefsDto>("get_preferences");
 
   const langSection = document.createElement("section");
@@ -696,4 +720,20 @@ export async function renderSettings(root: HTMLElement) {
   };
   aboutLink.appendChild(link);
   root.appendChild(aboutLink);
+
+  const diagLink = document.createElement("p");
+  diagLink.className = "viewer-note";
+  const diagBtn = document.createElement("button");
+  diagBtn.type = "button";
+  diagBtn.className = "recent-link";
+  diagBtn.textContent = t("diagnostics.open");
+  diagBtn.onclick = () => {
+    window.dispatchEvent(
+      new CustomEvent("unibrowser-navigate", {
+        detail: "unibrowser://diagnostics",
+      }),
+    );
+  };
+  diagLink.appendChild(diagBtn);
+  root.appendChild(diagLink);
 }

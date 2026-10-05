@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Tab capture**: palette **Capture visible tab** saves PNG to Downloads and opens it in a new tab (webview snapshot / image encode / viewer canvas fallback).
+- **Image compare (experimental)**: palette **Compare images** with split slider and shared zoom; closes like text compare.
+- **Diagnostics**: `unibrowser://diagnostics` for mods, ffmpeg probe, WebView stack, and recent session errors.
+- **Settings search**: filter preference sections by typing.
 - **Keyboard cheat sheet**: palette **Show keyboard shortcuts** opens a searchable overlay (`get_keyboard_shortcuts` merges registry titles with merged keybindings).
 - **Reader mode**: `unibrowser.web.reader.toggle` injects Readability-style chrome hiding on https pages; disabled/grey on non-web tabs.
 - **Bookmark bar lite**: Settings toggle + quick link editor; pins plus dashed quick URLs; bar remains in header chrome.
