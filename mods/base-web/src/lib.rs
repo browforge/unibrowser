@@ -2,7 +2,7 @@ use unibrowser_mod_api::{
     BrowserLocation, Capabilities, Enablement, Mode, SelectionSnapshot,
     handlers::{
         FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
-        TOGGLE_WEB_DEVTOOLS_ID,
+        TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
     },
 };
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
@@ -11,12 +11,22 @@ pub const BACKEND_ID: &str = "base-web";
 
 pub struct WebBackend {
     pub url: String,
+    pub reader_mode: bool,
 }
 
 impl WebBackend {
     pub fn new(url: impl Into<String>) -> Self {
-        Self { url: url.into() }
+        Self {
+            url: url.into(),
+            reader_mode: false,
+        }
     }
+}
+
+pub fn try_web_backend_mut(
+    backend: &mut dyn unibrowser_engine::document::DocumentBackend,
+) -> Option<&mut WebBackend> {
+    backend.as_any_mut().downcast_mut::<WebBackend>()
 }
 
 impl unibrowser_engine::document::DocumentBackend for WebBackend {
@@ -119,6 +129,12 @@ pub fn register(registry: &mut CommandRegistry) {
     });
     registry.register_handler(HandlerRegistration {
         command_id: TOGGLE_WEB_DEVTOOLS_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: web_font_enable,
+        execute: web_font_exec,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: TOGGLE_READER_MODE_ID.into(),
         backend_id: BACKEND_ID.into(),
         enable: web_font_enable,
         execute: web_font_exec,

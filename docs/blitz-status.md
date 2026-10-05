@@ -32,6 +32,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Multi-window | Shared prefs/mods; independent tabs per window; session v2 restores all windows; [multi-window.md](multi-window.md) |
 | OS file drop | Drop onto any window → open in that window; multi-file → multiple tabs |
 | Print preview | Markdown/DOCX print CSS preview tab; export PDF opens same preview first |
+| Keyboard cheat sheet | Palette **Show keyboard shortcuts** → searchable overlay (`get_keyboard_shortcuts`: defaults + `keybindings.json`); `unibrowser://keys` page |
+| Reader mode | **Toggle reader mode** on https tabs (injected declutter CSS); grey in Command Manager when not http(s) |
+| Bookmark bar lite | Optional bar under chrome (pins + up to 8 quick URLs); Settings toggle; layout uses `#content-host` bounds so webview never sits under the bar |
 | Roadmap | [roadmap.md](roadmap.md) refreshed vs blitz shipped vs open (VSIX JS, WebView2 downloads, OCR, full encode) |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |

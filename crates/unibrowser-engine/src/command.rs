@@ -103,6 +103,20 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["another window", "second window"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::SHOW_KEYBOARD_SHORTCUTS,
+            title: "Show keyboard shortcuts",
+            icon: "keyboard",
+            default_keybinding: None,
+            aliases: &["key bindings", "cheat sheet", "shortcuts"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TOGGLE_READER_MODE,
+            title: "Toggle reader mode",
+            icon: "reader",
+            default_keybinding: None,
+            aliases: &["readability", "declutter", "article mode"],
+        });
         reg
     }
 

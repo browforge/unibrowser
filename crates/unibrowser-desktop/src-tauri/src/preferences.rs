@@ -123,6 +123,22 @@ pub struct Preferences {
     /// Last-opened spine chapter index per EPUB path.
     #[serde(default)]
     pub epub_chapter_by_path: HashMap<String, usize>,
+    /// Bookmark bar under chrome (pins + quick links).
+    #[serde(default = "default_bookmark_bar_enabled")]
+    pub bookmark_bar_enabled: bool,
+    /// Extra https/file links shown on the bookmark bar after pins.
+    #[serde(default)]
+    pub bookmark_quick_links: Vec<BookmarkQuickLink>,
+}
+
+fn default_bookmark_bar_enabled() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BookmarkQuickLink {
+    pub label: String,
+    pub url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -228,6 +244,8 @@ impl Default for Preferences {
             onboarding_checklist_skip_forever: false,
             onboarding_checklist_completed: Vec::new(),
             epub_chapter_by_path: HashMap::new(),
+            bookmark_bar_enabled: default_bookmark_bar_enabled(),
+            bookmark_quick_links: Vec::new(),
         }
     }
 }

@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Keyboard cheat sheet**: palette **Show keyboard shortcuts** opens a searchable overlay (`get_keyboard_shortcuts` merges registry titles with merged keybindings).
+- **Reader mode**: `unibrowser.web.reader.toggle` injects Readability-style chrome hiding on https pages; disabled/grey on non-web tabs.
+- **Bookmark bar lite**: Settings toggle + quick link editor; pins plus dashed quick URLs; bar remains in header chrome.
 - **Multi-window**: palette **New window**; shared profile, per-window tabs; session v2 verified; [multi-window.md](docs/multi-window.md) updated.
 - **OS drop**: file drops target the window under the cursor; multi-select opens multiple tabs; `.unibrow` validation on drop.
 - **Print preview**: `openPrintPreviewDocument` (print CSS); Markdown/DOCX toolbar; export PDF shows preview before save dialog.

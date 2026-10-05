@@ -154,16 +154,35 @@ pub fn content_webview_navigate(
     Ok(())
 }
 
+pub fn apply_reader_mode(
+    app: &AppHandle,
+    window_label: &str,
+    enabled: bool,
+) -> Result<(), String> {
+    ensure_content_webview(app, window_label)?;
+    let label = content_label(window_label);
+    let wv = app.get_webview(&label).ok_or("content webview missing")?;
+    let script = if enabled {
+        r#"(function(){try{var id='unibrowser-reader-style';var s=document.getElementById(id);if(!s){s=document.createElement('style');s.id=id;document.head.appendChild(s);}s.textContent='header,nav,footer,aside,[role=banner],[role=navigation],.ad,.ads,.advertisement,.cookie,.newsletter{display:none!important;}body{margin:0 auto!important;max-width:42rem!important;padding:1rem 1.25rem!important;line-height:1.65!important;font-size:1.05rem!important;background:#fff!important;color:#111!important;}article,main,[role=main]{display:block!important;}img,video{max-width:100%!important;height:auto!important;}';document.documentElement.classList.add('ub-reader-mode');var pick=document.querySelector('article')||document.querySelector('main')||document.querySelector('[role=main]');if(pick){pick.scrollIntoView({block:'start'});}}catch(e){}})();"#
+    } else {
+        r#"(function(){try{var s=document.getElementById('unibrowser-reader-style');if(s){s.remove();}document.documentElement.classList.remove('ub-reader-mode');}catch(e){}})();"#
+    };
+    wv.eval(script).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn sync_content_webview_for_window(
     app: &AppHandle,
     window_label: &str,
     loc: &unibrowser_mod_api::BrowserLocation,
+    reader_mode: bool,
 ) -> Result<(), String> {
     match loc {
         unibrowser_mod_api::BrowserLocation::Http { url } => {
             content_webview_navigate(app, window_label, url)?;
             apply_persisted_web_font(app, window_label, url)?;
             apply_persisted_web_zoom(app, window_label, url)?;
+            apply_reader_mode(app, window_label, reader_mode)?;
         }
         _ => {
             content_webview_navigate(app, window_label, "about:blank")?;

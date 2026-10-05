@@ -113,6 +113,14 @@ body {
   margin-bottom: 0.35rem;
 }
 
+.bookmark-bar.hidden {
+  display: none;
+}
+
+.bookmark-link.quick-link {
+  border-style: dashed;
+}
+
 .bookmark-link {
   font-size: 0.8rem;
   padding: 0.15rem 0.45rem;
@@ -2389,6 +2397,57 @@ mark.docx-search-hit--current {
 
 .palette.hidden {
   display: none;
+}
+
+.keys-overlay #keys-shortcuts-query {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem;
+}
+
+.keys-shortcuts-results {
+  max-height: min(60vh, 28rem);
+  overflow-y: auto;
+}
+
+.keys-shortcut-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.keys-shortcut-chord {
+  flex: 0 0 auto;
+  min-width: 7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  color: #9cf;
+}
+
+.keys-shortcut-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings-quick-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.settings-quick-link-row input[type="text"],
+.settings-quick-link-row input[type="url"] {
+  flex: 1 1 8rem;
+  min-width: 6rem;
 }
 
 #palette-query {

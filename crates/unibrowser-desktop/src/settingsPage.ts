@@ -49,6 +49,8 @@ interface PrefsDto {
   advanced_webview_devtools: boolean;
   advanced_experimental_spellcheck: boolean;
   open_downloads_in_system_browser: boolean;
+  bookmark_bar_enabled: boolean;
+  bookmark_quick_links: { label: string; url: string }[];
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -111,6 +113,96 @@ export async function renderSettings(root: HTMLElement) {
   themeSection.appendChild(themeHeading);
   themeSection.appendChild(themeSelect);
   root.appendChild(themeSection);
+
+  const bookmarkSection = document.createElement("section");
+  bookmarkSection.className = "settings-section";
+  const bookmarkHeading = document.createElement("h3");
+  bookmarkHeading.textContent = t("settings.bookmarkBar");
+  const bookmarkLead = document.createElement("p");
+  bookmarkLead.className = "viewer-note";
+  bookmarkLead.textContent = t("settings.bookmarkBarLead");
+  bookmarkSection.appendChild(bookmarkHeading);
+  bookmarkSection.appendChild(bookmarkLead);
+  const bookmarkEnableRow = document.createElement("div");
+  bookmarkEnableRow.className = "settings-row";
+  const bookmarkCb = document.createElement("input");
+  bookmarkCb.type = "checkbox";
+  bookmarkCb.id = "settings-bookmark-bar";
+  bookmarkCb.checked = prefs.bookmark_bar_enabled;
+  bookmarkCb.onchange = async () => {
+    await invoke<PrefsDto>("set_bookmark_bar_enabled", { enabled: bookmarkCb.checked });
+    window.dispatchEvent(new Event("unibrowser-prefs-changed"));
+  };
+  const bookmarkEnableLabel = document.createElement("label");
+  bookmarkEnableLabel.htmlFor = bookmarkCb.id;
+  bookmarkEnableLabel.textContent = t("settings.bookmarkBarShow");
+  bookmarkEnableRow.appendChild(bookmarkCb);
+  bookmarkEnableRow.appendChild(bookmarkEnableLabel);
+  bookmarkSection.appendChild(bookmarkEnableRow);
+
+  const quickLead = document.createElement("p");
+  quickLead.className = "viewer-note";
+  quickLead.textContent = t("settings.bookmarkQuickLead");
+  bookmarkSection.appendChild(quickLead);
+  const quickList = document.createElement("div");
+  quickList.className = "settings-quick-links";
+  const quickState = prefs.bookmark_quick_links.map((l) => ({
+    label: l.label,
+    url: l.url,
+  }));
+  const persistQuickLinks = async () => {
+    await invoke<PrefsDto>("set_bookmark_quick_links", { links: quickState });
+    window.dispatchEvent(new Event("unibrowser-prefs-changed"));
+  };
+  const renderQuickRows = () => {
+    quickList.innerHTML = "";
+    quickState.forEach((link, index) => {
+      const row = document.createElement("div");
+      row.className = "settings-quick-link-row";
+      const labelInput = document.createElement("input");
+      labelInput.type = "text";
+      labelInput.placeholder = t("settings.bookmarkQuickLabel");
+      labelInput.value = link.label;
+      labelInput.onchange = () => {
+        quickState[index].label = labelInput.value;
+        void persistQuickLinks();
+      };
+      const urlInput = document.createElement("input");
+      urlInput.type = "url";
+      urlInput.placeholder = "https://";
+      urlInput.value = link.url;
+      urlInput.onchange = () => {
+        quickState[index].url = urlInput.value;
+        void persistQuickLinks();
+      };
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.textContent = t("settings.bookmarkQuickRemove");
+      removeBtn.onclick = () => {
+        quickState.splice(index, 1);
+        void persistQuickLinks().then(renderQuickRows);
+      };
+      row.appendChild(labelInput);
+      row.appendChild(urlInput);
+      row.appendChild(removeBtn);
+      quickList.appendChild(row);
+    });
+  };
+  renderQuickRows();
+  const addQuickBtn = document.createElement("button");
+  addQuickBtn.type = "button";
+  addQuickBtn.textContent = t("settings.bookmarkQuickAdd");
+  addQuickBtn.onclick = () => {
+    if (quickState.length >= 8) {
+      showToast(t("settings.bookmarkQuickLimit"), "info");
+      return;
+    }
+    quickState.push({ label: "", url: "" });
+    renderQuickRows();
+  };
+  bookmarkSection.appendChild(quickList);
+  bookmarkSection.appendChild(addQuickBtn);
+  root.appendChild(bookmarkSection);
 
   const a11ySection = document.createElement("section");
   a11ySection.className = "settings-section";

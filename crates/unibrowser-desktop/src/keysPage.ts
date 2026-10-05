@@ -4,9 +4,10 @@ import { t } from "./i18n";
 
 type I18nKey = keyof typeof enNz;
 
-interface KeybindingRow {
+interface KeyboardShortcutRow {
   command_id: string;
   chord: string;
+  title: string;
 }
 
 const STATIC_HINTS = [
@@ -54,17 +55,14 @@ export async function renderKeys(root: HTMLElement) {
   const boundTable = document.createElement("table");
   boundTable.className = "keys-table";
   try {
-    const bindings = await invoke<KeybindingRow[]>("get_keybindings");
-    bindings
-      .slice()
-      .sort((a, b) => a.chord.localeCompare(b.chord))
-      .forEach((row) => {
+    const bindings = await invoke<KeyboardShortcutRow[]>("get_keyboard_shortcuts");
+    bindings.forEach((row) => {
         const tr = document.createElement("tr");
         const tdChord = document.createElement("td");
         tdChord.className = "keys-chord";
         tdChord.textContent = row.chord;
         const tdLabel = document.createElement("td");
-        tdLabel.textContent = row.command_id;
+        tdLabel.textContent = row.title;
         tr.appendChild(tdChord);
         tr.appendChild(tdLabel);
         boundTable.appendChild(tr);

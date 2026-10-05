@@ -48,6 +48,12 @@ import {
   toggleDocumentFind,
 } from "./documentFind";
 import type { DirEntry as FilesDirEntry, FilesViewDto } from "./filesPanelTypes";
+import {
+  closeKeysOverlay,
+  initKeysOverlay,
+  isKeysOverlayOpen,
+  openKeysOverlay,
+} from "./keysOverlay";
 
 interface TabDto {
   id: number;
@@ -157,6 +163,13 @@ interface TabContentDto {
   files_view: FilesViewDto;
   folder_favorites: string[];
   download_history?: DownloadHistoryEntryDto[];
+  bookmark_bar_enabled?: boolean;
+  bookmark_quick_links?: BookmarkQuickLinkDto[];
+}
+
+interface BookmarkQuickLinkDto {
+  label: string;
+  url: string;
 }
 
 interface DownloadEventPayload {
@@ -808,8 +821,17 @@ async function renderSessionOptIn() {
   }
 }
 
-function renderBookmarkBar(pins: PinnedLocationDto[]) {
+function renderBookmarkBar(
+  enabled: boolean,
+  pins: PinnedLocationDto[],
+  quickLinks: BookmarkQuickLinkDto[] = [],
+) {
   bookmarkBar.innerHTML = "";
+  if (!enabled) {
+    bookmarkBar.classList.add("hidden");
+    return;
+  }
+  bookmarkBar.classList.remove("hidden");
   pins.forEach((pin) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -834,6 +856,23 @@ function renderBookmarkBar(pins: PinnedLocationDto[]) {
         return;
       }
       omnibox.value = pin.location;
+      navigateOmnibox();
+    };
+    bookmarkBar.appendChild(btn);
+  });
+  quickLinks.forEach((link) => {
+    const url = link.url.trim();
+    if (!url) {
+      return;
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "bookmark-link quick-link";
+    const label = link.label.trim();
+    btn.textContent = label || url;
+    btn.title = url;
+    btn.onclick = () => {
+      omnibox.value = url;
       navigateOmnibox();
     };
     bookmarkBar.appendChild(btn);
@@ -919,6 +958,18 @@ async function handleShellCommandMessage(msg: string): Promise<boolean> {
   if (msg === "devtools-open" || msg === "devtools-close") {
     return false;
   }
+  if (msg === "keys-overlay") {
+    await openKeysOverlay();
+    return false;
+  }
+  if (msg === "reader-on") {
+    showToast(t("reader.on"), "info");
+    return false;
+  }
+  if (msg === "reader-off") {
+    showToast(t("reader.off"), "info");
+    return false;
+  }
   const pct = msg.match(/(\d+)%/);
   if (pct) {
     webZoomPercent = Number(pct[1]);
@@ -926,13 +977,25 @@ async function handleShellCommandMessage(msg: string): Promise<boolean> {
   return true;
 }
 
+async function processCommandResult(msg: string, commandId?: string) {
+  if (commandId === "unibrowser.script.demo.hello") {
+    appendScriptOutput(String(msg));
+    return;
+  }
+  if (msg === "palette") {
+    togglePalette();
+    return;
+  }
+  const toast = await handleShellCommandMessage(msg);
+  if (toast && msg !== "Cancelled" && commandId !== "unibrowser.script.demo.hello") {
+    showToast(String(msg), "info");
+  }
+}
+
 async function runUiCommand(commandId: string) {
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
-  const toast = await handleShellCommandMessage(msg);
-  if (toast && msg !== "Cancelled") {
-    showToast(String(msg), "info");
-  }
+  await processCommandResult(msg, commandId);
   await refreshCommandManager();
   await refreshState();
 }
@@ -1011,7 +1074,11 @@ async function applyState(data: TabContentDto) {
   renderTabs(data);
   const remoteHint = active?.is_http ? ` · ${t("trust.remoteWeb")}` : "";
   modsLine.textContent = modsLineText(data.mods_loaded) + remoteHint;
-  renderBookmarkBar(data.pinned_locations ?? []);
+  renderBookmarkBar(
+    data.bookmark_bar_enabled ?? true,
+    data.pinned_locations ?? [],
+    data.bookmark_quick_links ?? [],
+  );
   const showDiff = Boolean(data.diff_view);
   if (showDiff && data.diff_view) {
     await diffEditorView.apply(data.diff_view, diffEditorHost);
@@ -1233,9 +1300,7 @@ document.getElementById("btn-compare")!.onclick = () => {
 };
 
 document.getElementById("btn-pin")!.onclick = () => {
-  void invoke<PinnedLocationDto[]>("pin_current_location").then((pins) => {
-    renderBookmarkBar(pins);
-  });
+  void refreshState();
 };
 
 diffEditorHost.addEventListener("click", (e) => {
@@ -1368,13 +1433,7 @@ async function runKeybindingCommand(commandId: string) {
   }
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
-  if (commandId === "unibrowser.script.demo.hello") {
-    appendScriptOutput(String(msg));
-  }
-  const toast = await handleShellCommandMessage(msg);
-  if (toast && msg !== "Cancelled" && commandId !== "unibrowser.script.demo.hello") {
-    showToast(String(msg), "info");
-  }
+  await processCommandResult(msg, commandId);
   await refreshCommandManager();
   await refreshState();
 }
@@ -1386,6 +1445,11 @@ document.addEventListener(
     return;
   }
   if (e.key === "Escape") {
+    if (isKeysOverlayOpen()) {
+      e.preventDefault();
+      closeKeysOverlay();
+      return;
+    }
     if (paletteOpen) {
       e.preventDefault();
       closePalette();
@@ -1477,14 +1541,11 @@ paletteQuery.addEventListener("input", async () => {
         });
         return;
       }
-      invoke<string>("execute_command", { commandId: entry.command_id }).then((msg) => {
-        if (entry.command_id === "unibrowser.script.demo.hello") {
-          appendScriptOutput(String(msg));
-        }
-        showToast(String(msg), "info");
+      void invoke<string>("execute_command", { commandId: entry.command_id }).then(async (msg) => {
         togglePalette();
-        refreshCommandManager();
-        refreshState();
+        await processCommandResult(msg, entry.command_id);
+        await refreshCommandManager();
+        await refreshState();
       });
     };
     paletteResults.appendChild(row);
@@ -1608,6 +1669,10 @@ function deferNonCriticalInit(fn: () => void) {
 }
 
 initScriptOutputPanel();
+initKeysOverlay();
+window.addEventListener("unibrowser-prefs-changed", () => {
+  void refreshState();
+});
 listen<string>("unibrowser-script-output", (event) => {
   appendScriptOutput(String(event.payload));
 });

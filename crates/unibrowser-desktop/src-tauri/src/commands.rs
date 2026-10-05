@@ -47,7 +47,7 @@ use crate::webview::{
 use unibrowser_mod_api::handlers::{
     DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
-    TOGGLE_WEB_DEVTOOLS_ID,
+    SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
 };
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
@@ -279,6 +279,21 @@ pub struct TabContentDto {
     pub files_view: FilesViewDto,
     pub folder_favorites: Vec<String>,
     pub download_history: Vec<DownloadHistoryEntryDto>,
+    pub bookmark_bar_enabled: bool,
+    pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
+}
+
+#[derive(Serialize, serde::Deserialize)]
+pub struct BookmarkQuickLinkDto {
+    pub label: String,
+    pub url: String,
+}
+
+#[derive(Serialize)]
+pub struct KeyboardShortcutDto {
+    pub chord: String,
+    pub title: String,
+    pub command_id: String,
 }
 
 #[derive(Serialize)]
@@ -1033,6 +1048,15 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         files_view: files_view_dto(&prefs),
         folder_favorites: prefs.folder_favorites.clone(),
         download_history: download_history_dto(),
+        bookmark_bar_enabled: prefs.bookmark_bar_enabled,
+        bookmark_quick_links: prefs
+            .bookmark_quick_links
+            .iter()
+            .map(|l| BookmarkQuickLinkDto {
+                label: l.label.clone(),
+                url: l.url.clone(),
+            })
+            .collect(),
     })
 }
 
@@ -2292,6 +2316,27 @@ pub fn execute_command(window: tauri::Window,
         let label = open_new_browser_window(window, app)?;
         return Ok(format!("window:{}", label));
     }
+    if command_id == SHOW_KEYBOARD_SHORTCUTS_ID {
+        return Ok("keys-overlay".into());
+    }
+    if command_id == TOGGLE_READER_MODE_ID {
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no tab")?;
+        let doc = tab.document.as_mut().ok_or("reader mode needs an https tab")?;
+        let web = base_web::try_web_backend_mut(&mut *doc.backend)
+            .ok_or("reader mode is only for https pages")?;
+        web.reader_mode = !web.reader_mode;
+        let loc = tab.location.clone();
+        if let BrowserLocation::Http { .. } = &loc {
+            crate::webview::apply_reader_mode(&app, window.label(), web.reader_mode)?;
+        }
+        return Ok(if web.reader_mode {
+            "reader-on".into()
+        } else {
+            "reader-off".into()
+        });
+    }
     if command_id == TOGGLE_WEB_DEVTOOLS_ID {
         let _sess_tabs = ws(&state, &window)?;
         let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
@@ -2457,6 +2502,29 @@ pub struct KeyChordInput {
     pub shift: bool,
     pub meta: bool,
     pub key: String,
+}
+
+#[tauri::command]
+pub fn get_keyboard_shortcuts(state: State<AppState>) -> Result<Vec<KeyboardShortcutDto>, String> {
+    let registry = state.registry.lock().map_err(|e| e.to_string())?;
+    let kb = state.keybindings.lock().map_err(|e| e.to_string())?;
+    let mut rows: Vec<KeyboardShortcutDto> = kb
+        .bindings_for_display()
+        .into_iter()
+        .map(|(command_id, chord)| {
+            let title = registry
+                .command_meta(&command_id)
+                .map(|m| m.title.to_string())
+                .unwrap_or_else(|| command_id.clone());
+            KeyboardShortcutDto {
+                chord,
+                title,
+                command_id,
+            }
+        })
+        .collect();
+    rows.sort_by(|a, b| a.chord.cmp(&b.chord).then_with(|| a.title.cmp(&b.title)));
+    Ok(rows)
 }
 
 #[tauri::command]
@@ -2762,6 +2830,31 @@ pub struct PreferencesDto {
     pub advanced_experimental_spellcheck: bool,
     pub open_downloads_in_system_browser: bool,
     pub files_view: FilesViewDto,
+    pub bookmark_bar_enabled: bool,
+    pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
+}
+
+#[tauri::command]
+pub fn set_bookmark_bar_enabled(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.bookmark_bar_enabled = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_bookmark_quick_links(links: Vec<BookmarkQuickLinkDto>) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.bookmark_quick_links = links
+        .into_iter()
+        .filter(|l| !l.url.trim().is_empty())
+        .map(|l| crate::preferences::BookmarkQuickLink {
+            label: l.label.trim().to_string(),
+            url: l.url.trim().to_string(),
+        })
+        .collect();
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 #[tauri::command]
@@ -3599,6 +3692,15 @@ fn preferences_dto() -> PreferencesDto {
         advanced_experimental_spellcheck: p.advanced_experimental_spellcheck,
         open_downloads_in_system_browser: p.open_downloads_in_system_browser,
         files_view: files_view_dto(&p),
+        bookmark_bar_enabled: p.bookmark_bar_enabled,
+        bookmark_quick_links: p
+            .bookmark_quick_links
+            .iter()
+            .map(|l| BookmarkQuickLinkDto {
+                label: l.label.clone(),
+                url: l.url.clone(),
+            })
+            .collect(),
     }
 }
 
@@ -4760,10 +4862,36 @@ pub fn get_csv_preview(
     crate::csv_preview::preview_file(&p, limit)
 }
 
+fn active_web_reader_mode(state: &AppState, window_label: &str) -> bool {
+    let sess = match state.session(window_label) {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+    let mut tabs = match sess.tabs.lock() {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+    let tab = match tabs.active_tab_mut() {
+        Some(t) => t,
+        None => return false,
+    };
+    let doc = match tab.document.as_mut() {
+        Some(d) => d,
+        None => return false,
+    };
+    base_web::try_web_backend_mut(&mut *doc.backend)
+        .map(|w| w.reader_mode)
+        .unwrap_or(false)
+}
+
 fn update_content_webview(
     app: &AppHandle,
     window_label: &str,
     loc: &BrowserLocation,
 ) -> Result<(), String> {
-    sync_content_webview_for_window(app, window_label, loc)
+    let reader = app
+        .try_state::<AppState>()
+        .map(|s| active_web_reader_mode(s.inner(), window_label))
+        .unwrap_or(false);
+    sync_content_webview_for_window(app, window_label, loc, reader)
 }

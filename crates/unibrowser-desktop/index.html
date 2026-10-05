@@ -123,6 +123,22 @@
       <input id="palette-query" type="text" placeholder="Search commands (Ctrl+Shift+P)" aria-label="Search commands" />
       <div id="palette-results"></div>
     </div>
+    <div
+      id="keys-shortcuts-overlay"
+      class="palette keys-overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+    >
+      <input
+        id="keys-shortcuts-query"
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Filter keyboard shortcuts"
+      />
+      <div id="keys-shortcuts-results" class="keys-shortcuts-results"></div>
+    </div>
     <div id="filename-search" class="palette hidden" role="dialog" aria-label="Find files">
       <div class="filename-search-head">
         <input id="filename-search-query" type="search" placeholder="Filename…" />
