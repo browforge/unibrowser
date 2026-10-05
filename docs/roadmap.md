@@ -2,6 +2,8 @@
 
 Phases are capability-based, not calendar estimates. Each phase should leave the host shippable and testable.
 
+**Strategic order:** nail **context switching** and the **command/manager model** first; add format depth and **lazy conversion** pipelines without building huge editors prematurely.
+
 ## Phase 0 — Prove the abstraction (this repository)
 
 **Goal:** Same command, different backends; grey-out-not-hide; command palette with standard keybindings; mod manifests.
@@ -20,43 +22,64 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 
 | Deliverable | Status |
 | --- | --- |
-| Tauri 2 shell (`unibrowser-desktop`): tabs, omnibox, back/forward/reload | **Working (Linux)** |
-| Child content WebView for `https://` (`base-web`, `tauri` `unstable` multiwebview) | **Working** |
+| Tauri 2 shell: tabs, omnibox, back/forward/reload | **Working (Linux)** |
+| Child content WebView for `https://` | **Working** |
 | `base-files` directory listing and open in tab | **Working** |
-| `BrowserLocation` per tab; download → new tab (command + `on_download` emit) | **Working / stub** ([downloads.md](downloads.md)) |
-| Command registry, palette (Ctrl+Shift+P), user keybindings, font-size grey-out on file docs | **Working** |
-| egui spike (`unibrowser-app`) | Kept as harness |
-| Monaco text edit, save, `toolbars.json` Command Manager + drag reorder | **Working** |
-| Office / audio manager tabs (planned phase) | **Stub** |
-| SVG, PDF, DOCX, DXF format mods | Deferred |
+| Download → new tab | **Working / stub** ([downloads.md](downloads.md)) |
+| Palette, keybindings, Command Manager + `toolbars.json` | **Working** |
+| Monaco text edit + save (text context) | **Working** |
+| Context pin hook (`context_pin` in layout; Tauri pin/clear API) | **Engine + API** (UI toggle next) |
+| Office / audio manager tabs (`planned`) | **Stub** |
+| Vision + ADR 0011/0012 (conversion + UX benchmarks) | **Done** |
 
-## Phase 2 — Document and CAD depth
+**Not in Phase 1:** full office suite, NLE, PDF-on-timeline implementation.
 
-- DOCX edit (permissive JS stack or LOK sidecar, AGPL-labelled where required).
-- DXF edit via permissive parser or GPL helper process.
-- EPUB reader mod; optional LibreOfficeKit sidecar for office fidelity.
+## Phase 2 — Context lanes (Text → Office → Code → Image)
 
-## Phase 3 — Media and advanced web
+Rollout matches Command Manager tabs ([ui-commands.md](ui-commands.md)):
 
-- Video/audio with ffmpeg (LGPL build) sidecar; subtitle/text overlays.
-- Hardened web mod: permissions, user stylesheet commands (Stylus-like), isolated guest profiles.
+| Lane | Deliverable |
+| --- | --- |
+| **Text** | Rich text where needed; keep Monaco for plain/code-like |
+| **Office** | DOCX/XLSX view-edit; optional LOK sidecar (AGPL-labelled) |
+| **Code** | LSP, format, debug hooks — same command registry |
+| **Image** | Raster + SVG; text layers; GIMP-style tool slots on floating bars |
 
-## Phase 4 — Ecosystem
+**Toolbar UX (GIMP + SOLIDWORKS bar):**
 
-- Signed mod distribution; WASM tier for untrusted mods.
-- Contribution docs; optional “studio” presets (Affinity-style shared toolbar layouts).
+| Item | Target phase |
+| --- | --- |
+| Reorder within tab | Phase 1 ✓ |
+| Float + position | Phase 1 ✓ |
+| Drag between tabs | Phase 2 |
+| Drag out to new floating bar | Phase 2 |
+| Pin context UI in chrome | Phase 2 |
 
-## Phase 5 — Hardening
+## Phase 3 — Mixed media + lazy conversion
 
-- Crash reporting, sandbox audit, REUSE/SPDX licence CI, trademark-cleared product name.
+Implement [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md) for real:
 
-## MVP format mod order (recommended)
+- Timeline/project mod (Resolve-style **page** inside stable chrome).
+- PDF clips vector-native; proxy raster for scrub; rasterise at encode.
+- MIDI clips; synth preview; PCM bake on export.
+- ffmpeg (LGPL) sidecar for audio/video encode — not linked into Apache core.
 
-1. `base-text` — plain text / code
-2. `base-markdown` — lightweight markup
-3. `base-raster` — PNG, JPEG
-4. `base-svg` — vector + text elements
-5. `base-html` — file + optional live page (WebView mod)
-6. `base-pdf` — view-only
-7. `base-docx` — basic edit
-8. `base-dxf` — view-first
+## Phase 4 — Document and CAD depth
+
+- EPUB; DXF view/edit; advanced web (user styles, permissions).
+
+## Phase 5 — Ecosystem and hardening
+
+- Signed mods; WASM tier; studio presets (Affinity-style shared layouts).
+- Crash reporting; sandbox audit; REUSE/SPDX CI.
+
+## MVP format mod order (unchanged, aligned to manager tabs)
+
+1. `base-text` — plain text
+2. `base-markdown` — lightweight markup  
+3. `base-raster` / `base-svg` — image context  
+4. `base-html` / `base-web` — web context  
+5. `base-pdf` — view-first; timeline-native later  
+6. `base-docx` — office context  
+7. `base-dxf` — view-first  
+8. `base-audio` / `base-midi` — audio context (preview vs export)

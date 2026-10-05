@@ -54,6 +54,9 @@ pub struct FloatingToolbarLayout {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandManagerFile {
     pub selected_tab: String,
+    /// When set, auto context changes do not change `selected_tab` (SOLIDWORKS-style pin).
+    #[serde(default)]
+    pub context_pin: Option<String>,
     pub tabs: Vec<ManagerTabLayout>,
     pub floating_bars: Vec<FloatingToolbarLayout>,
 }
@@ -72,6 +75,8 @@ pub struct ResolvedUiCommand {
 pub struct CommandManagerState {
     pub selected_tab: String,
     pub auto_context: CommandContext,
+    /// Tab id pinned by user; `None` = follow `auto_context`.
+    pub context_pin: Option<String>,
     pub tabs: Vec<ManagerTabLayout>,
     pub floating_bars: Vec<FloatingToolbarLayout>,
 }
@@ -87,6 +92,7 @@ impl CommandManagerFile {
         use unibrowser_mod_api::commands;
         Self {
             selected_tab: CommandContext::Text.tab_id().into(),
+            context_pin: None,
             tabs: vec![
                 ManagerTabLayout {
                     id: CommandContext::Text.tab_id().into(),
@@ -151,6 +157,9 @@ impl CommandManagerFile {
         if !other.selected_tab.is_empty() {
             self.selected_tab = other.selected_tab;
         }
+        if other.context_pin.is_some() {
+            self.context_pin = other.context_pin;
+        }
     }
 }
 
@@ -170,6 +179,7 @@ impl CommandManagerState {
         Self {
             selected_tab: selected,
             auto_context,
+            context_pin: file.context_pin.clone(),
             tabs: file.tabs.clone(),
             floating_bars: file.floating_bars.clone(),
         }
@@ -177,10 +187,29 @@ impl CommandManagerState {
 
     pub fn select_tab_for_context(&mut self, ctx: CommandContext) {
         self.auto_context = ctx;
+        if self.context_pin.is_some() {
+            return;
+        }
         let id = ctx.tab_id();
         if self.tabs.iter().any(|t| t.id == id) {
             self.selected_tab = id.to_string();
         }
+    }
+
+    pub fn pin_selected_tab(&mut self) {
+        self.context_pin = Some(self.selected_tab.clone());
+    }
+
+    pub fn clear_context_pin(&mut self) {
+        self.context_pin = None;
+        let id = self.auto_context.tab_id();
+        if self.tabs.iter().any(|t| t.id == id) {
+            self.selected_tab = id.to_string();
+        }
+    }
+
+    pub fn is_context_pinned(&self) -> bool {
+        self.context_pin.is_some()
     }
 
     pub fn active_tab(&self) -> Option<&ManagerTabLayout> {
@@ -247,6 +276,7 @@ impl CommandManagerState {
     pub fn to_file(&self) -> CommandManagerFile {
         CommandManagerFile {
             selected_tab: self.selected_tab.clone(),
+            context_pin: self.context_pin.clone(),
             tabs: self.tabs.clone(),
             floating_bars: self.floating_bars.clone(),
         }

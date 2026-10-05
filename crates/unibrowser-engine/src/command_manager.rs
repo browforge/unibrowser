@@ -50,6 +50,7 @@ pub fn infer_context(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui_command::{CommandManagerFile, CommandManagerState};
     use unibrowser_mod_api::Mode;
 
     #[test]
@@ -62,5 +63,17 @@ mod tests {
     fn text_context_for_plain_txt() {
         let ctx = infer_context(false, false, Some("notes.txt"), Some(Mode::Text));
         assert_eq!(ctx, CommandContext::Text);
+    }
+
+    #[test]
+    fn context_pin_blocks_auto_tab_switch() {
+        let file = CommandManagerFile::factory_default();
+        let mut state = CommandManagerState::from_file(&file, CommandContext::Text);
+        state.pin_selected_tab();
+        state.select_tab_for_context(CommandContext::Image);
+        assert_eq!(state.auto_context, CommandContext::Image);
+        assert_eq!(state.selected_tab, "text");
+        state.clear_context_pin();
+        assert_eq!(state.selected_tab, "image");
     }
 }

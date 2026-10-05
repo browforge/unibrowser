@@ -34,7 +34,7 @@ Font size was an example of a **cross-format command** (text, office, code, imag
 - **Audio** — planned
 - **Browse** / **Web** — shell navigation
 
-Auto tab switch follows active document; user can select another tab; layout saved in `toolbars.json`.
+Auto tab switch follows active document; user can select another tab or **pin** the current tab (`context_pin` in `toolbars.json`) so auto context does not change the selection — see [ADR 0012](0012-context-switching-ux-benchmarks.md). Layout saved in `toolbars.json`.
 
 ### Surfaces
 

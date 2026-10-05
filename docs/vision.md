@@ -7,12 +7,13 @@
 
 You should not need a different app per format or per “is this local or online?”. A download or an “open” action **opens a new tab in Unibrowser** by default, not a third-party viewer. Tweaking a PDF, a spreadsheet export, a page, and a folder of assets should feel like the same product.
 
-On top of that shell, the **same commands** work everywhere they make sense (for example **Increase font size** on text in HTML, SVG, DOCX, EPUB, PNG text layers, or a live page via user styles). Each format mod implements the command; the toolbar does not move.
+On top of that shell, the **same commands** work everywhere they make sense (for example **Increase font size** on text in HTML, SVG, DOCX, EPUB, PNG text layers, or a live page via user styles). Each format mod implements the command; the Command Manager frame does not jump around — only the active tab’s tools and enablement change.
 
 ## Problems we are solving
 
 - **UI inconsistency**: Every application reinvents toolbars, shortcuts, and command discovery.
 - **Format silos**: PNG, PDF, and spreadsheets in three apps means three undo models and three export flows.
+- **“Wrong format” rejection**: Video editors refuse PDF or MIDI on a timeline; Unibrowser should **mix unusual formats** and convert only when preview or export requires it ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)).
 - **File vs web split**: OS defaults and “open with” train users to leave the flow; Unibrowser keeps you in one tabbed environment.
 - **Extension fatigue**: Monolithic suites are hard to maintain; tiny single-purpose apps do not share behaviour.
 
@@ -24,11 +25,33 @@ On top of that shell, the **same commands** work everywhere they make sense (for
 - **Downloads → new tab** (default): saving to disk is explicit; opening for work is in-app.
 - **File browsing is in-product**: directories are a mod surface, not Explorer/Finder with a separate Unibrowser launch.
 
-### SOLIDWORKS CommandManager
+### Context switching (primary UX goal)
 
-- **Context modes** map to the active document and selection; toolbar tabs auto-switch.
-- Commands that do not apply are **greyed out, never hidden**.
-- **Command palette** on standard chords (default **Ctrl+Shift+P** / **Cmd+Shift+P**); **user-configurable keybindings** like VS Code; toolbars customisable and persisted.
+Unibrowser should **excel at moving between contexts** without feeling like a different app:
+
+- **Stable chrome** — tabs, omnibox, Command Manager frame, palette, status (Affinity unified studio, DaVinci Resolve pages, SOLIDWORKS shell).
+- **Auto-relevant tools** — Command Manager tab follows document context; user may **pin** a tab ([ADR 0012](adr/0012-context-switching-ux-benchmarks.md)).
+- **Grey-out-not-hide** — SOLIDWORKS / Blender `poll()` analogue: commands stay visible, disabled when they do not apply.
+- **Customisable toolbars** — SOLIDWORKS Command Manager + GIMP-style dock/float/reorder; target is to **match or beat** both ([ui-commands.md](ui-commands.md)).
+
+**UI benchmarks (study references):**
+
+| Source | Lesson |
+|--------|--------|
+| [SOLIDWORKS Command Manager](https://help.solidworks.com/2024/english/solidworks/sldworks/c_commandmanager.htm) | Primary toolbar model; context tabs; grey-out; more customisable than Office ribbon |
+| [GIMP docks](https://docs.gimp.org/3.0/en/gimp-concepts-docks.html) | Drag-anywhere toolbars |
+| [Affinity](https://affinity.serif.com/en-us/whats-new/) | Familiar chrome across personas / unified app |
+| [Blender workspaces](https://docs.blender.org/manual/en/latest/interface/window_system/workspaces.html) | Workspaces + operator search; tools do not vanish |
+| [DaVinci Resolve](https://documents.blackmagicdesign.com/UserManuals/DaVinci-Resolve-19-User-Manual.pdf) | Page switching with consistent overall shell |
+
+### Lazy conversion / native-until-encode
+
+Keep **native representations** in the project as long as possible:
+
+- **PDF on a timeline** — vector model in project; rasterise at video encode or use display-resolution proxies while scrubbing.
+- **MIDI in a project** — MIDI data in project; synth preview on scrub; render to audio only when baking or exporting.
+
+Convert at **preview** or **export** boundaries, not on “Open file”. Details: [ADR 0011](adr/0011-lazy-conversion-native-until-encode.md).
 
 ### Factorio-style mods
 
@@ -46,12 +69,13 @@ On top of that shell, the **same commands** work everywhere they make sense (for
 - Every obscure format on day one (plugins and honest “unsupported” tabs).
 - Forking Chromium, Gecko, or LibreOffice as the whole codebase.
 - GPL/AGPL engines linked into the permissive core.
+- Building full video/office editors before the command and conversion contracts are documented (see roadmap).
 
 ## Success picture
 
-> You download a `.docx` from a site; it opens in a new tab. You open a project folder; images and README open in tabs with the same Increase font size control where text is selected. A PNG without a text layer keeps that control visible but greyed out.
+> You download a `.docx` from a site; it opens in a new tab. You open a project folder; images and README open in tabs with the same Increase font size control where text is selected. A PNG without a text layer keeps that control visible but greyed out. Later: a PDF on a video timeline stays vector in the project until you export.
 
-When that feels SOLIDWORKS-grade in a browser-shaped shell, we expand mods.
+When context switching feels SOLIDWORKS-grade inside a browser-shaped shell, we expand mods along **Text → Office → Code → Image → Audio** and mixed-format projects.
 
 ## Name
 

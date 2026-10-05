@@ -2,19 +2,22 @@
 
 Unibrowser is a **unified browser shell** (files + web in one tab strip; see [ADR 0009](adr/0009-browser-as-unified-shell.md)). The **host engine** owns navigation, commands, modes, UI chrome, and mod loading; **mods** supply document backends, web surfaces, and the bundled file browser. The skeleton uses **egui/eframe** only to prove commands and toolbars; the product shell is **Tauri + WebView** ([ADR 0001](adr/0001-shell-and-rendering.md)).
 
+**Product emphasis:** world-class **context switching** (stable chrome, auto Command Manager tab, grey-out, pin/customise) and **mixed-format projects** with **lazy conversion** ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md), [ADR 0012](adr/0012-context-switching-ux-benchmarks.md)).
+
 ## Layer diagram
 
 ```mermaid
 flowchart TB
-  subgraph App["unibrowser-app"]
-    UI[Toolbar / tabs / palette]
+  subgraph App["unibrowser-desktop / harness"]
+    UI[Stable chrome: tabs / omnibox / Command Manager]
     Win[Window + input]
   end
 
   subgraph Engine["unibrowser-engine"]
     CMD[Command registry]
+    CM[Command Manager state]
     EN[Enablement engine]
-    MODE[Mode + toolbar state]
+    MODE[Mode + CommandContext]
     DOC[Document session]
     SEL[Selection snapshot]
   end
@@ -27,12 +30,13 @@ flowchart TB
   subgraph Mods["Mods (base + community)"]
     T[base-text]
     P[base-png]
-    X[toy-markdown]
+    X[base-web]
   end
 
   Win --> UI
   UI --> CMD
-  UI --> MODE
+  UI --> CM
+  CM --> CMD
   CMD --> EN
   EN --> SEL
   EN --> DOC
@@ -45,6 +49,31 @@ flowchart TB
   DOC --> P
   DOC --> X
 ```
+
+## Context switching vs document surface
+
+```mermaid
+flowchart LR
+  subgraph StableChrome["Stable chrome"]
+    TABS[Tab strip]
+    OMN[Omnibox]
+    CM[Command Manager frame]
+    PAL[Palette]
+  end
+
+  subgraph Swaps["Per context"]
+    CMT[Manager tab + slots]
+    SURF[Document surface]
+  end
+
+  DOC[Active document] --> MODE[CommandContext]
+  MODE --> CM
+  CM --> CMT
+  DOC --> SURF
+  TABS --> DOC
+```
+
+Benchmark mapping: SOLIDWORKS Command Manager (tabs + grey-out), GIMP/Resolve (dock/float toolbars), Affinity/Resolve (stable shell), Blender (`poll` = enablement).
 
 ## Data flow: executing a command
 
@@ -107,20 +136,22 @@ flowchart LR
 | Concept | Responsibility |
 | --- | --- |
 | **Command** | Stable ID, title, icon key, default keybinding; registered once in the host. |
-| **Handler** | Mod-provided implementation + enablement predicate for a command. |
-| **Backend** | Opens a document type; owns native model; maps selection to `SelectionSnapshot`. |
-| **Mode** | High-level context (text, image, vector, web, …); drives default toolbar tab. |
-| **Context keys** | `doc.type`, `selection.has_text`, `backend.capabilities.font_size`, etc. |
+| **Handler** | Mod-provided implementation + enablement predicate (Blender `poll` analogue). |
+| **UiCommandSlot** | Command id placed on a manager tab or floating bar ([ADR 0010](adr/0010-ui-commands-and-command-manager.md)). |
+| **Backend** | Opens a document type; owns **native** model; maps selection to `SelectionSnapshot`. |
+| **`CommandContext`** | Text / Office / Code / Image / Audio / Browse / Web — drives auto manager tab. |
+| **Preview vs export** | Mod defines native state; conversion edges at preview/export ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)). |
 | **Mod manifest** | `info.json`: id, version, dependencies, `api_version`, contributions. |
 
 ## Crate layout
 
 | Crate | Role |
 | --- | --- |
-| `unibrowser-mod-api` | Stable, versioned traits and types mods compile against. |
-| `unibrowser-engine` | Registry, enablement, modes, toolbar layout, palette search. |
+| `unibrowser-mod-api` | Stable types; `CommandContext`, navigation, selection. |
+| `unibrowser-engine` | Registry, Command Manager, enablement, palette, layouts. |
 | `unibrowser-mod-host` | Load manifests, resolve deps, register bundled/dynamic mods. |
-| `unibrowser-app` | egui harness: grey-out toolbar and command palette (default Ctrl+Shift+P). |
+| `unibrowser-app` | egui harness. |
+| `unibrowser-desktop` | Tauri product shell. |
 | `mods/*` | Bundled base mods (same API as future community mods). |
 
 ## Capability model (narrow, not universal DOM)
@@ -129,7 +160,8 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 
 ## Persistence
 
-- Toolbar layouts and tab order: user config (JSON), see [ADR 0005](adr/0005-context-modes-and-toolbars.md).
+- **toolbars.json** — Command Manager tabs, floating bars, `context_pin` ([ui-commands.md](ui-commands.md)).
+- **keybindings.json** — chords ([keybindings.md](keybindings.md)).
 - Document content: per-backend save; host tracks dirty flag and path.
 
 ## Related ADRs
@@ -137,9 +169,11 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0001 Shell and rendering](adr/0001-shell-and-rendering.md)
 - [0002 Mod system and sandboxing](adr/0002-mod-system-and-sandboxing.md)
 - [0003 Command, handler, enablement](adr/0003-command-handler-enablement.md)
-- [0004 Command palette and keybindings](adr/0004-s-key-command-palette.md) (default Ctrl+Shift+P; user `keybindings.json`)
+- [0004 Command palette and keybindings](adr/0004-s-key-command-palette.md)
 - [0005 Context modes and toolbars](adr/0005-context-modes-and-toolbars.md)
 - [0010 UI commands and Command Manager](adr/0010-ui-commands-and-command-manager.md)
+- [0011 Lazy conversion / native until encode](adr/0011-lazy-conversion-native-until-encode.md)
+- [0012 Context switching UX benchmarks](adr/0012-context-switching-ux-benchmarks.md)
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)
 - [0008 API gaps and upstream requests](adr/0008-api-gap-upstream-requests.md)

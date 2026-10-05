@@ -28,6 +28,8 @@ pub fn run() {
             commands::get_command_manager,
             commands::save_command_manager_layout,
             commands::select_command_manager_tab,
+            commands::pin_command_manager_context,
+            commands::clear_command_manager_context_pin,
             commands::execute_command,
             commands::palette_search,
             commands::get_keybindings,

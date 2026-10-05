@@ -60,6 +60,7 @@ pub struct FloatingBarDto {
 pub struct CommandManagerDto {
     pub auto_context: String,
     pub selected_tab: String,
+    pub context_pinned: bool,
     pub tabs: Vec<ManagerTabDto>,
     pub floating_bars: Vec<FloatingBarDto>,
 }
@@ -348,9 +349,28 @@ pub fn get_command_manager(state: State<AppState>) -> Result<CommandManagerDto, 
     Ok(CommandManagerDto {
         auto_context,
         selected_tab: selected,
+        context_pinned: cm.is_context_pinned(),
         tabs: tab_dtos,
         floating_bars,
     })
+}
+
+#[tauri::command]
+pub fn pin_command_manager_context(state: State<AppState>) -> Result<(), String> {
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    cm.pin_selected_tab();
+    let path = toolbars_file_path().ok_or("config path unavailable")?;
+    save_command_manager_file(&path, &cm.to_file())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_command_manager_context_pin(state: State<AppState>) -> Result<(), String> {
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    cm.clear_context_pin();
+    let path = toolbars_file_path().ok_or("config path unavailable")?;
+    save_command_manager_file(&path, &cm.to_file())?;
+    Ok(())
 }
 
 #[tauri::command]
