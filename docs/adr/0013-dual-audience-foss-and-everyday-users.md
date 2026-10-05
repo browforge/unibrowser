@@ -24,13 +24,15 @@ These are not separate SKUs; one shell must layer **simple defaults** over **opt
 | **User owns data and mods** | Plain-text config; mod manifests inspectable; engine does not phone home for open/save. |
 | **Engine stays out of the way** | Host provides navigation, commands, chrome — not ads, upsells, or nudging that overrides user intent. |
 
-Power features (Command Manager pin, palette, custom layouts, native mod install, optional **`.vsix` import**) are **available**, not **required** for daily use. VSIX / Open VSX never appear in the grandma onboarding path ([ADR 0014](0014-vsix-compatibility-layer.md)).
+Power features (Command Manager pin, palette, custom layouts, **sideload**, Open VSX browse) are **available**, not **required** for daily use.
+
+**Mod Portal** ([ADR 0014](0014-vsix-compatibility-layer.md)) is the shared bridge: grandma sees **“Install support for this file”** when needed; hackers see the same UI with catalogs and sideload. Onboarding does not mention VSIX, Open VSX, or MIME types.
 
 ### Everyday audience — principles
 
 | Principle | Implication |
 |-----------|-------------|
-| **It just works** | Bundled mods open common types out of the box; no “install a mod first” for PDF, images, text, web. |
+| **It just works** | Bundled mods open common types out of the box; if something is missing, **Mod Portal** offers installable support in plain language — not “you need a VSIX”. |
 | **No format jargon in primary UI** | Grandma does not choose raster vs vector or PNG vs WebP — she opens a photo; the shell picks a backend. Technical detail in status/tooltips or advanced panels only. |
 | **Formats under the hood** | Conversion and proxies are invisible until export or an explicit advanced action ([ADR 0011](0011-lazy-conversion-native-until-encode.md)). |
 | **Chrome OS–style shell** | Tabs, omnibox, familiar browser chrome ([ADR 0009](0009-browser-as-unified-shell.md)). |

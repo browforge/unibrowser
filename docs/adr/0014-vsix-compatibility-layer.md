@@ -5,13 +5,24 @@
 
 ## Context
 
-Bear’s direction: **where possible, reuse preexisting mods**, including **VS Code `.vsix` packages**, so power users can leverage a large ecosystem without Unibrowser reimplementing every language pack and command extension.
+Bear’s direction: **where possible, reuse existing stores and community mods** (VS Code ecosystem, open registries, and eventually native **`.ubmod`** packages) without Unibrowser reimplementing every language pack and format backend.
+
+### Terminology (do not conflate)
+
+| Term | What it is |
+|------|------------|
+| **`.vsix`** | **Package file format** — a zip (OPC) containing `package.json`, assets, and optionally JS. Same container whether you sideload from disk or download from a store. |
+| **Open VSX** | **Open marketplace / registry** ([open-vsx.org](https://open-vsx.org)) — publishes and indexes `.vsix` (and metadata) under an open model. Preferred **online catalog** for editor-style extensions in Unibrowser. |
+| **Microsoft Visual Studio Marketplace** | **Different store** — also distributes extensions, often as `.vsix`, but **terms may forbid redistribution** or use outside VS Code-family products. Unibrowser must **not** assume we can repackage or proxy the Microsoft Marketplace. |
+| **Native `.ubmod`** | Unibrowser’s **compiled mod** package (manifest + DLL/WASM) — separate catalog lane ([ADR 0002](0002-mod-system-and-sandboxing.md)). |
+
+**Unibrowser installs `.vsix` files**; **Open VSX is one source** of those files. They are not the same thing.
 
 Constraints:
 
 - Unibrowser is **not** a VS Code fork. Most extensions call **`vscode.*` APIs** that assume the VS Code workbench, extension host, debug adapter protocol, and proprietary UI surfaces.
 - **Native mods** (manifest + **compiled** DLL/WASM payload) remain **first-class** for formats, enablement, and deep integration ([ADR 0002](0002-mod-system-and-sandboxing.md), [ADR 0006](0006-mod-manifest-and-versioning.md)). `info.json` is metadata only — not the mod body.
-- **Dual audience** ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md)): grandma uses bundled `base-*` mods; **`.vsix` is invisible** in the default UI (advanced / power-user install only).
+- **Dual audience** ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md)): bundled `base-*` covers common types; when something cannot open, a **built-in Mod Portal** offers installable capability **without jargon** (not “install a VSIX”).
 
 ## Decision
 
@@ -59,9 +70,35 @@ VSIX does **not** replace manifest + binary mods. A VSIX may be **translated** i
 | **V1** | Unpack `.vsix`; `contributes.commands`, `keybindings`; register metadata; commands without JS → palette-only or “not implemented” enablement | Power: “Install VSIX (experimental)” |
 | **V2** | `languages`, `grammars`, `snippets`, `themes` → Monaco path | Better syntax highlighting for text/code tabs |
 | **V3** | Minimal **extension host** (Tauri worker or Node sidecar): `activate(context)` with **stub `vscode` module** (commands, subscriptions, `languages.register*`) | Some lightweight extensions run |
-| **V4** | Open VSX **optional** catalog (user opt-in); signing/trust policy for T1 | Browse community extensions (advanced) |
+| **V4** | **Mod Portal** UI + Open VSX API integration (opt-in network); native `.ubmod` index when available | Browse/install like VS Code Extensions view |
+| **V5** | Context recommendations + **missing-handler** install prompts | Grandma + power users |
 
-Full **VS Code Extension Host** parity is **not** a goal. Goal is **high-value reuse** (grammars, commands, themes) with honest limits.
+Full **VS Code Extension Host** parity is **not** a goal. Goal is **high-value reuse** (grammars, commands, themes, format backends) with honest limits.
+
+### Built-in Mod Portal (product goal)
+
+A first-party **Extensions / Mods** surface in the shell (not a web-only store):
+
+| Feature | Behaviour |
+|---------|-----------|
+| **Browse** | Search Open VSX (and later native registry) with compatibility badges (“grammar only”, “needs extension host”, “native mod”) |
+| **Recommended for context** | Command Manager / document context suggests mods (e.g. on **Code** tab → formatters; on **Image** → raster tools) |
+| **Cannot open this file** | User opens unknown or unsupported type → tab explains plainly → **“Install support”** lists mods that register that extension/MIME/backend — no MIME lecture in the headline |
+| **Install** | Download `.vsix` or `.ubmod`, verify licence, install to user mod dir, reload handlers |
+| **Sideload** | **Always allowed:** “Install from file…” (`.vsix`, `.ubmod`) — FOSS path without any store |
+
+Portal copy is **capability-based** (“Open Photoshop files”, “Edit Word documents”), not “VSIX” or “Open VSX”.
+
+### Distribution policy
+
+| Source | Policy |
+|--------|--------|
+| **Open VSX** | Preferred default **online** catalog for VS Code-compatible `.vsix`; use public API; show publisher, licence, and compatibility notes. |
+| **Microsoft Marketplace** | **Do not** redistribute or embed as default catalog unless explicit legal clearance; users may still **sideload** a `.vsix` they obtained themselves. |
+| **Native registry** | Future **Unibrowser / community `.ubmod` index** for compiled format mods (parallel to Open VSX, not a replacement). |
+| **Sideload** | Always supported; no account required. |
+
+Goal: **reuse existing open stores** where licence and ToS allow; **never** block sideloading.
 
 ### Sandboxing and trust
 
@@ -71,10 +108,12 @@ Full **VS Code Extension Host** parity is **not** a goal. Goal is **high-value r
 
 ### Dual audience ([ADR 0013](0013-dual-audience-foss-and-everyday-users.md))
 
-| Audience | VSIX |
-|----------|------|
-| **Everyday** | Never prompted; bundled native mods only |
-| **FOSS / power** | Optional `.vsix` / Open VSX; inspectable install dir; uninstall removes files |
+| Audience | Portal / extensions |
+|----------|---------------------|
+| **Everyday** | Bundled mods first; if a file fails, **Mod Portal** offers **“Install support”** in plain language — same UI hackers use, simpler defaults |
+| **FOSS / power** | Open VSX browse, native `.ubmod` registry, **sideload**, inspectable install dirs, uninstall removes files |
+
+Grandma never needs to hear “VSIX” or “Open VSX”; hackers can sideload and pin alternate catalogs.
 
 ### Relation to lazy conversion ([ADR 0011](0011-lazy-conversion-native-until-encode.md))
 
@@ -84,16 +123,19 @@ VSIX may contribute **language support** and **editor commands**; it does not de
 
 - Roadmap gains VSIX phases parallel to native format mods.
 - API gap process ([ADR 0008](0008-api-gap-upstream-requests.md)) tracks which `vscode` APIs extensions actually need.
-- Licence compliance: each VSIX’s `package.json` licence must be shown on install; marketplace ToS are not assumed.
+- Licence compliance: each package’s licence must be shown on install; **Microsoft Marketplace ToS are not assumed** for redistribution.
+- Mod Portal is a **shell feature** (Tauri UI + mod-host install), not a mandatory cloud account.
 
 ## Open questions
 
 1. **Extension host topology** — in-process Node vs worker vs out-of-process RPC vs LSP-only adapters for language servers?
-2. **Open VSX** — default catalog vs bring-your-own `.vsix` only? Curation, malware, and AGPL extension bundles?
-3. **Licence** — MIT/Apache extensions vs copyleft vs marketplace-redistributable; ship Open VSX mirror or online-only?
-4. **Microsoft `vscode` API trademark / compatibility** — document “Unibrowser VSIX subset” without implying Microsoft endorsement.
-5. **Command ID collisions** — `publisher.name` prefixing vs raw VS Code ids for palette search?
-6. **Engine vs desktop** — unpack in `unibrowser-mod-host` vs `unibrowser-desktop` only?
+2. **First catalog** — **Open VSX only** at launch vs simultaneous **native `.ubmod` registry** for format mods?
+3. **Recommendation metadata** — who maintains **extension/MIME → mod id** map (bundled index vs mod manifest `provides` / `opens` fields vs Open VSX categories)?
+4. **“Cannot open” resolution** — match on file extension only, MIME sniffing, or user-visible “treat as…” override?
+5. **Licence** — MIT/Apache extensions vs copyleft; offline mirror of Open VSX vs online-only API?
+6. **Microsoft `vscode` API trademark / compatibility** — document “Unibrowser VSIX subset” without implying Microsoft endorsement.
+7. **Command ID collisions** — `publisher.name` prefixing vs raw VS Code ids for palette search?
+8. **Engine vs desktop** — unpack in `unibrowser-mod-host` vs `unibrowser-desktop` only?
 
 ## Related
 

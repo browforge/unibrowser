@@ -40,11 +40,28 @@ In-tree `mods/base-*` still use **Rust source + static registration** for fast C
 - **WASM allowlist** for T2 host imports.
 - **User space:** mods live in a user-visible directory; uninstall deletes manifest + binaries; no required cloud ([ADR 0013](adr/0013-dual-audience-foss-and-everyday-users.md)).
 
-## VSIX compat (optional, power users)
+## VSIX vs Open VSX vs portal
 
-- Import path for VS Code extensions — contributions and/or extension host.
+| Concept | Meaning |
+|---------|---------|
+| **`.vsix`** | **File format** (zip + `package.json`). Install via sideload or download. |
+| **Open VSX** | **Open marketplace** that publishes `.vsix` packages — preferred online source ([open-vsx.org](https://open-vsx.org)). Not the same as the file format. |
+| **Microsoft Marketplace** | Separate store; **do not** treat as default catalog (redistribution / ToS risk). Users may sideload their own `.vsix`. |
+| **Mod Portal** | Built-in **Extensions-style** UI: browse, install, **recommended for context**, **“install support for this file”** when nothing can open it. |
+
+See [ADR 0014](adr/0014-vsix-compatibility-layer.md).
+
+## VSIX compat lane
+
+- Import path for VS Code-style extensions — contributions and/or extension host.
 - May **compile or adapt** into Monaco assets or registry entries; does **not** replace `library` / `wasm_module` native mods.
-- Invisible in default UX; see [ADR 0014](adr/0014-vsix-compatibility-layer.md).
+- **Sideload** `.vsix` always allowed; **Open VSX** optional network catalog; native **`.ubmod`** registry later.
+
+## Mod Portal (everyone + power users)
+
+- **Grandma:** unsupported file → friendly prompt → install a mod that adds the capability (no jargon).
+- **FOSS:** same portal plus Open VSX browse and **Install from file** for `.vsix` / `.ubmod`.
+- **Context recommendations:** suggest mods when Command Manager context or active document type matches (metadata TBD).
 
 ## Choosing native vs VSIX
 

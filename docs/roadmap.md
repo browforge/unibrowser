@@ -86,7 +86,19 @@ Native `info.json` mods stay canonical ([mod-system.md](mod-system.md)). `.vsix`
 | V1 | Unpack `.vsix`; `contributes.commands` / keybindings |
 | V2 | Languages, grammars, snippets, themes → Monaco |
 | V3 | Sandboxed JS + stub `vscode` module |
-| V4 | Optional Open VSX browse/install |
+| V4 | **Mod Portal** + Open VSX API (opt-in); sideload `.vsix` |
+| V5 | Context recommendations; **cannot open file → suggested mods** |
+
+**Catalog policy:** prefer [Open VSX](https://open-vsx.org) over Microsoft Marketplace (ToS/redistribution); native `.ubmod` registry in parallel when ready; **sideload always**.
+
+## Mod Portal (product)
+
+| Capability | Audience |
+|------------|----------|
+| Browse / search / install | Everyone (simple copy); power users see licences, compatibility |
+| Recommended for context | Command Manager / document type |
+| No handler for file → suggest mods | Grandma path for new formats |
+| Install from file | FOSS sideload (`.vsix`, `.ubmod`) |
 
 ## MVP format mod order (unchanged, aligned to manager tabs)
 

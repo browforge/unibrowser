@@ -27,13 +27,15 @@ Power tools (palette, keybindings, Command Manager customisation, pin, mod manif
 - **So easy anyone can use it** — tabs and an omnibox feel like a browser; open a folder, photo, letter, or website without learning another app.
 - **No format homework** — users should not need to know raster vs vector, PNG vs WebP, or MIME types. They open **a photo** or **a document**; Unibrowser picks a sensible backend.
 - **Conversion stays under the hood** — lazy conversion and native-until-encode ([ADR 0011](adr/0011-lazy-conversion-native-until-encode.md)): the product handles messy reality; the primary UI does not lecture about codecs.
-- **Mods optional for basics** — bundled `base-*` mods ship in the box; installing more mods is for people who want more, not a prerequisite to open common files.
+- **Mods optional for basics** — bundled `base-*` mods ship in the box; **Mod Portal** fills gaps (“install support for this file”) without format homework.
+- **Reuse open ecosystems** — `.vsix` packages from **Open VSX** or sideload; native `.ubmod` store later ([ADR 0014](adr/0014-vsix-compatibility-layer.md)). Not the Microsoft Marketplace by default.
 
 ### How both fit together
 
 | Everyday default | Power under the hood |
 |------------------|---------------------|
 | Open file → tab just works | Same tab is a `BrowserLocation` + mod backend |
+| Missing format → “Install support” | Mod Portal; FOSS can sideload or browse Open VSX |
 | Simple toolbar / auto context | Pin tab, reorder commands, `toolbars.json` |
 | Save where you expect | Per-backend save; dirty flags; no opaque vault |
 | “Increase font size” when it applies | Same command id across mods; grey-out when not |
