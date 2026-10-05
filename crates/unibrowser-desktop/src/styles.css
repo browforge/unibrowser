@@ -102,6 +102,40 @@ body {
   font-weight: bold;
 }
 
+.tab-wrap {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.tab-wrap .tab {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.tab-close {
+  background: #2a2a32;
+  border: 1px solid #444;
+  border-left: none;
+  color: #aaa;
+  padding: 0 0.35rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.tab-close:hover {
+  color: #fff;
+  background: #5a3038;
+}
+
+.session-restore-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
 .nav-row {
   display: flex;
   gap: 0.35rem;

@@ -135,6 +135,32 @@ impl TabManager {
     }
 
     /// Close tab at `index`; keeps at least one tab open.
+    /// Replace all tabs with `locations` (at least one). Documents are cleared; host must re-resolve.
+    pub fn load_locations(&mut self, locations: Vec<BrowserLocation>, active: usize) {
+        self.tabs.clear();
+        self.next_id = 1;
+        if locations.is_empty() {
+            let home = BrowserLocation::File {
+                path: std::path::PathBuf::from("/"),
+            };
+            self.open_tab(home);
+            return;
+        }
+        for loc in locations {
+            let id = TabId(self.next_id);
+            self.next_id += 1;
+            self.tabs.push(Tab {
+                id,
+                location: loc.clone(),
+                history: vec![loc.clone()],
+                history_index: 0,
+                document: None,
+                is_directory: false,
+            });
+        }
+        self.active = active.min(self.tabs.len() - 1);
+    }
+
     pub fn close_tab(&mut self, index: usize) -> bool {
         if self.tabs.len() <= 1 || index >= self.tabs.len() {
             return false;
@@ -154,6 +180,27 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
     use unibrowser_mod_api::BrowserLocation;
+
+    #[test]
+    fn load_locations_restores_active() {
+        let home = BrowserLocation::File {
+            path: PathBuf::from("/tmp"),
+        };
+        let mut mgr = TabManager::new_with_home(home);
+        mgr.load_locations(
+            vec![
+                BrowserLocation::File {
+                    path: PathBuf::from("/a"),
+                },
+                BrowserLocation::File {
+                    path: PathBuf::from("/b"),
+                },
+            ],
+            1,
+        );
+        assert_eq!(mgr.tab_count(), 2);
+        assert_eq!(mgr.active_index(), 1);
+    }
 
     #[test]
     fn open_close_tabs_never_empty() {

@@ -14,6 +14,10 @@ pub trait DocumentBackend: Send {
     /// Demo hook for skeleton UI (simulates text selection).
     fn set_demo_text_selection(&mut self, selected: bool);
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+    /// Unsaved edits (text/SVG save-to-disk, etc.).
+    fn is_dirty(&self) -> bool {
+        false
+    }
 }
 
 pub struct DocumentSession {

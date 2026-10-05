@@ -127,6 +127,28 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
     host.classList.toggle("md-split", markdownPreview);
   };
   toolbarEl.appendChild(toggle);
+  const printBtn = document.createElement("button");
+  printBtn.type = "button";
+  printBtn.textContent = "Print preview";
+  printBtn.onclick = () => {
+    if (!editor) {
+      return;
+    }
+    const html = markdownPreview && previewEl
+      ? previewEl.innerHTML
+      : `<pre>${editor.getValue()}</pre>`;
+    const w = window.open("", "_blank", "noopener");
+    if (!w) {
+      return;
+    }
+    w.document.write(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${path}</title></head><body>${html}</body></html>`,
+    );
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+  toolbarEl.appendChild(printBtn);
   host.parentElement?.insertBefore(toolbarEl, host);
 }
 

@@ -15,6 +15,14 @@ interface TabDto {
   location_kind: string;
   is_directory: boolean;
   is_http: boolean;
+  dirty: boolean;
+}
+
+interface TabSearchHit {
+  tab_index: number;
+  label: string;
+  omnibox: string;
+  score: number;
 }
 
 interface DirEntry {
@@ -119,6 +127,11 @@ let recentPanelOpen = false;
 
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
 
+const tabSearchPanel = document.getElementById("tab-search")!;
+const tabSearchQuery = document.getElementById("tab-search-query") as HTMLInputElement;
+const tabSearchResults = document.getElementById("tab-search-results")!;
+let tabSearchOpen = false;
+
 let paletteOpen = false;
 let paletteChordLabel = "Ctrl+Shift+P";
 
@@ -148,7 +161,8 @@ function renderTabs(data: TabContentDto) {
       "tab" +
       (index === data.active_index ? " active" : "") +
       (isSplit ? " split-pane-tab" : "");
-    btn.textContent = tab.label + (isSplit ? " |" : "");
+    const dirtyMark = tab.dirty ? " •" : "";
+    btn.textContent = tab.label + dirtyMark + (isSplit ? " |" : "");
     btn.title = isSplit
       ? `${tab.location_kind} (split pane; Shift+click to move split here)`
       : `${tab.location_kind} (Shift+click for split pane)`;
@@ -163,7 +177,20 @@ function renderTabs(data: TabContentDto) {
       }
       void selectTab(index);
     };
-    tabStrip.appendChild(btn);
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "tab-close";
+    close.setAttribute("aria-label", `Close ${tab.label}`);
+    close.textContent = "×";
+    close.onclick = (e) => {
+      e.stopPropagation();
+      void closeTabAt(index, tab.dirty);
+    };
+    const wrap = document.createElement("span");
+    wrap.className = "tab-wrap";
+    wrap.appendChild(btn);
+    wrap.appendChild(close);
+    tabStrip.appendChild(wrap);
     tabButtons.push(btn);
   });
   const plus = document.createElement("button");
@@ -382,6 +409,34 @@ function renderOnboarding(show: boolean) {
   onboardingBanner.classList.toggle("hidden", !show);
 }
 
+async function renderSessionOptIn() {
+  try {
+    const prefs = await invoke<{ restore_session_on_launch: boolean }>("get_preferences");
+    let row = document.getElementById("session-restore-row");
+    if (!row) {
+      row = document.createElement("div");
+      row.id = "session-restore-row";
+      row.className = "session-restore-row";
+      recentPanel.appendChild(row);
+    }
+    row.innerHTML = "";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = "restore-session-opt-in";
+    cb.checked = prefs.restore_session_on_launch;
+    cb.onchange = async () => {
+      await invoke("set_restore_session_on_launch", { enabled: cb.checked });
+    };
+    const label = document.createElement("label");
+    label.htmlFor = cb.id;
+    label.textContent = "Restore open tabs on next launch";
+    row.appendChild(cb);
+    row.appendChild(label);
+  } catch {
+    /* optional */
+  }
+}
+
 function renderRecentFiles(entries: RecentFileDto[]) {
   recentPanel.innerHTML = "";
   if (!recentPanelOpen) {
@@ -408,6 +463,7 @@ function renderRecentFiles(entries: RecentFileDto[]) {
     list.appendChild(li);
   });
   recentPanel.appendChild(list);
+  void renderSessionOptIn();
 }
 
 async function runUiCommand(commandId: string) {
@@ -521,6 +577,23 @@ async function selectTab(index: number) {
   await refreshState();
 }
 
+async function closeTabAt(index: number, dirty: boolean) {
+  const force = dirty
+    ? window.confirm("This tab has unsaved changes. Close anyway?")
+    : true;
+  if (!force) {
+    return;
+  }
+  await textEditor.flush();
+  const data = await invokeWithToast(
+    () => invoke<TabContentDto>("close_tab", { index, force: true }),
+    "Could not close tab",
+  );
+  if (data) {
+    await applyState(data);
+  }
+}
+
 function navigateOmnibox() {
   void invokeWithToast(
     () => invoke<TabContentDto>("navigate_omnibox", { input: omnibox.value }),
@@ -539,6 +612,13 @@ omnibox.addEventListener("keydown", (e) => {
 });
 
 bindOmniboxAutocomplete(omnibox, omniboxSuggestions, () => navigateOmnibox());
+
+document.getElementById("btn-tab-search")!.onclick = () => toggleTabSearch();
+tabSearchQuery.addEventListener("input", () => void refreshTabSearchResults());
+
+listen("browser-state-updated", () => {
+  void refreshState();
+});
 
 btnSplit.onclick = () => {
   void invokeWithToast(() => invoke<TabContentDto>("toggle_split_view"), "Split view failed").then(
@@ -610,9 +690,42 @@ function togglePalette() {
   paletteOpen = !paletteOpen;
   palette.classList.toggle("hidden", !paletteOpen);
   if (paletteOpen) {
+    tabSearchOpen = false;
+    tabSearchPanel.classList.add("hidden");
     paletteQuery.placeholder = `Search commands (${paletteChordLabel})`;
     paletteQuery.focus();
   }
+}
+
+function toggleTabSearch() {
+  tabSearchOpen = !tabSearchOpen;
+  tabSearchPanel.classList.toggle("hidden", !tabSearchOpen);
+  if (tabSearchOpen) {
+    paletteOpen = false;
+    palette.classList.add("hidden");
+    tabSearchQuery.value = "";
+    tabSearchQuery.focus();
+    void refreshTabSearchResults();
+  }
+}
+
+async function refreshTabSearchResults() {
+  const hits = await invoke<TabSearchHit[]>("search_open_tabs", {
+    query: tabSearchQuery.value,
+  });
+  tabSearchResults.innerHTML = "";
+  hits.forEach((hit) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "palette-item";
+    row.textContent = hit.label;
+    row.title = hit.omnibox;
+    row.onclick = () => {
+      toggleTabSearch();
+      void selectTab(hit.tab_index);
+    };
+    tabSearchResults.appendChild(row);
+  });
 }
 
 function chordFromKeyboardEvent(e: KeyboardEvent) {
@@ -650,6 +763,11 @@ document.addEventListener(
   "keydown",
   async (e) => {
   if (e.repeat) {
+    return;
+  }
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "t") {
+    e.preventDefault();
+    toggleTabSearch();
     return;
   }
   if (textEditor.isActive() && e.ctrlKey && e.key.toLowerCase() === "f") {

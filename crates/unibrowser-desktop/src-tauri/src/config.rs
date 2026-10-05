@@ -29,6 +29,10 @@ pub fn unibrow_zip_cache_dir() -> Option<PathBuf> {
     config_dir().map(|d| d.join("unibrow-cache"))
 }
 
+pub fn session_file_path() -> Option<PathBuf> {
+    config_dir().map(|d| d.join("session.json"))
+}
+
 fn config_dir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {

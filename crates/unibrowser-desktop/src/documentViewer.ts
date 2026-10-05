@@ -141,6 +141,24 @@ async function renderPdf(path: string, root: HTMLElement, scale: number, startPa
   nav.appendChild(next);
   nav.appendChild(jumpInput);
   nav.appendChild(jumpBtn);
+  const printBtn = document.createElement("button");
+  printBtn.type = "button";
+  printBtn.textContent = "Print";
+  printBtn.onclick = async () => {
+    const page = await doc.getPage(currentPage);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    const img = canvas.toDataURL("image/png");
+    printHtmlDocument(path, `<img src="${img}" alt="PDF page ${currentPage}" />`);
+  };
+  nav.appendChild(printBtn);
   root.appendChild(nav);
 
   const drawPage = async (pageNum: number) => {
@@ -429,15 +447,34 @@ interface CsvPreviewDto {
   rows: string[][];
   truncated: boolean;
   delimiter: string;
+  total_data_rows: number;
+  rows_returned: number;
+  file_bytes: number;
+  read_capped: boolean;
+}
+
+function printHtmlDocument(title: string, bodyHtml: string) {
+  const w = window.open("", "_blank", "noopener");
+  if (!w) {
+    return;
+  }
+  w.document.write(
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body>${bodyHtml}</body></html>`,
+  );
+  w.document.close();
+  w.focus();
+  w.print();
 }
 
 async function renderSpreadsheet(path: string, root: HTMLElement) {
   const preview = await invoke<CsvPreviewDto>("get_csv_preview", { path, maxRows: 200 });
   root.innerHTML = "";
+  const sizeKb = (preview.file_bytes / 1024).toFixed(1);
   const note = document.createElement("p");
   note.className = "viewer-note";
-  note.textContent =
-    "Read-only CSV/TSV table (toy-csv stub). Full spreadsheet editing is a future mod.";
+  note.textContent = `Read-only CSV/TSV (${sizeKb} KiB on disk). Showing ${preview.rows_returned} of ${preview.total_data_rows} data row(s).${
+    preview.truncated ? " Preview capped." : ""
+  }${preview.read_capped ? " Large file: row scan may be incomplete." : ""}`;
   root.appendChild(note);
   const wrap = document.createElement("div");
   wrap.className = "csv-table-wrap";
@@ -465,12 +502,6 @@ async function renderSpreadsheet(path: string, root: HTMLElement) {
   table.appendChild(tbody);
   wrap.appendChild(table);
   root.appendChild(wrap);
-  if (preview.truncated) {
-    const more = document.createElement("p");
-    more.className = "viewer-note";
-    more.textContent = "Showing first 200 rows.";
-    root.appendChild(more);
-  }
 }
 
 async function renderImage(path: string, root: HTMLElement) {
@@ -966,9 +997,17 @@ async function renderEpub(viewer: DocumentViewerDto, root: HTMLElement) {
     label.textContent = String(err);
   }
 
+  const printBtn = document.createElement("button");
+  printBtn.type = "button";
+  printBtn.textContent = "Print chapter";
+  printBtn.onclick = () => {
+    const html = frame.srcdoc || "";
+    printHtmlDocument(viewer.path, html);
+  };
   nav.appendChild(prev);
   nav.appendChild(label);
   nav.appendChild(next);
+  nav.appendChild(printBtn);
   root.appendChild(nav);
   root.appendChild(frame);
   root.appendChild(note);

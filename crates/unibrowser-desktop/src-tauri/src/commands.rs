@@ -22,8 +22,10 @@ use crate::epub_preview::EpubChapterDto;
 use crate::webview::{content_webview_navigate, inject_page_font_scale, sync_content_bounds};
 use unibrowser_mod_api::handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID};
 use unibrowser_engine::{
-    host_context_for_browse, save_command_manager_file, CommandManagerFile, ToolbarPhase,
+    host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
+    CommandManagerFile, ToolbarPhase,
 };
+use tauri::Emitter;
 
 #[derive(Serialize)]
 pub struct TabDto {
@@ -32,7 +34,18 @@ pub struct TabDto {
     pub location_kind: String,
     pub is_directory: bool,
     pub is_http: bool,
+    pub dirty: bool,
 }
+
+#[derive(Serialize)]
+pub struct TabSearchHitDto {
+    pub tab_index: usize,
+    pub label: String,
+    pub omnibox: String,
+    pub score: i32,
+}
+
+const ERR_UNSAVED_CLOSE: &str = "unsaved: confirm close";
 
 #[derive(Serialize)]
 pub struct UiCommandDto {
@@ -171,6 +184,13 @@ fn location_to_omnibox(loc: &BrowserLocation) -> String {
     }
 }
 
+fn tab_is_dirty(tab: &unibrowser_engine::tabs::Tab) -> bool {
+    tab.document
+        .as_ref()
+        .map(|d| d.backend.is_dirty())
+        .unwrap_or(false)
+}
+
 fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
     let (kind, is_http) = match &tab.location {
         BrowserLocation::File { .. } => ("file", false),
@@ -183,6 +203,7 @@ fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
         location_kind: kind.into(),
         is_directory: tab.is_directory,
         is_http,
+        dirty: tab_is_dirty(tab),
     }
 }
 
@@ -522,6 +543,143 @@ pub fn select_tab(
         .ok_or("no tab")?;
     update_content_webview(&app, &loc)?;
     snapshot(&state)
+}
+
+#[tauri::command]
+pub fn close_tab(
+    index: usize,
+    force: bool,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        if index >= tabs.tab_count() {
+            return Err("invalid tab index".into());
+        }
+        if !force {
+            let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
+            if tab_is_dirty(tab) {
+                return Err(ERR_UNSAVED_CLOSE.into());
+            }
+        }
+        if !tabs.close_tab(index) {
+            return Err("cannot close last tab".into());
+        }
+    }
+    let loc = {
+        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        tabs
+            .active_tab()
+            .map(|t| t.location.clone())
+            .ok_or("no tab")?
+    };
+    update_content_webview(&app, &loc)?;
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn search_open_tabs(query: String, state: State<AppState>) -> Result<Vec<TabSearchHitDto>, String> {
+    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let mut hits: Vec<TabSearchHitDto> = tabs
+        .tabs()
+        .iter()
+        .enumerate()
+        .filter_map(|(index, tab)| {
+            let label = tab.location.display_label();
+            let omnibox = location_to_omnibox(&tab.location);
+            let score = fuzzy_score(&query, &label).max(fuzzy_score(&query, &omnibox));
+            if score < 0 && !query.is_empty() {
+                return None;
+            }
+            Some(TabSearchHitDto {
+                tab_index: index,
+                label,
+                omnibox,
+                score: score.max(0),
+            })
+        })
+        .collect();
+    hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.label.cmp(&b.label)));
+    Ok(hits)
+}
+
+pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<(), String> {
+    let prefs = load_preferences();
+    if !prefs.restore_session_on_launch {
+        return Ok(());
+    }
+    let snap = crate::session::load_session_snapshot();
+    let snap = match snap {
+        Some(s) if !s.tab_inputs.is_empty() => s,
+        _ => return Ok(()),
+    };
+    let mut locations = Vec::new();
+    for input in &snap.tab_inputs {
+        let loc = parse_user_input(input, &state.cwd);
+        let (loc, _, _) = state.resolve_location(loc);
+        locations.push(loc);
+    }
+    {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.load_locations(locations, snap.active_index);
+        let count = tabs.tab_count();
+        for i in 0..count {
+            let loc = tabs
+                .tab_mut(i)
+                .map(|t| t.location.clone())
+                .ok_or("tab missing")?;
+            let (loc, is_dir, doc) = state.resolve_location(loc);
+            if let Some(tab) = tabs.tab_mut(i) {
+                tab.location = loc;
+                tab.is_directory = is_dir;
+                tab.document = doc;
+            }
+        }
+    }
+    let loc = {
+        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        tabs
+            .active_tab()
+            .map(|t| t.location.clone())
+            .ok_or("no tab")?
+    };
+    update_content_webview(app, &loc)?;
+    Ok(())
+}
+
+pub fn open_dropped_paths(
+    app: &AppHandle,
+    state: &AppState,
+    paths: Vec<PathBuf>,
+) -> Result<(), String> {
+    if paths.is_empty() {
+        return Ok(());
+    }
+    for (i, path) in paths.iter().enumerate() {
+        allow_asset_protocol_file(app, path);
+        let loc = BrowserLocation::File { path: path.clone() };
+        let (loc, is_dir, doc) = state.resolve_location(loc);
+        {
+            let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+            if i == 0 {
+                tabs.navigate_active(loc.clone(), is_dir, doc);
+            } else {
+                tabs.open_tab(loc.clone());
+                if let Some(tab) = tabs.active_tab_mut() {
+                    tab.is_directory = is_dir;
+                    tab.document = doc;
+                }
+            }
+        }
+        if path.is_file() {
+            touch_recent_file(path);
+        }
+        update_content_webview(app, &loc)?;
+    }
+    app.emit("browser-state-updated", ())
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -945,6 +1103,7 @@ pub fn set_content_bounds(
 pub struct PreferencesDto {
     pub onboarding_dismissed: bool,
     pub theme: String,
+    pub restore_session_on_launch: bool,
 }
 
 #[tauri::command]
@@ -1091,7 +1250,14 @@ pub fn get_preferences() -> PreferencesDto {
     PreferencesDto {
         onboarding_dismissed: p.onboarding_dismissed,
         theme: theme_to_str(&p.theme),
+        restore_session_on_launch: p.restore_session_on_launch,
     }
+}
+
+#[tauri::command]
+pub fn set_restore_session_on_launch(enabled: bool) -> Result<PreferencesDto, String> {
+    crate::session::set_restore_session_enabled(enabled)?;
+    Ok(get_preferences())
 }
 
 fn theme_to_str(theme: &UiTheme) -> String {
@@ -1465,7 +1631,7 @@ pub fn omnibox_completions(
 
 #[tauri::command]
 pub fn get_csv_preview(path: String, max_rows: Option<usize>) -> Result<crate::csv_preview::CsvPreviewDto, String> {
-    let limit = max_rows.unwrap_or(200).min(500);
+    let limit = max_rows.unwrap_or(150).min(200);
     crate::csv_preview::preview_file(Path::new(&path), limit)
 }
 

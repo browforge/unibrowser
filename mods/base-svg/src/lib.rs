@@ -142,6 +142,9 @@ impl unibrowser_engine::document::DocumentBackend for SvgBackend {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
+    fn is_dirty(&self) -> bool {
+        self.dirty
+    }
 }
 
 fn font_enable(doc: &DocumentSession) -> Enablement {

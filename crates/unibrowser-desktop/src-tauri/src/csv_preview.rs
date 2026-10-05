@@ -1,7 +1,10 @@
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 use serde::Serialize;
+
+const MAX_PREVIEW_BYTES: u64 = 4 * 1024 * 1024;
 
 #[derive(Debug, Serialize)]
 pub struct CsvPreviewDto {
@@ -9,10 +12,16 @@ pub struct CsvPreviewDto {
     pub rows: Vec<Vec<String>>,
     pub truncated: bool,
     pub delimiter: char,
+    pub total_data_rows: usize,
+    pub rows_returned: usize,
+    pub file_bytes: u64,
+    pub read_capped: bool,
 }
 
 pub fn preview_file(path: &Path, max_rows: usize) -> Result<CsvPreviewDto, String> {
-    let data = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let meta = fs::metadata(path).map_err(|e| e.to_string())?;
+    let file_bytes = meta.len();
+    let read_capped = file_bytes > MAX_PREVIEW_BYTES;
     let delimiter = if path
         .extension()
         .and_then(|e| e.to_str())
@@ -23,33 +32,51 @@ pub fn preview_file(path: &Path, max_rows: usize) -> Result<CsvPreviewDto, Strin
     } else {
         ','
     };
+    let file = File::open(path).map_err(|e| e.to_string())?;
+    let reader = BufReader::new(file);
     let mut headers = Vec::new();
     let mut rows = Vec::new();
     let mut truncated = false;
-    for (i, line) in data.lines().enumerate() {
+    let mut total_data_rows = 0usize;
+    let mut line_index = 0usize;
+    let max_rows = max_rows.min(200);
+    for line in reader.lines() {
+        let line = line.map_err(|e| e.to_string())?;
         if line.trim().is_empty() {
             continue;
         }
-        let cells = parse_line(line, delimiter);
-        if i == 0 && headers.is_empty() {
+        let cells = parse_line(&line, delimiter);
+        if line_index == 0 {
             headers = cells;
+            line_index += 1;
             continue;
         }
-        if rows.len() >= max_rows {
+        total_data_rows += 1;
+        if rows.len() < max_rows {
+            rows.push(cells);
+        } else {
+            truncated = true;
+        }
+        line_index += 1;
+        if read_capped && line_index > 50_000 {
             truncated = true;
             break;
         }
-        rows.push(cells);
     }
     if headers.is_empty() && !rows.is_empty() {
         let n = rows[0].len();
         headers = (1..=n).map(|i| format!("Column {}", i)).collect();
     }
+    let rows_returned = rows.len();
     Ok(CsvPreviewDto {
         headers,
         rows,
         truncated,
         delimiter,
+        total_data_rows,
+        rows_returned,
+        file_bytes,
+        read_capped,
     })
 }
 
@@ -97,6 +124,7 @@ mod tests {
         let preview = preview_file(&path, 10).expect("preview");
         assert_eq!(preview.headers, vec!["a", "b"]);
         assert_eq!(preview.rows[0], vec!["1", "2,3"]);
+        assert_eq!(preview.total_data_rows, 1);
         let _ = std::fs::remove_file(path);
     }
 }

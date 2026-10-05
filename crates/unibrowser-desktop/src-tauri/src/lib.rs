@@ -11,6 +11,7 @@ mod open_vsx;
 mod preferences;
 mod project_backend;
 mod rhai_host;
+mod session;
 mod state;
 
 pub use state::open_file_document;
@@ -31,6 +32,9 @@ pub fn run() {
                 let saved = preferences::load_window_state();
                 let _ = preferences::apply_window_state(&window, &saved);
             }
+            if let Some(state) = app.try_state::<AppState>() {
+                commands::restore_session_on_launch(state.inner(), app.handle())?;
+            }
             let _ = unibrowser_media::warm_sidecar_pool();
             Ok(())
         })
@@ -39,12 +43,29 @@ pub fn run() {
                 if let Ok(state) = preferences::capture_window_state(window) {
                     let _ = preferences::save_window_state(&state);
                 }
+                if let Some(state) = window.try_state::<AppState>() {
+                    session::persist_session_if_enabled(state.inner());
+                }
+            }
+            if let tauri::WindowEvent::DragDrop(drag) = event {
+                if let tauri::DragDropEvent::Drop { paths, .. } = drag {
+                    if let Some(state) = window.try_state::<AppState>() {
+                        let _ = commands::open_dropped_paths(
+                            window.app_handle(),
+                            state.inner(),
+                            paths.clone(),
+                        );
+                    }
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_browser_state,
             commands::new_tab,
             commands::select_tab,
+            commands::close_tab,
+            commands::search_open_tabs,
+            commands::set_restore_session_on_launch,
             commands::navigate_omnibox,
             commands::open_path,
             commands::go_back,

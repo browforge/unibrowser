@@ -32,6 +32,9 @@ pub struct Preferences {
     pub theme: UiTheme,
     #[serde(default)]
     pub recent_files: Vec<RecentFileEntry>,
+    /// When true, last tab set is saved on exit and restored on launch.
+    #[serde(default)]
+    pub restore_session_on_launch: bool,
 }
 
 impl Default for Preferences {
@@ -40,6 +43,7 @@ impl Default for Preferences {
             onboarding_dismissed: false,
             theme: UiTheme::default(),
             recent_files: Vec::new(),
+            restore_session_on_launch: false,
         }
     }
 }
