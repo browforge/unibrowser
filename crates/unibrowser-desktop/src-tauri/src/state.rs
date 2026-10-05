@@ -33,6 +33,10 @@ impl AppState {
             ("base-text", base_text::register as ModRegisterFn),
             ("base-png", base_png::register as ModRegisterFn),
             ("base-svg", base_svg::register as ModRegisterFn),
+            ("base-docx", base_docx::register as ModRegisterFn),
+            ("base-pdf", base_pdf::register as ModRegisterFn),
+            ("base-dxf", base_dxf::register as ModRegisterFn),
+            ("base-js", base_js::register as ModRegisterFn),
             ("toy-markdown", toy_markdown::register as ModRegisterFn),
         ]
         .into_iter()
@@ -174,8 +178,15 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
     {
         "png" => Some(base_png::open_file(path)),
         "svg" => Some(base_svg::open_file(path)),
-        "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" | "js" => base_text::open_file(path).ok(),
-        "docx" | "pdf" | "dxf" | "mp4" | "webm" | "wav" | "mid" | "midi" => None,
+        "docx" => base_docx::open_file(path).ok(),
+        "pdf" => base_pdf::open_file(path).ok(),
+        "dxf" => base_dxf::open_file(path).ok(),
+        "js" | "rhai" => base_js::open_file(path).ok(),
+        "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
+        "mp4" | "webm" | "wav" | "mid" | "midi" => {
+            // Media opens as status + optional ffprobe until video/audio engine lands.
+            Some(media_placeholder_backend(path))
+        }
         _ => base_text::open_file(path).ok(),
     };
     backend.map(|b| DocumentSession::new(path_str, b))
@@ -183,4 +194,59 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
 
 pub fn list_dir(path: &Path) -> Result<Vec<base_files::DirEntry>, String> {
     list_directory(path)
+}
+
+struct MediaPlaceholderBackend {
+    path: String,
+    status: String,
+}
+
+impl unibrowser_engine::document::DocumentBackend for MediaPlaceholderBackend {
+    fn backend_id(&self) -> &str {
+        "media-placeholder"
+    }
+    fn doc_type(&self) -> &str {
+        "application/octet-stream"
+    }
+    fn display_name(&self) -> &str {
+        "Media"
+    }
+    fn mode(&self) -> unibrowser_mod_api::Mode {
+        unibrowser_mod_api::Mode::Browse
+    }
+    fn capabilities(&self) -> unibrowser_mod_api::Capabilities {
+        unibrowser_mod_api::Capabilities::default()
+    }
+    fn selection(&self) -> unibrowser_mod_api::SelectionSnapshot {
+        unibrowser_mod_api::SelectionSnapshot::default()
+    }
+    fn increase_font_size(&mut self) -> Result<f32, String> {
+        Err("N/A".into())
+    }
+    fn decrease_font_size(&mut self) -> Result<f32, String> {
+        Err("N/A".into())
+    }
+    fn set_demo_text_selection(&mut self, _selected: bool) {}
+    fn status_line(&self) -> String {
+        self.status.clone()
+    }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
+fn media_placeholder_backend(path: &Path) -> Box<dyn unibrowser_engine::document::DocumentBackend> {
+    let path_str = path.to_string_lossy().to_string();
+    let status = match unibrowser_media::probe_media_file(path) {
+        Ok(p) => format!(
+            "Media · {} · ffprobe: {}",
+            path_str,
+            p.ffprobe_summary.unwrap_or_else(|| "ok".into())
+        ),
+        Err(e) => format!("Media · {} · ffmpeg T3: {}", path_str, e),
+    };
+    Box::new(MediaPlaceholderBackend {
+        path: path_str,
+        status,
+    })
 }

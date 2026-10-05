@@ -77,6 +77,13 @@ pub struct PaletteEntryDto {
 }
 
 #[derive(Serialize)]
+pub struct DocumentViewerDto {
+    pub path: String,
+    pub viewer: String,
+    pub title: String,
+}
+
+#[derive(Serialize)]
 pub struct TextDocumentDto {
     pub path: String,
     pub content: String,
@@ -96,6 +103,7 @@ pub struct TabContentDto {
     pub document_status: Option<String>,
     pub text_document: Option<TextDocumentDto>,
     pub mod_portal: Option<ModPortalDto>,
+    pub document_viewer: Option<DocumentViewerDto>,
     pub show_onboarding: bool,
 }
 
@@ -128,6 +136,21 @@ fn build_tab_dto(tab: &unibrowser_engine::tabs::Tab) -> TabDto {
         is_directory: tab.is_directory,
         is_http,
     }
+}
+
+fn document_viewer_dto(doc: &unibrowser_engine::DocumentSession) -> Option<DocumentViewerDto> {
+    let viewer = match doc.backend.backend_id() {
+        base_docx::BACKEND_ID => base_docx::VIEWER_KIND,
+        base_pdf::BACKEND_ID => base_pdf::VIEWER_KIND,
+        base_dxf::BACKEND_ID => base_dxf::VIEWER_KIND,
+        base_js::BACKEND_ID => base_js::VIEWER_KIND,
+        _ => return None,
+    };
+    Some(DocumentViewerDto {
+        path: doc.path.clone(),
+        viewer: viewer.into(),
+        title: doc.backend.display_name().into(),
+    })
 }
 
 fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<TextDocumentDto> {
@@ -165,10 +188,18 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         .active_tab()
         .and_then(|t| t.document.as_ref())
         .map(|d| d.backend.status_line());
-    let text_document = tabs
-        .active_tab_mut()
-        .and_then(|t| t.document.as_mut())
-        .and_then(text_document_dto);
+    let document_viewer = tabs
+        .active_tab()
+        .and_then(|t| t.document.as_ref())
+        .and_then(document_viewer_dto);
+    let text_document = if document_viewer.is_some() {
+        None
+    } else {
+        tabs
+            .active_tab_mut()
+            .and_then(|t| t.document.as_mut())
+            .and_then(text_document_dto)
+    };
     let mod_portal = active_mod_portal(tabs.active_tab());
     let prefs = load_preferences();
     Ok(TabContentDto {
@@ -183,6 +214,7 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         document_status,
         text_document,
         mod_portal,
+        document_viewer,
         show_onboarding: !prefs.onboarding_dismissed,
     })
 }
@@ -601,6 +633,25 @@ pub fn set_content_bounds(
 #[derive(Serialize)]
 pub struct PreferencesDto {
     pub onboarding_dismissed: bool,
+}
+
+#[tauri::command]
+pub fn read_document_bytes(path: String) -> Result<Vec<u8>, String> {
+    let p = PathBuf::from(&path);
+    if !p.is_file() {
+        return Err("not a file".into());
+    }
+    std::fs::read(&p).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn run_rhai_script(source: String) -> Result<String, String> {
+    base_js::ScriptBackend::eval_snippet(&source)
+}
+
+#[tauri::command]
+pub fn get_ffmpeg_probe() -> unibrowser_media::FfmpegProbe {
+    unibrowser_media::probe_ffmpeg_install()
 }
 
 #[tauri::command]

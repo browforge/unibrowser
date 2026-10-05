@@ -203,6 +203,61 @@ body {
   display: none;
 }
 
+.document-viewer-host {
+  position: absolute;
+  inset: 0.5rem;
+  overflow: auto;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0.5rem;
+  background: #1e1e24;
+}
+
+.document-viewer-host.hidden {
+  display: none;
+}
+
+.docx-view {
+  max-width: 48rem;
+  line-height: 1.5;
+}
+
+.viewer-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #aaa;
+}
+
+.viewer-note {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 0.5rem;
+}
+
+.viewer-error {
+  color: #f88;
+}
+
+.script-source {
+  width: 100%;
+  min-height: 8rem;
+  font-family: ui-monospace, monospace;
+  background: #111;
+  color: #eee;
+  border: 1px solid #444;
+}
+
+.script-output {
+  background: #111;
+  padding: 0.5rem;
+  border-radius: 4px;
+  min-height: 2rem;
+}
+
+.dxf-canvas-wrap canvas {
+  max-width: 100%;
+}
+
 .panel.hidden {
   display: none;
 }

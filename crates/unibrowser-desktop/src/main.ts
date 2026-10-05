@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import { commandManager } from "./commandManager";
 import { textEditor, type TextDocumentDto } from "./textEditor";
+import { documentViewer, type DocumentViewerDto } from "./documentViewer";
 
 interface TabDto {
   id: number;
@@ -41,6 +42,7 @@ interface TabContentDto {
   document_status: string | null;
   text_document: TextDocumentDto | null;
   mod_portal: ModPortalDto | null;
+  document_viewer: DocumentViewerDto | null;
   show_onboarding: boolean;
 }
 
@@ -66,6 +68,7 @@ const paletteQuery = document.getElementById("palette-query") as HTMLInputElemen
 const paletteResults = document.getElementById("palette-results")!;
 const contentHost = document.getElementById("content-host")!;
 const textEditorHost = document.getElementById("text-editor-host")!;
+const documentViewerHost = document.getElementById("document-viewer-host")!;
 const modPortalPanel = document.getElementById("mod-portal-panel")!;
 const onboardingBanner = document.getElementById("onboarding-banner")!;
 const onboardingDismiss = document.getElementById("onboarding-dismiss")!;
@@ -157,9 +160,14 @@ function renderModPortal(portal: ModPortalDto | null) {
   modPortalPanel.appendChild(side);
 }
 
-function renderDoc(status: string | null, hasTextEditor: boolean, hasPortal: boolean) {
+function renderDoc(
+  status: string | null,
+  hasTextEditor: boolean,
+  hasPortal: boolean,
+  hasViewer: boolean,
+) {
   docPanel.innerHTML = "";
-  if (!status || hasTextEditor || hasPortal) {
+  if (!status || hasTextEditor || hasPortal || hasViewer) {
     docPanel.classList.add("hidden");
     return;
   }
@@ -197,20 +205,27 @@ async function refreshCommandManager() {
 async function applyState(data: TabContentDto) {
   const active = data.tabs[data.active_index];
   const showText = Boolean(data.text_document) && !active?.is_http;
+  const showViewer = Boolean(data.document_viewer) && !active?.is_http;
   renderTabs(data);
-  if (showText) {
+  if (showText || showViewer) {
     filesPanel.classList.add("hidden");
   } else {
     renderFiles(data.directory_entries);
   }
   renderModPortal(data.mod_portal);
   const hasPortal = Boolean(data.mod_portal);
-  renderDoc(data.document_status, showText, hasPortal);
+  renderDoc(data.document_status, showText, hasPortal, showViewer);
   renderOnboarding(data.show_onboarding);
   if (showText && data.text_document) {
     await textEditor.apply(data.text_document, textEditorHost);
+    documentViewer.hide(documentViewerHost);
   } else {
     textEditor.hide(textEditorHost);
+  }
+  if (showViewer && data.document_viewer) {
+    await documentViewer.apply(data.document_viewer, documentViewerHost);
+  } else if (!showText) {
+    documentViewer.hide(documentViewerHost);
   }
   statusLine.textContent = data.status;
   await refreshCommandManager();
