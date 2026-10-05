@@ -39,14 +39,17 @@
             role="tablist"
             aria-label="Command manager phases"
           ></div>
-          <button
-            type="button"
-            id="command-manager-pin"
-            class="cm-pin"
-            title="Pin the current tab (stop following document context)"
-          >
-            Pin tab
-          </button>
+          <div class="cm-pin-wrap">
+            <span id="command-manager-pin-label" class="cm-pin-label">Commands follow document</span>
+            <button
+              type="button"
+              id="command-manager-pin"
+              class="cm-pin"
+              title="Pin the commands tab (stop following document context)"
+            >
+              Pin commands tab
+            </button>
+          </div>
           <button type="button" id="command-manager-export" class="cm-layout-btn">
             Export layout
           </button>

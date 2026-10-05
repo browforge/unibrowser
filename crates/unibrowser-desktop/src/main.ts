@@ -545,6 +545,8 @@ function renderModPortal(portal: ModPortalDto | null) {
   searchBtn.textContent = t("mods.search");
   const searchStatus = document.createElement("p");
   searchStatus.className = "mod-portal-search-status viewer-note";
+  const catalogResults = document.createElement("div");
+  catalogResults.className = "mod-portal-catalog";
   const results = document.createElement("div");
   results.className = "mod-portal-results";
   searchRow.appendChild(optIn);
@@ -552,6 +554,11 @@ function renderModPortal(portal: ModPortalDto | null) {
   searchRow.appendChild(searchInput);
   searchRow.appendChild(searchBtn);
   modPortalPanel.appendChild(searchRow);
+  const catalogNote = document.createElement("p");
+  catalogNote.className = "viewer-note";
+  catalogNote.textContent = t("mods.catalogNote");
+  modPortalPanel.appendChild(catalogNote);
+  modPortalPanel.appendChild(catalogResults);
   modPortalPanel.appendChild(searchStatus);
   modPortalPanel.appendChild(results);
 
@@ -611,6 +618,42 @@ function renderModPortal(portal: ModPortalDto | null) {
       showToast(String(err), "error");
     }
   }
+
+  async function renderCatalog() {
+    const entries = await invoke<
+      {
+        id: string;
+        title: string;
+        kind: string;
+        blurb: string;
+        open_vsx_id?: string | null;
+        ubmod_id?: string | null;
+      }[]
+    >("list_mod_catalog", { query: searchInput.value });
+    catalogResults.innerHTML = "";
+    entries.forEach((entry) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "mod-suggestion mod-catalog-row";
+      row.textContent = `${entry.title} (${entry.kind})`;
+      row.title = entry.blurb;
+      row.onclick = () => {
+        if (entry.open_vsx_id) {
+          searchInput.value = entry.open_vsx_id;
+          optIn.checked = true;
+          showToast(t("mods.catalogOpenVsx"), "info");
+        } else if (entry.ubmod_id) {
+          showToast(t("mods.ubmodStub", { modId: entry.ubmod_id }), "info");
+        }
+      };
+      catalogResults.appendChild(row);
+    });
+  }
+
+  searchInput.addEventListener("input", () => {
+    void renderCatalog();
+  });
+  void renderCatalog();
 
   searchBtn.onclick = async () => {
     results.innerHTML = "";

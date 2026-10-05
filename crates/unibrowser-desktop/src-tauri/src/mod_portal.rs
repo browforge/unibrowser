@@ -113,6 +113,94 @@ pub fn suggest_mods_for_unknown_path(path: &str) -> Vec<ModSuggestionDto> {
     list
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ModCatalogEntryDto {
+    pub id: String,
+    pub title: String,
+    pub kind: String,
+    pub blurb: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_vsx_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ubmod_id: Option<String>,
+}
+
+fn catalog_seed() -> Vec<ModCatalogEntryDto> {
+    vec![
+        ModCatalogEntryDto {
+            id: "base-docx".into(),
+            title: "Word (DOCX)".into(),
+            kind: "ubmod".into(),
+            blurb: "Bundled Mammoth preview lane".into(),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-docx".into()),
+        },
+        ModCatalogEntryDto {
+            id: "base-pdf".into(),
+            title: "PDF viewer".into(),
+            kind: "ubmod".into(),
+            blurb: "Raster + vector proving".into(),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-pdf".into()),
+        },
+        ModCatalogEntryDto {
+            id: "eslint".into(),
+            title: "ESLint (Open VSX)".into(),
+            kind: "open_vsx".into(),
+            blurb: "Example VSIX stub install".into(),
+            open_vsx_id: Some("dbaeumer.vscode-eslint".into()),
+            ubmod_id: None,
+        },
+        ModCatalogEntryDto {
+            id: "excel-viewer".into(),
+            title: "Excel viewer (Open VSX)".into(),
+            kind: "open_vsx".into(),
+            blurb: "Spreadsheet preview extension".into(),
+            open_vsx_id: Some("GrapeCity.gc-excelviewer".into()),
+            ubmod_id: None,
+        },
+        ModCatalogEntryDto {
+            id: "hello-ubmod".into(),
+            title: "Hello world .ubmod".into(),
+            kind: "ubmod".into(),
+            blurb: "Sample native mod package".into(),
+            open_vsx_id: None,
+            ubmod_id: Some("mod.hello".into()),
+        },
+        ModCatalogEntryDto {
+            id: "base-dxf".into(),
+            title: "DXF proving".into(),
+            kind: "ubmod".into(),
+            blurb: "Wireframe CAD stub".into(),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-dxf".into()),
+        },
+    ]
+}
+
+pub fn filter_mod_catalog(query: &str) -> Vec<ModCatalogEntryDto> {
+    let q = query.trim().to_ascii_lowercase();
+    let all = catalog_seed();
+    if q.is_empty() {
+        return all;
+    }
+    all.into_iter()
+        .filter(|e| {
+            e.id.to_ascii_lowercase().contains(&q)
+                || e.title.to_ascii_lowercase().contains(&q)
+                || e.blurb.to_ascii_lowercase().contains(&q)
+                || e.open_vsx_id
+                    .as_ref()
+                    .map(|s| s.to_ascii_lowercase().contains(&q))
+                    .unwrap_or(false)
+                || e.ubmod_id
+                    .as_ref()
+                    .map(|s| s.to_ascii_lowercase().contains(&q))
+                    .unwrap_or(false)
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -129,5 +217,11 @@ mod tests {
         let list = suggest_mods_for_extension("pdf");
         assert_eq!(list[0].mod_id, "base-pdf");
         assert!(list[0].ubmod_id.is_some());
+    }
+
+    #[test]
+    fn catalog_filter_matches_ubmod_id() {
+        let hits = filter_mod_catalog("hello");
+        assert!(hits.iter().any(|e| e.id == "hello-ubmod"));
     }
 }

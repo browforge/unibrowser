@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Command Manager pin UX**: labelled pin control, transient CM tab preview (no stick on click alone), Settings tip + first-pin toast.
+- **Clipboard**: copy image from PNG viewer; paste still onto `.unibrow` timeline (`paste_unibrow_still_clip`).
+- **Mod portal**: offline catalog filter (`list_mod_catalog`); Open VSX remains opt-in network; sideload unchanged.
+- **Tests**: tab reorder/pin unit tests; session snapshot v2 serde roundtrip.
 - **Tab chrome**: drag reorder, middle-click close, Ctrl+click pin; documented in [chrome.md](docs/chrome.md).
 - **Omnibox**: Places + recent + cwd + URL suggestions; Enter applies selection then navigates.
 - **Audio proving**: waveform via Web Audio or ffmpeg PCM; grey DAW commands on `base-audio`; MP3/WAV/FLAC/OGG open path.

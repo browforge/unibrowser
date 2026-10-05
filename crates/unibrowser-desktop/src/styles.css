@@ -476,6 +476,22 @@ button.proving-disabled,
   flex: 1;
 }
 
+.cm-pin-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  margin-left: 0.35rem;
+}
+
+.cm-pin-label {
+  font-size: 0.65rem;
+  color: #888;
+  max-width: 9rem;
+  text-align: right;
+  line-height: 1.2;
+}
+
 .cm-pin {
   flex: 0 0 auto;
   background: #2a2a32;

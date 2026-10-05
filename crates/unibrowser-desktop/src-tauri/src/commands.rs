@@ -2248,9 +2248,7 @@ pub fn delete_workspace_layout_preset(window: tauri::Window, id: String) -> Resu
 #[tauri::command]
 pub fn select_command_manager_tab(window: tauri::Window, tab_id: String, state: State<AppState>) -> Result<(), String> {
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
-    if cm.tabs.iter().any(|t| t.id == tab_id) {
-        cm.selected_tab = tab_id;
-    }
+    cm.select_tab_manual(&tab_id);
     Ok(())
 }
 
@@ -2697,6 +2695,7 @@ pub struct PreferencesDto {
     pub onboarding_checklist_completed: Vec<String>,
     pub theme: String,
     pub command_manager_dense: bool,
+    pub cm_pin_tip_seen: bool,
     pub high_contrast: bool,
     pub reduce_motion: String,
     pub restore_session_on_launch: bool,
@@ -3526,6 +3525,7 @@ fn preferences_dto() -> PreferencesDto {
         onboarding_checklist_completed: p.onboarding_checklist_completed.clone(),
         theme: theme_to_str(&p.theme),
         command_manager_dense: p.command_manager_dense,
+        cm_pin_tip_seen: p.cm_pin_tip_seen,
         high_contrast: p.high_contrast,
         reduce_motion: reduce_motion_to_str(&p.reduce_motion),
         restore_session_on_launch: p.restore_session_on_launch,
@@ -4206,6 +4206,64 @@ pub fn search_open_vsx_catalog(window: tauri::Window,
     network_opt_in: bool,
 ) -> Result<Vec<crate::open_vsx::OpenVsxHitDto>, String> {
     crate::open_vsx::search_open_vsx(&query, network_opt_in)
+}
+
+#[tauri::command]
+pub fn list_mod_catalog(query: String) -> Vec<crate::mod_portal::ModCatalogEntryDto> {
+    crate::mod_portal::filter_mod_catalog(&query)
+}
+
+#[tauri::command]
+pub fn paste_unibrow_still_clip(
+    window: tauri::Window,
+    project_path: String,
+    source_path: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let source = resolve_open_path(&source_path, &state.cwd)?;
+    if !source.is_file() {
+        return Err("clipboard image path is not a file".into());
+    }
+    let mut package = open_unibrow_package(&project)?;
+    let node_type = unibrowser_project::guess_asset_node_type(&source);
+    let label = source
+        .file_stem()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "still".into());
+    let node = unibrowser_project::add_asset_copy(&mut package, &source, node_type, &label)
+        .map_err(|e| e.to_string())?;
+    unibrowser_project::append_timeline_clip_for_node(&mut package, &node.id)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn write_temp_png(bytes: Vec<u8>) -> Result<String, String> {
+    if bytes.is_empty() {
+        return Err("empty image".into());
+    }
+    if bytes.len() > crate::document_limits::MAX_WRITE_BYTES {
+        return Err(crate::document_limits::write_limit_error(bytes.len()));
+    }
+    let path = std::env::temp_dir().join(format!(
+        "unibrowser-clip-{}.png",
+        std::process::id()
+    ));
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn dismiss_cm_pin_tip() -> Result<PreferencesDto, String> {
+    let mut prefs = load_preferences();
+    prefs.cm_pin_tip_seen = true;
+    save_preferences(&prefs)?;
+    Ok(preferences_dto())
 }
 
 #[tauri::command]

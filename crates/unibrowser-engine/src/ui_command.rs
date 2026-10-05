@@ -90,6 +90,8 @@ pub struct CommandManagerState {
     pub auto_context: CommandContext,
     /// Tab id pinned by user; `None` = follow `auto_context`.
     pub context_pin: Option<String>,
+    /// Manual CM tab browse (cleared when document context changes unless pinned).
+    pub transient_tab: Option<String>,
     pub tabs: Vec<ManagerTabLayout>,
     pub floating_bars: Vec<FloatingToolbarLayout>,
 }
@@ -194,8 +196,16 @@ impl CommandManagerState {
             selected_tab: selected,
             auto_context,
             context_pin: file.context_pin.clone(),
+            transient_tab: None,
             tabs: file.tabs.clone(),
             floating_bars: file.floating_bars.clone(),
+        }
+    }
+
+    pub fn select_tab_manual(&mut self, tab_id: &str) {
+        if self.tabs.iter().any(|t| t.id == tab_id) {
+            self.transient_tab = Some(tab_id.to_string());
+            self.selected_tab = tab_id.to_string();
         }
     }
 
@@ -204,6 +214,7 @@ impl CommandManagerState {
         if self.context_pin.is_some() {
             return;
         }
+        self.transient_tab = None;
         let id = ctx.tab_id();
         if self.tabs.iter().any(|t| t.id == id) {
             self.selected_tab = id.to_string();
@@ -212,10 +223,12 @@ impl CommandManagerState {
 
     pub fn pin_selected_tab(&mut self) {
         self.context_pin = Some(self.selected_tab.clone());
+        self.transient_tab = None;
     }
 
     pub fn clear_context_pin(&mut self) {
         self.context_pin = None;
+        self.transient_tab = None;
         let id = self.auto_context.tab_id();
         if self.tabs.iter().any(|t| t.id == id) {
             self.selected_tab = id.to_string();

@@ -190,6 +190,10 @@ impl TabManager {
         false
     }
 
+    pub fn is_tab_pinned(&self, index: usize) -> bool {
+        self.tabs.get(index).map(|t| t.pinned).unwrap_or(false)
+    }
+
     pub fn close_tab(&mut self, index: usize) -> bool {
         if self.tabs.len() <= 1 || index >= self.tabs.len() {
             return false;

@@ -104,6 +104,9 @@ pub struct Preferences {
     /// Smaller command chips in the Command Manager toolbar.
     #[serde(default)]
     pub command_manager_dense: bool,
+    /// User has seen the Command Manager pin tip (toast or Settings).
+    #[serde(default)]
+    pub cm_pin_tip_seen: bool,
     /// High-contrast chrome (strong borders, Audacity-style accents).
     #[serde(default)]
     pub high_contrast: bool,
@@ -213,6 +216,7 @@ impl Default for Preferences {
             files_view: FilesViewPrefs::default(),
             folder_favorites: Vec::new(),
             command_manager_dense: false,
+            cm_pin_tip_seen: false,
             high_contrast: false,
             reduce_motion: ReduceMotionPref::default(),
             onboarding_checklist_skip_forever: false,

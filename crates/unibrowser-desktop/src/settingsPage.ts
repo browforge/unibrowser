@@ -172,8 +172,12 @@ export async function renderSettings(root: HTMLElement) {
   };
   denseRow.appendChild(denseCb);
   denseRow.appendChild(denseLabel);
+  const cmTip = document.createElement("p");
+  cmTip.className = "settings-hint";
+  cmTip.textContent = t("settings.commandManagerPinTip");
   cmSection.appendChild(cmHeading);
   cmSection.appendChild(denseRow);
+  cmSection.appendChild(cmTip);
   root.appendChild(cmSection);
 
   appendOnboardingChecklistSection(root, {

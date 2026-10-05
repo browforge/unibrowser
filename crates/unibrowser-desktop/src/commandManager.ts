@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
+import { showToast } from "./toast";
+import { t } from "./i18n";
 
 export interface UiCommandDto {
   command_id: string;
@@ -225,18 +227,36 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
   };
 }
 
-function updatePinControl(pinEl: HTMLElement, snapshot: CommandManagerDto) {
+function updatePinControl(
+  pinEl: HTMLElement,
+  labelEl: HTMLElement | null,
+  snapshot: CommandManagerDto,
+) {
+  const pinnedTab = contextLabel(snapshot.selected_tab, snapshot.tabs);
+  const autoTab = contextLabel(snapshot.auto_context, snapshot.tabs);
   pinEl.classList.toggle("pinned", snapshot.context_pinned);
   pinEl.classList.toggle("auto-follow", !snapshot.context_pinned);
   if (snapshot.context_pinned) {
-    pinEl.textContent = "Follow context";
-    pinEl.title =
-      `Pinned to ${contextLabel(snapshot.selected_tab, snapshot.tabs)}. Click to auto-follow document context (${contextLabel(snapshot.auto_context, snapshot.tabs)}).`;
+    pinEl.textContent = t("commandManager.followDocument");
+    pinEl.title = t("commandManager.followDocumentTitle", { tab: pinnedTab, auto: autoTab });
+    if (labelEl) {
+      labelEl.textContent = t("commandManager.statePinned", { tab: pinnedTab });
+    }
   } else {
-    pinEl.textContent = "Pin tab";
-    pinEl.title =
-      `Auto-following ${contextLabel(snapshot.auto_context, snapshot.tabs)}. Click to keep the current tab while you switch documents.`;
+    pinEl.textContent = t("commandManager.pinCommandsTab");
+    pinEl.title = t("commandManager.pinCommandsTabTitle", { auto: autoTab });
+    if (labelEl) {
+      labelEl.textContent = t("commandManager.stateAutoFollow", { auto: autoTab });
+    }
   }
+}
+
+function isPreviewingTab(snapshot: CommandManagerDto, tabId: string): boolean {
+  return (
+    !snapshot.context_pinned &&
+    snapshot.selected_tab === tabId &&
+    snapshot.selected_tab !== snapshot.auto_context
+  );
 }
 
 export const commandManager = {
@@ -247,9 +267,10 @@ export const commandManager = {
     pinEl: HTMLElement,
     onRun: RunCommand,
   ) {
+    const labelEl = document.getElementById("command-manager-pin-label");
     const snapshot = await invoke<CommandManagerDto>("get_command_manager");
     lastSnapshot = snapshot;
-    updatePinControl(pinEl, snapshot);
+    updatePinControl(pinEl, labelEl, snapshot);
     tabsEl.innerHTML = "";
     cmTabButtons = [];
     snapshot.tabs.forEach((tab) => {
@@ -262,15 +283,19 @@ export const commandManager = {
       setTabA11y(btn, tab.selected, `cm-tab-${tab.id}`, "command-manager-commands");
       const autoMatch =
         !snapshot.context_pinned && tab.id === snapshot.auto_context;
-      btn.textContent = autoMatch ? `${tab.label} *` : tab.label;
+      const preview = isPreviewingTab(snapshot, tab.id);
+      btn.textContent =
+        autoMatch ? `${tab.label} *` : preview ? `${tab.label} …` : tab.label;
       btn.title =
         tab.phase === "planned"
           ? `${tab.label} (coming soon)`
-          : autoMatch
-            ? `${tab.label} (matches document context)`
-            : tab.selected && snapshot.context_pinned
-              ? `${tab.label} (pinned)`
-              : tab.label;
+          : preview
+            ? t("commandManager.tabPreviewTitle", { tab: tab.label })
+            : autoMatch
+              ? `${tab.label} (matches document context)`
+              : tab.selected && snapshot.context_pinned
+                ? `${tab.label} (pinned)`
+                : tab.label;
       btn.setAttribute("aria-label", btn.title);
       btn.onclick = async () => {
         await invoke("select_command_manager_tab", { tabId: tab.id });
@@ -411,7 +436,12 @@ export const commandManager = {
       if (lastSnapshot.context_pinned) {
         await invoke("clear_command_manager_context_pin");
       } else {
+        const prefs = await invoke<{ cm_pin_tip_seen: boolean }>("get_preferences");
         await invoke("pin_command_manager_context");
+        if (!prefs.cm_pin_tip_seen) {
+          showToast(t("commandManager.pinTip"), "info");
+          await invoke("dismiss_cm_pin_tip");
+        }
       }
       await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
     });

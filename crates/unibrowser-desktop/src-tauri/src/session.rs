@@ -139,6 +139,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn session_v2_roundtrip_serde() {
+        let snap = SessionSnapshot {
+            version: SESSION_FORMAT_VERSION,
+            windows: vec![WindowSessionEntry {
+                label: "main".into(),
+                tab_inputs: vec!["file:///tmp/a".into(), "https://example.com".into()],
+                active_index: 1,
+                geometry: None,
+            }],
+            tab_inputs: vec![],
+            active_index: 0,
+        };
+        let json = serde_json::to_string(&snap).expect("json");
+        let back: SessionSnapshot = serde_json::from_str(&json).expect("parse");
+        assert_eq!(back.windows.len(), 1);
+        assert_eq!(back.windows[0].active_index, 1);
+        assert_eq!(back.windows[0].tab_inputs.len(), 2);
+    }
+
+    #[test]
     fn migrates_legacy_snapshot() {
         let legacy = SessionSnapshot {
             version: 0,

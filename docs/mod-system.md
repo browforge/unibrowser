@@ -56,6 +56,7 @@ See [ADR 0014](adr/0014-vsix-compatibility-layer.md).
 ### Catalog policy (decided — FOSS path)
 
 - **Default catalogs in the portal:** [Open VSX](https://open-vsx.org) + **future native `.ubmod` registry** (format mods; added when the index ships).
+- **Offline stub catalog (blitz):** `list_mod_catalog` filters bundled seed rows (Open VSX ids + `.ubmod` ids) locally in the mod portal; live search still calls Open VSX when network is opted in. **Install from file** is always available.
 - **No Microsoft Visual Studio Marketplace** integration as a built-in store.
 - **Sideload** `.vsix` and `.ubmod` always allowed (Install from file).
 - Portal behaviour above is **product scope**, not optional “power only”.

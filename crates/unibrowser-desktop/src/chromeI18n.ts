@@ -35,9 +35,13 @@ export function applyChromeI18n() {
   set("btn-pin", t("chrome.pin"), t("chrome.pinTitle"));
 
   const pin = document.getElementById("command-manager-pin");
+  const pinLabel = document.getElementById("command-manager-pin-label");
+  if (pinLabel) {
+    pinLabel.textContent = t("commandManager.stateAutoFollowShort");
+  }
   if (pin) {
-    pin.textContent = t("commandManager.pin");
-    pin.title = t("commandManager.pinTitle");
+    pin.textContent = t("commandManager.pinCommandsTab");
+    pin.title = t("commandManager.pinCommandsTabTitle", { auto: "…" });
   }
   const cmExport = document.getElementById("command-manager-export");
   if (cmExport) {

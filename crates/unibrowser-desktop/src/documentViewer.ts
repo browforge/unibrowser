@@ -5,7 +5,7 @@ import { mountClickToPlay } from "./mediaPlayGate";
 import { renderDownloadsManager, type DownloadHistoryEntryDto } from "./downloadsPage";
 import { reportViewerZoom } from "./viewerZoom";
 import { bindPreviewLinks } from "./previewLinks";
-import { copyText } from "./clipboard";
+import { copyImageFile, copyText, readClipboardImagePath } from "./clipboard";
 import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
 import { renderKeys } from "./keysPage";
@@ -1102,6 +1102,10 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   ocrBtn.textContent = t("image.ocr");
   ocrBtn.disabled = true;
   ocrBtn.title = t("image.ocrDisabledReason");
+  const copyImgBtn = document.createElement("button");
+  copyImgBtn.type = "button";
+  copyImgBtn.textContent = t("image.copy");
+  copyImgBtn.onclick = () => void copyImageFile(path);
   toolbar.appendChild(zoomOut);
   toolbar.appendChild(zoomIn);
   toolbar.appendChild(resetBtn);
@@ -1110,6 +1114,7 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   toolbar.appendChild(clearCropBtn);
   toolbar.appendChild(saveCropBtn);
   toolbar.appendChild(ocrBtn);
+  toolbar.appendChild(copyImgBtn);
   root.appendChild(toolbar);
 
   const viewport = document.createElement("div");
@@ -2083,8 +2088,30 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     });
     window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
   };
+  const pasteStillBtn = document.createElement("button");
+  pasteStillBtn.type = "button";
+  pasteStillBtn.textContent = t("unibrow.pasteStill");
+  pasteStillBtn.title = t("unibrow.pasteStillHint");
+  pasteStillBtn.onclick = async () => {
+    const src = await readClipboardImagePath();
+    if (!src) {
+      showToast(t("unibrow.pasteStillEmpty"), "info");
+      return;
+    }
+    try {
+      const data = await invoke("paste_unibrow_still_clip", {
+        projectPath: viewer.path,
+        sourcePath: src,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+      showToast(t("unibrow.pasteStillDone"), "info");
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
   timelineAddRow.appendChild(nodeSelect);
   timelineAddRow.appendChild(addBtn);
+  timelineAddRow.appendChild(pasteStillBtn);
   timeline.appendChild(timelineAddRow);
   const ol = document.createElement("ol");
   ol.className = "unibrow-timeline-clips";
