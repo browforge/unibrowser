@@ -29,6 +29,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | DevTools | **F12** / palette **Toggle developer tools** on https tabs; [devtools.md](devtools.md) |
 | Image edit | PNG/JPEG: rotate, flip, save-as (new file); crop export; grey **Filters** stub |
 | `.unibrow` v2 | `format_version` 2 + validation on open; v1 still loads; [unibrow-format-migration.md](unibrow-format-migration.md) |
+| Multi-window | Shared prefs/mods; independent tabs per window; session v2 restores all windows; [multi-window.md](multi-window.md) |
+| OS file drop | Drop onto any window → open in that window; multi-file → multiple tabs |
+| Print preview | Markdown/DOCX print CSS preview tab; export PDF opens same preview first |
+| Roadmap | [roadmap.md](roadmap.md) refreshed vs blitz shipped vs open (VSIX JS, WebView2 downloads, OCR, full encode) |
 | CI | [`scripts/check-workspace.sh`](../scripts/check-workspace.sh), GitHub Actions + [ci.md](ci.md) (Origin contract) |
 | Files | Breadcrumbs, favourites, sort/filter, multi-select, drag-drop, zip peek, magic-byte sniff, virtualised large listings |
 | Commands | Command Manager (dense mode), palette + chords (`Ctrl+Shift+P` default, user override via `keybindings.json`), workspace layout presets, import/export JSON; VSIX commands on **Extensions** tab (stub run) |

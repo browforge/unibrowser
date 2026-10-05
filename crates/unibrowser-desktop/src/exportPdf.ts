@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { documentViewer } from "./documentViewer";
 import { getPrintHtmlForPdf, textEditor } from "./textEditor";
+import { openPrintPreviewDocument } from "./printExport";
 import { showErrorToast, showToast } from "./toast";
 import { t } from "./i18n";
 
@@ -10,6 +11,10 @@ export async function runExportPrintPdf(viewerHost: HTMLElement) {
     getPrintHtmlForPdf() ?? documentViewer.getPrintHtmlForPdf(viewerHost);
   if (!payload) {
     showToast(t("export.pdf.noHtml"), "error");
+    return;
+  }
+  if (!openPrintPreviewDocument(payload.title, payload.html)) {
+    showToast(t("export.pdf.previewBlocked"), "error");
     return;
   }
   try {

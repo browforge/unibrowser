@@ -159,6 +159,32 @@ mod tests {
     }
 
     #[test]
+    fn multi_window_entry_labels() {
+        let snap = SessionSnapshot {
+            version: SESSION_FORMAT_VERSION,
+            windows: vec![
+                WindowSessionEntry {
+                    label: "main".into(),
+                    tab_inputs: vec!["file:///a".into()],
+                    active_index: 0,
+                    geometry: None,
+                },
+                WindowSessionEntry {
+                    label: "browser-2".into(),
+                    tab_inputs: vec!["https://example.com".into()],
+                    active_index: 0,
+                    geometry: None,
+                },
+            ],
+            tab_inputs: vec![],
+            active_index: 0,
+        };
+        let wins = snap.normalized_windows();
+        assert_eq!(wins.len(), 2);
+        assert_eq!(wins[1].label, "browser-2");
+    }
+
+    #[test]
     fn migrates_legacy_snapshot() {
         let legacy = SessionSnapshot {
             version: 0,

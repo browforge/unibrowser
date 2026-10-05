@@ -1,7 +1,8 @@
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import { bindPreviewLinks } from "./previewLinks";
-import { openPrintFriendlyDocument } from "./printExport";
+import { openPrintPreviewDocument } from "./printExport";
+import { t } from "./i18n";
 import {
   attachSpellcheckPane,
   detachSpellcheckPane,
@@ -165,7 +166,7 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
   toolbarEl.appendChild(toggle);
   const printBtn = document.createElement("button");
   printBtn.type = "button";
-  printBtn.textContent = "Print preview";
+  printBtn.textContent = t("print.preview");
   printBtn.onclick = () => {
     if (!editor) {
       return;
@@ -173,7 +174,7 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
     const html = markdownPreview && previewEl
       ? previewEl.innerHTML
       : `<pre>${editor.getValue()}</pre>`;
-    openPrintFriendlyDocument(path, html);
+    openPrintPreviewDocument(path, html);
   };
   toolbarEl.appendChild(printBtn);
   host.parentElement?.insertBefore(toolbarEl, host);

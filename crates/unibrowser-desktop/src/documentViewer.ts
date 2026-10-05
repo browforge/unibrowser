@@ -18,6 +18,7 @@ import { t } from "./i18n";
 import {
   downloadPrintFriendlyHtml,
   openPrintFriendlyDocument,
+  openPrintPreviewDocument,
 } from "./printExport";
 import { applySpellcheckToEditable } from "./experimentalSpellcheck";
 
@@ -415,9 +416,9 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   toolbar.appendChild(searchStatus);
   const printBtn = document.createElement("button");
   printBtn.type = "button";
-  printBtn.textContent = "Print";
+  printBtn.textContent = t("print.preview");
   printBtn.onclick = () => {
-    openPrintFriendlyDocument(path, result.value);
+    openPrintPreviewDocument(path, result.value);
   };
   const exportBtn = document.createElement("button");
   exportBtn.type = "button";

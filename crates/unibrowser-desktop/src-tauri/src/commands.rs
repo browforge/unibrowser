@@ -1369,6 +1369,7 @@ pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<()
 pub fn open_dropped_paths(
     app: &AppHandle,
     state: &AppState,
+    window_label: &str,
     paths: Vec<PathBuf>,
 ) -> Result<(), String> {
     if paths.is_empty() {
@@ -1380,10 +1381,15 @@ pub fn open_dropped_paths(
         if safe.is_file() {
             touch_recent_file(&safe);
         }
-        let loc = BrowserLocation::File { path: safe };
-        let (loc, is_dir, doc) = state.resolve_location(loc);
+        let loc = BrowserLocation::File { path: safe.clone() };
+        let (loc, is_dir, doc) = if unibrowser_project::is_unibrow_path(&safe) {
+            let doc = crate::state::try_open_unibrow_document(&safe)?;
+            (loc, false, Some(doc))
+        } else {
+            state.resolve_location(loc)
+        };
         {
-            let _sess_tabs = ws_label(state, "main")?;
+            let _sess_tabs = ws_label(state, window_label)?;
             let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
             if i == 0 {
                 tabs.navigate_active(loc.clone(), is_dir, doc);
@@ -1395,7 +1401,7 @@ pub fn open_dropped_paths(
                 }
             }
         }
-        update_content_webview(app, "main", &loc)?;
+        update_content_webview(app, window_label, &loc)?;
     }
     app.emit("browser-state-updated", ())
         .map_err(|e| e.to_string())?;
@@ -2282,6 +2288,10 @@ pub fn execute_command(window: tauri::Window,
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
     }
+    if command_id == unibrowser_mod_api::commands::NEW_WINDOW {
+        let label = open_new_browser_window(window, app)?;
+        return Ok(format!("window:{}", label));
+    }
     if command_id == TOGGLE_WEB_DEVTOOLS_ID {
         let _sess_tabs = ws(&state, &window)?;
         let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
@@ -2864,6 +2874,9 @@ pub fn open_new_browser_window(_window: tauri::Window, app: AppHandle) -> Result
         label = format!("browser-{}", n);
     }
     ensure_browser_window(&app, &label)?;
+    if let Some(w) = app.get_webview_window(&label) {
+        let _ = w.set_focus();
+    }
     Ok(label)
 }
 

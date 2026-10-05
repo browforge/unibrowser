@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Multi-window**: palette **New window**; shared profile, per-window tabs; session v2 verified; [multi-window.md](docs/multi-window.md) updated.
+- **OS drop**: file drops target the window under the cursor; multi-select opens multiple tabs; `.unibrow` validation on drop.
+- **Print preview**: `openPrintPreviewDocument` (print CSS); Markdown/DOCX toolbar; export PDF shows preview before save dialog.
+- **Roadmap**: [docs/roadmap.md](docs/roadmap.md) blitz reality table (shipped vs VSIX host, WebView2 downloads, OCR, full encode).
 - **About**: version, optional git hash, bundled mod count + registry command count; licence link and NOTICE path copy.
 - **DevTools**: `unibrowser.web.devtools.toggle` (**F12** default) and palette entry for https tabs; [docs/devtools.md](docs/devtools.md).
 - **Image edit lite**: flip horizontal/vertical, **Save as…** (PNG/JPEG) with rotation/crop baked; disabled **Filters** stub.

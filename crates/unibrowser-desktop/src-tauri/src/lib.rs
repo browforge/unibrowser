@@ -80,6 +80,7 @@ pub fn run() {
                         let _ = commands::open_dropped_paths(
                             window.app_handle(),
                             state.inner(),
+                            window.label(),
                             paths.clone(),
                         );
                     }

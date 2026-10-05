@@ -109,4 +109,5 @@ pub mod commands {
     pub const DOCUMENT_REDO: &str = "unibrowser.document.redo";
     pub const EXPORT_PRINT_PDF: &str = "unibrowser.export.printPdf";
     pub const TOGGLE_WEB_DEVTOOLS: &str = "unibrowser.web.devtools.toggle";
+    pub const NEW_WINDOW: &str = "unibrowser.window.new";
 }

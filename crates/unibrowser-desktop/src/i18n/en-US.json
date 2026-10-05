@@ -124,6 +124,8 @@
   "status.webZoom": "Web {percent}%",
   "status.encode": "Encode {percent}% — {stage}",
   "export.pdf.noHtml": "Open Markdown preview or a DOCX file to export PDF",
+  "export.pdf.previewBlocked": "Allow pop-ups to preview print layout before PDF export",
+  "print.preview": "Print preview",
   "encode.done": "Encode finished",
   "tabs.pinnedNoClose": "Unpin tab before middle-click close",
   "tabs.pinFailed": "Could not change tab pin",

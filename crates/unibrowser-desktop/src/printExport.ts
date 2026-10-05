@@ -65,14 +65,26 @@ export function printerFriendlyHtmlDocument(title: string, bodyInnerHtml: string
 </html>`;
 }
 
-export function openPrintFriendlyDocument(title: string, bodyInnerHtml: string): void {
+/** Opens styled print layout in a new tab without invoking the system print dialog. */
+export function openPrintPreviewDocument(
+  title: string,
+  bodyInnerHtml: string,
+): Window | null {
   const w = window.open("", "_blank", "noopener");
   if (!w) {
-    return;
+    return null;
   }
   w.document.write(printerFriendlyHtmlDocument(title, bodyInnerHtml));
   w.document.close();
   w.focus();
+  return w;
+}
+
+export function openPrintFriendlyDocument(title: string, bodyInnerHtml: string): void {
+  const w = openPrintPreviewDocument(title, bodyInnerHtml);
+  if (!w) {
+    return;
+  }
   w.print();
 }
 

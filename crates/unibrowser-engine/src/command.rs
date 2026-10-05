@@ -96,6 +96,13 @@ impl CommandRegistry {
             default_keybinding: Some("F12"),
             aliases: &["devtools", "web inspector", "inspect element"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::NEW_WINDOW,
+            title: "New window",
+            icon: "window",
+            default_keybinding: None,
+            aliases: &["another window", "second window"],
+        });
         reg
     }
 

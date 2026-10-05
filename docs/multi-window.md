@@ -1,23 +1,38 @@
 # Multi-window behaviour
 
-Unibrowser can open additional windows from **Settings → Open another window**.
+Unibrowser can open additional top-level windows that share one **profile** on disk but keep **separate tab strips**.
 
-## Per-window tab state
+## Open another window
 
-Each window label (`main`, `browser-2`, …) owns its own:
+| Entry | Action |
+| --- | --- |
+| Settings | **Open another window** |
+| Command palette | **New window** (`unibrowser.window.new`) |
 
-- Tab list and active tab
-- Split view configuration
-- Per-document undo stacks
-- File compare state
-- Ephemeral chrome notices
+Each new window gets a label `browser-2`, `browser-3`, … and loads the same shell (`index.html`) with its own content webview (`content-{label}`).
 
-Preferences on disk (theme, downloads, bookmarks, workspace layouts, toolbars) remain **shared** across windows.
+## Shared vs per-window
 
-## Web content overlay
+| Shared (one profile) | Per window |
+| --- | --- |
+| `preferences.json` (theme, downloads, session toggle, …) | Tab list and active tab |
+| `keybindings.json`, `toolbars.json` | Split view, compare, undo stacks |
+| Bundled mods and VSIX registry (single `AppState`) | Ephemeral chrome notices |
+| Recent files, Places, workspace layout presets | `https://` content webview bounds |
 
-Each window has its own embedded `content-{label}` webview for `https://` tabs. Bounds are synced from that window's `#content-host` region.
+Mods and settings load once; every window sees the same Command Manager catalog and preferences.
 
 ## Session restore
 
-Quit-time session snapshots apply to the **main** window only.
+When **Restore tabs on launch** is enabled, quit captures **all** open windows via `session.json` format v2 (`windows[]` with labels, tab omnibox strings, active index, geometry). On launch, `main` restores first, then any `browser-N` entries.
+
+See [session-restore.md](session-restore.md).
+
+## OS file drop
+
+Dragging files from the desktop onto **any** window opens them in **that** window's tabs: first file replaces the active tab, additional files open as new tabs. Invalid `.unibrow` projects show a friendly error instead of a blank tab.
+
+## Related
+
+- [browser-shell.md](browser-shell.md)
+- [split-view.md](split-view.md) (second pane inside one window)
