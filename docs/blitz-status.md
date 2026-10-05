@@ -17,7 +17,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Toolbars | Floating bars drag-anywhere; positions in `toolbars.json` as screen coords ([toolbars.md](toolbars.md)) |
 | Recovery | Text/SVG crash backups (opt-in); `.unibrow` `project.json` debounced backups + launch prompt when project autosave or crash recovery is on |
 | Downloads | Linux WebKit `on_download` → shell; optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
-| A11y prefs | High contrast, reduce motion, onboarding checklist; CM tab keys, palette Escape, focus rings ([ux-a11y.md](ux-a11y.md)) |
+| A11y prefs | High contrast, reduce motion, skippable first-run tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
+| i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
+| Scripting | Rhai demo from palette → output panel; `.rhai` / `.js` script viewer |
+| DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |
 | Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), ADRs 0001–0019 |
 | Quality | `cargo test --workspace`, path/transfer fuzz tests, `./scripts/smoke-desktop-qa.sh` |
 
@@ -42,7 +45,7 @@ Report screenshots: [report-visuals.md](report-visuals.md) and `./scripts/captur
 | Spellcheck | Monaco has no dictionary; optional **experimental** browser spellcheck mirror in Advanced settings |
 | Timeline encode | H.264 path when ffmpeg present; no audio mix / cross-fades; preview concat still copy-only |
 | Windows/macOS dynamic mods | Linux user `mods/` today |
-| i18n | en-NZ only for chrome strings |
+| i18n | Viewer copy not fully translated; only chrome catalogues today |
 | Cloud / collab | Share zip only; no live multi-user |
 
 ## Known bugs / rough edges

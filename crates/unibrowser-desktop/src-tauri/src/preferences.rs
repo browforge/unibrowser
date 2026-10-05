@@ -48,6 +48,12 @@ pub struct RecentFileEntry {
 pub struct Preferences {
     #[serde(default)]
     pub onboarding_dismissed: bool,
+    /// First-run tour card; when true, tour never shows again.
+    #[serde(default)]
+    pub onboarding_tour_skipped_forever: bool,
+    /// UI catalogue: `en-NZ` or `en-US`.
+    #[serde(default = "default_ui_locale")]
+    pub ui_locale: String,
     #[serde(default)]
     pub theme: UiTheme,
     #[serde(default)]
@@ -121,6 +127,10 @@ fn default_auto_save_interval() -> u32 {
     120
 }
 
+fn default_ui_locale() -> String {
+    "en-NZ".into()
+}
+
 fn default_true() -> bool {
     true
 }
@@ -182,6 +192,8 @@ impl Default for Preferences {
     fn default() -> Self {
         Self {
             onboarding_dismissed: false,
+            onboarding_tour_skipped_forever: false,
+            ui_locale: default_ui_locale(),
             theme: UiTheme::default(),
             recent_files: Vec::new(),
             restore_session_on_launch: false,

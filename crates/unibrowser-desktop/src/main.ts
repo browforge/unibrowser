@@ -22,6 +22,12 @@ import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
 import { maybePromptProjectRecovery } from "./projectRecoveryPrompt";
+import { showOnboardingTour } from "./onboardingTour";
+import {
+  appendScriptOutput,
+  initScriptOutputPanel,
+} from "./scriptOutputPanel";
+import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
 import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./filesPanel";
@@ -105,6 +111,7 @@ interface TabContentDto {
   mod_portal: ModPortalDto | null;
   document_viewer: DocumentViewerDto | null;
   show_onboarding: boolean;
+  show_onboarding_tour: boolean;
   recent_files: RecentFileDto[];
   split_view_enabled: boolean;
   split_index: number | null;
@@ -795,6 +802,8 @@ async function applyState(data: TabContentDto) {
   if (data.chrome_notice) {
     showToast(data.chrome_notice, "info");
   }
+  onboardingBanner.classList.toggle("hidden", !data.show_onboarding);
+  showOnboardingTour(data.show_onboarding_tour);
   if (data.browse_folder_path) {
     lastBrowseFolderPath = data.browse_folder_path;
   }
@@ -1135,6 +1144,9 @@ async function runKeybindingCommand(commandId: string) {
   }
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
+  if (commandId === "unibrowser.script.demo.hello") {
+    appendScriptOutput(String(msg));
+  }
   showToast(String(msg), "info");
   await refreshCommandManager();
   await refreshState();
@@ -1228,6 +1240,9 @@ paletteQuery.addEventListener("input", async () => {
     row.disabled = !entry.enabled;
     row.onclick = () => {
       invoke<string>("execute_command", { commandId: entry.command_id }).then((msg) => {
+        if (entry.command_id === "unibrowser.script.demo.hello") {
+          appendScriptOutput(String(msg));
+        }
         showToast(String(msg), "info");
         togglePalette();
         refreshCommandManager();
@@ -1343,7 +1358,12 @@ function deferNonCriticalInit(fn: () => void) {
   }
 }
 
+initScriptOutputPanel();
+listen<string>("unibrowser-script-output", (event) => {
+  appendScriptOutput(String(event.payload));
+});
 applyChromeI18n();
+void loadUiLocale().then(() => applyChromeI18n());
 void loadThemePreference().then(() => {
   themeBtn.textContent = themeButtonLabel();
 });

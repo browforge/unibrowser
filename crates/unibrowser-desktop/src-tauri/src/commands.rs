@@ -245,6 +245,7 @@ pub struct TabContentDto {
     pub mod_portal: Option<ModPortalDto>,
     pub document_viewer: Option<DocumentViewerDto>,
     pub show_onboarding: bool,
+    pub show_onboarding_tour: bool,
     pub recent_files: Vec<RecentFileDto>,
     pub split_view_enabled: bool,
     pub split_index: Option<usize>,
@@ -906,7 +907,8 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         text_document,
         mod_portal,
         document_viewer,
-        show_onboarding: false,
+        show_onboarding: !prefs.onboarding_dismissed,
+        show_onboarding_tour: !prefs.onboarding_tour_skipped_forever,
         recent_files: recent_files_dto(&prefs),
         split_view_enabled: split_enabled,
         split_index: if split_enabled { split_index } else { None },
@@ -2071,6 +2073,25 @@ pub fn execute_command(window: tauri::Window,
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
     }
+    if command_id == unibrowser_mod_api::commands::SCRIPT_DEMO_HELLO {
+        let allow_doc = {
+            let _sess_tabs = ws(&state, &window)?;
+            let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+            tabs
+                .active_tab()
+                .and_then(|t| t.document.as_ref())
+                .map(|d| d.backend.backend_id() == base_text::BACKEND_ID)
+                .unwrap_or(false)
+        };
+        let source = if allow_doc {
+            crate::rhai_host::DEMO_HELLO_SCRIPT
+        } else {
+            crate::rhai_host::DEMO_HELLO_SCRIPT_BROWSE
+        };
+        let out = crate::rhai_host::eval_rhai_script(state.inner(), source, allow_doc)?;
+        let _ = app.emit("unibrowser-script-output", &out);
+        return Ok(out);
+    }
     {
         let host_cmds = state
             .vsix_host_commands
@@ -2347,6 +2368,8 @@ pub fn set_content_bounds(
 #[derive(Serialize)]
 pub struct PreferencesDto {
     pub onboarding_dismissed: bool,
+    pub onboarding_tour_skipped_forever: bool,
+    pub ui_locale: String,
     pub onboarding_checklist_skip_forever: bool,
     pub onboarding_checklist_completed: Vec<String>,
     pub theme: String,
@@ -3147,6 +3170,8 @@ fn preferences_dto() -> PreferencesDto {
     let p = load_preferences();
     PreferencesDto {
         onboarding_dismissed: p.onboarding_dismissed,
+        onboarding_tour_skipped_forever: p.onboarding_tour_skipped_forever,
+        ui_locale: p.ui_locale.clone(),
         onboarding_checklist_skip_forever: p.onboarding_checklist_skip_forever,
         onboarding_checklist_completed: p.onboarding_checklist_completed.clone(),
         theme: theme_to_str(&p.theme),
@@ -3758,6 +3783,27 @@ pub fn dismiss_onboarding(window: tauri::Window) -> Result<(), String> {
     let mut p = load_preferences();
     p.onboarding_dismissed = true;
     save_preferences(&p)
+}
+
+#[tauri::command]
+pub fn skip_onboarding_tour_forever(_window: tauri::Window) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.onboarding_tour_skipped_forever = true;
+    p.onboarding_dismissed = true;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_ui_locale(locale: String) -> Result<PreferencesDto, String> {
+    let locale = locale.trim();
+    if locale != "en-NZ" && locale != "en-US" {
+        return Err("unsupported locale (en-NZ or en-US)".into());
+    }
+    let mut p = load_preferences();
+    p.ui_locale = locale.to_string();
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 #[tauri::command]

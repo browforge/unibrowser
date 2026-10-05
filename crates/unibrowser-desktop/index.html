@@ -63,6 +63,7 @@
       <span>Tip: Ctrl+Shift+P opens the command palette. Dismiss this any time.</span>
       <button type="button" id="onboarding-dismiss">Dismiss</button>
     </div>
+    <div id="onboarding-tour" class="onboarding-tour hidden" aria-live="polite"></div>
     <main id="content-host" class="content-host">
       <div id="new-tab-page-host" class="new-tab-page-host hidden" aria-label="Start page"></div>
       <div id="split-primary" class="split-pane">
@@ -82,6 +83,13 @@
         <div id="split-doc-panel" class="panel doc-panel hidden"></div>
       </div>
     </main>
+    <aside id="script-output-panel" class="script-output-panel hidden" aria-label="Script output">
+      <div class="script-output-head">
+        <span>Script output</span>
+        <button type="button" id="script-output-close" aria-label="Close script output">×</button>
+      </div>
+      <div id="script-output-log" class="script-output-log"></div>
+    </aside>
     <footer id="status-bar" class="status-bar" aria-label="Status">
       <span id="status-path" class="status-segment status-path"></span>
       <span id="status-encoding" class="status-segment"></span>

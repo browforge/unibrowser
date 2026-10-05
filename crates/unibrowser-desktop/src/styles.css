@@ -1270,6 +1270,26 @@ body {
   cursor: pointer;
 }
 
+.dxf-geom-panel {
+  min-width: 9rem;
+  max-width: 12rem;
+  padding: 0.35rem 0.5rem;
+  background: #25252c;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.dxf-geom-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.dxf-svg-proxy {
+  background: #1a1a22;
+  border: 1px solid #444;
+}
+
 .dxf-layout {
   display: flex;
   gap: 0.75rem;
@@ -2153,6 +2173,85 @@ mark.docx-search-hit--current {
 
 .onboarding-banner.hidden {
   display: none;
+}
+
+.onboarding-tour {
+  position: fixed;
+  right: 1rem;
+  bottom: 3.5rem;
+  z-index: 850;
+  pointer-events: none;
+  max-width: min(22rem, 90vw);
+}
+
+.onboarding-tour.hidden {
+  display: none;
+}
+
+.onboarding-tour-card {
+  pointer-events: auto;
+  background: #2a2a32;
+  border: 1px solid #666;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 6px 24px #0008;
+}
+
+.onboarding-tour-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.onboarding-tour-card p {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.onboarding-tour-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.onboarding-tour-skip {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.script-output-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 1.75rem;
+  max-height: 8rem;
+  z-index: 800;
+  background: #1e1e24;
+  border-top: 1px solid #555;
+  display: flex;
+  flex-direction: column;
+}
+
+.script-output-panel.hidden {
+  display: none;
+}
+
+.script-output-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.script-output-log {
+  overflow: auto;
+  padding: 0.35rem 0.5rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
 }
 
 .mod-portal {

@@ -1,10 +1,13 @@
 use std::path::Path;
 
-use unibrowser_engine::CommandRegistry;
-use unibrowser_mod_api::{Capabilities, Mode, SelectionSnapshot};
+use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
+use unibrowser_mod_api::{Capabilities, CommandMeta, Enablement, Mode, SelectionSnapshot};
 
 pub const BACKEND_ID: &str = "base-dxf";
 pub const VIEWER_KIND: &str = "dxf";
+
+pub const CMD_MEASURE: &str = "dxf.measure";
+pub const CMD_EXPORT_STEP: &str = "dxf.export.step";
 
 pub struct DxfBackend {
     pub path: String,
@@ -48,14 +51,51 @@ impl unibrowser_engine::document::DocumentBackend for DxfBackend {
     }
     fn set_demo_text_selection(&mut self, _selected: bool) {}
     fn status_line(&self) -> String {
-        format!("DXF · {} · {} bytes", self.path, self.byte_len)
+        format!(
+            "DXF proving mod · {} · {} bytes (wireframe preview)",
+            self.path,
+            self.byte_len
+        )
     }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 }
 
-pub fn register(_registry: &mut CommandRegistry) {}
+fn cad_tool_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "Proving mod: requires full CAD engine (not bundled)".into(),
+    }
+}
+
+fn cad_tool_stub(_doc: &mut DocumentSession) -> Result<String, String> {
+    Err("CAD tool not available in proving mod".into())
+}
+
+pub fn register(registry: &mut CommandRegistry) {
+    registry.register_command(CommandMeta {
+        id: CMD_MEASURE,
+        title: "Measure distance (CAD)",
+        icon: "ruler",
+        default_keybinding: None,
+        aliases: &["measure", "cad measure"],
+    });
+    registry.register_command(CommandMeta {
+        id: CMD_EXPORT_STEP,
+        title: "Export STEP (CAD)",
+        icon: "export",
+        default_keybinding: None,
+        aliases: &["step export"],
+    });
+    for cmd in [CMD_MEASURE, CMD_EXPORT_STEP] {
+        registry.register_handler(HandlerRegistration {
+            command_id: cmd.into(),
+            backend_id: BACKEND_ID.into(),
+            enable: cad_tool_disabled,
+            execute: cad_tool_stub,
+        });
+    }
+}
 
 pub fn open_file(path: &Path) -> Result<Box<dyn unibrowser_engine::document::DocumentBackend>, String> {
     Ok(Box::new(DxfBackend::from_path(path)?))

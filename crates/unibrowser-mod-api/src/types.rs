@@ -101,4 +101,5 @@ pub mod commands {
     pub const FONT_SIZE_INCREASE: &str = "unibrowser.font.size.increase";
     pub const FONT_SIZE_DECREASE: &str = "unibrowser.font.size.decrease";
     pub const TEXT_SAVE: &str = "unibrowser.text.save";
+    pub const SCRIPT_DEMO_HELLO: &str = "unibrowser.script.demo.hello";
 }

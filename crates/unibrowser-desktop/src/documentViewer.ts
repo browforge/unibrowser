@@ -1238,12 +1238,51 @@ async function renderImage(path: string, root: HTMLElement) {
 }
 
 async function renderDxf(path: string, root: HTMLElement) {
-  const THREE = await loadThree();
+  root.innerHTML = "";
+  const proving = document.createElement("p");
+  proving.className = "viewer-note dxf-proving-banner";
+  proving.textContent =
+    "CAD proving mod (base-dxf): wireframe preview only. Measure and STEP export stay greyed out until a full engine ships. See docs/proving-mod-dxf.md.";
+  root.appendChild(proving);
+
   const DxfParser = (await import("dxf-parser")).default;
   const text = new TextDecoder().decode(await readBytes(path));
   const parser = new DxfParser();
   const dxf = parser.parseSync(text) as DxfData | null;
   const entities = dxf?.entities ?? [];
+
+  const geomPanel = document.createElement("aside");
+  geomPanel.className = "dxf-geom-panel";
+  const geomTitle = document.createElement("h3");
+  geomTitle.textContent = "Geometry";
+  geomPanel.appendChild(geomTitle);
+  const geomList = document.createElement("ul");
+  geomList.className = "dxf-geom-list";
+  const counts = new Map<string, number>();
+  for (const ent of entities) {
+    const kind = ent.type ?? "UNKNOWN";
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  const summary = Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  if (summary.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "No entities parsed";
+    geomList.appendChild(li);
+  } else {
+    for (const [kind, count] of summary.slice(0, 40)) {
+      const li = document.createElement("li");
+      li.textContent = `${kind}: ${count}`;
+      geomList.appendChild(li);
+    }
+  }
+  geomPanel.appendChild(geomList);
+
+  let THREE: Awaited<ReturnType<typeof loadThree>> | null = null;
+  try {
+    THREE = await loadThree();
+  } catch {
+    THREE = null;
+  }
   const layers = Array.from(
     new Set(entities.map((e) => e.layer).filter((l): l is string => Boolean(l))),
   ).sort();
@@ -1251,9 +1290,9 @@ async function renderDxf(path: string, root: HTMLElement) {
   for (const layer of layers) {
     layerVisible.set(layer, true);
   }
-  root.innerHTML = "";
   const layout = document.createElement("div");
   layout.className = "dxf-layout";
+  layout.appendChild(geomPanel);
   const layerPanel = document.createElement("aside");
   layerPanel.className = "dxf-layer-panel";
   const panelTitle = document.createElement("h3");
@@ -1296,6 +1335,55 @@ async function renderDxf(path: string, root: HTMLElement) {
   canvasCol.appendChild(wrap);
   const width = wrap.clientWidth || 800;
   const height = 400;
+
+  const collectSegments = () => {
+    const allSegs: Vec3[] = [];
+    for (const ent of entities) {
+      const layer = ent.layer ?? "";
+      if (layer && layerVisible.has(layer) && !layerVisible.get(layer)) {
+        continue;
+      }
+      allSegs.push(...entitySegments(ent));
+    }
+    return allSegs;
+  };
+
+  if (!THREE) {
+    const note = document.createElement("p");
+    note.className = "viewer-note";
+    note.textContent = "WebGL unavailable — SVG wireframe proxy.";
+    wrap.appendChild(note);
+    const segs = collectSegments();
+    const bbox = segs.length >= 2 ? bboxFromSegments(segs) : null;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    svg.classList.add("dxf-svg-proxy");
+    if (bbox) {
+      const pad = 12;
+      const w = Math.max(bbox.maxX - bbox.minX, 1);
+      const h = Math.max(bbox.maxY - bbox.minY, 1);
+      svg.setAttribute(
+        "viewBox",
+        `${bbox.minX - pad} ${-bbox.maxY - pad} ${w + pad * 2} ${h + pad * 2}`,
+      );
+      for (let i = 0; i + 1 < segs.length; i += 2) {
+        const a = segs[i];
+        const b = segs[i + 1];
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", String(a.x));
+        line.setAttribute("y1", String(-a.y));
+        line.setAttribute("x2", String(b.x));
+        line.setAttribute("y2", String(-b.y));
+        line.setAttribute("stroke", "#66ccff");
+        line.setAttribute("stroke-width", "1");
+        svg.appendChild(line);
+      }
+    }
+    wrap.appendChild(svg);
+    return;
+  }
+
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a22);
   const camera = new THREE.OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, 0.1, 1000);
@@ -1312,14 +1400,7 @@ async function renderDxf(path: string, root: HTMLElement) {
     while (scene.children.length > 0) {
       scene.remove(scene.children[0]);
     }
-    const allSegs: Vec3[] = [];
-    for (const ent of entities) {
-      const layer = ent.layer ?? "";
-      if (layer && layerVisible.has(layer) && !layerVisible.get(layer)) {
-        continue;
-      }
-      allSegs.push(...entitySegments(ent));
-    }
+    const allSegs = collectSegments();
     if (allSegs.length >= 2) {
       const points = allSegs.map((p) => new THREE.Vector3(p.x, p.y, p.z));
       const geom = new THREE.BufferGeometry().setFromPoints(points);

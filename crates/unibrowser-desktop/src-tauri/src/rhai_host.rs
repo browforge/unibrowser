@@ -123,21 +123,35 @@ pub fn describe_rhai_script(source: String, state: State<AppState>) -> Result<Rh
     })
 }
 
+pub const DEMO_HELLO_SCRIPT: &str = r#"// @allow unibrowser.font.size.increase
+let hello = host_echo("Hello from Rhai");
+let font = execute_command("unibrowser.font.size.increase");
+hello + " · " + font"#;
+
+pub const DEMO_HELLO_SCRIPT_BROWSE: &str =
+    r#"host_echo("Hello from Rhai — open a text file and run again to bump font size")"#;
+
+pub fn eval_rhai_script(
+    state: &AppState,
+    source: &str,
+    allow_document_commands: bool,
+) -> Result<String, String> {
+    let api = build_host_api(state, source)?;
+    RHAI_STATE.with(|slot| {
+        *slot.borrow_mut() = Some(state as *const AppState);
+        RHAI_ALLOW_DOC.with(|c| *c.borrow_mut() = allow_document_commands);
+        let result = with_execute_hook(Box::new(rhai_execute), || eval_with_host(source, &api));
+        RHAI_ALLOW_DOC.with(|c| *c.borrow_mut() = false);
+        *slot.borrow_mut() = None;
+        result
+    })
+}
+
 #[tauri::command]
 pub fn run_rhai_script(
     source: String,
     allow_document_commands: Option<bool>,
     state: State<AppState>,
 ) -> Result<String, String> {
-    let allow_doc = allow_document_commands.unwrap_or(false);
-    let api = build_host_api(state.inner(), &source)?;
-    let inner: &AppState = state.inner();
-    RHAI_STATE.with(|slot| {
-        *slot.borrow_mut() = Some(inner);
-        RHAI_ALLOW_DOC.with(|c| *c.borrow_mut() = allow_doc);
-        let result = with_execute_hook(Box::new(rhai_execute), || eval_with_host(&source, &api));
-        RHAI_ALLOW_DOC.with(|c| *c.borrow_mut() = false);
-        *slot.borrow_mut() = None;
-        result
-    })
+    eval_rhai_script(state.inner(), &source, allow_document_commands.unwrap_or(false))
 }

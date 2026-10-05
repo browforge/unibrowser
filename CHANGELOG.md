@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- Onboarding: skippable first-run tour (`onboarding_tour_skipped_forever`), non-blocking card; [`docs/onboarding.md`](docs/onboarding.md).
+- DXF **proving mod** (`base-dxf`): geometry summary, wireframe/SVG proxy, greyed CAD commands; [`docs/proving-mod-dxf.md`](docs/proving-mod-dxf.md).
+- Palette command **Run demo Rhai script** → script output panel + optional font-size bump on text tabs.
+- i18n seed: `en-NZ` + `en-US` catalogues; **Language** in Settings (`ui_locale`).
 - Floating toolbars: screen-coordinate persistence in `toolbars.json` (multi-monitor friendly); [`docs/toolbars.md`](docs/toolbars.md) + ADR 0013 cross-link.
 - Mod portal context panel when a file has no handler (Open VSX + `.ubmod` stub suggestions; non-blocking beside the tab).
 - `keybindings.json` palette override end-to-end (`reload_keybindings` on focus); default **`Ctrl+Shift+P`** documented in README and [`docs/keybindings.md`](docs/keybindings.md).

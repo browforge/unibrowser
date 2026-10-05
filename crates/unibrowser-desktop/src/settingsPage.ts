@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import enNz from "./i18n/en-NZ.json";
-import { t } from "./i18n";
+import { setLocale, supportedLocales, t, type LocaleId } from "./i18n";
 
 type I18nKey = keyof typeof enNz;
 import {
@@ -28,6 +28,7 @@ interface NtpSectionsDto {
 }
 
 interface PrefsDto {
+  ui_locale: string;
   onboarding_checklist_skip_forever: boolean;
   onboarding_checklist_completed: string[];
   theme: string;
@@ -57,6 +58,32 @@ export async function renderSettings(root: HTMLElement) {
   root.appendChild(intro);
 
   const prefs = await invoke<PrefsDto>("get_preferences");
+
+  const langSection = document.createElement("section");
+  langSection.className = "settings-section";
+  const langHeading = document.createElement("h3");
+  langHeading.textContent = t("settings.language");
+  const langLead = document.createElement("p");
+  langLead.className = "viewer-note";
+  langLead.textContent = t("settings.languageLead");
+  const langSelect = document.createElement("select");
+  supportedLocales().forEach((loc) => {
+    const opt = document.createElement("option");
+    opt.value = loc;
+    opt.textContent = loc;
+    langSelect.appendChild(opt);
+  });
+  langSelect.value = prefs.ui_locale === "en-US" ? "en-US" : "en-NZ";
+  langSelect.onchange = async () => {
+    const next = await invoke<PrefsDto>("set_ui_locale", { locale: langSelect.value });
+    setLocale(next.ui_locale as LocaleId);
+    const { applyChromeI18n } = await import("./chromeI18n");
+    applyChromeI18n();
+  };
+  langSection.appendChild(langHeading);
+  langSection.appendChild(langLead);
+  langSection.appendChild(langSelect);
+  root.appendChild(langSection);
 
   const themeSection = document.createElement("section");
   themeSection.className = "settings-section";

@@ -40,6 +40,13 @@ impl CommandRegistry {
             default_keybinding: Some("Ctrl+-"),
             aliases: &["smaller text"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::SCRIPT_DEMO_HELLO,
+            title: "Run demo Rhai script (hello)",
+            icon: "extension",
+            default_keybinding: None,
+            aliases: &["script hello", "rhai demo"],
+        });
         reg
     }
 

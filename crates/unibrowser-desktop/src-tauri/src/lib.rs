@@ -202,6 +202,8 @@ pub fn run() {
             commands::autosave_unibrow_active_project,
             commands::set_project_autosave_settings,
             commands::dismiss_onboarding,
+            commands::skip_onboarding_tour_forever,
+            commands::set_ui_locale,
             commands::set_accessibility_prefs,
             commands::set_command_manager_dense,
             commands::complete_onboarding_checklist_step,
