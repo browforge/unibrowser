@@ -133,6 +133,8 @@ pub fn run() {
             commands::create_text_file,
             commands::rename_path,
             commands::duplicate_path,
+            commands::path_properties,
+            commands::compress_paths_to_zip,
             commands::set_auto_save_settings,
             commands::set_download_preference,
             commands::set_board_snap_to_grid,

@@ -73,6 +73,23 @@ pub fn sniff_format(path: &Path) -> Option<SniffedFormat> {
     None
 }
 
+pub fn sniff_format_label(path: &Path) -> Option<&'static str> {
+    sniff_format(path).map(|f| match f {
+        SniffedFormat::Pdf => "PDF",
+        SniffedFormat::Png => "PNG image",
+        SniffedFormat::Jpeg => "JPEG image",
+        SniffedFormat::Gif => "GIF image",
+        SniffedFormat::Webp => "WebP image",
+        SniffedFormat::Zip => "ZIP archive",
+        SniffedFormat::Epub => "EPUB",
+        SniffedFormat::Wav => "WAV audio",
+        SniffedFormat::Mp3 => "MP3 audio",
+        SniffedFormat::RiffAvi => "AVI video",
+        SniffedFormat::Ogg => "OGG audio",
+        SniffedFormat::Flac => "FLAC audio",
+    })
+}
+
 fn looks_like_mp3_frame(h: &[u8]) -> bool {
     if h.len() < 2 {
         return false;

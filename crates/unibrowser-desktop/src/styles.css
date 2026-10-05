@@ -868,6 +868,22 @@ body {
   background: #2a3548 !important;
 }
 
+.files-props-dl {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+}
+
+.files-props-dl dt {
+  color: #888;
+  margin-top: 0.35rem;
+}
+
+.files-props-dl dd {
+  margin: 0.1rem 0 0;
+  word-break: break-all;
+  color: #ddd;
+}
+
 [data-theme="light"] .files-side-panel {
   background: #f4f4f6;
   border-left-color: #ccc;

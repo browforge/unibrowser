@@ -1,5 +1,10 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { copyText } from "./clipboard";
+import {
+  filesClipboardClear,
+  filesClipboardPeek,
+  filesClipboardSet,
+} from "./filesClipboard";
 import { t } from "./i18n";
 import { showToast } from "./toast";
 import type { DirEntry, FilesViewDto } from "./filesPanelTypes";
@@ -16,6 +21,84 @@ let lastBrowsePath = "";
 let searchFilter = "";
 let selectionAnchorIndex = -1;
 let renamingPath: string | null = null;
+
+interface PathPropertiesDto {
+  path: string;
+  name: string;
+  is_dir: boolean;
+  size_bytes: number;
+  modified_unix: number;
+  extension: string | null;
+  sniffed_type: string | null;
+}
+
+let panelContext: { host: HTMLElement; deps: FilesPanelDeps } | null = null;
+
+export function handleFilesKeyDown(e: KeyboardEvent): boolean {
+  if (!panelContext) {
+    return false;
+  }
+  const target = e.target as HTMLElement | null;
+  if (!target?.closest("#files-browser-wrap")) {
+    return false;
+  }
+  if (target.closest("input, textarea, select, [contenteditable='true']")) {
+    return false;
+  }
+  const { host, deps } = panelContext;
+  const mod = e.ctrlKey || e.metaKey;
+
+  if (e.key === "Delete" && selectedPaths.size > 0) {
+    e.preventDefault();
+    showDeleteConfirm([...selectedPaths], deps, () => renderFilesPanel(host, deps));
+    return true;
+  }
+  if (e.key === "F2" && selectedPaths.size === 1) {
+    e.preventDefault();
+    renamingPath = [...selectedPaths][0];
+    renderFilesPanel(host, deps);
+    return true;
+  }
+  if (mod && e.key.toLowerCase() === "c" && selectedPaths.size > 0) {
+    e.preventDefault();
+    filesClipboardSet("copy", [...selectedPaths]);
+    return true;
+  }
+  if (mod && e.key.toLowerCase() === "x" && selectedPaths.size > 0) {
+    e.preventDefault();
+    filesClipboardSet("cut", [...selectedPaths]);
+    return true;
+  }
+  if (mod && e.key.toLowerCase() === "v") {
+    e.preventDefault();
+    void pasteFromFilesClipboard(deps, host);
+    return true;
+  }
+  return false;
+}
+
+async function pasteFromFilesClipboard(deps: FilesPanelDeps, host: HTMLElement) {
+  const clip = filesClipboardPeek();
+  if (!clip?.paths.length) {
+    showToast(t("files.clipboardEmpty"), "info");
+    return;
+  }
+  try {
+    const data = await invoke("transfer_paths", {
+      paths: clip.paths,
+      destinationDir: deps.browsePath,
+      mode: clip.mode === "copy" ? "copy" : "move",
+    });
+    if (clip.mode === "cut") {
+      filesClipboardClear();
+      selectedPaths.clear();
+    }
+    await applySnapshot(deps, data);
+    renderFilesPanel(host, deps);
+  } catch (err) {
+    showToast(String(err), "error");
+  }
+}
 
 function validateNameClient(name: string): string | null {
   const trimmed = name.trim();
@@ -206,6 +289,128 @@ function showDeleteConfirm(paths: string[], deps: FilesPanelDeps, onDone: () => 
   actions.appendChild(cancel);
   actions.appendChild(confirm);
   panel.appendChild(actions);
+}
+
+async function showPropertiesPanel(path: string, deps: FilesPanelDeps) {
+  const panel = deps.sidePanel;
+  panel.classList.remove("hidden");
+  panel.innerHTML = `<p class="viewer-note">${t("files.peekLoading")}</p>`;
+  try {
+    const props = await invoke<PathPropertiesDto>("path_properties", { path });
+    panel.innerHTML = "";
+    const title = document.createElement("h3");
+    title.className = "files-side-title";
+    title.textContent = t("files.propertiesTitle");
+    panel.appendChild(title);
+
+    const dl = document.createElement("dl");
+    dl.className = "files-props-dl";
+    const addRow = (label: string, value: string) => {
+      const dt = document.createElement("dt");
+      dt.textContent = label;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    };
+    addRow(t("files.sortName"), props.name);
+    const kind = props.is_dir
+      ? t("files.propKindFolder")
+      : props.sniffed_type ?? (props.extension ? `.${props.extension}` : t("files.propKindFile"));
+    addRow(t("files.propKind"), kind);
+    if (!props.is_dir) {
+      addRow(t("files.propSize"), formatFileSize(props.size_bytes));
+    }
+    if (props.modified_unix) {
+      addRow(
+        t("files.propModified"),
+        new Date(props.modified_unix * 1000).toLocaleString(),
+      );
+    }
+    if (props.extension) {
+      addRow(t("files.propExtension"), `.${props.extension}`);
+    }
+    if (props.sniffed_type) {
+      addRow(t("files.propSniff"), props.sniffed_type);
+    }
+    addRow(t("files.propPath"), props.path);
+    panel.appendChild(dl);
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = t("files.deleteCancel");
+    close.onclick = () => clearSidePanel(panel);
+    panel.appendChild(close);
+  } catch (err) {
+    panel.textContent = String(err);
+  }
+}
+
+function showCompressPanel(paths: string[], deps: FilesPanelDeps, onDone: () => void) {
+  const panel = deps.sidePanel;
+  panel.classList.remove("hidden");
+  panel.innerHTML = "";
+
+  const title = document.createElement("h3");
+  title.className = "files-side-title";
+  title.textContent = t("files.compressTitle");
+  panel.appendChild(title);
+
+  const note = document.createElement("p");
+  note.className = "files-side-note";
+  note.textContent = t("files.selectedCount", { count: String(paths.length) });
+  panel.appendChild(note);
+
+  const label = document.createElement("label");
+  label.className = "files-side-note";
+  label.textContent = t("files.compressName");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "files-search-input";
+  input.value = "selection.zip";
+  label.appendChild(input);
+  panel.appendChild(label);
+
+  const actions = document.createElement("div");
+  actions.className = "files-side-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = t("files.deleteCancel");
+  cancel.onclick = () => {
+    clearSidePanel(panel);
+    onDone();
+  };
+  const confirm = document.createElement("button");
+  confirm.type = "button";
+  confirm.className = "files-side-primary";
+  confirm.textContent = t("files.compressConfirm");
+  confirm.onclick = () => {
+    const name = validateNameClient(input.value);
+    if (!name) {
+      showToast(t("files.renameInvalid"), "error");
+      return;
+    }
+    void (async () => {
+      try {
+        const data = await invoke("compress_paths_to_zip", {
+          paths,
+          destinationDir: deps.browsePath,
+          zipName: name.toLowerCase().endsWith(".zip") ? name : `${name}.zip`,
+        });
+        clearSidePanel(panel);
+        await applySnapshot(deps, data);
+      } catch (err) {
+        showToast(String(err), "error");
+      } finally {
+        onDone();
+      }
+    })();
+  };
+  actions.appendChild(cancel);
+  actions.appendChild(confirm);
+  panel.appendChild(actions);
+  input.focus();
+  input.select();
 }
 
 function showCreatePanel(
@@ -724,6 +929,17 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   };
   createActions.appendChild(newFolderBtn);
   createActions.appendChild(newFileBtn);
+  const compressToolbar = document.createElement("button");
+  compressToolbar.type = "button";
+  compressToolbar.textContent = t("files.compress");
+  compressToolbar.disabled = selectedPaths.size === 0;
+  compressToolbar.onclick = () => {
+    if (!selectedPaths.size) {
+      return;
+    }
+    showCompressPanel([...selectedPaths], deps, () => renderFilesPanel(host, deps));
+  };
+  createActions.appendChild(compressToolbar);
   toolbar.appendChild(createActions);
 
   host.appendChild(toolbar);
@@ -802,6 +1018,24 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     );
   };
   bulkBar.appendChild(moveTo);
+
+  if (selectedPaths.size === 1) {
+    const propsBtn = document.createElement("button");
+    propsBtn.type = "button";
+    propsBtn.textContent = t("files.properties");
+    propsBtn.onclick = () => {
+      void showPropertiesPanel([...selectedPaths][0], deps);
+    };
+    bulkBar.appendChild(propsBtn);
+  }
+
+  const zipBtn = document.createElement("button");
+  zipBtn.type = "button";
+  zipBtn.textContent = t("files.compress");
+  zipBtn.onclick = () => {
+    showCompressPanel([...selectedPaths], deps, () => renderFilesPanel(host, deps));
+  };
+  bulkBar.appendChild(zipBtn);
 
   const delSel = document.createElement("button");
   delSel.type = "button";
@@ -982,4 +1216,10 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   });
   table.appendChild(tbody);
   host.appendChild(table);
+
+  panelContext = { host, deps };
+}
+
+export function clearFilesPanelContext() {
+  panelContext = null;
 }

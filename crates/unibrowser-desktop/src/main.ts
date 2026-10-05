@@ -18,7 +18,7 @@ import { applyChromeI18n, modsLineText } from "./chromeI18n";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { configureAutoSave } from "./autoSave";
 import { emptyStateBlock } from "./emptyState";
-import { renderFilesPanel } from "./filesPanel";
+import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./filesPanel";
 import type { DirEntry as FilesDirEntry, FilesViewDto } from "./filesPanelTypes";
 
 interface TabDto {
@@ -297,6 +297,7 @@ function renderFiles(entries: DirEntry[] | null, filesView: FilesViewDto, browse
     filesBrowserWrap.classList.add("hidden");
     filesSidePanel.classList.add("hidden");
     filesSidePanel.innerHTML = "";
+    clearFilesPanelContext();
     return;
   }
   filesBrowserWrap.classList.remove("hidden");
@@ -987,6 +988,9 @@ document.addEventListener(
   "keydown",
   async (e) => {
   if (e.repeat) {
+    return;
+  }
+  if (!filesBrowserWrap.classList.contains("hidden") && handleFilesKeyDown(e)) {
     return;
   }
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "t") {

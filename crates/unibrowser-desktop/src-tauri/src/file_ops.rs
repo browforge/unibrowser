@@ -1,7 +1,11 @@
-//! Folder browse mutations: copy, move, create, rename, duplicate.
+//! Folder browse mutations: copy, move, create, rename, duplicate, zip.
 
-use std::fs;
+use std::fs::{self, File};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+
+use zip::write::SimpleFileOptions;
+use zip::{write::FileOptions, ZipWriter};
 
 pub fn validate_entry_name(name: &str) -> Result<String, String> {
     let trimmed = name.trim();
@@ -55,10 +59,12 @@ pub fn guard_mutating(path: &Path) -> Result<(), String> {
         return Err(format!("not found: {}", path.display()));
     }
     if let Some(cfg) = crate::config::config_dir() {
-        let cfg = cfg.canonicalize().map_err(|e| e.to_string())?;
-        let canon = path.canonicalize().map_err(|e| e.to_string())?;
-        if canon == cfg {
-            return Err("cannot modify application config directory".into());
+        if cfg.exists() {
+            let cfg = cfg.canonicalize().map_err(|e| e.to_string())?;
+            let canon = path.canonicalize().map_err(|e| e.to_string())?;
+            if canon == cfg {
+                return Err("cannot modify application config directory".into());
+            }
         }
     }
     Ok(())
@@ -159,6 +165,88 @@ pub fn transfer_paths(
     Ok(())
 }
 
+pub fn compress_paths_to_zip(
+    sources: &[PathBuf],
+    dest_dir: &Path,
+    zip_name: &str,
+) -> Result<PathBuf, String> {
+    if sources.is_empty() {
+        return Err("nothing to compress".into());
+    }
+    if !dest_dir.is_dir() {
+        return Err("destination is not a directory".into());
+    }
+    let name = validate_entry_name(zip_name)?;
+    if !name.to_ascii_lowercase().ends_with(".zip") {
+        return Err("archive name must end with .zip".into());
+    }
+    let zip_path = unique_sibling_path(dest_dir, &name, "");
+    let file = File::create(&zip_path).map_err(|e| e.to_string())?;
+    let mut zip = ZipWriter::new(file);
+    let options: FileOptions<'_, ()> = SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+    for src in sources {
+        if !src.exists() {
+            return Err(format!("source missing: {}", src.display()));
+        }
+        guard_mutating(src)?;
+        if src.is_file() {
+            let entry_name = src
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .ok_or("missing file name")?;
+            add_file_to_zip(&mut zip, src, &entry_name, options)?;
+        } else if src.is_dir() {
+            let root = src
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .ok_or("missing folder name")?;
+            add_dir_to_zip(&mut zip, src, &format!("{}/", root), options)?;
+        } else {
+            return Err(format!("not a file or directory: {}", src.display()));
+        }
+    }
+    zip.finish().map_err(|e| e.to_string())?;
+    Ok(zip_path)
+}
+
+fn add_dir_to_zip(
+    zip: &mut ZipWriter<File>,
+    dir: &Path,
+    prefix: &str,
+    options: FileOptions<'_, ()>,
+) -> Result<(), String> {
+    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        let rel = format!("{}{}", prefix, name);
+        if entry.file_type().map_err(|e| e.to_string())?.is_dir() {
+            let dir_prefix = format!("{}/", rel);
+            zip.add_directory(dir_prefix.clone(), options)
+                .map_err(|e| e.to_string())?;
+            add_dir_to_zip(zip, &entry.path(), &dir_prefix, options)?;
+        } else {
+            add_file_to_zip(zip, &entry.path(), &rel, options)?;
+        }
+    }
+    Ok(())
+}
+
+fn add_file_to_zip(
+    zip: &mut ZipWriter<File>,
+    path: &Path,
+    entry_name: &str,
+    options: FileOptions<'_, ()>,
+) -> Result<(), String> {
+    zip.start_file(entry_name.replace('\\', "/"), options)
+        .map_err(|e| e.to_string())?;
+    let mut f = File::open(path).map_err(|e| e.to_string())?;
+    let mut buf = Vec::new();
+    f.read_to_end(&mut buf).map_err(|e| e.to_string())?;
+    zip.write_all(&buf).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,6 +266,22 @@ mod tests {
         fs::write(dir.join("a.txt"), b"x").unwrap();
         let p = unique_sibling_path(&dir, "a.txt", " copy");
         assert_eq!(p.file_name().unwrap().to_str(), Some("a copy.txt"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn compress_selection_writes_zip() {
+        let dir = std::env::temp_dir().join(format!("ub-zip-out-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("a.txt");
+        fs::write(&source, b"hi").unwrap();
+        assert!(source.is_file());
+        let out_dir = dir.join("out");
+        fs::create_dir_all(&out_dir).unwrap();
+        let zip =
+            compress_paths_to_zip(&[source], &out_dir, "pack.zip").expect("compress");
+        assert!(zip.is_file());
         let _ = fs::remove_dir_all(&dir);
     }
 }

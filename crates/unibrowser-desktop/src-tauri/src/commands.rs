@@ -2,6 +2,17 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct PathPropertiesDto {
+    pub path: String,
+    pub name: String,
+    pub is_dir: bool,
+    pub size_bytes: u64,
+    pub modified_unix: i64,
+    pub extension: Option<String>,
+    pub sniffed_type: Option<String>,
+}
 use tauri::{AppHandle, Manager, State};
 use unibrowser_engine::{
     keybinding::COMMAND_PALETTE_TOGGLE,
@@ -1388,6 +1399,63 @@ pub fn duplicate_path(
         .ok_or("path has no parent directory")?;
     let dest = crate::file_ops::duplicate_destination(parent, &src)?;
     crate::file_ops::copy_path_recursive(&src, &dest)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn path_properties(path: String, state: State<AppState>) -> Result<PathPropertiesDto, String> {
+    let p = resolve_open_path(&path, &state.cwd)?;
+    let meta = fs::metadata(&p).map_err(|e| e.to_string())?;
+    let modified_unix = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    let name = p
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let extension = p
+        .extension()
+        .map(|e| e.to_string_lossy().to_string())
+        .filter(|e| !e.is_empty());
+    let sniffed_type = if meta.is_dir() {
+        None
+    } else {
+        crate::content_sniff::sniff_format_label(&p).map(|s| s.to_string())
+    };
+    Ok(PathPropertiesDto {
+        path: p.to_string_lossy().into_owned(),
+        name,
+        is_dir: meta.is_dir(),
+        size_bytes: if meta.is_dir() { 0 } else { meta.len() },
+        modified_unix,
+        extension,
+        sniffed_type,
+    })
+}
+
+#[tauri::command]
+pub fn compress_paths_to_zip(
+    window: tauri::Window,
+    state: State<AppState>,
+    paths: Vec<String>,
+    destination_dir: String,
+    zip_name: String,
+) -> Result<TabContentDto, String> {
+    if paths.is_empty() {
+        return Err("no paths selected".into());
+    }
+    let dest = resolve_open_path(&destination_dir, &state.cwd)?;
+    if !dest.is_dir() {
+        return Err("destination is not a directory".into());
+    }
+    let sources: Vec<PathBuf> = paths
+        .iter()
+        .map(|p| resolve_open_path(p, &state.cwd))
+        .collect::<Result<Vec<_>, _>>()?;
+    crate::file_ops::compress_paths_to_zip(&sources, &dest, &zip_name)?;
     snapshot(&state, window.label())
 }
 
