@@ -4,7 +4,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 use unibrowser_engine::{
     keybinding::COMMAND_PALETTE_TOGGLE,
-    palette::search_commands,
+    palette::{fuzzy_score, search_commands},
     KeyChord,
 };
 use unibrowser_mod_api::{BrowserLocation, DownloadDisposition};
@@ -134,6 +134,19 @@ pub struct TabContentDto {
     pub document_viewer: Option<DocumentViewerDto>,
     pub show_onboarding: bool,
     pub recent_files: Vec<RecentFileDto>,
+    pub split_view_enabled: bool,
+    pub split_index: Option<usize>,
+    pub split_text_document: Option<TextDocumentDto>,
+    pub split_document_viewer: Option<DocumentViewerDto>,
+    pub split_status: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct OmniboxSuggestionDto {
+    pub label: String,
+    pub value: String,
+    pub kind: String,
+    pub score: i32,
 }
 
 #[derive(Serialize)]
@@ -246,6 +259,7 @@ fn document_viewer_dto(
         base_svg::BACKEND_ID => base_svg::VIEWER_KIND,
         base_png::BACKEND_ID => base_png::VIEWER_KIND,
         crate::epub_stub::BACKEND_ID => crate::epub_stub::VIEWER_KIND,
+        crate::csv_stub::BACKEND_ID => crate::csv_stub::VIEWER_KIND,
         _ => return None,
     };
     let (pdf_scale, pdf_page) = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
@@ -272,6 +286,49 @@ fn document_viewer_dto(
         project_nodes: None,
         open_file_tabs: None,
     })
+}
+
+fn tab_pane_dtos(
+    tabs: &mut unibrowser_engine::TabManager,
+    index: usize,
+    state: &AppState,
+) -> (
+    Option<TextDocumentDto>,
+    Option<DocumentViewerDto>,
+    Option<String>,
+) {
+    let tab = match tabs.tab_mut(index) {
+        Some(t) => t,
+        None => return (None, None, None),
+    };
+    let status = tab
+        .document
+        .as_ref()
+        .map(|d| d.backend.status_line());
+    let viewer = tab
+        .document
+        .as_mut()
+        .and_then(|d| document_viewer_dto(d, state));
+    let text = if viewer.is_some() {
+        None
+    } else {
+        tab.document.as_mut().and_then(text_document_dto)
+    };
+    (text, viewer, status)
+}
+
+fn listing_cwd(state: &AppState, tabs: &unibrowser_engine::TabManager) -> PathBuf {
+    if let Some(tab) = tabs.active_tab() {
+        if let BrowserLocation::File { path } = &tab.location {
+            if path.is_dir() {
+                return path.clone();
+            }
+            if let Some(parent) = path.parent() {
+                return parent.to_path_buf();
+            }
+        }
+    }
+    state.cwd.clone()
 }
 
 fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<TextDocumentDto> {
@@ -325,6 +382,23 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
         None => (None, None),
     };
     let mod_portal = active_mod_portal(tabs.active_tab());
+    let split_cfg = state.split_view.lock().map_err(|e| e.to_string())?;
+    let split_enabled = split_cfg.enabled;
+    let split_index = split_cfg.secondary_index;
+    let (split_text_document, split_document_viewer, split_status) =
+        if split_enabled {
+            let idx = split_index.unwrap_or_else(|| {
+                let active = tabs.active_index();
+                if active > 0 {
+                    active - 1
+                } else {
+                    active
+                }
+            });
+            tab_pane_dtos(&mut tabs, idx, state)
+        } else {
+            (None, None, None)
+        };
     let prefs = load_preferences();
     Ok(TabContentDto {
         tabs: tabs.tabs().iter().map(build_tab_dto).collect(),
@@ -357,6 +431,11 @@ fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
                 label: e.label.clone(),
             })
             .collect(),
+        split_view_enabled: split_enabled,
+        split_index: if split_enabled { split_index } else { None },
+        split_text_document,
+        split_document_viewer,
+        split_status,
     })
 }
 
@@ -730,8 +809,12 @@ pub fn sync_text_document(
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no text document")?;
     let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
+    let before = backend.content.clone();
+    let path = backend.path.clone();
     backend.set_content(content);
     backend.set_selection_range(selection_start, selection_end);
+    let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+    stacks.record_change(&path, before, &backend.content);
     Ok(())
 }
 
@@ -1254,8 +1337,136 @@ pub fn sync_svg_document(content: String, state: State<AppState>) -> Result<(), 
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no document")?;
     let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
+    let before = backend.content.clone();
+    let path = backend.path.clone();
     backend.set_content(content);
+    let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+    stacks.record_change(&path, before, &backend.content);
     Ok(())
+}
+
+#[tauri::command]
+pub fn document_undo(state: State<AppState>) -> Result<TabContentDto, String> {
+    {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        let path = doc.path.clone();
+        let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
+            backend.content.clone()
+        } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
+            backend.content.clone()
+        } else {
+            return Err("undo not available for this document".into());
+        };
+        let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+        let prev = stacks.undo(&path, &current).ok_or("nothing to undo")?;
+        if let Some(backend) = try_text_backend(&mut *doc.backend) {
+            backend.set_content(prev);
+        } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
+            backend.set_content(prev);
+        }
+    }
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn document_redo(state: State<AppState>) -> Result<TabContentDto, String> {
+    {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        let path = doc.path.clone();
+        let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
+            backend.content.clone()
+        } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
+            backend.content.clone()
+        } else {
+            return Err("redo not available for this document".into());
+        };
+        let mut stacks = state.undo_stacks.lock().map_err(|e| e.to_string())?;
+        let next = stacks.redo(&path, &current).ok_or("nothing to redo")?;
+        if let Some(backend) = try_text_backend(&mut *doc.backend) {
+            backend.set_content(next);
+        } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
+            backend.set_content(next);
+        }
+    }
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn toggle_split_view(state: State<AppState>) -> Result<TabContentDto, String> {
+    let mut split = state.split_view.lock().map_err(|e| e.to_string())?;
+    split.enabled = !split.enabled;
+    if split.enabled && split.secondary_index.is_none() {
+        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let active = tabs.active_index();
+        split.secondary_index = Some(if active > 0 { active - 1 } else { active });
+    }
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn set_split_tab(index: usize, state: State<AppState>) -> Result<TabContentDto, String> {
+    let mut split = state.split_view.lock().map_err(|e| e.to_string())?;
+    split.enabled = true;
+    split.secondary_index = Some(index);
+    snapshot(&state)
+}
+
+#[tauri::command]
+pub fn omnibox_completions(
+    query: String,
+    state: State<AppState>,
+) -> Result<Vec<OmniboxSuggestionDto>, String> {
+    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    let cwd = listing_cwd(&state, &tabs);
+    let mut out: Vec<OmniboxSuggestionDto> = Vec::new();
+    let prefs = load_preferences();
+    for entry in &prefs.recent_files {
+        let score = fuzzy_score(&query, &entry.label)
+            .max(fuzzy_score(&query, &entry.path));
+        if score < 0 && !query.is_empty() {
+            continue;
+        }
+        out.push(OmniboxSuggestionDto {
+            label: entry.label.clone(),
+            value: format!("file://{}", entry.path),
+            kind: "recent".into(),
+            score: score.max(0) + 50,
+        });
+    }
+    if let Ok(entries) = list_dir(&cwd) {
+        for entry in entries {
+            let name = entry.name.clone();
+            let path = entry.path.clone();
+            let score = fuzzy_score(&query, &name);
+            if score < 0 && !query.is_empty() {
+                continue;
+            }
+            let value = format!("file://{}", path.display());
+            out.push(OmniboxSuggestionDto {
+                label: if entry.is_dir {
+                    format!("[dir] {}", name)
+                } else {
+                    name
+                },
+                value,
+                kind: if entry.is_dir { "dir" } else { "file" }.into(),
+                score,
+            });
+        }
+    }
+    out.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.label.cmp(&b.label)));
+    out.truncate(16);
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn get_csv_preview(path: String, max_rows: Option<usize>) -> Result<crate::csv_preview::CsvPreviewDto, String> {
+    let limit = max_rows.unwrap_or(200).min(500);
+    crate::csv_preview::preview_file(Path::new(&path), limit)
 }
 
 fn update_content_webview(app: &AppHandle, loc: &BrowserLocation) -> Result<(), String> {

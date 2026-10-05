@@ -10,7 +10,8 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 | --- | --- | --- |
 | **Browser** | Tabs, omnibox (`file://` + `https://`), back/forward/reload, home dir browse; **recent files** list (optional, persisted) | WebView2/GTK download hooks |
 | **Editors** | **Lazy-loaded** Monaco text + save, **Ctrl+F find**; Markdown preview on `.md` | Full WYSIWYG markdown |
-| **Viewers** | **Lazy** pdf.js / three.js; PDF pages + thumbs; DOCX Mammoth + print/export; **PNG/JPEG/WebP/GIF** pan/zoom/rotate (crop stub); DXF **layer visibility** panel + pan/zoom; video/audio; Rhai; SVG edit; EPUB spine HTML | PDF raster thumbs; DXF NURBS; destructive image edit |
+| **Viewers** | Lazy pdf.js / three.js; PDF; DOCX; images; DXF layers; **CSV/TSV table** (read-only stub); video/audio; Rhai; SVG; EPUB | Full spreadsheet edit; DXF NURBS |
+| **Shell** | Omnibox **fuzzy autocomplete** (recent + folder); **split view** (Shift+click tab); **Ctrl+Alt+Z/Y** doc undo sketch (text/SVG); **toast errors** in chrome ([ADR 0013](docs/adr/0013-dual-audience-foss-and-everyday-users.md)) | Persistent unified undo |
 | **Projects** | `.unibrow` folder or zip, export zip, asset CRUD, drag-drop | Cloud sync |
 | **Commands** | Command Manager tabs (keyboard roving), floating bars, palette, keybindings | Full audio/image toolbars |
 | **UI** | Light/dark/system theme persisted; optional onboarding tip | — |
@@ -87,6 +88,30 @@ cargo check --workspace --exclude unibrowser-desktop --target x86_64-pc-windows-
 ```
 
 The `unibrowser-desktop` package is built and tested on **Linux** in CI; produce a Windows installer on a Windows machine.
+
+### Windows installer (MSI / NSIS)
+
+After `npm run tauri build` on Windows, Tauri 2 emits bundles under:
+
+`crates/unibrowser-desktop/src-tauri/target/release/bundle/`
+
+Typical outputs (exact names depend on `tauri.conf.json`):
+
+- **MSI** — `bundle/msi/*.msi` for enterprise-style installs (WebView2 bootstrapper may run on first launch if not already installed).
+- **NSIS** — `bundle/nsis/*-setup.exe` when the NSIS target is enabled in Tauri bundle config.
+
+Sign installers before wide distribution. WebView2 runtime must be present on the target machine ([Microsoft WebView2](https://developer.microsoft.com/microsoft-edge/webview2/)).
+
+## Linux packaging (AppImage / deb)
+
+From `crates/unibrowser-desktop`, after `npm run tauri build`:
+
+| Format | Typical path | Notes |
+| --- | --- | --- |
+| **AppImage** | `src-tauri/target/release/bundle/appimage/*.AppImage` | Single file, no root install; needs FUSE or `--appimage-extract` on some distros. |
+| **deb** | `src-tauri/target/release/bundle/deb/*.deb` | `dpkg -i` installs menu entry + binary; pulls WebKitGTK deps via package metadata. |
+
+Enable targets in `src-tauri/tauri.conf.json` under `bundle.targets` if a format is missing locally. GTK/WebKit dev packages from [Tauri prerequisites](https://tauri.app/start/prerequisites/) are required to build on Linux.
 
 ## Repository layout
 

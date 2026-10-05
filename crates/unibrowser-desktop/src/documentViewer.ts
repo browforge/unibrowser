@@ -26,7 +26,7 @@ export interface DocumentViewerDto {
   open_file_tabs?: OpenFileTabDto[];
 }
 
-let loadedKey: string | null = null;
+const loadedKeys = new WeakMap<HTMLElement, string | null>();
 
 async function readBytes(path: string): Promise<Uint8Array> {
   const data = await invoke<number[]>("read_document_bytes", { path });
@@ -422,6 +422,55 @@ function bboxFromSegments(segs: Vec3[]) {
     return null;
   }
   return { minX, minY, maxX, maxY };
+}
+
+interface CsvPreviewDto {
+  headers: string[];
+  rows: string[][];
+  truncated: boolean;
+  delimiter: string;
+}
+
+async function renderSpreadsheet(path: string, root: HTMLElement) {
+  const preview = await invoke<CsvPreviewDto>("get_csv_preview", { path, maxRows: 200 });
+  root.innerHTML = "";
+  const note = document.createElement("p");
+  note.className = "viewer-note";
+  note.textContent =
+    "Read-only CSV/TSV table (toy-csv stub). Full spreadsheet editing is a future mod.";
+  root.appendChild(note);
+  const wrap = document.createElement("div");
+  wrap.className = "csv-table-wrap";
+  const table = document.createElement("table");
+  table.className = "csv-table";
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  for (const h of preview.headers) {
+    const th = document.createElement("th");
+    th.textContent = h;
+    hr.appendChild(th);
+  }
+  thead.appendChild(hr);
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  for (const row of preview.rows) {
+    const tr = document.createElement("tr");
+    for (const cell of row) {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  root.appendChild(wrap);
+  if (preview.truncated) {
+    const more = document.createElement("p");
+    more.className = "viewer-note";
+    more.textContent = "Showing first 200 rows.";
+    root.appendChild(more);
+  }
 }
 
 async function renderImage(path: string, root: HTMLElement) {
@@ -1029,15 +1078,16 @@ export const documentViewer = {
     if (!viewer) {
       el.classList.add("hidden");
       el.innerHTML = "";
-      loadedKey = null;
+      loadedKeys.delete(el);
       return;
     }
     const key = viewerCacheKey(viewer);
-    if (key === loadedKey && el.childElementCount > 0) {
+    const prevKey = loadedKeys.get(el) ?? null;
+    if (key === prevKey && el.childElementCount > 0) {
       el.classList.remove("hidden");
       return;
     }
-    loadedKey = key;
+    loadedKeys.set(el, key);
     el.classList.remove("hidden");
     el.innerHTML = "<p class='viewer-loading'>Loading…</p>";
     try {
@@ -1064,6 +1114,9 @@ export const documentViewer = {
           break;
         case "image":
           await renderImage(viewer.path, body);
+          break;
+        case "spreadsheet":
+          await renderSpreadsheet(viewer.path, body);
           break;
         case "dxf":
           await renderDxf(viewer.path, body);

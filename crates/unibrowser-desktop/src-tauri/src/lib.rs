@@ -1,8 +1,11 @@
 mod commands;
 mod config;
 mod downloads;
+mod csv_preview;
+mod csv_stub;
 mod epub_preview;
 mod epub_stub;
+mod undo_stack;
 mod mod_portal;
 mod open_vsx;
 mod preferences;
@@ -86,6 +89,12 @@ pub fn run() {
             commands::set_vsix_extension_enabled,
             commands::uninstall_vsix_extension,
             commands::sync_svg_document,
+            commands::document_undo,
+            commands::document_redo,
+            commands::toggle_split_view,
+            commands::set_split_tab,
+            commands::omnibox_completions,
+            commands::get_csv_preview,
             commands::search_open_vsx_catalog,
             rhai_host::describe_rhai_script,
         ])

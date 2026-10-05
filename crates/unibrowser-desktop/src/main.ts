@@ -6,6 +6,8 @@ import { textEditor, type TextDocumentDto } from "./textEditor";
 import { documentViewer, type DocumentViewerDto } from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
+import { bindOmniboxAutocomplete } from "./omniboxUi";
+import { invokeWithToast, showToast } from "./toast";
 
 interface TabDto {
   id: number;
@@ -67,6 +69,11 @@ interface TabContentDto {
   document_viewer: DocumentViewerDto | null;
   show_onboarding: boolean;
   recent_files: RecentFileDto[];
+  split_view_enabled: boolean;
+  split_index: number | null;
+  split_text_document: TextDocumentDto | null;
+  split_document_viewer: DocumentViewerDto | null;
+  split_status: string | null;
 }
 
 interface RecentFileDto {
@@ -95,8 +102,14 @@ const palette = document.getElementById("palette")!;
 const paletteQuery = document.getElementById("palette-query") as HTMLInputElement;
 const paletteResults = document.getElementById("palette-results")!;
 const contentHost = document.getElementById("content-host")!;
+const splitSecondary = document.getElementById("split-secondary")!;
 const textEditorHost = document.getElementById("text-editor-host")!;
 const documentViewerHost = document.getElementById("document-viewer-host")!;
+const splitTextEditorHost = document.getElementById("split-text-editor-host")!;
+const splitDocumentViewerHost = document.getElementById("split-document-viewer-host")!;
+const splitDocPanel = document.getElementById("split-doc-panel")!;
+const omniboxSuggestions = document.getElementById("omnibox-suggestions")!;
+const btnSplit = document.getElementById("btn-split") as HTMLButtonElement;
 const modPortalPanel = document.getElementById("mod-portal-panel")!;
 const onboardingBanner = document.getElementById("onboarding-banner")!;
 const onboardingDismiss = document.getElementById("onboarding-dismiss")!;
@@ -127,11 +140,29 @@ function renderTabs(data: TabContentDto) {
   data.tabs.forEach((tab, index) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "tab" + (index === data.active_index ? " active" : "");
-    btn.textContent = tab.label;
-    btn.title = tab.location_kind;
+    const isSplit =
+      data.split_view_enabled &&
+      data.split_index !== null &&
+      index === data.split_index;
+    btn.className =
+      "tab" +
+      (index === data.active_index ? " active" : "") +
+      (isSplit ? " split-pane-tab" : "");
+    btn.textContent = tab.label + (isSplit ? " |" : "");
+    btn.title = isSplit
+      ? `${tab.location_kind} (split pane; Shift+click to move split here)`
+      : `${tab.location_kind} (Shift+click for split pane)`;
     setTabA11y(btn, index === data.active_index, `browser-tab-${index}`);
-    btn.onclick = () => selectTab(index);
+    btn.onclick = (e) => {
+      if (e.shiftKey) {
+        void invokeWithToast(
+          () => invoke<TabContentDto>("set_split_tab", { index }),
+          "Split tab failed",
+        ).then((d) => d && applyState(d));
+        return;
+      }
+      void selectTab(index);
+    };
     tabStrip.appendChild(btn);
     tabButtons.push(btn);
   });
@@ -402,6 +433,46 @@ async function refreshCommandManager() {
   }
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+async function applySplitPane(data: TabContentDto) {
+  if (!data.split_view_enabled) {
+    splitSecondary.classList.add("hidden");
+    contentHost.classList.remove("split-active");
+    btnSplit.classList.remove("active");
+    return;
+  }
+  splitSecondary.classList.remove("hidden");
+  contentHost.classList.add("split-active");
+  btnSplit.classList.add("active");
+  const showSplitViewer = Boolean(data.split_document_viewer);
+  const showSplitText = Boolean(data.split_text_document) && !showSplitViewer;
+  if (showSplitViewer && data.split_document_viewer) {
+    splitTextEditorHost.classList.add("hidden");
+    splitTextEditorHost.innerHTML = "";
+    splitDocPanel.classList.add("hidden");
+    await documentViewer.apply(data.split_document_viewer, splitDocumentViewerHost);
+  } else if (showSplitText && data.split_text_document) {
+    documentViewer.hide(splitDocumentViewerHost);
+    splitDocPanel.classList.add("hidden");
+    splitTextEditorHost.classList.remove("hidden");
+    splitTextEditorHost.innerHTML = `<pre class="split-text-readonly">${escapeHtml(
+      data.split_text_document.content,
+    )}</pre>`;
+  } else {
+    documentViewer.hide(splitDocumentViewerHost);
+    splitTextEditorHost.classList.add("hidden");
+    splitTextEditorHost.innerHTML = "";
+    splitDocPanel.classList.remove("hidden");
+    splitDocPanel.textContent = data.split_status ?? "No preview for this tab.";
+  }
+}
+
 async function applyState(data: TabContentDto) {
   const active = data.tabs[data.active_index];
   const showText = Boolean(data.text_document) && !active?.is_http;
@@ -428,6 +499,7 @@ async function applyState(data: TabContentDto) {
   } else if (!showText) {
     documentViewer.hide(documentViewerHost);
   }
+  await applySplitPane(data);
   statusLine.textContent = data.status;
   await refreshCommandManager();
   await syncContentBounds();
@@ -435,8 +507,12 @@ async function applyState(data: TabContentDto) {
 }
 
 async function refreshState() {
-  const data = await invoke<TabContentDto>("get_browser_state");
-  await applyState(data);
+  try {
+    const data = await invoke<TabContentDto>("get_browser_state");
+    await applyState(data);
+  } catch (err) {
+    showToast(String(err), "error");
+  }
 }
 
 async function selectTab(index: number) {
@@ -445,11 +521,30 @@ async function selectTab(index: number) {
   await refreshState();
 }
 
+function navigateOmnibox() {
+  void invokeWithToast(
+    () => invoke<TabContentDto>("navigate_omnibox", { input: omnibox.value }),
+    "Could not navigate",
+  ).then((data) => {
+    if (data) {
+      void applyState(data);
+    }
+  });
+}
+
 omnibox.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
-    invoke<TabContentDto>("navigate_omnibox", { input: omnibox.value }).then(applyState);
+    navigateOmnibox();
   }
 });
+
+bindOmniboxAutocomplete(omnibox, omniboxSuggestions, () => navigateOmnibox());
+
+btnSplit.onclick = () => {
+  void invokeWithToast(() => invoke<TabContentDto>("toggle_split_view"), "Split view failed").then(
+    (data) => data && applyState(data),
+  );
+};
 
 document.getElementById("btn-back")!.onclick = () =>
   invoke<TabContentDto>("go_back").then(applyState);
@@ -558,6 +653,20 @@ document.addEventListener(
     return;
   }
   if (textEditor.isActive() && e.ctrlKey && e.key.toLowerCase() === "f") {
+    return;
+  }
+  if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "z") {
+    e.preventDefault();
+    void invokeWithToast(() => invoke<TabContentDto>("document_undo"), "Nothing to undo").then(
+      (data) => data && applyState(data),
+    );
+    return;
+  }
+  if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "y") {
+    e.preventDefault();
+    void invokeWithToast(() => invoke<TabContentDto>("document_redo"), "Nothing to redo").then(
+      (data) => data && applyState(data),
+    );
     return;
   }
   const chord = chordFromKeyboardEvent(e);

@@ -109,12 +109,139 @@ body {
   margin-bottom: 0.35rem;
 }
 
-#omnibox {
+.omnibox-wrap {
   flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+#omnibox {
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.35rem 0.5rem;
   background: #111;
   border: 1px solid #444;
   color: #eee;
+}
+
+.omnibox-suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 40;
+  max-height: 14rem;
+  overflow: auto;
+  background: #222228;
+  border: 1px solid #555;
+  margin-top: 2px;
+}
+
+.omnibox-suggestions.hidden {
+  display: none;
+}
+
+.omnibox-suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.omnibox-suggestion.active,
+.omnibox-suggestion:hover {
+  background: #3d5a80;
+}
+
+.toast-host {
+  margin-top: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  border-radius: 3px;
+  max-width: 100%;
+}
+
+.toast-host.hidden {
+  display: none;
+}
+
+.toast-error {
+  background: #4a2028;
+  border: 1px solid #a44;
+  color: #fcc;
+}
+
+.toast-info {
+  background: #243040;
+  border: 1px solid #4a6fa5;
+  color: #dde;
+}
+
+.content-host.split-active {
+  display: flex;
+  flex-direction: row;
+  gap: 0.35rem;
+  min-height: 0;
+  flex: 1;
+}
+
+.split-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.split-secondary {
+  border-left: 1px solid #444;
+  padding-left: 0.35rem;
+}
+
+.split-text-readonly {
+  margin: 0;
+  padding: 0.5rem;
+  white-space: pre-wrap;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.tab.split-pane-tab {
+  border-color: #6a8fbd;
+}
+
+#btn-split.active {
+  background: #3d5a80;
+  color: #fff;
+}
+
+.csv-table-wrap {
+  overflow: auto;
+  max-height: 24rem;
+}
+
+.csv-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.csv-table th,
+.csv-table td {
+  border: 1px solid #444;
+  padding: 0.2rem 0.45rem;
+  text-align: left;
+}
+
+.csv-table th {
+  background: #2a2a32;
+  position: sticky;
+  top: 0;
 }
 
 .command-manager {

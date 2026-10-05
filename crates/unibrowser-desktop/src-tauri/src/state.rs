@@ -14,6 +14,12 @@ use crate::config::{keybindings_file_path, toolbars_file_path};
 use unibrowser_mod_api::BrowserLocation;
 use unibrowser_mod_host::{ModHost, ModRegisterFn, default_mods_dir};
 
+#[derive(Default)]
+pub struct SplitViewState {
+    pub enabled: bool,
+    pub secondary_index: Option<usize>,
+}
+
 pub struct AppState {
     pub registry: Mutex<CommandRegistry>,
     pub tabs: Mutex<TabManager>,
@@ -22,6 +28,8 @@ pub struct AppState {
     pub keybindings: Mutex<KeybindingMap>,
     pub command_manager: Mutex<CommandManagerState>,
     pub vsix_host_commands: Mutex<HashSet<String>>,
+    pub undo_stacks: Mutex<crate::undo_stack::UndoStacks>,
+    pub split_view: Mutex<SplitViewState>,
     pub _mod_host: ModHost,
 }
 
@@ -94,6 +102,8 @@ impl AppState {
             keybindings,
             command_manager,
             vsix_host_commands,
+            undo_stacks: Mutex::new(crate::undo_stack::UndoStacks::default()),
+            split_view: Mutex::new(SplitViewState::default()),
             _mod_host: mod_host,
         }
     }
@@ -236,6 +246,7 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         "pdf" => base_pdf::open_file(path).ok(),
         "dxf" => base_dxf::open_file(path).ok(),
         "js" | "rhai" => base_js::open_file(path).ok(),
+        "csv" | "tsv" => Some(crate::csv_stub::open_file(path)),
         "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
         "mp4" | "webm" => base_video::open_file(path).ok(),
         "wav" | "mid" | "midi" => base_audio::open_file(path).ok(),
