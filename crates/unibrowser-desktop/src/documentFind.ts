@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { runViewerFind } from "./documentViewer";
 import { openTextFind, runTextFind } from "./textEditor";
 
@@ -5,7 +6,7 @@ let bar: HTMLElement | null = null;
 let input: HTMLInputElement | null = null;
 let open = false;
 
-export type DocumentFindSurface = "monaco" | "viewer" | "none";
+export type DocumentFindSurface = "monaco" | "viewer" | "web" | "none";
 
 let surface: DocumentFindSurface = "none";
 
@@ -56,6 +57,13 @@ function runFind(forward: boolean) {
   }
   if (surface === "viewer") {
     runViewerFind(query, forward);
+    return;
+  }
+  if (surface === "web") {
+    if (!query.trim()) {
+      return;
+    }
+    void invoke("web_find_in_page", { query, forward });
   }
 }
 

@@ -94,6 +94,11 @@ export function handleFilesKeyDown(e: KeyboardEvent): boolean {
     void pasteFromFilesClipboard(deps, host);
     return true;
   }
+  if (e.key === "Enter" && selectedPaths.size > 0) {
+    e.preventDefault();
+    void openSelectedPaths([...selectedPaths], deps);
+    return true;
+  }
   return false;
 }
 
@@ -255,6 +260,16 @@ async function openPath(path: string, deps: FilesPanelDeps) {
 
 async function openPathNewTab(path: string, deps: FilesPanelDeps) {
   const data = await invoke("open_path_in_new_tab", { path });
+  if (data) {
+    await deps.onApplyState(data);
+  }
+}
+
+async function openSelectedPaths(paths: string[], deps: FilesPanelDeps) {
+  if (!paths.length) {
+    return;
+  }
+  const data = await invoke("open_selected_paths", { paths });
   if (data) {
     await deps.onApplyState(data);
   }
@@ -1188,16 +1203,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   openSel.type = "button";
   openSel.textContent = t("files.openSelected");
   openSel.onclick = () => {
-    const paths = [...selectedPaths];
-    void (async () => {
-      for (let i = 0; i < paths.length; i++) {
-        if (i === 0) {
-          await openPath(paths[i], deps);
-        } else {
-          await openPathNewTab(paths[i], deps);
-        }
-      }
-    })();
+    void openSelectedPaths([...selectedPaths], deps);
   };
   bulkBar.appendChild(openSel);
 

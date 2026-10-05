@@ -632,6 +632,27 @@ pub fn remove_timeline_transition(
     Ok(())
 }
 
+pub fn rename_timeline_clip_label(
+    package: &mut ProjectPackage,
+    clip_id: &str,
+    label: &str,
+) -> Result<(), ProjectError> {
+    let label = label.trim();
+    if label.is_empty() {
+        return Err(ProjectError::Msg("label cannot be empty".into()));
+    }
+    let clip = package
+        .manifest
+        .timeline
+        .clips
+        .iter_mut()
+        .find(|c| c.id == clip_id)
+        .ok_or_else(|| ProjectError::Msg(format!("unknown clip {}", clip_id)))?;
+    clip.label = label.to_string();
+    write_manifest(&package.root, &package.manifest)?;
+    Ok(())
+}
+
 pub fn remove_timeline_clip(package: &mut ProjectPackage, clip_id: &str) -> Result<(), ProjectError> {
     let idx = package
         .manifest
@@ -1263,6 +1284,26 @@ mod tests {
         assert!(dir.join(DIR_ASSETS).is_dir());
         let again = open_package(&dir).expect("open");
         assert_eq!(again.manifest.title, "Demo");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn rename_timeline_clip_label_persists() {
+        let dir = std::env::temp_dir().join("unibrow-test-clip-rename");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Clip").expect("create");
+        seed_board_sketch(&mut pkg).expect("seed");
+        let id = pkg.manifest.nodes[0].id.clone();
+        let clip = append_timeline_clip_for_node(&mut pkg, &id).expect("clip");
+        rename_timeline_clip_label(&mut pkg, &clip.id, "Intro").expect("rename");
+        let updated = pkg
+            .manifest
+            .timeline
+            .clips
+            .iter()
+            .find(|c| c.id == clip.id)
+            .expect("clip");
+        assert_eq!(updated.label, "Intro");
         let _ = fs::remove_dir_all(&dir);
     }
 

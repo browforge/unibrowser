@@ -48,6 +48,51 @@ export function runViewerFind(query: string, next: boolean) {
 
 const BOARD_GRID = 24;
 
+function bindInlineProjectLabel(
+  host: HTMLElement,
+  value: string,
+  onSave: (next: string) => Promise<void>,
+) {
+  host.className = "unibrow-inline-label";
+  host.textContent = value;
+  host.title = "Double-click to rename";
+  host.ondblclick = (e) => {
+    e.stopPropagation();
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "unibrow-inline-label-input";
+    input.value = value;
+    host.replaceWith(input);
+    input.focus();
+    input.select();
+    let committed = false;
+    const finish = async (save: boolean) => {
+      if (committed) {
+        return;
+      }
+      committed = true;
+      const next = input.value.trim();
+      if (save && next && next !== value) {
+        await onSave(next);
+        return;
+      }
+      bindInlineProjectLabel(host, value, onSave);
+      input.replaceWith(host);
+    };
+    input.onkeydown = (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        void finish(true);
+      }
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        void finish(false);
+      }
+    };
+    input.onblur = () => void finish(true);
+  };
+}
+
 function snapBoardCoord(value: number, snap: boolean): number {
   const v = Math.max(0, value);
   if (!snap) {
@@ -2532,8 +2577,14 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     li.appendChild(typeIcon);
 
     const label = document.createElement("span");
-    label.className = "unibrow-timeline-clip-label";
-    label.textContent = clip.label;
+    bindInlineProjectLabel(label, clip.label, async (next) => {
+      const data = await invoke("rename_unibrow_timeline_clip", {
+        projectPath: viewer.path,
+        clipId: clip.id,
+        label: next,
+      });
+      window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+    });
     li.appendChild(label);
 
     const timing = document.createElement("div");
@@ -2817,9 +2868,20 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     for (const node of nodes) {
       const li = document.createElement("li");
       li.className = "unibrow-node";
-      const text = document.createElement("span");
-      text.textContent = `${node.label} (${node.node_type})${node.asset ? ` · ${node.asset}` : ""}`;
-      li.appendChild(text);
+      const labelEl = document.createElement("span");
+      bindInlineProjectLabel(labelEl, node.label, async (next) => {
+        const data = await invoke("rename_unibrow_node", {
+          projectPath: viewer.path,
+          nodeId: node.id,
+          label: next,
+        });
+        window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+      });
+      const meta = document.createElement("span");
+      meta.className = "unibrow-node-meta";
+      meta.textContent = ` (${node.node_type})${node.asset ? ` · ${node.asset}` : ""}`;
+      li.appendChild(labelEl);
+      li.appendChild(meta);
       if (node.asset) {
         const open = document.createElement("button");
         open.type = "button";
@@ -2831,21 +2893,6 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
         };
         li.appendChild(open);
       }
-      const rename = document.createElement("button");
-      rename.type = "button";
-      rename.textContent = "Rename";
-      rename.onclick = async () => {
-        const next = window.prompt("Node label", node.label);
-        if (!next) {
-          return;
-        }
-        const data = await invoke("rename_unibrow_node", {
-          projectPath: viewer.path,
-          nodeId: node.id,
-          label: next,
-        });
-        window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
-      };
       const remove = document.createElement("button");
       remove.type = "button";
       remove.textContent = "Remove";
@@ -2859,7 +2906,6 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
         });
         window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
       };
-      li.appendChild(rename);
       li.appendChild(remove);
       list.appendChild(li);
     }

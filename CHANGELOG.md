@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **`.unibrow` labels:** Double-click node or timeline clip labels to rename inline (persisted to `project.json`).
+- **Web find:** Ctrl+F on https tabs uses content-webview `window.find()` when available; command grey with reason otherwise.
+- **Files batch open:** Shift/Ctrl multi-select + **Open selected** / Enter calls `open_selected_paths` (first tab active, rest new tabs).
+- **Docs:** `./scripts/lint-doc-links.sh` checks relative links in `docs/index.md`.
 - **Floating toolbars:** Right-click **Reset this toolbar**; screen coord DPI note in [toolbars.md](docs/toolbars.md).
 - **`.unibrow` orphans:** List unused `assets/` files; remove with confirm when no node references them.
 - **Status bar:** Click zoom label to reset page/PDF/image zoom; click font pt to reset editor/reader font for the tab.

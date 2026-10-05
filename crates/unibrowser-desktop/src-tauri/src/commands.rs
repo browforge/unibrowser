@@ -1843,6 +1843,85 @@ pub fn open_path(
 }
 
 #[tauri::command]
+fn open_resolved_path_on_tab(
+    tabs: &mut unibrowser_engine::TabManager,
+    file_path: &std::path::Path,
+    state: &AppState,
+    new_tab: bool,
+) -> Result<BrowserLocation, String> {
+    let loc = BrowserLocation::File {
+        path: file_path.to_path_buf(),
+    };
+    let (loc, is_dir, doc) = if unibrowser_project::is_unibrow_path(file_path) {
+        let doc = crate::state::try_open_unibrow_document(file_path)?;
+        (loc, false, Some(doc))
+    } else {
+        state.resolve_location(loc)
+    };
+    if new_tab {
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+        }
+    } else {
+        tabs.navigate_active(loc.clone(), is_dir, doc);
+    }
+    Ok(loc)
+}
+
+#[tauri::command]
+pub fn open_selected_paths(
+    window: tauri::Window,
+    paths: Vec<String>,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    if paths.is_empty() {
+        return Err("no paths selected".into());
+    }
+    let mut resolved = Vec::new();
+    for path in paths {
+        let file_path = resolve_open_path(&path, &state.cwd)?;
+        if file_path.is_file() || file_path.is_dir() {
+            resolved.push(file_path);
+        }
+    }
+    if resolved.is_empty() {
+        return Err("no openable paths in selection".into());
+    }
+    for file_path in &resolved {
+        allow_asset_protocol_file(&app, file_path);
+    }
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let mut last_loc = None;
+    for (i, file_path) in resolved.iter().enumerate() {
+        let loc = open_resolved_path_on_tab(&mut tabs, file_path, &state, i > 0)?;
+        if let BrowserLocation::File { path } = &loc {
+            if path.is_file() {
+                touch_recent_file(path);
+            }
+        }
+        last_loc = Some(loc);
+    }
+    if let Some(loc) = last_loc {
+        update_content_webview(&app, window.label(), &loc)?;
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn web_find_in_page(
+    window: tauri::Window,
+    query: String,
+    forward: bool,
+    app: AppHandle,
+) -> Result<(), String> {
+    crate::webview_find::find_in_content_webview(&app, window.label(), &query, forward)
+}
+
+#[tauri::command]
 pub fn open_path_in_new_tab(
     window: tauri::Window,
     path: String,
@@ -2421,14 +2500,39 @@ fn patch_capture_visible_tab_enablement(
     (false, Some(status.detail))
 }
 
+fn patch_web_find_enablement(
+    command_id: &str,
+    enabled: bool,
+    reason: Option<String>,
+    location: Option<&BrowserLocation>,
+) -> (bool, Option<String>) {
+    if command_id != FIND_IN_DOCUMENT_ID {
+        return (enabled, reason);
+    }
+    if !matches!(location, Some(BrowserLocation::Http { .. })) {
+        return (enabled, reason);
+    }
+    let status = crate::webview_find::web_find_status();
+    if status.available {
+        return (enabled, reason);
+    }
+    (false, Some(status.detail))
+}
+
 fn map_ui_commands(
     cmds: Vec<unibrowser_engine::ResolvedUiCommand>,
     location: Option<&BrowserLocation>,
 ) -> Vec<UiCommandDto> {
     cmds.into_iter()
         .map(|c| {
+            let (enabled, reason) = patch_capture_visible_tab_enablement(
+                &c.command_id,
+                c.enabled,
+                c.reason,
+                location,
+            );
             let (enabled, reason) =
-                patch_capture_visible_tab_enablement(&c.command_id, c.enabled, c.reason, location);
+                patch_web_find_enablement(&c.command_id, enabled, reason, location);
             UiCommandDto {
                 command_id: c.command_id,
                 title: c.title,
@@ -2877,6 +2981,13 @@ fn execute_command_impl(
         return Ok(format!("Page zoom {}%", pct));
     }
     if command_id == FIND_IN_DOCUMENT_ID {
+        if doc.backend.backend_id() == base_web::BACKEND_ID {
+            let status = crate::webview_find::web_find_status();
+            if !status.available {
+                return Err(status.detail);
+            }
+            return Ok("web-find".into());
+        }
         let en = state
             .registry
             .lock()
@@ -3082,6 +3193,12 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                 )
             };
             let (enabled, reason) = patch_capture_visible_tab_enablement(
+                &e.command_id,
+                enabled,
+                reason,
+                Some(&tab.location),
+            );
+            let (enabled, reason) = patch_web_find_enablement(
                 &e.command_id,
                 enabled,
                 reason,
@@ -4473,6 +4590,25 @@ pub fn rename_unibrow_node(window: tauri::Window,
     let project = resolve_open_path(&project_path, &state.cwd)?;
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::rename_node_label(&mut package, &node_id, &label)
+        .map_err(|e| e.to_string())?;
+    reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
+    let loc = BrowserLocation::File { path: project };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn rename_unibrow_timeline_clip(
+    window: tauri::Window,
+    project_path: String,
+    clip_id: String,
+    label: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<TabContentDto, String> {
+    let project = resolve_open_path(&project_path, &state.cwd)?;
+    let mut package = open_unibrow_package(&project)?;
+    unibrowser_project::rename_timeline_clip_label(&mut package, &clip_id, &label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };

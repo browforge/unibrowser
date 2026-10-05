@@ -57,6 +57,7 @@ mod user_backup;
 pub use state::open_file_document;
 mod webview;
 mod webview_capture;
+mod webview_find;
 mod webview_download;
 
 use state::AppState;
@@ -176,6 +177,7 @@ pub fn run() {
             commands::remove_unibrow_node,
             commands::remove_unibrow_orphan_asset,
             commands::rename_unibrow_node,
+            commands::rename_unibrow_timeline_clip,
             commands::set_unibrow_node_position,
             commands::pick_unibrow_asset_file,
             commands::allow_asset_path,
@@ -190,6 +192,8 @@ pub fn run() {
             commands::set_disable_user_mods,
             commands::set_files_view_prefs,
             commands::open_path_in_new_tab,
+            commands::open_selected_paths,
+            commands::web_find_in_page,
             commands::reveal_path_in_system,
             commands::toggle_folder_favorite,
             commands::set_workspace_root,

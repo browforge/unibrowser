@@ -2662,6 +2662,23 @@ select:focus-visible,
   flex-wrap: wrap;
 }
 
+.unibrow-inline-label {
+  cursor: text;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.unibrow-inline-label-input {
+  min-width: 6rem;
+  max-width: 14rem;
+  font: inherit;
+}
+
+.unibrow-node-meta {
+  color: #888;
+  margin-left: 0.15rem;
+}
+
 .unibrow-node {
   display: flex;
   gap: 0.5rem;

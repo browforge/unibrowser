@@ -1059,7 +1059,7 @@ async function runPageZoom(commandId: string) {
 }
 
 async function handleShellCommandMessage(msg: string): Promise<boolean> {
-  if (msg === "document-find") {
+  if (msg === "document-find" || msg === "web-find") {
     openDocumentFind();
     return false;
   }
@@ -1357,6 +1357,8 @@ async function applyState(data: TabContentDto) {
   const viewerKind = data.document_viewer?.viewer;
   if (showText) {
     setDocumentFindSurface("monaco");
+  } else if (active?.is_http) {
+    setDocumentFindSurface("web");
   } else if (showViewer && (viewerKind === "docx" || viewerKind === "epub")) {
     setDocumentFindSurface("viewer");
   } else {

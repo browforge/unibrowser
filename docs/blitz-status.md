@@ -104,6 +104,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Scripting | Rhai demo from palette → output panel; `.rhai` plain text; JS/TS via **base-js** Monaco |
 | DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |
 | `.unibrow` assets | Orphan files under `assets/` listed in project UI; remove with confirm when unreferenced |
+| `.unibrow` labels | Inline rename for board node and timeline clip labels (double-click) |
+| Web find | Ctrl+F on https tabs via content webview find; grey off when platform stub says unavailable |
+| Files multi-open | Checkbox / Shift / Ctrl selection; **Open selected** and Enter batch-open via `open_selected_paths` |
 | Docs | [docs/index.md](index.md), [getting-started.md](getting-started.md), [report-visuals.md](report-visuals.md), [report-shots/README.md](report-shots/README.md), ADRs 0001–0020 |
 | Quality | `cargo test --workspace`, path/transfer fuzz tests, `./scripts/smoke-desktop-qa.sh` |
 
