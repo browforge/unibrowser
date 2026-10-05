@@ -47,6 +47,10 @@ flowchart TB
 
 Heavy or copyleft stacks stay **out of process** where ADR 0007 requires it; the shell calls sidecars over stdio/HTTP stubs rather than linking them into `unibrowser-engine`.
 
+### Timeline encode intents (`.unibrow`)
+
+Timeline edits in the shell (clip move/trim, per-clip **fade in/out**, **duck under video** on audio) are stored in `project.json` and compiled into a `TimelineEncodeIntent` for ffmpeg **H.264** export: trimmed video segments, optional crossfade when exactly two video clips share a fade transition, and external audio mixed under the video bus at reduced gain when ducking is enabled. The UI does not bake these on every drag; export is when intents become ffmpeg filters. Gaps, MIDI, and embedded video audio are limited—see [timeline-encode-intents.md](timeline-encode-intents.md).
+
 ## Engines in the product, formats in mods
 
 Bear’s direction: the **shipped product** owns **engine fundamentals** (session lifecycle, command wiring, surface hosting, conversion contracts). Each **engine lane** is **proven end-to-end** by one bundled **`base-*` mod** on a concrete format. **Format mods may compose multiple engines** (see below). Community mods extend the same APIs; they do not replace the host engine.

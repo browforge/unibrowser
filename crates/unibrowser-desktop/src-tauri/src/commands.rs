@@ -604,6 +604,28 @@ fn open_unibrow_package(path: &Path) -> Result<unibrowser_project::ProjectPackag
     unibrowser_project::open_package(&root).map_err(|e| e.to_string())
 }
 
+fn unibrow_package_root(path: &Path) -> Result<PathBuf, String> {
+    let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+    unibrowser_project::resolve_package_root(path, &cache).map_err(|e| e.to_string())
+}
+
+fn record_unibrow_timeline_undo(
+    state: &AppState,
+    window_label: &str,
+    project_path_key: &str,
+    package_root: &Path,
+    before_json: String,
+) -> Result<(), String> {
+    let _sess = ws_label(state, window_label)?;
+    let mut stacks = _sess.undo_stacks.lock().map_err(|e| e.to_string())?;
+    crate::project_undo::record_manifest_undo(
+        &mut *stacks,
+        project_path_key,
+        before_json,
+        package_root,
+    )
+}
+
 fn document_viewer_dto(
     doc: &mut unibrowser_engine::DocumentSession,
     state: &AppState,
@@ -4384,6 +4406,8 @@ pub fn update_unibrow_timeline_clip(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
+    let root = unibrow_package_root(&project)?;
+    let before = crate::project_undo::read_manifest_json(&root)?;
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::update_timeline_clip_timing(
         &mut package,
@@ -4392,6 +4416,13 @@ pub fn update_unibrow_timeline_clip(
         duration_sec,
     )
     .map_err(|e| e.to_string())?;
+    record_unibrow_timeline_undo(
+        state.inner(),
+        window.label(),
+        &project_path,
+        &root,
+        before,
+    )?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
     update_content_webview(&app, window.label(), &loc)?;
@@ -4744,6 +4775,8 @@ pub fn set_unibrow_timeline_clip_fade(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
+    let root = unibrow_package_root(&project)?;
+    let before = crate::project_undo::read_manifest_json(&root)?;
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::set_timeline_clip_fade(
         &mut package,
@@ -4752,6 +4785,13 @@ pub fn set_unibrow_timeline_clip_fade(
         fade_out_sec,
     )
     .map_err(|e| e.to_string())?;
+    record_unibrow_timeline_undo(
+        state.inner(),
+        window.label(),
+        &project_path,
+        &root,
+        before,
+    )?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
     update_content_webview(&app, window.label(), &loc)?;
@@ -4776,6 +4816,8 @@ pub fn set_unibrow_timeline_clip_duck(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
+    let root = unibrow_package_root(&project)?;
+    let before = crate::project_undo::read_manifest_json(&root)?;
     let mut package = open_unibrow_package(&project)?;
     unibrowser_project::set_timeline_clip_duck_under_video(
         &mut package,
@@ -4783,6 +4825,13 @@ pub fn set_unibrow_timeline_clip_duck(
         duck_under_video,
     )
     .map_err(|e| e.to_string())?;
+    record_unibrow_timeline_undo(
+        state.inner(),
+        window.label(),
+        &project_path,
+        &root,
+        before,
+    )?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
     update_content_webview(&app, window.label(), &loc)?;
@@ -6304,17 +6353,25 @@ fn install_vsix_bytes_and_register(
     Ok(map_installed(rec))
 }
 
+#[derive(serde::Serialize)]
+pub struct ModToggleResultDto {
+    /// When false, stub/metadata commands were refreshed in-process; no restart needed for palette changes.
+    pub restart_recommended: bool,
+}
+
 #[tauri::command]
 pub fn set_vsix_extension_enabled(window: tauri::Window, 
     extension_id: String,
     enabled: bool,
     state: State<AppState>,
-) -> Result<(), String> {
+) -> Result<ModToggleResultDto, String> {
     let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
     unibrowser_vsix::set_extension_enabled(&root, &extension_id, enabled)
         .map_err(|e| e.to_string())?;
     state.refresh_extension_catalog()?;
-    Ok(())
+    Ok(ModToggleResultDto {
+        restart_recommended: false,
+    })
 }
 
 #[derive(Serialize)]
@@ -6354,12 +6411,14 @@ pub fn set_native_mod_enabled(
     name: String,
     enabled: bool,
     state: State<AppState>,
-) -> Result<(), String> {
+) -> Result<ModToggleResultDto, String> {
     let root = crate::config::user_mods_dir().ok_or("config dir unavailable")?;
     unibrowser_mod_host::set_native_mod_enabled(&root, &name, enabled)
         .map_err(|e| e.to_string())?;
     state.refresh_extension_catalog()?;
-    Ok(())
+    Ok(ModToggleResultDto {
+        restart_recommended: !enabled,
+    })
 }
 
 #[tauri::command]
@@ -6450,6 +6509,10 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             backend.content.clone()
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.content.clone()
+        } else if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
+            let project = std::path::PathBuf::from(&path);
+            let root = unibrow_package_root(&project)?;
+            crate::project_undo::read_manifest_json(&root)?
         } else {
             return Err("undo not available for this document".into());
         };
@@ -6462,6 +6525,11 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             backend.set_content(prev);
         } else if let Some(backend) = base_svg::try_svg_backend(&mut *doc.backend) {
             backend.set_content(prev);
+        } else if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
+            let project = std::path::PathBuf::from(&path);
+            let root = unibrow_package_root(&project)?;
+            crate::project_undo::write_manifest_json(&root, &prev)?;
+            reload_unibrow_project_tab(state.inner(), window.label(), &project, path.clone())?;
         }
     }
     snapshot(&state, window.label())

@@ -2878,6 +2878,16 @@ select:focus-visible,
   margin-bottom: 0.5rem;
 }
 
+.pdf-thumbs--strip {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
+  scrollbar-width: thin;
+}
+
 .pdf-thumb-btn {
   position: relative;
   min-width: 2.5rem;

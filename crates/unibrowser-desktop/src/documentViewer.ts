@@ -805,8 +805,10 @@ async function renderPdf(
   };
 
   const thumbs = document.createElement("div");
-  thumbs.className = "pdf-thumbs";
-  const THUMB_EAGER = 12;
+  thumbs.className = "pdf-thumbs pdf-thumbs--strip";
+  thumbs.setAttribute("role", "navigation");
+  thumbs.setAttribute("aria-label", "PDF page thumbnails");
+  const THUMB_EAGER = 8;
   const THUMB_SCALE = 0.22;
 
   const updateThumbActive = () => {
@@ -872,14 +874,16 @@ async function renderPdf(
     }
   };
 
-  const eager = Math.min(doc.numPages, THUMB_EAGER);
-  for (let n = 1; n <= eager; n += 1) {
-    addThumb(n, false);
+  if (doc.numPages > 1) {
+    const eager = Math.min(doc.numPages, THUMB_EAGER);
+    for (let n = 1; n <= eager; n += 1) {
+      addThumb(n, false);
+    }
+    for (let n = eager + 1; n <= doc.numPages; n += 1) {
+      addThumb(n, true);
+    }
+    root.insertBefore(thumbs, wrap);
   }
-  for (let n = eager + 1; n <= doc.numPages; n += 1) {
-    addThumb(n, true);
-  }
-  root.appendChild(thumbs);
 
   jumpBtn.onclick = async () => {
     const n = Number(jumpInput.value);

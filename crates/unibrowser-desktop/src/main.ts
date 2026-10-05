@@ -852,11 +852,14 @@ async function refreshInstalledExtensions(
         toggle.disabled = userModsBlocked;
         toggle.title = userModsBlocked ? t("mods.perModBlockedBySafeMode") : "";
         toggle.onclick = async () => {
-          await invoke("set_native_mod_enabled", {
+          const result = await invoke<{ restart_recommended: boolean }>("set_native_mod_enabled", {
             name: mod.name,
             enabled: !mod.enabled,
           });
-          showToast(t("mods.restartAfterToggle"), "info");
+          showToast(
+            t(result.restart_recommended ? "mods.toggleRestartNative" : "mods.toggleApplied"),
+            "info",
+          );
           await refreshInstalledExtensions(nativeContainer, vsixContainer);
           await refreshState();
         };
@@ -883,11 +886,14 @@ async function refreshInstalledExtensions(
       toggle.type = "button";
       toggle.textContent = ext.enabled ? t("mods.disable") : t("mods.enable");
       toggle.onclick = async () => {
-        await invoke("set_vsix_extension_enabled", {
+        const result = await invoke<{ restart_recommended: boolean }>("set_vsix_extension_enabled", {
           extensionId: ext.extension_id,
           enabled: !ext.enabled,
         });
-        showToast(t("mods.restartAfterToggle"), "info");
+        showToast(
+          t(result.restart_recommended ? "mods.toggleRestartIfStale" : "mods.toggleAppliedVsix"),
+          "info",
+        );
         await refreshInstalledExtensions(nativeContainer, vsixContainer);
         await refreshState();
       };

@@ -19,7 +19,7 @@ Commands:
 | EPUB chapter HTML | Grey | — | Spine preview only |
 | HTTP tab | Grey | — | Browser history is separate |
 | Files browser | Grey | — | No document session |
-| `.unibrow` project | Grey | — | Board/timeline edits are not on the text undo stack yet |
+| `.unibrow` project | Yes (timeline) | `project.json` snapshot on clip move/trim, duck, fade | `document_undo` / palette **Undo** restores last manifest; one level per edit (shared stack depth with text) |
 
 Palette and Command Manager show the **disabled reason** from the mod registry when a handler is missing.
 

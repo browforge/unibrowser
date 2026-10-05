@@ -77,6 +77,8 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | i18n chrome | Status bar a11y/zoom, CM tab pin tooltips, tab strip hints, downloads manager strings in en-NZ / en-US |
 | Downloads path | `get_downloads_dir` / `dirs` crate: Windows Known Folder, Linux XDG, fallback `~/Downloads` |
 | Timeline snap | Optional **Snap clip moves and edges to playhead** on `.unibrow` track (drag block body or edge handles) |
+| Timeline undo | Clip move/trim, duck, fade push `project.json` onto session undo stack; **Undo** restores one step |
+| PDF thumbs | Multi-page PDFs: horizontal lazy thumbnail strip (intersection observer) above the page canvas |
 | Mod portal | Per user native mod / VSIX **Enable** / **Disable** (independent of safe mode); restart note on toggle |
 | File associations | Documented: opens paths in-app, no OS default handler claims yet — [file-associations.md](file-associations.md) |
 | About feedback | **Report an issue** opens GitHub issue template chooser (`UNIBROWSER_REPORT_ISSUE_URL` override) |

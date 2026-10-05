@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Timeline undo:** Clip move/trim, duck, and fade record `project.json` snapshots; **Undo** (`document_undo`) restores the previous manifest for the active `.unibrow` tab.
+- **PDF:** Multi-page documents show a horizontal **lazy** thumbnail strip above the canvas (intersection observer after the first eight pages).
+- **Mod toggles:** VSIX enable/disable returns `restart_recommended: false` with an honest toast; native mod **disable** may recommend restart if cdylib commands linger.
+- **Architecture:** [architecture.md](docs/architecture.md) paragraph on timeline encode intents (duck/fade/H.264).
 - **Timeline:** Drag clip **body** on the track to shift start time; optional snap-to-playhead applies to moves and edge trims.
 - **File associations:** [file-associations.md](docs/file-associations.md) — Unibrowser opens files in-app but does not register OS default handlers yet (FOSS packaging notes).
 - **Mod portal:** Per user native mod / VSIX enable/disable with restart toast; safe mode disables toggles; documented in [safe-mode.md](docs/safe-mode.md).
