@@ -115,6 +115,7 @@ pub struct ProjectNodeDto {
 pub struct ProjectClipDto {
     pub id: String,
     pub node_id: String,
+    pub node_type: String,
     pub start_sec: f32,
     pub duration_sec: f32,
     pub label: String,
@@ -330,12 +331,22 @@ fn document_viewer_dto(
                 .timeline
                 .clips
                 .iter()
-                .map(|c| ProjectClipDto {
-                    id: c.id.clone(),
-                    node_id: c.node_id.clone(),
-                    start_sec: c.start_sec,
-                    duration_sec: c.duration_sec,
-                    label: c.label.clone(),
+                .map(|c| {
+                    let node_type = pkg
+                        .manifest
+                        .nodes
+                        .iter()
+                        .find(|n| n.id == c.node_id)
+                        .map(|n| n.node_type.clone())
+                        .unwrap_or_else(|| "asset".into());
+                    ProjectClipDto {
+                        id: c.id.clone(),
+                        node_id: c.node_id.clone(),
+                        node_type,
+                        start_sec: c.start_sec,
+                        duration_sec: c.duration_sec,
+                        label: c.label.clone(),
+                    }
                 })
                 .collect()
         });
@@ -1014,9 +1025,28 @@ pub fn allow_unibrow_asset(
 #[tauri::command]
 pub fn open_path(path: String, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let file_path = resolve_open_path(&path, &state.cwd)?;
+    let profile_open = std::env::var("UNIBROWSER_PROFILE_OPEN")
+        .ok()
+        .is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
+    let profile_pdf = profile_open
+        && file_path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("pdf"));
+    let open_started = if profile_pdf {
+        Some(std::time::Instant::now())
+    } else {
+        None
+    };
     allow_asset_protocol_file(&app, &file_path);
-    let loc = BrowserLocation::File { path: file_path };
+    let loc = BrowserLocation::File { path: file_path.clone() };
     let (loc, is_dir, doc) = state.resolve_location(loc);
+    if let Some(started) = open_started {
+        eprintln!(
+            "[unibrowser] open_path pdf {} resolve+open took {:?}",
+            file_path.display(),
+            started.elapsed()
+        );
+    }
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     tabs.navigate_active(loc.clone(), is_dir, doc);
     if let BrowserLocation::File { path } = &loc {
@@ -1766,6 +1796,53 @@ pub fn get_preferences() -> PreferencesDto {
 pub fn set_crash_recovery_enabled(enabled: bool) -> Result<PreferencesDto, String> {
     crate::crash_recovery::set_enabled(enabled)?;
     Ok(get_preferences())
+}
+
+#[tauri::command]
+pub fn list_crash_recovery_backups() -> Vec<crate::crash_recovery::CrashRecoveryBackupDto> {
+    crate::crash_recovery::list_backups()
+}
+
+#[tauri::command]
+pub fn dismiss_crash_recovery_backup(backup_id: String) -> Result<(), String> {
+    crate::crash_recovery::dismiss_backup(&backup_id)
+}
+
+#[tauri::command]
+pub fn restore_crash_recovery_backup(
+    backup_id: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let record = crate::crash_recovery::load_backup(&backup_id)?;
+    let file_path = resolve_open_path(&record.path, &state.cwd)?;
+    allow_asset_protocol_file(&app, &file_path);
+    let loc = BrowserLocation::File { path: file_path };
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+    tabs.navigate_active(loc.clone(), is_dir, doc);
+    if let BrowserLocation::File { path } = &loc {
+        if path.is_file() {
+            touch_recent_file(path);
+        }
+    }
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    let doc = tab.document.as_mut().ok_or("no document")?;
+    if doc.path != record.path {
+        return Err("restore path mismatch".into());
+    }
+    if record.backend_id == base_text::BACKEND_ID {
+        let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
+        backend.set_content(record.content);
+    } else if record.backend_id == base_svg::BACKEND_ID {
+        let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
+        backend.set_content(record.content);
+    } else {
+        return Err("unsupported backup type".into());
+    }
+    update_content_webview(&app, &loc)?;
+    let _ = crate::crash_recovery::dismiss_backup(&backup_id);
+    snapshot(&state)
 }
 
 #[tauri::command]

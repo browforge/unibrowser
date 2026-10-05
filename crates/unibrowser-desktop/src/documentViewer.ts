@@ -71,9 +71,30 @@ export interface MidiNoteOnDto {
 export interface ProjectClipDto {
   id: string;
   node_id: string;
+  node_type: string;
   start_sec: number;
   duration_sec: number;
   label: string;
+}
+
+function clipTypeAbbrev(nodeType: string): string {
+  const t = nodeType.toLowerCase();
+  if (t.includes("video")) {
+    return "VID";
+  }
+  if (t.includes("audio")) {
+    return "AUD";
+  }
+  if (t.includes("image") || t.includes("png") || t.includes("svg")) {
+    return "IMG";
+  }
+  if (t.includes("text") || t.includes("note")) {
+    return "TXT";
+  }
+  if (t.includes("pdf")) {
+    return "PDF";
+  }
+  return "AST";
 }
 
 export interface MidiSummaryDto {
@@ -1096,11 +1117,71 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   timeline.appendChild(timelineAddRow);
   const ol = document.createElement("ol");
   ol.className = "unibrow-timeline-clips";
+  let dragFromIndex: number | null = null;
+
+  const reorderTo = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) {
+      return;
+    }
+    const data = await invoke("reorder_unibrow_timeline_clips", {
+      projectPath: viewer.path,
+      fromIndex,
+      toIndex,
+    });
+    window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+  };
+
   clips.forEach((clip, index) => {
     const li = document.createElement("li");
     li.className = "unibrow-timeline-clip";
+    li.draggable = true;
+    li.dataset.clipIndex = String(index);
+    li.addEventListener("dragstart", (ev) => {
+      dragFromIndex = index;
+      li.classList.add("unibrow-timeline-clip--dragging");
+      if (ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/plain", String(index));
+      }
+    });
+    li.addEventListener("dragend", () => {
+      dragFromIndex = null;
+      li.classList.remove("unibrow-timeline-clip--dragging");
+      ol.querySelectorAll(".unibrow-timeline-clip--over").forEach((el) => {
+        el.classList.remove("unibrow-timeline-clip--over");
+      });
+    });
+    li.addEventListener("dragover", (ev) => {
+      ev.preventDefault();
+      if (ev.dataTransfer) {
+        ev.dataTransfer.dropEffect = "move";
+      }
+      li.classList.add("unibrow-timeline-clip--over");
+    });
+    li.addEventListener("dragleave", () => {
+      li.classList.remove("unibrow-timeline-clip--over");
+    });
+    li.addEventListener("drop", (ev) => {
+      ev.preventDefault();
+      li.classList.remove("unibrow-timeline-clip--over");
+      const from =
+        dragFromIndex ??
+        Number.parseInt(ev.dataTransfer?.getData("text/plain") ?? "", 10);
+      if (Number.isNaN(from) || from === index) {
+        return;
+      }
+      void reorderTo(from, index);
+    });
+
+    const typeIcon = document.createElement("span");
+    typeIcon.className = "unibrow-timeline-clip-type";
+    typeIcon.title = clip.node_type;
+    typeIcon.textContent = clipTypeAbbrev(clip.node_type);
+    li.appendChild(typeIcon);
+
     const label = document.createElement("span");
-    label.textContent = `${clip.start_sec.toFixed(1)}s · ${clip.duration_sec.toFixed(1)}s — ${clip.label} (${clip.node_id})`;
+    label.className = "unibrow-timeline-clip-label";
+    label.textContent = `${clip.start_sec.toFixed(1)}s · ${clip.duration_sec.toFixed(1)}s — ${clip.label}`;
     li.appendChild(label);
     const up = document.createElement("button");
     up.type = "button";
@@ -1562,7 +1643,7 @@ export const documentViewer = {
           await renderSettings(body);
           break;
         case "about":
-          renderAbout(body);
+          await renderAbout(body);
           break;
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;

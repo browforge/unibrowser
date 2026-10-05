@@ -1,4 +1,6 @@
-export function renderAbout(root: HTMLElement) {
+import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
+
+export async function renderAbout(root: HTMLElement) {
   root.innerHTML = "";
   const lead = document.createElement("p");
   lead.textContent =
@@ -36,7 +38,18 @@ export function renderAbout(root: HTMLElement) {
   third.appendChild(ul);
   const note = document.createElement("p");
   note.className = "viewer-note";
-  note.textContent = "Full NOTICE file generation is not wired yet.";
+  note.textContent =
+    "Run ./scripts/generate-notice.sh to refresh NOTICE.md (uses cargo-license when installed).";
   third.appendChild(note);
   root.appendChild(third);
+
+  const recovery = document.createElement("section");
+  recovery.className = "about-section";
+  const rh = document.createElement("h3");
+  rh.textContent = "Crash recovery backups";
+  recovery.appendChild(rh);
+  const recoveryBody = document.createElement("div");
+  recovery.appendChild(recoveryBody);
+  await appendCrashRecoveryPanel(recoveryBody, { compact: true });
+  root.appendChild(recovery);
 }

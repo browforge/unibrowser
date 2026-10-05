@@ -19,6 +19,7 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 | Auto-save | Off | Enable + interval → edit `.txt`/SVG → toast after interval |
 | Restore session | Off | Enable → restart → tabs return |
 | Board snap to grid | Off | Enable → drag `.unibrow` cards snap to 24px grid |
+| Crash recovery | Off | Enable → edit text/SVG → backups list on Settings/About; Restore / Dismiss (inline, no modal) |
 
 ## Downloads
 
@@ -30,11 +31,16 @@ Open from the bookmark bar, Recent → **Open settings**, or the omnibox. All pr
 
 - New project seeds **Notes** and **References** on the board (`project.json` `x`/`y`) plus a **timeline** clip list stub.
 - Alt+drag pan, Ctrl+wheel zoom; double-click card opens asset; drag moves cards (optional grid snap in Settings).
+- Timeline: add clip from asset, remove, reorder (↑↓ or drag clip row); type badge (TXT/IMG/…); persisted in `project.json`.
 - List below still supports Open / Rename / Remove and add flows.
 
 ## MIDI
 
-- Open a `.mid` / `.midi` file: viewer shows SMF format, track count, and ticks per quarter (header parse only).
+- Open a `.mid` / `.midi` file: viewer shows SMF format, track count, ticks per quarter, and first note-on events (scrub stub).
+- Web tab: Increase/decrease font persists per origin in `web-font-prefs.json`; reload tab restores size.
+- Settings / About: crash recovery list + restore (debounced writes under config `crash-recovery/`).
+- `unibrowser://about` shows Apache-2.0; run `./scripts/generate-notice.sh` for NOTICE.md.
+- Large PDF: set `UNIBROWSER_PROFILE_OPEN=1` and open a PDF; stderr logs resolve+open timing.
 
 ## Command manager
 

@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { t } from "./i18n";
 import { applyThemeToDocument, loadThemePreference } from "./theme";
 import { configureAutoSave } from "./autoSave";
+import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 
 interface PrefsDto {
   theme: string;
@@ -172,6 +173,10 @@ export async function renderSettings(root: HTMLElement) {
   recoveryRow.appendChild(recoveryLabel);
   recoverySection.appendChild(recoveryHeading);
   recoverySection.appendChild(recoveryRow);
+  const backupsWrap = document.createElement("div");
+  backupsWrap.className = "settings-crash-backups";
+  recoverySection.appendChild(backupsWrap);
+  void appendCrashRecoveryPanel(backupsWrap);
   root.appendChild(recoverySection);
 
   const aboutLink = document.createElement("p");

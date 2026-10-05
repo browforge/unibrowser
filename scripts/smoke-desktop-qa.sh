@@ -10,6 +10,11 @@ cargo test --workspace
 (cd crates/unibrowser-desktop && npm run build)
 echo "OK: tests + UI build"
 
+if [[ -x "$ROOT/scripts/generate-notice.sh" ]]; then
+  "$ROOT/scripts/generate-notice.sh" "$ROOT/NOTICE.md"
+  echo "OK: NOTICE.md stub/generated"
+fi
+
 cat <<'CHECKLIST'
 
 == Manual smoke (check each) ==
@@ -20,9 +25,11 @@ Launch
   [ ] Bookmark bar: Home, Downloads, New project; Pin adds current location
   [ ] Compare: open .txt, Compare → pick second file → diff view → Close compare
   [ ] Recent panel: auto-save off by default; enable + pick interval if you want it
-  [ ] Recent panel: Downloads pref (open tab vs save to disk)
+  [ ] unibrowser://settings — theme, downloads, auto-save, session, board snap, crash backups
+  [ ] unibrowser://about — licence, NOTICE hint, crash backup list (compact)
+  [ ] .mid file — SMF format / track count in viewer
   [ ] Command manager: Export layout / Import layout JSON
-  [ ] .unibrow project: board cards drag; project.json x/y updates
+  [ ] .unibrow project: board cards drag; timeline drag reorder + type badges
   [ ] Status bar: click path to copy; Ctrl+Shift+V paste path in omnibox
   [ ] Status bar: encoding (text), line/col (text), zoom (PDF/image/web)
   [ ] Ctrl+K then Ctrl+S saves text (sequence sketch)
