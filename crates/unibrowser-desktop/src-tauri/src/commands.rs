@@ -3944,6 +3944,7 @@ pub struct PreferencesDto {
     pub onboarding_checklist_skip_forever: bool,
     pub onboarding_checklist_completed: Vec<String>,
     pub theme: String,
+    pub editor_theme_id: String,
     pub command_manager_dense: bool,
     pub cm_pin_tip_seen: bool,
     pub high_contrast: bool,
@@ -5178,6 +5179,7 @@ fn preferences_dto() -> PreferencesDto {
         onboarding_checklist_skip_forever: p.onboarding_checklist_skip_forever,
         onboarding_checklist_completed: p.onboarding_checklist_completed.clone(),
         theme: theme_to_str(&p.theme),
+        editor_theme_id: p.editor_theme_id.clone(),
         command_manager_dense: p.command_manager_dense,
         cm_pin_tip_seen: p.cm_pin_tip_seen,
         high_contrast: p.high_contrast,
@@ -6014,6 +6016,26 @@ fn parse_ui_theme(theme: &str) -> Result<UiTheme, String> {
         "system" => Ok(UiTheme::System),
         _ => Err("theme must be light, dark, or system".into()),
     }
+}
+
+#[tauri::command]
+pub fn list_editor_themes_cmd() -> Result<Vec<crate::editor_themes::EditorThemeSummaryDto>, String> {
+    crate::editor_themes::list_editor_themes()
+}
+
+#[tauri::command]
+pub fn get_editor_monaco_theme(
+    theme_id: String,
+) -> Result<Option<unibrowser_extension_host::MonacoThemeDto>, String> {
+    crate::editor_themes::get_editor_monaco_theme(theme_id)
+}
+
+#[tauri::command]
+pub fn set_editor_theme(theme_id: String) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.editor_theme_id = theme_id;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 #[tauri::command]

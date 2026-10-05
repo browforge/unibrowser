@@ -1,0 +1,33 @@
+{
+  "name": "openvsx-smoke-fixture",
+  "publisher": "unibrowser",
+  "version": "1.0.0",
+  "displayName": "Open VSX smoke fixture",
+  "license": "Apache-2.0",
+  "engines": { "vscode": "^1.85.0" },
+  "main": "./main.js",
+  "activationEvents": ["onLanguage:javascript"],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Fixture Twilight",
+        "uiTheme": "vs-dark",
+        "path": "./themes/fixture-twilight.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "fixturelang",
+        "scopeName": "source.fixturelang",
+        "path": "./syntaxes/fixture.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "fixture.format",
+        "title": "Fixture format",
+        "category": "Fixture"
+      }
+    ]
+  }
+}

@@ -215,9 +215,10 @@ async function highlightPreviewCodeBlocks(container: HTMLElement) {
     return;
   }
   const monaco = await import("monaco-editor");
-  const themeId =
-    document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
-  monaco.editor.setTheme(themeId);
+  const { resolveEditorThemeId } = await import("./monacoEditorTheme");
+  const pref =
+    (document.documentElement.dataset.editorTheme as string | undefined) ?? "auto";
+  monaco.editor.setTheme(resolveEditorThemeId(pref));
   for (const code of blocks) {
     if (code.classList.contains("language-mermaid")) {
       continue;

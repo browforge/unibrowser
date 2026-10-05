@@ -1,5 +1,8 @@
 //! Install `.vsix` packages to the user config dir and import V1 metadata ([ADR 0014](../../docs/adr/0014-vsix-compatibility-layer.md)).
 
+mod themes;
+pub use themes::{discover_themes_on_install, list_editor_themes, resolve_monaco_theme, EditorThemeSummary, VsixThemeEntry};
+
 use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
@@ -77,6 +80,8 @@ pub struct InstalledVsixRecord {
     pub theme_notes: Vec<String>,
     #[serde(default)]
     pub grammar_notes: Vec<String>,
+    #[serde(default)]
+    pub themes: Vec<VsixThemeEntry>,
 }
 
 fn default_enabled() -> bool {
@@ -134,7 +139,18 @@ pub fn install_vsix_bytes(
     let contributions = extract_contributions(&package_json, &extension_id);
     let contrib_path = install_dir.join("contributions.json");
     fs::write(&contrib_path, serde_json::to_string_pretty(&contributions)?)?;
-    let (theme_notes, grammar_notes) = asset_notes_from_package(&package_json);
+    let theme_refs: Vec<(Option<String>, Option<String>)> = package_json
+        .contributes
+        .as_ref()
+        .map(|c| {
+            c.themes
+                .iter()
+                .map(|t| (t.label.clone(), t.path.clone()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let (themes, theme_notes) = discover_themes_on_install(&extension_id, &install_dir, &theme_refs);
+    let grammar_notes = grammar_notes_from_package(&package_json);
     let compatibility = compatibility_for_install(&install_dir);
     let record = InstalledVsixRecord {
         extension_id,
@@ -150,6 +166,7 @@ pub fn install_vsix_bytes(
         compatibility_missing_apis: compatibility.missing_apis,
         theme_notes,
         grammar_notes,
+        themes,
     };
     write_install_record(&install_dir, &record)?;
     Ok(record)
@@ -400,18 +417,9 @@ fn compatibility_for_install(install_dir: &Path) -> InstallCompatibility {
     }
 }
 
-fn asset_notes_from_package(package: &PackageJson) -> (Vec<String>, Vec<String>) {
+fn grammar_notes_from_package(package: &PackageJson) -> Vec<String> {
     let contributes = package.contributes.as_ref().cloned().unwrap_or_default();
-    let themes = contributes
-        .themes
-        .into_iter()
-        .map(|t| {
-            let label = t.label.unwrap_or_else(|| "theme".into());
-            let path = t.path.unwrap_or_else(|| "?".into());
-            format!("{label} ({path}) — recognised, not applied")
-        })
-        .collect();
-    let grammars = contributes
+    contributes
         .grammars
         .into_iter()
         .map(|g| {
@@ -419,8 +427,7 @@ fn asset_notes_from_package(package: &PackageJson) -> (Vec<String>, Vec<String>)
             let path = g.path.unwrap_or_else(|| "?".into());
             format!("{lang} grammar ({path}) — recognised, not applied")
         })
-        .collect();
-    (themes, grammars)
+        .collect()
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -565,6 +572,71 @@ mod tests {
             .join("../../examples/vsix-sample-extension");
         let main = read_extension_main(&root).expect("main");
         assert!(main.ends_with("main.js"));
+    }
+
+    #[test]
+    fn openvsx_fixture_install_smoke() {
+        let dir = std::env::temp_dir().join("vsix-openvsx-fixture-test");
+        let _ = fs::remove_dir_all(&dir);
+        let bytes = fixture_vsix_bytes();
+        let rec = install_vsix_bytes(&dir, &bytes, Some("Apache-2.0".into())).expect("install");
+        assert_eq!(rec.extension_id, "unibrowser.openvsx-smoke-fixture");
+        assert_eq!(rec.compatibility_level, "works");
+        assert_eq!(rec.themes.len(), 1);
+        assert!(
+            rec.theme_notes
+                .iter()
+                .any(|n| n.contains("Editor theme")),
+            "notes: {:?}",
+            rec.theme_notes
+        );
+        assert!(
+            rec.grammar_notes
+                .iter()
+                .any(|n| n.contains("recognised, not applied")),
+            "grammar notes: {:?}",
+            rec.grammar_notes
+        );
+        let themes = list_editor_themes(&dir).expect("list themes");
+        assert!(
+            themes.iter().any(|t| t.id.starts_with("vsix:unibrowser.openvsx-smoke-fixture")),
+            "themes: {:?}",
+            themes
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    fn fixture_vsix_bytes() -> Vec<u8> {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/vsix-openvsx-fixture/extension");
+        let buf = Vec::new();
+        let mut zip = ZipWriter::new(std::io::Cursor::new(buf));
+        let opts = SimpleFileOptions::default();
+        for entry in walkdir_fixture(&root) {
+            let rel = entry.strip_prefix(&root).unwrap().to_string_lossy().replace('\\', "/");
+            let name = format!("extension/{}", rel);
+            if entry.is_dir() {
+                continue;
+            }
+            zip.start_file(name, opts).unwrap();
+            zip.write_all(&fs::read(&entry).unwrap()).unwrap();
+        }
+        zip.finish().unwrap().into_inner()
+    }
+
+    fn walkdir_fixture(dir: &Path) -> Vec<PathBuf> {
+        let mut out = Vec::new();
+        if !dir.is_dir() {
+            return out;
+        }
+        for entry in fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                out.extend(walkdir_fixture(&path));
+            } else {
+                out.push(path);
+            }
+        }
+        out
     }
 
     #[test]

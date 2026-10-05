@@ -1,0 +1,4 @@
+{
+  "scopeName": "source.fixturelang",
+  "patterns": [{ "match": ".*", "name": "comment.line.fixture" }]
+}

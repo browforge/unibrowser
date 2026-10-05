@@ -60,6 +60,9 @@ pub struct Preferences {
     pub ui_locale: String,
     #[serde(default)]
     pub theme: UiTheme,
+    /// Monaco editor theme id (`auto`, `vs`, `vs-dark`, or `vsix:…`).
+    #[serde(default = "default_editor_theme_id")]
+    pub editor_theme_id: String,
     #[serde(default)]
     pub recent_files: Vec<RecentFileEntry>,
     /// When true, last tab set is saved on exit and restored on launch.
@@ -214,6 +217,10 @@ fn default_auto_save_interval() -> u32 {
     120
 }
 
+fn default_editor_theme_id() -> String {
+    "auto".into()
+}
+
 fn default_ui_locale() -> String {
     "en-NZ".into()
 }
@@ -282,6 +289,7 @@ impl Default for Preferences {
             onboarding_tour_skipped_forever: false,
             ui_locale: default_ui_locale(),
             theme: UiTheme::default(),
+            editor_theme_id: default_editor_theme_id(),
             recent_files: Vec::new(),
             restore_session_on_launch: true,
             auto_save_enabled: false,

@@ -17,6 +17,8 @@ import {
   type ReduceMotionPref,
 } from "./accessibility";
 import { applyThemeToDocument, loadThemePreference } from "./theme";
+import { listEditorThemeOptions } from "./monacoEditorTheme";
+import { setEditorThemePreference } from "./textEditor";
 import { appendOnboardingChecklistSection, markChecklistStep } from "./onboardingChecklist";
 import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
@@ -37,6 +39,7 @@ interface PrefsDto {
   onboarding_checklist_skip_forever: boolean;
   onboarding_checklist_completed: string[];
   theme: string;
+  editor_theme_id: string;
   command_manager_dense: boolean;
   high_contrast: boolean;
   reduce_motion: string;
@@ -154,6 +157,38 @@ export async function renderSettings(root: HTMLElement) {
   const appearanceHeading = document.createElement("h3");
   appearanceHeading.textContent = t("settings.appearance");
   appearanceSection.appendChild(appearanceHeading);
+  const editorThemeRow = document.createElement("div");
+  editorThemeRow.className = "settings-row";
+  const editorThemeLabel = document.createElement("label");
+  editorThemeLabel.textContent = t("settings.editorTheme");
+  const editorThemeSelect = document.createElement("select");
+  editorThemeSelect.id = "settings-editor-theme";
+  try {
+    const options = await listEditorThemeOptions();
+    options.forEach((opt) => {
+      const o = document.createElement("option");
+      o.value = opt.id;
+      o.textContent = opt.label;
+      editorThemeSelect.appendChild(o);
+    });
+    editorThemeSelect.value = prefs.editor_theme_id || "auto";
+  } catch {
+    const o = document.createElement("option");
+    o.value = "auto";
+    o.textContent = t("settings.editorThemeAuto");
+    editorThemeSelect.appendChild(o);
+  }
+  editorThemeSelect.onchange = async () => {
+    await invoke("set_editor_theme", { themeId: editorThemeSelect.value });
+    setEditorThemePreference(editorThemeSelect.value);
+  };
+  const editorThemeNote = document.createElement("p");
+  editorThemeNote.className = "viewer-note";
+  editorThemeNote.textContent = t("settings.editorThemeNote");
+  editorThemeRow.appendChild(editorThemeLabel);
+  editorThemeRow.appendChild(editorThemeSelect);
+  appearanceSection.appendChild(editorThemeRow);
+  appearanceSection.appendChild(editorThemeNote);
   const focusRow = document.createElement("div");
   focusRow.className = "settings-row";
   const focusCb = document.createElement("input");

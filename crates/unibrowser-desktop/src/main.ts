@@ -21,6 +21,8 @@ import { loadAccessibilityPreferences } from "./accessibility";
 import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
 import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
+import { initMonacoEditorThemes } from "./monacoEditorTheme";
+import { setEditorThemePreference } from "./textEditor";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
 import { isInsecureHttpNavigation } from "./omniboxSecurity";
 import {
@@ -2094,6 +2096,10 @@ applyChromeI18n();
 void loadUiLocale().then(() => applyChromeI18n());
 void loadThemePreference().then(() => {
   themeBtn.textContent = themeButtonLabel();
+});
+void invoke<{ editor_theme_id: string }>("get_preferences").then((prefs) => {
+  setEditorThemePreference(prefs.editor_theme_id);
+  void initMonacoEditorThemes(prefs.editor_theme_id);
 });
 void loadAccessibilityPreferences();
 void loadExperimentalSpellcheckPref();

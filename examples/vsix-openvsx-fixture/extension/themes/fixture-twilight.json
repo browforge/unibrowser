@@ -1,0 +1,18 @@
+{
+  "name": "Fixture Twilight",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1a1b26",
+    "editor.foreground": "#c0caf5"
+  },
+  "tokenColors": [
+    {
+      "scope": ["keyword", "storage.type"],
+      "settings": { "foreground": "#bb9af7" }
+    },
+    {
+      "scope": "string",
+      "settings": { "foreground": "#9ece6a" }
+    }
+  ]
+}

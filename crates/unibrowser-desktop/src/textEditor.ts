@@ -11,6 +11,7 @@ import {
   isExperimentalSpellcheckEnabled,
   syncSpellcheckPane,
 } from "./experimentalSpellcheck";
+import { applyMonacoEditorTheme, resolveEditorThemeId } from "./monacoEditorTheme";
 
 type Monaco = typeof import("monaco-editor");
 type MonacoEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
@@ -41,13 +42,19 @@ async function getMonaco(): Promise<Monaco> {
   return monacoApi as Monaco;
 }
 
+let editorThemePref = "auto";
+
+export function setEditorThemePreference(themeId: string) {
+  editorThemePref = themeId;
+  void applyMonacoEditorTheme(themeId);
+}
+
 window.addEventListener("unibrowser-theme", () => {
-  if (!editor || !monacoApi) {
-    return;
-  }
-  const theme =
-    document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
-  monacoApi.editor.setTheme(theme);
+  void applyMonacoEditorTheme(editorThemePref);
+});
+
+window.addEventListener("unibrowser-editor-theme", () => {
+  // other surfaces (e.g. markdown code blocks) may listen
 });
 
 export interface TextDocumentDto {
@@ -301,8 +308,7 @@ async function ensureEditor(host: HTMLElement) {
   const api = await getMonaco();
   hostEl = host;
   host.innerHTML = "";
-  const monacoTheme =
-    document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
+  const monacoTheme = resolveEditorThemeId(editorThemePref);
   // Spellcheck: Monaco has no built-in dictionary; see docs/qa-desktop.md.
   editor = api.editor.create(host, {
     theme: monacoTheme,

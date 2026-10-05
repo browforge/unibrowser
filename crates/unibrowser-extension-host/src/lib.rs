@@ -3,6 +3,7 @@
 
 mod activation;
 mod node_host;
+mod monaco_theme;
 mod shim_registry;
 mod text_edits;
 
@@ -16,6 +17,7 @@ pub use node_host::{
 pub use shim_registry::{
     compatibility_report, scan_vscode_api_usages, CompatibilityLevel, CompatibilityReport,
 };
+pub use monaco_theme::{from_vscode_theme_file, from_vscode_theme_json, MonacoThemeDto, MonacoTokenRule};
 pub use text_edits::{apply_text_edits, PositionDto, RangeDto, TextEditDto};
 
 pub const HOST_VERSION: &str = "0.4.0-edit-format";
