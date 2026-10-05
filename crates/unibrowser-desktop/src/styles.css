@@ -62,16 +62,91 @@ body {
   color: #eee;
 }
 
-.toolbar {
+.command-manager {
+  margin-bottom: 0.35rem;
+}
+
+.command-manager-tabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.cm-tab {
+  background: #2a2a32;
+  border: 1px solid #444;
+  color: #bbb;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cm-tab.active {
+  background: #3d5a80;
+  color: #fff;
+}
+
+.cm-tab.planned {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.command-manager-commands {
   display: flex;
   gap: 0.35rem;
+  flex-wrap: wrap;
+  min-height: 2rem;
+  padding: 0.25rem;
+  border: 1px dashed #444;
+  border-radius: 4px;
+}
+
+.ui-command {
+  background: #333;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 0.25rem 0.55rem;
+  cursor: grab;
+}
+
+.ui-command.disabled,
+.ui-command:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.floating-toolbar-host {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   margin-bottom: 0.25rem;
 }
 
-.toolbar button.disabled,
-.toolbar button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.floating-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.45rem;
+  background: #2a2a32;
+  border: 1px solid #555;
+  border-radius: 4px;
+}
+
+.floating-bar.floating {
+  position: fixed;
+  z-index: 900;
+  box-shadow: 0 4px 16px #0006;
+}
+
+.floating-bar-label {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.floating-bar-commands {
+  display: flex;
+  gap: 0.25rem;
 }
 
 .status-line {

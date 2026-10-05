@@ -5,11 +5,12 @@ use std::sync::Mutex;
 use base_files::list_directory;
 use base_web::{WebBackend, handles as web_handles};
 use unibrowser_engine::{
-    CommandRegistry, DocumentSession, KeybindingMap, TabManager,
+    CommandManagerState, CommandRegistry, DocumentSession, KeybindingMap, TabManager,
+    infer_context, load_command_manager_file,
     navigation::parse_user_input,
 };
 
-use crate::config::keybindings_file_path;
+use crate::config::{keybindings_file_path, toolbars_file_path};
 use unibrowser_mod_api::BrowserLocation;
 use unibrowser_mod_host::{ModHost, ModRegisterFn, default_mods_dir};
 
@@ -19,6 +20,7 @@ pub struct AppState {
     pub cwd: PathBuf,
     pub mods_loaded: String,
     pub keybindings: KeybindingMap,
+    pub command_manager: Mutex<CommandManagerState>,
     pub _mod_host: ModHost,
 }
 
@@ -48,6 +50,10 @@ impl AppState {
             tab.is_directory = cwd.is_dir();
         }
         let keybindings = KeybindingMap::load_merged(keybindings_file_path().as_deref());
+        let cm_file = load_command_manager_file(toolbars_file_path().as_deref());
+        let command_manager = Mutex::new(
+            CommandManagerState::from_file(&cm_file, unibrowser_mod_api::CommandContext::Browse),
+        );
 
         Self {
             registry,
@@ -55,8 +61,38 @@ impl AppState {
             cwd,
             mods_loaded,
             keybindings,
+            command_manager,
             _mod_host: mod_host,
         }
+    }
+
+    pub fn refresh_command_manager_context(&self) {
+        let tabs = self.tabs.lock().expect("tabs lock");
+        let tab = tabs.active_tab();
+        let ctx = if let Some(tab) = tab {
+            let path = tab
+                .document
+                .as_ref()
+                .map(|d| d.path.clone())
+                .or_else(|| {
+                    if let BrowserLocation::File { path } = &tab.location {
+                        Some(path.to_string_lossy().to_string())
+                    } else {
+                        None
+                    }
+                });
+            let mode = tab.document.as_ref().map(|d| d.backend.mode());
+            infer_context(
+                tab.is_directory,
+                matches!(tab.location, BrowserLocation::Http { .. }),
+                path.as_deref(),
+                mode,
+            )
+        } else {
+            unibrowser_mod_api::CommandContext::Browse
+        };
+        let mut cm = self.command_manager.lock().expect("command manager lock");
+        cm.select_tab_for_context(ctx);
     }
 
     pub fn resolve_location(

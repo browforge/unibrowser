@@ -25,6 +25,7 @@ npm run tauri dev
 
 - Browse your home directory on first launch; open folders and files in tabs.
 - Enter `https://example.com` in the omnibox.
+- **Command Manager** tabs (Text, Office, Code, Image, Audio): drag to reorder commands; layouts in `toolbars.json` ([docs/ui-commands.md](docs/ui-commands.md)).
 - **Ctrl+Shift+P** ( **Cmd+Shift+P** on macOS) opens the command palette; override chords in `keybindings.json` under your config dir (see [docs/keybindings.md](docs/keybindings.md)).
 - Open a `.txt`, `.md`, or other text file for **Monaco** editing; **Ctrl+S** saves to disk.
 - Select text in the editor for **Increase / Decrease font size** (greyed for `.png` without text layer).

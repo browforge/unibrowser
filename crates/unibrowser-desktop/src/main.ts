@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
+import { commandManager } from "./commandManager";
 import { textEditor, type TextDocumentDto } from "./textEditor";
 
 interface TabDto {
@@ -28,13 +29,6 @@ interface TabContentDto {
   text_document: TextDocumentDto | null;
 }
 
-interface ToolbarCommandDto {
-  id: string;
-  title: string;
-  enabled: boolean;
-  reason: string | null;
-}
-
 interface PaletteEntryDto {
   command_id: string;
   title: string;
@@ -46,7 +40,9 @@ const omnibox = document.getElementById("omnibox") as HTMLInputElement;
 const tabStrip = document.getElementById("tab-strip")!;
 const filesPanel = document.getElementById("files-panel")!;
 const docPanel = document.getElementById("doc-panel")!;
-const toolbar = document.getElementById("toolbar")!;
+const commandManagerTabs = document.getElementById("command-manager-tabs")!;
+const commandManagerCommands = document.getElementById("command-manager-commands")!;
+const floatingToolbarHost = document.getElementById("floating-toolbar-host")!;
 const statusLine = document.getElementById("status-line")!;
 const modsLine = document.getElementById("mods-line")!;
 const palette = document.getElementById("palette")!;
@@ -122,29 +118,25 @@ function renderDoc(status: string | null, hasTextEditor: boolean) {
   docPanel.textContent = status;
 }
 
-async function refreshToolbar() {
+async function runUiCommand(commandId: string) {
+  await textEditor.flush();
+  const msg = await invoke<string>("execute_command", { commandId });
+  statusLine.textContent = String(msg);
+  await refreshCommandManager();
+  await refreshState();
+}
+
+async function refreshCommandManager() {
   try {
-    const cmds = await invoke<ToolbarCommandDto[]>("get_toolbar_commands");
-    toolbar.innerHTML = "";
-    cmds.forEach((cmd) => {
-      const btn = document.createElement("button");
-      btn.textContent = cmd.title;
-      btn.disabled = !cmd.enabled;
-      btn.title = cmd.reason ?? "";
-      btn.className = cmd.enabled ? "" : "disabled";
-      btn.onclick = () =>
-        textEditor.flush().then(() =>
-          invoke<string>("execute_command", { commandId: cmd.id }).then((msg) => {
-            statusLine.textContent = msg;
-            refreshToolbar();
-            refreshState();
-          }),
-        );
-      toolbar.appendChild(btn);
-    });
+    await commandManager.refresh(
+      commandManagerTabs,
+      commandManagerCommands,
+      floatingToolbarHost,
+      runUiCommand,
+    );
   } catch {
-    toolbar.innerHTML =
-      "<span class='muted'>Open a document file for format commands</span>";
+    commandManagerCommands.innerHTML =
+      "<span class='muted'>Commands unavailable</span>";
   }
 }
 
@@ -164,7 +156,7 @@ async function applyState(data: TabContentDto) {
     textEditor.hide(textEditorHost);
   }
   statusLine.textContent = data.status;
-  await refreshToolbar();
+  await refreshCommandManager();
   await syncContentBounds();
   window.requestAnimationFrame(() => syncContentBounds());
 }
@@ -234,7 +226,7 @@ async function runKeybindingCommand(commandId: string) {
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
   statusLine.textContent = String(msg);
-  await refreshToolbar();
+  await refreshCommandManager();
   await refreshState();
 }
 
@@ -284,7 +276,7 @@ paletteQuery.addEventListener("input", async () => {
       invoke<string>("execute_command", { commandId: entry.command_id }).then((msg) => {
         statusLine.textContent = String(msg);
         togglePalette();
-        refreshToolbar();
+        refreshCommandManager();
         refreshState();
       });
     };

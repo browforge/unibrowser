@@ -26,7 +26,8 @@ Phases are capability-based, not calendar estimates. Each phase should leave the
 | `BrowserLocation` per tab; download → new tab (command + `on_download` emit) | **Working / stub** ([downloads.md](downloads.md)) |
 | Command registry, palette (Ctrl+Shift+P), user keybindings, font-size grey-out on file docs | **Working** |
 | egui spike (`unibrowser-app`) | Kept as harness |
-| Open/save to disk, dirty persistence, toolbar JSON on disk | Deferred |
+| Monaco text edit, save, `toolbars.json` Command Manager + drag reorder | **Working** |
+| Office / audio manager tabs (planned phase) | **Stub** |
 | SVG, PDF, DOCX, DXF format mods | Deferred |
 
 ## Phase 2 — Document and CAD depth

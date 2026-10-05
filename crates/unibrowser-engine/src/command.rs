@@ -87,22 +87,24 @@ impl CommandRegistry {
     }
 
     pub fn enablement_ctx(&self, command_id: &str, ctx: &HostContext) -> Enablement {
-        if self.resolve_handler(command_id, &ctx.backend_id).is_some() {
-            // Handlers need full session for enable; palette uses snapshot approximation.
-            if ctx.capabilities.font_size && ctx.selection.has_text_selection {
-                Enablement::Enabled
-            } else if !ctx.capabilities.font_size {
-                Enablement::Disabled {
-                    reason: "Format does not support font size".into(),
-                }
-            } else {
-                Enablement::Disabled {
-                    reason: "Select text first".into(),
-                }
+        if self.resolve_handler(command_id, &ctx.backend_id).is_none() {
+            return Enablement::Disabled {
+                reason: "No handler for this document type".into(),
+            };
+        }
+        if command_id == commands::TEXT_SAVE {
+            return Enablement::Enabled;
+        }
+        // Handlers need full session for precise enable; palette uses snapshot approximation.
+        if ctx.capabilities.font_size && ctx.selection.has_text_selection {
+            Enablement::Enabled
+        } else if !ctx.capabilities.font_size {
+            Enablement::Disabled {
+                reason: "Format does not support font size".into(),
             }
         } else {
             Enablement::Disabled {
-                reason: "No handler for this document type".into(),
+                reason: "Select text first".into(),
             }
         }
     }

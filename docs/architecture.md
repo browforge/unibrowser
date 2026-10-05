@@ -139,6 +139,7 @@ The host does not expose SVG DOM or OOXML to commands. Mods implement **capabili
 - [0003 Command, handler, enablement](adr/0003-command-handler-enablement.md)
 - [0004 Command palette and keybindings](adr/0004-s-key-command-palette.md) (default Ctrl+Shift+P; user `keybindings.json`)
 - [0005 Context modes and toolbars](adr/0005-context-modes-and-toolbars.md)
+- [0010 UI commands and Command Manager](adr/0010-ui-commands-and-command-manager.md)
 - [0006 Mod manifest and versioning](adr/0006-mod-manifest-and-versioning.md)
 - [0007 Licensing](adr/0007-licensing.md)
 - [0008 API gaps and upstream requests](adr/0008-api-gap-upstream-requests.md)

@@ -6,6 +6,11 @@ pub fn keybindings_file_path() -> Option<PathBuf> {
     Some(base.join("keybindings.json"))
 }
 
+pub fn toolbars_file_path() -> Option<PathBuf> {
+    let base = config_dir()?;
+    Some(base.join("toolbars.json"))
+}
+
 fn config_dir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {

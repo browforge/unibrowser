@@ -37,6 +37,7 @@ Supported modifiers: `Ctrl`, `Alt`, `Shift`, `Cmd` / `Meta` / `Super`.
 | Command palette | `Ctrl+Shift+P` | `Cmd+Shift+P` |
 | Increase font size | `Ctrl+=` | same |
 | Decrease font size | `Ctrl+-` | same |
+| Save text file | `Ctrl+S` | same |
 
 The Tauri shell resolves chords through `dispatch_key_chord`; the egui harness uses the same `KeybindingMap` (user file loading in the harness is optional until a shared config path is wired there).
 

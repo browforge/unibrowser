@@ -11,9 +11,13 @@ use unibrowser_mod_api::{BrowserLocation, DownloadDisposition};
 
 use base_text::{TextBackend, try_text_backend};
 
+use crate::config::toolbars_file_path;
 use crate::downloads::apply_download_disposition;
 use crate::state::{AppState, list_dir};
 use crate::webview::{content_webview_navigate, sync_content_bounds};
+use unibrowser_engine::{
+    host_context_for_browse, save_command_manager_file, CommandManagerFile, ToolbarPhase,
+};
 
 #[derive(Serialize)]
 pub struct TabDto {
@@ -25,11 +29,39 @@ pub struct TabDto {
 }
 
 #[derive(Serialize)]
-pub struct ToolbarCommandDto {
-    pub id: String,
+pub struct UiCommandDto {
+    pub command_id: String,
     pub title: String,
+    pub icon: String,
     pub enabled: bool,
     pub reason: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct ManagerTabDto {
+    pub id: String,
+    pub label: String,
+    pub phase: String,
+    pub selected: bool,
+    pub commands: Vec<UiCommandDto>,
+}
+
+#[derive(Serialize)]
+pub struct FloatingBarDto {
+    pub id: String,
+    pub label: String,
+    pub anchor: String,
+    pub x: f64,
+    pub y: f64,
+    pub commands: Vec<UiCommandDto>,
+}
+
+#[derive(Serialize)]
+pub struct CommandManagerDto {
+    pub auto_context: String,
+    pub selected_tab: String,
+    pub tabs: Vec<ManagerTabDto>,
+    pub floating_bars: Vec<FloatingBarDto>,
 }
 
 #[derive(Serialize)]
@@ -96,6 +128,7 @@ fn text_document_dto(doc: &mut unibrowser_engine::DocumentSession) -> Option<Tex
 }
 
 fn snapshot(state: &AppState) -> Result<TabContentDto, String> {
+    state.refresh_command_manager_context();
     let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
     let omnibox = tabs
         .active_tab()
@@ -242,30 +275,106 @@ pub fn list_directory(path: String) -> Result<Vec<base_files::DirEntry>, String>
     list_dir(PathBuf::from(path).as_path())
 }
 
+fn phase_name(phase: ToolbarPhase) -> &'static str {
+    match phase {
+        ToolbarPhase::Active => "active",
+        ToolbarPhase::Planned => "planned",
+    }
+}
+
+fn map_ui_commands(cmds: Vec<unibrowser_engine::ResolvedUiCommand>) -> Vec<UiCommandDto> {
+    cmds.into_iter()
+        .map(|c| UiCommandDto {
+            command_id: c.command_id,
+            title: c.title,
+            icon: c.icon,
+            enabled: c.enabled,
+            reason: c.reason,
+        })
+        .collect()
+}
+
 #[tauri::command]
-pub fn get_toolbar_commands(state: State<AppState>) -> Result<Vec<ToolbarCommandDto>, String> {
-    let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.active_tab().ok_or("no tab")?;
-    let doc = tab.document.as_ref().ok_or("no document for commands")?;
-    let ids = [
-        unibrowser_mod_api::commands::TEXT_SAVE,
-        unibrowser_mod_api::commands::FONT_SIZE_INCREASE,
-        unibrowser_mod_api::commands::FONT_SIZE_DECREASE,
-    ];
-    let out = ids
+pub fn get_command_manager(state: State<AppState>) -> Result<CommandManagerDto, String> {
+    state.refresh_command_manager_context();
+    let tabs_guard = state.tabs.lock().map_err(|e| e.to_string())?;
+    let active = tabs_guard.active_tab();
+    let host = active
+        .and_then(|t| t.document.as_ref())
+        .map(|d| d.host_context())
+        .unwrap_or_else(host_context_for_browse);
+    let doc_ref = active.and_then(|t| t.document.as_ref());
+    let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    let selected = cm.selected_tab.clone();
+    let auto_context = cm.auto_context.tab_id().to_string();
+    let tab_dtos = cm
+        .tabs
         .iter()
-        .map(|id| {
-            let meta = state.registry.command_meta(id);
-            let en = state.registry.enablement(id, doc);
-            ToolbarCommandDto {
-                id: id.to_string(),
-                title: meta.map(|m| m.title.to_string()).unwrap_or_else(|| id.to_string()),
-                enabled: en.is_enabled(),
-                reason: en.disabled_reason().map(String::from),
+        .map(|tab| {
+            let commands = map_ui_commands(
+                cm.resolve_tab_commands(&state.registry, &host, doc_ref, &tab.id),
+            );
+            ManagerTabDto {
+                id: tab.id.clone(),
+                label: tab.label.clone(),
+                phase: phase_name(tab.phase).into(),
+                selected: tab.id == selected,
+                commands,
             }
         })
         .collect();
-    Ok(out)
+    let floating_bars = cm
+        .floating_bars
+        .iter()
+        .map(|bar| {
+            let commands = map_ui_commands(
+                cm.resolve_floating_bar(&state.registry, &host, doc_ref, &bar.id)
+                    .unwrap_or_default(),
+            );
+            FloatingBarDto {
+                id: bar.id.clone(),
+                label: bar.label.clone(),
+                anchor: match bar.anchor {
+                    unibrowser_engine::ToolbarAnchor::Docked => "docked",
+                    unibrowser_engine::ToolbarAnchor::Floating => "floating",
+                }
+                .into(),
+                x: bar.x,
+                y: bar.y,
+                commands,
+            }
+        })
+        .collect();
+    Ok(CommandManagerDto {
+        auto_context,
+        selected_tab: selected,
+        tabs: tab_dtos,
+        floating_bars,
+    })
+}
+
+#[tauri::command]
+pub fn save_command_manager_layout(
+    layout: CommandManagerFile,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let path = toolbars_file_path().ok_or("config path unavailable")?;
+    save_command_manager_file(&path, &layout)?;
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    *cm = unibrowser_engine::CommandManagerState::from_file(
+        &layout,
+        cm.auto_context,
+    );
+    Ok(())
+}
+
+#[tauri::command]
+pub fn select_command_manager_tab(tab_id: String, state: State<AppState>) -> Result<(), String> {
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    if cm.tabs.iter().any(|t| t.id == tab_id) {
+        cm.selected_tab = tab_id;
+    }
+    Ok(())
 }
 
 #[tauri::command]
