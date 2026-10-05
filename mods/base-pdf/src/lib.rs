@@ -9,7 +9,8 @@ use std::path::Path;
 
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
-    Capabilities, Enablement, Mode, SelectionDomain, SelectionSnapshot,
+    Capabilities, CommandMeta, Enablement, Mode, SelectionDomain, SelectionSnapshot,
+    commands::{PDF_ANNOTATE_HIGHLIGHT, PDF_ANNOTATE_INK, PDF_ANNOTATE_STAMP},
     handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID},
 };
 
@@ -157,7 +158,71 @@ fn exec_page_zoom_out(doc: &mut DocumentSession) -> Result<String, String> {
     Ok(format!("PDF zoom {:.0}%", b.render_scale * 100.0))
 }
 
+fn pdf_only_enable(doc: &DocumentSession) -> Enablement {
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Enablement::Disabled {
+            reason: "Open a PDF tab".into(),
+        };
+    }
+    Enablement::Enabled
+}
+
+fn stamp_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "PDF stamp tool not implemented (sidecar highlights only)".into(),
+    }
+}
+
+fn ink_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "PDF ink tool not implemented".into(),
+    }
+}
+
+fn exec_highlight_arm(_doc: &mut DocumentSession) -> Result<String, String> {
+    Ok("pdf-highlight-armed".into())
+}
+
 pub fn register(registry: &mut CommandRegistry) {
+    registry.register_command(CommandMeta {
+        id: PDF_ANNOTATE_HIGHLIGHT,
+        title: "Add PDF highlight (drag on page)",
+        icon: "highlight",
+        default_keybinding: None,
+        aliases: &["pdf highlight"],
+    });
+    registry.register_command(CommandMeta {
+        id: PDF_ANNOTATE_STAMP,
+        title: "PDF stamp (not available)",
+        icon: "stamp",
+        default_keybinding: None,
+        aliases: &[],
+    });
+    registry.register_command(CommandMeta {
+        id: PDF_ANNOTATE_INK,
+        title: "PDF ink (not available)",
+        icon: "edit",
+        default_keybinding: None,
+        aliases: &[],
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PDF_ANNOTATE_HIGHLIGHT.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: pdf_only_enable,
+        execute: exec_highlight_arm,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PDF_ANNOTATE_STAMP.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: stamp_disabled,
+        execute: |_| Err("disabled".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PDF_ANNOTATE_INK.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: ink_disabled,
+        execute: |_| Err("disabled".into()),
+    });
     registry.register_handler(HandlerRegistration {
         command_id: FONT_INCREASE_ID.into(),
         backend_id: BACKEND_ID.into(),

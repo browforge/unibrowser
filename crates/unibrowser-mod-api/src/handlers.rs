@@ -55,3 +55,7 @@ pub const CAPTURE_VISIBLE_TAB_ID: &str = commands::CAPTURE_VISIBLE_TAB;
 pub const COMPARE_IMAGES_ID: &str = commands::COMPARE_IMAGES;
 pub const COMPARE_TEXT_ID: &str = commands::COMPARE_TEXT;
 pub const PICTURE_IN_PICTURE_ID: &str = commands::PICTURE_IN_PICTURE;
+pub const CONTEXT_HELP_ID: &str = commands::CONTEXT_HELP;
+pub const PDF_ANNOTATE_HIGHLIGHT_ID: &str = commands::PDF_ANNOTATE_HIGHLIGHT;
+pub const PDF_ANNOTATE_STAMP_ID: &str = commands::PDF_ANNOTATE_STAMP;
+pub const PDF_ANNOTATE_INK_ID: &str = commands::PDF_ANNOTATE_INK;

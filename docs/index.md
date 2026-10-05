@@ -51,6 +51,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [qa-desktop.md](qa-desktop.md) | Manual desktop checklist |
 | [ux-a11y.md](ux-a11y.md) | Keyboard map, motion, hit targets, focus mode |
 | [wasm-t2-status.md](wasm-t2-status.md) | T2 WASM loader plan and proving stub |
+| [pdf-annotate.md](pdf-annotate.md) | PDF highlight sidecar (stub) |
 | [report-visuals.md](report-visuals.md) | Wednesday report screenshots and capture script |
 | [ocr-sidecar.md](ocr-sidecar.md) | Planned Tesseract OCR sidecar (UI stub today) |
 

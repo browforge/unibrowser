@@ -173,6 +173,13 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["pip", "pop out video", "pop out player"],
         });
+        reg.register_command(CommandMeta {
+            id: commands::CONTEXT_HELP,
+            title: "What's this (context help)",
+            icon: "help",
+            default_keybinding: Some("F1"),
+            aliases: &["help", "context help", "documentation"],
+        });
         reg
     }
 

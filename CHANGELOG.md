@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Command history:** Palette shows the last 10 executed commands as **Recent:** entries (`command-history.json` in config).
+- **Context help:** **F1** or palette **What's this** opens matching `docs/*.md` in `unibrowser://docs/…` (dev tree).
+- **PDF highlight stub:** Sidecar `{name}.pdf.ub-annotations.json`; palette highlight + drag on page; stamp/ink grey.
+- **Demo pack:** [examples/demo-pack/README.md](examples/demo-pack/README.md) is the canonical keyed demo script.
 - **Focus mode:** Settings → Appearance → denser chrome (compact Command Manager + smaller tab strip); hides mods line.
 - **Accessibility:** `prefers-reduced-motion` honoured via reduce-motion pref; optional **larger hit targets**; documented in [ux-a11y.md](docs/ux-a11y.md).
 - **WASM proving inch:** [examples/hello-wasm/](examples/hello-wasm/) + `mod.wasm.hello` when `hello.wasm` is on disk; [wasm-t2-status.md](docs/wasm-t2-status.md); diagnostics shows proving/runtime lines.

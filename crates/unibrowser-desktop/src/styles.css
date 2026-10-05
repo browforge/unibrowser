@@ -1881,6 +1881,47 @@ body.content-fullscreen::after {
   display: inline-block;
 }
 
+.pdf-page-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.pdf-highlight-rect {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+.pdf-highlight-draft {
+  outline: 1px dashed var(--accent, #6af);
+}
+
+.pdf-nav button.pdf-highlight-armed {
+  outline: 2px solid var(--accent, #6af);
+}
+
+.docs-help-body {
+  max-width: 46rem;
+  line-height: 1.55;
+  padding: 0 0 1rem;
+}
+
+.docs-help-body h1,
+.docs-help-body h2,
+.docs-help-body h3 {
+  margin-top: 1.25rem;
+}
+
+.docs-help-body pre {
+  overflow-x: auto;
+  padding: 0.75rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
 .pdf-text-layer {
   position: absolute;
   left: 0;

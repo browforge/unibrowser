@@ -344,6 +344,17 @@ impl AppState {
                 );
                 return (location, false, Some(doc));
             }
+            if page.starts_with("docs/") {
+                let slug = page
+                    .strip_prefix("docs/")
+                    .unwrap_or("getting-started")
+                    .split('/')
+                    .next()
+                    .unwrap_or("getting-started");
+                let loc = crate::docs_stub::location_for_slug(slug);
+                let doc = DocumentSession::new(loc, crate::docs_stub::open(slug));
+                return (location, false, Some(doc));
+            }
         }
         (location, false, None)
     }

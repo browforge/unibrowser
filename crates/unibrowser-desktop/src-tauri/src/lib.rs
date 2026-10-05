@@ -19,6 +19,11 @@ mod settings_stub;
 mod about_stub;
 mod keys_stub;
 mod diagnostics_stub;
+mod command_history;
+mod context_help;
+mod docs_stub;
+mod docs_content;
+mod pdf_annotations;
 mod diagnostic_log;
 mod capture;
 mod web_font_prefs;
@@ -149,6 +154,9 @@ pub fn run() {
             commands::sync_pdf_page,
             commands::ensure_pdf_raster_proxy,
             commands::sync_pdf_scale,
+            commands::get_help_doc_markdown,
+            commands::list_pdf_highlights,
+            commands::add_pdf_highlight,
             commands::web_page_zoom,
             commands::pick_open_file,
             commands::pick_browse_folder,

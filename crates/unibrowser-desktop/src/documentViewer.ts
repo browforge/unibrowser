@@ -8,6 +8,7 @@ import { bindPreviewLinks } from "./previewLinks";
 import { copyImageFile, copyText, readClipboardImagePath } from "./clipboard";
 import { renderSettings } from "./settingsPage";
 import { renderAbout } from "./aboutPage";
+import { renderDocs } from "./docsPage";
 import { renderKeys } from "./keysPage";
 import { renderDiagnostics } from "./diagnosticsPage";
 import { emptyStateBlock } from "./emptyState";
@@ -473,6 +474,21 @@ async function syncPdfSelection(selected: boolean) {
   await invoke("sync_pdf_viewer_state", { hasTextSelection: selected }).catch(() => {});
 }
 
+type PdfHighlightDto = {
+  page: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+};
+
+let pdfHighlightArmed = false;
+
+export function armPdfHighlightMode() {
+  pdfHighlightArmed = true;
+}
+
 async function renderPdf(
   path: string,
   root: HTMLElement,
@@ -495,9 +511,33 @@ async function renderPdf(
       .join(" · ");
     root.appendChild(banner);
   }
+  let highlights: PdfHighlightDto[] = [];
+  try {
+    highlights = await invoke<PdfHighlightDto[]>("list_pdf_highlights", { path });
+  } catch {
+    highlights = [];
+  }
+
   const wrap = document.createElement("div");
   wrap.className = "pdf-page-wrap";
   root.appendChild(wrap);
+
+  const paintHighlights = (pageNum: number, host: HTMLElement, width: number, height: number) => {
+    host.querySelectorAll(".pdf-highlight-rect").forEach((el) => el.remove());
+    for (const h of highlights) {
+      if (h.page !== pageNum) {
+        continue;
+      }
+      const box = document.createElement("div");
+      box.className = "pdf-highlight-rect";
+      box.style.left = `${h.x * width}px`;
+      box.style.top = `${h.y * height}px`;
+      box.style.width = `${h.w * width}px`;
+      box.style.height = `${h.h * height}px`;
+      box.style.background = h.color;
+      host.appendChild(box);
+    }
+  };
   const nav = document.createElement("div");
   nav.className = "pdf-nav";
   const prev = document.createElement("button");
@@ -551,6 +591,18 @@ async function renderPdf(
     const img = canvas.toDataURL("image/png");
     printHtmlDocument(path, `<img src="${img}" alt="PDF page ${currentPage}" />`);
   };
+  const highlightBtn = document.createElement("button");
+  highlightBtn.type = "button";
+  highlightBtn.textContent = "Highlight";
+  highlightBtn.title = "Drag on the page to save a highlight (sidecar JSON)";
+  highlightBtn.onclick = () => {
+    pdfHighlightArmed = true;
+    highlightBtn.classList.add("pdf-highlight-armed");
+  };
+  if (pdfHighlightArmed) {
+    highlightBtn.classList.add("pdf-highlight-armed");
+  }
+  nav.appendChild(highlightBtn);
   nav.appendChild(copyBtn);
   nav.appendChild(printBtn);
   root.appendChild(nav);
@@ -559,6 +611,10 @@ async function renderPdf(
     wrap.innerHTML = "";
     const page = await doc.getPage(pageNum);
     const viewport = page.getViewport({ scale: currentScale });
+    const overlay = document.createElement("div");
+    overlay.className = "pdf-page-overlay";
+    overlay.style.width = `${viewport.width}px`;
+    overlay.style.height = `${viewport.height}px`;
     const canvas = document.createElement("canvas");
     canvas.className = "pdf-page";
     const ctx = canvas.getContext("2d");
@@ -574,6 +630,75 @@ async function renderPdf(
     textLayer.style.height = `${viewport.height}px`;
     wrap.appendChild(textLayer);
     await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    wrap.appendChild(overlay);
+    overlay.style.pointerEvents = pdfHighlightArmed ? "auto" : "none";
+    paintHighlights(pageNum, overlay, viewport.width, viewport.height);
+
+    let dragStart: { x: number; y: number } | null = null;
+    let draft: HTMLDivElement | null = null;
+    const norm = (clientX: number, clientY: number) => {
+      const rect = overlay.getBoundingClientRect();
+      return {
+        x: (clientX - rect.left) / rect.width,
+        y: (clientY - rect.top) / rect.height,
+      };
+    };
+    overlay.onmousedown = (ev) => {
+      if (!pdfHighlightArmed || ev.button !== 0) {
+        return;
+      }
+      ev.preventDefault();
+      const p = norm(ev.clientX, ev.clientY);
+      dragStart = p;
+      draft = document.createElement("div");
+      draft.className = "pdf-highlight-rect pdf-highlight-draft";
+      overlay.appendChild(draft);
+    };
+    overlay.onmousemove = (ev) => {
+      if (!dragStart || !draft) {
+        return;
+      }
+      const p = norm(ev.clientX, ev.clientY);
+      const x = Math.min(dragStart.x, p.x);
+      const y = Math.min(dragStart.y, p.y);
+      const w = Math.abs(p.x - dragStart.x);
+      const h = Math.abs(p.y - dragStart.y);
+      draft.style.left = `${x * viewport.width}px`;
+      draft.style.top = `${y * viewport.height}px`;
+      draft.style.width = `${w * viewport.width}px`;
+      draft.style.height = `${h * viewport.height}px`;
+    };
+    overlay.onmouseup = async () => {
+      if (!dragStart || !draft) {
+        return;
+      }
+      const x = Number.parseFloat(draft.style.left) / viewport.width;
+      const y = Number.parseFloat(draft.style.top) / viewport.height;
+      const w = Number.parseFloat(draft.style.width) / viewport.width;
+      const h = Number.parseFloat(draft.style.height) / viewport.height;
+      dragStart = null;
+      draft = null;
+      if (w < 0.01 || h < 0.01) {
+        overlay.querySelectorAll(".pdf-highlight-draft").forEach((el) => el.remove());
+        return;
+      }
+      try {
+        highlights = await invoke<PdfHighlightDto[]>("add_pdf_highlight", {
+          path,
+          page: pageNum,
+          x,
+          y,
+          w,
+          h,
+        });
+        pdfHighlightArmed = false;
+        highlightBtn.classList.remove("pdf-highlight-armed");
+        overlay.style.pointerEvents = "none";
+        paintHighlights(pageNum, overlay, viewport.width, viewport.height);
+      } catch {
+        overlay.querySelectorAll(".pdf-highlight-draft").forEach((el) => el.remove());
+      }
+    };
     const textContent = await page.getTextContent();
     const layer = new pdfjsLib.TextLayer({
       textContentSource: textContent,
@@ -3255,6 +3380,11 @@ export const documentViewer = {
             extras?.onRefreshState ?? (() => {}),
           );
           break;
+        case "docs": {
+          const slug = viewer.media_note ?? "getting-started";
+          await renderDocs(body, slug);
+          break;
+        }
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;
       }

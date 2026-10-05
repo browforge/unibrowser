@@ -4,7 +4,11 @@ import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import { commandManager, getStatusContextMode } from "./commandManager";
 import { textEditor, type TextDocumentDto, setCursorStatusListener } from "./textEditor";
-import { documentViewer, type DocumentViewerDto } from "./documentViewer";
+import {
+  armPdfHighlightMode,
+  documentViewer,
+  type DocumentViewerDto,
+} from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { loadAccessibilityPreferences } from "./accessibility";
 import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
@@ -1050,6 +1054,14 @@ async function processCommandResult(msg: string, commandId?: string) {
     void tryMediaPictureInPicture().catch((err) => showErrorToast(err));
     return;
   }
+  if (msg === "context-help-opened") {
+    return;
+  }
+  if (msg === "pdf-highlight-armed") {
+    armPdfHighlightMode();
+    showToast(t("pdf.highlightArmed"), "info");
+    return;
+  }
   const toast = await handleShellCommandMessage(msg);
   if (toast && msg !== "Cancelled" && commandId !== "unibrowser.script.demo.hello") {
     showToast(String(msg), "info");
@@ -1466,7 +1478,9 @@ function togglePalette() {
     tabSearchOpen = false;
     tabSearchPanel.classList.add("hidden");
     paletteQuery.placeholder = t("palette.placeholder", { chord: paletteChordLabel });
+    paletteQuery.value = "";
     paletteQuery.focus();
+    paletteQuery.dispatchEvent(new Event("input", { bubbles: true }));
     void markChecklistStep("palette");
   }
 }

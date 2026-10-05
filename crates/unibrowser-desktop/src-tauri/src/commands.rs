@@ -45,11 +45,12 @@ use crate::webview::{
     sync_content_webview_for_window,
 };
 use unibrowser_mod_api::handlers::{
-    DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
+    CONTEXT_HELP_ID, DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
     CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, COMPARE_TEXT_ID, PICTURE_IN_PICTURE_ID,
     SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
 };
+use unibrowser_engine::document::DocumentSession;
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
     CommandManagerFile, ToolbarPhase,
@@ -716,6 +717,30 @@ fn document_viewer_dto(
             pdf_scale: None,
             pdf_page: None,
             media_note: None,
+            project_nodes: None,
+            open_file_tabs: None,
+            project_clips: None,
+            project_transitions: None,
+            project_markers: None,
+            midi_summary: None,
+            board_snap_to_grid: None,
+            midi_scrub_audio_enabled: None,
+            midi_note_preview: None,
+            pdf_engines: None,
+            reader_font_pt: None,
+            preview_zoom: None,
+        });
+    }
+    if doc.backend.backend_id() == crate::docs_stub::BACKEND_ID {
+        let slug = crate::docs_stub::parse_slug_from_location(&doc.path)
+            .unwrap_or_else(|| "getting-started".into());
+        return Some(DocumentViewerDto {
+            path: doc.path.clone(),
+            viewer: crate::docs_stub::VIEWER_KIND.into(),
+            title: format!("Help: {}", slug.replace('-', " ")),
+            pdf_scale: None,
+            pdf_page: None,
+            media_note: Some(slug),
             project_nodes: None,
             open_file_tabs: None,
             project_clips: None,
@@ -2514,13 +2539,45 @@ pub fn select_command_manager_tab(window: tauri::Window, tab_id: String, state: 
 }
 
 #[tauri::command]
-pub fn execute_command(window: tauri::Window, 
+pub fn execute_command(
+    window: tauri::Window,
+    command_id: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<String, String> {
+    let result = execute_command_impl(window, command_id.clone(), app, state);
+    if result.is_ok() {
+        crate::command_history::record(&command_id);
+    }
+    result
+}
+
+fn execute_command_impl(
+    window: tauri::Window,
     command_id: String,
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<String, String> {
     if command_id == COMMAND_PALETTE_TOGGLE {
         return Ok("palette".into());
+    }
+    if command_id == CONTEXT_HELP_ID {
+        let _sess_tabs = ws(&state, &window)?;
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab().ok_or("no tab")?;
+        let slug = crate::context_help::slug_for_tab(tab);
+        let page = format!("docs/{}", slug);
+        let loc = BrowserLocation::Internal { page };
+        let doc = DocumentSession::new(
+            crate::docs_stub::location_for_slug(&slug),
+            crate::docs_stub::open(slug.as_str()),
+        );
+        tabs.open_tab(loc);
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.document = Some(doc);
+            tab.is_directory = false;
+        }
+        return Ok("context-help-opened".into());
     }
     if command_id == unibrowser_mod_api::commands::GO_TO_TAB {
         return Ok("tab-search".into());
@@ -2925,6 +2982,44 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
             }
         }
     }
+
+    let history = crate::command_history::list();
+    let mut recent: Vec<PaletteEntryDto> = Vec::new();
+    for id in history {
+        if let Some(meta) = registry.command_meta(&id) {
+            if !q.is_empty() && fuzzy_score(q, meta.title) <= 0 && fuzzy_score(q, &id) <= 0 {
+                continue;
+            }
+            let (enabled, reason) = if host_cmds.contains(&id) {
+                (
+                    true,
+                    Some(unibrowser_extension_host::VSIX_STUB_ENABLED_HINT.to_string()),
+                )
+            } else if let Some(doc) = tab.document.as_ref() {
+                let en = registry.enablement(&id, doc);
+                (
+                    en.is_enabled(),
+                    en.disabled_reason().map(String::from),
+                )
+            } else {
+                (true, None)
+            };
+            let chord = keybindings.chord_for_command(&id).map(|c| c.display());
+            recent.push(PaletteEntryDto {
+                command_id: id.clone(),
+                title: format!("Recent: {}", meta.title),
+                chord,
+                enabled,
+                reason,
+                open_path: None,
+            });
+        }
+    }
+    let recent_ids: std::collections::HashSet<String> =
+        recent.iter().map(|e| e.command_id.clone()).collect();
+    out.retain(|e| !recent_ids.contains(&e.command_id));
+    out = recent.into_iter().chain(out).collect();
+
     Ok(out)
 }
 
@@ -3271,6 +3366,52 @@ pub fn sync_pdf_scale(window: tauri::Window, scale: f32, state: State<AppState>)
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
     pdf.set_render_scale(scale);
     Ok(())
+}
+
+#[derive(Serialize)]
+pub struct HelpDocDto {
+    pub slug: String,
+    pub title: String,
+    pub markdown: String,
+}
+
+#[tauri::command]
+pub fn get_help_doc_markdown(slug: String) -> Result<HelpDocDto, String> {
+    let (title, markdown) = crate::docs_content::read_markdown(&slug)?;
+    Ok(HelpDocDto {
+        slug,
+        title,
+        markdown,
+    })
+}
+
+#[tauri::command]
+pub fn list_pdf_highlights(path: String) -> Result<Vec<crate::pdf_annotations::PdfHighlightDto>, String> {
+    let p = Path::new(&path);
+    crate::pdf_annotations::list_highlights(p)
+}
+
+#[tauri::command]
+pub fn add_pdf_highlight(
+    path: String,
+    page: u32,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+) -> Result<Vec<crate::pdf_annotations::PdfHighlightDto>, String> {
+    let p = Path::new(&path);
+    crate::pdf_annotations::add_highlight(
+        p,
+        crate::pdf_annotations::PdfHighlightDto {
+            page,
+            x,
+            y,
+            w,
+            h,
+            color: "rgba(255, 230, 0, 0.35)".into(),
+        },
+    )
 }
 
 #[tauri::command]

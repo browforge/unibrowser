@@ -75,6 +75,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Downloads | Linux WebKit `on_download` → shell; optional **system browser** hand-off ([browser-shell.md](browser-shell.md)) |
 | A11y prefs | High contrast, reduce motion (system/on/off + `prefers-reduced-motion`), optional **larger hit targets**, **Focus mode** denser chrome; skippable tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
 | WASM proving | When `examples/hello-wasm/hello.wasm` is present, palette **`mod.wasm.hello`** host stub (no wasmtime); [wasm-t2-status.md](wasm-t2-status.md) |
+| Palette history | Last **10** executed commands at top of palette (**Recent:**); stored in config only |
+| Context help | **F1** / **What's this** opens `unibrowser://docs/{slug}` from repo `docs/` (dev checkout) |
+| PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |
 | i18n | Chrome strings `en-NZ` / `en-US`; Language toggle in Settings |
 | Scripting | Rhai demo from palette → output panel; `.rhai` / `.js` script viewer |
 | DXF | Proving mod wireframe + disabled CAD tools ([proving-mod-dxf.md](proving-mod-dxf.md)) |
@@ -167,7 +170,7 @@ Counts are approximate for the blitz branch; re-run before publishing.
 
 ## Demo script (~10 min)
 
-0. **Sample pack** — Open `examples/demo-pack` in Files; skim `sample.md`, `sample.png`, and `sample.unibrow` ([examples/demo-pack/README.md](../examples/demo-pack/README.md)).
+0. **Sample pack** — Follow the keyed script in [examples/demo-pack/README.md](../examples/demo-pack/README.md) (palette **Ctrl+Shift+P**, help **F1**, go-to-tab **Ctrl+Shift+A**).
 1. **Home + chrome** — Open a folder tab; drag a tab to reorder; Ctrl+click to pin; omnibox: pick a **Place** or recent path, Enter to open. ([chrome.md](chrome.md))
 2. **Command Manager pin** — Open a `.md` file; pin the Command Manager context (pin control); switch to another doc and show commands stay on the pinned tab; unpin to auto-follow.
 3. **Cross-format font** — Same **Increase font size** on Markdown preview, DOCX, and an HTTP tab; mention status bar font/zoom. ([commands-cross-format.md](commands-cross-format.md))
