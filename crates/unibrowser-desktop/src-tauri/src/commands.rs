@@ -2500,6 +2500,37 @@ fn patch_capture_visible_tab_enablement(
     (false, Some(status.detail))
 }
 
+fn patch_tab_shell_enablement(
+    command_id: &str,
+    enabled: bool,
+    reason: Option<String>,
+    tab_count: usize,
+    active_index: usize,
+) -> (bool, Option<String>) {
+    use unibrowser_mod_api::commands::{
+        CLOSE_OTHER_TABS, CLOSE_TABS_TO_RIGHT, DUPLICATE_TAB,
+    };
+    if command_id == DUPLICATE_TAB {
+        return (true, None);
+    }
+    if command_id == CLOSE_OTHER_TABS {
+        if tab_count <= 1 {
+            return (false, Some("Only one tab open".into()));
+        }
+        return (true, None);
+    }
+    if command_id == CLOSE_TABS_TO_RIGHT {
+        if active_index + 1 >= tab_count {
+            return (
+                false,
+                Some("No tabs to the right of the active tab".into()),
+            );
+        }
+        return (true, None);
+    }
+    (enabled, reason)
+}
+
 fn patch_web_find_enablement(
     command_id: &str,
     enabled: bool,
@@ -2522,6 +2553,8 @@ fn patch_web_find_enablement(
 fn map_ui_commands(
     cmds: Vec<unibrowser_engine::ResolvedUiCommand>,
     location: Option<&BrowserLocation>,
+    tab_count: usize,
+    active_index: usize,
 ) -> Vec<UiCommandDto> {
     cmds.into_iter()
         .map(|c| {
@@ -2533,6 +2566,13 @@ fn map_ui_commands(
             );
             let (enabled, reason) =
                 patch_web_find_enablement(&c.command_id, enabled, reason, location);
+            let (enabled, reason) = patch_tab_shell_enablement(
+                &c.command_id,
+                enabled,
+                reason,
+                tab_count,
+                active_index,
+            );
             UiCommandDto {
                 command_id: c.command_id,
                 title: c.title,
@@ -2549,6 +2589,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
     state.refresh_command_manager_context(window.label());
     let _sess_tabs_guard = ws(&state, &window)?;
     let tabs_guard = _sess_tabs_guard.tabs.lock().map_err(|e| e.to_string())?;
+    let tab_count = tabs_guard.tab_count();
+    let active_index = tabs_guard.active_index();
     let active = tabs_guard.active_tab();
     let host = active
         .and_then(|t| t.document.as_ref())
@@ -2567,6 +2609,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
             let commands = map_ui_commands(
                 cm.resolve_tab_commands(&registry, &host, doc_ref, &tab.id),
                 active_location,
+                tab_count,
+                active_index,
             );
             ManagerTabDto {
                 id: tab.id.clone(),
@@ -2585,6 +2629,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 cm.resolve_floating_bar(&registry, &host, doc_ref, &bar.id)
                     .unwrap_or_default(),
                 active_location,
+                tab_count,
+                active_index,
             );
             FloatingBarDto {
                 id: bar.id.clone(),
@@ -2805,6 +2851,75 @@ pub fn execute_command(
     result
 }
 
+enum CloseTabsMode {
+    Others,
+    ToRight,
+}
+
+fn duplicate_active_tab(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<AppState>,
+) -> Result<String, String> {
+    let _sess_tabs = ws(state, window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let index = tabs.active_index();
+    let src = tabs.active_tab().ok_or("no tab")?;
+    let loc = src.location.clone();
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    tabs.duplicate_tab(index, doc).ok_or("could not duplicate tab")?;
+    if let Some(tab) = tabs.active_tab_mut() {
+        tab.is_directory = is_dir;
+        tab.location = loc.clone();
+    }
+    update_content_webview(app, window.label(), &loc)?;
+    Ok("Tab duplicated".into())
+}
+
+fn close_tabs_relative(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<AppState>,
+    mode: CloseTabsMode,
+) -> Result<String, String> {
+    let _sess_tabs = ws(state, window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let active = tabs.active_index();
+    let candidates: Vec<usize> = match mode {
+        CloseTabsMode::Others => (0..tabs.tab_count()).filter(|i| *i != active).collect(),
+        CloseTabsMode::ToRight => ((active + 1)..tabs.tab_count()).collect(),
+    };
+    if candidates.is_empty() {
+        return Err("no tabs to close".into());
+    }
+    let mut closed = 0usize;
+    for index in candidates.into_iter().rev() {
+        if tabs.tab_count() <= 1 {
+            break;
+        }
+        let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
+        if tab.pinned {
+            continue;
+        }
+        if tab_is_dirty(tab) {
+            continue;
+        }
+        _sess_tabs.purge_tab_resources(tab);
+        if tabs.close_tab(index) {
+            closed += 1;
+        }
+    }
+    if closed == 0 {
+        return Err("Could not close tabs (pinned or unsaved)".into());
+    }
+    let loc = tabs
+        .active_tab()
+        .map(|t| t.location.clone())
+        .ok_or("no tab")?;
+    update_content_webview(app, window.label(), &loc)?;
+    Ok(format!("Closed {} tab(s)", closed))
+}
+
 fn execute_command_impl(
     window: tauri::Window,
     command_id: String,
@@ -2834,6 +2949,15 @@ fn execute_command_impl(
     }
     if command_id == unibrowser_mod_api::commands::GO_TO_TAB {
         return Ok("tab-search".into());
+    }
+    if command_id == unibrowser_mod_api::commands::DUPLICATE_TAB {
+        return duplicate_active_tab(&window, &app, &state);
+    }
+    if command_id == unibrowser_mod_api::commands::CLOSE_OTHER_TABS {
+        return close_tabs_relative(&window, &app, &state, CloseTabsMode::Others);
+    }
+    if command_id == unibrowser_mod_api::commands::CLOSE_TABS_TO_RIGHT {
+        return close_tabs_relative(&window, &app, &state, CloseTabsMode::ToRight);
     }
     if command_id == unibrowser_mod_api::commands::WORKSPACE_QUICK_OPEN {
         return Ok("workspace-quick-open".into());
@@ -3203,6 +3327,13 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
                 enabled,
                 reason,
                 Some(&tab.location),
+            );
+            let (enabled, reason) = patch_tab_shell_enablement(
+                &e.command_id,
+                enabled,
+                reason,
+                tabs.tab_count(),
+                tabs.active_index(),
             );
             let chord = keybindings
                 .chord_for_command(&e.command_id)

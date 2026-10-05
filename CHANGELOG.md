@@ -6,6 +6,8 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Tabs:** **Duplicate tab** (`Ctrl+Shift+K`); **Close other tabs** and **Close tabs to the right** (skips pinned and unsaved).
+- **Image histogram:** PNG/JPEG viewer histogram panel (sampled RGB); **Curves** grey stub.
 - **`.unibrow` labels:** Double-click node or timeline clip labels to rename inline (persisted to `project.json`).
 - **Web find:** Ctrl+F on https tabs uses content-webview `window.find()` when available; command grey with reason otherwise.
 - **Files batch open:** Shift/Ctrl multi-select + **Open selected** / Enter calls `open_selected_paths` (first tab active, rest new tabs).

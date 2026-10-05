@@ -120,6 +120,10 @@ pub mod commands {
     pub const GIT_PUSH: &str = "unibrowser.git.push";
     pub const GIT_SYNC: &str = "unibrowser.git.sync";
     pub const GO_TO_TAB: &str = "unibrowser.tabs.goTo";
+    pub const DUPLICATE_TAB: &str = "unibrowser.tabs.duplicate";
+    pub const CLOSE_OTHER_TABS: &str = "unibrowser.tabs.closeOthers";
+    pub const CLOSE_TABS_TO_RIGHT: &str = "unibrowser.tabs.closeToRight";
+    pub const IMAGE_CURVES: &str = "unibrowser.image.curves";
     pub const PICTURE_IN_PICTURE: &str = "unibrowser.media.pictureInPicture";
     pub const CONTEXT_HELP: &str = "unibrowser.help.context";
     pub const WORKSPACE_QUICK_OPEN: &str = "unibrowser.workspace.quickOpen";

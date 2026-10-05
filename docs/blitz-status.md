@@ -16,7 +16,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Status bar | Path, Command Manager context (pinned/auto), unsaved dot, encoding, cursor, font pt (click reset), zoom (click reset on web/PDF/image), encode % ([commands-undo-redo.md](commands-undo-redo.md)) |
 | Undo / PDF | Document undo/redo on text + SVG; export PDF from Markdown/DOCX print HTML (headless Chromium / wkhtmltopdf on Linux); matrix in [commands-undo-redo.md](commands-undo-redo.md) |
 | Packaging | [packaging.md](packaging.md) stubs for Windows MSI/NSIS and Linux AppImage/deb |
-| Chrome | Tab drag reorder, middle-click close, pin (Ctrl+click); omnibox Places/recent/URL suggestions; [chrome.md](chrome.md) |
+| Chrome | Tab drag reorder, duplicate tab (Ctrl+Shift+K), close others / close to the right, middle-click close, pin (Ctrl+click); omnibox Places/recent/URL suggestions; [chrome.md](chrome.md) |
 | Audio proving | `wav`/`mp3`/`flac`/`ogg` viewer: HTML audio + waveform (Web Audio or ffmpeg PCM); grey DAW commands on `base-audio` |
 | CM pin UX | Separate **Pin commands tab** control; tab clicks are preview-only until pin; tip in Settings + first pin toast |
 | Clipboard / timeline | Copy image from PNG viewer; **Paste still** on `.unibrow` timeline (asset + clip stub) |
@@ -27,7 +27,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Grandma backup | Settings export/import JSON: preferences + `keybindings.json` + `toolbars.json` |
 | About | `unibrowser://about`: version, git hash, mod/command counts, licence + NOTICE pointers |
 | DevTools | **F12** / palette **Toggle developer tools** on https tabs; [devtools.md](devtools.md) |
-| Image edit | PNG/JPEG: rotate, flip, save-as (new file); crop export; grey **Filters** stub |
+| Image edit | PNG/JPEG: rotate, flip, save-as (new file); crop export; **RGB histogram** side panel; grey **Filters** / **Curves** stubs |
 | `.unibrow` v2 | `format_version` 2 + validation on open; v1 still loads; [unibrow-format-migration.md](unibrow-format-migration.md) |
 | Multi-window | Shared prefs/mods; independent tabs per window; session v2 restores all windows; [multi-window.md](multi-window.md) |
 | OS file drop | Drop onto any window → open in that window; multi-file → multiple tabs |
@@ -124,12 +124,12 @@ Report screenshots: [report-visuals.md](report-visuals.md) and `./scripts/captur
 
 ## Metrics (Wed report skeleton)
 
-Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10-05 UTC).
+Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10-05T21:36Z).
 
 | Metric | Value (snapshot) |
 | --- | --- |
-| Workspace Rust sources (`crates/` + `mods/`) | 125 `.rs` files · ~23.7k lines |
-| Desktop TypeScript (`crates/unibrowser-desktop/src`) | 59 `.ts` files · ~12.9k lines |
+| Workspace Rust sources (`crates/` + `mods/`) | 126 `.rs` files · ~24.5k lines |
+| Desktop TypeScript (`crates/unibrowser-desktop/src`) | 62 `.ts` files · ~13.4k lines |
 | Bundled format mods (`mods/`) | 12 packages (`base-*` + `toy-markdown`) |
 | Architecture decision records | 20 in `docs/adr/` |
 | Workspace crates (root `Cargo.toml` members) | 25 members incl. desktop, engine, mod-host, media, project, VSIX, cdylib stub |

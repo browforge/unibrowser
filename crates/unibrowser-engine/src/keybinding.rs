@@ -113,6 +113,10 @@ impl KeybindingMap {
             "F12",
         );
         map.set_binding(unibrowser_mod_api::commands::CONTEXT_HELP, "F1");
+        map.set_binding(
+            unibrowser_mod_api::commands::DUPLICATE_TAB,
+            "Ctrl+Shift+K",
+        );
         map
     }
 

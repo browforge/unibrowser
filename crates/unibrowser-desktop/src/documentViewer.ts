@@ -1302,9 +1302,67 @@ async function renderSpreadsheet(path: string, root: HTMLElement) {
   root.appendChild(wrap);
 }
 
+function computeRgbHistogram(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+): { r: Uint32Array; g: Uint32Array; b: Uint32Array } {
+  const r = new Uint32Array(256);
+  const g = new Uint32Array(256);
+  const b = new Uint32Array(256);
+  const step = Math.max(1, Math.floor(Math.sqrt((width * height) / 65536)));
+  const data = ctx.getImageData(0, 0, width, height).data;
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      const i = (y * width + x) * 4;
+      r[data[i]] += 1;
+      g[data[i + 1]] += 1;
+      b[data[i + 2]] += 1;
+    }
+  }
+  return { r, g, b };
+}
+
+function paintHistogramChannel(
+  canvas: HTMLCanvasElement,
+  bins: Uint32Array,
+  stroke: string,
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  let max = 1;
+  for (let i = 0; i < 256; i++) {
+    if (bins[i] > max) {
+      max = bins[i];
+    }
+  }
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < 256; i++) {
+    const x = (i / 255) * (w - 1);
+    const y = h - 1 - (bins[i] / max) * (h - 4);
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  ctx.stroke();
+}
+
 async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   await ensureAssetAllowed(path);
   root.innerHTML = "";
+  const layout = document.createElement("div");
+  layout.className = "image-viewer-layout";
+  const mainCol = document.createElement("div");
+  mainCol.className = "image-viewer-main";
   const toolbar = document.createElement("div");
   toolbar.className = "image-toolbar";
   const zoomOut = document.createElement("button");
@@ -1378,8 +1436,13 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   toolbar.appendChild(saveCropBtn);
   toolbar.appendChild(ocrBtn);
   toolbar.appendChild(copyImgBtn);
+  const histBtn = document.createElement("button");
+  histBtn.type = "button";
+  histBtn.textContent = t("image.histogram");
+  histBtn.title = t("image.histogramHint");
+  toolbar.appendChild(histBtn);
   toolbar.appendChild(eyedropBtn);
-  root.appendChild(toolbar);
+  mainCol.appendChild(toolbar);
 
   const viewport = document.createElement("div");
   viewport.className = "image-viewport";
@@ -1402,11 +1465,58 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   cropHost.appendChild(cropLayer);
   stage.appendChild(cropHost);
   viewport.appendChild(stage);
-  root.appendChild(viewport);
+  mainCol.appendChild(viewport);
+
+  const histAside = document.createElement("aside");
+  histAside.className = "image-histogram-panel hidden";
+  const histTitle = document.createElement("h3");
+  histTitle.textContent = t("image.histogram");
+  histAside.appendChild(histTitle);
+  const curvesBtn = document.createElement("button");
+  curvesBtn.type = "button";
+  curvesBtn.textContent = t("image.curves");
+  curvesBtn.disabled = true;
+  curvesBtn.title = t("image.curvesSoon");
+  histAside.appendChild(curvesBtn);
+  const histNote = document.createElement("p");
+  histNote.className = "viewer-note";
+  histNote.textContent = t("image.histogramNote");
+  histAside.appendChild(histNote);
+  const histCanvases: HTMLCanvasElement[] = [];
+  for (const [label] of [["R"], ["G"], ["B"]] as const) {
+    const row = document.createElement("div");
+    row.className = "image-histogram-row";
+    const lbl = document.createElement("span");
+    lbl.textContent = label;
+    const c = document.createElement("canvas");
+    c.width = 256;
+    c.height = 48;
+    c.className = "image-histogram-canvas";
+    histCanvases.push(c);
+    row.appendChild(lbl);
+    row.appendChild(c);
+    histAside.appendChild(row);
+  }
+  layout.appendChild(mainCol);
+  layout.appendChild(histAside);
+  root.appendChild(layout);
 
   const sampleCanvas = document.createElement("canvas");
   const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
   let sampleReady = false;
+  const refreshHistogram = () => {
+    if (!sampleCtx || !sampleReady || !img.naturalWidth) {
+      return;
+    }
+    const { r, g, b } = computeRgbHistogram(
+      sampleCtx,
+      sampleCanvas.width,
+      sampleCanvas.height,
+    );
+    paintHistogramChannel(histCanvases[0], r, "#f66");
+    paintHistogramChannel(histCanvases[1], g, "#6c6");
+    paintHistogramChannel(histCanvases[2], b, "#68f");
+  };
   const refreshSampleSurface = () => {
     if (!sampleCtx || !img.naturalWidth) {
       return;
@@ -1415,6 +1525,13 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
     sampleCanvas.height = img.naturalHeight;
     sampleCtx.drawImage(img, 0, 0);
     sampleReady = true;
+    refreshHistogram();
+  };
+  histBtn.onclick = () => {
+    histAside.classList.toggle("hidden");
+    if (!histAside.classList.contains("hidden")) {
+      refreshHistogram();
+    }
   };
   img.addEventListener("load", refreshSampleSurface);
   if (img.complete) {

@@ -210,6 +210,71 @@ impl TabManager {
         }
         true
     }
+
+    /// Copy location/history into a new active tab (`document` supplied by the shell).
+    pub fn duplicate_tab(
+        &mut self,
+        index: usize,
+        document: Option<DocumentSession>,
+    ) -> Option<usize> {
+        let src = self.tabs.get(index)?;
+        let id = TabId(self.next_id);
+        self.next_id += 1;
+        let tab = Tab {
+            id,
+            location: src.location.clone(),
+            history: src.history.clone(),
+            history_index: src.history_index,
+            document,
+            is_directory: src.is_directory,
+            pinned: false,
+            reveal_line: None,
+        };
+        self.tabs.push(tab);
+        self.active = self.tabs.len() - 1;
+        Some(self.active)
+    }
+
+    /// Indices removed (high to low), excluding `keep_index`. Never removes the last tab.
+    pub fn close_other_tabs(&mut self, keep_index: usize) -> Vec<usize> {
+        if keep_index >= self.tabs.len() {
+            return vec![];
+        }
+        let keep_id = self.tabs[keep_index].id;
+        let mut removed = Vec::new();
+        for i in (0..self.tabs.len()).rev() {
+            if i != keep_index && self.tabs.len() > 1 {
+                removed.push(i);
+                self.tabs.remove(i);
+            }
+        }
+        self.active = self
+            .tabs
+            .iter()
+            .position(|t| t.id == keep_id)
+            .unwrap_or(0);
+        removed
+    }
+
+    pub fn close_tabs_to_right(&mut self, index: usize) -> Vec<usize> {
+        if index >= self.tabs.len() {
+            return vec![];
+        }
+        let keep_id = self.tabs[index].id;
+        let mut removed = Vec::new();
+        for i in (index + 1..self.tabs.len()).rev() {
+            if self.tabs.len() > 1 {
+                removed.push(i);
+                self.tabs.remove(i);
+            }
+        }
+        self.active = self
+            .tabs
+            .iter()
+            .position(|t| t.id == keep_id)
+            .unwrap_or(0);
+        removed
+    }
 }
 
 #[cfg(test)]
@@ -237,6 +302,27 @@ mod tests {
         );
         assert_eq!(mgr.tab_count(), 2);
         assert_eq!(mgr.active_index(), 1);
+    }
+
+    #[test]
+    fn duplicate_tab_copies_location() {
+        let home = BrowserLocation::File {
+            path: PathBuf::from("/tmp"),
+        };
+        let mut mgr = TabManager::new_with_home(home);
+        mgr.open_tab(BrowserLocation::File {
+            path: PathBuf::from("/tmp/a.txt"),
+        });
+        let idx = mgr.active_index();
+        mgr.duplicate_tab(idx, None);
+        assert_eq!(mgr.tab_count(), 3);
+        assert_eq!(mgr.active_index(), 2);
+        assert_eq!(
+            mgr.active_tab().map(|t| t.location.clone()),
+            Some(BrowserLocation::File {
+                path: PathBuf::from("/tmp/a.txt"),
+            })
+        );
     }
 
     #[test]

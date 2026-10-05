@@ -174,6 +174,27 @@ impl CommandRegistry {
             aliases: &["tab search", "find tab", "switch tab"],
         });
         reg.register_command(CommandMeta {
+            id: commands::DUPLICATE_TAB,
+            title: "Duplicate tab",
+            icon: "tabs",
+            default_keybinding: Some("Ctrl+Shift+K"),
+            aliases: &["clone tab", "copy tab"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::CLOSE_OTHER_TABS,
+            title: "Close other tabs",
+            icon: "tabs",
+            default_keybinding: None,
+            aliases: &["close others"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::CLOSE_TABS_TO_RIGHT,
+            title: "Close tabs to the right",
+            icon: "tabs",
+            default_keybinding: None,
+            aliases: &["close right tabs"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::PICTURE_IN_PICTURE,
             title: "Picture-in-picture",
             icon: "pip",
@@ -264,6 +285,9 @@ impl CommandRegistry {
         if command_id == commands::GO_TO_TAB
             || command_id == commands::WORKSPACE_QUICK_OPEN
             || command_id == commands::FIND_FILES_DEEP
+            || command_id == commands::DUPLICATE_TAB
+            || command_id == commands::CLOSE_OTHER_TABS
+            || command_id == commands::CLOSE_TABS_TO_RIGHT
         {
             return Enablement::Enabled;
         }
