@@ -1,0 +1,9 @@
+{
+  "name": "spell-en-nz",
+  "version": "0.1.0",
+  "title": "Spelling (en-NZ)",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "Hunspell offline spelling for New Zealand English (bundled dictionary mod)"
+}

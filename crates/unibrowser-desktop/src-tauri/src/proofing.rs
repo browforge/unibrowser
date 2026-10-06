@@ -1,11 +1,13 @@
-//! Offline proofing (ADR 0021): Tauri commands and dictionary paths.
+//! Offline diagnostics / proofing (ADR 0021 host + ADR 0022 mods).
 
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
-use unibrowser_proofing::{
-    CheckContext, Diagnostic, ProofingEngine, ProofingLanguage, ProofingSurface,
+use spell_en_nz::SpellEnNzChecker;
+use unibrowser_diagnostics::{
+    DictionarySnapshot, DictionaryStore, DiagnosticsHost, IgnoreScope, Locator, Problem, Severity,
+    TextCheckContext,
 };
 
 use crate::config::config_dir;
@@ -13,14 +15,15 @@ use crate::preferences::load_preferences;
 use crate::state::AppState;
 use tauri::State;
 
-static ENGINE: OnceLock<Mutex<ProofingEngine>> = OnceLock::new();
+static HOST: OnceLock<Mutex<DiagnosticsHost>> = OnceLock::new();
 
-fn engine() -> Result<&'static Mutex<ProofingEngine>, String> {
-    Ok(ENGINE.get_or_init(|| {
-        Mutex::new(
-            ProofingEngine::with_bundled_dictionaries()
-                .expect("bundled proofing dictionaries"),
-        )
+fn host() -> Result<&'static Mutex<DiagnosticsHost>, String> {
+    Ok(HOST.get_or_init(|| {
+        let mut h = DiagnosticsHost::new();
+        if let Ok(spell) = SpellEnNzChecker::with_bundled() {
+            h.register_checker(Box::new(spell));
+        }
+        Mutex::new(h)
     }))
 }
 
@@ -40,15 +43,15 @@ pub fn workspace_dictionary_ignored_path(cwd: &Path) -> PathBuf {
     cwd.join(".unibrowser").join("proofing-ignored.txt")
 }
 
-fn load_store(path: &Path) -> unibrowser_proofing::DictionaryStore {
+fn load_store(path: &Path) -> DictionaryStore {
     if path.is_file() {
-        unibrowser_proofing::DictionaryStore::load_plain_file(path).unwrap_or_default()
+        DictionaryStore::load_plain_file(path).unwrap_or_default()
     } else {
-        unibrowser_proofing::DictionaryStore::default()
+        DictionaryStore::default()
     }
 }
 
-fn reload_dictionaries(engine: &mut ProofingEngine, cwd: &Path) {
+fn reload_dictionary_snapshot(cwd: &Path) -> DictionarySnapshot {
     let mut global = global_dictionary_added_path()
         .map(|p| load_store(&p))
         .unwrap_or_default();
@@ -57,7 +60,10 @@ fn reload_dictionaries(engine: &mut ProofingEngine, cwd: &Path) {
     }
     let mut workspace = load_store(&workspace_dictionary_added_path(cwd));
     workspace.ignored = load_store(&workspace_dictionary_ignored_path(cwd)).added;
-    engine.load_user_dictionaries(global, workspace);
+    DictionarySnapshot {
+        global,
+        workspace,
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -78,38 +84,32 @@ pub struct DiagnosticDto {
     pub suggestions: Vec<String>,
 }
 
-fn surface_from_str(s: &str) -> ProofingSurface {
-    match s {
-        "markdown" => ProofingSurface::Markdown,
-        "code" => ProofingSurface::Code,
-        "docx" => ProofingSurface::DocxPreview,
-        "svg" => ProofingSurface::SvgText,
-        "unibrow_title" => ProofingSurface::UnibrowTitle,
-        "web" => ProofingSurface::WebForm,
-        _ => ProofingSurface::PlainText,
-    }
-}
-
-fn language_from_str(s: Option<&str>) -> ProofingLanguage {
-    match s {
-        Some("en-US") | Some("en_US") => ProofingLanguage::EnUs,
-        Some("en-GB") | Some("en_GB") => ProofingLanguage::EnGb,
-        _ => ProofingLanguage::EnNz,
-    }
-}
-
-fn dto(d: Diagnostic) -> DiagnosticDto {
-    DiagnosticDto {
-        start: d.start,
-        end: d.end,
-        kind: match d.kind {
-            unibrowser_proofing::DiagnosticKind::Spelling => "spelling".into(),
-            unibrowser_proofing::DiagnosticKind::Grammar => "grammar".into(),
-            unibrowser_proofing::DiagnosticKind::Style => "style".into(),
-        },
-        message: d.message,
-        suggestions: d.suggestions,
-    }
+fn dto(p: &Problem) -> Option<DiagnosticDto> {
+    let (start, end) = match &p.locator {
+        Locator::TextRange {
+            start_byte,
+            end_byte,
+            ..
+        } => (*start_byte, *end_byte),
+        _ => return None,
+    };
+    let kind = if p.source.contains("grammar") || p.source.contains("harper") {
+        "grammar".into()
+    } else if p.source.contains("spell") {
+        "spelling".into()
+    } else {
+        match p.severity {
+            Severity::Error | Severity::Warning => "grammar".into(),
+            _ => "spelling".into(),
+        }
+    };
+    Some(DiagnosticDto {
+        start,
+        end,
+        kind,
+        message: p.message.clone(),
+        suggestions: p.suggestions.clone(),
+    })
 }
 
 #[tauri::command]
@@ -121,31 +121,24 @@ pub fn proofing_check(
     if !prefs.proofing_squiggles_enabled {
         return Ok(Vec::new());
     }
-    let eng = engine()?;
-    let mut eng = eng.lock().map_err(|e| e.to_string())?;
-    reload_dictionaries(&mut *eng, &state.cwd);
-    let surface = surface_from_str(&req.surface);
-    let mut ctx = CheckContext {
-        language: language_from_str(req.language.as_deref()),
-        surface,
-        grammar_enabled: req.grammar_enabled.unwrap_or(prefs.proofing_grammar_enabled),
-        check_ranges: None,
+    let h = host()?;
+    let mut h = h.lock().map_err(|e| e.to_string())?;
+    h.set_dictionary(reload_dictionary_snapshot(&state.cwd));
+    let code_mode = req.surface == "code";
+    let language_id = if code_mode {
+        req.code_language.as_deref().unwrap_or("plaintext").to_string()
+    } else {
+        req.language.clone().unwrap_or_else(|| "en-NZ".into())
     };
-    if surface == ProofingSurface::Code {
-        let lang = req.code_language.as_deref().unwrap_or("plaintext");
-        let segments = unibrowser_proofing::code_check_segments(&req.text, lang);
-        ctx.check_ranges = Some(
-            segments
-                .iter()
-                .filter(|s| {
-                    s.kind == unibrowser_proofing::CodeSegmentKind::Comment
-                        || s.kind == unibrowser_proofing::CodeSegmentKind::StringLiteral
-                })
-                .map(|s| (s.start, s.end))
-                .collect(),
-        );
-    }
-    Ok(eng.check(&req.text, &ctx).into_iter().map(dto).collect())
+    let _grammar = req.grammar_enabled.unwrap_or(prefs.proofing_grammar_enabled);
+    let ctx = TextCheckContext {
+        language_id,
+        grammar_enabled: false,
+        code_mode,
+    };
+    let doc_uri = format!("unibrowser://proofing/{}", req.surface);
+    let problems = h.check_text_document(&doc_uri, &req.text, &ctx);
+    Ok(problems.iter().filter_map(dto).collect())
 }
 
 #[derive(Debug, Deserialize)]
@@ -161,10 +154,10 @@ pub fn proofing_dictionary_add(
     req: ProofingWordRequest,
 ) -> Result<(), String> {
     let scope = match req.scope.as_str() {
-        "workspace" => unibrowser_proofing::IgnoreScope::Workspace,
-        _ => unibrowser_proofing::IgnoreScope::Global,
+        "workspace" => IgnoreScope::Workspace,
+        _ => IgnoreScope::Global,
     };
-    let path = if scope == unibrowser_proofing::IgnoreScope::Workspace {
+    let path = if scope == IgnoreScope::Workspace {
         if req.ignore {
             workspace_dictionary_ignored_path(&state.cwd)
         } else {

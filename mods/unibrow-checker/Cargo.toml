@@ -1,0 +1,10 @@
+[package]
+name = "unibrow-checker"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+unibrowser-diagnostics = { path = "../../crates/unibrowser-diagnostics" }
+unibrowser-engine = { path = "../../crates/unibrowser-engine" }
+serde_json = { workspace = true }

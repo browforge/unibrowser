@@ -1,0 +1,17 @@
+{
+  "name": "grammar-harper",
+  "version": "0.1.0",
+  "title": "Grammar (Harper LSP)",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "Harper grammar via harper-ls language server (removable mod)",
+  "contributes": {
+    "languageServer": {
+      "id": "harper-ls",
+      "command": "harper-ls",
+      "args": ["--stdio"],
+      "languages": ["plaintext", "markdown"]
+    }
+  }
+}

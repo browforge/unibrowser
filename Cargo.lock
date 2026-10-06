@@ -2616,6 +2616,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
+name = "dxf-checker"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-diagnostics",
+ "unibrowser-engine",
+]
+
+[[package]]
 name = "dyn-clone"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3847,6 +3855,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fdf242682df893b86f33a73828fb09ca4b2d3bb6cc95249707fc684d27484b91"
 dependencies = [
  "bitflags 2.13.2",
+]
+
+[[package]]
+name = "grammar-harper"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
 ]
 
 [[package]]
@@ -7698,6 +7714,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spell-en-nz"
+version = "0.1.0"
+dependencies = [
+ "spellbook",
+ "unibrowser-diagnostics",
+ "unibrowser-engine",
+]
+
+[[package]]
 name = "spellbook"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9031,6 +9056,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaea85b334db583fe3274d12b4cd1880032beab409c0d774be044d4480ab9a94"
 
 [[package]]
+name = "unibrow-checker"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "unibrowser-diagnostics",
+ "unibrowser-engine",
+]
+
+[[package]]
 name = "unibrowser-app"
 version = "0.1.0"
 dependencies = [
@@ -9077,17 +9111,22 @@ dependencies = [
  "base64 0.22.1",
  "cairo-rs",
  "dirs 6.0.0",
+ "dxf-checker",
  "gio",
+ "grammar-harper",
  "gtk",
  "image 0.25.10",
  "serde",
  "serde_json",
+ "spell-en-nz",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
  "toy-markdown",
+ "unibrow-checker",
  "unibrowser-build-info",
+ "unibrowser-diagnostics",
  "unibrowser-docx",
  "unibrowser-engine",
  "unibrowser-extension-host",
@@ -9096,7 +9135,6 @@ dependencies = [
  "unibrowser-mod-host",
  "unibrowser-ocr",
  "unibrowser-project",
- "unibrowser-proofing",
  "unibrowser-script-host",
  "unibrowser-terminal",
  "unibrowser-vsix",
@@ -9107,6 +9145,18 @@ dependencies = [
  "webview2-com",
  "windows 0.61.3",
  "zip 2.4.2",
+]
+
+[[package]]
+name = "unibrowser-diagnostics"
+version = "0.1.0"
+dependencies = [
+ "dxf-checker",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "unibrow-checker",
 ]
 
 [[package]]
@@ -9178,12 +9228,16 @@ dependencies = [
  "base-video",
  "base-web",
  "crc32fast",
+ "dxf-checker",
+ "grammar-harper",
  "libloading 0.8.9",
  "semver",
  "serde",
  "serde_json",
+ "spell-en-nz",
  "thiserror 2.0.21",
  "toy-markdown",
+ "unibrow-checker",
  "unibrowser-engine",
  "unibrowser-mod-api",
  "wasmi",

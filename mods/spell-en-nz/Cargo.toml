@@ -1,0 +1,10 @@
+[package]
+name = "spell-en-nz"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+unibrowser-diagnostics = { path = "../../crates/unibrowser-diagnostics" }
+unibrowser-engine = { path = "../../crates/unibrowser-engine" }
+spellbook = "0.4"

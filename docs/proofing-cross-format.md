@@ -1,48 +1,43 @@
 # Cross-format proofing (squiggles)
 
-One offline engine (`unibrowser-proofing`) powers spelling and grammar squiggles. See [ADR 0021](adr/0021-shared-proofing-engine.md).
+Offline spelling and grammar are **mods** on the generic diagnostics host (`unibrowser-diagnostics`). See [ADR 0021](adr/0021-diagnostics-host-lsp.md) and [ADR 0022](adr/0022-proofing-as-mods.md).
 
-Legend:
+## Coverage
 
-| State | Meaning |
-| --- | --- |
-| **Live** | Debounced `proofing_check` + squiggles |
-| **Partial** | Engine ready; adapter not wired in UI yet |
-| **Grey** | Surface skipped (security or `spellcheck=false`) |
-
-## Coverage matrix
-
-| Surface | Spelling | Grammar | Notes |
-| --- | --- | --- | --- |
-| Monaco text / code | **Live** | **Live** (comments/strings in code) | `proofing.ts` markers |
-| Markdown preview | **Partial** | **Partial** | Source editor checked; preview HTML later |
-| DOCX preview | **Partial** | **Partial** | Experimental browser spellcheck still available |
-| SVG text | **Partial** | **Partial** | Adapter planned |
-| `.unibrow` title / video text | **Partial** | **Partial** | Timeline fields planned |
-| Web forms | **Partial** | **Partial** | `web_fields` classifier + inject script planned |
-| Password / card / OTP fields | **Grey** | **Grey** | Never checked |
+| Surface | Spelling | Grammar / lint | Adapter |
+|--------|----------|----------------|---------|
+| **Live** | Debounced `proofing_check` + squiggles | Harper via `grammar-harper` + `harper-ls` when installed | Host + mods |
+| Monaco text / code | **Live** | Comments/strings in code only | `proofing.ts` markers |
+| Markdown preview | Partial | Partial | Same engine, preview DOM TBD |
+| DOCX preview | Partial | Partial | Selection / preview hook |
+| SVG `<text>` | Partial | — | Export / edit path |
+| `.unibrow` title | Partial | — | `unibrow-checker` mod (timeline locator) |
+| DXF TEXT/MTEXT | Partial | Layer-0 lint stub | `dxf-checker` mod |
+| Web forms | Partial | — | Injected field classifier (`web_fields`) |
 
 ## Commands
 
-| Command | Default binding | Effect |
-| --- | --- | --- |
+| Command | Default binding | Role |
+|---------|-----------------|------|
 | `unibrowser.proofing.toggle` | (palette) | Enable/disable squiggles globally |
 | `unibrowser.proofing.nextProblem` | F8 | Next diagnostic in Monaco |
 | `unibrowser.proofing.previousProblem` | Shift+F8 | Previous diagnostic |
 
-## Dictionaries
+## Dictionary files
 
 | Scope | Path |
-| --- | --- |
+|-------|------|
 | Global added | `{config}/proofing-global-added.txt` |
 | Global ignored | `{config}/proofing-global-ignored.txt` |
 | Workspace added | `{workspace}/.unibrowser/proofing-added.txt` |
 | Workspace ignored | `{workspace}/.unibrowser/proofing-ignored.txt` |
 
-Workspace entries override global for the same word.
+Precedence: workspace **over** global **over** bundled Hunspell (`spell-en-nz` mod).
 
 ## Tests
 
-- `crates/unibrowser-proofing/tests/engine_tests.rs`
-- `crates/unibrowser-proofing/tests/code_adapter_tests.rs`
-- `crates/unibrowser-proofing/tests/web_adapter_tests.rs`
+- `crates/unibrowser-diagnostics/tests/lsp_client_tests.rs` (stub LSP server)
+- `crates/unibrowser-diagnostics/tests/dictionary_tests.rs`
+- `crates/unibrowser-diagnostics/tests/locator_mod_tests.rs` (DXF + timeline locators)
+- `crates/unibrowser-diagnostics/tests/web_adapter_tests.rs` (password skip)
+- Legacy: `crates/unibrowser-proofing/tests/*` (transitional)

@@ -50,7 +50,11 @@ unibrowser-extension-host = { path = "../../unibrowser-extension-host" }
 unibrowser-docx = { path = "../../unibrowser-docx" }
 unibrowser-terminal = { path = "../../unibrowser-terminal" }
 unibrowser-ocr = { path = "../../unibrowser-ocr" }
-unibrowser-proofing = { path = "../../unibrowser-proofing" }
+unibrowser-diagnostics = { path = "../../unibrowser-diagnostics" }
+spell-en-nz = { path = "../../../mods/spell-en-nz" }
+grammar-harper = { path = "../../../mods/grammar-harper" }
+dxf-checker = { path = "../../../mods/dxf-checker" }
+unibrow-checker = { path = "../../../mods/unibrow-checker" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"

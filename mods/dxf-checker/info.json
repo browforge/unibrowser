@@ -1,0 +1,9 @@
+{
+  "name": "dxf-checker",
+  "version": "0.1.0",
+  "title": "DXF diagnostics",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "TEXT/MTEXT spelling hints and layer-0 text lint for DXF wireframe preview"
+}

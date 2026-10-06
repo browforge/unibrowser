@@ -1,4 +1,4 @@
-//! Shared offline proofing: spelling (Hunspell via spellbook) and grammar (Harper).
+//! Legacy shared proofing (superseded by `unibrowser-diagnostics` + mods; ADR 0021–0022).
 
 mod code_regions;
 mod dictionaries;

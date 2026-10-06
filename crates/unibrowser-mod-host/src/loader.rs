@@ -156,12 +156,16 @@ mod tests {
             ("base-hex", base_hex::register as ModRegisterFn),
             ("base-epub", base_epub::register as ModRegisterFn),
             ("base-csv", base_csv::register as ModRegisterFn),
+            ("spell-en-nz", spell_en_nz::register as ModRegisterFn),
+            ("grammar-harper", grammar_harper::register as ModRegisterFn),
+            ("dxf-checker", dxf_checker::register as ModRegisterFn),
+            ("unibrow-checker", unibrow_checker::register as ModRegisterFn),
         ]
         .into_iter()
         .collect();
         let host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
             .expect("load");
-        assert_eq!(host.load_order.len(), 15);
+        assert_eq!(host.load_order.len(), 19);
         assert!(registry.command_meta("unibrowser.font.size.increase").is_some());
     }
 }

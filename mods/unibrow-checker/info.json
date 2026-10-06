@@ -1,0 +1,9 @@
+{
+  "name": "unibrow-checker",
+  "version": "0.1.0",
+  "title": "Unibrow timeline diagnostics",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "Title-card spelling, black-frame and clipping hints on the timeline (offline stubs)"
+}

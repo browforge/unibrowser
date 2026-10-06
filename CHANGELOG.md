@@ -6,7 +6,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
-- **Shared proofing engine (ADR 0021):** `crates/unibrowser-proofing` (Hunspell via spellbook, grammar via harper-core); Monaco squiggles; palette toggle + F8 navigation; dictionary files in config and `.unibrowser/`; [proofing-cross-format.md](docs/proofing-cross-format.md).
+- **Diagnostics host + proofing mods (ADR 0021–0022):** `crates/unibrowser-diagnostics` (locators, dictionary store, LSP stdio client); bundled `spell-en-nz`, `grammar-harper`, example `dxf-checker` / `unibrow-checker`; Monaco squiggles via `proofing_check`; [proofing-cross-format.md](docs/proofing-cross-format.md).
 - **Cross-format commands:** SVG `<text>` font-size rewrite; DXF TEXT/MTEXT height scale; PNG `tEXt` `unibrowser_text` annotations; `unibrowser.page.zoom.fit`; expanded Find/Export handlers; [commands-cross-format.md](docs/commands-cross-format.md) coverage matrix; `cross_format_commands` tests; vision matrix font row **Partial** until PDF/plain-PNG gaps close.
 - **base-epub / base-csv:** Bundled mods replace shell EPUB/CSV stubs.
 - **Unknown files:** Header banner “No mod handles .ext — these could:” with Open as text/hex, mod suggestions, browse mods (never modal, never over content).
