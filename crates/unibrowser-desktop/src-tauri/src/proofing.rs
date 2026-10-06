@@ -4,7 +4,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
+use dxf_checker::DxfChecker;
+use grammar_harper::HarperGrammarChecker;
 use spell_en_nz::SpellEnNzChecker;
+use unibrow_checker::UnibrowChecker;
 use unibrowser_diagnostics::{
     DictionarySnapshot, DictionaryStore, DiagnosticsHost, IgnoreScope, Locator, Problem, Severity,
     TextCheckContext,
@@ -23,6 +26,11 @@ fn host() -> Result<&'static Mutex<DiagnosticsHost>, String> {
         if let Ok(spell) = SpellEnNzChecker::with_bundled() {
             h.register_checker(Box::new(spell));
         }
+        if let Ok(grammar) = HarperGrammarChecker::new() {
+            h.register_checker(Box::new(grammar));
+        }
+        h.register_checker(Box::new(DxfChecker));
+        h.register_checker(Box::new(UnibrowChecker));
         Mutex::new(h)
     }))
 }
@@ -130,10 +138,12 @@ pub fn proofing_check(
     } else {
         req.language.clone().unwrap_or_else(|| "en-NZ".into())
     };
-    let _grammar = req.grammar_enabled.unwrap_or(prefs.proofing_grammar_enabled);
+    let grammar_on = req
+        .grammar_enabled
+        .unwrap_or(prefs.proofing_grammar_enabled);
     let ctx = TextCheckContext {
         language_id,
-        grammar_enabled: false,
+        grammar_enabled: grammar_on,
         code_mode,
     };
     let doc_uri = format!("unibrowser://proofing/{}", req.surface);
@@ -216,6 +226,56 @@ pub fn proofing_dictionary_list(state: State<AppState>) -> Result<DictionaryList
         workspace_added: sorted_set(&w_add.added),
         workspace_ignored: sorted_set(&w_ign.ignored),
     })
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ProofingRemoveWordRequest {
+    pub word: String,
+    pub scope: String,
+    pub ignore: bool,
+}
+
+#[tauri::command]
+pub fn proofing_dictionary_remove(
+    state: State<AppState>,
+    req: ProofingRemoveWordRequest,
+) -> Result<(), String> {
+    let path = dictionary_path_for_scope(&state.cwd, &req.scope, req.ignore)?;
+    remove_word_line(&path, &req.word)?;
+    Ok(())
+}
+
+fn dictionary_path_for_scope(cwd: &Path, scope: &str, ignore: bool) -> Result<PathBuf, String> {
+    if scope == "workspace" {
+        Ok(if ignore {
+            workspace_dictionary_ignored_path(cwd)
+        } else {
+            workspace_dictionary_added_path(cwd)
+        })
+    } else if ignore {
+        global_dictionary_ignored_path().ok_or("config dir unavailable".into())
+    } else {
+        global_dictionary_added_path().ok_or("config dir unavailable".into())
+    }
+}
+
+fn remove_word_line(path: &Path, word: &str) -> Result<(), String> {
+    if !path.is_file() {
+        return Ok(());
+    }
+    let target = word.trim().to_lowercase();
+    let lines: Vec<String> = std::fs::read_to_string(path)
+        .map_err(|e| e.to_string())?
+        .lines()
+        .filter(|l| l.trim().to_lowercase() != target)
+        .map(|l| l.to_string())
+        .collect();
+    let body = if lines.is_empty() {
+        String::new()
+    } else {
+        format!("{}\n", lines.join("\n"))
+    };
+    std::fs::write(path, body).map_err(|e| e.to_string())
 }
 
 fn sorted_set(set: &std::collections::HashSet<String>) -> Vec<String> {

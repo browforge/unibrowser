@@ -74,12 +74,12 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Mods | Bundled `base-*` incl. **base-hex**; `unibrowser mod new wasm`; [mod-authoring.md](mod-authoring.md); mod portal + unknown-file header banner (Open VSX / `.ubmod` / open as text|hex) |
 | Toolbars | Floating bars drag-anywhere; screen coords across monitors/DPI ([toolbars.md](toolbars.md)); **Detach to own window** (Tauri `toolbar-*` windows, `presentation` in `toolbars.json`); right-click **Reset this toolbar**; theme + high-contrast on CM and floating bars |
 | Cross-format | One id per action: font (text/web/SVG text/DOCX/EPUB/DXF/PNG annotation/`.unibrow` titles), **Find**, **Zoom to fit** (Ctrl+0), **Export PDF** — coverage tables in [commands-cross-format.md](commands-cross-format.md); `cross_format_commands` integration tests |
-| Proofing | `unibrowser-diagnostics` host; bundled `spell-en-nz` + `grammar-harper` mods; Monaco squiggles; F8 / Shift+F8; dictionaries — [proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022 |
-| Sacred save + autosave | ADR 0023; [principles.md](principles.md); `unibrowser-fs` atomic writes; 1–30 min autosave presets + rotating slots |
+| Proofing | Host + `spell-en-nz`, `grammar-harper` (grammar toggle), `dxf-checker`, `unibrow-checker`; Monaco squiggles; Settings dictionary add/remove; LSP client thin — [proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022 |
+| Sacred save + autosave | ADR 0023; [sacred-save-audit.md](sacred-save-audit.md); rotating slots; force-close flush; Settings restore latest autosave |
 | Live engine (ADR 0024) | Shared `LayerTransform`; compositor layers (media, SVG, HTML clock, chart); `.unibrow` **Live mode** preview + **LIVE** badge + local record to `derived/live-record.mp4` |
 | Mod APIs (ADR 0025) | `resolve_mod_graph`, `ModApiRegistry`, WASM `ub_host_audio_levels_peak` import; `unibrowser-projections` + [projections-coverage.md](projections-coverage.md) |
-| AI assistant mod (ADR 0026) | Bundled `mods/ai-assistant`; floating sidebar panel; Settings grants + test connection; palette tools list; `unibrowser-ai-assistant` core |
-| Live (#122) status | Compositor SVG/HTML/crop layers **shipped** in crate; desktop preview/LIVE/record **shipped**; project timeline live wiring **not** shipped |
+| AI assistant mod (ADR 0026) | Grants matrix + revoke; streaming chat; EPUB/PDF/DOCX projections; floating panel; `unibrowser-ai-assistant` SSE client |
+| Live (#122) status | Compositor + preview/record **shipped**; live scene built from `project.json` timeline (title/PDF/SVG clips) + test-pattern base; webview/HTML capture still stub |
 | Bundled EPUB/CSV | `base-epub`, `base-csv` mods (no longer `src-tauri` stubs) |
 | Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |

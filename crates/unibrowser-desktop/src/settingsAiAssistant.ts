@@ -13,6 +13,11 @@ interface AiPrefs {
   panel_docked: boolean;
 }
 
+type GrantRow = AiPrefs["grants"][number];
+
+const PERMISSIONS = ["read", "write", "ask"] as const;
+const SCOPES = ["global", "workspace", "file_type", "site"] as const;
+
 export function renderAiAssistantSettings(root: HTMLElement) {
   const section = document.createElement("section");
   section.className = "settings-section";
@@ -51,27 +56,93 @@ export function renderAiAssistantSettings(root: HTMLElement) {
     const grantsHead = document.createElement("h4");
     grantsHead.textContent = t("settings.aiGrants");
     section.appendChild(grantsHead);
-    const grantsList = document.createElement("div");
-    grantsList.className = "ai-grants-list";
+    const grantsNote = document.createElement("p");
+    grantsNote.className = "viewer-note";
+    grantsNote.textContent = t("settings.aiGrantsNote");
+    section.appendChild(grantsNote);
+
+    const grantsTable = document.createElement("div");
+    grantsTable.className = "ai-grants-table";
+    section.appendChild(grantsTable);
+
     const renderGrants = () => {
-      grantsList.innerHTML = "";
-      for (const g of prefs.grants) {
+      grantsTable.innerHTML = "";
+      prefs.grants.forEach((g, index) => {
         const row = document.createElement("div");
-        row.textContent = `${g.permission} · ${g.scope_kind}${g.scope_value ? ` (${g.scope_value})` : ""}`;
-        grantsList.appendChild(row);
-      }
+        row.className = "ai-grants-row";
+
+        const perm = document.createElement("select");
+        for (const p of PERMISSIONS) {
+          const opt = document.createElement("option");
+          opt.value = p;
+          opt.textContent = p;
+          perm.appendChild(opt);
+        }
+        perm.value = g.permission;
+        perm.onchange = () => {
+          g.permission = perm.value;
+        };
+
+        const scope = document.createElement("select");
+        for (const s of SCOPES) {
+          const opt = document.createElement("option");
+          opt.value = s;
+          opt.textContent = s;
+          scope.appendChild(opt);
+        }
+        scope.value = g.scope_kind;
+        scope.onchange = () => {
+          g.scope_kind = scope.value;
+        };
+
+        const value = document.createElement("input");
+        value.type = "text";
+        value.placeholder = t("settings.aiGrantScopeValue");
+        value.value = g.scope_value ?? "";
+        value.disabled = g.scope_kind === "global";
+        value.oninput = () => {
+          g.scope_value = value.value.trim() || null;
+        };
+        scope.onchange = () => {
+          g.scope_kind = scope.value;
+          value.disabled = g.scope_kind === "global";
+          if (g.scope_kind === "global") {
+            g.scope_value = null;
+            value.value = "";
+          }
+        };
+
+        const revoke = document.createElement("button");
+        revoke.type = "button";
+        revoke.textContent = t("settings.aiRevokeGrant");
+        revoke.onclick = () => {
+          prefs.grants.splice(index, 1);
+          renderGrants();
+        };
+
+        row.appendChild(perm);
+        row.appendChild(scope);
+        row.appendChild(value);
+        row.appendChild(revoke);
+        grantsTable.appendChild(row);
+      });
     };
     renderGrants();
-    section.appendChild(grantsList);
 
-    const addGrant = document.createElement("button");
-    addGrant.type = "button";
-    addGrant.textContent = t("settings.aiAddReadGlobal");
-    addGrant.onclick = () => {
-      prefs.grants.push({ permission: "read", scope_kind: "global", scope_value: null });
-      renderGrants();
-    };
-    section.appendChild(addGrant);
+    const addRow = document.createElement("div");
+    addRow.className = "ai-grants-add-row";
+    for (const p of PERMISSIONS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = t("settings.aiAddGrant", { permission: p });
+      btn.onclick = () => {
+        const row: GrantRow = { permission: p, scope_kind: "global", scope_value: null };
+        prefs.grants.push(row);
+        renderGrants();
+      };
+      addRow.appendChild(btn);
+    }
+    section.appendChild(addRow);
 
     const saveBtn = document.createElement("button");
     saveBtn.type = "button";

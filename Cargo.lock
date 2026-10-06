@@ -3869,6 +3869,8 @@ dependencies = [
 name = "grammar-harper"
 version = "0.1.0"
 dependencies = [
+ "harper-core",
+ "unibrowser-diagnostics",
  "unibrowser-engine",
  "unibrowser-mod-api",
 ]

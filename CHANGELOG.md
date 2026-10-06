@@ -6,6 +6,9 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Proofing + sacred save:** Harper grammar wired to prefs; DXF/unibrow checkers in host; Settings proofing dictionary add/remove; autosave slot list + restore latest (Settings); sacred-save audit doc updated; force-close writes autosave slot.
+- **Live from project:** `scene_from_unibrow_manifest` drives live preview and `record_unibrow_live_clip`; unit test for title clips.
+- **AI sidebar (grants + chat):** Full grants table (Read/Write/Ask × global/workspace/file type/site, revoke); streaming chat via Tauri events; `gatherProjectionExtras` (EPUB chapter, PDF page text, DOCX preview); `docx_preview_text` in projection DTO.
 - **AI sidebar + projections slice:** Bundled `ai-assistant` mod; dockable AI panel (off until base URL configured); Settings URL/model/key, grants, test connection; document projections crate + coverage table; WASM API import via host registry.
 - **Mod APIs + AI assistant (ADR 0025–0026):** Semver mod graph resolver (`resolve_mod_graph`), typed `ModApiRegistry`, text/raster projection traits; `unibrowser-ai-assistant` with permission grants and OpenAI-compatible proving tests.
 - **Live learn-once compositor:** SVG overlay (shared resvg), HTML speedrun clock snapshot, `unibrowser-project::LayerTransform` blit; full-stack MP4 e2e; `.unibrow` live preview + record UI (no network).

@@ -1614,6 +1614,13 @@ pub fn close_tab(window: tauri::Window,
             }
         }
         let closed_loc = tabs.tabs().get(index).map(|t| t.location.clone());
+        if force {
+            if let Some(tab) = tabs.tab_mut(index) {
+                if let Some(doc) = tab.document.as_mut() {
+                    let _ = write_active_text_autosave_slot(doc);
+                }
+            }
+        }
         if let Some(tab) = tabs.tabs().get(index) {
             _sess_tabs.purge_tab_resources(tab);
         }
@@ -5950,6 +5957,55 @@ pub fn get_autosave_status() -> AutosaveTickDto {
         wrote_slot: false,
         last_autosave_at_ms: crate::autosave::last_autosave_at_ms(),
     }
+}
+
+#[tauri::command]
+pub fn list_autosave_slots_for_active_tab(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<Vec<crate::autosave::AutosaveSlotSummary>, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab().ok_or("no active tab")?;
+    let path = tab
+        .document
+        .as_ref()
+        .map(|d| d.path.clone())
+        .ok_or("no document")?;
+    crate::autosave::list_autosave_slots(&path)
+}
+
+#[tauri::command]
+pub fn restore_latest_autosave_for_active_tab(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+    let doc = tab.document.as_mut().ok_or("no document")?;
+    let path = doc.path.clone();
+    let record = crate::autosave::read_latest_autosave_content(&path)?
+        .ok_or("no autosave slots for this document")?;
+    if record.backend_id != doc.backend.backend_id() {
+        return Err("autosave backend does not match active tab".into());
+    }
+    if record.backend_id == base_text::BACKEND_ID {
+        let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
+        backend.set_content(record.content);
+    } else if record.backend_id == base_js::BACKEND_ID {
+        let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not a script document")?;
+        backend.set_content(record.content);
+    } else if record.backend_id == base_svg::BACKEND_ID {
+        let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
+        backend.set_content(record.content);
+    } else {
+        return Err("autosave restore supports text, script, and SVG only".into());
+    }
+    let loc = tab.location.clone();
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
 }
 
 fn write_active_text_autosave_slot(doc: &mut DocumentSession) -> Result<(), String> {

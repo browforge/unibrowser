@@ -7,3 +7,5 @@ license.workspace = true
 [dependencies]
 unibrowser-engine = { path = "../../crates/unibrowser-engine" }
 unibrowser-mod-api = { path = "../../crates/unibrowser-mod-api" }
+unibrowser-diagnostics = { path = "../../crates/unibrowser-diagnostics" }
+harper-core = "2.11"

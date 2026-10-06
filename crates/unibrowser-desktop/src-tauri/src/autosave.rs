@@ -96,6 +96,45 @@ pub fn write_document_autosave_slot(
         .map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct AutosaveSlotSummary {
+    pub path: String,
+    pub saved_at_ms: u64,
+}
+
+pub fn list_autosave_slots(document_path: &str) -> Result<Vec<AutosaveSlotSummary>, String> {
+    let dir = autosave_slot_dir(document_path).ok_or("config dir unavailable")?;
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(&dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        if let Ok(record) = serde_json::from_str::<AutosaveSlotRecord>(&text) {
+            out.push(AutosaveSlotSummary {
+                path: path.to_string_lossy().into_owned(),
+                saved_at_ms: record.saved_at_ms,
+            });
+        }
+    }
+    out.sort_by(|a, b| b.saved_at_ms.cmp(&a.saved_at_ms));
+    Ok(out)
+}
+
+pub fn read_latest_autosave_content(document_path: &str) -> Result<Option<AutosaveSlotRecord>, String> {
+    let slots = list_autosave_slots(document_path)?;
+    let Some(latest) = slots.first() else {
+        return Ok(None);
+    };
+    let text = std::fs::read_to_string(&latest.path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&text).map_err(|e| e.to_string()).map(Some)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

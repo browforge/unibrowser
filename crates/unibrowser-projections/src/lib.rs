@@ -18,6 +18,7 @@ pub struct ProjectionExtras {
     pub ocr_text: Option<String>,
     pub epub_chapter_text: Option<String>,
     pub pdf_page_text: Option<String>,
+    pub docx_preview_text: Option<String>,
     pub unibrow_manifest: Option<unibrowser_project::ProjectManifest>,
 }
 
@@ -71,14 +72,18 @@ pub fn project_text(doc: &mut DocumentSession, extras: &ProjectionExtras) -> Str
                     String::new()
                 }
             }),
-        "base-docx" => {
-            if let Some(b) = any.downcast_ref::<base_docx::DocxBackend>() {
-                let path = Path::new(&b.path);
-                unibrowser_docx::extract_plain_text(path).unwrap_or_default()
-            } else {
-                String::new()
-            }
-        }
+        "base-docx" => extras
+            .docx_preview_text
+            .clone()
+            .or_else(|| {
+                if let Some(b) = any.downcast_ref::<base_docx::DocxBackend>() {
+                    let path = Path::new(&b.path);
+                    unibrowser_docx::extract_plain_text(path).ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default(),
         "base-epub" => extras
             .epub_chapter_text
             .clone()

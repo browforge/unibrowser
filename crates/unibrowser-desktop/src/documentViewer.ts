@@ -4172,6 +4172,35 @@ export interface DocumentViewerApplyExtras {
   onRefreshState?: () => void | Promise<void>;
 }
 
+export interface ProjectionExtrasPayload {
+  web_dom_text: string | null;
+  ocr_text: string | null;
+  epub_chapter_text: string | null;
+  pdf_page_text: string | null;
+  docx_preview_text: string | null;
+}
+
+export function gatherProjectionExtras(host: HTMLElement): ProjectionExtrasPayload {
+  const docx_preview_text = documentViewer.getReadableText(host);
+  const pdfLayer = host.querySelector(".pdf-text-layer");
+  const pdf_page_text = pdfLayer?.textContent?.trim().slice(0, 12_000) || null;
+  const epubFrame = host.querySelector<HTMLIFrameElement>(".epub-chapter-frame");
+  const epubBody = epubFrame?.contentDocument?.body;
+  const epub_chapter_text = epubBody?.innerText?.trim().slice(0, 12_000) || null;
+  const hasSpecial =
+    Boolean(docx_preview_text) || Boolean(pdf_page_text) || Boolean(epub_chapter_text);
+  const web_dom_text = hasSpecial
+    ? null
+    : host.querySelector<HTMLElement>(".viewer-body")?.innerText?.trim().slice(0, 12_000) || null;
+  return {
+    web_dom_text,
+    ocr_text: null,
+    epub_chapter_text,
+    pdf_page_text,
+    docx_preview_text,
+  };
+}
+
 export const documentViewer = {
   async apply(
     viewer: DocumentViewerDto | null,

@@ -24,6 +24,8 @@ pub enum ChatError {
 struct ChatRequest {
     model: String,
     messages: Vec<ChatMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -59,6 +61,7 @@ pub fn chat_completions(
     let body = ChatRequest {
         model: model.to_string(),
         messages: messages.to_vec(),
+        stream: None,
     };
     let mut req = ureq::post(&url).set("Content-Type", "application/json");
     if let Some(key) = config.api_key.as_deref().filter(|k| !k.is_empty()) {
@@ -79,4 +82,66 @@ pub fn chat_completions(
         .map(|c| c.message.content.clone())
         .ok_or_else(|| ChatError::Response("empty choices".into()))?;
     Ok(content)
+}
+
+/// Collect streamed SSE deltas (OpenAI-compatible `data: {...}` lines).
+pub fn chat_completions_stream_collect(
+    config: &ChatClientConfig,
+    model: &str,
+    messages: &[ChatMessage],
+    on_delta: &mut dyn FnMut(&str),
+) -> Result<String, ChatError> {
+    let base = config
+        .base_url
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .ok_or(ChatError::NoBaseUrl)?;
+    let url = format!("{}/chat/completions", base.trim_end_matches('/'));
+    let body = ChatRequest {
+        model: model.to_string(),
+        messages: messages.to_vec(),
+        stream: Some(true),
+    };
+    let mut req = ureq::post(&url).set("Content-Type", "application/json");
+    if let Some(key) = config.api_key.as_deref().filter(|k| !k.is_empty()) {
+        req = req.set("Authorization", &format!("Bearer {}", key));
+    }
+    let resp = req
+        .send_json(body)
+        .map_err(|e| ChatError::Http(e.to_string()))?;
+    if resp.status() >= 400 {
+        return Err(ChatError::Http(format!("status {}", resp.status())));
+    }
+    let mut reader = resp.into_reader();
+    let mut buf = Vec::new();
+    let mut chunk = [0u8; 4096];
+    let mut full = String::new();
+    while let Ok(n) = std::io::Read::read(&mut reader, &mut chunk) {
+        if n == 0 {
+            break;
+        }
+        buf.extend_from_slice(&chunk[..n]);
+        while let Some(pos) = buf.iter().position(|&b| b == b'\n') {
+            let line = String::from_utf8_lossy(&buf[..pos]).trim().to_string();
+            buf.drain(..pos + 1);
+            if !line.starts_with("data:") {
+                continue;
+            }
+            let payload = line.trim_start_matches("data:").trim();
+            if payload == "[DONE]" {
+                break;
+            }
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(payload) {
+                let delta = v
+                    .pointer("/choices/0/delta/content")
+                    .and_then(|c| c.as_str())
+                    .unwrap_or("");
+                if !delta.is_empty() {
+                    full.push_str(delta);
+                    on_delta(delta);
+                }
+            }
+        }
+    }
+    Ok(full)
 }

@@ -544,9 +544,21 @@ export async function renderSettings(root: HTMLElement) {
   const autoNote = document.createElement("p");
   autoNote.className = "viewer-note";
   autoNote.textContent = t("autosave.powerHint");
+  const restoreAutosaveBtn = document.createElement("button");
+  restoreAutosaveBtn.type = "button";
+  restoreAutosaveBtn.textContent = t("autosave.restoreLatest");
+  restoreAutosaveBtn.onclick = async () => {
+    try {
+      await invoke("restore_latest_autosave_for_active_tab");
+      showToast(t("autosave.restoreDone"), "info");
+    } catch (e) {
+      showErrorToast(e);
+    }
+  };
   autoSection.appendChild(autoHeading);
   autoSection.appendChild(autoRow);
   autoSection.appendChild(autoNote);
+  autoSection.appendChild(restoreAutosaveBtn);
   root.appendChild(autoSection);
 
   const sessionSection = document.createElement("section");
@@ -947,19 +959,79 @@ export async function renderSettings(root: HTMLElement) {
   grammarRow.appendChild(grammarCb);
   grammarRow.appendChild(grammarLabel);
   advancedSection.appendChild(grammarRow);
-  void invoke<{
-    global_added: string[];
-    workspace_added: string[];
-  }>("proofing_dictionary_list").then((dict) => {
-    const dictNote = document.createElement("p");
-    dictNote.className = "viewer-note";
-    const words = [...dict.global_added, ...dict.workspace_added];
-    dictNote.textContent =
-      words.length > 0
-        ? `${t("settings.proofingDictionary")}: ${words.join(", ")}`
-        : t("settings.proofingDictionaryEmpty");
-    advancedSection.appendChild(dictNote);
+  const dictSection = document.createElement("div");
+  dictSection.className = "proofing-dictionary-settings";
+  const dictHeading = document.createElement("h4");
+  dictHeading.textContent = t("settings.proofingDictionary");
+  dictSection.appendChild(dictHeading);
+  const dictList = document.createElement("ul");
+  dictList.className = "proofing-dictionary-list";
+  dictSection.appendChild(dictList);
+  const dictAddRow = document.createElement("div");
+  dictAddRow.className = "settings-row";
+  const dictWord = document.createElement("input");
+  dictWord.type = "text";
+  dictWord.placeholder = t("settings.proofingDictionaryWord");
+  const dictScope = document.createElement("select");
+  ["global", "workspace"].forEach((s) => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    dictScope.appendChild(opt);
   });
+  const dictAddBtn = document.createElement("button");
+  dictAddBtn.type = "button";
+  dictAddBtn.textContent = t("settings.proofingDictionaryAdd");
+  const refreshDict = async () => {
+    const dict = await invoke<{
+      global_added: string[];
+      workspace_added: string[];
+    }>("proofing_dictionary_list");
+    dictList.innerHTML = "";
+    const rows = [
+      ...dict.global_added.map((w) => ({ w, scope: "global" })),
+      ...dict.workspace_added.map((w) => ({ w, scope: "workspace" })),
+    ];
+    if (rows.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "muted";
+      empty.textContent = t("settings.proofingDictionaryEmpty");
+      dictList.appendChild(empty);
+      return;
+    }
+    for (const row of rows) {
+      const li = document.createElement("li");
+      li.textContent = `${row.w} (${row.scope})`;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = t("settings.proofingDictionaryRemove");
+      remove.onclick = async () => {
+        await invoke("proofing_dictionary_remove", {
+          req: { word: row.w, scope: row.scope, ignore: false },
+        });
+        await refreshDict();
+      };
+      li.appendChild(remove);
+      dictList.appendChild(li);
+    }
+  };
+  dictAddBtn.onclick = async () => {
+    const word = dictWord.value.trim();
+    if (!word) {
+      return;
+    }
+    await invoke("proofing_dictionary_add", {
+      req: { word, scope: dictScope.value, ignore: false },
+    });
+    dictWord.value = "";
+    await refreshDict();
+  };
+  dictAddRow.appendChild(dictWord);
+  dictAddRow.appendChild(dictScope);
+  dictAddRow.appendChild(dictAddBtn);
+  dictSection.appendChild(dictAddRow);
+  advancedSection.appendChild(dictSection);
+  void refreshDict();
   const nodeHostRow = document.createElement("div");
   nodeHostRow.className = "settings-row";
   const nodeHostCb = document.createElement("input");

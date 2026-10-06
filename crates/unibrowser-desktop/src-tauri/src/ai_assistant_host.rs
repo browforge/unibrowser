@@ -7,9 +7,10 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use unibrowser_ai_assistant::{
-    ActiveDocContext, AiPermission, AiScope, AssistantSession, ChatClientConfig, PermissionStore,
-    chat_completions,
+    ActiveDocContext, AiPermission, AiScope, AssistantSession, ChatClientConfig, ChatMessage,
+    PermissionStore, chat_completions, chat_completions_stream_collect,
 };
+use tauri::{AppHandle, Emitter};
 use unibrowser_mod_api::TextProjection;
 use unibrowser_mod_api::{BrowserLocation, Enablement};
 use unibrowser_projections::{ProjectionExtras, project_document};
@@ -226,6 +227,7 @@ pub struct ProjectionExtrasDto {
     pub ocr_text: Option<String>,
     pub epub_chapter_text: Option<String>,
     pub pdf_page_text: Option<String>,
+    pub docx_preview_text: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -249,6 +251,7 @@ fn document_projection_snapshot_inner(
         ocr_text: extras.ocr_text,
         epub_chapter_text: extras.epub_chapter_text,
         pdf_page_text: extras.pdf_page_text,
+        docx_preview_text: extras.docx_preview_text,
         unibrow_manifest: None,
     };
     if let Some(ub) = doc
@@ -363,4 +366,108 @@ pub fn ai_assistant_approve_pending(id: u64) -> Result<String, String> {
     session
         .approve_pending(id)
         .ok_or_else(|| "pending action not found".into())
+}
+
+#[derive(Deserialize)]
+pub struct AiChatRequest {
+    pub messages: Vec<ChatMessageDto>,
+    pub extras: ProjectionExtrasDto,
+    pub include_tab_context: bool,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct ChatMessageDto {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct AiChatDeltaPayload {
+    pub delta: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct AiChatDonePayload {
+    pub content: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct AiChatErrorPayload {
+    pub message: String,
+}
+
+#[tauri::command]
+pub fn ai_assistant_chat(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+    req: AiChatRequest,
+) -> Result<(), String> {
+    let prefs = load_prefs();
+    let cfg = ChatClientConfig {
+        base_url: prefs.base_url.clone(),
+        api_key: prefs.api_key.clone(),
+    };
+    let model = prefs
+        .model
+        .clone()
+        .filter(|m| !m.is_empty())
+        .unwrap_or_else(|| "gpt-4o-mini".into());
+    let ctx = active_context(state.inner(), window.label())?;
+    let mut guard = SESSION.lock().map_err(|e| e.to_string())?;
+    if guard.is_none() {
+        *guard = Some(session_from_prefs(&prefs));
+    }
+    let session = guard.as_mut().ok_or("session")?;
+    session.user_invoke();
+    let mut messages: Vec<ChatMessage> = req
+        .messages
+        .iter()
+        .map(|m| ChatMessage {
+            role: m.role.clone(),
+            content: m.content.clone(),
+        })
+        .collect();
+    if req.include_tab_context {
+        if !session.can_see_active_tab(&ctx) {
+            return Err("read not granted for active tab".into());
+        }
+        let dto = document_projection_snapshot_inner(window.label(), state.inner(), req.extras)?;
+        let context = format!(
+            "Active document projection (user granted Read):\n\n{}",
+            dto.text.chars().take(24_000).collect::<String>()
+        );
+        messages.insert(
+            0,
+            ChatMessage {
+                role: "system".into(),
+                content: context,
+            },
+        );
+    }
+    std::thread::spawn(move || {
+        let mut on_delta = |delta: &str| {
+            let _ = app.emit(
+                "ai-assistant-chat-delta",
+                AiChatDeltaPayload {
+                    delta: delta.to_string(),
+                },
+            );
+        };
+        let result = chat_completions_stream_collect(&cfg, &model, &messages, &mut on_delta);
+        match result {
+            Ok(full) => {
+                let _ = app.emit("ai-assistant-chat-done", AiChatDonePayload { content: full });
+            }
+            Err(e) => {
+                let _ = app.emit(
+                    "ai-assistant-chat-error",
+                    AiChatErrorPayload {
+                        message: e.to_string(),
+                    },
+                );
+            }
+        }
+    });
+    Ok(())
 }

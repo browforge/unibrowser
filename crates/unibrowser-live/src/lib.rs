@@ -8,6 +8,7 @@ mod clock;
 mod compositor;
 mod html_snapshot;
 mod scene;
+mod unibrow_scene;
 mod sink;
 mod source;
 
@@ -16,6 +17,7 @@ pub use clock::{DropFramePolicy, FrameClock, FrameTick};
 pub use compositor::{LiveCompositor, LiveCompositorConfig};
 pub use html_snapshot::{HtmlSnapshotKind, render_html_snapshot_rgba};
 pub use scene::{LiveLayer, LiveLayerKind, LiveScene, SceneId};
+pub use unibrow_scene::scene_from_unibrow_manifest;
 pub use sink::{FileVideoSink, LiveSessionReport, SinkKind};
 pub use source::{
     DataSample, DataSource, DataValue, LiveMediaSource, MediaFrame, MediaSource,

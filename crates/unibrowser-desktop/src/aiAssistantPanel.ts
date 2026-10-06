@@ -1,4 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { gatherProjectionExtras } from "./documentViewer";
+import { showErrorToast } from "./toast";
 import { t } from "./i18n";
 
 interface AiPrefs {
@@ -26,12 +29,78 @@ interface AiTool {
   reason: string | null;
 }
 
+interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
 let panelEl: HTMLElement | null = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
+let chatMessages: ChatMessage[] = [];
+let chatStreaming = false;
+let chatListenersReady = false;
 
 function configured(prefs: AiPrefs): boolean {
   return Boolean(prefs.base_url && prefs.base_url.trim().length > 0);
+}
+
+function viewerHost(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("#document-viewer-host");
+}
+
+async function ensureChatListeners() {
+  if (chatListenersReady) {
+    return;
+  }
+  chatListenersReady = true;
+  await listen<{ delta: string }>("ai-assistant-chat-delta", (ev) => {
+    const streamEl = panelEl?.querySelector(".ai-assistant-chat-stream");
+    if (streamEl) {
+      streamEl.textContent = (streamEl.textContent ?? "") + ev.payload.delta;
+    }
+  });
+  await listen<{ content: string }>("ai-assistant-chat-done", (ev) => {
+    chatStreaming = false;
+    chatMessages.push({ role: "assistant", content: ev.payload.content });
+    void refreshPanel();
+  });
+  await listen<{ message: string }>("ai-assistant-chat-error", (ev) => {
+    chatStreaming = false;
+    showErrorToast(ev.payload.message);
+    void refreshPanel();
+  });
+}
+
+async function sendChat(userText: string) {
+  if (!userText.trim() || chatStreaming) {
+    return;
+  }
+  await ensureChatListeners();
+  chatMessages.push({ role: "user", content: userText.trim() });
+  chatStreaming = true;
+  const host = viewerHost();
+  const extras = host ? gatherProjectionExtras(host) : {
+    web_dom_text: null,
+    ocr_text: null,
+    epub_chapter_text: null,
+    pdf_page_text: null,
+    docx_preview_text: null,
+  };
+  const status = await invoke<AiStatus>("ai_assistant_status");
+  try {
+    await invoke("ai_assistant_chat", {
+      req: {
+        messages: chatMessages.map((m) => ({ role: m.role, content: m.content })),
+        extras,
+        include_tab_context: status.can_see_tab,
+      },
+    });
+  } catch (e) {
+    chatStreaming = false;
+    showErrorToast(e);
+    void refreshPanel();
+  }
 }
 
 async function refreshPanel() {
@@ -60,17 +129,64 @@ async function refreshPanel() {
     return;
   }
 
+  const chatLog = document.createElement("div");
+  chatLog.className = "ai-assistant-chat-log";
+  for (const msg of chatMessages) {
+    const row = document.createElement("div");
+    row.className = `ai-assistant-chat-msg ai-assistant-chat-msg--${msg.role}`;
+    const label = document.createElement("strong");
+    label.textContent = msg.role === "user" ? t("aiAssistant.chatYou") : t("aiAssistant.chatAssistant");
+    row.appendChild(label);
+    const pre = document.createElement("pre");
+    pre.textContent = msg.content;
+    row.appendChild(pre);
+    chatLog.appendChild(row);
+  }
+  if (chatStreaming) {
+    const streamRow = document.createElement("div");
+    streamRow.className = "ai-assistant-chat-msg ai-assistant-chat-msg--assistant";
+    const streamPre = document.createElement("pre");
+    streamPre.className = "ai-assistant-chat-stream";
+    streamRow.appendChild(streamPre);
+    chatLog.appendChild(streamRow);
+  }
+  body.appendChild(chatLog);
+
+  const chatForm = document.createElement("div");
+  chatForm.className = "ai-assistant-chat-form";
+  const input = document.createElement("textarea");
+  input.rows = 2;
+  input.placeholder = t("aiAssistant.chatPlaceholder");
+  input.disabled = chatStreaming;
+  const sendBtn = document.createElement("button");
+  sendBtn.type = "button";
+  sendBtn.textContent = chatStreaming ? t("aiAssistant.chatStreaming") : t("aiAssistant.chatSend");
+  sendBtn.disabled = chatStreaming;
+  sendBtn.addEventListener("click", () => {
+    const text = input.value;
+    input.value = "";
+    void sendChat(text);
+  });
+  chatForm.appendChild(input);
+  chatForm.appendChild(sendBtn);
+  body.appendChild(chatForm);
+
   const readBtn = document.createElement("button");
   readBtn.type = "button";
   readBtn.textContent = t("aiAssistant.readTab");
   readBtn.addEventListener("click", async () => {
     await invoke("ai_assistant_invoke");
-    const webDom =
-      document.querySelector<HTMLElement>("#document-viewer-host")?.innerText?.slice(0, 12000) ??
-      undefined;
-    const text = await invoke<string>("ai_assistant_read_tab_text", {
-      extras: { web_dom_text: webDom ?? null, ocr_text: null, epub_chapter_text: null, pdf_page_text: null },
-    });
+    const host = viewerHost();
+    const extras = host
+      ? gatherProjectionExtras(host)
+      : {
+          web_dom_text: null,
+          ocr_text: null,
+          epub_chapter_text: null,
+          pdf_page_text: null,
+          docx_preview_text: null,
+        };
+    const text = await invoke<string>("ai_assistant_read_tab_text", { extras });
     const pre = document.createElement("pre");
     pre.className = "ai-assistant-projection";
     pre.textContent = text;

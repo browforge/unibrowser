@@ -12,7 +12,8 @@ use live_proving::{
 use serde::Serialize;
 use tauri::State;
 use unibrowser_live::{
-    run_live_session_to_file, FileVideoSink, FrameClock, LiveCompositor, LiveScene,
+    run_live_session_to_file, scene_from_unibrow_manifest, FileVideoSink, FrameClock,
+    LiveCompositor, LiveScene,
 };
 use unibrowser_project::is_unibrow_path;
 
@@ -37,8 +38,14 @@ pub struct LiveHostState {
 }
 
 impl LiveHostState {
-    fn new_proving() -> Self {
-        let scene = LiveScene::proving_full_stack(OVERLAY_SVG.to_string());
+    fn from_project_path(project_path: &str) -> Result<Self, String> {
+        let root = std::path::Path::new(project_path);
+        let pkg = unibrowser_project::open_package(root).map_err(|e| e.to_string())?;
+        let scene = scene_from_unibrow_manifest(&pkg.manifest, &pkg.root);
+        Ok(Self::from_scene(scene))
+    }
+
+    fn from_scene(scene: LiveScene) -> Self {
         let w = scene.width;
         let h = scene.height;
         Self {
@@ -52,6 +59,10 @@ impl LiveHostState {
             sink: None,
             record_path: None,
         }
+    }
+
+    fn new_proving() -> Self {
+        Self::from_scene(LiveScene::proving_full_stack(OVERLAY_SVG.to_string()))
     }
 
     fn elapsed_sec(&self) -> f64 {
@@ -131,7 +142,8 @@ pub fn set_unibrow_live_mode(
     let _path = active_unibrow_project_path(state.inner(), &label)?;
     let mut map = live_by_window().lock().map_err(|e| e.to_string())?;
     if enabled {
-        map.insert(label, LiveHostState::new_proving());
+        let host = LiveHostState::from_project_path(&_path).unwrap_or_else(|_| LiveHostState::new_proving());
+        map.insert(label, host);
     } else {
         if let Some(mut host) = map.remove(&label) {
             if host.recording {
@@ -229,7 +241,10 @@ pub fn record_unibrow_live_clip(
 ) -> Result<String, String> {
     let label = window.label().to_string();
     let project_path = active_unibrow_project_path(state.inner(), &label)?;
-    let scene = LiveScene::proving_full_stack(OVERLAY_SVG.to_string());
+    let root = std::path::Path::new(&project_path);
+    let scene = unibrowser_project::open_package(root)
+        .map(|pkg| scene_from_unibrow_manifest(&pkg.manifest, &pkg.root))
+        .unwrap_or_else(|_| LiveScene::proving_full_stack(OVERLAY_SVG.to_string()));
     let mut pattern = test_pattern_source(scene.width, scene.height);
     let mut sine = sine_temperature_source();
     let mut media: HashMap<String, &mut dyn unibrowser_live::MediaSource> = HashMap::new();
