@@ -4005,3 +4005,125 @@ html[data-reduce-motion="true"] *::after {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+.recovery-bar-host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--surface-elevated, #2a2a34);
+  border-bottom: 1px solid var(--border-subtle, #444);
+}
+
+.recovery-bar-host.hidden {
+  display: none;
+}
+
+.recovery-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.recovery-bar-row button {
+  font-size: 0.85rem;
+}
+
+.inline-ui-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4rem 1rem 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+
+.inline-ui-layer.hidden {
+  display: none;
+}
+
+.inline-ui-layer--pick {
+  background: transparent;
+  align-items: flex-start;
+  padding-top: 5.5rem;
+  pointer-events: none;
+}
+
+.inline-ui-layer--pick .inline-ui-card {
+  pointer-events: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.inline-ui-card {
+  max-width: 28rem;
+  padding: 1rem 1.1rem;
+  background: var(--surface-elevated, #2a2a34);
+  border: 1px solid var(--border-subtle, #555);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.inline-ui-card--list {
+  max-width: 32rem;
+}
+
+.inline-ui-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.inline-ui-pick-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  max-height: 16rem;
+  overflow: auto;
+}
+
+.inline-ui-pick-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  margin: 0.15rem 0;
+  border-radius: 4px;
+}
+
+.inline-ui-pick-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.inline-ui-cancel {
+  margin-top: 0.5rem;
+}
+
+.docx-locator-flash,
+.dxf-locator-flash,
+.pdf-locator-flash {
+  outline: 2px solid #6cf;
+  outline-offset: 2px;
+}
+
+.image-locator-flash {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 2px solid #6cf;
+  background: rgba(102, 204, 255, 0.2);
+}
+
+.image-crop-host {
+  position: relative;
+}
+
+.unibrow-timeline-block--selected {
+  outline: 2px solid #ffe566;
+  z-index: 2;
+}

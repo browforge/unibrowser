@@ -3,7 +3,7 @@
 use std::sync::{Mutex, OnceLock};
 
 use serde::Serialize;
-use unibrowser_diagnostics::{Locator, Problem, Severity};
+use unibrowser_diagnostics::{Locator, NavigationTarget, Problem, Severity, navigation_target};
 
 static PROBLEMS: OnceLock<Mutex<Vec<Problem>>> = OnceLock::new();
 
@@ -41,6 +41,7 @@ pub struct ProblemDto {
     pub message: String,
     pub locator_kind: String,
     pub navigate_hint: Option<String>,
+    pub navigation: NavigationTarget,
 }
 
 pub fn problem_to_dto(p: &Problem) -> ProblemDto {
@@ -80,5 +81,6 @@ pub fn problem_to_dto(p: &Problem) -> ProblemDto {
         message: p.message.clone(),
         locator_kind,
         navigate_hint,
+        navigation: navigation_target(&p.locator),
     }
 }

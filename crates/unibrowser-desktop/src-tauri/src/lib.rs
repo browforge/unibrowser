@@ -60,6 +60,7 @@ mod listing_control;
 mod trash;
 mod closed_tabs;
 mod close_undo;
+mod crash_launch;
 mod lsp_host;
 mod problems_store;
 pub mod window_session;
@@ -143,6 +144,8 @@ pub fn run() {
             commands::toggle_tab_mute,
             commands::close_tab,
             commands::undo_close_tab,
+            commands::reload_active_tab_from_disk,
+            commands::dismiss_recovery_bar_item,
             commands::search_open_tabs,
             commands::activate_tab_in_window,
             commands::open_crash_logs_folder,
@@ -256,6 +259,7 @@ pub fn run() {
             commands::open_path_in_new_tab,
             commands::open_selected_paths,
             commands::web_find_in_page,
+            commands::focus_content_dom_selector,
             commands::reveal_path_in_system,
             commands::toggle_folder_favorite,
             commands::set_workspace_root,

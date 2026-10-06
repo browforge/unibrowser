@@ -576,3 +576,50 @@ window.addEventListener("unibrowser-spellcheck-pref", () => {
     detachSpellcheckPane();
   }
 });
+
+export function navigateToTextLineCol(
+  line: number,
+  col: number,
+  endLine?: number,
+  endCol?: number,
+) {
+  if (!editor) {
+    return;
+  }
+  const startLine = Math.max(1, line);
+  const startCol = Math.max(1, col);
+  const endL = Math.max(1, endLine ?? line);
+  const endC = Math.max(1, endCol ?? col);
+  editor.setSelection({
+    startLineNumber: startLine,
+    startColumn: startCol,
+    endLineNumber: endL,
+    endColumn: endC,
+  });
+  editor.revealLineInCenter(startLine);
+}
+
+export function navigateToTextByteRange(startByte: number, endByte: number) {
+  if (!editor) {
+    return;
+  }
+  const model = editor.getModel();
+  if (!model) {
+    return;
+  }
+  const max = model.getValueLength();
+  const start = model.getPositionAt(Math.min(Math.max(0, startByte), max));
+  const end = model.getPositionAt(Math.min(Math.max(0, endByte), max));
+  editor.setSelection({
+    startLineNumber: start.lineNumber,
+    startColumn: start.column,
+    endLineNumber: end.lineNumber,
+    endColumn: end.column,
+  });
+  editor.revealRangeInCenter({
+    startLineNumber: start.lineNumber,
+    startColumn: start.column,
+    endLineNumber: end.lineNumber,
+    endColumn: end.column,
+  });
+}

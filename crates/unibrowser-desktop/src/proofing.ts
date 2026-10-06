@@ -92,8 +92,7 @@ async function runEditorProofing(
       },
     });
     lastDiagnostics = diags;
-    const { refreshProblemsPanel } = await import("./problemsPanel");
-    refreshProblemsPanel();
+    void import("./problemsPanel").then((m) => m.refreshProblemsPanel());
     const markers = diags.map((d) => {
       const start = model.getPositionAt(d.start);
       const end = model.getPositionAt(d.end);

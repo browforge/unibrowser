@@ -70,6 +70,9 @@ import { initHttpLoadingListeners, syncHttpLoadingForTab } from "./httpLoadingOv
 import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
 import { maybePromptProjectRecovery } from "./projectRecoveryPrompt";
+import { renderRecoveryBar, type RecoveryBarItem } from "./recoveryBar";
+import { showInlineConfirm, showPickList } from "./inlineUi";
+import { initLocatorNavigationListeners } from "./locatorListeners";
 import { showOnboardingTour } from "./onboardingTour";
 import {
   appendScriptOutput,
@@ -239,6 +242,7 @@ interface TabContentDto {
   download_history?: DownloadHistoryEntryDto[];
   bookmark_bar_enabled?: boolean;
   bookmark_quick_links?: BookmarkQuickLinkDto[];
+  recovery_bar?: RecoveryBarItem[];
 }
 
 interface BookmarkQuickLinkDto {
@@ -503,10 +507,6 @@ function renderTabs(data: TabContentDto) {
       }
       e.preventDefault();
       e.stopPropagation();
-      if (tab.pinned) {
-        showToast(t("tabs.pinnedNoClose"), "info");
-        return;
-      }
       void closeTabAt(index, tab.dirty);
     });
     btn.onclick = (e) => {
@@ -1748,6 +1748,12 @@ async function applyState(data: TabContentDto) {
     fontLabel.title = fontResetable ? t("status.fontResetTitle") : "";
   }
   refreshStatusBar(data, active, showText, showViewer);
+  const recoveryHost = document.getElementById("recovery-bar-host");
+  if (recoveryHost) {
+    renderRecoveryBar(recoveryHost, data.recovery_bar ?? [], () => {
+      void refreshState();
+    });
+  }
   await refreshAiAssistantChrome();
   await refreshCommandManager();
   await syncContentBounds();
@@ -1777,15 +1783,16 @@ async function openAutosaveRestorePicker() {
     showToast(t("autosave.noSlots"), "info");
     return;
   }
-  const labels = slots.map((s) => {
+  const items = slots.map((s, i) => {
     const when = new Date(s.saved_at_ms).toLocaleString();
-    return `${when} — ${s.path.split("/").pop() ?? s.path}`;
+    const name = s.path.split("/").pop() ?? s.path;
+    return { id: String(i), label: `${when} — ${name}`, detail: s.path };
   });
-  const pick = window.prompt(`${t("autosave.pickSlot")}\n${labels.join("\n")}`, "0");
-  if (pick === null) {
+  const picked = await showPickList(t("autosave.pickSlot"), items);
+  if (!picked) {
     return;
   }
-  const idx = Number.parseInt(pick, 10);
+  const idx = Number.parseInt(picked.id, 10);
   const slot = slots[Number.isNaN(idx) ? 0 : idx] ?? slots[0];
   const data = await invoke<TabContentDto>("restore_autosave_from_slot", {
     slotPath: slot.path,
@@ -1834,7 +1841,7 @@ async function confirmInsecureHttpNavigation(input: string): Promise<boolean> {
   if (!prefs.warn_insecure_http || !isInsecureHttpNavigation(input)) {
     return true;
   }
-  return window.confirm(t("omnibox.insecureHttpConfirm"));
+  return showInlineConfirm(t("omnibox.insecureHttpConfirm"));
 }
 
 async function navigateOmnibox() {
@@ -2381,6 +2388,7 @@ void invoke<{ editor_theme_id: string }>("get_preferences").then((prefs) => {
 void loadAccessibilityPreferences();
 void loadExperimentalSpellcheckPref();
 void loadProofingPrefs();
+initLocatorNavigationListeners();
 window.addEventListener("focus", () => {
   void invoke("reload_keybindings").then(() => loadKeybindingHints());
 });

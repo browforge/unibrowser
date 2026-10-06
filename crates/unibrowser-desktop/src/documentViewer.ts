@@ -23,6 +23,8 @@ import {
   setImagePixelSample,
 } from "./viewerPixelSample";
 import { t } from "./i18n";
+import { clearViewerLocatorBridge, setViewerLocatorBridge } from "./locatorViewerBridge";
+import { showInlineAlert, showInlineConfirm, showInlinePrompt } from "./inlineUi";
 import {
   downloadPrintFriendlyHtml,
   openPrintFriendlyDocument,
@@ -630,6 +632,18 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   root.appendChild(banner);
   root.appendChild(toolbar);
   root.appendChild(article);
+  setViewerLocatorBridge({
+    docxParagraph: (paragraphIndex) => {
+      const nodes = article.querySelectorAll("p, h1, h2, h3, h4, li");
+      const target = nodes[paragraphIndex] ?? nodes[0];
+      if (!target) {
+        return;
+      }
+      target.classList.add("docx-locator-flash");
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+      window.setTimeout(() => target.classList.remove("docx-locator-flash"), 2400);
+    },
+  });
   bindPreviewLinks(article, path);
   if (result.messages.length) {
     const note = document.createElement("p");
@@ -1008,6 +1022,26 @@ async function renderPdf(
 
   await drawPage(currentPage);
   updateThumbActive();
+  setViewerLocatorBridge({
+    pdfRegion: (page, x, y, w, h) => {
+      void goToPage(page).then(() => {
+        const overlay = wrap.querySelector<HTMLElement>(".pdf-page-overlay");
+        if (!overlay) {
+          return;
+        }
+        const flash = document.createElement("div");
+        flash.className = "pdf-highlight-rect pdf-locator-flash";
+        const width = overlay.clientWidth;
+        const height = overlay.clientHeight;
+        flash.style.left = `${x * width}px`;
+        flash.style.top = `${y * height}px`;
+        flash.style.width = `${w * width}px`;
+        flash.style.height = `${h * height}px`;
+        overlay.appendChild(flash);
+        window.setTimeout(() => flash.remove(), 2400);
+      });
+    },
+  });
   const meta = document.createElement("p");
   meta.className = "viewer-note";
   meta.textContent =
@@ -1218,6 +1252,8 @@ async function renderAudio(
 type DxfVertex = { x: number; y: number; z?: number };
 type DxfEntity = {
   type: string;
+  handle?: string;
+  id?: string | number;
   layer?: string;
   vertices?: DxfVertex[];
   center?: DxfVertex;
@@ -1929,6 +1965,18 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   };
 
   applyTransform();
+  setViewerLocatorBridge({
+    imageRegion: (x, y, w, h) => {
+      const box = document.createElement("div");
+      box.className = "image-locator-flash";
+      box.style.left = `${x * 100}%`;
+      box.style.top = `${y * 100}%`;
+      box.style.width = `${w * 100}%`;
+      box.style.height = `${h * 100}%`;
+      cropHost.appendChild(box);
+      window.setTimeout(() => box.remove(), 2400);
+    },
+  });
   const note = document.createElement("p");
   note.className = "viewer-note";
   note.textContent = t("image.toolbarNote");
@@ -2073,6 +2121,30 @@ async function renderDxf(path: string, root: HTMLElement) {
     return allSegs;
   };
 
+  const registerDxfLocator = (onZoom?: () => void) => {
+    setViewerLocatorBridge({
+      dxfEntity: (handle, layer) => {
+        const layerItem = layerList.querySelector(`label[for="dxf-layer-${layer}"]`);
+        layerItem?.classList.add("dxf-locator-flash");
+        window.setTimeout(() => layerItem?.classList.remove("dxf-locator-flash"), 2400);
+        const ent = entities.find(
+          (e) => String(e.handle ?? "") === handle || String(e.id ?? "") === handle,
+        );
+        const layerName = ent?.layer ?? layer;
+        if (layerName && layerVisible.get(layerName) === false) {
+          const cb = layerList.querySelector<HTMLInputElement>(`#dxf-layer-${layerName}`);
+          if (cb) {
+            cb.checked = true;
+            layerVisible.set(layerName, true);
+            onZoom?.();
+          }
+        }
+        onZoom?.();
+        geomTitle.textContent = handle ? `Geometry · ${handle}` : "Geometry";
+      },
+    });
+  };
+
   if (!THREE) {
     const note = document.createElement("p");
     note.className = "viewer-note";
@@ -2111,6 +2183,7 @@ async function renderDxf(path: string, root: HTMLElement) {
       );
     }
     wrap.appendChild(svg);
+    registerDxfLocator();
     return;
   }
 
@@ -2207,6 +2280,10 @@ async function renderDxf(path: string, root: HTMLElement) {
   meta.className = "viewer-note";
   meta.textContent = `DXF: ${entities.length} entities · toggle layers · drag pan · wheel zoom`;
   canvasCol.appendChild(meta);
+  registerDxfLocator(() => {
+    zoom = Math.min(20, zoom * 1.35);
+    rebuild();
+  });
 }
 
 function renderMidi(viewer: DocumentViewerDto, root: HTMLElement) {
@@ -2654,6 +2731,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     return ratio * totalSec;
   };
 
+  const timelineBlocks: HTMLElement[] = [];
   clips.forEach((clip) => {
     const block = document.createElement("div");
     block.className = "unibrow-timeline-block";
@@ -2750,6 +2828,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       block.addEventListener("pointerup", onUp);
     });
 
+    timelineBlocks.push(block);
     track.appendChild(block);
   });
   transitions.forEach((tr) => {
@@ -2917,6 +2996,28 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     void updatePlayheadPreview(0);
   }
 
+  setViewerLocatorBridge({
+    timelineRange: (trackName, t0Ms) => {
+      const sec = t0Ms / 1000;
+      playheadSec = sec;
+      playhead.value = String(Math.floor(sec * 10));
+      playheadTime.textContent = `${sec.toFixed(1)}s`;
+      void updatePlayheadPreview(sec);
+      timelineBlocks.forEach((b) => b.classList.remove("unibrow-timeline-block--selected"));
+      const idx = clips.findIndex(
+        (c) =>
+          c.node_type === trackName ||
+          c.node_id === trackName ||
+          (c.start_sec <= sec && c.start_sec + c.duration_sec >= sec),
+      );
+      const block = idx >= 0 ? timelineBlocks[idx] : null;
+      if (block) {
+        block.classList.add("unibrow-timeline-block--selected");
+        block.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      }
+    },
+  });
+
   const markerRow = document.createElement("div");
   markerRow.className = "unibrow-timeline-markers";
   const markerTitle = document.createElement("h4");
@@ -2927,7 +3028,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   addMarkerBtn.textContent = "Add marker at playhead";
   addMarkerBtn.setAttribute("aria-label", "Add chapter marker at playhead");
   addMarkerBtn.onclick = async () => {
-    const title = window.prompt("Marker title", `Chapter ${markers.length + 1}`);
+    const title = await showInlinePrompt(
+      "Marker title",
+      `Chapter ${markers.length + 1}`,
+    );
     if (!title) {
       return;
     }
@@ -3026,7 +3130,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     if (!path) {
       return;
     }
-    const pageRaw = window.prompt(t("unibrow.pdfPagePrompt"), "1");
+    const pageRaw = await showInlinePrompt(t("unibrow.pdfPagePrompt"), "1");
     if (pageRaw === null) {
       return;
     }
@@ -3064,7 +3168,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   addTitleBtn.type = "button";
   addTitleBtn.textContent = t("unibrow.addTitleCard");
   addTitleBtn.onclick = async () => {
-    const text = window.prompt(t("unibrow.titleCardPrompt"), t("unibrow.titleCardDefault"));
+    const text = await showInlinePrompt(
+      t("unibrow.titleCardPrompt"),
+      t("unibrow.titleCardDefault"),
+    );
     if (!text?.trim()) {
       return;
     }
@@ -3350,7 +3457,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
           showToast("Move playhead onto this clip first.", "error");
           return;
         }
-        const name = window.prompt("Marker label", `Cue ${(clip.clip_markers?.length ?? 0) + 1}`);
+        const name = await showInlinePrompt(
+          "Marker label",
+          `Cue ${(clip.clip_markers?.length ?? 0) + 1}`,
+        );
         if (!name) {
           return;
         }
@@ -3539,7 +3649,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       remove.type = "button";
       remove.textContent = "Remove";
       remove.onclick = async () => {
-        if (!window.confirm(`Remove “${node.label}” from the project?`)) {
+        if (!(await showInlineConfirm(`Remove “${node.label}” from the project?`))) {
           return;
         }
         const data = await invoke("remove_unibrow_node", {
@@ -3576,9 +3686,9 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       removeOrphan.textContent = "Remove";
       removeOrphan.onclick = async () => {
         if (
-          !window.confirm(
+          !(await showInlineConfirm(
             `Remove unused asset “${file}” from the project folder? This cannot be undone.`,
-          )
+          ))
         ) {
           return;
         }
@@ -3688,7 +3798,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       status.textContent = `Exported to ${dest}`;
       root.appendChild(status);
     } catch (err) {
-      window.alert(String(err));
+      showInlineAlert(String(err));
     }
   };
   root.appendChild(exportBtn);
@@ -3717,7 +3827,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   shareImportBtn.textContent = "Import share package…";
   shareImportBtn.setAttribute("aria-label", "Import collaboration share zip as new project");
   shareImportBtn.onclick = async () => {
-    const name = window.prompt("Folder name for imported project", "SharedProject");
+    const name = await showInlinePrompt("Folder name for imported project", "SharedProject");
     if (!name) {
       return;
     }
@@ -4087,6 +4197,17 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
   layout.appendChild(previewRow);
   layout.appendChild(ta);
   mountSvgInspector(preview, ta, syncRust);
+  setViewerLocatorBridge({
+    svgTextOffset: (startByte, endByte) => {
+      ta.focus();
+      const len = ta.value.length;
+      const start = Math.min(Math.max(0, startByte), len);
+      const end = Math.min(Math.max(start, endByte), len);
+      ta.setSelectionRange(start, end);
+      const lineHeight = 18;
+      ta.scrollTop = Math.max(0, Math.floor(start / 80) * lineHeight - 40);
+    },
+  });
   const note = document.createElement("p");
   note.className = "viewer-note";
   note.textContent =
@@ -4319,6 +4440,7 @@ export const documentViewer = {
   hide(el: HTMLElement) {
     viewerZoomAdjust = null;
     setViewerFindRunner(null);
+    clearViewerLocatorBridge();
     el.classList.add("hidden");
   },
   getPrintHtmlForPdf(el: HTMLElement): { title: string; html: string } | null {

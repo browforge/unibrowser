@@ -347,6 +347,7 @@ pub struct TabContentDto {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extension_tip: Option<ExtensionTipDto>,
     pub close_undo_available: bool,
+    pub recovery_bar: Vec<crate::crash_launch::RecoveryBarItemDto>,
     pub ntp_sections: NtpSectionsDto,
     pub files_view: FilesViewDto,
     pub folder_favorites: Vec<String>,
@@ -505,7 +506,10 @@ fn ws(state: &State<AppState>, window: &tauri::Window) -> Result<crate::window_s
     ws_state(state.inner(), window)
 }
 
-fn ws_label(state: &AppState, label: &str) -> Result<crate::window_session::SharedWindowSession, String> {
+pub(crate) fn ws_label(
+    state: &AppState,
+    label: &str,
+) -> Result<crate::window_session::SharedWindowSession, String> {
     state.session(label)
 }
 
@@ -1289,6 +1293,11 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .lock()
         .map(|s| s.peek_available())
         .unwrap_or(false);
+    let recovery_bar = sess
+        .recovery_bar
+        .lock()
+        .map(|b| b.items.clone())
+        .unwrap_or_default();
     let (git_is_repo, git_dirty_paths) =
         crate::git_status::status_for_folder(Path::new(&browse_folder_path));
     Ok(TabContentDto {
@@ -1334,6 +1343,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         chrome_notice,
         extension_tip,
         close_undo_available,
+        recovery_bar,
         ntp_sections: ntp_sections_dto(&prefs),
         files_view: files_view_dto(&prefs),
         folder_favorites: prefs.folder_favorites.clone(),
@@ -1611,9 +1621,6 @@ pub fn close_tab(window: tauri::Window,
             return Err("invalid tab index".into());
         }
         let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
-        if tab.pinned {
-            return Err("pinned: unpin tab before closing".into());
-        }
         let was_dirty = tab_is_dirty(tab);
         let closed_loc = tab.location.clone();
         let autosave = if let Some(tab) = tabs.tab_mut(index) {
@@ -1806,17 +1813,12 @@ fn apply_session_to_window(
     entry: &crate::session::WindowSessionEntry,
 ) -> Result<(), String> {
     let pending_recovery = crate::project_recovery::pending_recovery_path_set(&state.cwd);
-    let pending_crash = crate::crash_recovery::pending_recovery_path_set(&state.cwd);
     let mut locations = Vec::new();
     for input in &entry.tab_inputs {
         if crate::project_recovery::session_tab_deferred_for_recovery(
             input,
             &state.cwd,
             &pending_recovery,
-        ) || crate::project_recovery::session_tab_deferred_for_recovery(
-            input,
-            &state.cwd,
-            &pending_crash,
         ) {
             continue;
         }
@@ -1903,6 +1905,7 @@ pub fn restore_session_on_launch(state: &AppState, app: &AppHandle) -> Result<()
             ensure_browser_window(app, &label)?;
         }
         apply_session_to_window(state, app, &label, entry)?;
+        let _ = crate::crash_launch::apply_crash_backups_after_session(state, app, &label);
     }
     Ok(())
 }
@@ -2165,6 +2168,15 @@ pub fn web_find_in_page(
     app: AppHandle,
 ) -> Result<(), String> {
     crate::webview_find::find_in_content_webview(&app, window.label(), &query, forward)
+}
+
+#[tauri::command]
+pub fn focus_content_dom_selector(
+    window: tauri::Window,
+    selector: String,
+    app: AppHandle,
+) -> Result<(), String> {
+    crate::webview_find::focus_dom_in_content_webview(&app, window.label(), &selector)
 }
 
 #[tauri::command]
@@ -5867,18 +5879,7 @@ pub fn restore_crash_recovery_backup(window: tauri::Window,
     if doc.path != record.path {
         return Err("restore path mismatch".into());
     }
-    if record.backend_id == base_text::BACKEND_ID {
-        let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
-        backend.set_content(record.content);
-    } else if record.backend_id == base_js::BACKEND_ID {
-        let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not a script document")?;
-        backend.set_content(record.content);
-    } else if record.backend_id == base_svg::BACKEND_ID {
-        let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
-        backend.set_content(record.content);
-    } else {
-        return Err("unsupported backup type".into());
-    }
+    crate::autosave::apply_saved_content(doc, &record.backend_id, &record.content)?;
     update_content_webview(&app, window.label(), &loc)?;
     let _ = crate::crash_recovery::dismiss_backup(&backup_id);
     snapshot(&state, window.label())
@@ -6021,6 +6022,38 @@ pub fn get_autosave_status() -> AutosaveTickDto {
 }
 
 #[tauri::command]
+pub fn reload_active_tab_from_disk(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+    let loc = tab.location.clone();
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    tab.location = loc.clone();
+    tab.is_directory = is_dir;
+    tab.document = doc;
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn dismiss_recovery_bar_item(
+    window: tauri::Window,
+    state: State<AppState>,
+    backup_id: String,
+) -> Result<TabContentDto, String> {
+    crate::crash_recovery::dismiss_backup(&backup_id)?;
+    let _sess_tabs = ws(&state, &window)?;
+    if let Ok(mut bar) = _sess_tabs.recovery_bar.lock() {
+        bar.items.retain(|i| i.backup_id != backup_id);
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
 pub fn list_autosave_slots_for_active_tab(
     window: tauri::Window,
     state: State<AppState>,
@@ -6150,28 +6183,7 @@ fn write_active_text_autosave_slot(doc: &mut DocumentSession) -> Result<(), Stri
 }
 
 fn apply_autosave_record(doc: &mut DocumentSession, record: &crate::autosave::AutosaveSlotRecord) -> Result<(), String> {
-    if record.backend_id != doc.backend.backend_id() {
-        return Err("autosave backend mismatch".into());
-    }
-    if record.backend_id == base_text::BACKEND_ID {
-        let backend = try_text_backend(&mut *doc.backend).ok_or("not text")?;
-        backend.set_content(record.content.clone());
-    } else if record.backend_id == base_js::BACKEND_ID {
-        let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not js")?;
-        backend.set_content(record.content.clone());
-    } else if record.backend_id == base_svg::BACKEND_ID {
-        let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not svg")?;
-        backend.set_content(record.content.clone());
-    } else if record.backend_id == crate::project_backend::BACKEND_ID {
-        let backend =
-            crate::project_backend::try_unibrow_backend(&mut *doc.backend).ok_or("not unibrow")?;
-        let manifest: unibrowser_project::ProjectManifest =
-            serde_json::from_str(&record.content).map_err(|e| e.to_string())?;
-        backend.package.manifest = manifest;
-    } else {
-        return Err("restore not supported for this backend".into());
-    }
-    Ok(())
+    crate::autosave::apply_saved_content(doc, &record.backend_id, &record.content)
 }
 
 fn pick_text_save_path(app: &AppHandle, current: &str) -> Result<String, String> {
@@ -7831,7 +7843,7 @@ fn active_tab_muted(state: &AppState, window_label: &str) -> bool {
     tabs.active_tab().map(|t| t.muted).unwrap_or(false)
 }
 
-fn update_content_webview(
+pub(crate) fn update_content_webview(
     app: &AppHandle,
     window_label: &str,
     loc: &BrowserLocation,

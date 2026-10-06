@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "./i18n";
+import { showInlineConfirm } from "./inlineUi";
 
 export interface ProjectRecoveryBackupDto {
   backup_id: string;
@@ -20,7 +21,7 @@ function formatWhen(ms: number): string {
   }
 }
 
-/** Simple launch prompt when debounced project.json backups exist. */
+/** Non-modal launch flow when debounced project.json backups exist. */
 export async function maybePromptProjectRecovery(
   onRestored: (data: unknown) => void,
 ): Promise<void> {
@@ -35,7 +36,7 @@ export async function maybePromptProjectRecovery(
       path: latest.project_path,
       when,
     });
-    const restore = window.confirm(message);
+    const restore = await showInlineConfirm(message, t("recoveryBar.viewOriginal"), "Not now");
     if (restore) {
       const data = await invoke("restore_project_recovery_backup", {
         backupId: latest.backup_id,
@@ -43,7 +44,7 @@ export async function maybePromptProjectRecovery(
       onRestored(data);
       return;
     }
-    const dismiss = window.confirm(t("projectRecovery.dismissAllConfirm"));
+    const dismiss = await showInlineConfirm(t("projectRecovery.dismissAllConfirm"));
     if (dismiss) {
       for (const row of backups) {
         await invoke("dismiss_project_recovery_backup", { backupId: row.backup_id });

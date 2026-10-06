@@ -1,4 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+import { navigateToTarget, type NavigationTarget } from "./locatorNavigate";
+
 interface ProblemDto {
   id: string;
   source: string;
@@ -6,6 +8,7 @@ interface ProblemDto {
   message: string;
   locator_kind: string;
   navigate_hint: string | null;
+  navigation: NavigationTarget;
 }
 
 let panelEl: HTMLElement | null = null;
@@ -33,9 +36,7 @@ async function refresh() {
       li.title = `${p.locator_kind}: ${p.navigate_hint}`;
     }
     li.addEventListener("click", () => {
-      window.dispatchEvent(
-        new CustomEvent("unibrowser-navigate-problem", { detail: p }),
-      );
+      void navigateToTarget(p.navigation);
     });
     ul.appendChild(li);
   }

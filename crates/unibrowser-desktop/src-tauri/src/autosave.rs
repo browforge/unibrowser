@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::config_dir;
 use crate::preferences::load_preferences;
+use unibrowser_engine::document::DocumentSession;
 
 static LAST_AUTOSAVE_MS: OnceLock<Mutex<u64>> = OnceLock::new();
 
@@ -133,6 +134,57 @@ pub fn read_latest_autosave_content(document_path: &str) -> Result<Option<Autosa
     };
     let text = std::fs::read_to_string(&latest.path).map_err(|e| e.to_string())?;
     serde_json::from_str(&text).map_err(|e| e.to_string()).map(Some)
+}
+
+/// Restore editor buffer from autosave / crash-recovery payload.
+pub fn apply_saved_content(
+    doc: &mut DocumentSession,
+    backend_id: &str,
+    content: &str,
+) -> Result<(), String> {
+    if backend_id != doc.backend.backend_id() {
+        return Err("backend mismatch".into());
+    }
+    if backend_id == base_text::BACKEND_ID {
+        let backend = base_text::try_text_backend(&mut *doc.backend).ok_or("not text")?;
+        backend.set_content(content.to_string());
+    } else if backend_id == base_js::BACKEND_ID {
+        let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not js")?;
+        backend.set_content(content.to_string());
+    } else if backend_id == base_svg::BACKEND_ID {
+        let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not svg")?;
+        backend.set_content(content.to_string());
+    } else if backend_id == crate::project_backend::BACKEND_ID {
+        let backend =
+            crate::project_backend::try_unibrow_backend(&mut *doc.backend).ok_or("not unibrow")?;
+        let manifest: unibrowser_project::ProjectManifest =
+            serde_json::from_str(content).map_err(|e| e.to_string())?;
+        backend.package.manifest = manifest;
+    } else if backend_id == base_docx::BACKEND_ID {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(content) {
+            if let Some(pt) = v.get("reader_font_pt").and_then(|n| n.as_f64()) {
+                crate::preferences::remember_docx_reader_font(&doc.path, pt as f32);
+            }
+        }
+    } else if backend_id == base_png::BACKEND_ID {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(content) {
+            if let Some(b) = base_png::try_png_backend(&mut *doc.backend) {
+                if let Some(label) = v.get("text_layer").and_then(|x| x.as_str()) {
+                    let font = v
+                        .get("font_pt")
+                        .and_then(|n| n.as_f64())
+                        .unwrap_or(18.0) as f32;
+                    b.text_layer = Some(base_png::TextLayer {
+                        label: label.to_string(),
+                        font_size_pt: font,
+                    });
+                }
+            }
+        }
+    } else {
+        return Err("restore not supported for this backend".into());
+    }
+    Ok(())
 }
 
 #[cfg(test)]

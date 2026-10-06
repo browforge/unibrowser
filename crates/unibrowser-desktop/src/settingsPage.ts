@@ -27,6 +27,7 @@ import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
 import { setExperimentalSpellcheckEnabled } from "./experimentalSpellcheck";
 import { setProofingSquigglesEnabled } from "./proofing";
 import { showErrorToast, showToast } from "./toast";
+import { showInlineConfirm } from "./inlineUi";
 
 interface NtpSectionsDto {
   show_hero: boolean;
@@ -831,7 +832,7 @@ export async function renderSettings(root: HTMLElement) {
   resetOnboardingBtn.type = "button";
   resetOnboardingBtn.textContent = t("settings.resetOnboarding");
   resetOnboardingBtn.onclick = async () => {
-    if (!window.confirm(t("settings.resetOnboardingConfirm"))) {
+    if (!(await showInlineConfirm(t("settings.resetOnboardingConfirm")))) {
       return;
     }
     try {
@@ -845,7 +846,7 @@ export async function renderSettings(root: HTMLElement) {
   clearRecentBtn.type = "button";
   clearRecentBtn.textContent = t("settings.clearRecentFiles");
   clearRecentBtn.onclick = async () => {
-    if (!window.confirm(t("settings.clearRecentFilesConfirm"))) {
+    if (!(await showInlineConfirm(t("settings.clearRecentFilesConfirm")))) {
       return;
     }
     try {
@@ -859,7 +860,7 @@ export async function renderSettings(root: HTMLElement) {
   resetToolbarsBtn.type = "button";
   resetToolbarsBtn.textContent = t("settings.resetFloatingToolbars");
   resetToolbarsBtn.onclick = async () => {
-    if (!window.confirm(t("settings.resetFloatingToolbarsConfirm"))) {
+    if (!(await showInlineConfirm(t("settings.resetFloatingToolbarsConfirm")))) {
       return;
     }
     try {

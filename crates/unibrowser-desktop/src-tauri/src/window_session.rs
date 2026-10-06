@@ -7,6 +7,7 @@ use unibrowser_engine::TabManager;
 use unibrowser_mod_api::BrowserLocation;
 
 use crate::close_undo::CloseUndoStack;
+use crate::crash_launch::RecoveryBarState;
 use crate::closed_tabs::ClosedTabStack;
 use crate::state::{FileCompareState, ImageCompareState, SplitViewState};
 use crate::undo_stack::UndoStacks;
@@ -15,6 +16,7 @@ pub struct WindowSession {
     pub tabs: Mutex<TabManager>,
     pub closed_tabs: Mutex<ClosedTabStack>,
     pub close_undo: Mutex<CloseUndoStack>,
+    pub recovery_bar: Mutex<RecoveryBarState>,
     pub split_view: Mutex<SplitViewState>,
     pub undo_stacks: Mutex<UndoStacks>,
     pub file_compare: Mutex<Option<FileCompareState>>,
@@ -44,6 +46,7 @@ impl WindowSession {
             tabs: Mutex::new(tab_mgr),
             closed_tabs: Mutex::new(ClosedTabStack::default()),
             close_undo: Mutex::new(CloseUndoStack::default()),
+            recovery_bar: Mutex::new(RecoveryBarState::default()),
             split_view: Mutex::new(SplitViewState::default()),
             undo_stacks: Mutex::new(UndoStacks::default()),
             file_compare: Mutex::new(None),
