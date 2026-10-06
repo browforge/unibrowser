@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="shared.css">
 </head>
 <body>
+  <script data-command-density>
+    if (new URLSearchParams(location.search).get("density") === "large") {
+      document.body.classList.add("command-large");
+    }
+  </script>
   <main class="app concept-shell" aria-label="Unibrowser New tab">
     <header class="titlebar" aria-label="Window and document navigation">
       <button class="title-icon app-menu" aria-label="Main menu" title="Main menu (Alt)"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
@@ -20,7 +25,8 @@
     </header>
     <div class="command-manager" aria-label="Start commands">
       <button class="context-label">Start<span aria-hidden="true">v</span></button>
-      <span class="separator"></span><button class="tool">Open file</button><button class="tool">Open folder</button><button class="tool">New project</button><button class="tool">Recent files</button>
+      <span class="cm-divider context-divider"></span><div class="cm-group priority-normal" role="group" aria-label="Open"><div class="cm-group-tools"><button class="cm-command" title="File"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg><span class="cm-command-label">File</span></button><button class="cm-command" title="Folder"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="cm-command-label">Folder</span></button></div><span class="cm-group-name">Open</span></div><span class="cm-divider"></span><div class="cm-group priority-normal" role="group" aria-label="Create"><div class="cm-group-tools"><button class="cm-command" title="Project"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18M3 9h6M3 15h6"/></svg><span class="cm-command-label">Project</span></button></div><span class="cm-group-name">Create</span></div><span class="cm-divider"></span><div class="cm-group priority-low" role="group" aria-label="Recent"><div class="cm-group-tools"><button class="cm-command" title="Recent"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg><span class="cm-command-label">Recent</span></button></div><span class="cm-group-name">Recent</span></div>
+      <button class="cm-overflow" aria-label="More commands" title="More commands; least-used groups move here first">v</button>
       <span class="spacer"></span>
       <span class="follow">Following: <strong>Start</strong></span>
       <button class="pin-button">Pin</button>

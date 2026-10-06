@@ -26,6 +26,8 @@ The compact shell spends exactly **80 px above content**: a 40 px custom
 title-bar row and a 40 px Command Manager row. Collapsing the Command Manager
 reduces this to **40 px**. The previous Batch 1 stack spent 176 px
 (30 + 34 + 40 + 28 + 44); its chrome is replaced, not refined.
+The optional Large Command Manager is 64 px, for **104 px total chrome**. Compact
+remains the default because every extra pixel comes from the document or canvas.
 
 The first row combines window chrome and global navigation:
 

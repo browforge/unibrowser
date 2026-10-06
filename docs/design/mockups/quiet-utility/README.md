@@ -15,14 +15,26 @@ in each filename.
 | `multimodal-workshop-wide.html` | `multimodal-workshop-wide.png` | 1920x1080 | Wide multimodal layout with Layers and scopes |
 | `chrome-before-after.html` | `chrome-before-after.png` | 1280x800 | Annotated 176 px to 80 px chrome comparison |
 
+Command Manager density studies:
+
+| Context | Compact | Large |
+| --- | --- | --- |
+| Text document | `document-command-compact.png` | `document-command-large.png` |
+| PDF annotation | `pdf-command-compact.png` | `pdf-command-large.png` |
+| CAD/3D wide | `cad-command-compact-wide.png` | `cad-command-large-wide.png` |
+
 Run `./render.sh` to regenerate all PNGs with an isolated Chromium profile.
 
 ## Accepted chrome
 
 - 40 px unified custom title bar: menu, tabs, location/command field, global
   actions, drag region, platform window controls.
-- 40 px Command Manager: one file-type context, commands, Follow/Pin.
-- 80 px expanded budget; 40 px when the manager is collapsed.
+- 40 px Compact Command Manager (default): named groups with 16 px Lucide icon
+  + short label controls, split buttons, deterministic group overflow, and
+  Follow/Pin.
+- 64 px Large Command Manager: 20 px icons above labels, for a 104 px total
+  chrome budget.
+- 80 px Compact budget; 104 px Large; 40 px when the manager is collapsed.
 - 40 px collapsed activity rail with Lucide icons. Expanded, auto-hide, and
   hidden are preferences. The rail opens panels only.
 - No Browse/Text/Create/Live switcher. Saved layouts live in View > Workspaces

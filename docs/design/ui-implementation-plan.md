@@ -85,7 +85,7 @@ Work:
 
 - Define named grid regions.
 - Add colour/type/spacing/radius/elevation tokens from `ui-spec.md`.
-- Add Compact/Comfortable density variable.
+- Add Compact/Large density variable.
 - Replace one-off shell colours/sizes only; do not restyle every viewer yet.
 
 Acceptance:
@@ -144,12 +144,22 @@ Likely files:
 
 Work:
 
-- Replace the separate context-tab and command rows with one 40 px row.
+- Replace the separate context-tab and command rows with one grouped Command
+  Manager row.
 - Active file type selects the context automatically.
 - Put the context label at the left, commands next, and Follow/Pin at the right.
 - Add explicit Following/Pinned status and labelled Pin toggle.
-- Group commands; remove dashed debug container.
-- Prevent wrapping; horizontal scroll/overflow.
+- Add Compact (40 px, default) and Large (64 px) densities. Compact uses
+  16 px Lucide icon + short label inline. Large uses 20 px icons with labels
+  below, like a restrained workstation ribbon.
+- Arrange commands in named groups with one divider. Text: History, Type, Find,
+  Proofing, Export. CAD/3D: Select, View, Measure, Section, Export.
+- Add split buttons for variants and an overflow chevron.
+- Prevent wrapping. Move the least-used complete group into overflow first;
+  never split a group or displace context / Follow / Pin.
+- Keep disabled commands greyed in place with their reason in a keyboard-
+  reachable tooltip.
+- Remove dashed debug container.
 - Remove the stray blank control after Find.
 
 Acceptance:
@@ -159,10 +169,16 @@ Acceptance:
 - Slots do not shift when disabled.
 - No second context switcher is visible.
 - The row collapses completely with Ctrl+F1.
+- Compact totals 80 px of chrome; Large totals 104 px; collapsed totals 40 px.
+- At 800, 1024, and 1280 widths, groups enter overflow in the specified order
+  without wrapping.
+- Split-button main and chevron targets are separately keyboard reachable and
+  screen-reader named.
 
 Screenshot:
 
-- Text context with enabled/disabled commands; pinned Image while text tab active.
+- Text, PDF, and CAD/3D contexts in Compact and Large density. Text Large shows
+  a disabled Format command and its reason.
 
 ### UI-06: Disabled reasons and command tooltip
 
@@ -247,8 +263,9 @@ Work:
   platform window controls into one 40 px custom title-bar row.
 - Keep full keyboard menus: Alt reveals/focuses
   File/Edit/View/Go/Tools/Help.
-- Use one 40 px Command Manager row below it. Context label and commands share
-  the row; Follow/Pin stays at the right.
+- Use one grouped Command Manager row below it: 40 px Compact (default) or
+  64 px Large. Context label and commands share the row; Follow/Pin stays at
+  the right.
 - Active file type automatically selects the context. Remove the permanent
   Browse/Text/Create/Live switcher.
 - Restrict the left rail to Files, Search, Project, Assets, Settings, and
@@ -265,7 +282,8 @@ Work:
 
 Acceptance:
 
-- Expanded Compact chrome is exactly 80 px above content; collapsed is 40 px.
+- Expanded Compact chrome is exactly 80 px above content; Large is 104 px;
+  collapsed is 40 px.
 - 12 tabs remain operable at 1280.
 - Keyboard tab movement and close work.
 - Local path and URL identities are unambiguous.

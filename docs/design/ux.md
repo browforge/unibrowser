@@ -9,8 +9,9 @@ These are taste-sensitive defaults. Each is switchable without changing the unde
 1. **Custom title bar:** default is a 40 px row combining menu access, tabs,
    location/command field, Save/Undo/Redo, and window controls. Native title
    bars remain an accessibility/compatibility preference.
-2. **Command Manager density:** default is one 40 px row. Collapse hides it
-   entirely, leaving 40 px total chrome above content.
+2. **Command Manager density:** Compact is the default 40 px grouped row. Large
+   uses 64 px with icon-above-label controls. Collapse hides it entirely,
+   leaving 40 px total chrome above content.
 3. **Right sidebar default width:** 320 px, resizable 260-520 px. Each sidebar remembers its width.
 4. **Bottom panel default height:** 220 px, resizable 140 px to 55% of window.
 5. **Accent:** restrained Windows-blue by default. The user can choose accent, system accent, or no accent.
@@ -156,8 +157,9 @@ Job: visible, context-relevant commands with stable placement.
 
 Structure:
 
-- One 40 px row.
-- Active file-type context label at the left, followed by stable command groups.
+- One grouped row: 40 px Compact (default) or 64 px Large.
+- Active file-type context label at the left, followed by named command groups
+  with Lucide icon + label controls.
 - **Following: Text / PDF / Image / Create** and **Pin** at the right.
 - Context choices may open from the context label for preview/customisation, but
   no second permanent tab row exists.
@@ -169,6 +171,9 @@ Interpretation of "grey out, do not hide":
 - Other file-type contexts do not occupy permanent chrome. They remain
   reachable through the context menu and customisation.
 - Disabled tooltip states cause and remedy: "Increase font size is unavailable: this image has no text layer."
+- Split buttons keep a default action and expose variants from a separate
+  chevron target. Least-used complete groups enter overflow before any group
+  wraps or breaks apart.
 
 Pin model:
 

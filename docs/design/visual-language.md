@@ -271,9 +271,9 @@ renders consistently on Windows and Linux. It is not used as decoration.
 
 - Base spacing unit: 4 px.
 - Unified title bar: 40 px.
-- Command Manager: one 40 px row (48 px Comfortable).
-- Total chrome above content: 80 px Compact; 40 px with Command Manager
-  collapsed.
+- Command Manager: 40 px Compact (default) or 64 px Large.
+- Total chrome above content: 80 px Compact, 104 px Large, or 40 px with
+  Command Manager collapsed.
 - Standard controls: 30 px; compact controls: 26 px.
 - Dock header: 36 px; status bar: 24 px.
 - List rows: 30 to 34 px; selected rows may expand to 44 to 56 px for detail.

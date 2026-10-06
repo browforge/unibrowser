@@ -53,8 +53,10 @@ Base unit 4 px.
 ### Size
 
 - Unified custom title bar: 40 px.
-- Command Manager: 40 px Compact, 48 px Comfortable.
+- Command Manager Compact: 40 px (default).
+- Command Manager Large: 64 px.
 - Total expanded chrome above content: **80 px Compact**.
+- Total expanded chrome above content: **104 px Large**.
 - Collapsed Command Manager: 0 px; total chrome above content **40 px**.
 - Activity rail: 40 px collapsed, 188 px expanded, 0 px auto-hidden.
 - Status bar: 24 px.
@@ -222,17 +224,36 @@ Rules:
 
 ### Command Manager
 
-- One 40 px row; 48 px Comfortable.
+- Two densities:
+  - **Compact (default):** one 40 px row. Lucide 16 px icon plus short 12-13 px
+    label inline.
+  - **Large:** one 64 px row. Lucide 20 px icon above a 12 px label, with the
+    group name on the row baseline. Total chrome is 104 px.
+- Compact is the default because commands remain visible and labelled while
+  returning 24 px more document height than Large. Large is an explicit
+  workstation preference for users who value faster visual targeting over
+  maximum canvas height.
 - File-type context label at left with 2 px accent underline and `text-1`.
 - Clicking it opens available contexts/customisation without creating another
   permanent row.
 - **Following: {type} / Pin** at right with explicit labels.
 - It follows the active file type automatically unless pinned.
 
-Buttons:
+Groups and buttons:
 
-- 30 px minimum; icon + label in Compact where space permits.
-- Group separators 1 px, 20 px high, 8 px margins.
+- Commands are arranged in named groups separated by one 1 px divider.
+  Text examples: History, Type, Find, Proofing, Export. CAD/3D examples:
+  Select, View, Measure, Section, Export.
+- Compact buttons are 30 px high with icon + short label inline.
+- Large buttons use a 20 px icon with the label below; the group name remains
+  visible beneath the button cluster.
+- A split button has a separately bordered chevron target for variants. The
+  main target repeats the last/default action.
+- Groups never wrap or create a third row. At constrained widths the least-used
+  complete group moves into the overflow chevron first. Individual commands do
+  not detach from their group.
+- Group priority is context-specific and deterministic. The context label and
+  Follow/Pin never enter overflow.
 - Disabled uses `text-3`, unchanged geometry, no hover claim.
 - Disabled tooltip:
   - Title: command label.
@@ -251,7 +272,8 @@ Customisation:
 - Edit mode adds 6-dot drag handle to groups.
 - Drop markers appear only during drag.
 - Import/export layouts live in workspace management, not the normal row.
-- Collapse removes the whole row. Ctrl+F1 toggles it.
+- Collapse to tabs only removes the whole Command Manager row and leaves the
+  40 px title bar. Ctrl+F1 toggles it.
 
 ### Command palette
 

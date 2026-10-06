@@ -237,13 +237,93 @@ button {
   font-weight: 600;
 }
 
-.command-manager .tool {
-  height: 30px;
-  color: #e9edef;
+.cm-group {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 4px;
 }
 
-.command-manager .tool:hover {
+.cm-group-tools {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.cm-group-name {
+  order: -1;
+  padding-inline: 3px;
+  color: #93a5ae;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cm-command {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  gap: 5px;
+  padding: 0 7px;
+  color: #e9edef;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.cm-command:hover:not(:disabled) {
   border-color: #435461;
+  background: #20313e;
+}
+
+.cm-command .svg-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  stroke-width: 1.75;
+}
+
+.cm-command.disabled,
+.cm-command:disabled {
+  color: #7f9099;
+  cursor: not-allowed;
+}
+
+.cm-command.disabled .svg-icon {
+  stroke-dasharray: 2 1;
+}
+
+.split-button {
+  padding-right: 3px;
+}
+
+.split-caret {
+  display: grid;
+  align-self: stretch;
+  min-width: 16px;
+  margin-left: 2px;
+  border-left: 1px solid #435461;
+  place-items: center;
+  font-size: 12px;
+}
+
+.cm-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 4px;
+  flex: 0 0 1px;
+  background: #435461;
+}
+
+.cm-overflow {
+  display: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #d5dfe4;
+  border: 1px solid #435461;
+  border-radius: 4px;
   background: #20313e;
 }
 
@@ -265,6 +345,106 @@ button {
   width: 26px;
   height: 28px;
   flex-basis: 26px;
+}
+
+body.command-large .app {
+  grid-template-rows: 40px 64px minmax(0, 1fr) 24px;
+}
+
+body.command-large .command-manager {
+  align-items: stretch;
+  padding-block: 2px;
+}
+
+body.command-large .context-label {
+  align-self: center;
+  height: 48px;
+}
+
+body.command-large .cm-group {
+  position: relative;
+  min-width: max-content;
+  padding: 0 5px 13px;
+  align-items: stretch;
+}
+
+body.command-large .cm-group-tools {
+  align-items: stretch;
+}
+
+body.command-large .cm-group-name {
+  position: absolute;
+  right: 5px;
+  bottom: 0;
+  left: 5px;
+  order: 0;
+  overflow: hidden;
+  color: #93a5ae;
+  font-size: 12px;
+  line-height: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+body.command-large .cm-command {
+  width: 58px;
+  height: 47px;
+  padding: 3px 4px 2px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 14px;
+}
+
+body.command-large .cm-command .svg-icon {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+  stroke-width: 2;
+}
+
+body.command-large .split-button {
+  width: 68px;
+  padding-right: 18px;
+}
+
+body.command-large .split-caret {
+  position: absolute;
+  top: 3px;
+  right: 0;
+  bottom: 3px;
+  width: 16px;
+  min-width: 16px;
+  border-left: 1px solid #435461;
+}
+
+body.command-large .cm-divider {
+  height: 52px;
+  margin-inline: 3px;
+}
+
+body.command-large .command-manager .follow,
+body.command-large .pin-button,
+body.command-large .collapse-manager,
+body.command-large .cm-overflow {
+  align-self: center;
+}
+
+@media (max-width: 1100px) {
+  .command-manager .priority-low {
+    display: none;
+  }
+
+  .command-manager .cm-overflow {
+    display: block;
+  }
+}
+
+@media (max-width: 850px) {
+  .command-manager .priority-normal:nth-of-type(n + 4) {
+    display: none;
+  }
 }
 
 .app {
@@ -1285,6 +1465,10 @@ body.wide .app {
 
 body.wide .app {
   grid-template-rows: 40px 40px minmax(0, 1fr) 24px;
+}
+
+body.wide.command-large .app {
+  grid-template-rows: 40px 64px minmax(0, 1fr) 24px;
 }
 
 .multimodal-grid {

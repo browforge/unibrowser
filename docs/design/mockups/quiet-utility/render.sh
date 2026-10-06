@@ -35,4 +35,12 @@ render "multimodal-workshop.html" "multimodal-workshop.png" "1280,800"
 render "multimodal-workshop.html?wide=1" "multimodal-workshop-wide.png" "1920,1080"
 render "chrome-before-after.html" "chrome-before-after.png" "1280,800"
 
+# Command Manager density studies.
+render "document-problems-ai.html?density=compact" "document-command-compact.png" "1280,800"
+render "document-problems-ai.html?density=large" "document-command-large.png" "1280,800"
+render "pdf-annotation.html?density=compact" "pdf-command-compact.png" "1280,800"
+render "pdf-annotation.html?density=large" "pdf-command-large.png" "1280,800"
+render "multimodal-workshop.html?wide=1&density=compact" "cad-command-compact-wide.png" "1920,1080"
+render "multimodal-workshop.html?wide=1&density=large" "cad-command-large-wide.png" "1920,1080"
+
 echo "Rendered Quiet Utility mockups in $ROOT"
