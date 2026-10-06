@@ -848,3 +848,128 @@ Acceptance:
 - Worked examples in `command-system.md` match runtime resolved models.
 - Light, dark, high contrast, 100%, and 150% evidence passes drift checks.
 - Saving remains available through every unsupported/provider-failure state.
+
+## Visual QA remediation: VQA series
+
+Source audit: [visual-qa-2026-10-06.md](visual-qa-2026-10-06.md).
+Each ticket is one Composer commit and must regenerate only its named evidence.
+
+### VQA-01: Remove the split/black text capture surface
+
+- Make `.txt` and Markdown captures show one continuous Monaco editor surface.
+- Remove the capture-only `pre`/native-layer split once WebKitGTK paint is
+  reliable.
+- Reject captures containing a large low-luma rectangle in any editor quadrant.
+- Likely files: `textEditor.ts`, `docCaptureAsserts.ts`, `webview_capture.rs`,
+  `styles.css`.
+- Evidence: light `.txt`, light Markdown, dark Markdown.
+
+### VQA-02: Restore real editor geometry in evidence
+
+- Show gutter, line numbers, caret-ready text layer, and real syntax styling.
+- Match Source Code Pro metrics and light/dark editor tokens.
+- Likely files: `textEditor.ts`, Monaco theme integration, font loading.
+- Evidence: `.txt` and Markdown at 1280x800.
+
+### VQA-03: Route viewer kind to the correct CM context
+
+- Resolve PDF to PDF Annotation and SVG/raster to Image.
+- Prove that active viewer context replaces Text without a second switcher.
+- Likely files: `main.ts`, `commandManager.ts`, Rust context resolver.
+- Evidence: PDF and SVG with context label and resolved model diagnostics.
+
+### VQA-04: Make compact CM groups overflow without label collisions
+
+- Measure and overflow complete groups before any label overlaps.
+- Keep context and Follow/Pin fixed; preserve stable control positions.
+- Likely files: `commandManager.ts`, `commandControls.ts`,
+  `compactChrome.css`.
+- Evidence: Text, PDF, and Image at 800, 1024, and 1280 widths.
+
+### VQA-05: Restore dark-slate shell identity in light theme
+
+- Use dark slate for title bar, CM, and rail while retaining warm document
+  surfaces.
+- Verify icon, text, and window-control contrast.
+- Likely files: `tokens.css`, `compactChrome.css`,
+  `quietUtilityShell.css`.
+- Evidence: light text document and PDF at 1280x800.
+
+### VQA-06: Render the rich DOCX fixture as a document
+
+- Replace the black/fallback region with a centred readable page.
+- Preserve bold/italic hierarchy and expose mixed rich-text states.
+- Remove capture-only flattened fallback text.
+- Likely files: `documentViewer.ts`, DOCX viewer CSS, demo fixture.
+- Evidence: `text-family-rich-docx.png`.
+
+### VQA-07: Build the PDF evidence shell
+
+- Render page thumbnails, centred page, annotation overlay, and Annotations
+  dock.
+- Add page, zoom, annotation, and Export PDF controls from the PDF family.
+- Likely files: `documentViewer.ts`, PDF renderer, PDF command definitions.
+- Evidence: `pdf-annotation-cm.png`.
+
+### VQA-08: Render the image evidence shell
+
+- Show the actual SVG/raster on a recessed canvas with zoom/metadata.
+- Replace Text formatting controls with Image family controls.
+- Likely files: `documentViewer.ts`, SVG/image renderer, Image family defaults.
+- Evidence: `image-cm.png`.
+
+### VQA-09: Match activity rail icon and contrast rules
+
+- Use 16 px Lucide icons, consistent stroke, visible selected state, and at
+  least 3:1 contrast.
+- Keep the rail limited to side-panel destinations.
+- Likely files: activity rail renderer, `compactChrome.css`.
+- Evidence: light/dark text document with collapsed and expanded rail.
+
+### VQA-10: Replace AI cards with transcript structure
+
+- Remove the rounded response card inside the dock.
+- Use a subtle speaker edge/surface change and preserve a visibly bounded
+  composer input.
+- Likely files: `aiAssistantPanel.ts`, `styles.css`.
+- Evidence: light and dark text document with AI dock.
+
+### VQA-11: Make Problems truthful and proportional
+
+- Collapse an empty Problems/Output panel.
+- When opened for evidence, show at least three structured rows and no duplicate
+  `No problems` message.
+- Likely files: `problemsPanel.ts`, `scriptOutputPanel.ts`, capture presets.
+- Evidence: `document-problems-ai` light/dark equivalents.
+
+### VQA-12: Load and enforce the Source font pair
+
+- Load Source Sans 3 and Source Code Pro and use the documented 12/13/14 px
+  scale.
+- Verify no functional text below 12 px and no clipped labels at 100%/150%.
+- Likely files: font assets, `tokens.css`, `styles.css`.
+- Evidence: command gallery and text document at 100%/150%.
+
+### VQA-13: Strengthen screenshot acceptance gates
+
+- Add region-level checks for continuous editor/viewer paint, expected context
+  label, no overlaps, chrome height, and required viewer landmarks.
+- Fail rather than substituting misleading fallback surfaces.
+- Likely files: `docCaptureAsserts.ts`, `shellPaintReady.ts`,
+  capture scripts.
+- Evidence: one intentional failing fixture per gate plus the passing matrix.
+
+### VQA-14: Retire superseded visual evidence
+
+- Mark `cmd-batch/` and `ui-batch-3c/` as historical failures in their READMEs.
+- Remove them from current review/report links without deleting useful
+  regression artefacts.
+- Likely files: screenshot READMEs and documentation indexes.
+
+### VQA-15: Publish the final visual QA matrix
+
+- Recapture Text plain/Markdown/rich, PDF, Image, Problems+AI, light/dark, and
+  high contrast at full review size.
+- Re-run the visual QA against every applicable drift-checklist item.
+- Likely files: capture scripts, `docs/screenshots/`, visual QA report.
+- Acceptance: no undocumented S0/S1 defects.
