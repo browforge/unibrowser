@@ -4,7 +4,7 @@ import { appendTrustBanner } from "./trustBanner";
 import { mountClickToPlay } from "./mediaPlayGate";
 import { bindMediaViewerKeys } from "./mediaKeyboard";
 import { renderDownloadsManager, type DownloadHistoryEntryDto } from "./downloadsPage";
-import { reportViewerZoom } from "./viewerZoom";
+import { reportViewerPdfPage, reportViewerZoom } from "./viewerZoom";
 import { bindPreviewLinks } from "./previewLinks";
 import { copyImageFile, copyText, readClipboardImagePath } from "./clipboard";
 import { renderSettings } from "./settingsPage";
@@ -664,12 +664,98 @@ type PdfHighlightDto = {
   w: number;
   h: number;
   color: string;
+  kind?: string;
+  author?: string | null;
+  created_at_ms?: number | null;
+  label?: string | null;
 };
+
+function formatPdfAnnotationTime(ms: number | null | undefined): string {
+  if (!ms) {
+    return "";
+  }
+  const d = new Date(ms);
+  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function pdfAnnotationKindLabel(kind: string | undefined): string {
+  switch (kind) {
+    case "area":
+      return "Area";
+    case "note":
+      return "Note";
+    default:
+      return "Highlight";
+  }
+}
+
+function rebuildPdfAnnotationsDock(
+  annotDock: HTMLElement,
+  highlights: PdfHighlightDto[],
+  currentPage: number,
+  onJump: (page: number) => void,
+) {
+  annotDock.innerHTML = "";
+  const head = document.createElement("header");
+  head.className = "pdf-annotations-head";
+  const annotTitle = document.createElement("h3");
+  annotTitle.className = "pdf-annotations-title";
+  annotTitle.textContent = `Annotations ${highlights.length}`;
+  head.appendChild(annotTitle);
+  annotDock.appendChild(head);
+  const annotBody = document.createElement("div");
+  annotBody.className = "pdf-annotations-body";
+  if (!highlights.length) {
+    const empty = document.createElement("p");
+    empty.className = "pdf-annotations-empty";
+    empty.textContent = "No annotations on this document.";
+    annotBody.appendChild(empty);
+  } else {
+    const list = document.createElement("ul");
+    list.className = "pdf-annotations-list";
+    highlights.forEach((h, index) => {
+      const li = document.createElement("li");
+      li.className = "pdf-annotation-card";
+      if (h.page === currentPage) {
+        li.classList.add("pdf-annotation-card--current");
+      }
+      const row = document.createElement("div");
+      row.className = "pdf-annotation-card-head";
+      const badge = document.createElement("span");
+      badge.className = "pdf-annotation-kind";
+      badge.textContent = pdfAnnotationKindLabel(h.kind);
+      const pageLink = document.createElement("button");
+      pageLink.type = "button";
+      pageLink.className = "pdf-annotation-page";
+      pageLink.textContent = `Page ${h.page}`;
+      pageLink.onclick = () => onJump(h.page);
+      row.appendChild(badge);
+      row.appendChild(pageLink);
+      const title = document.createElement("p");
+      title.className = "pdf-annotation-label";
+      title.textContent = h.label ?? `Annotation ${index + 1}`;
+      const meta = document.createElement("p");
+      meta.className = "pdf-annotation-meta";
+      const who = h.author ?? "Unknown";
+      const when = formatPdfAnnotationTime(h.created_at_ms);
+      meta.textContent = when ? `${who} · ${when}` : who;
+      li.appendChild(row);
+      li.appendChild(title);
+      li.appendChild(meta);
+      list.appendChild(li);
+    });
+    annotBody.appendChild(list);
+  }
+  annotDock.appendChild(annotBody);
+}
 
 let pdfHighlightArmed = false;
 
 export function armPdfHighlightMode() {
   pdfHighlightArmed = true;
+  document.querySelectorAll(".pdf-workspace").forEach((el) => {
+    el.classList.add("pdf-highlight-armed");
+  });
 }
 
 async function renderPdf(
@@ -677,8 +763,9 @@ async function renderPdf(
   root: HTMLElement,
   scale: number,
   startPage: number,
-  engines?: PdfEngineLineDto[],
+  _engines?: PdfEngineLineDto[],
 ) {
+  void _engines;
   void invoke<string | null>("ensure_pdf_raster_proxy", { path }).catch(() => {});
   const pdfjsLib = await loadPdfJs();
   const bytes = await readBytes(path);
@@ -686,14 +773,6 @@ async function renderPdf(
   let currentPage = Math.min(Math.max(startPage, 1), doc.numPages);
   let currentScale = scale;
   root.innerHTML = "";
-  if (engines?.length) {
-    const banner = document.createElement("p");
-    banner.className = "viewer-note pdf-engine-banner";
-    banner.textContent = engines
-      .map((e) => `${e.engine} (${e.status}): ${e.detail}`)
-      .join(" · ");
-    root.appendChild(banner);
-  }
   let highlights: PdfHighlightDto[] = [];
   try {
     highlights = await invoke<PdfHighlightDto[]>("list_pdf_highlights", { path });
@@ -703,66 +782,35 @@ async function renderPdf(
 
   const workspace = document.createElement("div");
   workspace.className = "pdf-workspace";
+  if (pdfHighlightArmed) {
+    workspace.classList.add("pdf-highlight-armed");
+  }
   const center = document.createElement("div");
   center.className = "pdf-workspace-center";
-  root.appendChild(workspace);
-  workspace.appendChild(center);
-
-  const annotDock = document.createElement("aside");
-  annotDock.className = "pdf-annotations-dock";
-  annotDock.setAttribute("aria-label", "PDF annotations");
-  const annotTitle = document.createElement("h3");
-  annotTitle.className = "pdf-annotations-title";
-  annotTitle.textContent = "Annotations";
-  annotDock.appendChild(annotTitle);
-  const annotBody = document.createElement("div");
-  annotBody.className = "pdf-annotations-body";
-  if (!highlights.length) {
-    const empty = document.createElement("p");
-    empty.className = "pdf-annotations-empty";
-    empty.textContent = "No annotations on this page.";
-    annotBody.appendChild(empty);
-  } else {
-    const list = document.createElement("ul");
-    list.className = "pdf-annotations-list";
-    for (const h of highlights) {
-      const li = document.createElement("li");
-      li.textContent = `Page ${h.page} highlight`;
-      list.appendChild(li);
-    }
-    annotBody.appendChild(list);
-  }
-  annotDock.appendChild(annotBody);
-  workspace.appendChild(annotDock);
-
+  const scrollSurface = document.createElement("div");
+  scrollSurface.className = "pdf-scroll-surface";
+  const pageStage = document.createElement("div");
+  pageStage.className = "pdf-page-stage";
   const wrap = document.createElement("div");
   wrap.className = "pdf-page-wrap";
-  center.appendChild(wrap);
+  pageStage.appendChild(wrap);
+  scrollSurface.appendChild(pageStage);
+  center.appendChild(scrollSurface);
 
-  const paintHighlights = (pageNum: number, host: HTMLElement, width: number, height: number) => {
-    host.querySelectorAll(".pdf-highlight-rect").forEach((el) => el.remove());
-    for (const h of highlights) {
-      if (h.page !== pageNum) {
-        continue;
-      }
-      const box = document.createElement("div");
-      box.className = "pdf-highlight-rect";
-      box.style.left = `${h.x * width}px`;
-      box.style.top = `${h.y * height}px`;
-      box.style.width = `${h.w * width}px`;
-      box.style.height = `${h.h * height}px`;
-      box.style.background = h.color;
-      host.appendChild(box);
-    }
-  };
-  const nav = document.createElement("div");
-  nav.className = "pdf-nav";
+  const footer = document.createElement("div");
+  footer.className = "pdf-viewer-footer";
+  footer.setAttribute("role", "toolbar");
+  footer.setAttribute("aria-label", "PDF page navigation");
   const prev = document.createElement("button");
   prev.type = "button";
+  prev.className = "pdf-footer-btn";
   prev.textContent = "Previous";
+  prev.setAttribute("aria-label", "Previous page");
   const next = document.createElement("button");
   next.type = "button";
+  next.className = "pdf-footer-btn";
   next.textContent = "Next";
+  next.setAttribute("aria-label", "Next page");
   const pageLabel = document.createElement("span");
   pageLabel.className = "pdf-page-label";
   const jumpInput = document.createElement("input");
@@ -771,59 +819,60 @@ async function renderPdf(
   jumpInput.min = "1";
   jumpInput.max = String(doc.numPages);
   jumpInput.value = String(currentPage);
+  jumpInput.setAttribute("aria-label", "Page number");
   const jumpBtn = document.createElement("button");
   jumpBtn.type = "button";
+  jumpBtn.className = "pdf-footer-btn";
   jumpBtn.textContent = "Go";
-  nav.appendChild(prev);
-  nav.appendChild(pageLabel);
-  nav.appendChild(next);
-  nav.appendChild(jumpInput);
-  nav.appendChild(jumpBtn);
-  const zoomOut = document.createElement("button");
-  zoomOut.type = "button";
-  zoomOut.textContent = "Zoom −";
-  const zoomIn = document.createElement("button");
-  zoomIn.type = "button";
-  zoomIn.textContent = "Zoom +";
-  nav.appendChild(zoomOut);
-  nav.appendChild(zoomIn);
-  const copyBtn = document.createElement("button");
-  copyBtn.type = "button";
-  copyBtn.textContent = "Copy";
-  copyBtn.onclick = () => void copyViewerSelection();
-  const printBtn = document.createElement("button");
-  printBtn.type = "button";
-  printBtn.textContent = "Print";
-  printBtn.onclick = async () => {
-    const page = await doc.getPage(currentPage);
-    const viewport = page.getViewport({ scale: currentScale });
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-    const img = canvas.toDataURL("image/png");
-    printHtmlDocument(path, `<img src="${img}" alt="PDF page ${currentPage}" />`);
-  };
-  const highlightBtn = document.createElement("button");
-  highlightBtn.type = "button";
-  highlightBtn.textContent = "Highlight";
-  highlightBtn.title = "Drag on the page to save a highlight (sidecar JSON)";
-  highlightBtn.onclick = () => {
-    pdfHighlightArmed = true;
-    highlightBtn.classList.add("pdf-highlight-armed");
-  };
-  if (pdfHighlightArmed) {
-    highlightBtn.classList.add("pdf-highlight-armed");
-  }
-  nav.appendChild(highlightBtn);
-  nav.appendChild(copyBtn);
-  nav.appendChild(printBtn);
-  center.insertBefore(nav, wrap);
+  footer.appendChild(prev);
+  footer.appendChild(pageLabel);
+  footer.appendChild(next);
+  footer.appendChild(jumpInput);
+  footer.appendChild(jumpBtn);
+  center.appendChild(footer);
 
+  root.appendChild(workspace);
+  workspace.appendChild(center);
+
+  const annotDock = document.createElement("aside");
+  annotDock.className = "pdf-annotations-dock";
+  annotDock.setAttribute("aria-label", "PDF annotations");
+  workspace.appendChild(annotDock);
+
+  const syncAnnotationDock = () => {
+    rebuildPdfAnnotationsDock(annotDock, highlights, currentPage, (p) => {
+      void goToPage(p);
+    });
+    reportViewerPdfPage(currentPage, doc.numPages, highlights.length);
+  };
+
+  const paintHighlights = (pageNum: number, host: HTMLElement, width: number, height: number) => {
+    host.querySelectorAll(".pdf-highlight-rect").forEach((el) => el.remove());
+    for (const h of highlights) {
+      if (h.page !== pageNum) {
+        continue;
+      }
+      const box = document.createElement("div");
+      const isArea = h.kind === "area";
+      box.className = isArea ? "pdf-highlight-rect pdf-area-rect" : "pdf-highlight-rect";
+      box.style.left = `${h.x * width}px`;
+      box.style.top = `${h.y * height}px`;
+      box.style.width = `${h.w * width}px`;
+      box.style.height = `${h.h * height}px`;
+      if (isArea) {
+        box.style.borderColor = h.color.includes("rgb") ? "#c0392b" : h.color;
+      } else {
+        box.style.background = h.color;
+      }
+      host.appendChild(box);
+    }
+  };
+
+  const thumbsPanel = document.createElement("aside");
+  thumbsPanel.className = "pdf-thumbs-panel";
+  const thumbsHead = document.createElement("div");
+  thumbsHead.className = "pdf-thumbs-head";
+  thumbsHead.textContent = `Pages ${doc.numPages}`;
   const thumbs = document.createElement("div");
   thumbs.className = "pdf-thumbs pdf-thumbs--strip";
   thumbs.setAttribute("role", "navigation");
@@ -928,9 +977,10 @@ async function renderPdf(
           h,
         });
         pdfHighlightArmed = false;
-        highlightBtn.classList.remove("pdf-highlight-armed");
+        workspace.classList.remove("pdf-highlight-armed");
         overlay.style.pointerEvents = "none";
         paintHighlights(pageNum, overlay, viewport.width, viewport.height);
+        syncAnnotationDock();
       } catch {
         overlay.querySelectorAll(".pdf-highlight-draft").forEach((el) => el.remove());
       }
@@ -952,6 +1002,7 @@ async function renderPdf(
     next.disabled = pageNum >= doc.numPages;
     jumpInput.value = String(pageNum);
     updateThumbActive();
+    syncAnnotationDock();
   };
 
   const renderThumbCanvas = async (pageNum: number, host: HTMLButtonElement) => {
@@ -979,7 +1030,8 @@ async function renderPdf(
   };
 
   const goToPage = async (n: number) => {
-    currentPage = n;
+    const clamped = Math.min(Math.max(Math.floor(n), 1), doc.numPages);
+    currentPage = clamped;
     await invoke("sync_pdf_page", { page: currentPage });
     await drawPage(currentPage);
     updateThumbActive();
@@ -1010,7 +1062,9 @@ async function renderPdf(
     }
   };
 
-  if (doc.numPages > 1) {
+  thumbsPanel.appendChild(thumbsHead);
+  thumbsPanel.appendChild(thumbs);
+  if (doc.numPages >= 1) {
     const eager = Math.min(doc.numPages, THUMB_EAGER);
     for (let n = 1; n <= eager; n += 1) {
       addThumb(n, false);
@@ -1018,7 +1072,7 @@ async function renderPdf(
     for (let n = eager + 1; n <= doc.numPages; n += 1) {
       addThumb(n, true);
     }
-    workspace.insertBefore(thumbs, center);
+    workspace.insertBefore(thumbsPanel, center);
   }
 
   jumpBtn.onclick = async () => {
@@ -1049,11 +1103,21 @@ async function renderPdf(
     reportViewerZoom(currentScale, "pdf");
     void drawPage(currentPage);
   };
-  zoomIn.onclick = () => bumpZoom(1);
-  zoomOut.onclick = () => bumpZoom(-1);
   viewerZoomAdjust = bumpZoom;
+
+  const fitWidthScale = async () => {
+    const page = await doc.getPage(currentPage);
+    const base = page.getViewport({ scale: 1 });
+    const maxWidth = Math.max(320, scrollSurface.clientWidth - 48);
+    return Math.min(4, Math.max(0.5, maxWidth / base.width));
+  };
+  if (Math.abs(currentScale - scale) < 0.001 || scale === 1.25) {
+    currentScale = await fitWidthScale();
+    void invoke("sync_pdf_scale", { scale: currentScale }).catch(() => {});
+  }
   reportViewerZoom(currentScale, "pdf");
 
+  syncAnnotationDock();
   await drawPage(currentPage);
   updateThumbActive();
   setViewerLocatorBridge({
@@ -1076,11 +1140,6 @@ async function renderPdf(
       });
     },
   });
-  const meta = document.createElement("p");
-  meta.className = "viewer-note";
-  meta.textContent =
-    "Select text for font-size commands · thumbnails render for the first pages (lazy for the rest)";
-  root.appendChild(meta);
 }
 
 function appendMediaNote(root: HTMLElement, note?: string) {
@@ -1413,12 +1472,6 @@ interface CsvPreviewDto {
   rows_returned: number;
   file_bytes: number;
   read_capped: boolean;
-}
-
-async function copyViewerSelection(): Promise<void> {
-  const sel = window.getSelection();
-  const text = sel?.toString().trim() ?? "";
-  await copyText(text);
 }
 
 function printHtmlDocument(title: string, bodyHtml: string) {
@@ -4390,10 +4443,12 @@ export const documentViewer = {
     el.innerHTML = "<p class='viewer-loading'>Loading…</p>";
     try {
       el.innerHTML = "";
-      const title = document.createElement("h2");
-      title.className = "viewer-title";
-      title.textContent = viewer.title;
-      el.appendChild(title);
+      if (viewer.viewer !== "pdf") {
+        const title = document.createElement("h2");
+        title.className = "viewer-title";
+        title.textContent = viewer.title;
+        el.appendChild(title);
+      }
       const body = document.createElement("div");
       body.className = "viewer-body";
       el.appendChild(body);
