@@ -34,7 +34,12 @@ export function editorReadyForCapture(minChars = 160): boolean {
 }
 
 function monacoReady(): boolean {
-  return editorReadyForCapture(8);
+  const host = document.getElementById("text-editor-host");
+  if (!host || host.classList.contains("hidden")) {
+    return false;
+  }
+  const lines = document.querySelector(".monaco-editor .view-lines");
+  return (lines?.textContent ?? "").trim().length >= 8;
 }
 
 function unibrowBoardReady(): boolean {
@@ -56,11 +61,7 @@ function aiPanelReady(): boolean {
   if (!panel || panel.classList.contains("hidden")) {
     return false;
   }
-  const grants = panel.querySelector(".ai-grants-row, .ai-assistant-grants-collapse");
-  if (grants) {
-    return true;
-  }
-  return panel.querySelector(".ai-assistant-body") !== null;
+  return panel.querySelector(".ai-assistant-composer-input") !== null;
 }
 
 function ntpReady(): boolean {
@@ -92,8 +93,16 @@ function problemsReady(): boolean {
   if (!panel || panel.classList.contains("hidden")) {
     return false;
   }
+  const pane = document.getElementById("bottom-panel-problems-pane");
+  if (!pane || pane.classList.contains("hidden")) {
+    return false;
+  }
   const rows = panel.querySelector(".problems-table tbody tr");
-  return Boolean(rows);
+  const countEl = document.getElementById("status-problems-count");
+  if (rows) {
+    return true;
+  }
+  return Boolean(countEl && !countEl.classList.contains("hidden"));
 }
 
 function paletteReady(): boolean {
@@ -184,6 +193,36 @@ export function launchPathsNeedEditor(launchPaths: string[]): boolean {
   );
 }
 
+export async function ensureTextTabActiveForCapture(launchPaths: string[]): Promise<void> {
+  if (!launchPathsNeedEditor(launchPaths)) {
+    return;
+  }
+  const host = document.getElementById("text-editor-host");
+  if (host && !host.classList.contains("hidden")) {
+    return;
+  }
+  const textIndex = launchPaths.findIndex((p) =>
+    /\.tsx?|sync-notes|spell-test/i.test(p),
+  );
+  const { invoke } = await import("@tauri-apps/api/core");
+  const pick = textIndex >= 0 ? textIndex : 0;
+  await invoke("select_tab", { index: pick }).catch(() => undefined);
+  await sleep(300);
+  const hostAfter = document.getElementById("text-editor-host");
+  if (hostAfter && !hostAfter.classList.contains("hidden")) {
+    return;
+  }
+  const tabs = document.querySelectorAll<HTMLElement>(".title-tabs .tab");
+  for (const tab of tabs) {
+    const label = tab.textContent ?? "";
+    if (/\.tsx?|sync-notes|spell-test/i.test(label)) {
+      tab.click();
+      await sleep(200);
+      return;
+    }
+  }
+}
+
 async function nudgeEditorLayout(): Promise<void> {
   try {
     const { relayoutTextEditor } = await import("./textEditor");
@@ -202,6 +241,7 @@ export async function waitForShellPaintReady(
   const checks = checksForDemo(demoRaw, launchPaths);
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    await ensureTextTabActiveForCapture(launchPaths);
     await nudgeEditorLayout();
     if (checks.every((fn) => fn())) {
       await nudgeEditorLayout();
@@ -212,6 +252,8 @@ export async function waitForShellPaintReady(
     }
     await sleep(80);
   }
+  const failing = checks.filter((fn) => !fn()).length;
+  console.error(`[paint-wait] timed out (${failing}/${checks.length} checks failing)`);
   return false;
 }
 

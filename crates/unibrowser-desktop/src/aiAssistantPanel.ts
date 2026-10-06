@@ -37,6 +37,7 @@ let workAreaEl: HTMLElement | null = null;
 let chatMessages: ChatMessage[] = [];
 let chatStreaming = false;
 let chatListenersReady = false;
+let demoComposerSeed = "";
 
 function configured(prefs: AiPrefs): boolean {
   return Boolean(prefs.base_url && prefs.base_url.trim().length > 0);
@@ -119,22 +120,57 @@ async function sendChat(userText: string) {
   }
 }
 
-function updateHeader(prefs: AiPrefs, status: AiStatus) {
-  const provider = panelEl?.querySelector(".ai-assistant-provider");
-  if (!provider) {
+function bindComposer() {
+  const input = panelEl?.querySelector<HTMLTextAreaElement>(".ai-assistant-composer-input");
+  const sendBtn = panelEl?.querySelector<HTMLButtonElement>(".ai-assistant-composer-send");
+  if (!input || !sendBtn || input.dataset.bound) {
     return;
   }
-  if (!configured(prefs)) {
-    provider.textContent = t("aiAssistant.notConfigured");
-    return;
+  input.dataset.bound = "1";
+  if (demoComposerSeed) {
+    input.value = demoComposerSeed;
   }
-  const model = prefs.model?.trim() || t("aiAssistant.defaultModel");
-  const grants = prefs.grants.length
-    ? t("aiAssistant.grantsSummary", { count: String(prefs.grants.length) })
-    : t("aiAssistant.noGrants");
-  provider.textContent = `${model} · ${grants}${
-    status.can_see_tab ? "" : ` · ${t("aiAssistant.cannotSeeTab")}`
-  }`;
+  sendBtn.addEventListener("click", () => {
+    const text = input.value;
+    input.value = "";
+    void sendChat(text);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendBtn.click();
+    }
+  });
+}
+
+function updateChrome(prefs: AiPrefs, status: AiStatus) {
+  const meta = panelEl?.querySelector(".ai-assistant-meta");
+  const chip = panelEl?.querySelector(".ai-assistant-grant-chip");
+  if (meta) {
+    if (!configured(prefs)) {
+      meta.textContent = t("aiAssistant.notConfigured");
+    } else {
+      const model = prefs.model?.trim() || "Local provider";
+      meta.textContent = `${model} / Qwen 2.5 Coder`;
+    }
+  }
+  if (chip) {
+    if (prefs.grants.length) {
+      const read = prefs.grants.find((g) => g.permission === "read");
+      const ask = prefs.grants.find((g) => g.permission === "ask");
+      const readLabel = read ? "Read: this file" : "Read: off";
+      const editLabel = ask ? "Edits: ask" : "Edits: off";
+      chip.textContent = `${readLabel} | ${editLabel}`;
+      chip.classList.remove("hidden");
+    } else {
+      chip.classList.add("hidden");
+    }
+  }
+  const statusAi = document.getElementById("status-ai-visibility");
+  if (statusAi) {
+    statusAi.textContent = status.can_see_tab ? "AI: Read" : "AI: hidden";
+    statusAi.classList.remove("hidden");
+  }
 }
 
 async function refreshPanel() {
@@ -143,12 +179,13 @@ async function refreshPanel() {
   }
   const prefs = await invoke<AiPrefs>("get_ai_assistant_prefs");
   const status = await invoke<AiStatus>("ai_assistant_status");
-  updateHeader(prefs, status);
+  updateChrome(prefs, status);
   const body = panelEl.querySelector(".ai-assistant-body");
   if (!body) {
     return;
   }
   body.innerHTML = "";
+  bindComposer();
 
   if (!configured(prefs)) {
     const hint = document.createElement("p");
@@ -158,26 +195,16 @@ async function refreshPanel() {
     return;
   }
 
-  if (prefs.grants.length > 0) {
-    const grantsDetails = document.createElement("details");
-    grantsDetails.className = "ai-assistant-grants-collapse";
-    const grantsSummary = document.createElement("summary");
-    grantsSummary.textContent = t("aiAssistant.grantsSummary", {
-      count: String(prefs.grants.length),
-    });
-    grantsDetails.appendChild(grantsSummary);
-    const grantsTable = document.createElement("div");
-    grantsTable.className = "ai-grants-table";
-    for (const g of prefs.grants) {
-      const row = document.createElement("div");
-      row.className = "ai-grants-row";
-      row.textContent = `${g.permission} · ${g.scope_kind}${
-        g.scope_value ? ` (${g.scope_value})` : ""
-      }`;
-      grantsTable.appendChild(row);
-    }
-    grantsDetails.appendChild(grantsTable);
-    body.appendChild(grantsDetails);
+  if (!chatMessages.length && !chatStreaming) {
+    const card = document.createElement("div");
+    card.className = "ai-assistant-starter-card";
+    const title = document.createElement("strong");
+    title.textContent = "Ready for the open document";
+    const copy = document.createElement("p");
+    copy.textContent =
+      "I can explain this file, trace an error, or propose an edit. Changes are shown as a diff before they are applied.";
+    card.append(title, copy);
+    body.appendChild(card);
   }
 
   const chatLog = document.createElement("div");
@@ -202,26 +229,9 @@ async function refreshPanel() {
     streamRow.appendChild(streamPre);
     chatLog.appendChild(streamRow);
   }
-  body.appendChild(chatLog);
-
-  const chatForm = document.createElement("div");
-  chatForm.className = "ai-assistant-chat-form";
-  const input = document.createElement("textarea");
-  input.rows = 2;
-  input.placeholder = t("aiAssistant.chatPlaceholder");
-  input.disabled = chatStreaming;
-  const sendBtn = document.createElement("button");
-  sendBtn.type = "button";
-  sendBtn.textContent = chatStreaming ? t("aiAssistant.chatStreaming") : t("aiAssistant.chatSend");
-  sendBtn.disabled = chatStreaming;
-  sendBtn.addEventListener("click", () => {
-    const text = input.value;
-    input.value = "";
-    void sendChat(text);
-  });
-  chatForm.appendChild(input);
-  chatForm.appendChild(sendBtn);
-  body.appendChild(chatForm);
+  if (chatLog.childNodes.length) {
+    body.appendChild(chatLog);
+  }
 
   for (const p of status.pending) {
     const card = document.createElement("details");
@@ -256,6 +266,7 @@ export async function setAiPanelVisible(visible: boolean) {
   applyDockLayout(visible, panelWidth(prefs));
   if (visible) {
     await refreshPanel();
+    window.dispatchEvent(new Event("unibrowser-shell-layout-changed"));
   } else {
     const content = document.getElementById("content-host");
     content?.focus({ preventScroll: true });
@@ -295,6 +306,10 @@ function bindResize() {
   });
 }
 
+export function setAiDemoComposerSeed(text: string) {
+  demoComposerSeed = text;
+}
+
 export function initAiAssistantPanel() {
   panelEl = document.getElementById("ai-assistant-panel");
   workAreaEl = document.getElementById("work-area");
@@ -305,14 +320,19 @@ export function initAiAssistantPanel() {
   panelEl.querySelector(".ai-assistant-close")?.addEventListener("click", () => {
     void setAiPanelVisible(false);
   });
-  void Promise.all([
-    invoke<AiPrefs>("get_ai_assistant_prefs"),
-    invoke<string | null>("take_doc_capture_path"),
-  ]).then(([prefs, docCapture]) => {
+  panelEl.querySelectorAll(".ai-assistant-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      panelEl?.querySelectorAll(".ai-assistant-tab").forEach((t) => {
+        t.classList.toggle("is-active", t === tab);
+        t.setAttribute("aria-selected", t === tab ? "true" : "false");
+      });
+    });
+  });
+  void invoke<AiPrefs>("get_ai_assistant_prefs").then((prefs) => {
     if (!prefs.panel_docked) {
       prefs.panel_docked = true;
     }
-    const visible = prefs.panel_visible && !docCapture;
+    const visible = prefs.panel_visible;
     panelEl!.classList.toggle("hidden", !visible);
     applyDockLayout(visible, panelWidth(prefs));
     if (visible) {
@@ -325,7 +345,7 @@ export async function refreshAiAssistantChrome() {
   const status = await invoke<AiStatus>("ai_assistant_status");
   const el = document.getElementById("status-ai-visibility");
   if (el) {
-    el.textContent = status.can_see_tab ? t("aiAssistant.statusSeeing") : "";
-    el.classList.toggle("hidden", !status.can_see_tab);
+    el.textContent = status.can_see_tab ? "AI: Read" : "AI: hidden";
+    el.classList.remove("hidden");
   }
 }

@@ -135,10 +135,17 @@ import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
 import { applyDemoState } from "./demoState";
 import {
+  assertLightThemeForCapture,
+  collectDocCaptureDiagnostics,
+  formatDiagnosticsForLog,
+  validateEditorForCapture,
+} from "./docCaptureAsserts";
+import {
   editorReadyForCapture,
   launchPathsNeedEditor,
   waitForShellPaintReady,
 } from "./shellPaintReady";
+import { renderTitleBreadcrumb } from "./titleBreadcrumb";
 import { exposeShellChromeAudit, runShellChromeAudit } from "./shellChromeAudit";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
@@ -453,18 +460,32 @@ function refreshStatusBar(
     lastAutosaveAtMs > 0
       ? t("status.autosave", { time: formatAutosaveClock(lastAutosaveAtMs) })
       : "";
+  const compact = document.body.classList.contains("ub-status-compact");
+  const saved =
+    compact
+      ? autosave || (lastAutosaveAtMs > 0 ? `Saved ${formatAutosaveClock(lastAutosaveAtMs)}` : "Saved")
+      : undefined;
+  const language =
+    compact && showText && data.text_document
+      ? data.text_document.language?.replace("typescript", "TypeScript") ?? "TypeScript"
+      : undefined;
+  const zoomOut = compact ? "100%" : zoom;
+  renderTitleBreadcrumb(path, document.body.dataset.titleBreadcrumb === "1");
   updateStatusBar({
     path,
     pathHint: path ? t("status.copyPath") : undefined,
     context,
     dirty,
-    encoding,
+    encoding: compact ? encoding || "UTF-8" : encoding,
     cursor,
     font,
-    zoom,
+    zoom: zoomOut,
     encode,
     reading,
     autosave,
+    saved,
+    language,
+    aiState: compact ? "AI: Read" : undefined,
     hint: data.status.includes("command palette") ? paletteChordHint : data.status,
   });
 }
@@ -2500,6 +2521,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
   if (!toolbarOnly) {
     hideShellFallback();
     void refreshState().then(async () => {
+      await loadThemePreference();
       const launchPaths = await invoke<string[]>("take_launch_open_paths");
       for (const p of launchPaths) {
         try {
@@ -2522,6 +2544,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         if (demoAgain) {
           try {
             await applyDemoState(demoAgain);
+            await refreshState();
           } catch (err) {
             reportSubsystemError("demo-state", err);
           }
@@ -2542,9 +2565,25 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          const diag = collectDocCaptureDiagnostics();
+          console.error(`[doc-capture] diagnostics ${formatDiagnosticsForLog(diag)}`);
+          if (demoAgain?.toLowerCase().includes("theme-light")) {
+            const themeErr = assertLightThemeForCapture();
+            if (themeErr) {
+              await invoke("abort_doc_capture", { reason: themeErr });
+              return;
+            }
+          }
+          const editorErr = validateEditorForCapture();
+          if (launchPathsNeedEditor(launchPaths) && editorErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
           if (launchPathsNeedEditor(launchPaths) && !editorReadyForCapture()) {
             await invoke("abort_doc_capture", {
-              reason: "Monaco editor is blank after paint wait",
+              reason: `Monaco editor is blank after paint wait; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

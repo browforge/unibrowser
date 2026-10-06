@@ -26,12 +26,13 @@
           <button type="button" id="btn-reload" class="title-icon" title="Reload" aria-label="Reload"></button>
         </div>
         <div class="omnibox-wrap title-omnibox">
+          <div id="title-breadcrumb" class="title-breadcrumb hidden" aria-label="Document location"></div>
           <input id="omnibox" type="text" placeholder="file://, https://, or path" autocomplete="off" aria-label="Location and commands" />
           <div id="omnibox-suggestions" class="omnibox-suggestions hidden" role="listbox"></div>
         </div>
         <button type="button" id="btn-undo" class="title-icon" title="Undo" aria-label="Undo"></button>
         <button type="button" id="btn-redo" class="title-icon" title="Redo" aria-label="Redo"></button>
-        <button type="button" id="btn-save" class="title-icon title-save-btn" title="Save" aria-label="Save"></button>
+        <button type="button" id="btn-save" class="title-icon title-save-btn button primary" title="Save" aria-label="Save">Save</button>
         <button type="button" id="title-overflow" class="title-icon" title="More actions" aria-label="Layout and more options" aria-haspopup="true"></button>
         <span id="title-drag-region" class="drag-region" aria-hidden="true"></span>
         <div id="window-controls" class="window-controls" aria-label="Window controls">
@@ -100,17 +101,26 @@
       aria-label="AI assistant"
     >
       <div id="ai-assistant-resize" class="ai-assistant-resize" title="Resize sidebar" aria-hidden="true"></div>
-      <div class="ai-assistant-head">
-        <div class="ai-assistant-head-text">
-          <span class="ai-assistant-title">AI assistant</span>
-          <span class="ai-assistant-provider muted"></span>
-        </div>
+      <div class="ai-assistant-tabs" role="tablist" aria-label="Assistant panels">
+        <button type="button" class="ai-assistant-tab is-active" data-ai-tab="assistant" role="tab" aria-selected="true">AI Assistant</button>
+        <button type="button" class="ai-assistant-tab" data-ai-tab="tools" role="tab" aria-selected="false">Tools</button>
+        <button type="button" class="ai-assistant-tab" data-ai-tab="assets" role="tab" aria-selected="false">Assets</button>
+        <span class="ai-assistant-tabs-spacer"></span>
         <button type="button" class="ai-assistant-close" aria-label="Close">x</button>
       </div>
+      <div class="ai-assistant-meta muted"></div>
+      <div class="ai-assistant-grant-chip hidden"></div>
       <div class="ai-assistant-body"></div>
+      <div class="ai-assistant-composer">
+        <textarea class="ai-assistant-composer-input" rows="3" aria-label="Ask about the open document"></textarea>
+        <div class="ai-assistant-composer-row">
+          <span class="ai-assistant-composer-note muted">Nothing is sent without permission.</span>
+          <button type="button" class="ai-assistant-composer-send button primary">Send</button>
+        </div>
+      </div>
     </aside>
     </div>
-    <aside id="script-output-panel" class="script-output-panel hidden" aria-label="Bottom panel">
+    <aside id="script-output-panel" class="script-output-panel ub-dock-panel hidden" aria-label="Bottom panel">
       <div id="bottom-panel-resize-grip" class="bottom-panel-resize-grip" title="Drag to resize panel" aria-hidden="true"></div>
       <div class="script-output-head">
         <div class="bottom-panel-tabs" role="tablist" aria-label="Bottom panel tabs">
@@ -163,22 +173,26 @@
     </div>
     <div id="toast-host" class="toast-host ub-toast-layer hidden" role="status" aria-live="polite"></div>
     <footer id="status-bar" class="status-bar ub-shell-status" tabindex="-1">
-      <span id="status-path" class="status-segment status-path"></span>
-      <span id="status-context" class="status-segment status-context muted"></span>
-      <span id="status-dirty" class="status-segment status-dirty"></span>
-      <span id="status-autosave" class="status-segment status-autosave hidden" role="status"></span>
-      <span id="status-encoding" class="status-segment"></span>
+      <span id="status-saved" class="status-segment status-saved hidden"></span>
+      <span id="status-language" class="status-segment status-language hidden"></span>
       <span id="status-cursor" class="status-segment"></span>
-      <span id="status-reading" class="status-segment status-reading muted"></span>
-      <span id="status-font" class="status-segment"></span>
-      <span class="status-zoom-controls">
+      <span class="status-bar-spacer" aria-hidden="true"></span>
+      <span id="status-problems-count" class="status-segment status-problems-count hidden"></span>
+      <span id="status-ai-visibility" class="status-segment status-ai hidden" role="status"></span>
+      <span id="status-encoding" class="status-segment"></span>
+      <span id="status-zoom-label" class="status-segment status-zoom-readout"></span>
+      <span id="status-path" class="status-segment status-path status-verbose-only"></span>
+      <span id="status-context" class="status-segment status-context muted status-verbose-only"></span>
+      <span id="status-dirty" class="status-segment status-dirty status-verbose-only"></span>
+      <span id="status-autosave" class="status-segment status-autosave hidden status-verbose-only" role="status"></span>
+      <span id="status-reading" class="status-segment status-reading muted status-verbose-only"></span>
+      <span id="status-font" class="status-segment status-verbose-only"></span>
+      <span class="status-zoom-controls status-verbose-only">
         <button type="button" id="status-zoom-out" class="status-zoom-btn hidden">-</button>
-        <span id="status-zoom-label" class="status-segment"></span>
         <button type="button" id="status-zoom-in" class="status-zoom-btn hidden">+</button>
       </span>
-      <span id="status-encode" class="status-segment status-encode muted"></span>
-      <span id="status-ai-visibility" class="status-segment status-ai hidden" role="status"></span>
-      <span id="status-hint" class="status-hint"></span>
+      <span id="status-encode" class="status-segment status-encode muted status-verbose-only"></span>
+      <span id="status-hint" class="status-hint status-verbose-only"></span>
     </footer>
     </div>
     <div id="tab-search" class="palette hidden" role="dialog" aria-label="Search open tabs">

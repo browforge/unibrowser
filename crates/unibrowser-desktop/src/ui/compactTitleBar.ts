@@ -32,7 +32,13 @@ export function initCompactTitleBar(deps: CompactTitleBarDeps) {
   fillIconButton("btn-reload", "rotate-cw", "Reload");
   fillIconButton("btn-undo", "undo-2", "Undo");
   fillIconButton("btn-redo", "redo-2", "Redo");
-  fillIconButton("btn-save", "save", "Save");
+  const saveBtn = document.getElementById("btn-save");
+  if (saveBtn) {
+    saveBtn.title = "Save";
+    if (!saveBtn.textContent?.trim()) {
+      saveBtn.textContent = "Save";
+    }
+  }
   fillIconButton("title-overflow", "ellipsis", "Layout and more options");
 
   const winMin = document.getElementById("win-minimize");

@@ -4,6 +4,7 @@ import { showToast } from "./toast";
 import { t } from "./i18n";
 import { bindCommandTooltip } from "./ui/commandTooltip";
 import { buildCommandGroups, type CommandGroupModel } from "./ui/commandManagerGroups";
+import { getEditorFontSizePt } from "./textEditor";
 import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 
 let chordByCommand = new Map<string, string>();
@@ -332,6 +333,72 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
   };
 }
 
+function renderTypeGroupTools(
+  tools: HTMLElement,
+  commands: UiCommandDto[],
+  onRun: RunCommand,
+) {
+  const fontInc = commands.find((c) => c.command_id.includes("fontSize.increase"));
+  const fontDec = commands.find((c) => c.command_id.includes("fontSize.decrease"));
+  const format = commands.find((c) => c.command_id.includes("formatDocument"));
+  const rest = commands.filter(
+    (c) => c !== fontInc && c !== fontDec && c !== format,
+  );
+
+  if (fontInc || fontDec) {
+    const split = document.createElement("button");
+    split.type = "button";
+    split.className = "ui-command split-button";
+    split.title = "Font size";
+    split.appendChild(createLucideIcon("type", 16, "ub-icon svg-icon"));
+    const label = document.createElement("span");
+    label.className = "cm-cmd-label";
+    label.textContent = `${getEditorFontSizePt()} pt`;
+    split.appendChild(label);
+    const caret = document.createElement("span");
+    caret.className = "split-caret";
+    caret.textContent = "v";
+    caret.setAttribute("aria-hidden", "true");
+    split.appendChild(caret);
+    split.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).classList.contains("split-caret")) {
+        e.stopPropagation();
+        if (fontInc?.enabled) {
+          void onRun(fontInc.command_id);
+        } else if (fontDec?.enabled) {
+          void onRun(fontDec.command_id);
+        }
+        return;
+      }
+      if (fontInc?.enabled) {
+        void onRun(fontInc.command_id);
+      }
+    });
+    tools.appendChild(split);
+  }
+
+  if (format) {
+    const patched = patchPictureInPictureCommand(format);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.appendChild(createLucideIcon(lucideForRegistryIcon(format.icon), 16, "ub-icon svg-icon"));
+    const label = document.createElement("span");
+    label.className = "cm-cmd-label";
+    label.textContent = patched.title;
+    btn.appendChild(label);
+    btn.disabled = !patched.enabled;
+    btn.className = patched.enabled ? "ui-command" : "ui-command disabled";
+    if (patched.enabled) {
+      btn.onclick = () => onRun(patched.command_id);
+    }
+    tools.appendChild(btn);
+  }
+
+  if (rest.length) {
+    renderCommandButtons(tools, rest, onRun, true);
+  }
+}
+
 function renderCommandGroups(
   container: HTMLElement,
   groups: CommandGroupModel[],
@@ -351,7 +418,11 @@ function renderCommandGroups(
     wrap.setAttribute("aria-label", group.name);
     const tools = document.createElement("div");
     tools.className = "cm-group-tools";
-    renderCommandButtons(tools, group.commands, onRun, true);
+    if (group.name === "Type") {
+      renderTypeGroupTools(tools, group.commands, onRun);
+    } else {
+      renderCommandButtons(tools, group.commands, onRun, true);
+    }
     const name = document.createElement("span");
     name.className = "cm-group-name";
     name.textContent = group.name;

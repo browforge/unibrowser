@@ -66,6 +66,21 @@
   background: #20313e;
 }
 
+[data-theme="light"] .title-icon {
+  color: var(--ub-concept-chrome-text);
+}
+
+[data-theme="light"] .title-icon:hover {
+  border-color: var(--ub-concept-chrome-border);
+  background: color-mix(in srgb, var(--ub-accent) 12%, var(--ub-concept-chrome-bg));
+}
+
+[data-theme="light"] #btn-save.title-save-btn {
+  background: var(--ub-accent);
+  color: var(--ub-accent-on);
+  border-color: var(--ub-accent);
+}
+
 .title-tabs {
   display: flex;
   align-self: stretch;

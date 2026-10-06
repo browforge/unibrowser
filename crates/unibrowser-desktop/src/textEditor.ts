@@ -28,6 +28,14 @@ type MonacoModel = import("monaco-editor").editor.ITextModel;
 let monacoApi: Monaco | null = null;
 let editor: MonacoEditor | null = null;
 let hostEl: HTMLElement | null = null;
+let currentFontPt = 14;
+
+export function getEditorFontSizePt(): number {
+  if (editor && monacoApi) {
+    return editor.getOption(monacoApi.editor.EditorOption.fontSize);
+  }
+  return currentFontPt;
+}
 let loadedPath: string | null = null;
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let suppressSync = false;
@@ -361,9 +369,10 @@ async function ensureEditor(host: HTMLElement) {
     theme: monacoTheme,
     automaticLayout: true,
     minimap: { enabled: false },
-    fontSize: 14,
+    fontSize: currentFontPt,
     wordWrap: "on",
   });
+  host.classList.add("monaco-host-ready");
   bindFindShortcut(api);
   editor.onDidChangeModelContent(() => scheduleSync());
   editor.onDidChangeCursorSelection(() => {
@@ -382,6 +391,10 @@ export function relayoutTextEditor(): void {
   editor?.layout();
   window.dispatchEvent(new Event("resize"));
 }
+
+window.addEventListener("unibrowser-shell-layout-changed", () => {
+  relayoutTextEditor();
+});
 
 export function runTextFind(query: string, forward: boolean) {
   if (!editor) {
@@ -489,6 +502,7 @@ export const textEditor = {
       }
       suppressSync = false;
     }
+    currentFontPt = doc.font_size_pt;
     editor!.updateOptions({ fontSize: doc.font_size_pt });
     if (doc.reveal_line && doc.reveal_line > 0) {
       const line = doc.reveal_line;

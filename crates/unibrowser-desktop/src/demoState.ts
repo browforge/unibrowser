@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { setAiPanelVisible } from "./aiAssistantPanel";
+import { setAiDemoComposerSeed, setAiPanelVisible } from "./aiAssistantPanel";
+import { applyThemeFromDemoState, applyThemeOverride } from "./theme";
 import { t } from "./i18n";
 import { showActionToast } from "./toast";
 
@@ -19,7 +20,7 @@ export async function applyDemoState(raw: string) {
         document.body.dataset.demoMockupProblems = "1";
         const { showProblemsBottomPanel } = await import("./problemsPanel");
         await invoke("seed_document_mockup_problems_cmd").catch(() => undefined);
-        showProblemsBottomPanel();
+        await showProblemsBottomPanel();
         break;
       }
       case "cm-text-pin": {
@@ -37,7 +38,7 @@ export async function applyDemoState(raw: string) {
           surface: "plaintext",
           language: "en-NZ",
         }).catch(() => undefined);
-        showProblemsBottomPanel();
+        await showProblemsBottomPanel();
         break;
       }
       case "ai":
@@ -88,18 +89,30 @@ export async function applyDemoState(raw: string) {
         await invoke("open_path", { path: "unibrowser://mods", line: null });
         break;
       case "theme-light":
-        document.documentElement.setAttribute("data-theme", "light");
+        applyThemeOverride("light");
         {
           const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
           await applyMonacoEditorTheme("auto");
         }
         break;
       case "theme-dark":
-        document.documentElement.setAttribute("data-theme", "dark");
+        applyThemeOverride("dark");
         {
           const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
           await applyMonacoEditorTheme("auto");
         }
+        break;
+      case "title-breadcrumb":
+        document.body.dataset.titleBreadcrumb = "1";
+        break;
+      case "second-tab-sample-pdf":
+        await invoke("open_path", {
+          path: "/workspace/examples/demo-pack/sample.pdf",
+          line: null,
+        }).catch(() => undefined);
+        break;
+      case "ai-mockup-composer":
+        setAiDemoComposerSeed("Why does line 8 trigger a warning?");
         break;
       case "feedback-demo": {
         showActionToast(t("tabs.closedUndo"), t("tabs.undo"), () => undefined, "info");
@@ -167,6 +180,8 @@ export async function applyDemoState(raw: string) {
         break;
       case "capture-ready":
         document.body.classList.add("doc-capture-mode");
+        document.body.classList.add("ub-status-compact");
+        applyThemeFromDemoState(demoRaw);
         document.getElementById("palette")?.classList.add("hidden");
         document.getElementById("bookmark-bar")?.classList.add("hidden");
         document.getElementById("onboarding-banner")?.classList.add("hidden");
@@ -177,7 +192,12 @@ export async function applyDemoState(raw: string) {
         if (document.body.dataset.demoMockupProblems === "1") {
           await invoke("seed_document_mockup_problems_cmd").catch(() => undefined);
           const { showProblemsBottomPanel } = await import("./problemsPanel");
-          showProblemsBottomPanel();
+          await showProblemsBottomPanel();
+        }
+        {
+          const { ensureTextTabActiveForCapture } = await import("./shellPaintReady");
+          const paths = await invoke<string[]>("take_launch_open_paths");
+          await ensureTextTabActiveForCapture(paths);
         }
         break;
       default:

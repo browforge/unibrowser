@@ -22,8 +22,30 @@ export function applyThemeToDocument() {
   window.dispatchEvent(new CustomEvent("unibrowser-theme", { detail: resolved }));
 }
 
+export function applyThemeOverride(theme: "light" | "dark") {
+  storedPreference = theme;
+  applyThemeToDocument();
+}
+
+export function applyThemeFromDemoState(raw: string) {
+  const lower = raw.toLowerCase();
+  if (lower.includes("theme-light")) {
+    applyThemeOverride("light");
+    return true;
+  }
+  if (lower.includes("theme-dark")) {
+    applyThemeOverride("dark");
+    return true;
+  }
+  return false;
+}
+
 export async function loadThemePreference() {
   try {
+    const demo = await invoke<string | null>("get_demo_state");
+    if (demo && applyThemeFromDemoState(demo)) {
+      return;
+    }
     const prefs = await invoke<{ theme: string }>("get_preferences");
     const t = prefs.theme?.toLowerCase();
     if (t === "light" || t === "dark" || t === "system") {

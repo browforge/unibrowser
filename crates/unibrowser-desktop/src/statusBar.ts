@@ -10,6 +10,10 @@ export interface StatusBarModel {
   encode?: string;
   reading?: string;
   autosave?: string;
+  saved?: string;
+  language?: string;
+  problemsCount?: string;
+  aiState?: string;
   hint: string;
 }
 
@@ -24,6 +28,9 @@ let encodeEl: HTMLElement | null = null;
 let readingEl: HTMLElement | null = null;
 let autosaveEl: HTMLElement | null = null;
 let hintEl: HTMLElement | null = null;
+let savedEl: HTMLElement | null = null;
+let languageEl: HTMLElement | null = null;
+let problemsCountEl: HTMLElement | null = null;
 let zoomOutBtn: HTMLButtonElement | null = null;
 let zoomInBtn: HTMLButtonElement | null = null;
 let zoomMode: "hidden" | "viewer" | "web" = "hidden";
@@ -46,6 +53,9 @@ export function bindStatusBar(root: HTMLElement) {
   readingEl = root.querySelector("#status-reading");
   autosaveEl = root.querySelector("#status-autosave");
   hintEl = root.querySelector("#status-hint");
+  savedEl = root.querySelector("#status-saved");
+  languageEl = root.querySelector("#status-language");
+  problemsCountEl = root.querySelector("#status-problems-count");
   encodingEl?.setAttribute("role", "status");
   cursorEl?.setAttribute("role", "status");
   encodeEl?.setAttribute("aria-live", "polite");
@@ -155,6 +165,19 @@ export function updateStatusBar(model: StatusBarModel) {
   }
   setOptional(readingEl, model.reading);
   setOptional(autosaveEl, model.autosave);
+  setOptional(savedEl, model.saved);
+  setOptional(languageEl, model.language);
+  if (model.problemsCount && problemsCountEl) {
+    problemsCountEl.textContent = model.problemsCount;
+    problemsCountEl.classList.remove("hidden");
+  }
+  if (model.aiState) {
+    const aiEl = document.getElementById("status-ai-visibility");
+    if (aiEl) {
+      aiEl.textContent = model.aiState;
+      aiEl.classList.remove("hidden");
+    }
+  }
   if (hintEl) {
     hintEl.textContent = model.hint;
   }

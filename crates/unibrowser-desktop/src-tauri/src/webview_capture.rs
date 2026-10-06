@@ -168,13 +168,19 @@ pub fn capture_composited_root_crop_png(_window: &Window) -> Result<Vec<u8>, Str
     Err("composited X11 capture is only implemented on Linux".into())
 }
 
-/// Doc screenshots: composited X11 crop plus WebKitGTK snapshots; pick the least empty frame.
+/// Doc screenshots: prefer the shell WebKitGTK snapshot (Monaco lives in the main webview).
+/// Composited X11 root crops can miss GPU-layered editor paint on WebKitGTK.
 pub fn capture_doc_screenshot_png(app: &AppHandle, window: &Window) -> Result<Vec<u8>, String> {
+    if let Ok(bytes) = capture_shell_webview_png(app) {
+        if score_png_informativeness(&bytes) > 100 {
+            return Ok(bytes);
+        }
+    }
     let mut candidates: Vec<Vec<u8>> = Vec::new();
-    if let Ok(bytes) = capture_composited_root_crop_png(window) {
+    if let Ok(bytes) = capture_shell_webview_png(app) {
         candidates.push(bytes);
     }
-    if let Ok(bytes) = capture_shell_webview_png(app) {
+    if let Ok(bytes) = capture_composited_root_crop_png(window) {
         candidates.push(bytes);
     }
     if let Ok(bytes) = capture_content_webview_png(app, window.label()) {

@@ -47,6 +47,19 @@ async function refresh() {
     severity: severityFilter || null,
     source: sourceFilter || null,
   });
+  const problemsTab = document.getElementById("bottom-panel-tab-problems");
+  if (problemsTab) {
+    problemsTab.textContent = list.length ? `Problems ${list.length}` : "Problems";
+  }
+  const countEl = document.getElementById("status-problems-count");
+  if (countEl) {
+    if (list.length) {
+      countEl.textContent = `${list.length} Problems`;
+      countEl.classList.remove("hidden");
+    } else {
+      countEl.classList.add("hidden");
+    }
+  }
   const wrap = panelEl.querySelector(".problems-table-wrap");
   const detail = panelEl.querySelector(".problems-detail");
   const empty = panelEl.querySelector(".problems-empty");
@@ -125,10 +138,10 @@ async function refresh() {
   }
 }
 
-export function showProblemsBottomPanel() {
+export async function showProblemsBottomPanel() {
   document.getElementById("script-output-panel")?.classList.remove("hidden");
   selectBottomPanelTab("problems");
-  void refresh();
+  await refresh();
 }
 
 export function initProblemsPanel() {
