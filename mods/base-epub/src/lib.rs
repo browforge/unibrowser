@@ -1,20 +1,22 @@
-//! EPUB viewer stub — proves catalog slot before a real `base-epub` mod.
-
 use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::DocumentSession};
 use unibrowser_mod_api::{
     Capabilities, Enablement, Mode, SelectionSnapshot,
-    handlers::{FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID},
+    handlers::{
+        EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID,
+        PAGE_ZOOM_FIT_ID,
+    },
 };
 
-pub const BACKEND_ID: &str = "toy-epub-stub";
+pub const BACKEND_ID: &str = "base-epub";
 pub const VIEWER_KIND: &str = "epub";
 
-pub struct EpubStubBackend {
+pub struct EpubBackend {
     pub path: String,
     pub reader_font_pt: f32,
+    pub reader_scale: f32,
 }
 
-impl unibrowser_engine::document::DocumentBackend for EpubStubBackend {
+impl unibrowser_engine::document::DocumentBackend for EpubBackend {
     fn backend_id(&self) -> &str {
         BACKEND_ID
     }
@@ -22,7 +24,7 @@ impl unibrowser_engine::document::DocumentBackend for EpubStubBackend {
         "application/epub+zip"
     }
     fn display_name(&self) -> &str {
-        "EPUB (preview stub)"
+        "EPUB"
     }
     fn mode(&self) -> Mode {
         Mode::Browse
@@ -42,9 +44,10 @@ impl unibrowser_engine::document::DocumentBackend for EpubStubBackend {
     }
     fn status_line(&self) -> String {
         format!(
-            "EPUB · {} · {:.1} pt reader · spine preview",
+            "EPUB · {} · {:.1} pt reader · scale {:.0}%",
             self.path,
-            self.reader_font_pt
+            self.reader_font_pt,
+            self.reader_scale * 100.0
         )
     }
     fn increase_font_size(&mut self) -> Result<f32, String> {
@@ -61,10 +64,16 @@ impl unibrowser_engine::document::DocumentBackend for EpubStubBackend {
     }
 }
 
+impl EpubBackend {
+    pub fn zoom_to_fit(&mut self) {
+        self.reader_scale = 1.0;
+    }
+}
+
 pub fn try_epub_backend(
     backend: &mut dyn unibrowser_engine::document::DocumentBackend,
-) -> Option<&mut EpubStubBackend> {
-    backend.as_any_mut().downcast_mut::<EpubStubBackend>()
+) -> Option<&mut EpubBackend> {
+    backend.as_any_mut().downcast_mut::<EpubBackend>()
 }
 
 fn font_enable(doc: &DocumentSession) -> Enablement {
@@ -86,7 +95,19 @@ fn exec_decrease(doc: &mut DocumentSession) -> Result<String, String> {
     Ok(format!("EPUB reader font: {:.1} pt", pt))
 }
 
-pub fn register_handlers(registry: &mut CommandRegistry) {
+fn exec_zoom_fit(doc: &mut DocumentSession) -> Result<String, String> {
+    let b = try_epub_backend(&mut *doc.backend).ok_or("not EPUB")?;
+    b.zoom_to_fit();
+    Ok(format!("EPUB reader scale {:.0}%", b.reader_scale * 100.0))
+}
+
+fn export_pdf_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "Export PDF uses printable HTML (text, Markdown, or DOCX preview)".into(),
+    }
+}
+
+pub fn register(registry: &mut CommandRegistry) {
     registry.register_handler(HandlerRegistration {
         command_id: FONT_INCREASE_ID.into(),
         backend_id: BACKEND_ID.into(),
@@ -105,11 +126,44 @@ pub fn register_handlers(registry: &mut CommandRegistry) {
         enable: font_enable,
         execute: |_doc| Ok("document-find".into()),
     });
+    registry.register_handler(HandlerRegistration {
+        command_id: PAGE_ZOOM_FIT_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: font_enable,
+        execute: exec_zoom_fit,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: EXPORT_PRINT_PDF_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: export_pdf_disabled,
+        execute: |_| Err("disabled".into()),
+    });
 }
 
 pub fn open_file(path: &std::path::Path) -> Box<dyn unibrowser_engine::document::DocumentBackend> {
-    Box::new(EpubStubBackend {
+    Box::new(EpubBackend {
         path: path.to_string_lossy().into_owned(),
         reader_font_pt: 12.0,
+        reader_scale: 1.0,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use unibrowser_engine::document::DocumentSession;
+    use unibrowser_mod_api::handlers::FONT_INCREASE_ID;
+
+    #[test]
+    fn font_increase_hits_epub_handler() {
+        let mut doc = DocumentSession::new(
+            "/books/sample.epub",
+            open_file(std::path::Path::new("/books/sample.epub")),
+        );
+        let mut reg = CommandRegistry::default();
+        register(&mut reg);
+        reg.execute(FONT_INCREASE_ID, &mut doc).expect("font");
+        let epub = try_epub_backend(&mut *doc.backend).expect("epub");
+        assert_eq!(epub.reader_font_pt, 13.0);
+    }
 }

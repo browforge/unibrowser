@@ -1,0 +1,9 @@
+{
+  "name": "base-epub",
+  "version": "0.1.0",
+  "title": "EPUB reader",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "EPUB spine preview with reader font scale and find"
+}

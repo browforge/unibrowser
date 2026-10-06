@@ -1,7 +1,8 @@
 use unibrowser_mod_api::{
     BrowserLocation, Capabilities, Enablement, Mode, SelectionSnapshot,
     handlers::{
-        FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID,
+        FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_FIT_ID,
+        PAGE_ZOOM_INCREASE_ID,
         CAPTURE_VISIBLE_TAB_ID, FIND_IN_DOCUMENT_ID, TOGGLE_READER_MODE_ID, TOGGLE_WEB_DEVTOOLS_ID,
     },
 };
@@ -123,6 +124,12 @@ pub fn register(registry: &mut CommandRegistry) {
     });
     registry.register_handler(HandlerRegistration {
         command_id: PAGE_ZOOM_DECREASE_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: web_page_zoom_enable,
+        execute: web_page_zoom_exec,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PAGE_ZOOM_FIT_ID.into(),
         backend_id: BACKEND_ID.into(),
         enable: web_page_zoom_enable,
         execute: web_page_zoom_exec,

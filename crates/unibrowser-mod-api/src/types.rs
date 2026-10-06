@@ -105,6 +105,7 @@ pub mod commands {
     pub const PAGE_ZOOM_INCREASE: &str = "unibrowser.page.zoom.increase";
     pub const PAGE_ZOOM_DECREASE: &str = "unibrowser.page.zoom.decrease";
     pub const PAGE_ZOOM_RESET_ALL: &str = "unibrowser.page.zoom.resetAll";
+    pub const PAGE_ZOOM_FIT: &str = "unibrowser.page.zoom.fit";
     pub const FIND_IN_DOCUMENT: &str = "unibrowser.find.inDocument";
     pub const DOCUMENT_UNDO: &str = "unibrowser.document.undo";
     pub const DOCUMENT_REDO: &str = "unibrowser.document.redo";

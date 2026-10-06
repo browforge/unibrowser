@@ -69,6 +69,13 @@ impl CommandRegistry {
             aliases: &["zoom reset all", "clear site zoom"],
         });
         reg.register_command(CommandMeta {
+            id: commands::PAGE_ZOOM_FIT,
+            title: "Zoom to fit",
+            icon: "zoom-fit",
+            default_keybinding: Some("Ctrl+0"),
+            aliases: &["fit page", "fit view", "zoom fit"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::FIND_IN_DOCUMENT,
             title: "Find in document",
             icon: "search",
@@ -345,7 +352,10 @@ impl CommandRegistry {
                 reason: "Find is not available in this view".into(),
             };
         }
-        if command_id == commands::PAGE_ZOOM_INCREASE || command_id == commands::PAGE_ZOOM_DECREASE {
+        if command_id == commands::PAGE_ZOOM_INCREASE
+            || command_id == commands::PAGE_ZOOM_DECREASE
+            || command_id == commands::PAGE_ZOOM_FIT
+        {
             if self.resolve_handler(command_id, &ctx.backend_id).is_some() {
                 return Enablement::Enabled;
             }

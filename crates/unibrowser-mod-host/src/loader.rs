@@ -154,12 +154,14 @@ mod tests {
             ("base-audio", base_audio::register as ModRegisterFn),
             ("toy-markdown", toy_markdown::register as ModRegisterFn),
             ("base-hex", base_hex::register as ModRegisterFn),
+            ("base-epub", base_epub::register as ModRegisterFn),
+            ("base-csv", base_csv::register as ModRegisterFn),
         ]
         .into_iter()
         .collect();
         let host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
             .expect("load");
-        assert_eq!(host.load_order.len(), 13);
+        assert_eq!(host.load_order.len(), 15);
         assert!(registry.command_meta("unibrowser.font.size.increase").is_some());
     }
 }

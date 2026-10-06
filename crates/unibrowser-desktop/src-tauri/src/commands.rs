@@ -52,7 +52,7 @@ use crate::webview::{
 use unibrowser_mod_api::handlers::{
     CONTEXT_HELP_ID, DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, FORMAT_DOCUMENT_ID, PAGE_ZOOM_DECREASE_ID,
-    PAGE_ZOOM_INCREASE_ID,
+    PAGE_ZOOM_FIT_ID, PAGE_ZOOM_INCREASE_ID,
     CAPTURE_VISIBLE_TAB_ID, COMPARE_IMAGES_ID, COMPARE_TEXT_ID, PICTURE_IN_PICTURE_ID,
     COPY_TEXT_FROM_IMAGE_ID, SHOW_KEYBOARD_SHORTCUTS_ID, TOGGLE_READER_MODE_ID,
     TOGGLE_TERMINAL_PANEL_ID, TOGGLE_WEB_DEVTOOLS_ID,
@@ -958,8 +958,8 @@ fn document_viewer_dto(
         base_audio::BACKEND_ID => base_audio::VIEWER_KIND,
         base_svg::BACKEND_ID => base_svg::VIEWER_KIND,
         base_png::BACKEND_ID => base_png::VIEWER_KIND,
-        crate::epub_stub::BACKEND_ID => crate::epub_stub::VIEWER_KIND,
-        crate::csv_stub::BACKEND_ID => crate::csv_stub::VIEWER_KIND,
+        base_epub::BACKEND_ID => base_epub::VIEWER_KIND,
+        base_csv::BACKEND_ID => base_csv::VIEWER_KIND,
         _ => return None,
     };
     let (pdf_scale, pdf_page, pdf_engines) = if doc.backend.backend_id() == base_pdf::BACKEND_ID {
@@ -1010,6 +1010,15 @@ fn preview_zoom_for_doc(doc: &mut unibrowser_engine::DocumentSession) -> Option<
     if let Some(b) = base_png::try_png_backend(&mut *doc.backend) {
         return Some(b.preview_zoom);
     }
+    if let Some(b) = base_svg::try_svg_backend(&mut *doc.backend) {
+        return Some(b.preview_zoom);
+    }
+    if let Some(b) = base_dxf::try_dxf_backend(&mut *doc.backend) {
+        return Some(b.preview_zoom);
+    }
+    if let Some(b) = base_epub::try_epub_backend(&mut *doc.backend) {
+        return Some(b.reader_scale);
+    }
     None
 }
 
@@ -1017,11 +1026,19 @@ fn reader_font_pt_for_doc(doc: &mut unibrowser_engine::DocumentSession) -> Optio
     if let Some(b) = base_docx::try_docx_backend(&mut *doc.backend) {
         return Some(b.reader_font_pt);
     }
-    if let Some(b) = crate::epub_stub::try_epub_backend(&mut *doc.backend) {
+    if let Some(b) = base_epub::try_epub_backend(&mut *doc.backend) {
         return Some(b.reader_font_pt);
     }
     if let Some(b) = base_svg::try_svg_backend(&mut *doc.backend) {
         return Some(b.font_size_pt);
+    }
+    if let Some(b) = base_dxf::try_dxf_backend(&mut *doc.backend) {
+        return Some(b.effective_text_height());
+    }
+    if let Some(b) = base_png::try_png_backend(&mut *doc.backend) {
+        if let Some(t) = &b.text_layer {
+            return Some(t.font_size_pt);
+        }
     }
     None
 }
@@ -3604,6 +3621,14 @@ fn execute_command_impl(
         let pct = adjust_page_zoom_for_url(&app, &url, step)?;
         return Ok(format!("Page zoom {}%", pct));
     }
+    if doc.backend.backend_id() == base_web::BACKEND_ID && command_id == PAGE_ZOOM_FIT_ID {
+        let url = match &tab.location {
+            BrowserLocation::Http { url } => url.clone(),
+            _ => return Err("not a web tab".into()),
+        };
+        let pct = reset_page_zoom_for_url(&app, &url)?;
+        return Ok(format!("Page zoom {}% (fit)", pct));
+    }
     if command_id == FIND_IN_DOCUMENT_ID {
         if doc.backend.backend_id() == base_web::BACKEND_ID {
             let status = crate::webview_find::web_find_status();
@@ -4513,8 +4538,8 @@ pub fn reset_active_context_font(
                 b.reader_font_pt = DEFAULT_READER_FONT_PT;
                 b.font_dirty = true;
                 crate::preferences::remember_docx_reader_font(&path, b.reader_font_pt);
-            } else if backend_id == crate::epub_stub::BACKEND_ID {
-                let b = crate::epub_stub::try_epub_backend(&mut *doc.backend).ok_or("not EPUB")?;
+            } else if backend_id == base_epub::BACKEND_ID {
+                let b = base_epub::try_epub_backend(&mut *doc.backend).ok_or("not EPUB")?;
                 b.reader_font_pt = DEFAULT_READER_FONT_PT;
             } else if backend_id == base_svg::BACKEND_ID {
                 let b = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not SVG")?;

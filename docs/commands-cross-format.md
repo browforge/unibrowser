@@ -1,59 +1,85 @@
-# Cross-format commands (font size demo)
+# Cross-format commands
 
-One command id drives the blitz **Increase font size** demo across viewers: `unibrowser.font.size.increase` (and `unibrowser.font.size.decrease`). Handlers live on bundled mods; the desktop host adds special cases for HTTP tabs (user-style injection).
+One stable command id per user action; bundled mods register handlers per `backend_id`. The desktop host intercepts HTTP tabs (user-style font, page zoom) and `.unibrow` project tabs (timeline title cards).
 
-Legend for Command Manager and palette:
+Legend:
 
 | State | Meaning |
 | --- | --- |
-| **Live** | Enabled for the active tab; execute updates viewer state |
-| **Greyed** | Slot visible; `disabled_reason` explains why (wrong tab or unsupported format) |
+| **Live** | Enabled; execute updates viewer/backend state |
+| **Grey** | Visible in Command Manager; `disabled_reason` explains why |
+
+## Coverage matrix (headline commands)
+
+| Format / backend | `unibrowser.font.size.increase` | `unibrowser.find.inDocument` | `unibrowser.page.zoom.fit` | `unibrowser.export.printPdf` |
+| --- | --- | --- | --- | --- |
+| Plain text / code (`base-text`, `base-js`) | Live | Live | Grey (use font size) | Live (Markdown HTML path for `.md`) |
+| Live web (`base-web` + host) | Live (per-origin user-style) | Live (webview find) | Live (reset origin zoom to 100%) | Grey |
+| SVG (`base-svg`) | Live when `<text>` / `<tspan>` | Live when text elements | Live | Grey |
+| DOCX (`base-docx`) | Live (reader preview pt) | Live | Grey | Live |
+| EPUB (`base-epub`) | Live (reader font pt) | Live | Live (reader scale) | Grey |
+| DXF (`base-dxf`) | Live when TEXT/MTEXT | Live when TEXT/MTEXT | Live | Grey |
+| PNG / images (`base-png`) | Live when `tEXt` key `unibrowser_text` | Live when annotation + selection | Live | Grey |
+| PDF (`base-pdf`) | Grey (no reflow) | Grey | Live (fit scale 100%) | Grey |
+| CSV (`base-csv`) | Grey | Grey | Grey | Grey |
+| `.unibrow` project (host) | Live (title clip `title_font_pt` only) | Grey | Grey | Grey |
+| Hex (`base-hex`) | Live (not in Bear headline set) | Grey | Grey | Grey |
+
+Tests: `crates/unibrowser-mod-host/tests/cross_format_commands.rs` plus per-mod unit tests under `mods/base-*`.
 
 ## `unibrowser.font.size.increase` / `.decrease`
 
 | Context | Live when | Effect |
 | --- | --- | --- |
-| **Text / Monaco** (`base-text`) | Plain-text or code tab | `font_size_pt` on backend; Monaco `fontSize` on refresh |
-| **SVG** (`base-svg`) | `.svg` file tab | Preview scale via `reader_font_pt` in viewer; backend `font_size_pt` |
-| **DOCX** (`base-docx`) | `.docx` tab | Mammoth HTML preview `font-size` from `reader_font_pt` |
-| **EPUB** (`epub` stub backend) | `.epub` tab | Spine chapter `srcdoc` body font-size from `reader_font_pt` |
-| **HTTP / HTTPS** (`base-web`) | Web tab in app shell | Per-origin user-style injection (`adjust_page_font_for_url` / `#unibrowser-user-style`); not persisted in page DOM |
-| **Hex** (`base-hex`) | Hex dump tab | Monaco plain text; `font_size_pt` on backend |
-| **PDF** (`base-pdf`) | Greyed | Raster/vector page; no reflow font (handler registered, enablement off) |
-| **PNG / images** (`base-png`) | Greyed | Bitmap preview only |
-| **Video / audio** | Greyed | No text surface |
-| **DXF proving mod** | Greyed | CAD tools stubbed |
-| **Files / home** | Greyed | No document session |
-| **`.unibrow` project** | Open project tab | **Title clips only:** adjusts `title_font_pt` on timeline title cards (used at H.264 encode via resvg); no effect when the timeline has no title clips |
+| **Text / Monaco** | Text or code tab | `font_size_pt`; Monaco refresh |
+| **SVG** | SVG contains text elements | Rewrites `font-size` on `<text>` / `<tspan>`; saves with file |
+| **DOCX** | `.docx` tab | Mammoth HTML preview size from `reader_font_pt` |
+| **EPUB** | `.epub` tab | Spine `srcdoc` body font from `reader_font_pt` |
+| **HTTP** | Web tab | Per-origin user-style (`#unibrowser-user-style`) |
+| **DXF** | Drawing has TEXT/MTEXT | Scales effective text height for wireframe preview |
+| **PNG** | `unibrowser_text` PNG metadata (`font_pt=…;label=…`) | Text annotation layer font pt |
+| **`.unibrow`** | Project tab with title clips | `title_font_pt` on timeline (encode via resvg) |
+| **PDF** | Grey | Raster page; use zoom or select PDF text layer (limited) |
+| **PNG (plain)** | Grey | No `unibrowser_text` annotation |
+| **CSV** | Grey | Table view |
 
 ## `unibrowser.find.inDocument` (Ctrl+F)
 
 | Context | Live when | Effect |
 | --- | --- | --- |
-| **Text / Monaco** | Text tab | Find bar; Monaco find or markdown preview search |
-| **DOCX** | `.docx` tab | Find bar; Mammoth HTML highlight search |
-| **EPUB** | `.epub` tab | Find bar; `window.find` in chapter iframe |
-| **PDF / image / video / files** | Greyed | No in-document find handler |
+| Text, JS, DOCX, EPUB, web | Handler registered | Shell find bar / web find / iframe `window.find` |
+| SVG, DXF | Text entities present | Document find surface |
+| PNG | Text annotation selected | Find bar (label text) |
+| PDF, CSV, binary | Grey | Reason on handler |
 
-## `unibrowser.page.zoom.increase` / `.decrease`
+## `unibrowser.page.zoom.fit` (Ctrl+0)
 
 | Context | Live when | Effect |
 | --- | --- | --- |
-| **HTTP / HTTPS** | Web tab | CSS `zoom` per origin (`web-zoom-prefs.json`), not font size |
-| **PDF** | `.pdf` tab | `render_scale` on raster preview |
-| **Images** | PNG/JPEG/GIF/WebP | `preview_zoom` on image viewer |
-| **Text / DOCX font** | Greyed | Use font-size commands instead |
+| Web | HTTP tab | Reset per-origin page zoom to 100% |
+| PDF | `.pdf` | `render_scale` = 1.0 |
+| PNG / SVG | Image/vector tab | Fit preview to viewport |
+| DXF | `.dxf` | Reset CAD preview zoom |
+| EPUB | `.epub` | Reader scale 100% |
+| Text / DOCX font views | Grey | Use font-size commands |
 
-## Related commands
+## `unibrowser.export.printPdf`
+
+| Context | Live when | Effect |
+| --- | --- | --- |
+| Text (Markdown) | `.md` / `.markdown` | Print HTML preview to PDF |
+| DOCX | `.docx` | Print mammoth HTML preview |
+| Other | Grey | No printable HTML surface |
+
+## Related
 
 | Command | Notes |
 | --- | --- |
-| `unibrowser.text.save` | Live on text and SVG when path is writable |
-| `mod.hello` | Live when a user **cdylib** mod is loaded (`dynamic-mods`); stub message if palette runs without load |
-| VSIX `demo.*` | Live on Extensions tab context per stub host |
+| `unibrowser.page.zoom.increase` / `.decrease` | Web CSS zoom, PDF scale, image `preview_zoom` |
+| `unibrowser.text.save` | Text and SVG when writable |
 
 ## Docs
 
-- UI model: [ui-commands.md](ui-commands.md)
-- Keybindings: [keybindings.md](keybindings.md)
-- Mod API ids: [mod-api-stable.md](mod-api-stable.md)
+- [ui-commands.md](ui-commands.md)
+- [keybindings.md](keybindings.md)
+- [mod-api-stable.md](mod-api-stable.md)

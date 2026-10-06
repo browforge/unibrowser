@@ -41,6 +41,8 @@ base-audio = { path = "../../../mods/base-audio" }
 unibrowser-script-host = { path = "../../unibrowser-script-host" }
 toy-markdown = { path = "../../../mods/toy-markdown" }
 base-hex = { path = "../../../mods/base-hex" }
+base-epub = { path = "../../../mods/base-epub" }
+base-csv = { path = "../../../mods/base-csv" }
 unibrowser-project = { path = "../../unibrowser-project" }
 unibrowser-media = { path = "../../unibrowser-media" }
 unibrowser-vsix = { path = "../../unibrowser-vsix" }

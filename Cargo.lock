@@ -324,6 +324,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "base-csv"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
 name = "base-docx"
 version = "0.1.0"
 dependencies = [
@@ -333,6 +341,14 @@ dependencies = [
 
 [[package]]
 name = "base-dxf"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
+name = "base-epub"
 version = "0.1.0"
 dependencies = [
  "unibrowser-engine",
@@ -377,6 +393,7 @@ dependencies = [
 name = "base-png"
 version = "0.1.0"
 dependencies = [
+ "crc32fast",
  "image 0.25.10",
  "unibrowser-engine",
  "unibrowser-mod-api",
@@ -6175,8 +6192,10 @@ name = "unibrowser-desktop"
 version = "0.1.0"
 dependencies = [
  "base-audio",
+ "base-csv",
  "base-docx",
  "base-dxf",
+ "base-epub",
  "base-files",
  "base-hex",
  "base-js",
@@ -6275,8 +6294,10 @@ name = "unibrowser-mod-host"
 version = "0.1.0"
 dependencies = [
  "base-audio",
+ "base-csv",
  "base-docx",
  "base-dxf",
+ "base-epub",
  "base-files",
  "base-hex",
  "base-js",
@@ -6286,6 +6307,7 @@ dependencies = [
  "base-text",
  "base-video",
  "base-web",
+ "crc32fast",
  "libloading 0.8.9",
  "semver",
  "serde",

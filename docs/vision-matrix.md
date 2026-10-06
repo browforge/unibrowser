@@ -9,12 +9,12 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 | Ctrl+Shift+P palette + `keybindings.json` | **Shipped** | `KeybindingMap::load_merged` (`keybinding.rs`, palette in shell) |
 | Drag-anywhere toolbars; float to another monitor | **Shipped** | Screen coords + `presentation: detached_window` Tauri windows (`toolbars.md`, `toolbar_windows.rs`, `commandManager.ts`) |
 | Affinity-style context switching | **Shipped** | Auto context + pin + **Studio personas** (Settings → workspace: Text/Office/Image/Web) (`workspace_personas.rs`, `workspaceLayoutPanel.ts`) |
-| Everything is a mod | **Partial** | Bundled `mods/base-*` + manifest loader; shell stubs (EPUB, CSV) still in `src-tauri` |
+| Everything is a mod | **Partial** | Bundled `mods/base-*` + manifest loader; MIDI/settings stubs still in `src-tauri` |
 | Compiled mod payloads (cdylib / WASM) + manifest-only JSON | **Partial** | WASM wasmi + SDK + `ub mod new wasm`; Linux cdylib (`dynamic-mods`); Win/macOS native load still Linux-only |
 | Open VSX + `.ubmod` + sideload | **Partial** | Mod portal, Open VSX search, sideload; VSIX JS host still spike |
 | Lazy conversion (encode-time raster) | **Shipped** | Timeline H.264 lane documented in [lazy-conversion-scope.md](lazy-conversion-scope.md), [timeline-encode-intents.md](timeline-encode-intents.md) |
 | `.unibrow` cross-format project | **Shipped** | `unibrowser-project`, board/timeline UI, share zip |
-| One cross-format font command | **Shipped** | Live on text, JS, SVG, DOCX, EPUB, HTTP user-style, hex view, `.unibrow` titles; grey with reason on PDF/images/video ([commands-cross-format.md](commands-cross-format.md)) |
+| One cross-format font command | **Partial** | Same id on text, web, SVG text, DOCX, EPUB, DXF TEXT/MTEXT, PNG `unibrowser_text`, `.unibrow` titles; grey on plain PNG/PDF/CSV ([commands-cross-format.md](commands-cross-format.md), `cross_format_commands` tests) |
 | Skippable onboarding; no repeat unless asked | **Shipped** | Tour + checklist; Settings **Show welcome** |
 | Suggestions never cover content | **Shipped** | Unknown-file **header banner** (not modal); onboarding card; mod portal optional (`unknown-file-banner`, ADR 0013) |
 | Unknown file grandma path | **Shipped** | Banner + Open as text/hex + mod suggestions (`open_active_file_as_*`, `mods/base-hex`) |
@@ -28,4 +28,4 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 1. VSIX / extension host depth.
 2. Native mod load on Windows/macOS.
 3. WASM sandbox hardening (fuel, caps).
-4. Move EPUB/CSV stubs into bundled mods.
+4. Move remaining shell stubs (MIDI, etc.) into bundled mods.

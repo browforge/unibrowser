@@ -61,7 +61,7 @@ pub fn slug_for_backend(backend_id: &str) -> &'static str {
         x if x == PDF_ID => "pdf-annotate",
         x if x == TEXT_ID => "ui-commands",
         x if x == DOCX_ID => "commands-cross-format",
-        x if x == crate::epub_stub::BACKEND_ID => "commands-cross-format",
+        x if x == base_epub::BACKEND_ID => "commands-cross-format",
         x if x == WEB_ID => "browser-shell",
         x if x == PNG_ID || x == SVG_ID => "commands-cross-format",
         x if x == VIDEO_ID || x == AUDIO_ID => "ffmpeg-sidecar",

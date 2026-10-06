@@ -20,6 +20,8 @@ members = [
     "mods/base-png",
     "mods/base-svg",
     "mods/base-docx",
+    "mods/base-epub",
+    "mods/base-csv",
     "mods/base-pdf",
     "mods/base-dxf",
     "mods/base-js",

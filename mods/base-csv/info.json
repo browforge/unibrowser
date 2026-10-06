@@ -1,0 +1,9 @@
+{
+  "name": "base-csv",
+  "version": "0.1.0",
+  "title": "CSV spreadsheet",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "CSV/TSV table preview in the document surface"
+}

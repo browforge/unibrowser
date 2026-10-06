@@ -73,7 +73,8 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Projects | Templates, `project.json` autosave backup, share zip import/export; timeline **H.264 export** (ffmpeg, fast/balanced) with progress toasts |
 | Mods | Bundled `base-*` incl. **base-hex**; `unibrowser mod new wasm`; [mod-authoring.md](mod-authoring.md); mod portal + unknown-file header banner (Open VSX / `.ubmod` / open as text|hex) |
 | Toolbars | Floating bars drag-anywhere; screen coords across monitors/DPI ([toolbars.md](toolbars.md)); **Detach to own window** (Tauri `toolbar-*` windows, `presentation` in `toolbars.json`); right-click **Reset this toolbar**; theme + high-contrast on CM and floating bars |
-| Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style; per-origin page zoom (+/-) with palette **Reset zoom for all sites** ([commands-cross-format.md](commands-cross-format.md)) |
+| Cross-format | One id per action: font (text/web/SVG text/DOCX/EPUB/DXF/PNG annotation/`.unibrow` titles), **Find**, **Zoom to fit** (Ctrl+0), **Export PDF** — coverage tables in [commands-cross-format.md](commands-cross-format.md); `cross_format_commands` integration tests |
+| Bundled EPUB/CSV | `base-epub`, `base-csv` mods (no longer `src-tauri` stubs) |
 | Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
 | Plugin sample | Build `examples/hello-world.ubmod` locally + [plugin-sdk.md](plugin-sdk.md) (`mod.hello` cdylib) |

@@ -87,6 +87,8 @@ fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
         ("base-audio", base_audio::register as ModRegisterFn),
         ("toy-markdown", toy_markdown::register as ModRegisterFn),
         ("base-hex", base_hex::register as ModRegisterFn),
+        ("base-epub", base_epub::register as ModRegisterFn),
+        ("base-csv", base_csv::register as ModRegisterFn),
     ]
     .into_iter()
     .collect()
@@ -136,7 +138,6 @@ fn build_command_registry(
             vsix_host_commands,
         );
     }
-    crate::epub_stub::register_handlers(&mut registry);
     crate::midi_stub::register_handlers(&mut registry);
     crate::project_undo_handlers::register_handlers(&mut registry);
     let mut mods_line = mod_host.load_order.join(", ");
@@ -493,12 +494,12 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         "dxf" => base_dxf::open_file(path).ok(),
         "js" | "mjs" | "cjs" | "jsx" | "ts" | "tsx" => base_js::open_file(path).ok(),
         "rhai" => base_text::open_file(path).ok(),
-        "csv" | "tsv" => Some(crate::csv_stub::open_file(path)),
+        "csv" | "tsv" => Some(base_csv::open_file(path)),
         "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
         "mp4" | "webm" | "avi" => base_video::open_file(path).ok(),
         "wav" | "mp3" | "ogg" | "flac" => base_audio::open_file(path).ok(),
         "mid" | "midi" => crate::midi_stub::open_file(path).ok(),
-        "epub" => Some(crate::epub_stub::open_file(path)),
+        "epub" => Some(base_epub::open_file(path)),
         "zip" | "7z" | "rar" | "tar" | "gz" => None,
         _ if is_known_text_extension(effective) => base_text::open_file(path).ok(),
         _ => unibrowser_mod_host::wasm::open_wasm_extension_backend(path),

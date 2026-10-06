@@ -6,6 +6,8 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Cross-format commands:** SVG `<text>` font-size rewrite; DXF TEXT/MTEXT height scale; PNG `tEXt` `unibrowser_text` annotations; `unibrowser.page.zoom.fit`; expanded Find/Export handlers; [commands-cross-format.md](docs/commands-cross-format.md) coverage matrix; `cross_format_commands` tests; vision matrix font row **Partial** until PDF/plain-PNG gaps close.
+- **base-epub / base-csv:** Bundled mods replace shell EPUB/CSV stubs.
 - **Unknown files:** Header banner “No mod handles .ext — these could:” with Open as text/hex, mod suggestions, browse mods (never modal, never over content).
 - **base-hex:** Bundled hex dump viewer mod; `open_active_file_as_text` / `open_active_file_as_hex`.
 - **Studio personas:** Settings workspace section — Text/Office/Image/Web Command Manager focus ([workspace_personas.rs](crates/unibrowser-desktop/src-tauri/src/workspace_personas.rs)).

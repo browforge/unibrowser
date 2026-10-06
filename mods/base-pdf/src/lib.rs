@@ -11,7 +11,10 @@ use unibrowser_engine::{CommandRegistry, HandlerRegistration, document::Document
 use unibrowser_mod_api::{
     Capabilities, CommandMeta, Enablement, Mode, SelectionDomain, SelectionSnapshot,
     commands::{PDF_ANNOTATE_HIGHLIGHT, PDF_ANNOTATE_INK, PDF_ANNOTATE_STAMP},
-    handlers::{FONT_DECREASE_ID, FONT_INCREASE_ID, PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_INCREASE_ID},
+    handlers::{
+        EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID, FONT_DECREASE_ID, FONT_INCREASE_ID,
+        PAGE_ZOOM_DECREASE_ID, PAGE_ZOOM_FIT_ID, PAGE_ZOOM_INCREASE_ID,
+    },
 };
 
 pub const BACKEND_ID: &str = "base-pdf";
@@ -47,6 +50,10 @@ impl PdfBackend {
 
     pub fn set_render_scale(&mut self, scale: f32) {
         self.render_scale = scale.clamp(0.5, 4.0);
+    }
+
+    pub fn zoom_to_fit(&mut self) {
+        self.render_scale = 1.0;
     }
 }
 
@@ -158,6 +165,24 @@ fn exec_page_zoom_out(doc: &mut DocumentSession) -> Result<String, String> {
     Ok(format!("PDF zoom {:.0}%", b.render_scale * 100.0))
 }
 
+fn exec_page_zoom_fit(doc: &mut DocumentSession) -> Result<String, String> {
+    let b = try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+    b.zoom_to_fit();
+    Ok(format!("PDF zoom {:.0}%", b.render_scale * 100.0))
+}
+
+fn find_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "PDF find uses the page search bar (not wired in proving mod)".into(),
+    }
+}
+
+fn export_pdf_disabled(_doc: &DocumentSession) -> Enablement {
+    Enablement::Disabled {
+        reason: "Export PDF uses printable HTML (text, Markdown, or DOCX preview)".into(),
+    }
+}
+
 fn pdf_only_enable(doc: &DocumentSession) -> Enablement {
     if doc.backend.backend_id() != BACKEND_ID {
         return Enablement::Disabled {
@@ -246,6 +271,24 @@ pub fn register(registry: &mut CommandRegistry) {
         backend_id: BACKEND_ID.into(),
         enable: page_zoom_enable,
         execute: exec_page_zoom_out,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: PAGE_ZOOM_FIT_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: page_zoom_enable,
+        execute: exec_page_zoom_fit,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: FIND_IN_DOCUMENT_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: find_disabled,
+        execute: |_| Err("disabled".into()),
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: EXPORT_PRINT_PDF_ID.into(),
+        backend_id: BACKEND_ID.into(),
+        enable: export_pdf_disabled,
+        execute: |_| Err("disabled".into()),
     });
 }
 

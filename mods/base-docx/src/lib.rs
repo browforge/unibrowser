@@ -160,3 +160,28 @@ pub fn try_docx_backend(
         .as_any_mut()
         .downcast_mut::<DocxBackend>()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use unibrowser_engine::document::DocumentSession;
+    use unibrowser_mod_api::handlers::FONT_INCREASE_ID;
+
+    #[test]
+    fn font_increase_hits_docx_handler() {
+        let dir = std::env::temp_dir().join("unibrowser_docx_font_test");
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let file = dir.join("note.docx");
+        std::fs::write(&file, b"docx").expect("write");
+        let mut doc = DocumentSession::new(
+            file.to_string_lossy().as_ref(),
+            open_file(&file).expect("open"),
+        );
+        let mut reg = CommandRegistry::default();
+        register(&mut reg);
+        reg.execute(FONT_INCREASE_ID, &mut doc).expect("font");
+        let docx = try_docx_backend(&mut *doc.backend).expect("docx");
+        assert_eq!(docx.reader_font_pt, 13.0);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}
