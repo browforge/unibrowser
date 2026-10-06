@@ -18,6 +18,9 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 | One offline diagnostics host + proofing mods (squiggles) | **Partial** | `unibrowser-diagnostics` + `spell-en-nz` / `grammar-harper`; Monaco live; DXF/unibrow locator mods; DOCX/web/SVG adapters partial ([proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022) |
 | Saving is sacred + local autosave | **Partial** | Permissive `write_manifest`; rotating `.ubautosave` slots; status bar time; export stubs do not block save ([principles.md](principles.md), ADR 0023) |
 | Live sources + compositor + outputs | **Partial** | SVG (resvg) + HTML clock snapshot + shared `LayerTransform`; `.unibrow` live preview/record UI; proving mods ([ADR 0024](adr/0024-live-sources-compositor-outputs.md)) |
+| Mod APIs + semver dependencies | **Partial** | Manifest `provides` / `api_dependencies`; `resolve_mod_graph` + `ModApiRegistry`; proving tests (`mod_api_proving`); loader notes; not yet WASM/cdylib mediated ([ADR 0025](adr/0025-mod-apis-and-dependencies.md)) |
+| Text + raster projections (search, AI, a11y) | **Partial** | Traits in `unibrowser-mod-api::projections`; backends adopt incrementally ([ADR 0025](adr/0025-mod-apis-and-dependencies.md)) |
+| AI assistant as mod | **Partial** | `unibrowser-ai-assistant` permissions + mock OpenAI tests; sidebar UI not shipped ([ADR 0026](adr/0026-ai-assistant-as-mod.md)) |
 | Skippable onboarding; no repeat unless asked | **Shipped** | Tour + checklist; dismiss forever; Settings **Show welcome** only when asked |
 | Principles watchlist (close tab, VSIX trust, offline catalog, save pickers) | **Shipped** | [blitz-status.md](blitz-status.md) Resolved table; [network.md](network.md) |
 | Suggestions never cover content | **Shipped** | Unknown-file **header banner** (not modal); onboarding card; mod portal optional (`unknown-file-banner`, ADR 0013) |
@@ -25,7 +28,7 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 
 ## Recent slice
 
-- Studio personas, lazy-conversion scope doc, unknown-file banner, `base-hex`, `mod-authoring.md`, `unibrowser mod new wasm`.
+- ADR 0025 mod API resolver + registry; ADR 0026 AI assistant proving crate; live compositor parity (prior slice).
 
 ## Top gaps
 

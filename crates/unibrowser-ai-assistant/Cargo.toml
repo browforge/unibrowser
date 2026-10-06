@@ -1,0 +1,16 @@
+[package]
+name = "unibrowser-ai-assistant"
+description = "OpenAI-compatible AI assistant mod core (ADR 0026 proving)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+unibrowser-mod-api = { path = "../unibrowser-mod-api" }
+ureq = { version = "2", default-features = false, features = ["json"] }
+
+[dev-dependencies]
+tempfile = "3"

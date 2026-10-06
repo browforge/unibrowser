@@ -6,9 +6,11 @@ pub mod context;
 pub mod handlers;
 pub mod manifest;
 pub mod navigation;
+pub mod projections;
 pub mod types;
 
 pub use context::CommandContext;
 pub use manifest::ModManifest;
+pub use projections::{RasterProjection, RasterProjectionSource, TextProjection};
 pub use navigation::{BrowserLocation, DownloadDisposition, TabId};
 pub use types::*;

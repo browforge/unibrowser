@@ -16,6 +16,117 @@ pub enum DepError {
         dep: String,
         required: String,
     },
+    #[error("mod `{0}` incompatible with installed `{1}`")]
+    Incompatible(String, String),
+    #[error("API `{api}` required by `{mod_name}` is not provided")]
+    ApiMissing { mod_name: String, api: String },
+    #[error("API `{api}` version conflict: {detail}")]
+    ApiConflict { api: String, detail: String },
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ModResolveReport {
+    pub load_order: Vec<String>,
+    /// Non-blocking resolver notes (optional deps, degraded APIs).
+    pub notes: Vec<String>,
+    /// API id → providing mod name.
+    pub api_providers: std::collections::BTreeMap<String, String>,
+}
+
+/// Full resolve: incompatibilities, required deps, optional notes, API bindings, load order.
+pub fn resolve_mod_graph(manifests: &[ModManifest]) -> Result<ModResolveReport, DepError> {
+    let by_name: HashMap<&str, &ModManifest> = manifests.iter().map(|m| (m.name.as_str(), m)).collect();
+    let mut notes = Vec::new();
+
+    for m in manifests {
+        for (blocked, _req) in &m.incompatibilities {
+            if by_name.contains_key(blocked.as_str()) {
+                return Err(DepError::Incompatible(m.name.clone(), blocked.clone()));
+            }
+        }
+    }
+
+    for m in manifests {
+        for (dep, req) in &m.optional_dependencies {
+            if dep == "base" {
+                continue;
+            }
+            if !by_name.contains_key(dep.as_str()) {
+                notes.push(format!(
+                    "Optional dependency `{}` ({}) not loaded for `{}` — features may be limited",
+                    dep, req, m.name
+                ));
+                continue;
+            }
+            let other = by_name[dep.as_str()];
+            let dep_version = semver::Version::parse(&other.version).map_err(|_| {
+                DepError::VersionMismatch {
+                    mod_name: m.name.clone(),
+                    dep: dep.clone(),
+                    required: req.clone(),
+                }
+            })?;
+            let requirement = VersionReq::parse(req).map_err(|_| DepError::VersionMismatch {
+                mod_name: m.name.clone(),
+                dep: dep.clone(),
+                required: req.clone(),
+            })?;
+            if !requirement.matches(&dep_version) {
+                notes.push(format!(
+                    "Optional dependency `{}` version mismatch for `{}` (wanted {})",
+                    dep, m.name, req
+                ));
+            }
+        }
+    }
+
+    let mut api_index: HashMap<String, (&str, semver::Version)> = HashMap::new();
+    for m in manifests {
+        for (api_id, ver_str) in &m.provides {
+            let ver = semver::Version::parse(ver_str).map_err(|_| DepError::ApiConflict {
+                api: api_id.clone(),
+                detail: format!("invalid version `{}` on mod `{}`", ver_str, m.name),
+            })?;
+            if let Some((other_mod, _)) = api_index.get(api_id) {
+                return Err(DepError::ApiConflict {
+                    api: api_id.clone(),
+                    detail: format!("provided by both `{}` and `{}`", other_mod, m.name),
+                });
+            }
+            api_index.insert(api_id.clone(), (m.name.as_str(), ver));
+        }
+    }
+
+    let mut api_providers = std::collections::BTreeMap::new();
+    for m in manifests {
+        for (api_id, req) in &m.api_dependencies {
+            let (provider, ver) = api_index.get(api_id).ok_or_else(|| DepError::ApiMissing {
+                mod_name: m.name.clone(),
+                api: api_id.clone(),
+            })?;
+            let requirement = VersionReq::parse(req).map_err(|_| DepError::ApiConflict {
+                api: api_id.clone(),
+                detail: format!("invalid range `{}` on mod `{}`", req, m.name),
+            })?;
+            if !requirement.matches(ver) {
+                return Err(DepError::ApiConflict {
+                    api: api_id.clone(),
+                    detail: format!(
+                        "provider `{}` has {} but `{}` needs {}",
+                        provider, ver, m.name, req
+                    ),
+                });
+            }
+            api_providers.insert(api_id.clone(), provider.to_string());
+        }
+    }
+
+    let load_order = resolve_load_order(manifests)?;
+    Ok(ModResolveReport {
+        load_order,
+        notes,
+        api_providers,
+    })
 }
 
 /// Topological load order with `base` virtual mod at version 0.1.0.
@@ -136,11 +247,46 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect::<BTreeMap<_, _>>(),
             optional_dependencies: BTreeMap::new(),
+            incompatibilities: BTreeMap::new(),
+            provides: BTreeMap::new(),
+            api_dependencies: BTreeMap::new(),
             description: String::new(),
             library: None,
             wasm_module: None,
             capabilities: vec![],
         }
+    }
+
+    #[test]
+    fn optional_missing_is_non_blocking_note() {
+        let m = manifest("consumer", &[]);
+        let mut opt = m.clone();
+        opt.optional_dependencies
+            .insert("missing-mod".into(), ">=0.1.0".into());
+        let report = resolve_mod_graph(&[opt]).expect("report");
+        assert!(report.notes.iter().any(|n| n.contains("Optional")));
+    }
+
+    #[test]
+    fn api_dependency_binds_provider() {
+        let mut a = manifest("api-proving-a", &[]);
+        a.provides.insert("audio.levels".into(), "1.0.0".into());
+        let mut b = manifest("api-proving-b", &[]);
+        b.api_dependencies.insert("audio.levels".into(), "^1.0".into());
+        let report = resolve_mod_graph(&[a, b]).expect("report");
+        assert_eq!(
+            report.api_providers.get("audio.levels").map(String::as_str),
+            Some("api-proving-a")
+        );
+    }
+
+    #[test]
+    fn unmet_api_dependency_errors_for_required_consumer() {
+        let b = manifest("api-proving-b", &[]);
+        let mut b = b;
+        b.api_dependencies.insert("audio.levels".into(), "^1.0".into());
+        let err = resolve_mod_graph(&[b]).unwrap_err();
+        assert!(matches!(err, DepError::ApiMissing { .. }));
     }
 
     #[test]

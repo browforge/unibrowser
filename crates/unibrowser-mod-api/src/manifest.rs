@@ -15,6 +15,15 @@ pub struct ModManifest {
     pub dependencies: BTreeMap<String, String>,
     #[serde(default)]
     pub optional_dependencies: BTreeMap<String, String>,
+    /// Mods that must not be present (`! old-mod` in Factorio terms).
+    #[serde(default)]
+    pub incompatibilities: BTreeMap<String, String>,
+    /// Named API surfaces this mod implements (`audio.levels` → `1.0.0`).
+    #[serde(default)]
+    pub provides: BTreeMap<String, String>,
+    /// Required APIs from other mods (`audio.levels` → `^1.0`).
+    #[serde(default)]
+    pub api_dependencies: BTreeMap<String, String>,
     #[serde(default)]
     pub description: String,
     /// Optional native library file name (platform-specific).

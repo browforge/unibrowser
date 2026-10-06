@@ -4927,6 +4927,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
+name = "live-proving"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-live",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9065,6 +9073,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "unibrowser-ai-assistant"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "unibrowser-mod-api",
+ "ureq",
+]
+
+[[package]]
 name = "unibrowser-app"
 version = "0.1.0"
 dependencies = [
@@ -9116,6 +9136,7 @@ dependencies = [
  "grammar-harper",
  "gtk",
  "image 0.25.10",
+ "live-proving",
  "serde",
  "serde_json",
  "spell-en-nz",
@@ -9132,6 +9153,7 @@ dependencies = [
  "unibrowser-engine",
  "unibrowser-extension-host",
  "unibrowser-fs",
+ "unibrowser-live",
  "unibrowser-media",
  "unibrowser-mod-api",
  "unibrowser-mod-host",
@@ -9200,6 +9222,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "unibrowser-live"
+version = "0.1.0"
+dependencies = [
+ "live-proving",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "unibrowser-media",
+ "unibrowser-project",
+]
+
+[[package]]
 name = "unibrowser-media"
 version = "0.1.0"
 dependencies = [
@@ -9241,6 +9276,7 @@ dependencies = [
  "dxf-checker",
  "grammar-harper",
  "libloading 0.8.9",
+ "live-proving",
  "semver",
  "serde",
  "serde_json",
@@ -9435,6 +9471,8 @@ dependencies = [
  "once_cell",
  "rustls",
  "rustls-pki-types",
+ "serde",
+ "serde_json",
  "url",
  "webpki-roots 0.26.11",
 ]

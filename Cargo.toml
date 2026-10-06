@@ -10,6 +10,7 @@ members = [
     "crates/unibrowser-diagnostics",
     "crates/unibrowser-fs",
     "crates/unibrowser-live",
+    "crates/unibrowser-ai-assistant",
     "crates/unibrowser-mod-host",
     "crates/unibrowser-project",
     "crates/unibrowser-media",

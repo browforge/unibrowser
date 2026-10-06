@@ -8,7 +8,7 @@ use thiserror::Error;
 use unibrowser_engine::CommandRegistry;
 use unibrowser_mod_api::{MOD_API_VERSION, ModManifest};
 
-use crate::deps::{DepError, resolve_load_order};
+use crate::deps::{DepError, resolve_mod_graph};
 
 /// T0 dev: static registration from in-tree `base-*` sources.
 /// Product/community mods: manifest + compiled `cdylib`/WASM entry (see docs/adr/0002).
@@ -41,6 +41,8 @@ pub struct LoadedMod {
 pub struct ModHost {
     pub mods: Vec<LoadedMod>,
     pub load_order: Vec<String>,
+    /// Non-blocking resolver notes (optional deps, degraded APIs).
+    pub resolve_notes: Vec<String>,
 }
 
 impl ModHost {
@@ -77,7 +79,9 @@ impl ModHost {
             }
         }
 
-        let load_order = resolve_load_order(&manifests)?;
+        let report = resolve_mod_graph(&manifests)?;
+        let load_order = report.load_order;
+        let resolve_notes = report.notes;
         let mods: Vec<LoadedMod> = load_order
             .iter()
             .filter_map(|name| {
@@ -96,7 +100,11 @@ impl ModHost {
             }
         }
 
-        Ok(Self { mods, load_order })
+        Ok(Self {
+            mods,
+            load_order,
+            resolve_notes,
+        })
     }
 }
 

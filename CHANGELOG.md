@@ -6,6 +6,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Mod APIs + AI assistant (ADR 0025–0026):** Semver mod graph resolver (`resolve_mod_graph`), typed `ModApiRegistry`, text/raster projection traits; `unibrowser-ai-assistant` with permission grants and OpenAI-compatible proving tests.
 - **Live learn-once compositor:** SVG overlay (shared resvg), HTML speedrun clock snapshot, `unibrowser-project::LayerTransform` blit; full-stack MP4 e2e; `.unibrow` live preview + record UI (no network).
 - **Live engine (ADR 0024):** `crates/unibrowser-live` (File/Live sources, data bindings, live compositor, drop-frame clock, ffmpeg file sink); `mods/live-proving` skeleton; [live-mod-authoring.md](docs/live-mod-authoring.md); e2e live→MP4 test.
 - **Principles watchlist resolved:** ADR 0021/0022 **Principles check** backfill; close tab without confirm (autosave + reopen hint); VSIX inline trust bar; Settings **Offline mode** + [network.md](docs/network.md); untitled-only Save picker; blitz watchlist moved to **Resolved**.
