@@ -4,7 +4,7 @@ Thank you for helping build a unified file and web browser shell. This project i
 
 ## Before you start
 
-1. Read `README.md`, [docs/getting-started.md](docs/getting-started.md), and `docs/architecture.md` for the engine / mod / shell split.
+1. Read `README.md`, [docs/getting-started.md](docs/getting-started.md), [docs/principles.md](docs/principles.md) (design tiebreaker), and `docs/architecture.md` for the engine / mod / shell split.
 2. Skim relevant ADRs via [docs/index.md](docs/index.md) when your change touches navigation, downloads, projects, or UI commands.
 3. Run the automated gate locally:
 
@@ -19,7 +19,7 @@ On Linux you need GTK/WebKit dev packages (see `.github/workflows/ci.yml`). Wind
 ## How to contribute
 
 - **Small fixes:** Open a PR with a clear description and tests when behaviour changes.
-- **Features:** Prefer extending existing mods, engines, or shell surfaces before adding parallel systems. New UI should follow Command Manager and `t()` i18n patterns in the desktop shell.
+- **Features:** Prefer extending existing mods, engines, or shell surfaces before adding parallel systems. New UI should follow Command Manager and `t()` i18n patterns in the desktop shell. If a proposal conflicts with [docs/principles.md](docs/principles.md), fix the design or document the trade-off in an ADR Principles check.
 - **Security:** Paths go through `path_security`; downloads use `apply_download_disposition`. Do not bypass these for convenience.
 
 ## Code style

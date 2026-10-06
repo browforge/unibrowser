@@ -2,6 +2,19 @@
 
 FOSS users and grandma want the same thing: easy, predictable, consistent software that does what they want, when they want it.
 
+**Standing instruction (Bear):** this file is the project's core philosophy and the **tiebreaker for every design decision**. When ADRs, UX, or implementation disagree, principles win unless an ADR explicitly records a conscious trade-off (with a Principles check).
+
+## Decision checklist
+
+Before shipping or extending a feature, answer **yes** unless you document why not in the ADR or PR:
+
+1. **Does it trust the user?** (No nanny gates, dark patterns, or hidden defaults that override explicit choice.)
+2. **Does it never block saving or work?** (Save / Save As / autosave always persist current state; diagnostics and validation inform, they do not refuse save.)
+3. **Is it local-first with no account or cloud required?** (Network only when the user clearly opts in or the action is obviously remote, e.g. opening a URL.)
+4. **Is it predictable and consistent across formats?** (Same command id and mental model where the problem is the same; grey + reason when a surface cannot comply.)
+5. **Is it the simple, durable mechanism** (RSS / IRC / kei-truck) **over the clever hosted one?** (Files, timers, sidecars; not SaaS-shaped glue.)
+6. **Is it a mod rather than core**, unless it is fundamental infrastructure? (Engine stays small; spellcheck, grammar, format servers, and checkers are mods.)
+
 ## Local-first
 
 - No accounts, no cloud requirement for core editing.

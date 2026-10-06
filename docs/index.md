@@ -2,10 +2,12 @@
 
 Markdown docs for contributors and maintainers. The product README stays the entry point for **running** the app; this index links design records, guides, and QA.
 
+**Philosophy (read first):** [principles.md](principles.md) is Bear's standing tiebreaker for every design decision. Use its Decision checklist; cite it in new ADRs ([adr/0000-template.md](adr/0000-template.md)).
+
 ## New contributors (FOSS)
 
 1. Read [getting-started.md](getting-started.md) for clone, build, test, and where to send changes.
-2. Skim [vision.md](vision.md) and [architecture.md](architecture.md) so engine / mod / shell boundaries stay clear.
+2. Read [principles.md](principles.md), then skim [vision.md](vision.md) and [architecture.md](architecture.md) so engine / mod / shell boundaries stay clear.
 3. Follow [docs/CONTRIBUTING.md](CONTRIBUTING.md) (build, checks, proving mods, PR expectations) and [CONTRIBUTING.md](../CONTRIBUTING.md) (community and asset policy).
 4. Run `./scripts/smoke-desktop-qa.sh` before you open a PR. Optionally `./scripts/lint-doc-links.sh` on doc edits.
 
@@ -13,6 +15,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 
 | Doc | Purpose |
 | --- | --- |
+| [principles.md](principles.md) | Core philosophy and decision checklist (tiebreaker) |
 | [vision.md](vision.md) | Goals: unified file + web shell, mod-driven formats |
 | [architecture.md](architecture.md) | Crate layout, data flow |
 | [roadmap.md](roadmap.md) | Phase plan |
@@ -59,7 +62,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 
 ## Architecture decision records (ADRs)
 
-ADRs are numbered in `docs/adr/`. Read the ones that touch your area before large changes.
+ADRs are numbered in `docs/adr/`. Read the ones that touch your area before large changes. New ADRs: copy [0000-template.md](adr/0000-template.md) (includes **Principles check** aligned with [principles.md](principles.md)).
 
 | ADR | Title | Implemented (blitz) |
 | --- | --- | --- |

@@ -195,6 +195,19 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 | 9 | Cloud / collab | Share zip only |
 | 10 | Binary / heavy CAD DXF | Proving parser + wireframe only; friendly empty state, not full geometry |
 
+## Principles watchlist
+
+Tracked against [principles.md](principles.md). Not blockers for the blitz; fix or document when touching the area.
+
+| Area | Principle tension | Notes |
+| --- | --- | --- |
+| Close tab with unsaved edits | Trust user / no blocking work | `window.confirm` before close — prefer non-modal discard or undo later |
+| VSIX trust + extension enable | Trust user | First-run trust prompt is modal; required for JS host opt-in |
+| Onboarding tour / checklist | Trust user | Skippable and dismissible; still interrupts first session until skipped |
+| Open VSX catalog search | Local-first | Optional network search in mod portal; bundled catalog remains offline default |
+| https / downloads / updates | Local-first | User-initiated remote actions; no background telemetry |
+| Save dialogs | Sacred save | Pickers for Save As are fine; content must never be refused for diagnostics or lint |
+
 ## Gaps (honest)
 
 | Item | Notes |

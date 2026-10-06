@@ -2,6 +2,10 @@
 
 How to build Unibrowser, run checks, add a proving mod, and open a PR. The repo root [CONTRIBUTING.md](../CONTRIBUTING.md) covers community norms and `.unibrow` asset policy; this page is the developer runbook.
 
+## Principles (tiebreaker)
+
+Read [principles.md](principles.md) before UX, ADR, or architecture changes. Use the **Decision checklist** there when choosing between options. New ADRs must include a **Principles check** ([adr/0000-template.md](adr/0000-template.md)). In PRs, call out which principle you are serving when the change is not obvious.
+
 ## Build and run
 
 ```bash
@@ -56,4 +60,4 @@ Do not bypass `path_security` or download disposition helpers in the shell.
 
 ## Docs and changelog
 
-User-facing blitz notes: [blitz-status.md](blitz-status.md) and [CHANGELOG.md](../CHANGELOG.md). ADRs live under `docs/adr/`; link new decisions there when the change is architectural.
+User-facing blitz notes: [blitz-status.md](blitz-status.md) and [CHANGELOG.md](../CHANGELOG.md). ADRs live under `docs/adr/` (start from [0000-template.md](adr/0000-template.md)); link new decisions there when the change is architectural. Flag principle tensions in [blitz-status.md](blitz-status.md) **Principles watchlist** when shipping something that still violates the checklist.
