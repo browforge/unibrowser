@@ -19,6 +19,7 @@ pub fn load_command_manager_file(path: Option<&Path>) -> CommandManagerFile {
             }
         }
     }
+    file.sanitize_layout();
     file
 }
 

@@ -16,28 +16,27 @@ const SHARED_RULES: GroupRule[] = [
   {
     name: "History",
     priority: "normal",
-    match: (id) => id.includes("undo") || id.includes("redo"),
+    match: (id) => id.includes("document.undo") || id.includes("document.redo"),
   },
   {
     name: "Type",
     priority: "normal",
-    match: (id) => id.includes("font") || id.includes("format"),
+    match: (id) => id.includes("font") || id.includes("formatDocument"),
   },
   {
     name: "Find",
     priority: "normal",
-    match: (id) => id.includes("find") && !id.includes("files"),
+    match: (id) => id.includes("find.inDocument"),
   },
   {
     name: "Proofing",
-    priority: "low",
-    match: (id) => id.includes("proof") || id.includes("spell"),
+    priority: "normal",
+    match: (id) => id.includes("proofing"),
   },
   {
     name: "Export",
-    priority: "low",
-    match: (id) =>
-      id.includes("export") || id.includes("print") || id.includes("download"),
+    priority: "normal",
+    match: (id) => id.includes("export.printPdf") || id.includes("export.printSelection"),
   },
   {
     name: "Open",

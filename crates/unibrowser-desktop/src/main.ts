@@ -134,6 +134,11 @@ import {
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
 import { applyDemoState } from "./demoState";
+import {
+  editorReadyForCapture,
+  launchPathsNeedEditor,
+  waitForShellPaintReady,
+} from "./shellPaintReady";
 import { exposeShellChromeAudit, runShellChromeAudit } from "./shellChromeAudit";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
@@ -1563,6 +1568,10 @@ async function refreshCommandManager() {
   }
 }
 
+window.addEventListener("unibrowser-demo-cm-refresh", () => {
+  void refreshCommandManager();
+});
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -2517,7 +2526,33 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             reportSubsystemError("demo-state", err);
           }
         }
-        // Exit + PNG write: `doc_capture::schedule_run` on the GTK main thread.
+        try {
+          const painted = await waitForShellPaintReady(demoAgain, launchPaths, 45_000);
+          if (!painted) {
+            await invoke("abort_doc_capture", {
+              reason: "Shell paint readiness timed out",
+            });
+            return;
+          }
+          const auditErrors = runShellChromeAudit();
+          await invoke("self_test_submit_shell_chrome_audit", { errors: auditErrors });
+          if (auditErrors.length > 0) {
+            await invoke("abort_doc_capture", {
+              reason: `shell chrome audit: ${auditErrors.join("; ")}`,
+            });
+            return;
+          }
+          if (launchPathsNeedEditor(launchPaths) && !editorReadyForCapture()) {
+            await invoke("abort_doc_capture", {
+              reason: "Monaco editor is blank after paint wait",
+            });
+            return;
+          }
+          await invoke("finish_doc_capture_and_exit", {});
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          await invoke("abort_doc_capture", { reason: msg }).catch(() => undefined);
+        }
         return;
       }
       void maybePromptProjectRecovery((data) => {

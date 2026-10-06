@@ -13,6 +13,21 @@ export async function applyDemoState(raw: string) {
 
   for (const token of tokens) {
     switch (token) {
+      case "document-mockup":
+      case "document-mockup-problems": {
+        document.body.dataset.demoProblems = "1";
+        document.body.dataset.demoMockupProblems = "1";
+        const { showProblemsBottomPanel } = await import("./problemsPanel");
+        await invoke("seed_document_mockup_problems_cmd").catch(() => undefined);
+        showProblemsBottomPanel();
+        break;
+      }
+      case "cm-text-pin": {
+        await invoke("select_command_manager_tab", { tabId: "text" });
+        await invoke("pin_command_manager_context");
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
+      }
       case "problems":
       case "problems-open": {
         document.body.dataset.demoProblems = "1";
@@ -74,9 +89,17 @@ export async function applyDemoState(raw: string) {
         break;
       case "theme-light":
         document.documentElement.setAttribute("data-theme", "light");
+        {
+          const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
+          await applyMonacoEditorTheme("auto");
+        }
         break;
       case "theme-dark":
         document.documentElement.setAttribute("data-theme", "dark");
+        {
+          const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
+          await applyMonacoEditorTheme("auto");
+        }
         break;
       case "feedback-demo": {
         showActionToast(t("tabs.closedUndo"), t("tabs.undo"), () => undefined, "info");
@@ -143,12 +166,18 @@ export async function applyDemoState(raw: string) {
         document.body.classList.add("cm-collapsed");
         break;
       case "capture-ready":
+        document.body.classList.add("doc-capture-mode");
         document.getElementById("palette")?.classList.add("hidden");
         document.getElementById("bookmark-bar")?.classList.add("hidden");
         document.getElementById("onboarding-banner")?.classList.add("hidden");
         document.getElementById("floating-toolbar-host")?.classList.add("hidden");
-        if (!demoRaw.includes("problems")) {
+        if (!demoRaw.includes("problems") && !demoRaw.includes("document-mockup")) {
           document.getElementById("script-output-panel")?.classList.add("hidden");
+        }
+        if (document.body.dataset.demoMockupProblems === "1") {
+          await invoke("seed_document_mockup_problems_cmd").catch(() => undefined);
+          const { showProblemsBottomPanel } = await import("./problemsPanel");
+          showProblemsBottomPanel();
         }
         break;
       default:

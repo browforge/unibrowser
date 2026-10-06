@@ -1,70 +1,14 @@
-//! Headless docs screenshots (`--doc-capture`). Runs on the GTK main thread like self-test.
+//! Headless docs screenshots (`--doc-capture`). Frontend waits for paint then calls `finish_doc_capture_and_exit`.
 
 use std::path::PathBuf;
-use std::time::Duration;
 
 use tauri::{AppHandle, Manager, State};
 
 use crate::launch_args;
 use crate::self_test;
 
-pub fn schedule_run(app: AppHandle) {
-    std::thread::spawn(move || {
-        let wait_secs = if launch_args::launch_open_paths_snapshot().is_empty() {
-            8
-        } else {
-            14
-        };
-        std::thread::sleep(Duration::from_secs(wait_secs));
-        eprintln!("[doc-capture] scheduling capture on main thread");
-        let app2 = app.clone();
-        let _ = app.run_on_main_thread(move || {
-            match run_on_main(&app2) {
-                Ok(path) => {
-                    eprintln!("[doc-capture] wrote {}", path.display());
-                    std::process::exit(0);
-                }
-                Err(e) => {
-                    eprintln!("[doc-capture] failed: {}", e);
-                    std::process::exit(2);
-                }
-            }
-        });
-    });
-}
-
-fn run_on_main(app: &AppHandle) -> Result<PathBuf, String> {
-    let path = launch_args::doc_capture_output_path().ok_or("doc capture path missing")?;
-    let window = app.get_window("main").ok_or("main window missing")?;
-    let state = app.state::<crate::state::AppState>();
-
-    for open in launch_args::launch_open_paths_snapshot() {
-        let _ = crate::commands::open_path(
-            window.clone(),
-            open,
-            None,
-            app.clone(),
-            state.clone(),
-        );
-    }
-
-    if let Some(demo) = launch_args::get_demo_state() {
-        if !demo.is_empty() {
-            apply_demo_state(app, &window, &state, &demo)?;
-            std::thread::sleep(Duration::from_millis(2500));
-        }
-    }
-
-    eval_js(
-        app,
-        r"(function(){try{var h=window.__unibrowserMeasureChromeHeights?.();if(h){console.error('[chrome-metrics] '+JSON.stringify(h));}}catch(e){}})();",
-    )?;
-    self_test::scenario_shell_chrome_batch1(app)?;
-    launch_args::write_doc_capture_png(app, &path)?;
-    Ok(path)
-}
-
-fn apply_demo_state(
+/// Rust-side demo tokens when the shell webview has not finished booting (fallback only).
+pub fn apply_demo_state_rust(
     app: &AppHandle,
     window: &tauri::Window,
     state: &State<crate::state::AppState>,
@@ -76,6 +20,18 @@ fn apply_demo_state(
             continue;
         }
         match t.as_str() {
+            "document-mockup" | "document-mockup-problems" => {
+                crate::document_mockup::seed_document_mockup_problems();
+                eval_js(app, "document.body.dataset.demoProblems='1';")?;
+                eval_js(
+                    app,
+                    r"(function(){
+  const p = document.getElementById('script-output-panel');
+  if (p) p.classList.remove('hidden');
+  document.getElementById('bottom-panel-tab-problems')?.click();
+})();",
+                )?;
+            }
             "ntp" => {
                 crate::commands::new_tab(window.clone(), state.clone())?;
             }
@@ -184,6 +140,36 @@ fn apply_demo_state(
         }
     }
     Ok(())
+}
+
+pub fn run_capture_on_main(app: &AppHandle) -> Result<PathBuf, String> {
+    let path = launch_args::doc_capture_output_path().ok_or("doc capture path missing")?;
+    let window = app.get_window("main").ok_or("main window missing")?;
+    let state = app.state::<crate::state::AppState>();
+
+    for open in launch_args::launch_open_paths_snapshot() {
+        let _ = crate::commands::open_path(
+            window.clone(),
+            open,
+            None,
+            app.clone(),
+            state.clone(),
+        );
+    }
+
+    if let Some(demo) = launch_args::get_demo_state() {
+        if !demo.is_empty() {
+            apply_demo_state_rust(app, &window, &state, &demo)?;
+        }
+    }
+
+    eval_js(
+        app,
+        r"(function(){try{var h=window.__unibrowserMeasureChromeHeights?.();if(h){console.error('[chrome-metrics] '+JSON.stringify(h));}}catch(e){}})();",
+    )?;
+    self_test::scenario_shell_chrome_batch3(app)?;
+    launch_args::write_doc_capture_png(app, &path)?;
+    Ok(path)
 }
 
 fn eval_js(app: &AppHandle, script: &str) -> Result<(), String> {

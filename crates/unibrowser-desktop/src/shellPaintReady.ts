@@ -11,12 +11,30 @@ function hasVisibleText(selector: string, minLen = 1): boolean {
   return text.length >= minLen;
 }
 
-function monacoReady(): boolean {
+export function editorReadyForCapture(minChars = 160): boolean {
+  const host = document.getElementById("text-editor-host");
+  if (!host || host.classList.contains("hidden")) {
+    return false;
+  }
+  const monacoRoot = host.querySelector(".monaco-editor") as HTMLElement | null;
+  if (!monacoRoot) {
+    return false;
+  }
+  const hostH = host.clientHeight;
+  const editorH = monacoRoot.clientHeight;
+  if (hostH > 80 && editorH < hostH * 0.35) {
+    return false;
+  }
   const lines = document.querySelector(".monaco-editor .view-lines");
   if (!lines) {
     return false;
   }
-  return (lines.textContent ?? "").trim().length > 0;
+  const text = (lines.textContent ?? "").trim();
+  return text.length >= minChars;
+}
+
+function monacoReady(): boolean {
+  return editorReadyForCapture(8);
 }
 
 function unibrowBoardReady(): boolean {
@@ -70,8 +88,12 @@ function docViewerReady(): boolean {
 }
 
 function problemsReady(): boolean {
-  const panel = document.getElementById("problems-bottom-panel");
-  return Boolean(panel && !panel.classList.contains("hidden"));
+  const panel = document.getElementById("script-output-panel");
+  if (!panel || panel.classList.contains("hidden")) {
+    return false;
+  }
+  const rows = panel.querySelector(".problems-table tbody tr");
+  return Boolean(rows);
 }
 
 function paletteReady(): boolean {
@@ -104,6 +126,8 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         break;
       case "problems":
       case "problems-open":
+      case "document-mockup":
+      case "document-mockup-problems":
         checks.push(problemsReady);
         break;
       case "ai":
@@ -127,7 +151,13 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
       checks.push(liveBadgeReady);
     }
   }
-  if (joined.includes(".txt") || joined.includes(".js") || joined.includes("spell-test")) {
+  if (
+    joined.includes(".txt") ||
+    joined.includes(".ts") ||
+    joined.includes(".js") ||
+    joined.includes("spell-test") ||
+    joined.includes("sync-notes")
+  ) {
     checks.push(monacoReady);
   }
   if (joined.includes(".docx") || joined.includes(".pdf") || joined.includes(".svg")) {
@@ -143,19 +173,56 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   return checks;
 }
 
+export function launchPathsNeedEditor(launchPaths: string[]): boolean {
+  const joined = launchPaths.join("|").toLowerCase();
+  return (
+    joined.includes(".txt") ||
+    joined.includes(".ts") ||
+    joined.includes(".js") ||
+    joined.includes("spell-test") ||
+    joined.includes("sync-notes")
+  );
+}
+
+async function nudgeEditorLayout(): Promise<void> {
+  try {
+    const { relayoutTextEditor } = await import("./textEditor");
+    relayoutTextEditor();
+  } catch {
+    /* editor module not ready */
+  }
+}
+
 /** Wait for shell/webview paint before doc-capture screenshots. */
 export async function waitForShellPaintReady(
   demoRaw: string | null,
   launchPaths: string[],
   timeoutMs = 18_000,
-): Promise<void> {
+): Promise<boolean> {
   const checks = checksForDemo(demoRaw, launchPaths);
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    await nudgeEditorLayout();
     if (checks.every((fn) => fn())) {
-      await sleep(120);
-      return;
+      await nudgeEditorLayout();
+      await sleep(200);
+      if (checks.every((fn) => fn())) {
+        return true;
+      }
     }
     await sleep(80);
   }
+  return false;
 }
+
+const win = window as unknown as {
+  __unibrowserEditorReadyForCapture?: () => boolean;
+  __unibrowserWaitForShellPaintReady?: (
+    demoRaw: string | null,
+    launchPaths: string[],
+    timeoutMs?: number,
+  ) => Promise<boolean>;
+};
+
+win.__unibrowserEditorReadyForCapture = () => editorReadyForCapture();
+win.__unibrowserWaitForShellPaintReady = waitForShellPaintReady;

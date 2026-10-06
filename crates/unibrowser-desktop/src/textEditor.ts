@@ -377,6 +377,12 @@ export function openTextFind() {
   editor?.getAction("actions.find")?.run();
 }
 
+/** Doc-capture and layout fixes after sidebars open. */
+export function relayoutTextEditor(): void {
+  editor?.layout();
+  window.dispatchEvent(new Event("resize"));
+}
+
 export function runTextFind(query: string, forward: boolean) {
   if (!editor) {
     return;

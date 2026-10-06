@@ -125,9 +125,14 @@ impl CommandManagerFile {
                     label: CommandContext::Text.label().into(),
                     phase: ToolbarPhase::Active,
                     commands: vec![
-                        slot(commands::TEXT_SAVE),
+                        slot(commands::DOCUMENT_UNDO),
+                        slot(commands::DOCUMENT_REDO),
                         slot(commands::FONT_SIZE_INCREASE),
                         slot(commands::FONT_SIZE_DECREASE),
+                        slot(commands::FORMAT_DOCUMENT),
+                        slot(commands::FIND_IN_DOCUMENT),
+                        slot(commands::PROOFING_TOGGLE),
+                        slot(commands::EXPORT_PRINT_PDF),
                     ],
                 },
                 ManagerTabLayout {
@@ -162,16 +167,7 @@ impl CommandManagerFile {
                     commands: vec![],
                 },
             ],
-            floating_bars: vec![FloatingToolbarLayout {
-                id: "quick-text".into(),
-                label: "Quick".into(),
-                anchor: ToolbarAnchor::Docked,
-                x: 0.0,
-                y: 0.0,
-                coord_space: ToolbarCoordSpace::Viewport,
-                presentation: ToolbarPresentation::InWindow,
-                commands: vec![slot(commands::TEXT_SAVE)],
-            }],
+            floating_bars: vec![],
         }
     }
 
@@ -187,6 +183,28 @@ impl CommandManagerFile {
         }
         if other.context_pin.is_some() {
             self.context_pin = other.context_pin;
+        }
+        self.sanitize_layout();
+    }
+
+    /// Drop legacy factory floating bars and upgrade the Text tab command seed.
+    pub fn sanitize_layout(&mut self) {
+        self.floating_bars
+            .retain(|b| b.id != "quick-text" && !b.commands.is_empty());
+        let factory = CommandManagerFile::factory_default();
+        let text_id = CommandContext::Text.tab_id();
+        let factory_text = factory
+            .tabs
+            .iter()
+            .find(|t| t.id == text_id)
+            .map(|t| t.commands.clone());
+        if let Some(seed) = factory_text {
+            if let Some(tab) = self.tabs.iter_mut().find(|t| t.id == text_id) {
+                let legacy = tab.commands.len() <= 3;
+                if legacy {
+                    tab.commands = seed;
+                }
+            }
         }
     }
 }

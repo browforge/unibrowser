@@ -23,7 +23,7 @@ pub const SCENARIO_PALETTE: &str = "palette-command";
 pub const SCENARIO_CM_GREY: &str = "cm-grey-tab-switch";
 pub const SCENARIO_UNIBROW_BLANK: &str = "unibrow-blank-save";
 pub const SCENARIO_PROBLEMS_JUMP: &str = "problems-jump";
-pub const SCENARIO_SHELL_CHROME_BATCH1: &str = "shell-chrome-batch1";
+pub const SCENARIO_SHELL_CHROME_BATCH3: &str = "shell-chrome-batch3";
 
 static SHELL_CHROME_AUDIT: Mutex<Option<Vec<String>>> = Mutex::new(None);
 
@@ -46,7 +46,7 @@ pub fn drain_shell_chrome_audit() -> Option<Vec<String>> {
 }
 
 pub const ALL_SCENARIOS: &[&str] = &[
-    SCENARIO_SHELL_CHROME_BATCH1,
+    SCENARIO_SHELL_CHROME_BATCH3,
     SCENARIO_PROOFING_DICT,
     SCENARIO_PROBLEMS_JUMP,
     SCENARIO_UNKNOWN_BANNER,
@@ -264,7 +264,7 @@ fn run_all_scenarios(app: &AppHandle) -> Result<SelfTestReportDto, String> {
             SCENARIO_PROBLEMS_JUMP => scenario_problems_jump(&state, &fixtures),
             SCENARIO_LIVE_PREVIEW => scenario_live_preview(&window, app, &state, &projects),
             SCENARIO_AI_SIDEBAR => scenario_ai_sidebar(&window, app, &state),
-            SCENARIO_SHELL_CHROME_BATCH1 => scenario_shell_chrome_batch1(app),
+            SCENARIO_SHELL_CHROME_BATCH3 => scenario_shell_chrome_batch3(app),
             other => Err(format!("unknown scenario: {other}")),
         };
         let (passed, message) = match run {
@@ -547,7 +547,7 @@ fn scenario_live_preview(
     Ok(())
 }
 
-pub fn scenario_shell_chrome_batch1(app: &AppHandle) -> Result<(), String> {
+pub fn scenario_shell_chrome_batch3(app: &AppHandle) -> Result<(), String> {
     let wv = app
         .get_webview("main")
         .ok_or("main shell webview missing")?;

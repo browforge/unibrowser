@@ -3,6 +3,7 @@ mod tabs_mutex;
 mod self_test;
 mod launch_args;
 mod doc_capture;
+mod document_mockup;
 mod proofing;
 mod toolbar_windows;
 mod workspace_personas;
@@ -127,9 +128,6 @@ pub fn run() {
                 let _ = preferences::apply_window_state(&window, &saved);
                 if self_test {
                     self_test::schedule_run(app.handle().clone());
-                }
-                if doc_capture {
-                    doc_capture::schedule_run(app.handle().clone());
                 }
             }
             if let Some(state) = app.try_state::<AppState>() {
@@ -446,6 +444,7 @@ pub fn run() {
             launch_args::take_doc_capture_path,
             launch_args::abort_doc_capture,
             launch_args::finish_doc_capture_and_exit,
+            document_mockup::seed_document_mockup_problems_cmd,
             self_test::self_test_submit_shell_chrome_audit,
             self_test::self_test_ping,
             self_test::get_self_test_plan,

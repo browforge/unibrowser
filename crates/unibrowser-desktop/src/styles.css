@@ -769,6 +769,10 @@ button.proving-disabled,
   cursor: not-allowed;
 }
 
+.floating-toolbar-host.hidden {
+  display: none !important;
+}
+
 .floating-toolbar-host {
   display: flex;
   gap: 0.5rem;
@@ -1879,8 +1883,10 @@ body.content-fullscreen::after {
   flex: 1;
   position: relative;
   overflow: hidden;
-  padding: 0.5rem;
+  padding: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .http-loading-overlay {
@@ -1925,16 +1931,41 @@ body.content-fullscreen::after {
   line-height: 1.4;
 }
 
+#split-primary {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .text-editor-host {
-  position: absolute;
-  inset: 0.5rem;
-  border: 1px solid #333;
-  border-radius: 4px;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 12rem;
+  width: 100%;
+  border: none;
+  border-radius: 0;
   overflow: hidden;
+  background: var(--ub-canvas, #1b1d1e);
+}
+
+.content-host {
+  background: var(--ub-canvas, #1b1d1e);
 }
 
 .text-editor-host.hidden {
   display: none;
+}
+
+body.doc-capture-mode #text-editor-host,
+body.doc-capture-mode #text-editor-host .monaco-editor {
+  flex: 1 1 auto;
+  min-height: 52vh !important;
+}
+
+body.doc-capture-mode .view-lines {
+  opacity: 1 !important;
 }
 
 .document-viewer-host {

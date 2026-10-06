@@ -84,10 +84,24 @@ impl CommandRegistry {
         });
         reg.register_command(CommandMeta {
             id: commands::PROOFING_TOGGLE,
-            title: "Toggle proofing squiggles",
+            title: "Check",
             icon: "spellcheck",
             default_keybinding: None,
-            aliases: &["spellcheck", "proofing"],
+            aliases: &["spellcheck", "proofing", "check spelling"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_SAVE,
+            title: "Save",
+            icon: "save",
+            default_keybinding: Some("Ctrl+S"),
+            aliases: &["save file", "write file"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::FORMAT_DOCUMENT,
+            title: "Format",
+            icon: "format",
+            default_keybinding: None,
+            aliases: &["format document", "prettify"],
         });
         reg.register_command(CommandMeta {
             id: commands::PROOFING_NEXT,
@@ -133,10 +147,10 @@ impl CommandRegistry {
         });
         reg.register_command(CommandMeta {
             id: commands::EXPORT_PRINT_PDF,
-            title: "Export PDF (print HTML)",
+            title: "Export",
             icon: "export",
             default_keybinding: None,
-            aliases: &["print pdf", "save as pdf"],
+            aliases: &["print pdf", "save as pdf", "export pdf"],
         });
         reg.register_command(CommandMeta {
             id: commands::PRINT_SELECTION,
@@ -349,6 +363,11 @@ impl CommandRegistry {
     }
 
     pub fn enablement(&self, command_id: &str, doc: &DocumentSession) -> Enablement {
+        if command_id == commands::FORMAT_DOCUMENT {
+            return Enablement::Disabled {
+                reason: "Format document is unavailable for plain text.".into(),
+            };
+        }
         let backend_id = doc.backend.backend_id();
         match self.resolve_handler(command_id, backend_id) {
             Some(h) => (h.enable)(doc),
@@ -405,6 +424,14 @@ impl CommandRegistry {
             return Enablement::Disabled {
                 reason: "Undo/redo is not available for this document type".into(),
             };
+        }
+        if command_id == commands::FORMAT_DOCUMENT {
+            return Enablement::Disabled {
+                reason: "Format document is unavailable for plain text.".into(),
+            };
+        }
+        if command_id == commands::PROOFING_TOGGLE {
+            return Enablement::Enabled;
         }
         if command_id == commands::EXPORT_PRINT_PDF {
             if self.resolve_handler(command_id, &ctx.backend_id).is_some() {

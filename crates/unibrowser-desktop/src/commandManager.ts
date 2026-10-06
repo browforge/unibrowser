@@ -4,7 +4,7 @@ import { showToast } from "./toast";
 import { t } from "./i18n";
 import { bindCommandTooltip } from "./ui/commandTooltip";
 import { buildCommandGroups, type CommandGroupModel } from "./ui/commandManagerGroups";
-import { createLucideIcon } from "./ui/lucideIcon";
+import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 
 let chordByCommand = new Map<string, string>();
 
@@ -183,6 +183,21 @@ export function getStatusContextMode(): { tab: string; pinned: boolean } | null 
 let dragCommandId: string | null = null;
 let overflowGroupsCache: CommandGroupModel[] = [];
 
+function lucideForRegistryIcon(icon: string): LucideName {
+  const map: Record<string, LucideName> = {
+    undo: "undo-2",
+    redo: "redo-2",
+    search: "search",
+    export: "download",
+    spellcheck: "spell-check",
+    format: "pen-line",
+    "font-size-up": "type",
+    "font-size-down": "type",
+    save: "save",
+  };
+  return map[icon] ?? "file";
+}
+
 function renderCommandButtons(
   container: HTMLElement,
   commands: UiCommandDto[],
@@ -194,10 +209,7 @@ function renderCommandButtons(
     const patched = patchPictureInPictureCommand(cmd);
     const btn = document.createElement("button");
     btn.type = "button";
-    const icon = document.createElement("span");
-    icon.className = `cm-cmd-icon cm-icon-${cmd.icon || "extension"}`;
-    icon.setAttribute("aria-hidden", "true");
-    btn.appendChild(icon);
+    btn.appendChild(createLucideIcon(lucideForRegistryIcon(cmd.icon), 16, "ub-icon svg-icon"));
     const label = document.createElement("span");
     label.className = "cm-cmd-label";
     label.textContent = patched.title;
@@ -550,7 +562,10 @@ export const commandManager = {
         y: e.clientY - 24,
       }).catch(() => {});
     };
-    snapshot.floating_bars.forEach((bar) => {
+    const visibleBars = snapshot.floating_bars.filter(
+      (bar) => bar.id !== "quick-text" && bar.commands.length > 0,
+    );
+    visibleBars.forEach((bar) => {
       const wrap = document.createElement("div");
       wrap.className =
         "floating-bar" + (bar.anchor === "floating" ? " floating" : " docked");
@@ -682,6 +697,10 @@ export const commandManager = {
       });
       floatingEl.appendChild(wrap);
     });
+    const floatHost = document.getElementById("floating-toolbar-host");
+    if (floatHost) {
+      floatHost.classList.toggle("hidden", visibleBars.length === 0);
+    }
   },
 
   bindPinControl(

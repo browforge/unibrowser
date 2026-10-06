@@ -34,7 +34,10 @@ export type LucideName =
   | "undo-2"
   | "redo-2"
   | "save"
-  | "settings";
+  | "settings"
+  | "spell-check"
+  | "pen-line"
+  | "type";
 
 const PATHS: Record<LucideName, string> = {
   "arrow-left": '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
@@ -76,6 +79,11 @@ const PATHS: Record<LucideName, string> = {
   "package-open":
     '<path d="M12 22a2 2 0 0 0 2-2V7l-5-3-5 3v13a2 2 0 0 0 2 2Z"/><path d="M12 22v-5"/><path d="m2.5 10.5 9.5-5 9.5 5"/><path d="M7 12.5V17"/><path d="M17 12.5V17"/>',
   "grip-horizontal": '<circle cx="12" cy="9" r="1"/><circle cx="19" cy="9" r="1"/><circle cx="5" cy="9" r="1"/>',
+  "spell-check":
+    '<path d="m4 16 6-12 6 12"/><path d="M6 12h8"/><path d="m16 19 2 2 4-4"/>',
+  "pen-line":
+    '<path d="M13 21h8"/><path d="m17 3 4 4L7 21l-4 1 1-4Z"/>',
+  type: '<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>',
   "redo-2":
