@@ -1,0 +1,7 @@
+id = "base-video"
+name = "base-video"
+version = "0.1.0"
+title = "Video (proving)"
+path = "mods/base-video"
+repo = "browbridge/ubmod-base-video"
+bundled = true

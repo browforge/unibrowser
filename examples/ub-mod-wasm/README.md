@@ -1,6 +1,6 @@
-# ub-mod-wasm (T2 example)
+# ubmod-example (WASM template)
 
-Out-of-tree WASM mod using `unibrowser-mod-sdk`.
+Future home: **browbridge/ubmod-example**. Out-of-tree WASM mod using `unibrowser-mod-sdk`.
 
 - Registers palette command `mod.wasm.demo`.
 - Registers file extension `ubwasm` (stub text viewer via host).

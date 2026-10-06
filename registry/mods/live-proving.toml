@@ -1,0 +1,7 @@
+id = "live-proving"
+name = "live-proving"
+version = "0.1.0"
+title = "Live proving sources"
+path = "mods/live-proving"
+repo = "browbridge/ubmod-live-proving"
+bundled = true

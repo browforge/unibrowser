@@ -1,0 +1,7 @@
+id = "base-epub"
+name = "base-epub"
+version = "0.1.0"
+title = "EPUB reader"
+path = "mods/base-epub"
+repo = "browbridge/ubmod-base-epub"
+bundled = true

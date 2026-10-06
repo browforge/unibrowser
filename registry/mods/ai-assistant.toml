@@ -1,0 +1,7 @@
+id = "ai-assistant"
+name = "ai-assistant"
+version = "0.1.0"
+title = "AI assistant"
+path = "mods/ai-assistant"
+repo = "browbridge/ubmod-ai-assistant"
+bundled = true

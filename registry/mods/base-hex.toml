@@ -1,0 +1,7 @@
+id = "base-hex"
+name = "base-hex"
+version = "0.1.0"
+title = "Hex viewer"
+path = "mods/base-hex"
+repo = "browbridge/ubmod-base-hex"
+bundled = true

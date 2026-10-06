@@ -1,0 +1,7 @@
+id = "base-web"
+name = "base-web"
+version = "0.1.0"
+title = "Web"
+path = "mods/base-web"
+repo = "browbridge/ubmod-base-web"
+bundled = true

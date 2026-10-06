@@ -1,0 +1,7 @@
+id = "base-docx"
+name = "base-docx"
+version = "0.1.0"
+title = "Word DOCX"
+path = "mods/base-docx"
+repo = "browbridge/ubmod-base-docx"
+bundled = true

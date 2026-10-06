@@ -1,0 +1,7 @@
+id = "base-audio"
+name = "base-audio"
+version = "0.1.0"
+title = "Audio (proving)"
+path = "mods/base-audio"
+repo = "browbridge/ubmod-base-audio"
+bundled = true

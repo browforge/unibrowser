@@ -1,0 +1,7 @@
+id = "base-text"
+name = "base-text"
+version = "0.1.0"
+title = "Plain text"
+path = "mods/base-text"
+repo = "browbridge/ubmod-base-text"
+bundled = true

@@ -106,7 +106,10 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | DOCX lite | Mammoth preview + **Save edits as HTML** sibling `.ub-edit.html` — [docx-roundtrip.md](docx-roundtrip.md) |
 | EPUB notes | Reading notes in prefs; **Export reading notes** → `{book}.reading-notes.txt` beside the EPUB |
 | A11y prefs | High contrast, reduce motion (system/on/off + `prefers-reduced-motion`), optional **larger hit targets**, **Focus mode** denser chrome; skippable tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
-| WASM mods (T2) | wasmi loader + `unibrowser-mod-sdk`; example `examples/ub-mod-wasm` (command + `.ubwasm`); user `mods/` with `wasm_module` in `info.json`; [vision-matrix.md](vision-matrix.md), [wasm-t2-status.md](wasm-t2-status.md) |
+| Principles (no blocking modals) | Shell uses inline UI / palette lists instead of `alert`/`confirm`/`prompt`; autosave restore slot palette; recovery bar after crash; pinned tab close + Undo — [principles.md](principles.md) |
+| Problems Locator | Problems panel jumps via `NavigationTarget` (text, DOCX, SVG, DXF, timeline, PDF, DOM); tests in `crates/unibrowser-diagnostics/src/navigate.rs` |
+| Browbridge org prep | `registry/`, `org/dot-github/`, DCO + boundary scripts, [repo-layout.md](repo-layout.md) (no remotes created) |
+| WASM mods (T2) | wasmi loader + `unibrowser-mod-sdk`; example `examples/ub-mod-wasm` → future `browbridge/ubmod-example`; user `mods/` with `wasm_module` in `info.json`; [vision-matrix.md](vision-matrix.md), [wasm-t2-status.md](wasm-t2-status.md) |
 | Palette history | Last **10** executed commands at top of palette (**Recent:**); stored in config only |
 | Context help | **F1** / **What's this** opens `unibrowser://docs/{slug}` from repo `docs/` (dev checkout) |
 | PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |

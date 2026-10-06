@@ -22,6 +22,16 @@ On Linux you need GTK/WebKit dev packages (see `.github/workflows/ci.yml`). Wind
 - **Features:** Prefer extending existing mods, engines, or shell surfaces before adding parallel systems. New UI should follow Command Manager and `t()` i18n patterns in the desktop shell. If a proposal conflicts with [docs/principles.md](docs/principles.md), fix the design or document the trade-off in an ADR Principles check.
 - **Security:** Paths go through `path_security`; downloads use `apply_download_disposition`. Do not bypass these for convenience.
 
+## Developer Certificate of Origin (DCO)
+
+By contributing, you agree that your commits are your own work and you license them under the project licence. Each commit must include a line:
+
+```text
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+Use `git commit -s` or add the line manually. CI and `./scripts/check-dco.sh` can verify recent history.
+
 ## Code style
 
 - **Rust:** Match surrounding modules; keep commands thin and logic in libraries (`unibrowser-project`, `unibrowser-engine`, etc.).

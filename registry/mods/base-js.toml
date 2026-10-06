@@ -1,0 +1,7 @@
+id = "base-js"
+name = "base-js"
+version = "0.1.0"
+title = "Scripting (Rhai)"
+path = "mods/base-js"
+repo = "browbridge/ubmod-base-js"
+bundled = true

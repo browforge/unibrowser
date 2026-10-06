@@ -15,8 +15,8 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 | Lazy conversion (encode-time raster) | **Shipped** | Timeline H.264 lane documented in [lazy-conversion-scope.md](lazy-conversion-scope.md), [timeline-encode-intents.md](timeline-encode-intents.md) |
 | `.unibrow` cross-format project | **Shipped** | `unibrowser-project`, board/timeline UI, share zip |
 | One cross-format font command | **Partial** | Same id on text, web, SVG text, DOCX, EPUB, DXF TEXT/MTEXT, PNG `unibrowser_text`, `.unibrow` titles; grey on plain PNG/PDF/CSV ([commands-cross-format.md](commands-cross-format.md), `cross_format_commands` tests) |
-| One offline diagnostics host + proofing mods (squiggles) | **Partial** | Stdio LSP client (init/didOpen/didChange/shutdown, hover, codeAction, publishDiagnostics); Problems panel; stub + optional `harper-ls`; video/title checks via `unibrow-checker` ([proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022) |
-| Saving is sacred + local autosave | **Partial** | Close without modal (autosave flush + **Closed — Undo** toast); palette **Restore from autosave…**; crash-recovery backup on flush for text/SVG/JS/DOCX/PNG/unibrow JSON; [sacred-save-audit.md](sacred-save-audit.md) |
+| One offline diagnostics host + proofing mods (squiggles) | **Partial** | Stdio LSP client; Problems panel with **Locator** navigation (text, DOCX, SVG, DXF, timeline, PDF, web form); `navigation_target` dispatch tests in `unibrowser-diagnostics`; stub + optional `harper-ls`; video/title checks via `unibrow-checker` ([proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022) |
+| Saving is sacred + local autosave | **Partial** | Close without modal (autosave flush + **Closed — Undo** toast); palette **Restore from autosave…** (slot list); launch **recovery bar** (silent restore + View original / Discard); crash-recovery backup on flush for saveable types; [sacred-save-audit.md](sacred-save-audit.md) |
 | Live sources + compositor + outputs (#122) | **Partial** | Compositor + shell preview/record; **timeline scene** from `project.json` (`scene_from_unibrow_manifest`); test-pattern base layer; HTML still CPU stub ([ADR 0024](adr/0024-live-sources-compositor-outputs.md)) |
 | Mod APIs + semver dependencies | **Partial** | Manifest `provides` / `api_dependencies`; `resolve_mod_graph` + `ModApiRegistry`; proving tests (`mod_api_proving`); loader notes; not yet WASM/cdylib mediated ([ADR 0025](adr/0025-mod-apis-and-dependencies.md)) |
 | Text + raster projections (search, AI, a11y) | **Partial** | `unibrowser-projections` + [projections-coverage.md](projections-coverage.md); per-format tests; shell passes web/OCR extras ([ADR 0025](adr/0025-mod-apis-and-dependencies.md)) |
@@ -28,7 +28,7 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 
 ## Recent slice
 
-- Proofing host completion (Harper on, dictionary UI); sacred-save autosave restore; live scene from `.unibrow` timeline; AI grants + streaming chat + richer projections.
+- No `window.alert` / `confirm` / `prompt` in shell; inline UI + autosave slot palette; pinned tab explicit close + Undo; crash recovery bar at launch; Problems Locator jumps; browbridge repo-split prep (`registry/`, `org/dot-github/`, DCO scripts, [repo-layout.md](repo-layout.md)).
 
 ## Top gaps
 

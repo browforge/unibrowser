@@ -1,0 +1,7 @@
+id = "unibrow-checker"
+name = "unibrow-checker"
+version = "0.1.0"
+title = "Unibrow timeline diagnostics"
+path = "mods/unibrow-checker"
+repo = "browbridge/ubmod-unibrow-checker"
+bundled = true

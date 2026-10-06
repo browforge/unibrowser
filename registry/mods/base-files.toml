@@ -1,0 +1,7 @@
+id = "base-files"
+name = "base-files"
+version = "0.1.0"
+title = "Files"
+path = "mods/base-files"
+repo = "browbridge/ubmod-base-files"
+bundled = true

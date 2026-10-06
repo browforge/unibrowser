@@ -1,0 +1,7 @@
+id = "dxf-checker"
+name = "dxf-checker"
+version = "0.1.0"
+title = "DXF diagnostics"
+path = "mods/dxf-checker"
+repo = "browbridge/ubmod-dxf-checker"
+bundled = true

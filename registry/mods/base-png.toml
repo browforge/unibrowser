@@ -1,0 +1,7 @@
+id = "base-png"
+name = "base-png"
+version = "0.1.0"
+title = "PNG raster"
+path = "mods/base-png"
+repo = "browbridge/ubmod-base-png"
+bundled = true

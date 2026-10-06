@@ -1,0 +1,7 @@
+id = "base-pdf"
+name = "base-pdf"
+version = "0.1.0"
+title = "PDF"
+path = "mods/base-pdf"
+repo = "browbridge/ubmod-base-pdf"
+bundled = true

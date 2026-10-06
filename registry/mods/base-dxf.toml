@@ -1,0 +1,7 @@
+id = "base-dxf"
+name = "base-dxf"
+version = "0.1.0"
+title = "DXF CAD"
+path = "mods/base-dxf"
+repo = "browbridge/ubmod-base-dxf"
+bundled = true

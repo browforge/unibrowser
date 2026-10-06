@@ -1,0 +1,7 @@
+id = "base-svg"
+name = "base-svg"
+version = "0.1.0"
+title = "SVG vector"
+path = "mods/base-svg"
+repo = "browbridge/ubmod-base-svg"
+bundled = true

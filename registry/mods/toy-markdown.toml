@@ -1,0 +1,7 @@
+id = "toy-markdown"
+name = "toy-markdown"
+version = "0.1.0"
+title = "Toy Markdown"
+path = "mods/toy-markdown"
+repo = "browbridge/ubmod-toy-markdown"
+bundled = true

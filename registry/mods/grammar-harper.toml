@@ -1,0 +1,7 @@
+id = "grammar-harper"
+name = "grammar-harper"
+version = "0.1.0"
+title = "Grammar (Harper LSP)"
+path = "mods/grammar-harper"
+repo = "browbridge/ubmod-grammar-harper"
+bundled = true

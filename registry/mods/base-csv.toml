@@ -1,0 +1,7 @@
+id = "base-csv"
+name = "base-csv"
+version = "0.1.0"
+title = "CSV spreadsheet"
+path = "mods/base-csv"
+repo = "browbridge/ubmod-base-csv"
+bundled = true

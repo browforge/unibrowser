@@ -1,7 +1,7 @@
 {
-  "name": "ub-mod-wasm",
+  "name": "ubmod-example",
   "version": "0.1.0",
-  "title": "WASM demo mod",
+  "title": "Browbridge WASM example mod",
   "unibrowser_api": "0.1.0",
   "wasm_module": "ub_mod_wasm.wasm",
   "description": "Example T2 mod built from examples/ub-mod-wasm (command + .ubwasm handler)."

@@ -1,0 +1,7 @@
+id = "spell-en-nz"
+name = "spell-en-nz"
+version = "0.1.0"
+title = "Spelling (en-NZ)"
+path = "mods/spell-en-nz"
+repo = "browbridge/ubmod-spell-en-nz"
+bundled = true
