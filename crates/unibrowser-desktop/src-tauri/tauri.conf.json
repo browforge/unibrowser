@@ -15,7 +15,8 @@
         "title": "Unibrowser",
         "width": 1200,
         "height": 800,
-        "url": "index.html"
+        "url": "index.html",
+        "decorations": false
       }
     ],
     "security": {

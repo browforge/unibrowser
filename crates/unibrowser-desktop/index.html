@@ -1,6 +1,6 @@
 <!doctype html>
-<!-- ub-shell-batch1-v1 -->
-<html lang="en" data-ub-shell="batch1-v1">
+<!-- ub-shell-batch3-v1 -->
+<html lang="en" data-ub-shell="batch3-v1">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,53 +9,57 @@
   <body>
     <div id="shell-fallback" class="shell-fallback" role="status" aria-live="polite">
       <strong>Unibrowser</strong>
-      <span class="shell-fallback-detail">Loading shell…</span>
+      <span class="shell-fallback-detail">Loading shell...</span>
     </div>
     <div id="shell-subsystem-notice" class="shell-subsystem-notice hidden" role="status">
       <span class="shell-subsystem-notice-text"></span>
     </div>
     <div id="app-shell" class="ub-shell">
     <header id="chrome" class="ub-region ub-region--chrome">
-      <div class="ub-shell-title-menu">
-        <nav id="app-menu-bar" class="app-menu-bar" aria-label="Application menu"></nav>
-        <span class="app-title-text">Unibrowser</span>
-      </div>
-      <div id="bookmark-bar" class="bookmark-bar hidden" aria-label="Pinned places"></div>
-      <div id="tab-strip" class="tab-strip ub-shell-tab-strip" role="tablist" aria-label="Open tabs"></div>
-      <div class="nav-row ub-shell-nav">
-        <button type="button" id="btn-back" class="nav-icon-btn" title="Back">←</button>
-        <button type="button" id="btn-forward" class="nav-icon-btn" title="Forward">→</button>
-        <button type="button" id="btn-reload" class="nav-icon-btn" title="Reload">↻</button>
-        <div class="omnibox-wrap">
-          <input id="omnibox" type="text" placeholder="file://, https://, or path" autocomplete="off" />
+      <nav id="app-menu-bar" class="app-menu-bar app-menu-bar--access" aria-label="Application menu"></nav>
+      <div id="title-bar" class="title-bar" aria-label="Window and document navigation">
+        <button type="button" id="title-menu-btn" class="title-icon app-menu-trigger-compact" title="Main menu (Alt)" aria-label="Main menu" aria-haspopup="true"></button>
+        <div id="tab-strip" class="title-tabs tab-strip" role="tablist" aria-label="Open tabs"></div>
+        <div id="title-nav" class="title-nav hidden" aria-label="Browser navigation">
+          <button type="button" id="btn-back" class="title-icon" title="Back" aria-label="Back"></button>
+          <button type="button" id="btn-forward" class="title-icon" title="Forward" aria-label="Forward"></button>
+          <button type="button" id="btn-reload" class="title-icon" title="Reload" aria-label="Reload"></button>
+        </div>
+        <div class="omnibox-wrap title-omnibox">
+          <input id="omnibox" type="text" placeholder="file://, https://, or path" autocomplete="off" aria-label="Location and commands" />
           <div id="omnibox-suggestions" class="omnibox-suggestions hidden" role="listbox"></div>
         </div>
-        <button type="button" id="btn-find" class="nav-text-btn" title="Find in document">Find</button>
-        <button type="button" id="btn-downloads" class="nav-text-btn" title="Downloads">Downloads</button>
-        <button type="button" id="nav-overflow" class="nav-icon-btn" title="More actions" aria-haspopup="true">⋯</button>
+        <button type="button" id="btn-undo" class="title-icon" title="Undo" aria-label="Undo"></button>
+        <button type="button" id="btn-redo" class="title-icon" title="Redo" aria-label="Redo"></button>
+        <button type="button" id="btn-save" class="title-icon title-save-btn" title="Save" aria-label="Save"></button>
+        <button type="button" id="title-overflow" class="title-icon" title="More actions" aria-label="Layout and more options" aria-haspopup="true"></button>
+        <span id="title-drag-region" class="drag-region" aria-hidden="true"></span>
+        <div id="window-controls" class="window-controls" aria-label="Window controls">
+          <button type="button" id="win-minimize" aria-label="Minimize"></button>
+          <button type="button" id="win-maximize" aria-label="Maximize"></button>
+          <button type="button" id="win-close" aria-label="Close"></button>
+        </div>
       </div>
+      <div id="bookmark-bar" class="bookmark-bar hidden" aria-label="Pinned places"></div>
       <div id="recent-panel" class="recent-panel hidden" aria-label="Recent files"></div>
       <section id="command-manager" class="command-manager" aria-label="Command manager">
-        <div class="command-manager-tabs-row">
-          <div
-            id="command-manager-tabs"
-            class="command-manager-tabs"
-            role="tablist"
-            aria-label="Command manager phases"
-          ></div>
-          <div class="cm-pin-wrap">
-            <span id="command-manager-pin-label" class="cm-pin-label">Following: …</span>
-            <button
-              type="button"
-              id="command-manager-pin"
-              class="cm-pin"
-              title="Pin the commands tab (stop following document context)"
-            >
-              Pin
-            </button>
-          </div>
+        <button type="button" id="command-manager-context" class="context-label" aria-haspopup="true" aria-expanded="false"></button>
+        <span class="cm-divider context-divider" aria-hidden="true"></span>
+        <div id="command-manager-groups" class="command-manager-groups" role="toolbar" aria-label="Context commands"></div>
+        <button type="button" id="command-manager-overflow" class="cm-overflow hidden" title="More commands" aria-label="More commands"></button>
+        <span class="cm-spacer" aria-hidden="true"></span>
+        <div class="cm-pin-wrap">
+          <span id="command-manager-pin-label" class="cm-pin-label">Following: ...</span>
+          <button
+            type="button"
+            id="command-manager-pin"
+            class="cm-pin pin-button"
+            title="Pin the commands tab (stop following document context)"
+          >
+            Pin
+          </button>
         </div>
-        <div id="command-manager-commands" class="command-manager-commands"></div>
+        <button type="button" id="command-manager-collapse" class="title-icon collapse-manager" title="Collapse Command Manager (Ctrl+F1)" aria-label="Collapse Command Manager"></button>
       </section>
       <div id="floating-toolbar-host" class="floating-toolbar-host"></div>
     </header>
@@ -69,6 +73,7 @@
     </div>
     <div id="onboarding-tour" class="onboarding-tour hidden" aria-live="polite"></div>
     <div class="ub-work-area-row">
+    <nav id="activity-rail" class="workspace-rail collapsed" aria-label="Side panels"></nav>
     <main id="content-host" class="content-host">
       <div id="new-tab-page-host" class="new-tab-page-host hidden" aria-label="Start page"></div>
       <div id="split-primary" class="split-pane">
@@ -100,7 +105,7 @@
           <span class="ai-assistant-title">AI assistant</span>
           <span class="ai-assistant-provider muted"></span>
         </div>
-        <button type="button" class="ai-assistant-close" aria-label="Close">×</button>
+        <button type="button" class="ai-assistant-close" aria-label="Close">x</button>
       </div>
       <div class="ai-assistant-body"></div>
     </aside>
@@ -113,7 +118,7 @@
           <button type="button" id="bottom-panel-tab-terminal" class="bottom-panel-tab" role="tab" aria-selected="false" aria-controls="bottom-panel-terminal-pane">Terminal</button>
           <button type="button" id="bottom-panel-tab-problems" class="bottom-panel-tab" role="tab" aria-selected="false" aria-controls="bottom-panel-problems-pane">Problems</button>
         </div>
-        <button type="button" id="script-output-close" aria-label="Close bottom panel">×</button>
+        <button type="button" id="script-output-close" aria-label="Close bottom panel">x</button>
       </div>
       <div id="bottom-panel-output-pane" class="bottom-panel-pane" role="tabpanel">
         <div id="script-output-log" class="script-output-log"></div>
@@ -167,7 +172,7 @@
       <span id="status-reading" class="status-segment status-reading muted"></span>
       <span id="status-font" class="status-segment"></span>
       <span class="status-zoom-controls">
-        <button type="button" id="status-zoom-out" class="status-zoom-btn hidden">−</button>
+        <button type="button" id="status-zoom-out" class="status-zoom-btn hidden">-</button>
         <span id="status-zoom-label" class="status-segment"></span>
         <button type="button" id="status-zoom-in" class="status-zoom-btn hidden">+</button>
       </span>
@@ -177,7 +182,7 @@
     </footer>
     </div>
     <div id="tab-search" class="palette hidden" role="dialog" aria-label="Search open tabs">
-      <input id="tab-search-query" type="text" placeholder="Filter open tabs…" />
+      <input id="tab-search-query" type="text" placeholder="Filter open tabs..." />
       <div id="tab-search-results"></div>
     </div>
     <div id="document-find-bar" class="document-find-bar hidden" role="search">
@@ -209,7 +214,7 @@
     </div>
     <div id="workspace-quick-open" class="palette hidden" role="dialog" aria-label="Go to file in workspace">
       <div class="filename-search-head">
-        <input id="workspace-quick-open-query" type="search" placeholder="File name in workspace…" autocomplete="off" />
+        <input id="workspace-quick-open-query" type="search" placeholder="File name in workspace..." autocomplete="off" />
         <button type="button" id="workspace-quick-open-close">Close</button>
       </div>
       <p id="workspace-quick-open-hint" class="viewer-note filename-search-root-label"></p>
@@ -217,7 +222,7 @@
     </div>
     <div id="filename-search" class="palette hidden" role="dialog" aria-label="Deep find">
       <div class="filename-search-head">
-        <input id="filename-search-query" type="search" placeholder="Filename…" />
+        <input id="filename-search-query" type="search" placeholder="Filename..." />
         <button type="button" id="filename-search-cancel">Cancel search</button>
         <button type="button" id="filename-search-close">Close</button>
       </div>
