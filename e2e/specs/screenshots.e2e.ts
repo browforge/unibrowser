@@ -95,7 +95,7 @@ describe("Screenshot capture (1600x1000)", () => {
     await shot("ai-assistant-panel");
 
     await openPath(txt);
-    await waitForSelector("#command-manager-commands .ui-command.disabled");
+    await waitForSelector("#command-manager-groups .ui-command.disabled");
     await shot("command-manager-greyed-tools");
   });
 });

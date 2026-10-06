@@ -132,11 +132,11 @@ describe("Unibrowser shell (WebdriverIO + tauri-driver)", function () {
     const txt = path.join(DEMO_PACK, "sample.txt");
     const png = path.join(DEMO_PACK, "sample.png");
     await openPath(txt);
-    await waitForSelector("#command-manager-commands .ui-command");
+    await waitForSelector("#command-manager-groups .ui-command");
     await openPath(png);
     await waitForSelector("#document-viewer-host:not(.hidden)");
     await browser.pause(1200);
-    const disabled = await $$("#command-manager-commands .ui-command.disabled");
+    const disabled = await $$("#command-manager-groups .ui-command.disabled");
     assert.ok(disabled.length > 0);
   });
 

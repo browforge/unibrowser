@@ -181,12 +181,12 @@ async function runCmGrey(plan: SelfTestPlan) {
   const png = joinPath(plan.demo_pack, "sample.png");
   await openPath(txt);
   await sleep(800);
-  if (!document.querySelector("#command-manager-commands .ui-command")) {
+  if (!document.querySelector("#command-manager-groups .ui-command")) {
     throw new Error("command manager empty on text tab");
   }
   await openPath(png);
   await sleep(1200);
-  const disabled = document.querySelectorAll("#command-manager-commands .ui-command.disabled");
+  const disabled = document.querySelectorAll("#command-manager-groups .ui-command.disabled");
   if (disabled.length === 0) {
     throw new Error("expected disabled commands on image tab");
   }

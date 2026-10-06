@@ -89,9 +89,10 @@ body[data-ub-ready="1"] .shell-fallback {
   border-top: 1px solid var(--ub-border, #444);
   background: var(--ub-surface-1, #222228);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   overflow: hidden;
-  margin: 0 var(--ub-space-2, 8px) var(--ub-space-2, 8px);
+  margin: 0;
 }
 
 [data-theme="light"] #command-manager,
@@ -652,7 +653,7 @@ button.proving-disabled,
 }
 
 .command-manager {
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
 }
 
 .command-manager-tabs-row {
@@ -678,9 +679,9 @@ button.proving-disabled,
 
 .cm-pin-wrap {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
   margin-left: 0.35rem;
   flex-shrink: 0;
 }

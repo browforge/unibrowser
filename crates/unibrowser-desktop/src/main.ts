@@ -9,6 +9,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import "./ui/tokens.css";
+import "./ui/compactChrome.css";
 import "./ui/quietUtilityShell.css";
 import { initCommandPalette } from "./ui/commandPalette";
 import { initDockPanel } from "./ui/dockPanel";
@@ -16,7 +17,7 @@ import { initDockPanel } from "./ui/dockPanel";
 /** WebDriver waits on this; set once shell chrome from index.html is in the DOM. */
 function markUbReadyWhenDomChromePresent() {
   const mark = () => {
-    if (document.getElementById("omnibox")) {
+    if (document.getElementById("title-bar") && document.getElementById("omnibox")) {
       hideShellFallback();
     }
   };
@@ -28,6 +29,7 @@ function markUbReadyWhenDomChromePresent() {
 }
 markUbReadyWhenDomChromePresent();
 exposeShellChromeAudit();
+exposeChromeMetrics();
 void invoke<{ scenarios: string[] } | null>("get_self_test_plan").then((plan) => {
   if (plan) {
     void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
@@ -108,6 +110,14 @@ import { setViewerZoomListener } from "./viewerZoom";
 import { clearImagePixelSample, getImagePixelSample } from "./viewerPixelSample";
 import { applyChromeI18n } from "./chromeI18n";
 import { initAppMenu } from "./appMenu";
+import {
+  initCompactTitleBar,
+  syncTitleBar,
+  updateTitleBarNavVisibility,
+} from "./ui/compactTitleBar";
+import { initActivityRail } from "./ui/activityRail";
+import { exposeChromeMetrics } from "./ui/chromeMetrics";
+import { createLucideIcon, tabIconForKind } from "./ui/lucideIcon";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { initHttpLoadingListeners, syncHttpLoadingForTab } from "./httpLoadingOverlay";
 import { configureAutoSave } from "./autoSave";
@@ -318,9 +328,11 @@ const filesBrowserWrap = document.getElementById("files-browser-wrap")!;
 const filesPanel = document.getElementById("files-panel")!;
 const filesSidePanel = document.getElementById("files-side-panel")!;
 const docPanel = document.getElementById("doc-panel")!;
-const commandManagerTabs = document.getElementById("command-manager-tabs")!;
-const commandManagerCommands = document.getElementById("command-manager-commands")!;
+const commandManagerGroups = document.getElementById("command-manager-groups")!;
+const commandManagerContext = document.getElementById("command-manager-context")!;
+const commandManagerOverflow = document.getElementById("command-manager-overflow");
 const commandManagerPin = document.getElementById("command-manager-pin")!;
+const commandManagerCollapse = document.getElementById("command-manager-collapse");
 const floatingToolbarHost = document.getElementById("floating-toolbar-host")!;
 const statusBarEl = document.getElementById("status-bar")!;
 const newTabPageHost = document.getElementById("new-tab-page-host")!;
@@ -515,13 +527,23 @@ function renderTabs(data: TabContentDto) {
       data.split_index !== null &&
       index === data.split_index;
     btn.className =
-      "tab" +
+      "tab title-tab" +
       (index === data.active_index ? " active" : "") +
       (isSplit ? " split-pane-tab" : "");
-    const dirtyMark = tab.dirty ? " •" : "";
-    const pinMark = tab.pinned ? " ★" : "";
+    btn.innerHTML = "";
+    const tabIcon = createLucideIcon(
+      tabIconForKind(tab.location_kind, tab.is_http, tab.is_directory),
+      16,
+      "ub-icon svg-icon",
+    );
+    btn.appendChild(tabIcon);
+    const tabLabel = document.createElement("span");
+    tabLabel.className = "tab-label";
+    const dirtyMark = tab.dirty ? " *" : "";
+    const pinMark = tab.pinned ? " [pinned]" : "";
     const muteMark = tab.mute_available && tab.muted ? " (muted)" : "";
-    btn.textContent = tab.label + pinMark + dirtyMark + muteMark + (isSplit ? " |" : "");
+    tabLabel.textContent = tab.label + pinMark + dirtyMark + muteMark + (isSplit ? " |" : "");
+    btn.appendChild(tabLabel);
     btn.draggable = true;
     const fullTitle = isSplit
       ? t("tabs.titleSplit", { kind: tab.location_kind })
@@ -647,8 +669,9 @@ function renderTabs(data: TabContentDto) {
   });
   const plus = document.createElement("button");
   plus.type = "button";
-  plus.className = "tab new-tab";
-  plus.textContent = "+";
+  plus.className = "tab new-tab title-icon";
+  plus.innerHTML = "";
+  plus.appendChild(createLucideIcon("plus", 16, "ub-icon svg-icon"));
   plus.setAttribute("aria-label", "New tab");
   plus.tabIndex = -1;
   plus.onclick = () => invoke<TabContentDto>("new_tab").then(applyState);
@@ -1527,14 +1550,15 @@ async function runUiCommand(commandId: string) {
 async function refreshCommandManager() {
   try {
     await commandManager.refresh(
-      commandManagerTabs,
-      commandManagerCommands,
+      commandManagerGroups,
       floatingToolbarHost,
       commandManagerPin,
+      commandManagerContext,
+      commandManagerOverflow,
       runUiCommand,
     );
   } catch {
-    commandManagerCommands.innerHTML =
+    commandManagerGroups.innerHTML =
       "<span class='muted'>Commands unavailable</span>";
   }
 }
@@ -1619,6 +1643,9 @@ async function applyState(data: TabContentDto) {
   const showViewer = Boolean(data.document_viewer) && !active?.is_http;
   const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
+  const activeTabForNav = data.tabs[data.active_index];
+  updateTitleBarNavVisibility(activeTabForNav);
+  syncTitleBar(data);
   renderBookmarkBar(
     data.bookmark_bar_enabled ?? true,
     data.pinned_locations ?? [],
@@ -1914,7 +1941,6 @@ const omniboxAutocomplete = bindOmniboxAutocomplete(omnibox, omniboxSuggestions,
   navigateOmnibox(),
 );
 
-document.getElementById("btn-tab-search")!.onclick = () => toggleTabSearch();
 tabSearchQuery.addEventListener("input", () => void refreshTabSearchResults());
 
 listen("browser-state-updated", () => {
@@ -1940,13 +1966,6 @@ async function openNewProjectFromNav() {
   void applyState(data);
 }
 
-document.getElementById("btn-back")!.onclick = () =>
-  invoke<TabContentDto>("go_back").then(applyState);
-document.getElementById("btn-forward")!.onclick = () =>
-  invoke<TabContentDto>("go_forward").then(applyState);
-document.getElementById("btn-reload")!.onclick = () =>
-  invoke<TabContentDto>("reload_tab").then(applyState);
-
 diffEditorHost.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
   if (target.dataset.action === "close-diff") {
@@ -1964,23 +1983,21 @@ imageCompareHost.addEventListener("click", (e) => {
   }
 });
 
-document.getElementById("btn-find")!.onclick = () => {
-  void runKeybindingCommand("unibrowser.find.inDocument");
-};
-
-document.getElementById("btn-downloads")!.onclick = () => {
-  omnibox.value = "unibrowser://downloads";
-  void navigateOmnibox();
-};
-
-function openNavOverflow() {
-  const anchor = document.getElementById("nav-overflow");
-  if (!anchor) {
-    return;
-  }
+function openTitleOverflow(anchor: HTMLElement) {
   const menu = document.createElement("div");
   menu.className = "nav-overflow-menu";
   const items: { label: string; run: () => void }[] = [
+    {
+      label: t("menu.findInDocument"),
+      run: () => void runKeybindingCommand("unibrowser.find.inDocument"),
+    },
+    {
+      label: t("bookmark.downloadManager"),
+      run: () => {
+        omnibox.value = "unibrowser://downloads";
+        void navigateOmnibox();
+      },
+    },
     {
       label: t("chrome.tabs"),
       run: () => toggleTabSearch(),
@@ -2055,11 +2072,6 @@ function openNavOverflow() {
   };
   window.setTimeout(() => document.addEventListener("click", close), 0);
 }
-
-document.getElementById("nav-overflow")!.onclick = (e) => {
-  e.stopPropagation();
-  openNavOverflow();
-};
 
 onboardingDismiss.onclick = async () => {
   await invoke("dismiss_onboarding");
@@ -2230,6 +2242,11 @@ document.addEventListener(
   if (e.key === "F11") {
     e.preventDefault();
     toggleContentFullscreen();
+    return;
+  }
+  if (e.ctrlKey && e.key === "F1") {
+    e.preventDefault();
+    document.body.classList.toggle("cm-collapsed");
     return;
   }
   if (e.ctrlKey && e.shiftKey && (e.key.toLowerCase() === "t" || e.key.toLowerCase() === "a")) {
@@ -2512,11 +2529,52 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     return;
   }
   deferNonCriticalInit(() => {
+  initCompactTitleBar({
+    runCommand: (commandId) => runKeybindingCommand(commandId),
+    openTitleOverflow,
+    onBack: () => void invoke<TabContentDto>("go_back").then(applyState),
+    onForward: () => void invoke<TabContentDto>("go_forward").then(applyState),
+    onReload: () => void invoke<TabContentDto>("reload_tab").then(applyState),
+    navigateOmnibox: () => void navigateOmnibox(),
+  });
+  const workAreaRow = document.querySelector(".ub-work-area-row") as HTMLElement;
+  initActivityRail({
+    workAreaRow,
+    onDestination: (id) => {
+      if (id === "files") {
+        filesBrowserWrap.classList.toggle("hidden");
+        if (!filesBrowserWrap.classList.contains("hidden")) {
+          void refreshState();
+        }
+        return;
+      }
+      if (id === "search") {
+        toggleGlobalFind(lastBrowseFolderPath);
+        return;
+      }
+      if (id === "settings") {
+        omnibox.value = "unibrowser://settings";
+        void navigateOmnibox();
+        return;
+      }
+      if (id === "project") {
+        omnibox.value = "unibrowser://action/new-project";
+        void navigateOmnibox();
+        return;
+      }
+      if (id === "assets") {
+        omnibox.value = "unibrowser://mods";
+        void navigateOmnibox();
+      }
+    },
+  });
+  commandManager.bindCollapseControl(commandManagerCollapse);
   commandManager.bindPinControl(
     commandManagerPin,
-    commandManagerTabs,
-    commandManagerCommands,
+    commandManagerGroups,
     floatingToolbarHost,
+    commandManagerContext,
+    commandManagerOverflow,
     runUiCommand,
   );
   window.addEventListener("unibrowser-workspace-layout-loaded", () => {
@@ -2531,6 +2589,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       omnibox.value = path;
       void navigateOmnibox();
     },
+    { menuButtonId: "title-menu-btn" },
   );
   void loadKeybindingHints();
   window.addEventListener("unibrowser-autosave-tick", (event) => {
