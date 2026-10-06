@@ -41,18 +41,12 @@ export function initCompactTitleBar(deps: CompactTitleBarDeps) {
   }
   fillIconButton("title-overflow", "ellipsis", "Layout and more options");
 
+  fillIconButton("win-minimize", "minus", "Minimize");
+  fillIconButton("win-maximize", "square", "Maximize");
+  fillIconButton("win-close", "x", "Close");
   const winMin = document.getElementById("win-minimize");
   const winMax = document.getElementById("win-maximize");
   const winClose = document.getElementById("win-close");
-  if (winMin) {
-    winMin.textContent = "-";
-  }
-  if (winMax) {
-    winMax.textContent = "[]";
-  }
-  if (winClose) {
-    winClose.textContent = "x";
-  }
 
   const appWin = getCurrentWindow();
   document.getElementById("title-drag-region")?.addEventListener("mousedown", (e) => {
@@ -68,6 +62,22 @@ export function initCompactTitleBar(deps: CompactTitleBarDeps) {
     if (e.button === 0) {
       void appWin.startDragging();
     }
+  });
+
+  const syncMaximizeIcon = async () => {
+    const maximized = await appWin.isMaximized();
+    if (winMax) {
+      winMax.innerHTML = "";
+      winMax.appendChild(
+        createLucideIcon(maximized ? "copy" : "square", 14, "ub-icon svg-icon"),
+      );
+      winMax.setAttribute("aria-label", maximized ? "Restore" : "Maximize");
+      winMax.title = maximized ? "Restore" : "Maximize";
+    }
+  };
+  void syncMaximizeIcon();
+  void appWin.onResized(() => {
+    void syncMaximizeIcon();
   });
 
   winMin?.addEventListener("click", () => void appWin.minimize());
