@@ -173,4 +173,3 @@ for filename, config in CONFIG.items():
     if count != 1:
         raise RuntimeError(f"Could not replace rail in {filename}")
     path.write_text(source)
-
