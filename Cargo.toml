@@ -25,6 +25,7 @@ members = [
     "mods/base-js",
     "mods/base-video",
     "mods/base-audio",
+    "mods/base-hex",
     "mods/toy-markdown",
     "mods/base-files",
     "mods/base-web",

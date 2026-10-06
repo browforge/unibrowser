@@ -40,6 +40,7 @@ base-video = { path = "../../../mods/base-video" }
 base-audio = { path = "../../../mods/base-audio" }
 unibrowser-script-host = { path = "../../unibrowser-script-host" }
 toy-markdown = { path = "../../../mods/toy-markdown" }
+base-hex = { path = "../../../mods/base-hex" }
 unibrowser-project = { path = "../../unibrowser-project" }
 unibrowser-media = { path = "../../unibrowser-media" }
 unibrowser-vsix = { path = "../../unibrowser-vsix" }

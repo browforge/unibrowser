@@ -134,6 +134,12 @@ interface ModPortalDto {
   sideload_hint: string;
 }
 
+interface UnknownFileBannerDto {
+  path: string;
+  extension: string;
+  suggestions: ModSuggestionDto[];
+}
+
 interface OpenVsxHitDto {
   extension_id: string;
   name: string;
@@ -188,6 +194,7 @@ interface TabContentDto {
   document_status: string | null;
   text_document: TextDocumentDto | null;
   mod_portal: ModPortalDto | null;
+  unknown_file_banner: UnknownFileBannerDto | null;
   document_viewer: DocumentViewerDto | null;
   show_onboarding: boolean;
   show_onboarding_tour: boolean;
@@ -643,6 +650,65 @@ function renderFiles(
     persistFilesView,
     onRefresh: refreshState,
   });
+}
+
+function renderUnknownFileBanner(banner: UnknownFileBannerDto | null) {
+  const el = document.getElementById("unknown-file-banner");
+  if (!el) {
+    return;
+  }
+  el.innerHTML = "";
+  if (!banner) {
+    el.classList.add("hidden");
+    return;
+  }
+  el.classList.remove("hidden");
+  const lead = document.createElement("span");
+  lead.textContent = t("unknownFile.lead", { ext: banner.extension });
+  el.appendChild(lead);
+  const actions = document.createElement("div");
+  actions.className = "unknown-file-banner-actions";
+  const textBtn = document.createElement("button");
+  textBtn.type = "button";
+  textBtn.textContent = t("unknownFile.openAsText");
+  textBtn.onclick = () => {
+    void invoke<TabContentDto>("open_active_file_as_text").then((d) => d && applyState(d));
+  };
+  const hexBtn = document.createElement("button");
+  hexBtn.type = "button";
+  hexBtn.textContent = t("unknownFile.openAsHex");
+  hexBtn.onclick = () => {
+    void invoke<TabContentDto>("open_active_file_as_hex").then((d) => d && applyState(d));
+  };
+  actions.appendChild(textBtn);
+  actions.appendChild(hexBtn);
+  banner.suggestions.slice(0, 4).forEach((s) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mod-suggestion";
+    btn.textContent = s.title;
+    btn.title = s.reason;
+    btn.onclick = () => {
+      if (s.open_vsx_id) {
+        void invoke<TabContentDto>("open_mod_portal", { ext: banner.extension.replace(/^\./, "") }).then(
+          (d) => d && applyState(d),
+        );
+        return;
+      }
+      showToast(t("mods.installStub", { modId: s.mod_id }), "info");
+    };
+    actions.appendChild(btn);
+  });
+  const modsBtn = document.createElement("button");
+  modsBtn.type = "button";
+  modsBtn.textContent = t("unknownFile.browseMods");
+  modsBtn.onclick = () => {
+    void invoke<TabContentDto>("open_mod_portal", {
+      ext: banner.extension.replace(/^\./, ""),
+    }).then((d) => d && applyState(d));
+  };
+  actions.appendChild(modsBtn);
+  el.appendChild(actions);
 }
 
 function renderModPortal(portal: ModPortalDto | null) {
@@ -1447,6 +1513,7 @@ async function applyState(data: TabContentDto) {
       );
     }
   }
+  renderUnknownFileBanner(data.unknown_file_banner ?? null);
   renderModPortal(data.mod_portal);
   const hasPortal = Boolean(data.mod_portal);
   renderDoc(data.document_status, showText, hasPortal, showViewer);

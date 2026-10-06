@@ -22,6 +22,7 @@ use unibrowser_engine::{
 use unibrowser_mod_api::{BrowserLocation, DownloadDisposition};
 
 use base_js::JsMonacoBackend;
+use base_hex::{try_hex_backend, HexBackend};
 use base_text::{TextBackend, try_text_backend};
 
 use crate::config::toolbars_file_path;
@@ -328,6 +329,7 @@ pub struct TabContentDto {
     pub document_status: Option<String>,
     pub text_document: Option<TextDocumentDto>,
     pub mod_portal: Option<ModPortalDto>,
+    pub unknown_file_banner: Option<UnknownFileBannerDto>,
     pub document_viewer: Option<DocumentViewerDto>,
     pub show_onboarding: bool,
     pub show_onboarding_tour: bool,
@@ -486,6 +488,13 @@ pub struct ModPortalDto {
     pub message: String,
     pub suggestions: Vec<ModSuggestionDto>,
     pub sideload_hint: String,
+}
+
+#[derive(Serialize)]
+pub struct UnknownFileBannerDto {
+    pub path: String,
+    pub extension: String,
+    pub suggestions: Vec<ModSuggestionDto>,
 }
 
 
@@ -1130,6 +1139,17 @@ fn text_document_dto(
     doc: &mut unibrowser_engine::DocumentSession,
     reveal_line: Option<u32>,
 ) -> Option<TextDocumentDto> {
+    if let Some(backend) = try_hex_backend(&mut *doc.backend) {
+        return Some(TextDocumentDto {
+            path: backend.path.clone(),
+            content: backend.content.clone(),
+            font_size_pt: backend.font_size_pt,
+            language: "hex".into(),
+            dirty: false,
+            encoding: "binary".into(),
+            reveal_line,
+        });
+    }
     if let Some(backend) = try_text_backend(&mut *doc.backend) {
         return Some(TextDocumentDto {
             path: backend.path.clone(),
@@ -1215,6 +1235,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         None => (None, None),
     };
     let mod_portal = active_mod_portal(tabs.active_tab());
+    let unknown_file_banner = active_unknown_file_banner(tabs.active_tab());
     let split_cfg = sess.split_view.lock().map_err(|e| e.to_string())?;
     let split_enabled = split_cfg.enabled;
     let split_index = split_cfg.secondary_index;
@@ -1274,6 +1295,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         document_status,
         text_document,
         mod_portal,
+        unknown_file_banner,
         document_viewer,
         show_onboarding: !prefs.onboarding_dismissed,
         show_onboarding_tour: !prefs.onboarding_tour_skipped_forever,
@@ -1448,21 +1470,71 @@ fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPo
             });
         }
     }
+    None
+}
+
+fn active_unknown_file_banner(
+    tab: Option<&unibrowser_engine::tabs::Tab>,
+) -> Option<UnknownFileBannerDto> {
+    let tab = tab?;
     if let BrowserLocation::File { path } = &tab.location {
         if tab.document.is_none() && path.is_file() {
+            let ext = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_ascii_lowercase();
             let suggestions = suggest_mods_for_unknown_path(&path.to_string_lossy());
-            return Some(ModPortalDto {
-                title: "Install support for this file".into(),
-                message: format!(
-                    "Unibrowser has no handler for {} yet. Install a mod below (Open VSX or .ubmod); the panel stays beside your tab and does not cover file content.",
-                    path.file_name().unwrap_or_default().to_string_lossy()
-                ),
+            return Some(UnknownFileBannerDto {
+                path: path.to_string_lossy().into_owned(),
+                extension: if ext.is_empty() {
+                    "(no extension)".into()
+                } else {
+                    format!(".{}", ext)
+                },
                 suggestions,
-                sideload_hint: "Install from file… (.vsix, .ubmod) or search Open VSX when online.".into(),
             });
         }
     }
     None
+}
+
+#[tauri::command]
+pub fn open_active_file_as_text(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    reopen_active_file_mode(&state, &window, crate::state::FileOpenMode::PlainText)
+}
+
+#[tauri::command]
+pub fn open_active_file_as_hex(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    reopen_active_file_mode(&state, &window, crate::state::FileOpenMode::Hex)
+}
+
+fn reopen_active_file_mode(
+    state: &AppState,
+    window: &tauri::Window,
+    mode: crate::state::FileOpenMode,
+) -> Result<TabContentDto, String> {
+    let _sess = ws_state(state, window)?;
+    let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no tab")?;
+    let path = match &tab.location {
+        BrowserLocation::File { path } => path.clone(),
+        _ => return Err("not a file tab".into()),
+    };
+    if !path.is_file() {
+        return Err("not a file".into());
+    }
+    let doc = crate::state::open_file_document_with_mode(&path, mode)
+        .ok_or("could not open file")?;
+    tab.document = Some(doc);
+    tab.is_directory = false;
+    snapshot(state, window.label())
 }
 
 #[tauri::command]
@@ -3007,6 +3079,21 @@ pub fn detach_floating_toolbar_window(
     apply_command_manager_layout(&file, state.inner())?;
     crate::toolbar_windows::ensure_toolbar_window(&app, &bar_id, x, y)?;
     get_command_manager(window, state)
+}
+
+#[tauri::command]
+pub fn list_workspace_personas() -> Vec<crate::workspace_personas::WorkspacePersonaDto> {
+    crate::workspace_personas::list_personas()
+}
+
+#[tauri::command]
+pub fn apply_workspace_persona(
+    window: tauri::Window,
+    state: State<AppState>,
+    persona_id: String,
+) -> Result<TabContentDto, String> {
+    crate::workspace_personas::apply_persona(state.inner(), &persona_id)?;
+    snapshot(state.inner(), window.label())
 }
 
 #[tauri::command]

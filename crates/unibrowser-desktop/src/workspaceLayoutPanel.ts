@@ -116,6 +116,49 @@ export async function appendWorkspaceLayoutPanel(root: HTMLElement) {
     }
   };
 
+  const personaSection = document.createElement("div");
+  personaSection.className = "workspace-personas";
+  const personaHeading = document.createElement("h4");
+  personaHeading.textContent = t("workspacePersona.heading");
+  const personaLead = document.createElement("p");
+  personaLead.className = "viewer-note";
+  personaLead.textContent = t("workspacePersona.lead");
+  personaSection.appendChild(personaHeading);
+  personaSection.appendChild(personaLead);
+  const personas = await invoke<Array<{ id: string; name: string; description: string }>>(
+    "list_workspace_personas",
+  );
+  const personaList = document.createElement("ul");
+  personaList.className = "workspace-persona-list";
+  for (const p of personas) {
+    const li = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = `${p.name} — ${p.description}`;
+    const applyBtn = document.createElement("button");
+    applyBtn.type = "button";
+    applyBtn.textContent = t("workspacePersona.apply");
+    applyBtn.onclick = async () => {
+      applyBtn.disabled = true;
+      try {
+        await invoke("apply_workspace_persona", { personaId: p.id });
+        status.textContent = t("workspaceLayout.loaded", { name: p.name });
+        status.hidden = false;
+        window.dispatchEvent(new CustomEvent("unibrowser-workspace-layout-loaded"));
+      } catch (err) {
+        status.textContent =
+          err instanceof Error ? err.message : t("toast.errorDefault");
+        status.hidden = false;
+      } finally {
+        applyBtn.disabled = false;
+      }
+    };
+    li.appendChild(label);
+    li.appendChild(applyBtn);
+    personaList.appendChild(li);
+  }
+  personaSection.appendChild(personaList);
+
+  root.appendChild(personaSection);
   root.appendChild(saveRow);
   root.appendChild(status);
   root.appendChild(empty);

@@ -17,7 +17,8 @@ Legend for Command Manager and palette:
 | **SVG** (`base-svg`) | `.svg` file tab | Preview scale via `reader_font_pt` in viewer; backend `font_size_pt` |
 | **DOCX** (`base-docx`) | `.docx` tab | Mammoth HTML preview `font-size` from `reader_font_pt` |
 | **EPUB** (`epub` stub backend) | `.epub` tab | Spine chapter `srcdoc` body font-size from `reader_font_pt` |
-| **HTTP / HTTPS** (`base-web`) | Web tab in app shell | Per-origin user-style injection (`adjust_page_font_for_url`); not persisted in page DOM |
+| **HTTP / HTTPS** (`base-web`) | Web tab in app shell | Per-origin user-style injection (`adjust_page_font_for_url` / `#unibrowser-user-style`); not persisted in page DOM |
+| **Hex** (`base-hex`) | Hex dump tab | Monaco plain text; `font_size_pt` on backend |
 | **PDF** (`base-pdf`) | Greyed | Raster/vector page; no reflow font (handler registered, enablement off) |
 | **PNG / images** (`base-png`) | Greyed | Bitmap preview only |
 | **Video / audio** | Greyed | No text surface |

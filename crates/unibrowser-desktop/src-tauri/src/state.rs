@@ -86,6 +86,7 @@ fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
         ("base-video", base_video::register as ModRegisterFn),
         ("base-audio", base_audio::register as ModRegisterFn),
         ("toy-markdown", toy_markdown::register as ModRegisterFn),
+        ("base-hex", base_hex::register as ModRegisterFn),
     ]
     .into_iter()
     .collect()
@@ -421,6 +422,28 @@ pub fn try_open_unibrow_document(path: &Path) -> Result<DocumentSession, String>
         path_str,
         Box::new(UnibrowBackend::open(pkg)),
     ))
+}
+
+pub enum FileOpenMode {
+    Auto,
+    PlainText,
+    Hex,
+}
+
+pub fn open_file_document_with_mode(path: &Path, mode: FileOpenMode) -> Option<DocumentSession> {
+    let path_str = path.to_string_lossy().to_string();
+    match mode {
+        FileOpenMode::PlainText => {
+            let backend = base_hex::HexBackend::open_path_as_text(path).ok()?;
+            return Some(DocumentSession::new(path_str, Box::new(backend)));
+        }
+        FileOpenMode::Hex => {
+            let backend = base_hex::HexBackend::open_path(path).ok()?;
+            return Some(DocumentSession::new(path_str, Box::new(backend)));
+        }
+        FileOpenMode::Auto => {}
+    }
+    open_file_document(path)
 }
 
 pub fn open_file_document(path: &Path) -> Option<DocumentSession> {

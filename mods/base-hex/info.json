@@ -1,0 +1,10 @@
+{
+  "name": "base-hex",
+  "version": "0.1.0",
+  "title": "Hex viewer",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base-text": ">=0.1.0"
+  },
+  "description": "Open any file as a hex dump (palette or unknown-file banner)."
+}

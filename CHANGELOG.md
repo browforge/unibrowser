@@ -6,6 +6,11 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Unknown files:** Header banner “No mod handles .ext — these could:” with Open as text/hex, mod suggestions, browse mods (never modal, never over content).
+- **base-hex:** Bundled hex dump viewer mod; `open_active_file_as_text` / `open_active_file_as_hex`.
+- **Studio personas:** Settings workspace section — Text/Office/Image/Web Command Manager focus ([workspace_personas.rs](crates/unibrowser-desktop/src-tauri/src/workspace_personas.rs)).
+- **Mod authoring:** [mod-authoring.md](docs/mod-authoring.md); `cargo run -p unibrowser-cli -- mod new wasm <name> <dir>`; `scripts/ub-mod-new-wasm.sh`.
+- **Lazy conversion scope:** [lazy-conversion-scope.md](docs/lazy-conversion-scope.md) (timeline H.264 lanes shipped).
 - **Vision matrix:** [docs/vision-matrix.md](docs/vision-matrix.md) — shipped/partial/missing per Bear decision with file pointers.
 - **WASM mod runtime:** wasmi loader in `unibrowser-mod-host`, guest `unibrowser-mod-sdk`, out-of-tree `examples/ub-mod-wasm` (palette command + `.ubwasm` file handler); integration test loads built `.wasm`.
 - **Detached toolbars:** Right-click **Detach to own window**; `presentation: detached_window` in `toolbars.json`; Tauri windows `toolbar-{id}` restored on launch (`toolbar_windows.rs`).

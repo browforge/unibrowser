@@ -1,5 +1,6 @@
 mod commands;
 mod toolbar_windows;
+mod workspace_personas;
 mod config;
 pub mod downloads;
 mod download_history;
@@ -164,6 +165,10 @@ pub fn run() {
             commands::save_command_manager_layout,
             commands::detach_floating_toolbar_window,
             commands::dock_floating_toolbar_window,
+            commands::open_active_file_as_text,
+            commands::open_active_file_as_hex,
+            commands::list_workspace_personas,
+            commands::apply_workspace_persona,
             commands::export_command_manager_layout_file,
             commands::import_command_manager_layout_file,
             commands::select_command_manager_tab,

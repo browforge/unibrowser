@@ -153,12 +153,13 @@ mod tests {
             ("base-video", base_video::register as ModRegisterFn),
             ("base-audio", base_audio::register as ModRegisterFn),
             ("toy-markdown", toy_markdown::register as ModRegisterFn),
+            ("base-hex", base_hex::register as ModRegisterFn),
         ]
         .into_iter()
         .collect();
         let host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
             .expect("load");
-        assert_eq!(host.load_order.len(), 12);
+        assert_eq!(host.load_order.len(), 13);
         assert!(registry.command_meta("unibrowser.font.size.increase").is_some());
     }
 }

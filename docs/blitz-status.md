@@ -71,7 +71,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Commands | Command Manager (dense mode), palette + chords (`Ctrl+Shift+P` default, user override via `keybindings.json`), workspace layout presets, import/export JSON; VSIX commands on **Extensions** tab (stub run) |
 | Viewers | Monaco text, PDF (multi-engine proving banner + lazy raster proxy), DOCX, SVG, CSV, EPUB search, images, video/audio, MIDI stub, `.unibrow` board/timeline + MIDI scrub status |
 | Projects | Templates, `project.json` autosave backup, share zip import/export; timeline **H.264 export** (ffmpeg, fast/balanced) with progress toasts |
-| Mods | Bundled `base-*`, mod portal (context install panel + Open VSX / `.ubmod` stubs), Rhai scripts, Linux user `mods/` + dynamic cdylib (feature flag); VSIX `activationEvents` stored |
+| Mods | Bundled `base-*` incl. **base-hex**; `unibrowser mod new wasm`; [mod-authoring.md](mod-authoring.md); mod portal + unknown-file header banner (Open VSX / `.ubmod` / open as text|hex) |
 | Toolbars | Floating bars drag-anywhere; screen coords across monitors/DPI ([toolbars.md](toolbars.md)); **Detach to own window** (Tauri `toolbar-*` windows, `presentation` in `toolbars.json`); right-click **Reset this toolbar**; theme + high-contrast on CM and floating bars |
 | Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style; per-origin page zoom (+/-) with palette **Reset zoom for all sites** ([commands-cross-format.md](commands-cross-format.md)) |
 | Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
@@ -145,7 +145,7 @@ Re-run `./scripts/blitz-metrics.sh` before publishing (counts below from 2026-10
 | --- | --- |
 | Workspace Rust sources (`crates/` + `mods/`) | 129 `.rs` files · ~25.2k lines |
 | Desktop TypeScript (`crates/unibrowser-desktop/src`) | 63 `.ts` files · ~13.9k lines |
-| Bundled format mods (`mods/`) | 12 packages (`base-*` + `toy-markdown`) |
+| Bundled format mods (`mods/`) | 13 packages (`base-*` + `toy-markdown` + `base-hex`) |
 | Architecture decision records | 20 in `docs/adr/` |
 | Workspace crates (root `Cargo.toml` members) | 25 members incl. desktop, engine, mod-host, media, project, VSIX, cdylib stub |
 

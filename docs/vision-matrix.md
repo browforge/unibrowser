@@ -4,28 +4,28 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 
 | Decision | Status | Evidence |
 | --- | --- | --- |
-| SOLIDWORKS Command Manager: grey out tools instead of hiding | **Shipped** | `Enablement::Disabled` in handlers; palette/CM render disabled chips with reasons (`crates/unibrowser-engine/src/command.rs`, `crates/unibrowser-desktop/src/commandManager.ts`) |
-| Context tabs auto-follow document + separate Pin | **Shipped** | `context_pin`, `select_tab_manual`, pin control (`crates/unibrowser-engine/src/ui_command.rs`, `commandManager.ts`, `pin_command_manager_context` in `commands.rs`) |
-| Ctrl+Shift+P palette + `keybindings.json` | **Shipped** | `DEFAULT_PALETTE_CHORD`, `KeybindingMap::load_merged` (`keybinding.rs`, `config/keybindings.json`, palette in shell) |
-| Drag-anywhere toolbars; float to another monitor | **Partial** | Screen coords in `toolbars.json` (`ToolbarCoordSpace::Screen`, `commandManager.ts`); **detached OS windows** via `presentation: detached_window` + `toolbar_windows.rs` / right-click **Detach to own window** |
-| Affinity-style context switching | **Partial** | Auto context + manual tab preview (`transient_tab`, ADR 0012); not full Affinity persona presets |
-| Everything is a mod | **Partial** | Bundled `mods/base-*` + manifest loader (`unibrowser-mod-host`); shell stubs (EPUB, CSV) still in `src-tauri` |
-| Compiled mod payloads (cdylib / WASM) + manifest-only JSON | **Partial** | Linux cdylib (`dynamic-mods`, `examples/ub-mod-cdylib-stub`); **WASM** via wasmi + `examples/ub-mod-wasm` (`crates/unibrowser-mod-host/src/wasm.rs`, `crates/unibrowser-mod-sdk`) |
-| Open VSX + `.ubmod` + sideload | **Partial** | Mod portal, Open VSX search stub, `.ubmod` build script (`mod_portal`, `open_vsx`, `docs/plugin-sdk.md`); VSIX JS host still spike |
-| Lazy conversion (encode-time raster) | **Partial** | Timeline H.264 intents (`docs/timeline-encode-intents.md`, ADR 0011); not all formats |
+| SOLIDWORKS Command Manager: grey out tools instead of hiding | **Shipped** | `Enablement::Disabled` in handlers; palette/CM render disabled chips with reasons (`crates/unibrowser-engine/src/command.rs`, `commandManager.ts`) |
+| Context tabs auto-follow document + separate Pin | **Shipped** | `context_pin`, `select_tab_manual`, pin control (`ui_command.rs`, `commandManager.ts`, `commands.rs`) |
+| Ctrl+Shift+P palette + `keybindings.json` | **Shipped** | `KeybindingMap::load_merged` (`keybinding.rs`, palette in shell) |
+| Drag-anywhere toolbars; float to another monitor | **Shipped** | Screen coords + `presentation: detached_window` Tauri windows (`toolbars.md`, `toolbar_windows.rs`, `commandManager.ts`) |
+| Affinity-style context switching | **Shipped** | Auto context + pin + **Studio personas** (Settings → workspace: Text/Office/Image/Web) (`workspace_personas.rs`, `workspaceLayoutPanel.ts`) |
+| Everything is a mod | **Partial** | Bundled `mods/base-*` + manifest loader; shell stubs (EPUB, CSV) still in `src-tauri` |
+| Compiled mod payloads (cdylib / WASM) + manifest-only JSON | **Partial** | WASM wasmi + SDK + `ub mod new wasm`; Linux cdylib (`dynamic-mods`); Win/macOS native load still Linux-only |
+| Open VSX + `.ubmod` + sideload | **Partial** | Mod portal, Open VSX search, sideload; VSIX JS host still spike |
+| Lazy conversion (encode-time raster) | **Shipped** | Timeline H.264 lane documented in [lazy-conversion-scope.md](lazy-conversion-scope.md), [timeline-encode-intents.md](timeline-encode-intents.md) |
 | `.unibrow` cross-format project | **Shipped** | `unibrowser-project`, board/timeline UI, share zip |
-| One cross-format font command | **Shipped** | `unibrowser.font.size.increase` / decrease across text, SVG, DOCX, EPUB, HTTP (`docs/commands-cross-format.md`) |
-| Skippable onboarding; no repeat unless asked | **Shipped** | Tour + checklist (`onboardingTour.ts`, `preferences.rs`); Settings **Show welcome** → `reset_onboarding_prefs_cmd` |
-| Suggestions never cover content | **Shipped** | Non-blocking tour card + checklist in Settings (ADR 0013); extension tip dismissible; bookmark bar uses content bounds (`docs/onboarding.md`) |
+| One cross-format font command | **Shipped** | Live on text, JS, SVG, DOCX, EPUB, HTTP user-style, hex view, `.unibrow` titles; grey with reason on PDF/images/video ([commands-cross-format.md](commands-cross-format.md)) |
+| Skippable onboarding; no repeat unless asked | **Shipped** | Tour + checklist; Settings **Show welcome** |
+| Suggestions never cover content | **Shipped** | Unknown-file **header banner** (not modal); onboarding card; mod portal optional (`unknown-file-banner`, ADR 0013) |
+| Unknown file grandma path | **Shipped** | Banner + Open as text/hex + mod suggestions (`open_active_file_as_*`, `mods/base-hex`) |
 
-## Recent vision slice (this commit)
+## Recent slice
 
-- WASM T2 loader (wasmi) with guest SDK and `examples/ub-mod-wasm` (command + `.ubwasm` handler test).
-- Detached toolbar Tauri windows with persisted `presentation` in `toolbars.json`.
+- Studio personas, lazy-conversion scope doc, unknown-file banner, `base-hex`, `mod-authoring.md`, `unibrowser mod new wasm`.
 
-## Top gaps after this slice
+## Top gaps
 
-1. VSIX / extension host depth (full `vscode` API, lifecycle).
-2. Native mod load on Windows/macOS (Linux user `mods/` today).
-3. Full WIT sandbox (fuel, caps, signing policy on WASM).
-4. Affinity-grade workspace personas beyond CM JSON.
+1. VSIX / extension host depth.
+2. Native mod load on Windows/macOS.
+3. WASM sandbox hardening (fuel, caps).
+4. Move EPUB/CSV stubs into bundled mods.

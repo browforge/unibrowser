@@ -3307,6 +3307,34 @@ mark.docx-search-hit--current {
   color: #888;
 }
 
+.unknown-file-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0.35rem 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: #2a2a32;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  z-index: 50;
+}
+
+.unknown-file-banner.hidden {
+  display: none;
+}
+
+.unknown-file-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+body.content-fullscreen #unknown-file-banner {
+  display: none !important;
+}
+
 .onboarding-banner {
   display: flex;
   align-items: center;

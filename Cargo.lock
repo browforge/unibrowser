@@ -349,6 +349,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "base-hex"
+version = "0.1.0"
+dependencies = [
+ "base-text",
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
 name = "base-js"
 version = "0.1.0"
 dependencies = [
@@ -6169,6 +6178,7 @@ dependencies = [
  "base-docx",
  "base-dxf",
  "base-files",
+ "base-hex",
  "base-js",
  "base-pdf",
  "base-png",
@@ -6268,6 +6278,7 @@ dependencies = [
  "base-docx",
  "base-dxf",
  "base-files",
+ "base-hex",
  "base-js",
  "base-pdf",
  "base-png",
