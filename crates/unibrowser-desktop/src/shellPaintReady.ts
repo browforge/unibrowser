@@ -16,10 +16,6 @@ export function editorReadyForCapture(minChars = 80): boolean {
   if (!host || host.classList.contains("hidden")) {
     return false;
   }
-  const mirror = host.querySelector(".doc-capture-text-mirror") as HTMLElement | null;
-  if (mirror && !mirror.classList.contains("hidden")) {
-    return (mirror.textContent ?? "").trim().length >= minChars;
-  }
   const monacoRoot = host.querySelector(".monaco-editor") as HTMLElement | null;
   if (!monacoRoot) {
     return false;

@@ -856,6 +856,8 @@ Each ticket is one Composer commit and must regenerate only its named evidence.
 
 ### VQA-01: Remove the split/black text capture surface
 
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
+
 - Make `.txt` and Markdown captures show one continuous Monaco editor surface.
 - Remove the capture-only `pre`/native-layer split once WebKitGTK paint is
   reliable.
@@ -865,6 +867,8 @@ Each ticket is one Composer commit and must regenerate only its named evidence.
 - Evidence: light `.txt`, light Markdown, dark Markdown.
 
 ### VQA-02: Restore real editor geometry in evidence
+
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 
 - Show gutter, line numbers, caret-ready text layer, and real syntax styling.
 - Match Source Code Pro metrics and light/dark editor tokens.
@@ -951,6 +955,9 @@ Each ticket is one Composer commit and must regenerate only its named evidence.
 - Evidence: command gallery and text document at 100%/150%.
 
 ### VQA-13: Strengthen screenshot acceptance gates
+
+Status: complete 2026-10-06. The PNG pixel gate rejects blank text regions and
+wrong theme surfaces.
 
 - Add region-level checks for continuous editor/viewer paint, expected context
   label, no overlaps, chrome height, and required viewer landmarks.

@@ -22,6 +22,7 @@ interface MonacoThemeDto {
 }
 
 const registered = new Set<string>();
+const registeredDtos = new Map<string, MonacoThemeDto>();
 
 function resolveAutoThemeId(): string {
   return document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
@@ -36,7 +37,7 @@ export function resolveEditorThemeId(prefId: string): string {
 
 async function ensureThemeDefined(themeId: string): Promise<MonacoThemeDto | null> {
   if (registered.has(themeId)) {
-    return null;
+    return registeredDtos.get(themeId) ?? null;
   }
   const dto = await invoke<MonacoThemeDto | null>("get_editor_monaco_theme", {
     themeId,
@@ -58,6 +59,7 @@ async function ensureThemeDefined(themeId: string): Promise<MonacoThemeDto | nul
     colors: dto.colors,
   });
   registered.add(dto.id);
+  registeredDtos.set(dto.id, dto);
   return dto;
 }
 
@@ -70,6 +72,7 @@ export async function applyMonacoEditorTheme(prefId: string): Promise<string> {
   document.documentElement.dataset.monacoThemeResolved = resolved;
   if (defined) {
     document.documentElement.dataset.monacoThemeColors = JSON.stringify(defined.colors);
+    document.documentElement.dataset.monacoThemeDto = JSON.stringify(defined);
   }
   window.dispatchEvent(
     new CustomEvent("unibrowser-editor-theme", { detail: { themeId: resolved, dto: defined } }),

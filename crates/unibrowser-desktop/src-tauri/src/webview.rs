@@ -127,9 +127,13 @@ pub fn sync_content_bounds(
     width: f64,
     height: f64,
 ) -> Result<(), String> {
-    ensure_content_webview(app, window_label)?;
     let label = content_label(window_label);
-    let wv = app.get_webview(&label).ok_or("content webview missing")?;
+    let Some(wv) = app.get_webview(&label) else {
+        // Bounds updates run for every shell layout. Creating the native content
+        // webview here places an about:blank child above local Monaco/viewer
+        // surfaces before any HTTP tab has requested it.
+        return Ok(());
+    };
     wv.set_position(LogicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
     wv.set_size(LogicalSize::new(width, height))
@@ -277,7 +281,10 @@ pub fn sync_content_webview_for_window(
             apply_tab_mute(app, window_label, tab_muted)?;
         }
         _ => {
-            content_webview_navigate(app, window_label, "about:blank")?;
+            let label = content_label(window_label);
+            if let Some(wv) = app.get_webview(&label) {
+                wv.hide().map_err(|e| e.to_string())?;
+            }
         }
     }
     if crate::preferences::load_preferences().advanced_webview_devtools {

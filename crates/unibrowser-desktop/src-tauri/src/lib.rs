@@ -116,9 +116,6 @@ pub fn run() {
                 }
                 let _ = preferences::save_preferences(&p);
             }
-            if !e2e {
-                webview::ensure_content_webview(app.handle(), "main")?;
-            }
             if let Some(window) = app.get_window("main") {
                 if e2e || self_test || doc_capture {
                     let _ = window.show();

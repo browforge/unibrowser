@@ -2622,7 +2622,22 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
-          await invoke("finish_doc_capture_and_exit", {});
+          const editorRect = launchPathsNeedEditor(launchPaths)
+            ? textEditorHost.getBoundingClientRect()
+            : null;
+          await invoke("finish_doc_capture_and_exit", {
+            editorRegion: editorRect
+              ? {
+                  x: editorRect.x,
+                  y: editorRect.y,
+                  width: editorRect.width,
+                  height: editorRect.height,
+                  viewportWidth: window.innerWidth,
+                  viewportHeight: window.innerHeight,
+                  theme: document.documentElement.dataset.theme ?? "dark",
+                }
+              : null,
+          });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           await invoke("abort_doc_capture", { reason: msg }).catch(() => undefined);

@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
+use serde::Deserialize;
 use tauri::Manager;
 
-use crate::self_test::{ALL_SCENARIOS, configure as configure_self_test};
+use crate::self_test::{configure as configure_self_test, ALL_SCENARIOS};
 
 fn launch_open_paths() -> &'static Mutex<Vec<String>> {
     static SLOT: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
@@ -18,11 +19,6 @@ fn demo_state_slot() -> &'static Mutex<Option<String>> {
 fn doc_capture_slot() -> &'static Mutex<Option<PathBuf>> {
     static SLOT: OnceLock<Mutex<Option<PathBuf>>> = OnceLock::new();
     SLOT.get_or_init(|| Mutex::new(None))
-}
-
-fn doc_capture_open_paths_slot() -> &'static Mutex<Vec<String>> {
-    static SLOT: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
-    SLOT.get_or_init(|| Mutex::new(Vec::new()))
 }
 
 /// Parse argv (after program name). Supports `--open <path>`, `--self-test`, `--report`, `--help`, and positional file paths.
@@ -79,9 +75,6 @@ pub fn ingest_process_args() {
         i += 1;
     }
     if let Ok(mut slot) = launch_open_paths().lock() {
-        *slot = open_paths.clone();
-    }
-    if let Ok(mut slot) = doc_capture_open_paths_slot().lock() {
         *slot = open_paths;
     }
     if let Ok(mut demo) = demo_state_slot().lock() {
@@ -197,34 +190,41 @@ pub fn is_doc_capture_mode() -> bool {
         .is_some()
 }
 
-pub fn write_doc_capture_png(app: &tauri::AppHandle, path: &std::path::Path) -> Result<(), String> {
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorCaptureRegion {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+    viewport_width: f64,
+    viewport_height: f64,
+    theme: String,
+}
+
+fn write_doc_capture_png_inner(
+    app: &tauri::AppHandle,
+    path: &std::path::Path,
+    editor_region: Option<&EditorCaptureRegion>,
+) -> Result<(), String> {
     let window = app.get_window("main").ok_or("main window missing")?;
+    let content_label = crate::webview::content_label_for_capture(window.label());
+    eprintln!(
+        "[doc-capture] native content webview present={}",
+        app.get_webview(&content_label).is_some()
+    );
     let bytes = crate::webview_capture::capture_doc_screenshot_png(app, &window)?;
-    let joined = doc_capture_open_paths_slot()
-        .lock()
-        .map(|p| p.join("|").to_ascii_lowercase())
-        .unwrap_or_default();
-    if joined.contains(".txt")
-        || joined.contains(".md")
-        || joined.contains(".markdown")
-    {
-        let luma = crate::webview_capture::editor_region_luma_pub(&bytes);
-        let demo_dark = std::env::var("UNIBROWSER_DEMO_STATE")
-            .map(|s| s.to_ascii_lowercase().contains("theme-dark"))
-            .unwrap_or(false);
-        let path_dark = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_ascii_lowercase().contains("dark"))
-            .unwrap_or(false);
-        let min_luma = if demo_dark || path_dark { 0.12 } else { 0.32 };
-        if luma < min_luma {
-            return Err(format!(
-                "doc capture editor region too dark (mean luma {:.3} < {:.2}); editor likely unpainted",
-                luma,
-                min_luma
-            ));
-        }
+    if let Some(region) = editor_region {
+        let stats = crate::webview_capture::validate_editor_text_pixels(
+            &bytes,
+            (region.x, region.y, region.width, region.height),
+            (region.viewport_width, region.viewport_height),
+            region.theme.eq_ignore_ascii_case("dark"),
+        )?;
+        eprintln!(
+            "[doc-capture] editor pixels ink={} rows={} background={}/{}",
+            stats.ink_pixels, stats.rows_with_ink, stats.background_pixels, stats.sampled_pixels
+        );
     }
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -233,8 +233,15 @@ pub fn write_doc_capture_png(app: &tauri::AppHandle, path: &std::path::Path) -> 
     Ok(())
 }
 
+pub fn write_doc_capture_png(app: &tauri::AppHandle, path: &std::path::Path) -> Result<(), String> {
+    write_doc_capture_png_inner(app, path, None)
+}
+
 #[tauri::command]
-pub fn finish_doc_capture_and_exit(app: tauri::AppHandle) -> Result<(), String> {
+pub fn finish_doc_capture_and_exit(
+    app: tauri::AppHandle,
+    editor_region: Option<EditorCaptureRegion>,
+) -> Result<(), String> {
     let path = doc_capture_slot()
         .lock()
         .ok()
@@ -247,7 +254,7 @@ pub fn finish_doc_capture_and_exit(app: tauri::AppHandle) -> Result<(), String> 
         std::thread::sleep(std::time::Duration::from_millis(80));
         let app_main = app2.clone();
         let _ = app2.run_on_main_thread(move || {
-            match write_doc_capture_png(&app_main, &path) {
+            match write_doc_capture_png_inner(&app_main, &path, editor_region.as_ref()) {
                 Ok(()) => {
                     eprintln!("[doc-capture] wrote {}", path.display());
                     std::process::exit(0);

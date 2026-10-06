@@ -47,24 +47,6 @@ let toolbarEl: HTMLElement | null = null;
 let plainToolbarEl: HTMLDivElement | null = null;
 let plainToolbarPath: string | null = null;
 let findBound = false;
-let captureMirrorEl: HTMLPreElement | null = null;
-
-function syncCaptureTextMirror(host: HTMLElement, content: string): void {
-  const capture = document.body.classList.contains("doc-capture-mode");
-  if (!capture) {
-    captureMirrorEl?.classList.add("hidden");
-    host.querySelector(".monaco-editor")?.classList.remove("capture-mirror-hidden");
-    return;
-  }
-  if (!captureMirrorEl) {
-    captureMirrorEl = document.createElement("pre");
-    captureMirrorEl.className = "doc-capture-text-mirror hidden";
-    host.appendChild(captureMirrorEl);
-  }
-  captureMirrorEl.textContent = content;
-  captureMirrorEl.classList.remove("hidden");
-  host.querySelector(".monaco-editor")?.remove();
-}
 
 async function getMonaco(): Promise<Monaco> {
   if (!monacoApi) {
@@ -401,6 +383,7 @@ async function ensureEditor(host: HTMLElement) {
     automaticLayout: true,
     minimap: { enabled: false },
     fontSize: currentFontPt,
+    fontFamily: '"Source Code Pro", "DejaVu Sans Mono", monospace',
     wordWrap: "on",
     experimentalGpuAcceleration: "off",
   });
@@ -546,7 +529,6 @@ export const textEditor = {
     }
     currentFontPt = doc.font_size_pt;
     editor!.updateOptions({ fontSize: doc.font_size_pt });
-    syncCaptureTextMirror(host, doc.content);
     if (doc.reveal_line && doc.reveal_line > 0) {
       const line = doc.reveal_line;
       editor!.revealLineInCenter(line);

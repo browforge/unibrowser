@@ -23,10 +23,15 @@ export interface EditorCanvasDiagnostics {
 export interface MonacoThemeCaptureDiagnostics {
   resolvedTheme: string | null;
   themeColorsJson: string | null;
+  themeDtoJson: string | null;
   editorBackground: string;
   editorForeground: string;
   viewLineColor: string;
   viewLineBackground: string;
+  viewLineFontFamily: string;
+  viewLineFontSize: string;
+  sourceCodeProLoaded: boolean;
+  fallbackMonoLoaded: boolean;
 }
 
 export interface CommandManagerCaptureDiagnostics {
@@ -41,6 +46,17 @@ export interface DocCaptureDiagnostics {
   canvas: EditorCanvasDiagnostics | null;
   monacoTheme: MonacoThemeCaptureDiagnostics | null;
   commandManager: CommandManagerCaptureDiagnostics | null;
+  editorPointStack: Array<{
+    tag: string;
+    id: string;
+    classes: string;
+    display: string;
+    visibility: string;
+    position: string;
+    background: string;
+    width: number;
+    height: number;
+  }>;
 }
 
 const LIGHT_UB_BASE = "#f1f0ec";
@@ -175,10 +191,15 @@ export function collectMonacoThemeDiagnostics(): MonacoThemeCaptureDiagnostics |
   return {
     resolvedTheme: document.documentElement.dataset.monacoThemeResolved ?? null,
     themeColorsJson: document.documentElement.dataset.monacoThemeColors ?? null,
+    themeDtoJson: document.documentElement.dataset.monacoThemeDto ?? null,
     editorBackground: bgStyle?.backgroundColor ?? "",
     editorForeground: bgStyle?.color ?? "",
     viewLineColor: lineStyle?.color ?? "",
     viewLineBackground: lineStyle?.backgroundColor ?? "",
+    viewLineFontFamily: lineStyle?.fontFamily ?? "",
+    viewLineFontSize: lineStyle?.fontSize ?? "",
+    sourceCodeProLoaded: document.fonts.check('12px "Source Code Pro"'),
+    fallbackMonoLoaded: document.fonts.check('12px "DejaVu Sans Mono"'),
   };
 }
 
@@ -212,12 +233,35 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
 }
 
 export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
+  const host = document.getElementById("text-editor-host");
+  const rect = host?.getBoundingClientRect();
+  const pointStack = rect
+    ? document
+        .elementsFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+        .slice(0, 12)
+        .map((el) => {
+          const style = getComputedStyle(el);
+          const elRect = el.getBoundingClientRect();
+          return {
+            tag: el.tagName.toLowerCase(),
+            id: el.id,
+            classes: el.className,
+            display: style.display,
+            visibility: style.visibility,
+            position: style.position,
+            background: style.backgroundColor,
+            width: elRect.width,
+            height: elRect.height,
+          };
+        })
+    : [];
   return {
     theme: collectThemeDiagnostics(),
     monaco: collectMonacoDiagnostics(),
     canvas: sampleMonacoCanvasVariance(),
     monacoTheme: collectMonacoThemeDiagnostics(),
     commandManager: collectCommandManagerDiagnostics(),
+    editorPointStack: pointStack,
   };
 }
 
@@ -235,21 +279,6 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
 
 /** Returns abort reason or null if editor area looks painted. */
 export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
-  const host = document.getElementById("text-editor-host");
-  const mirror = host?.querySelector(".doc-capture-text-mirror") as HTMLElement | null;
-  if (mirror && !mirror.classList.contains("hidden")) {
-    const text = (mirror.textContent ?? "").trim();
-    if (text.length < 80) {
-      return `capture text mirror length ${text.length} < 80`;
-    }
-    const style = getComputedStyle(mirror);
-    const fg = parseRgbLuminance(style.color);
-    const bg = parseRgbLuminance(style.backgroundColor);
-    if (fg !== null && bg !== null && contrastRatio(fg, bg) < 3.5) {
-      return `capture text mirror contrast too low (fg=${style.color}, bg=${style.backgroundColor})`;
-    }
-    return null;
-  }
   const m = collectMonacoDiagnostics();
   if (!m) {
     return "text editor host missing or hidden";

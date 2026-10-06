@@ -1983,8 +1983,7 @@ body.content-fullscreen::after {
   background-color: #ffffff !important;
 }
 
-[data-theme="light"] #text-editor-host .monaco-editor .view-lines,
-[data-theme="light"] #text-editor-host .monaco-editor .view-line span {
+[data-theme="light"] #text-editor-host .monaco-editor .view-lines {
   color: #1f2326 !important;
 }
 
@@ -1993,8 +1992,7 @@ body.content-fullscreen::after {
   background-color: #232526 !important;
 }
 
-[data-theme="dark"] #text-editor-host .monaco-editor .view-lines,
-[data-theme="dark"] #text-editor-host .monaco-editor .view-line span {
+[data-theme="dark"] #text-editor-host .monaco-editor .view-lines {
   color: #f0efeb !important;
 }
 
@@ -2009,37 +2007,6 @@ body.doc-capture-mode .view-lines {
 }
 
 body.doc-capture-mode .md-editor-toolbar {
-  display: none !important;
-}
-
-body.doc-capture-mode #text-editor-host {
-  display: flex !important;
-  flex-direction: column;
-  background: #ffffff !important;
-}
-
-body.doc-capture-mode #text-editor-host .doc-capture-text-mirror {
-  position: relative;
-  flex: 1 1 auto;
-  z-index: 12;
-  margin: 0;
-  padding: 12px 16px;
-  overflow: auto;
-  width: 100%;
-  min-height: 100%;
-  background: #ffffff;
-  color: #1f2326;
-  font: 12pt/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  white-space: pre-wrap;
-  border: none;
-}
-
-[data-theme="dark"] body.doc-capture-mode #text-editor-host .doc-capture-text-mirror {
-  background: #232526;
-  color: #f0efeb;
-}
-
-body.doc-capture-mode #text-editor-host .monaco-editor.capture-mirror-hidden {
   display: none !important;
 }
 
@@ -2068,7 +2035,7 @@ body.doc-capture-mode #split-primary {
   background: var(--ub-base, #f1f0ec) !important;
 }
 
-body.doc-capture-mode .document-viewer-host {
+body.doc-capture-mode .document-viewer-host:not(.hidden) {
   position: relative !important;
   inset: auto !important;
   top: auto !important;
@@ -2145,7 +2112,7 @@ body.doc-capture-mode .document-viewer-host .doc-capture-viewer-overlay {
 }
 
 .document-viewer-host.hidden {
-  display: none;
+  display: none !important;
 }
 
 .docx-view {
@@ -3575,6 +3542,10 @@ mark.docx-search-hit--current {
   border-radius: 4px;
   padding: 0.5rem;
   z-index: 2;
+}
+
+.image-compare-host.hidden {
+  display: none;
 }
 
 .image-compare-head {

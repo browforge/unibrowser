@@ -82,7 +82,8 @@ fn capture_linux_webview(wv: &tauri::Webview) -> Result<Vec<u8>, String> {
                     let mut bytes = Vec::new();
                     match surface.write_to_png(&mut bytes) {
                         Ok(()) if bytes.is_empty() => {
-                            tx.send(Err("webview snapshot produced empty PNG".into())).ok();
+                            tx.send(Err("webview snapshot produced empty PNG".into()))
+                                .ok();
                         }
                         Ok(()) => {
                             tx.send(Ok(bytes)).ok();
@@ -136,7 +137,8 @@ pub fn capture_composited_root_crop_png(window: &Window) -> Result<Vec<u8>, Stri
     let h = size.height.max(1);
     let crop = format!("{}x{}+{}+{}", w, h, x, y);
 
-    let tmp_root: PathBuf = std::env::temp_dir().join(format!("ub-xcap-root-{}.png", std::process::id()));
+    let tmp_root: PathBuf =
+        std::env::temp_dir().join(format!("ub-xcap-root-{}.png", std::process::id()));
     let root_arg = tmp_root.to_string_lossy();
     let import_status = Command::new("import")
         .args(["-window", "root", root_arg.as_ref()])
@@ -246,8 +248,86 @@ fn editor_region_luma(_png: &[u8]) -> f64 {
     0.0
 }
 
-pub fn editor_region_luma_pub(png: &[u8]) -> f64 {
-    editor_region_luma(png)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EditorTextPixelStats {
+    pub sampled_pixels: u64,
+    pub background_pixels: u64,
+    pub ink_pixels: u64,
+    pub rows_with_ink: u32,
+}
+
+pub fn validate_editor_text_pixels(
+    png: &[u8],
+    css_rect: (f64, f64, f64, f64),
+    css_viewport: (f64, f64),
+    dark: bool,
+) -> Result<EditorTextPixelStats, String> {
+    use image::GenericImageView;
+
+    let img = image::load_from_memory(png).map_err(|e| e.to_string())?;
+    let (png_w, png_h) = img.dimensions();
+    let (viewport_w, viewport_h) = css_viewport;
+    if viewport_w <= 0.0 || viewport_h <= 0.0 {
+        return Err("editor pixel gate received an invalid viewport".into());
+    }
+    let scale_x = png_w as f64 / viewport_w;
+    let scale_y = png_h as f64 / viewport_h;
+    let (x, y, width, height) = css_rect;
+    let x0 = ((x + 48.0) * scale_x).clamp(0.0, png_w as f64) as u32;
+    let x1 = ((x + width - 16.0) * scale_x).clamp(0.0, png_w as f64) as u32;
+    let y0 = ((y + 4.0) * scale_y).clamp(0.0, png_h as f64) as u32;
+    let y1 = ((y + height.min(320.0)) * scale_y).clamp(0.0, png_h as f64) as u32;
+    if x1 <= x0 || y1 <= y0 {
+        return Err("editor pixel gate received an empty editor region".into());
+    }
+
+    let expected = if dark {
+        [0x23i32, 0x25i32, 0x26i32]
+    } else {
+        [0xffi32, 0xffi32, 0xffi32]
+    };
+    let mut stats = EditorTextPixelStats {
+        sampled_pixels: 0,
+        background_pixels: 0,
+        ink_pixels: 0,
+        rows_with_ink: 0,
+    };
+    for py in y0..y1 {
+        let mut row_ink = 0u32;
+        for px in x0..x1 {
+            let p = img.get_pixel(px, py);
+            let dr = p[0] as i32 - expected[0];
+            let dg = p[1] as i32 - expected[1];
+            let db = p[2] as i32 - expected[2];
+            let distance_sq = dr * dr + dg * dg + db * db;
+            stats.sampled_pixels += 1;
+            if distance_sq <= 18 * 18 * 3 {
+                stats.background_pixels += 1;
+            } else if distance_sq >= 34 * 34 * 3 {
+                stats.ink_pixels += 1;
+                row_ink += 1;
+            }
+        }
+        if row_ink >= 3 {
+            stats.rows_with_ink += 1;
+        }
+    }
+
+    let background_ratio = stats.background_pixels as f64 / stats.sampled_pixels as f64;
+    let ink_ratio = stats.ink_pixels as f64 / stats.sampled_pixels as f64;
+    if background_ratio < 0.55 {
+        return Err(format!(
+            "editor pixel gate: expected theme background is not visible (background ratio {:.3})",
+            background_ratio
+        ));
+    }
+    if stats.ink_pixels < 100 || stats.rows_with_ink < 12 || ink_ratio < 0.0005 {
+        return Err(format!(
+            "editor pixel gate: visible text pixels missing (ink={}, rows={}, ratio={:.5})",
+            stats.ink_pixels, stats.rows_with_ink, ink_ratio
+        ));
+    }
+    Ok(stats)
 }
 
 #[cfg(target_os = "linux")]
@@ -282,4 +362,70 @@ fn score_png_informativeness(png: &[u8]) -> u64 {
 #[cfg(not(target_os = "linux"))]
 fn score_png_informativeness(png: &[u8]) -> u64 {
     png.len() as u64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
+    use std::io::Cursor;
+
+    fn png_with_text(light: bool, include_text: bool) -> Vec<u8> {
+        let bg = if light {
+            Rgba([255, 255, 255, 255])
+        } else {
+            Rgba([0x23, 0x25, 0x26, 255])
+        };
+        let ink = if light {
+            Rgba([31, 35, 38, 255])
+        } else {
+            Rgba([240, 239, 235, 255])
+        };
+        let mut image = RgbaImage::from_pixel(100, 100, bg);
+        if include_text {
+            for line in 0..10 {
+                let y = 8 + line * 7;
+                for py in y..y + 2 {
+                    for x in 54..72 {
+                        image.put_pixel(x, py, ink);
+                    }
+                }
+            }
+        }
+        let mut bytes = Cursor::new(Vec::new());
+        DynamicImage::ImageRgba8(image)
+            .write_to(&mut bytes, ImageFormat::Png)
+            .unwrap();
+        bytes.into_inner()
+    }
+
+    #[test]
+    fn editor_pixel_gate_accepts_light_and_dark_text() {
+        for dark in [false, true] {
+            let bytes = png_with_text(!dark, true);
+            let stats =
+                validate_editor_text_pixels(&bytes, (0.0, 0.0, 100.0, 100.0), (100.0, 100.0), dark)
+                    .unwrap();
+            assert!(stats.ink_pixels >= 100);
+            assert!(stats.rows_with_ink >= 12);
+        }
+    }
+
+    #[test]
+    fn editor_pixel_gate_rejects_blank_surface() {
+        let bytes = png_with_text(true, false);
+        let err =
+            validate_editor_text_pixels(&bytes, (0.0, 0.0, 100.0, 100.0), (100.0, 100.0), false)
+                .unwrap_err();
+        assert!(err.contains("visible text pixels missing"));
+    }
+
+    #[test]
+    fn editor_pixel_gate_rejects_wrong_surface_colour() {
+        let bytes = png_with_text(false, false);
+        let err =
+            validate_editor_text_pixels(&bytes, (0.0, 0.0, 100.0, 100.0), (100.0, 100.0), false)
+                .unwrap_err();
+        assert!(err.contains("background is not visible"));
+    }
 }
