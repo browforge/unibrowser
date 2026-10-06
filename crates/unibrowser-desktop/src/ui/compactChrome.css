@@ -84,7 +84,7 @@
 .title-tabs {
   display: flex;
   align-self: stretch;
-  align-items: stretch;
+  align-items: center;
   min-width: 120px;
   max-width: 43%;
   overflow: hidden;
@@ -106,20 +106,26 @@
   gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
-  height: auto;
-  padding: 0 8px;
+  align-self: stretch;
+  max-height: 100%;
+  padding: 0 10px;
+  margin: 3px 0;
   color: #bdc8ce;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--ub-radius-4) var(--ub-radius-4) 0 0;
   background: transparent;
   font-size: 13px;
+  line-height: 1.3;
   text-align: left;
 }
 
 .title-tabs .tab.active {
   color: #f2f5f6;
   background: #21313f;
-  box-shadow: inset 0 2px 0 var(--ub-accent);
+  box-shadow: none;
+  border-bottom: 2px solid var(--ub-accent);
+  margin-bottom: 0;
+  padding-bottom: 1px;
 }
 
 .title-tabs .tab .tab-label {
@@ -127,6 +133,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
+}
+
+.title-tabs .tab .ub-icon {
+  flex: 0 0 auto;
 }
 
 .title-tabs .tab-close {
@@ -197,15 +208,22 @@
 }
 
 .window-controls button {
-  width: 40px;
+  display: grid;
+  width: 46px;
   height: 100%;
   padding: 0;
+  place-items: center;
   color: #d5dfe4;
   border: 0;
   border-radius: 0;
   background: transparent;
   font-size: 13px;
   cursor: pointer;
+}
+
+.window-controls button .ub-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .window-controls button:hover {
@@ -639,23 +657,29 @@ body[data-cm-density="large"] .cm-overflow.visible {
 }
 
 [data-theme="light"] #chrome .window-controls button {
-  color: var(--ub-text-1);
-  border: 1px solid var(--ub-border);
-  background: var(--ub-panel);
+  color: #d5dfe4;
+  border: 0;
+  background: transparent;
 }
 
 [data-theme="light"] #chrome .window-controls button:hover {
-  background: var(--ub-well);
+  background: #2b3d4b;
+}
+
+[data-theme="light"] #chrome .window-controls button:last-child:hover {
+  color: #fff;
+  background: var(--ub-danger);
 }
 
 [data-theme="light"] #chrome .title-tabs .tab {
-  color: var(--ub-text-2);
+  color: #bdc8ce;
 }
 
 [data-theme="light"] #chrome .title-tabs .tab.active {
-  color: var(--ub-text-1);
-  background: var(--ub-panel);
-  box-shadow: inset 0 2px 0 var(--ub-accent);
+  color: #f2f5f6;
+  background: #21313f;
+  box-shadow: none;
+  border-bottom: 2px solid var(--ub-accent);
 }
 
 [data-theme="light"] #chrome .title-omnibox input#omnibox {
