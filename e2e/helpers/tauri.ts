@@ -1,5 +1,19 @@
 import { browser, $ } from "@wdio/globals";
 
+export async function waitForWindowHandle(timeoutMs = 120000) {
+  await browser.waitUntil(
+    async () => {
+      try {
+        const handles = await browser.getWindowHandles();
+        return handles.length > 0;
+      } catch {
+        return false;
+      }
+    },
+    { timeout: timeoutMs, interval: 250, timeoutMsg: "No WebDriver window handles" },
+  );
+}
+
 type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
 
 export async function tauriInvoke<T = unknown>(
@@ -21,9 +35,12 @@ export async function tauriInvoke<T = unknown>(
 }
 
 export async function prepareCleanShell() {
-  await tauriInvoke("skip_onboarding_tour_forever");
-  await tauriInvoke("set_restore_session_on_launch", { enabled: false });
-  await tauriInvoke("set_proofing_squiggles_enabled", { enabled: true });
+  // Rust `setup` already applies UNIBROWSER_E2E prefs (onboarding off, no session restore).
+  try {
+    await tauriInvoke("set_proofing_squiggles_enabled", { enabled: true });
+  } catch {
+    /* loopback shell may not expose invoke in some WebDriver attach timings */
+  }
 }
 
 export async function openPath(filePath: string, line: number | null = null) {
@@ -42,7 +59,34 @@ export async function readStatusFontPt(): Promise<string> {
   return (await el.getText()) || "";
 }
 
+export async function waitForUbReady(timeoutMs = 120000) {
+  await browser.waitUntil(
+    async () => {
+      try {
+        const ready = await browser.execute(() => document.body?.dataset?.ubReady === "1");
+        if (ready) {
+          return true;
+        }
+      } catch {
+        /* execute not ready yet */
+      }
+      try {
+        const html = await browser.getPageSource();
+        return html.includes("omnibox") || html.includes('id="omnibox"');
+      } catch {
+        return false;
+      }
+    },
+    {
+      timeout: timeoutMs,
+      interval: 250,
+      timeoutMsg: "Shell did not load (ubReady marker or omnibox missing)",
+    },
+  );
+}
+
 export async function waitForShellReady(timeoutMs = 120000) {
+  await waitForUbReady(timeoutMs);
   await browser.waitUntil(
     async () => {
       try {

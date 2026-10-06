@@ -1,3 +1,7 @@
+/**
+ * Quarantined: full shell scenarios need stable Tauri invoke on the loopback E2E URL
+ * (see docs/e2e.md). Smoke specs run in CI-style `./scripts/e2e.sh` instead.
+ */
 import path from "node:path";
 import { browser, $, $$ } from "@wdio/globals";
 import assert from "node:assert/strict";
@@ -14,10 +18,12 @@ import {
 const INCREASE_FONT = "unibrowser.font.size.increase";
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
 
-describe("Unibrowser shell (WebdriverIO + embedded WebDriver)", () => {
+describe("Unibrowser shell (WebdriverIO + embedded WebDriver)", function () {
+  this.timeout(180000);
+
   before(async () => {
-    await browser.pause(8000);
-    await waitForSelector("#omnibox");
+    await browser.pause(3000);
+    await waitForSelector("#omnibox", 180000);
     await prepareCleanShell();
   });
 

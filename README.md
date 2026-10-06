@@ -4,6 +4,8 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 
 **Status:** Phase 1 MVP browser shell on **Tauri 2** (`unibrowser-desktop`). See [docs/vision.md](docs/vision.md) and [docs/roadmap.md](docs/roadmap.md).
 
+![Unibrowser shell (xvfb capture)](docs/screenshots/shell-desktop.png)
+
 ## What works today
 
 **Source of truth:** the shipped table, demo script, and ranked gaps live in [docs/blitz-status.md](docs/blitz-status.md) (updated each blitz week). This section is a newcomer summary only; if anything disagrees, trust blitz-status.

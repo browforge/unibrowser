@@ -109,6 +109,10 @@ pub fn run() {
                 webview::ensure_content_webview(app.handle(), "main")?;
             }
             if let Some(window) = app.get_window("main") {
+                if e2e {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
                 let saved = preferences::load_window_state();
                 let _ = preferences::apply_window_state(&window, &saved);
             }

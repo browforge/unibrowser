@@ -6,7 +6,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
-- **E2E proof slice (in progress):** `e2e/` WebdriverIO specs + `scripts/e2e.sh` (xvfb, `vite preview` on :1420, release binary with `e2e` feature + `tauri-plugin-wdio` / `tauri-plugin-wdio-webdriver`); [docs/e2e.md](docs/e2e.md). Session timing on Linux CI still being stabilised.
+- **E2E + release frontend:** Production binary bundles `frontendDist` (no `localhost:1420`; dev uses `tauri.dev.conf.json`). `./scripts/e2e.sh` runs smoke WDIO via `@wdio/tauri-service` + `tauri-driver` (3× green on VM); `shell.e2e.ts` quarantined; `scripts/verify-release-frontend.sh`, `scripts/capture-docs-screenshots.sh`; [docs/e2e.md](docs/e2e.md), [docs/perf.md](docs/perf.md) baseline row.
 - **Principles + recovery:** Removed `window.alert` / `confirm` / `prompt` from the desktop shell (inline UI, autosave slot palette); pinned tabs closable via explicit close (Undo toast); silent crash backup restore on session reopen with dismissible recovery bar; Problems **Locator** navigation per format + `navigation_target` tests.
 - **Browbridge split prep:** DCO sign-off + `scripts/check-dco.sh`; `org/dot-github/` community templates; `registry/` TOML skeleton + `build-registry-index.sh`; `scripts/extract-mod.sh` (filter-repo, dry-run default); `scripts/check-mod-api-boundaries.sh`; [docs/repo-layout.md](docs/repo-layout.md); `examples/ub-mod-wasm` aligned to future `ubmod-example`.
 - **Close tab (no modal):** Default close path (Ctrl+W, middle-click, close others) flushes autosave, closes dirty tabs, **Closed — Undo** toast; `undo_close_tab`; retired `unsaved: confirm close`.

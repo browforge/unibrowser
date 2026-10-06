@@ -4,8 +4,6 @@
   "version": "0.1.0",
   "identifier": "app.unibrowser.desktop",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
@@ -16,7 +14,8 @@
         "label": "main",
         "title": "Unibrowser",
         "width": 1200,
-        "height": 800
+        "height": 800,
+        "url": "index.html"
       }
     ],
     "security": {

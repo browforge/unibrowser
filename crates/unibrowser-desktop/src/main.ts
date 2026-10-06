@@ -2,6 +2,21 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
+
+/** WebDriver waits on this; set once shell chrome from index.html is in the DOM. */
+function markUbReadyWhenDomChromePresent() {
+  const mark = () => {
+    if (document.getElementById("omnibox")) {
+      document.body.dataset.ubReady = "1";
+    }
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mark, { once: true });
+  } else {
+    mark();
+  }
+}
+markUbReadyWhenDomChromePresent();
 import { commandManager, getStatusContextMode } from "./commandManager";
 import {
   textEditor,
@@ -2395,6 +2410,7 @@ window.addEventListener("focus", () => {
 
 void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
   if (!toolbarOnly) {
+    document.body.dataset.ubReady = "1";
     void refreshState().then(() => {
       void maybePromptProjectRecovery((data) => {
         void applyState(data as TabContentDto);
