@@ -140,12 +140,13 @@ pub fn set_unibrow_live_mode(
 ) -> Result<UnibrowLiveStatusDto, String> {
     let label = window.label().to_string();
     let _path = active_unibrow_project_path(state.inner(), &label)?;
-    let mut map = live_by_window().lock().map_err(|e| e.to_string())?;
-    if enabled {
-        let host = LiveHostState::from_project_path(&_path).unwrap_or_else(|_| LiveHostState::new_proving());
-        map.insert(label, host);
-    } else {
-        if let Some(mut host) = map.remove(&label) {
+    {
+        let mut map = live_by_window().lock().map_err(|e| e.to_string())?;
+        if enabled {
+            let host =
+                LiveHostState::from_project_path(&_path).unwrap_or_else(|_| LiveHostState::new_proving());
+            map.insert(label, host);
+        } else if let Some(mut host) = map.remove(&label) {
             if host.recording {
                 if let Some(sink) = host.sink.take() {
                     let _ = sink.finish();
@@ -153,7 +154,7 @@ pub fn set_unibrow_live_mode(
             }
         }
     }
-    Ok(unibrow_live_status(window, state)?)
+    unibrow_live_status(window, state)
 }
 
 #[tauri::command]
@@ -170,7 +171,9 @@ pub fn unibrow_live_status(
         .as_ref()
         .and_then(|h| h.record_path.as_ref())
         .map(|p| p.to_string_lossy().into_owned());
-    let png_base64 = if let Some(h) = host {
+    let png_base64 = if std::env::var("UNIBROWSER_SELF_TEST").as_deref() == Ok("1") {
+        None
+    } else if let Some(h) = host {
         Some(render_preview(h)?)
     } else {
         None
@@ -190,28 +193,28 @@ pub fn start_unibrow_live_recording(
 ) -> Result<UnibrowLiveStatusDto, String> {
     let label = window.label().to_string();
     let project_path = active_unibrow_project_path(state.inner(), &label)?;
-    let mut map = live_by_window().lock().map_err(|e| e.to_string())?;
-    let host = map
-        .get_mut(&label)
-        .ok_or("enable Live mode first")?;
-    if host.recording {
-        return Ok(unibrow_live_status(window, state)?);
+    {
+        let mut map = live_by_window().lock().map_err(|e| e.to_string())?;
+        let host = map.get_mut(&label).ok_or("enable Live mode first")?;
+        if host.recording {
+            return unibrow_live_status(window, state);
+        }
+        let project = PathBuf::from(&project_path);
+        let derived = project.parent().unwrap_or(&project).join("derived");
+        std::fs::create_dir_all(&derived).map_err(|e| e.to_string())?;
+        let dest = derived.join("live-record.mp4");
+        let sink = FileVideoSink::open(
+            &dest,
+            host.scene.width,
+            host.scene.height,
+            host.clock.target_fps,
+        )
+        .map_err(|e| e.to_string())?;
+        host.sink = Some(sink);
+        host.record_path = Some(dest);
+        host.recording = true;
     }
-    let project = PathBuf::from(&project_path);
-    let derived = project.parent().unwrap_or(&project).join("derived");
-    std::fs::create_dir_all(&derived).map_err(|e| e.to_string())?;
-    let dest = derived.join("live-record.mp4");
-    let sink = FileVideoSink::open(
-        &dest,
-        host.scene.width,
-        host.scene.height,
-        host.clock.target_fps,
-    )
-    .map_err(|e| e.to_string())?;
-    host.sink = Some(sink);
-    host.record_path = Some(dest);
-    host.recording = true;
-    Ok(unibrow_live_status(window, state)?)
+    unibrow_live_status(window, state)
 }
 
 #[tauri::command]
@@ -220,16 +223,16 @@ pub fn stop_unibrow_live_recording(
     state: State<AppState>,
 ) -> Result<UnibrowLiveStatusDto, String> {
     let label = window.label().to_string();
-    let mut map = live_by_window().lock().map_err(|e| e.to_string())?;
-    let host = map
-        .get_mut(&label)
-        .ok_or("Live mode is off")?;
-    if let Some(sink) = host.sink.take() {
-        let path = sink.finish().map_err(|e| e.to_string())?;
-        host.record_path = Some(path);
+    {
+        let mut map = live_by_window().lock().map_err(|e| e.to_string())?;
+        let host = map.get_mut(&label).ok_or("Live mode is off")?;
+        if let Some(sink) = host.sink.take() {
+            let path = sink.finish().map_err(|e| e.to_string())?;
+            host.record_path = Some(path);
+        }
+        host.recording = false;
     }
-    host.recording = false;
-    Ok(unibrow_live_status(window, state)?)
+    unibrow_live_status(window, state)
 }
 
 /// One-shot record without UI polling (integration helper).

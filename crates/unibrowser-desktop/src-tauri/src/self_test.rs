@@ -240,7 +240,7 @@ fn run_all_scenarios(app: &AppHandle) -> Result<SelfTestReportDto, String> {
             SCENARIO_CM_GREY => scenario_cm_grey(&window, app, &state, &demo),
             SCENARIO_UNIBROW_BLANK => scenario_unibrow_blank(&window, app, &state, &projects),
             SCENARIO_PROBLEMS_JUMP => scenario_problems_jump(&state, &fixtures),
-            SCENARIO_LIVE_PREVIEW => scenario_live_preview(&window, app, &state, &demo),
+            SCENARIO_LIVE_PREVIEW => scenario_live_preview(&window, app, &state, &projects),
             SCENARIO_AI_SIDEBAR => scenario_ai_sidebar(&window, &state),
             other => Err(format!("unknown scenario: {other}")),
         };
@@ -501,13 +501,17 @@ fn scenario_live_preview(
     window: &tauri::Window,
     app: &AppHandle,
     state: &State<crate::state::AppState>,
-    demo: &std::path::Path,
+    projects: &std::path::Path,
 ) -> Result<(), String> {
-    let project = demo.join("sample.unibrow");
-    if !project.is_file() {
-        return Err("demo sample.unibrow missing".into());
-    }
-    open_path(window, app, state, &project)?;
+    let name = format!("self-test-live-{}", now_ms());
+    crate::commands::create_unibrow_project(
+        window.clone(),
+        projects.to_string_lossy().into_owned(),
+        name,
+        Some("blank".into()),
+        state.clone(),
+        app.clone(),
+    )?;
     let status = crate::live_host::set_unibrow_live_mode(window.clone(), true, state.clone())?;
     if !status.live_mode {
         return Err("live_mode false after enable".into());

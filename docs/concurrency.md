@@ -8,6 +8,7 @@ The Tauri host keeps per-window state in `WindowSession` (`window_session.rs`). 
 2. Per-window `WindowSession::tabs` (`TabsMutex` in debug builds detects re-entrancy)
 3. Other per-window mutexes (`close_undo`, `split_view`, `undo_stacks`, `file_compare`, …)
 4. `AppState::command_manager`, `registry`, `keybindings`
+5. Global `live_by_window()` map (`live_host.rs`) — **drop before** calling `unibrow_live_status` (status re-locks the map)
 
 Acquire in that order when one call needs multiple locks. **Do not** hold `tabs` while acquiring `command_manager` ( `refresh_command_manager_context` locks `tabs` then `command_manager`, then releases both before returning).
 

@@ -2447,6 +2447,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           demoForShot?.split(/[,;]+/).some((t) => /^(ai|ai-sidebar|ai-open)$/i.test(t.trim())) ??
           false;
         if (!wantsAi) {
+          const prefs = await invoke<{
+            base_url?: string | null;
+            model?: string | null;
+            api_key?: string | null;
+            grants: unknown[];
+            panel_visible: boolean;
+            panel_x: number;
+            panel_y: number;
+            panel_docked: boolean;
+          }>("get_ai_assistant_prefs");
+          prefs.panel_visible = false;
+          await invoke("set_ai_assistant_prefs", { prefs });
           await setAiPanelVisible(false);
         }
         const demoRaw = await invoke<string | null>("get_demo_state");
