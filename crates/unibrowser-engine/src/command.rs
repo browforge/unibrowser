@@ -223,6 +223,69 @@ impl CommandRegistry {
             aliases: &["print pdf", "save as pdf", "export pdf"],
         });
         reg.register_command(CommandMeta {
+            id: commands::START_OPEN_FILE,
+            title: "Open file",
+            icon: "file",
+            default_keybinding: Some("Ctrl+O"),
+            aliases: &["open file", "choose file"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::START_OPEN_FOLDER,
+            title: "Open folder",
+            icon: "folder",
+            default_keybinding: None,
+            aliases: &["open folder", "browse folder"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::START_NEW_PROJECT,
+            title: "New project",
+            icon: "layout-grid",
+            default_keybinding: None,
+            aliases: &["start project", "create project"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::START_RECENT,
+            title: "Recent",
+            icon: "file",
+            default_keybinding: None,
+            aliases: &["recent files", "open recent"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PDF_TOOL_SELECT,
+            title: "Select",
+            icon: "lasso",
+            default_keybinding: None,
+            aliases: &["pdf select", "selection tool"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PDF_ANNOTATE_NOTE,
+            title: "Note",
+            icon: "message-square",
+            default_keybinding: None,
+            aliases: &["pdf note", "sticky note"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PDF_ANNOTATE_AREA,
+            title: "Area",
+            icon: "square-dashed",
+            default_keybinding: None,
+            aliases: &["pdf area", "area annotation"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PDF_PAGE_NAV,
+            title: "Page",
+            icon: "file",
+            default_keybinding: None,
+            aliases: &["pdf page", "go to page"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PDF_VIEW_ZOOM,
+            title: "Zoom",
+            icon: "zoom-in",
+            default_keybinding: None,
+            aliases: &["pdf zoom", "view zoom"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::PRINT_SELECTION,
             title: "Print selection",
             icon: "export",
@@ -457,6 +520,16 @@ impl CommandRegistry {
             || command_id == commands::REOPEN_CLOSED_TAB
             || command_id == commands::TOGGLE_TAB_MUTE
             || command_id == commands::PAGE_ZOOM_RESET_ALL
+            || command_id == commands::START_OPEN_FILE
+            || command_id == commands::START_OPEN_FOLDER
+            || command_id == commands::START_NEW_PROJECT
+            || command_id == commands::START_RECENT
+            || command_id == commands::PDF_TOOL_SELECT
+            || command_id == commands::PDF_ANNOTATE_NOTE
+            || command_id == commands::PDF_ANNOTATE_AREA
+            || command_id == commands::PDF_PAGE_NAV
+            || command_id == commands::PDF_VIEW_ZOOM
+            || command_id == commands::EXPORT_PRINT_PDF
         {
             return Enablement::Enabled;
         }
