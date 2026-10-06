@@ -13,6 +13,18 @@ pub struct PdfHighlightDto {
     pub h: f32,
     #[serde(default = "default_color")]
     pub color: String,
+    #[serde(default = "default_kind")]
+    pub kind: String,
+    #[serde(default)]
+    pub author: Option<String>,
+    #[serde(default)]
+    pub created_at_ms: Option<u64>,
+    #[serde(default)]
+    pub label: Option<String>,
+}
+
+fn default_kind() -> String {
+    "highlight".into()
 }
 
 fn default_color() -> String {
@@ -75,7 +87,22 @@ pub fn list_highlights(pdf: &Path) -> Result<Vec<PdfHighlightDto>, String> {
 pub fn add_highlight(pdf: &Path, highlight: PdfHighlightDto) -> Result<Vec<PdfHighlightDto>, String> {
     let mut file = load_sidecar(pdf)?;
     file.pdf_path = pdf.to_string_lossy().into_owned();
-    file.highlights.push(highlight);
+    let mut h = highlight;
+    if h.author.is_none() {
+        h.author = Some("You".into());
+    }
+    if h.created_at_ms.is_none() {
+        h.created_at_ms = Some(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
+        );
+    }
+    if h.label.is_none() {
+        h.label = Some(format!("Highlight on page {}", h.page));
+    }
+    file.highlights.push(h);
     save_sidecar(pdf, &file)?;
     Ok(file.highlights)
 }
@@ -104,6 +131,10 @@ mod tests {
                 w: 0.3,
                 h: 0.1,
                 color: default_color(),
+                kind: default_kind(),
+                author: None,
+                created_at_ms: None,
+                label: None,
             },
         )
         .unwrap();

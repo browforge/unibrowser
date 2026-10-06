@@ -123,7 +123,7 @@ import {
 import { copyText, readClipboardText } from "./clipboard";
 import { t } from "./i18n";
 import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
-import { setViewerZoomListener } from "./viewerZoom";
+import { setViewerPdfPageListener, setViewerZoomListener } from "./viewerZoom";
 import { clearImagePixelSample, getImagePixelSample } from "./viewerPixelSample";
 import { applyChromeI18n } from "./chromeI18n";
 import { initAppMenu } from "./appMenu";
@@ -373,6 +373,8 @@ let paletteChordHint = "Ctrl+Shift+P for command palette";
 let webZoomPercent = 100;
 let lastAutosaveAtMs = 0;
 let lastViewerZoomLabel = "";
+let lastPdfPageLabel = "";
+let lastPdfAnnotationCount = 0;
 
 function formatAutosaveClock(ms: number): string {
   if (!ms) {
@@ -476,21 +478,29 @@ function refreshStatusBar(
         });
       }
     }
+  } else if (showViewer && viewerKind === "pdf" && lastPdfPageLabel) {
+    reading = lastPdfPageLabel;
   }
   const autosave =
     lastAutosaveAtMs > 0
       ? t("status.autosave", { time: formatAutosaveClock(lastAutosaveAtMs) })
       : "";
   const compact = document.body.classList.contains("ub-status-compact");
-  const saved =
+  let saved =
     compact
       ? autosave || (lastAutosaveAtMs > 0 ? `Saved ${formatAutosaveClock(lastAutosaveAtMs)}` : "Saved")
       : undefined;
+  if (compact && showViewer && viewerKind === "pdf" && lastPdfAnnotationCount > 0) {
+    saved = "Annotations saved";
+  }
   const language =
     compact && showText && data.text_document
       ? data.text_document.language?.replace("typescript", "TypeScript") ?? "TypeScript"
       : undefined;
-  const zoomOut = compact ? "100%" : zoom;
+  let zoomOut = compact ? zoom || lastViewerZoomLabel || "100%" : zoom;
+  if (compact && showViewer && viewerKind === "pdf" && lastPdfAnnotationCount > 0) {
+    zoomOut = `${lastPdfAnnotationCount} annotation${lastPdfAnnotationCount === 1 ? "" : "s"} · ${zoomOut}`;
+  }
   const useBreadcrumb =
     Boolean(path) &&
     !active?.is_http &&
@@ -2504,6 +2514,15 @@ setViewerZoomListener((_scale, label) => {
   if (zoomEl && lastViewerZoomLabel) {
     zoomEl.textContent = lastViewerZoomLabel;
     zoomEl.classList.remove("hidden");
+  }
+});
+setViewerPdfPageListener((page, total, annotationCount) => {
+  lastPdfPageLabel = total > 0 ? `Page ${page} of ${total}` : "";
+  lastPdfAnnotationCount = annotationCount;
+  const readingEl = document.getElementById("status-reading");
+  if (readingEl && lastPdfPageLabel) {
+    readingEl.textContent = lastPdfPageLabel;
+    readingEl.classList.remove("hidden");
   }
 });
 

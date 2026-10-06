@@ -4674,6 +4674,10 @@ pub fn add_pdf_highlight(
             w,
             h,
             color: "rgba(255, 230, 0, 0.35)".into(),
+            kind: "highlight".into(),
+            author: None,
+            created_at_ms: None,
+            label: None,
         },
     )
 }

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "pdf_path": "/workspace/examples/demo-pack/sample.pdf",
+  "highlights": [
+    {
+      "page": 1,
+      "x": 0.12,
+      "y": 0.18,
+      "w": 0.76,
+      "h": 0.04,
+      "color": "rgba(255, 230, 0, 0.42)",
+      "kind": "highlight",
+      "author": "Bear",
+      "created_at_ms": 1728123480000,
+      "label": "Opening summary"
+    },
+    {
+      "page": 1,
+      "x": 0.1,
+      "y": 0.42,
+      "w": 0.8,
+      "h": 0.14,
+      "color": "#c0392b",
+      "kind": "area",
+      "author": "Bear",
+      "created_at_ms": 1728124680000,
+      "label": "Check against maintenance log"
+    }
+  ]
+}

@@ -2058,9 +2058,16 @@ body.doc-capture-mode .document-viewer-host .viewer-title {
 body.doc-capture-mode .document-viewer-host .viewer-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
-  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--ub-base, #e8e4dc);
   color: #1f2326;
+}
+
+body.doc-capture-mode .document-viewer-host .pdf-workspace {
+  min-height: 0;
+  height: 100%;
 }
 
 [data-theme="dark"] body.doc-capture-mode .document-viewer-host .viewer-body {
@@ -2401,38 +2408,131 @@ body.doc-capture-mode .document-viewer-host .doc-capture-viewer-overlay {
 .pdf-workspace {
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: 0;
   flex: 1 1 auto;
   min-height: 16rem;
+  height: 100%;
 }
 
 .pdf-workspace-center {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
+  min-height: 0;
+}
+
+.pdf-scroll-surface {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 1.25rem 1rem 1rem;
+  background: var(--ub-base, #e8e4dc);
+}
+
+[data-theme="dark"] .pdf-scroll-surface {
+  background: #2a2c2e;
+}
+
+.pdf-page-stage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: min(100%, 24rem);
+}
+
+.pdf-viewer-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.65rem;
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-top: 1px solid var(--ub-border, #c8c4bc);
+  background: var(--ub-panel, #f7f6f2);
+  font-size: 12px;
+}
+
+[data-theme="dark"] .pdf-viewer-footer {
+  background: #1a1c1d;
+  border-top-color: #3a3d3f;
+}
+
+.pdf-footer-btn {
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--ub-border, #c8c4bc);
+  border-radius: var(--ub-radius-4, 4px);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pdf-footer-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ub-accent, #3d7ea6) 12%, transparent);
+}
+
+.pdf-footer-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pdf-thumbs-panel {
+  flex: 0 0 132px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--ub-border, #c8c4bc);
+  background: var(--ub-panel, #f7f6f2);
+}
+
+[data-theme="dark"] .pdf-thumbs-panel {
+  background: #1a1c1d;
+  border-right-color: #3a3d3f;
+}
+
+.pdf-thumbs-head {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--ub-border, #c8c4bc);
+  color: var(--ub-text-2, #5c5f5d);
 }
 
 .pdf-workspace .pdf-thumbs--strip {
-  flex: 0 0 108px;
+  flex: 1 1 auto;
   flex-direction: column;
   flex-wrap: nowrap;
   overflow-x: hidden;
   overflow-y: auto;
-  max-height: 100%;
+  max-height: none;
   margin: 0;
+  padding: 8px 6px;
+  gap: 8px;
 }
 
 .pdf-annotations-dock {
-  flex: 0 0 200px;
+  flex: 0 0 240px;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 10px 12px;
-  border-left: 1px solid var(--ub-border, #4d5151);
-  background: var(--ub-well, #141617);
+  padding: 0;
+  border-left: 1px solid var(--ub-border, #c8c4bc);
+  background: var(--ub-panel, #f7f6f2);
   font-size: 12px;
+}
+
+[data-theme="dark"] .pdf-annotations-dock {
+  background: #1a1c1d;
+  border-left-color: #3a3d3f;
+}
+
+.pdf-annotations-head {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--ub-border, #c8c4bc);
 }
 
 .pdf-annotations-title {
@@ -2447,14 +2547,89 @@ body.doc-capture-mode .document-viewer-host .doc-capture-viewer-overlay {
   color: var(--ub-text-3, #aeb2af);
 }
 
+.pdf-annotations-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 10px 12px;
+}
+
 .pdf-annotations-list {
   margin: 0;
-  padding-left: 1.1rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pdf-annotation-card {
+  padding: 8px 10px;
+  border: 1px solid var(--ub-border, #d5d1c9);
+  border-radius: var(--ub-radius-6, 6px);
+  background: var(--ub-well, #fff);
+}
+
+.pdf-annotation-card--current {
+  border-color: var(--ub-accent, #3d7ea6);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ub-accent, #3d7ea6) 35%, transparent);
+}
+
+.pdf-annotation-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.pdf-annotation-kind {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ub-text-3, #7a7d7b);
+}
+
+.pdf-annotation-page {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  color: var(--ub-accent, #3d7ea6);
+  cursor: pointer;
+}
+
+.pdf-annotation-label {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.pdf-annotation-meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ub-text-3, #7a7d7b);
 }
 
 .pdf-page-wrap {
   position: relative;
   display: inline-block;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(31, 35, 38, 0.08),
+    0 8px 24px rgba(31, 35, 38, 0.12);
+  border: 1px solid rgba(31, 35, 38, 0.08);
+}
+
+.pdf-area-rect {
+  background: transparent !important;
+  border: 2px solid #c0392b;
+  border-radius: 2px;
+}
+
+.pdf-workspace.pdf-highlight-armed .pdf-page-overlay {
+  cursor: crosshair;
 }
 
 .pdf-page-overlay {
@@ -3331,25 +3506,30 @@ select:focus-visible,
 
 .pdf-thumbs--strip {
   flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   max-width: 100%;
   padding-bottom: 0.25rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
   scrollbar-width: thin;
 }
 
 .pdf-thumb-btn {
   position: relative;
-  min-width: 2.5rem;
-  min-height: 3.25rem;
-  padding: 0.15rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 4.5rem;
+  padding: 4px;
   overflow: hidden;
+  border: 1px solid var(--ub-border, #d5d1c9);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
 }
 
 .pdf-thumb-btn--active {
-  outline: 2px solid var(--accent, #3b82f6);
-  outline-offset: 1px;
+  border-color: var(--ub-accent, #3d7ea6);
+  box-shadow: 0 0 0 1px var(--ub-accent, #3d7ea6);
 }
 
 .pdf-thumb-canvas {
