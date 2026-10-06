@@ -1,6 +1,6 @@
 # ADR 0027: Command system capabilities and extensibility
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-06
 - **Supersedes in part:** ADR 0003, ADR 0005, ADR 0010
 
@@ -39,8 +39,9 @@ Each control resolves to:
 - `emulated`
 - `unsupported`
 - `hidden_by_user`
+- `locked` (licence or permission policy only; neutral wording; no upsell UI)
 
-Mixed selection is orthogonal and may combine with supported or emulated capability.
+Mixed selection is orthogonal and may combine with supported or emulated capability. `locked` is distinct from `unsupported` and is never returned by format backends or mods.
 
 Resolution starts from the family default, then applies context family overrides, winning per-control provider overrides, selection state, user visibility, and permission policy.
 
@@ -146,6 +147,17 @@ Costs:
 4. Existing floating bars become toolbars containing generated controls.
 5. Existing `toolbars.json` remains readable and migrates once to a versioned layout file.
 6. API compatibility follows ADR 0006 and ADR 0025; contribution schema versions separately.
+
+## Resolved defaults (2026-10-06)
+
+1. Markdown inline-HTML emulation on by default with visible emulation marker.
+2. Emulation marker always visible, subtle, never colour alone; tooltip explains.
+3. One Text Formatting family; groups (Font/Type, Emphasis, Baseline/Colour) movable separately; identical default geometry across contexts.
+4. Hide applies per context by default; optional hide in all contexts.
+5. User-picked provider outranks backend; reset to default provider exposed.
+6. Detached toolbars: monitor identity (name/EDID) + geometry; nearest visible monitor fallback.
+7. Code editor font/size in Editor Appearance at Text Formatting Type geometry.
+8. Licensed controls use `locked`, not `unsupported`.
 
 ## Detailed design
 

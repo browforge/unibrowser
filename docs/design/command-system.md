@@ -109,7 +109,7 @@ Control IDs are stable placement identities. Command IDs remain stable behaviour
 - Density: `compact`, `large`.
 - Content: `icon_label`, `icon_only`, `label_only`, `value`.
 - Width: `fixed`, `content`, `wide`.
-- State: `supported`, `emulated`, `unsupported`, `hidden_by_user`.
+- State: `supported`, `emulated`, `unsupported`, `hidden_by_user`, `locked`.
 - Selection: `off`, `on`, `mixed`, `indeterminate`, `value`, `mixed_value`.
 - Attention: `normal`, `changed`, `warning`. Warning is reserved for actual consequence, not unsupported capability.
 
@@ -223,8 +223,9 @@ Each control resolves to exactly one availability state:
 | `emulated` | A provider supplies a documented approximation | Active control with optional subtle approximation marker |
 | `unsupported` | No valid provider can perform or approximate it | Greyed in place with reason |
 | `hidden_by_user` | User explicitly removed it from this placement | Absent; reserved placement persists in customisation data |
+| `locked` | Licensed or permission-gated; not a format limitation | Greyed in place with neutral wording; no upsell popups |
 
-`hidden_by_user` is not a provider result. Providers may never hide a core control.
+`hidden_by_user` is not a provider result. Providers may never hide a core control. `locked` is host policy only; mods and backends cannot return it.
 
 An emulated result includes:
 
@@ -661,13 +662,13 @@ Every surface consumes this model rather than recomputing enablement independent
 | Simple durable mechanism | Versioned data model, deterministic merge, JSON persistence |
 | Mod over core | Core mediates; format semantics and emulations live in backends and mods |
 
-## Open questions for Bear
+## Resolved defaults (Bear may override)
 
-1. Should Markdown inline HTML emulation be enabled by default, or require an explicit per-workspace policy?
-2. Should the approximation marker always show, or only on focus/hover while the accessible description remains permanent?
-3. Is Text Formatting one family with several groups, or should Font, Emphasis, and Baseline be separately movable families?
-4. When a user hides a core control in one context, should that choice optionally apply to the family across all contexts?
-5. Should a user-selected provider outrank the active backend for direct support, or only for emulations?
-6. Do detached toolbars restore to the same monitor by EDID identity, platform display ID, or best-effort geometry?
-7. For code files, should editor display Font/Size reuse Text Formatting placement or live in a separate Editor Appearance family?
-8. Should unavailable paid/licensed controls be `unsupported` or a distinct locked state? This proposal keeps them unsupported to avoid marketing states in the capability model.
+1. **Markdown inline HTML emulation** is on by default so common formatting "just works"; the emulation marker is shown whenever a control is emulated.
+2. **Emulation marker** is always visible but subtle (a small mark, never colour alone). Tooltip and accessible description explain the approximation.
+3. **Text Formatting** is one family with movable groups (Font/Type, Emphasis, Baseline/Colour). Default geometry is identical across contexts.
+4. **Hiding a control** applies to the active context by default, with an explicit "hide in all contexts" option in customisation.
+5. **User-selected provider** outranks direct backend support (user taste wins). A visible **reset to default provider** restores backend precedence.
+6. **Detached toolbars** remember stable monitor identity (display name or EDID plus last geometry) and fall back to the nearest visible monitor; they are never stranded off-screen.
+7. **Code editor font and size** belong to **Editor Appearance** (view setting, not document formatting) but use the same position and geometry as the Text Formatting Type group.
+8. **Licensed controls** use a distinct `locked` capability state (not `unsupported`), with neutral wording and no nag or upsell popups.
