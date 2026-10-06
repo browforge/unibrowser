@@ -24,9 +24,17 @@ export type LucideName =
   | "lock"
   | "unlock"
   | "chevron-down"
+  | "chevrons-left"
   | "plus"
   | "panel-bottom"
-  | "grip-horizontal";
+  | "panels-top-left"
+  | "package-open"
+  | "grip-horizontal"
+  | "menu"
+  | "undo-2"
+  | "redo-2"
+  | "save"
+  | "settings";
 
 const PATHS: Record<LucideName, string> = {
   "arrow-left": '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
@@ -59,10 +67,22 @@ const PATHS: Record<LucideName, string> = {
   unlock:
     '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
   "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+  "chevrons-left": '<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
   plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
   "panel-bottom":
     '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 15h18"/><path d="M15 19v-2"/><path d="M9 19v-2"/>',
+  "panels-top-left":
+    '<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/>',
+  "package-open":
+    '<path d="M12 22a2 2 0 0 0 2-2V7l-5-3-5 3v13a2 2 0 0 0 2 2Z"/><path d="M12 22v-5"/><path d="m2.5 10.5 9.5-5 9.5 5"/><path d="M7 12.5V17"/><path d="M17 12.5V17"/>',
   "grip-horizontal": '<circle cx="12" cy="9" r="1"/><circle cx="19" cy="9" r="1"/><circle cx="5" cy="9" r="1"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+  "redo-2":
+    '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/>',
+  save: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
+  settings:
+    '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/>',
 };
 
 export function createLucideIcon(
