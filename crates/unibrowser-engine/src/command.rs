@@ -83,6 +83,27 @@ impl CommandRegistry {
             aliases: &["find", "search document"],
         });
         reg.register_command(CommandMeta {
+            id: commands::PROOFING_TOGGLE,
+            title: "Toggle proofing squiggles",
+            icon: "spellcheck",
+            default_keybinding: None,
+            aliases: &["spellcheck", "proofing"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PROOFING_NEXT,
+            title: "Next proofing problem",
+            icon: "arrow-down",
+            default_keybinding: Some("F8"),
+            aliases: &["next spelling error"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::PROOFING_PREVIOUS,
+            title: "Previous proofing problem",
+            icon: "arrow-up",
+            default_keybinding: Some("Shift+F8"),
+            aliases: &["previous spelling error"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::DOCUMENT_UNDO,
             title: "Undo",
             icon: "undo",

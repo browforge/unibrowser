@@ -15,6 +15,7 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 | Lazy conversion (encode-time raster) | **Shipped** | Timeline H.264 lane documented in [lazy-conversion-scope.md](lazy-conversion-scope.md), [timeline-encode-intents.md](timeline-encode-intents.md) |
 | `.unibrow` cross-format project | **Shipped** | `unibrowser-project`, board/timeline UI, share zip |
 | One cross-format font command | **Partial** | Same id on text, web, SVG text, DOCX, EPUB, DXF TEXT/MTEXT, PNG `unibrowser_text`, `.unibrow` titles; grey on plain PNG/PDF/CSV ([commands-cross-format.md](commands-cross-format.md), `cross_format_commands` tests) |
+| One offline proofing engine (squiggles) | **Partial** | `unibrowser-proofing` (spellbook + Harper); Monaco live; DOCX/web/SVG/unibrow adapters partial ([proofing-cross-format.md](proofing-cross-format.md), ADR 0021) |
 | Skippable onboarding; no repeat unless asked | **Shipped** | Tour + checklist; Settings **Show welcome** |
 | Suggestions never cover content | **Shipped** | Unknown-file **header banner** (not modal); onboarding card; mod portal optional (`unknown-file-banner`, ADR 0013) |
 | Unknown file grandma path | **Shipped** | Banner + Open as text/hex + mod suggestions (`open_active_file_as_*`, `mods/base-hex`) |

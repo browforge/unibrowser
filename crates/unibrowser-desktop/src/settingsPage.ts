@@ -25,6 +25,7 @@ import { configureProjectAutoSave } from "./projectAutoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
 import { setExperimentalSpellcheckEnabled } from "./experimentalSpellcheck";
+import { setProofingSquigglesEnabled } from "./proofing";
 import { showErrorToast, showToast } from "./toast";
 
 interface NtpSectionsDto {
@@ -56,6 +57,8 @@ interface PrefsDto {
   ntp_sections: NtpSectionsDto;
   advanced_webview_devtools: boolean;
   advanced_experimental_spellcheck: boolean;
+  proofing_squiggles_enabled: boolean;
+  proofing_grammar_enabled: boolean;
   advanced_node_extension_host: boolean;
   open_downloads_in_system_browser: boolean;
   bookmark_bar_enabled: boolean;
@@ -850,6 +853,55 @@ export async function renderSettings(root: HTMLElement) {
   spellRow.appendChild(spellLabel);
   advancedSection.appendChild(spellRow);
   advancedSection.appendChild(spellNote);
+  const proofRow = document.createElement("div");
+  proofRow.className = "settings-row";
+  const proofCb = document.createElement("input");
+  proofCb.type = "checkbox";
+  proofCb.id = "settings-proofing-squiggles";
+  proofCb.checked = prefs.proofing_squiggles_enabled;
+  proofCb.onchange = async () => {
+    await setProofingSquigglesEnabled(proofCb.checked);
+  };
+  const proofLabel = document.createElement("label");
+  proofLabel.htmlFor = proofCb.id;
+  proofLabel.textContent = t("settings.proofingSquiggles");
+  const proofNote = document.createElement("p");
+  proofNote.className = "viewer-note";
+  proofNote.textContent = t("settings.proofingSquigglesNote");
+  proofRow.appendChild(proofCb);
+  proofRow.appendChild(proofLabel);
+  advancedSection.appendChild(proofRow);
+  advancedSection.appendChild(proofNote);
+  const grammarRow = document.createElement("div");
+  grammarRow.className = "settings-row";
+  const grammarCb = document.createElement("input");
+  grammarCb.type = "checkbox";
+  grammarCb.id = "settings-proofing-grammar";
+  grammarCb.checked = prefs.proofing_grammar_enabled;
+  grammarCb.onchange = async () => {
+    await invoke<PrefsDto>("set_proofing_grammar_enabled", {
+      enabled: grammarCb.checked,
+    });
+  };
+  const grammarLabel = document.createElement("label");
+  grammarLabel.htmlFor = grammarCb.id;
+  grammarLabel.textContent = t("settings.proofingGrammar");
+  grammarRow.appendChild(grammarCb);
+  grammarRow.appendChild(grammarLabel);
+  advancedSection.appendChild(grammarRow);
+  void invoke<{
+    global_added: string[];
+    workspace_added: string[];
+  }>("proofing_dictionary_list").then((dict) => {
+    const dictNote = document.createElement("p");
+    dictNote.className = "viewer-note";
+    const words = [...dict.global_added, ...dict.workspace_added];
+    dictNote.textContent =
+      words.length > 0
+        ? `${t("settings.proofingDictionary")}: ${words.join(", ")}`
+        : t("settings.proofingDictionaryEmpty");
+    advancedSection.appendChild(dictNote);
+  });
   const nodeHostRow = document.createElement("div");
   nodeHostRow.className = "settings-row";
   const nodeHostCb = document.createElement("input");

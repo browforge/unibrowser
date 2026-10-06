@@ -1,0 +1,17 @@
+[package]
+name = "unibrowser-proofing"
+description = "Offline spelling and grammar proofing engine (Hunspell + Harper)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+spellbook = "0.4"
+harper-core = "2.11"
+regex = "1"
+
+[dev-dependencies]
+tempfile = "3"

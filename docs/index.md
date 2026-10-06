@@ -21,6 +21,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [plugin-sdk.md](plugin-sdk.md) | Hello-world `.ubmod` build and install |
 | [plugin-sdk/README.md](plugin-sdk/README.md) | Native mod SDK ABI and user `mods/` dir |
 | [commands-cross-format.md](commands-cross-format.md) | Font-size, find, and page zoom per viewer |
+| [proofing-cross-format.md](proofing-cross-format.md) | Offline spell/grammar squiggles per surface |
 | [commands-undo-redo.md](commands-undo-redo.md) | Undo/redo and PDF export matrix |
 | [packaging.md](packaging.md) | Planned MSI/NSIS/AppImage/deb artefacts |
 | [file-associations.md](file-associations.md) | No OS default handlers yet; FOSS packaging notes |
@@ -82,6 +83,7 @@ ADRs are numbered in `docs/adr/`. Read the ones that touch your area before larg
 | [0018](adr/0018-extension-host-stub.md) | Extension host stub (not a full VSIX JS host) | [extension-host.md](extension-host.md), diagnostics VSIX list |
 | [0019](adr/0019-wasm-t2-sandbox.md) | WASM T2 sandbox (design + feature stub) | ADR + feature flag stub in mod-host (no production WASM mods) |
 | [0020](adr/0020-linux-download-open-as-tab.md) | Linux web download → fetch → file tab | `webview.rs` + `handle_download_url`; [browser-shell.md](browser-shell.md) |
+| [0021](adr/0021-shared-proofing-engine.md) | Shared offline proofing engine | `crates/unibrowser-proofing`, [proofing-cross-format.md](proofing-cross-format.md) |
 
 ## Changelog
 

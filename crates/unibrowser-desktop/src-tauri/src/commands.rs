@@ -4172,6 +4172,8 @@ pub struct PreferencesDto {
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
     pub advanced_experimental_spellcheck: bool,
+    pub proofing_squiggles_enabled: bool,
+    pub proofing_grammar_enabled: bool,
     pub advanced_node_extension_host: bool,
     pub open_downloads_in_system_browser: bool,
     pub files_view: FilesViewDto,
@@ -5483,6 +5485,8 @@ fn preferences_dto() -> PreferencesDto {
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,
         advanced_experimental_spellcheck: p.advanced_experimental_spellcheck,
+        proofing_squiggles_enabled: p.proofing_squiggles_enabled,
+        proofing_grammar_enabled: p.proofing_grammar_enabled,
         advanced_node_extension_host: p.advanced_node_extension_host,
         open_downloads_in_system_browser: p.open_downloads_in_system_browser,
         files_view: files_view_dto(&p),
@@ -5620,6 +5624,22 @@ pub fn set_advanced_webview_devtools(
 pub fn set_advanced_experimental_spellcheck(enabled: bool) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.advanced_experimental_spellcheck = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_proofing_squiggles_enabled(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.proofing_squiggles_enabled = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_proofing_grammar_enabled(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.proofing_grammar_enabled = enabled;
     save_preferences(&p)?;
     Ok(preferences_dto())
 }

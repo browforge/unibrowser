@@ -19,6 +19,13 @@ import {
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { loadAccessibilityPreferences } from "./accessibility";
 import { loadExperimentalSpellcheckPref } from "./experimentalSpellcheck";
+import {
+  loadProofingPrefs,
+  PROOFING_NEXT,
+  PROOFING_PREVIOUS,
+  PROOFING_TOGGLE,
+  toggleProofingSquiggles,
+} from "./proofing";
 import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
 import { initMonacoEditorThemes } from "./monacoEditorTheme";
@@ -1344,6 +1351,19 @@ async function processCommandResult(msg: string, commandId?: string) {
 }
 
 async function runUiCommand(commandId: string) {
+  if (commandId === PROOFING_TOGGLE) {
+    await toggleProofingSquiggles();
+    await textEditor.refreshProofingMarkers();
+    return;
+  }
+  if (commandId === PROOFING_NEXT) {
+    textEditor.focusNextProofingInEditor();
+    return;
+  }
+  if (commandId === PROOFING_PREVIOUS) {
+    textEditor.focusPreviousProofingInEditor();
+    return;
+  }
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
   await processCommandResult(msg, commandId);
@@ -1893,6 +1913,14 @@ async function runKeybindingCommand(commandId: string) {
     togglePalette();
     return;
   }
+  if (
+    commandId === PROOFING_TOGGLE ||
+    commandId === PROOFING_NEXT ||
+    commandId === PROOFING_PREVIOUS
+  ) {
+    await runUiCommand(commandId);
+    return;
+  }
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
   await processCommandResult(msg, commandId);
@@ -2191,6 +2219,7 @@ void invoke<{ editor_theme_id: string }>("get_preferences").then((prefs) => {
 });
 void loadAccessibilityPreferences();
 void loadExperimentalSpellcheckPref();
+void loadProofingPrefs();
 window.addEventListener("focus", () => {
   void invoke("reload_keybindings").then(() => loadKeybindingHints());
 });

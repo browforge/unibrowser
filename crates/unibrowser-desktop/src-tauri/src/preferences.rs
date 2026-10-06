@@ -103,6 +103,11 @@ pub struct Preferences {
     /// Read-only browser spellcheck mirror under the text editor (experimental).
     #[serde(default)]
     pub advanced_experimental_spellcheck: bool,
+    /// Offline squiggle proofing (unibrowser-proofing engine).
+    #[serde(default = "default_proofing_squiggles")]
+    pub proofing_squiggles_enabled: bool,
+    #[serde(default = "default_proofing_grammar")]
+    pub proofing_grammar_enabled: bool,
     /// Run installed VSIX `main` modules via Node sidecar (experimental).
     #[serde(default)]
     pub advanced_node_extension_host: bool,
@@ -197,6 +202,14 @@ pub fn user_mods_disabled() -> bool {
         return true;
     }
     load_preferences().disable_user_mods
+}
+
+fn default_proofing_squiggles() -> bool {
+    true
+}
+
+fn default_proofing_grammar() -> bool {
+    true
 }
 
 fn default_bookmark_bar_enabled() -> bool {
@@ -308,6 +321,8 @@ impl Default for Preferences {
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,
             advanced_experimental_spellcheck: false,
+            proofing_squiggles_enabled: default_proofing_squiggles(),
+            proofing_grammar_enabled: default_proofing_grammar(),
             advanced_node_extension_host: false,
             vsix_trusted_extensions: Vec::new(),
             open_downloads_in_system_browser: false,

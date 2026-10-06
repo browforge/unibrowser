@@ -6,6 +6,7 @@ members = [
     "crates/unibrowser-mod-api",
     "crates/unibrowser-mod-sdk",
     "crates/unibrowser-engine",
+    "crates/unibrowser-proofing",
     "crates/unibrowser-mod-host",
     "crates/unibrowser-project",
     "crates/unibrowser-media",

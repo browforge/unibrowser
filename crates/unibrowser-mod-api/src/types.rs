@@ -141,4 +141,7 @@ pub mod commands {
     pub const PDF_ANNOTATE_INK: &str = "unibrowser.pdf.annotate.ink";
     pub const SVG_PATH_BOOLEAN: &str = "unibrowser.svg.path.boolean";
     pub const SVG_PATH_SIMPLIFY: &str = "unibrowser.svg.path.simplify";
+    pub const PROOFING_TOGGLE: &str = "unibrowser.proofing.toggle";
+    pub const PROOFING_NEXT: &str = "unibrowser.proofing.nextProblem";
+    pub const PROOFING_PREVIOUS: &str = "unibrowser.proofing.previousProblem";
 }

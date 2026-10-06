@@ -50,6 +50,7 @@ unibrowser-extension-host = { path = "../../unibrowser-extension-host" }
 unibrowser-docx = { path = "../../unibrowser-docx" }
 unibrowser-terminal = { path = "../../unibrowser-terminal" }
 unibrowser-ocr = { path = "../../unibrowser-ocr" }
+unibrowser-proofing = { path = "../../unibrowser-proofing" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"

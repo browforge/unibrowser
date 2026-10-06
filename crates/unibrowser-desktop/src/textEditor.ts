@@ -11,6 +11,13 @@ import {
   isExperimentalSpellcheckEnabled,
   syncSpellcheckPane,
 } from "./experimentalSpellcheck";
+import {
+  clearEditorMarkers,
+  focusNextProofingProblem,
+  focusPreviousProofingProblem,
+  isProofingEnabled,
+  scheduleEditorProofing,
+} from "./proofing";
 import { applyMonacoEditorTheme, resolveEditorThemeId } from "./monacoEditorTheme";
 import { refreshVsixTextmateGrammars } from "./monacoTextmate";
 
@@ -158,7 +165,24 @@ async function pushToHost() {
   if (isExperimentalSpellcheckEnabled()) {
     syncSpellcheckPane(model.getValue());
   }
+  if (isProofingEnabled() && editor && monacoApi) {
+    const surface = proofingSurfaceForPath(loadedPath, model.getLanguageId());
+    scheduleEditorProofing(monacoApi, editor, surface, model.getLanguageId());
+  }
   emitReadingStats();
+}
+
+function proofingSurfaceForPath(
+  path: string | null,
+  languageId: string,
+): "plaintext" | "markdown" | "code" {
+  if (path && isMarkdownPath(path)) {
+    return "markdown";
+  }
+  if (languageId !== "plaintext" && languageId !== "markdown") {
+    return "code";
+  }
+  return "plaintext";
 }
 
 function scheduleSync() {
@@ -461,6 +485,41 @@ export const textEditor = {
     }
     emitCursorStatus();
     emitReadingStats();
+    if (isProofingEnabled() && editor && monacoApi) {
+      const model = editor.getModel();
+      if (model) {
+        const surface = proofingSurfaceForPath(doc.path, model.getLanguageId());
+        scheduleEditorProofing(monacoApi, editor, surface, model.getLanguageId());
+      }
+    }
+  },
+
+  focusNextProofingInEditor() {
+    if (editor) {
+      focusNextProofingProblem(editor);
+    }
+  },
+
+  focusPreviousProofingInEditor() {
+    if (editor) {
+      focusPreviousProofingProblem(editor);
+    }
+  },
+
+  async refreshProofingMarkers() {
+    if (!editor || !monacoApi) {
+      return;
+    }
+    if (!isProofingEnabled()) {
+      clearEditorMarkers(monacoApi, editor);
+      return;
+    }
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+    const surface = proofingSurfaceForPath(loadedPath, model.getLanguageId());
+    scheduleEditorProofing(monacoApi, editor, surface, model.getLanguageId());
   },
 };
 
@@ -500,6 +559,10 @@ export function getPrintHtmlForPdf(): { title: string; html: string } | null {
       : `<pre>${escapeForPre(editor.getValue())}</pre>`;
   return { title: loadedPath, html };
 }
+
+window.addEventListener("unibrowser-proofing-pref", () => {
+  void textEditor.refreshProofingMarkers();
+});
 
 window.addEventListener("unibrowser-spellcheck-pref", () => {
   if (!hostEl || !editor || !loadedPath) {

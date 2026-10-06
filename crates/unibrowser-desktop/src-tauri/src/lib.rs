@@ -1,4 +1,5 @@
 mod commands;
+mod proofing;
 mod toolbar_windows;
 mod workspace_personas;
 mod config;
@@ -221,6 +222,11 @@ pub fn run() {
             commands::set_ntp_sections,
             commands::set_advanced_webview_devtools,
             commands::set_advanced_experimental_spellcheck,
+            proofing::proofing_check,
+            proofing::proofing_dictionary_add,
+            proofing::proofing_dictionary_list,
+            commands::set_proofing_squiggles_enabled,
+            commands::set_proofing_grammar_enabled,
             commands::set_advanced_node_extension_host,
             commands::set_disable_user_mods,
             commands::set_files_view_prefs,
