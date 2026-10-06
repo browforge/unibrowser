@@ -38,6 +38,22 @@ pub struct AutosaveSlotRecord {
     pub saved_at_ms: u64,
 }
 
+/// True when Save must show a path picker (untitled buffers only).
+pub fn document_needs_save_picker(document_path: &str) -> bool {
+    let trimmed = document_path.trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+    if let Some(cfg) = config_dir() {
+        let untitled_root = cfg.join("autosave").join("untitled");
+        let path = Path::new(trimmed);
+        if path.starts_with(&untitled_root) {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn autosave_slot_dir(document_path: &str) -> Option<PathBuf> {
     let trimmed = document_path.trim();
     if trimmed.is_empty() {

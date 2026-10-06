@@ -53,14 +53,26 @@ struct CacheEntry {
 
 static CACHE: Mutex<Option<CacheEntry>> = Mutex::new(None);
 
+/// Open VSX catalog + VSIX download (not https tabs or user-opened URLs).
+pub fn ensure_catalog_network(network_opt_in: bool) -> Result<(), String> {
+    let prefs = crate::preferences::load_preferences();
+    if prefs.offline_mode {
+        return Err(
+            "Offline mode is on (Settings → Network). Turn it off to reach Open VSX.".into(),
+        );
+    }
+    if !network_opt_in {
+        return Err("Open VSX search needs network opt-in (Mods panel)".into());
+    }
+    Ok(())
+}
+
 pub fn search_open_vsx(query: &str, network_opt_in: bool) -> Result<Vec<OpenVsxHitDto>, String> {
     let query = query.trim();
     if query.is_empty() {
         return Ok(Vec::new());
     }
-    if !network_opt_in {
-        return Err("Open VSX search needs network opt-in (Mods panel)".into());
-    }
+    ensure_catalog_network(network_opt_in)?;
     if let Ok(guard) = CACHE.lock() {
         if let Some(entry) = guard.as_ref() {
             if entry.query == query && entry.at.elapsed() < CACHE_TTL {
@@ -102,9 +114,7 @@ pub fn search_open_vsx(query: &str, network_opt_in: bool) -> Result<Vec<OpenVsxH
 }
 
 pub fn download_vsix_bytes(url: &str, network_opt_in: bool) -> Result<Vec<u8>, String> {
-    if !network_opt_in {
-        return Err("VSIX download needs network opt-in (Mods panel)".into());
-    }
+    ensure_catalog_network(network_opt_in)?;
     let url = url.trim();
     if url.is_empty() {
         return Err("empty download URL".into());

@@ -811,6 +811,18 @@ function renderModPortal(portal: ModPortalDto | null) {
   catalogNote.className = "viewer-note";
   catalogNote.textContent = t("mods.catalogNote");
   modPortalPanel.appendChild(catalogNote);
+  void invoke<{ offline_mode: boolean }>("get_preferences").then((netPrefs) => {
+    if (!netPrefs.offline_mode) {
+      return;
+    }
+    optIn.disabled = true;
+    optIn.checked = false;
+    searchBtn.disabled = true;
+    const offlineNote = document.createElement("p");
+    offlineNote.className = "viewer-note";
+    offlineNote.textContent = t("mods.offlineModeActive");
+    modPortalPanel.insertBefore(offlineNote, catalogNote);
+  });
   modPortalPanel.appendChild(catalogResults);
   modPortalPanel.appendChild(searchStatus);
   modPortalPanel.appendChild(results);
@@ -919,6 +931,15 @@ function renderModPortal(portal: ModPortalDto | null) {
 
   searchBtn.onclick = async () => {
     results.innerHTML = "";
+    const netPrefs = await invoke<{ offline_mode: boolean }>("get_preferences");
+    if (netPrefs.offline_mode) {
+      searchStatus.textContent = t("mods.offlineModeActive");
+      return;
+    }
+    if (!optIn.checked) {
+      searchStatus.textContent = t("mods.networkOptInRequired");
+      return;
+    }
     searchStatus.textContent = t("mods.searching");
     try {
       const hits = await invoke<OpenVsxHitDto[]>("search_open_vsx_catalog", {
@@ -947,15 +968,64 @@ function renderModPortal(portal: ModPortalDto | null) {
   };
 }
 
+function showVsixTrustBar(
+  row: HTMLElement,
+  extensionId: string,
+  nativeContainer: HTMLElement,
+  vsixContainer: HTMLElement,
+) {
+  row.querySelector(".vsix-trust-bar")?.remove();
+  const bar = document.createElement("div");
+  bar.className = "vsix-trust-bar";
+  const msg = document.createElement("p");
+  msg.textContent = t("mods.vsixTrustBar", { extensionId });
+  bar.appendChild(msg);
+  const actions = document.createElement("div");
+  actions.className = "vsix-trust-bar-actions";
+  const trustBtn = document.createElement("button");
+  trustBtn.type = "button";
+  trustBtn.className = "vsix-trust-confirm";
+  trustBtn.textContent = t("mods.vsixTrustConfirm");
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.textContent = t("mods.vsixTrustCancel");
+  cancelBtn.onclick = () => bar.remove();
+  trustBtn.onclick = async () => {
+    try {
+      await invoke("trust_vsix_extension", { extensionId });
+      bar.remove();
+      const result = await invoke<{ restart_recommended: boolean; needs_trust?: boolean }>(
+        "set_vsix_extension_enabled",
+        { extensionId, enabled: true },
+      );
+      showToast(
+        t(result.restart_recommended ? "mods.toggleRestartIfStale" : "mods.toggleAppliedVsix"),
+        "info",
+      );
+      await refreshInstalledExtensions(nativeContainer, vsixContainer);
+      await refreshState();
+    } catch (err) {
+      showToast(String(err), "error");
+    }
+  };
+  actions.appendChild(trustBtn);
+  actions.appendChild(cancelBtn);
+  bar.appendChild(actions);
+  row.insertBefore(bar, row.firstChild);
+}
+
 async function refreshInstalledExtensions(
   nativeContainer: HTMLElement,
   vsixContainer: HTMLElement,
 ) {
   nativeContainer.innerHTML = "";
   vsixContainer.innerHTML = "";
-  const prefs = await invoke<{ disable_user_mods: boolean; safe_mode_env: boolean }>(
-    "get_preferences",
-  );
+  const prefs = await invoke<{
+    disable_user_mods: boolean;
+    safe_mode_env: boolean;
+    advanced_node_extension_host: boolean;
+    vsix_trusted_extensions: string[];
+  }>("get_preferences");
   const userModsBlocked = prefs.disable_user_mods || prefs.safe_mode_env;
   try {
     const native = await invoke<InstalledNativeModDto[]>("list_installed_native_mods");
@@ -1037,16 +1107,33 @@ async function refreshInstalledExtensions(
       toggle.type = "button";
       toggle.textContent = ext.enabled ? t("mods.disable") : t("mods.enable");
       toggle.onclick = async () => {
-        const result = await invoke<{ restart_recommended: boolean }>("set_vsix_extension_enabled", {
-          extensionId: ext.extension_id,
-          enabled: !ext.enabled,
-        });
-        showToast(
-          t(result.restart_recommended ? "mods.toggleRestartIfStale" : "mods.toggleAppliedVsix"),
-          "info",
-        );
-        await refreshInstalledExtensions(nativeContainer, vsixContainer);
-        await refreshState();
+        const enabling = !ext.enabled;
+        if (
+          enabling &&
+          prefs.advanced_node_extension_host &&
+          !prefs.vsix_trusted_extensions.includes(ext.extension_id)
+        ) {
+          showVsixTrustBar(row, ext.extension_id, nativeContainer, vsixContainer);
+          return;
+        }
+        try {
+          const result = await invoke<{ restart_recommended: boolean; needs_trust?: boolean }>(
+            "set_vsix_extension_enabled",
+            { extensionId: ext.extension_id, enabled: enabling },
+          );
+          if (result.needs_trust) {
+            showVsixTrustBar(row, ext.extension_id, nativeContainer, vsixContainer);
+            return;
+          }
+          showToast(
+            t(result.restart_recommended ? "mods.toggleRestartIfStale" : "mods.toggleAppliedVsix"),
+            "info",
+          );
+          await refreshInstalledExtensions(nativeContainer, vsixContainer);
+          await refreshState();
+        } catch (err) {
+          showToast(String(err), "error");
+        }
       };
       const remove = document.createElement("button");
       remove.type = "button";
@@ -1675,18 +1762,22 @@ async function activateTabHit(hit: TabSearchHit) {
 }
 
 async function closeTabAt(index: number, dirty: boolean) {
-  const force = dirty
-    ? window.confirm("This tab has unsaved changes. Close anyway?")
-    : true;
-  if (!force) {
-    return;
-  }
   await textEditor.flush();
+  if (dirty) {
+    try {
+      await invoke("auto_save_active_document");
+    } catch {
+      /* best-effort slot before close */
+    }
+  }
   const data = await invokeWithToast(
     () => invoke<TabContentDto>("close_tab", { index, force: true }),
     "Could not close tab",
   );
   if (data) {
+    if (dirty) {
+      showToast(t("tabs.closedReopenHint"), "info");
+    }
     await applyState(data);
   }
 }

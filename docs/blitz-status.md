@@ -197,16 +197,25 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 
 ## Principles watchlist
 
-Tracked against [principles.md](principles.md). Not blockers for the blitz; fix or document when touching the area.
+Tracked against [principles.md](principles.md).
 
-| Area | Principle tension | Notes |
-| --- | --- | --- |
-| Close tab with unsaved edits | Trust user / no blocking work | `window.confirm` before close — prefer non-modal discard or undo later |
-| VSIX trust + extension enable | Trust user | First-run trust prompt is modal; required for JS host opt-in |
-| Onboarding tour / checklist | Trust user | Skippable and dismissible; still interrupts first session until skipped |
-| Open VSX catalog search | Local-first | Optional network search in mod portal; bundled catalog remains offline default |
-| https / downloads / updates | Local-first | User-initiated remote actions; no background telemetry |
-| Save dialogs | Sacred save | Pickers for Save As are fine; content must never be refused for diagnostics or lint |
+### Resolved (2026-10-06 slice)
+
+| Area | Resolution |
+| --- | --- |
+| Close tab with unsaved edits | Instant close; dirty tabs flush to autosave slots; **Reopen closed tab** (Ctrl+Shift+T); toast hint (no modal) |
+| VSIX trust + extension enable | Inline non-covering trust bar on mod portal row; extension stays off until **Trust and enable**; no blocking dialog |
+| Onboarding tour / checklist | Skippable forever; dismiss banner; never blocks save/work; **Show welcome** is opt-in from Settings |
+| Open VSX / remote catalog | Bundled catalog default; search/download need mod-portal opt-in; **Offline mode** blocks catalog ([network.md](network.md)) |
+| https / downloads / updates | User-initiated only; no background telemetry; documented in [network.md](network.md) |
+| Save dialogs | Existing paths save without picker; untitled → autosave under config + Save picker only when path is untitled (ADR 0023) |
+
+### Open tensions
+
+| Area | Notes |
+| --- | --- |
+| Close others / close to right | Still refuses pinned/unsaved batch close (no confirm modal) |
+| HTTP omnibox confirm | `window.confirm` for plain `http://` when warn pref on (security trade-off) |
 
 ## Gaps (honest)
 

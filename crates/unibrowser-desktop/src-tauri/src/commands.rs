@@ -3657,11 +3657,37 @@ fn execute_command_impl(
         }
         return Ok("export-print-pdf".into());
     }
-    state
-        .registry
-        .lock()
-        .map_err(|e| e.to_string())?
-        .execute(&command_id, doc)
+    let (result, relocate_path) = {
+        let relocate_path = if command_id == unibrowser_mod_api::commands::TEXT_SAVE
+            && crate::autosave::document_needs_save_picker(&doc.path)
+        {
+            write_active_text_autosave_slot(doc)?;
+            let new_path = pick_text_save_path(&app, &doc.path)?;
+            doc.path = new_path.clone();
+            if let Some(tb) = base_text::try_text_backend(&mut *doc.backend) {
+                tb.path = new_path.clone();
+            } else if let Some(js) = base_js::try_js_backend(&mut *doc.backend) {
+                js.path = new_path.clone();
+            } else if let Some(svg) = base_svg::try_svg_backend(&mut *doc.backend) {
+                svg.path = new_path.clone();
+            }
+            Some(new_path)
+        } else {
+            None
+        };
+        let result = state
+            .registry
+            .lock()
+            .map_err(|e| e.to_string())?
+            .execute(&command_id, doc)?;
+        (result, relocate_path)
+    };
+    if let Some(new_path) = relocate_path {
+        tab.location = BrowserLocation::File {
+            path: PathBuf::from(new_path),
+        };
+    }
+    Ok(result)
 }
 
 #[tauri::command]
@@ -4186,6 +4212,8 @@ pub struct PreferencesDto {
     pub larger_hit_targets: bool,
     pub web_proxy: WebProxyPrefsDto,
     pub warn_insecure_http: bool,
+    pub offline_mode: bool,
+    pub vsix_trusted_extensions: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -5513,7 +5541,17 @@ fn preferences_dto() -> PreferencesDto {
         larger_hit_targets: p.larger_hit_targets,
         web_proxy: web_proxy_prefs_dto(&p.web_proxy),
         warn_insecure_http: p.warn_insecure_http,
+        offline_mode: p.offline_mode,
+        vsix_trusted_extensions: p.vsix_trusted_extensions.clone(),
     }
+}
+
+#[tauri::command]
+pub fn set_offline_mode(enabled: bool) -> Result<PreferencesDto, String> {
+    let mut p = load_preferences();
+    p.offline_mode = enabled;
+    save_preferences(&p)?;
+    Ok(preferences_dto())
 }
 
 #[tauri::command]
@@ -5912,6 +5950,48 @@ pub fn get_autosave_status() -> AutosaveTickDto {
         wrote_slot: false,
         last_autosave_at_ms: crate::autosave::last_autosave_at_ms(),
     }
+}
+
+fn write_active_text_autosave_slot(doc: &mut DocumentSession) -> Result<(), String> {
+    let path = doc.path.clone();
+    let backend_id = doc.backend.backend_id().to_string();
+    let content = if backend_id == base_text::BACKEND_ID {
+        base_text::try_text_backend(&mut *doc.backend)
+            .map(|b| b.content.clone())
+    } else if backend_id == base_js::BACKEND_ID {
+        base_js::try_js_backend(&mut *doc.backend).map(|b| b.content.clone())
+    } else if backend_id == base_svg::BACKEND_ID {
+        base_svg::try_svg_backend(&mut *doc.backend).map(|b| b.content.clone())
+    } else {
+        None
+    };
+    if let Some(text) = content {
+        if !text.is_empty() {
+            crate::autosave::write_document_autosave_slot(&path, &backend_id, &text)?;
+        }
+    }
+    Ok(())
+}
+
+fn pick_text_save_path(app: &AppHandle, current: &str) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let suggested = if current.trim().is_empty() {
+        "untitled.txt".to_string()
+    } else {
+        Path::new(current)
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "untitled.txt".to_string())
+    };
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Save")
+        .set_file_name(suggested)
+        .blocking_save_file();
+    picked
+        .map(|p| p.to_string())
+        .ok_or_else(|| "save cancelled".into())
 }
 
 #[tauri::command]
@@ -7058,36 +7138,26 @@ fn install_vsix_bytes_and_register(
 pub struct ModToggleResultDto {
     /// When false, stub/metadata commands were refreshed in-process; no restart needed for palette changes.
     pub restart_recommended: bool,
+    /// Node extension host: user must confirm trust inline before enable proceeds.
+    #[serde(default)]
+    pub needs_trust: bool,
 }
 
 #[tauri::command]
 pub fn set_vsix_extension_enabled(
-    window: tauri::Window,
+    _window: tauri::Window,
     extension_id: String,
     enabled: bool,
-    app: AppHandle,
+    _app: AppHandle,
     state: State<AppState>,
 ) -> Result<ModToggleResultDto, String> {
     if enabled && crate::vsix_host::node_extension_host_enabled() {
-        let mut prefs = load_preferences();
+        let prefs = load_preferences();
         if !prefs.vsix_trusted_extensions.iter().any(|id| id == &extension_id) {
-            use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-            let label = extension_id.clone();
-            let confirm = app
-                .dialog()
-                .message(format!(
-                    "Enable extension “{}”?\n\nIt can run JavaScript via the Node host (experimental). Only enable extensions you trust.",
-                    label
-                ))
-                .title("Trust VSIX extension")
-                .kind(MessageDialogKind::Warning)
-                .buttons(MessageDialogButtons::OkCancel)
-                .blocking_show();
-            if !confirm {
-                return Err("Extension not trusted".into());
-            }
-            prefs.vsix_trusted_extensions.push(extension_id.clone());
-            save_preferences(&prefs)?;
+            return Ok(ModToggleResultDto {
+                restart_recommended: false,
+                needs_trust: true,
+            });
         }
     }
     let root = crate::config::vsix_extensions_dir().ok_or("config dir unavailable")?;
@@ -7099,7 +7169,22 @@ pub fn set_vsix_extension_enabled(
     state.refresh_extension_catalog()?;
     Ok(ModToggleResultDto {
         restart_recommended: false,
+        needs_trust: false,
     })
+}
+
+#[tauri::command]
+pub fn trust_vsix_extension(extension_id: String) -> Result<PreferencesDto, String> {
+    let mut prefs = load_preferences();
+    if !prefs
+        .vsix_trusted_extensions
+        .iter()
+        .any(|id| id == &extension_id)
+    {
+        prefs.vsix_trusted_extensions.push(extension_id);
+        save_preferences(&prefs)?;
+    }
+    Ok(preferences_dto())
 }
 
 #[derive(Serialize)]
@@ -7146,6 +7231,7 @@ pub fn set_native_mod_enabled(
     state.refresh_extension_catalog()?;
     Ok(ModToggleResultDto {
         restart_recommended: !enabled,
+        needs_trust: false,
     })
 }
 

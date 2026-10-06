@@ -70,6 +70,7 @@ interface PrefsDto {
   larger_hit_targets: boolean;
   web_proxy: { mode: string; host: string; port: number };
   warn_insecure_http: boolean;
+  offline_mode: boolean;
 }
 
 export async function renderSettings(root: HTMLElement) {
@@ -394,6 +395,44 @@ export async function renderSettings(root: HTMLElement) {
   a11ySection.appendChild(insecureRow);
   a11ySection.appendChild(insecureNote);
   root.appendChild(a11ySection);
+
+  const networkSection = document.createElement("section");
+  networkSection.className = "settings-section";
+  const networkHeading = document.createElement("h3");
+  networkHeading.textContent = t("settings.networkHeading");
+  networkSection.appendChild(networkHeading);
+  const offlineRow = document.createElement("div");
+  offlineRow.className = "settings-row";
+  const offlineCb = document.createElement("input");
+  offlineCb.type = "checkbox";
+  offlineCb.id = "settings-offline-mode";
+  offlineCb.checked = prefs.offline_mode ?? false;
+  offlineCb.onchange = async () => {
+    try {
+      const next = await invoke<PrefsDto>("set_offline_mode", { enabled: offlineCb.checked });
+      offlineCb.checked = next.offline_mode;
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+  const offlineLabel = document.createElement("label");
+  offlineLabel.htmlFor = offlineCb.id;
+  offlineLabel.textContent = t("settings.offlineMode");
+  const offlineNote = document.createElement("p");
+  offlineNote.className = "viewer-note";
+  offlineNote.textContent = t("settings.offlineModeNote");
+  offlineRow.appendChild(offlineCb);
+  offlineRow.appendChild(offlineLabel);
+  networkSection.appendChild(offlineRow);
+  networkSection.appendChild(offlineNote);
+  const networkDoc = document.createElement("p");
+  networkDoc.className = "viewer-note";
+  const networkLink = document.createElement("a");
+  networkLink.href = "unibrowser://docs/network";
+  networkLink.textContent = t("settings.networkDocLink");
+  networkDoc.appendChild(networkLink);
+  networkSection.appendChild(networkDoc);
+  root.appendChild(networkSection);
 
   const cmSection = document.createElement("section");
   cmSection.className = "settings-section";

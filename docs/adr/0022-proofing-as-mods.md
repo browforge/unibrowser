@@ -7,6 +7,17 @@
 
 Offline squiggles (spelling, grammar, and format-specific lints) should behave like other Unibrowser capabilities: **removable mods** on top of a generic diagnostics host (ADR 0021). Grandma should get en-NZ spelling and Harper grammar out of the box without a separate “proofing app”.
 
+## Principles check
+
+| Check | Answer |
+| --- | --- |
+| Trusts the user | Yes — bundled mods are removable; squiggles only |
+| Never blocks save or work | Yes — proofing mods do not participate in save validation |
+| Local-first | Yes — Hunspell + optional `harper-ls`; no LanguageTool cloud |
+| Predictable across formats | Partial — text strong; DOCX/web/SVG adapters still landing |
+| Simple durable mechanism | Yes — register checker or LSP via manifest |
+| Mod not core | Yes — explicit Factorio split from `unibrowser-diagnostics` |
+
 ## Decision
 
 1. **Factorio rule:** `unibrowser-diagnostics` is the engine; **proofing is mods** that register checkers or LSP servers.

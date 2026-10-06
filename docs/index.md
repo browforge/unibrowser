@@ -31,6 +31,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [chrome.md](chrome.md) | Tabs, omnibox, status bar chrome |
 | [workspace-folders.md](workspace-folders.md) | Workspace root tree + git dirty hints in Files |
 | [privacy.md](privacy.md) | No telemetry; local data |
+| [network.md](network.md) | Offline mode; what can call out |
 | [safe-mode.md](safe-mode.md) | Disable user mods for troubleshooting |
 | [updates.md](updates.md) | Manual FOSS update check (releases URL) |
 | [fullscreen-content.md](fullscreen-content.md) | F11 chrome-hidden content focus |

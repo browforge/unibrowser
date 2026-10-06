@@ -6,6 +6,7 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Principles watchlist resolved:** ADR 0021/0022 **Principles check** backfill; close tab without confirm (autosave + reopen hint); VSIX inline trust bar; Settings **Offline mode** + [network.md](docs/network.md); untitled-only Save picker; blitz watchlist moved to **Resolved**.
 - **Principles:** [principles.md](docs/principles.md) decision checklist; ADR [0000-template](docs/adr/0000-template.md); CONTRIBUTING + docs hub links; blitz **Principles watchlist**.
 - **Saving is sacred + local autosave (ADR 0023):** [principles.md](docs/principles.md); permissive project save; DOCX save warns instead of refusing; rotating `.ubautosave` sidecar slots; status bar autosave time; `unibrowser-fs` atomic IO tests.
 - **Diagnostics host + proofing mods (ADR 0021–0022):** `crates/unibrowser-diagnostics` (locators, dictionary store, LSP stdio client); bundled `spell-en-nz`, `grammar-harper`, example `dxf-checker` / `unibrow-checker`; Monaco squiggles via `proofing_check`; [proofing-cross-format.md](docs/proofing-cross-format.md).

@@ -7,6 +7,17 @@
 
 Bear wants one **diagnostics** story across text, CAD, video, PDF, and web surfaces: a problem list, severities, quick-fixes, Next/Previous problem, and squiggles or markers without modal popups. Spell and grammar are important but must not be baked into the engine as the only checkers. Language servers and native checkers should plug in like Factorio mods. Nothing leaves the machine by default.
 
+## Principles check
+
+| Check | Answer |
+| --- | --- |
+| Trusts the user | Yes — problems are hints; user chooses what to fix |
+| Never blocks save or work | Yes — diagnostics never gate Save (ADR 0023) |
+| Local-first | Yes — LSP children and Hunspell run on device; no cloud checker |
+| Predictable across formats | Partial — one host model; not every surface wired yet |
+| Simple durable mechanism | Yes — problem list + locators; rendering in viewers |
+| Mod not core | Yes — spell/grammar/format checkers are mods (ADR 0022) |
+
 ## Decision
 
 1. **Engine crate** `crates/unibrowser-diagnostics` (`unibrowser-diagnostics`) is a generic **diagnostics host**. It owns:

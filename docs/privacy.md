@@ -23,8 +23,11 @@ What you do in the app stays on your device unless **you** trigger network acces
 
 ## Network you control
 
+See [network.md](network.md) for the full table. Summary:
+
 - **Web tabs** load remote content like any browser.
-- **Open VSX** search runs only when you enable network in the mod portal and search.
+- **Offline mode** (Settings) blocks Open VSX catalog traffic; it does not block https navigation you start.
+- **Open VSX** search runs only when offline mode is off, you enable network in the mod portal, and you click Search.
 - **Downloads** follow your download preference (in-app or system browser).
 
 There is no background sync, account system, or cloud backup in the core product.

@@ -3690,6 +3690,24 @@ body.content-fullscreen #unknown-file-banner {
   margin: 0.25rem 0;
 }
 
+.vsix-trust-bar {
+  flex: 1 1 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--ub-border-strong, #c9a227);
+  background: var(--ub-surface-raised, #fff8e6);
+  border-radius: 4px;
+}
+
+.vsix-trust-bar p {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+}
+
+.vsix-trust-bar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .floating-bar .drag-handle {
   cursor: grab;
   padding: 0 0.25rem;

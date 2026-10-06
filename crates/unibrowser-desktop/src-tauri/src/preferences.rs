@@ -177,6 +177,9 @@ pub struct Preferences {
     /// Confirm before omnibox navigates to plain `http://` (default on).
     #[serde(default = "default_true")]
     pub warn_insecure_http: bool,
+    /// Block Open VSX and other catalog fetches; web/https tabs still load when you navigate.
+    #[serde(default)]
+    pub offline_mode: bool,
 }
 
 /// How https/file web tabs should reach the network (prefs only until webview proxy API lands).
@@ -363,6 +366,7 @@ impl Default for Preferences {
             scripting_extension_tip_dismissed_forever: false,
             web_proxy: WebProxyPrefs::default(),
             warn_insecure_http: true,
+            offline_mode: false,
         }
     }
 }
