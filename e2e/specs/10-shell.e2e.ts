@@ -1,10 +1,7 @@
-/**
- * Quarantined: full shell scenarios need stable Tauri invoke on the loopback E2E URL
- * (see docs/e2e.md). Smoke specs run in CI-style `./scripts/e2e.sh` instead.
- */
 import path from "node:path";
 import { browser, $, $$ } from "@wdio/globals";
 import assert from "node:assert/strict";
+// smoke: window handle check lives in `before` below
 import { DEMO_PACK, FIXTURES } from "../helpers/paths.js";
 import {
   openPath,
@@ -15,16 +12,24 @@ import {
   waitForSelector,
 } from "../helpers/tauri.js";
 
+// Single spec file so WDIO keeps one WebDriver session (see docs/e2e.md).
+
 const INCREASE_FONT = "unibrowser.font.size.increase";
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
 
-describe("Unibrowser shell (WebdriverIO + embedded WebDriver)", function () {
+describe("Unibrowser shell (WebdriverIO + tauri-driver)", function () {
   this.timeout(180000);
 
   before(async () => {
-    await browser.pause(3000);
+    const handles = await browser.getWindowHandles();
+    assert.ok(handles.length > 0);
     await waitForSelector("#omnibox", 180000);
     await prepareCleanShell();
+  });
+
+  it("smoke: exposes browser state after shell load", async () => {
+    const state = await tauriInvoke<{ omnibox: string }>("get_browser_state");
+    assert.ok(typeof state.omnibox === "string");
   });
 
   it("opens text and Increase font size updates status font pt", async () => {

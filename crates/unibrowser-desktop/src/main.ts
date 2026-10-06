@@ -95,6 +95,7 @@ import {
 } from "./scriptOutputPanel";
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
+import { applyDemoState } from "./demoState";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
@@ -2411,7 +2412,19 @@ window.addEventListener("focus", () => {
 void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
   if (!toolbarOnly) {
     document.body.dataset.ubReady = "1";
-    void refreshState().then(() => {
+    void refreshState().then(async () => {
+      const launchPaths = await invoke<string[]>("take_launch_open_paths");
+      for (const p of launchPaths) {
+        try {
+          await invoke("open_path", { path: p, line: null });
+        } catch {
+          /* argv open failures surface via toast on next interaction */
+        }
+      }
+      const demo = await invoke<string | null>("get_demo_state");
+      if (demo) {
+        await applyDemoState(demo);
+      }
       void maybePromptProjectRecovery((data) => {
         void applyState(data as TabContentDto);
       });

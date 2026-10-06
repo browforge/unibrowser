@@ -2,12 +2,10 @@ use std::path::Path;
 
 fn main() {
     stage_media_sidecar();
-    // E2E release only: serve the same `dist/` bytes over loopback (not Vite). WebKitGTK under
-    // xvfb + tauri-driver loads bundled `tauri://` unreliably; loopback matches frontendDist.
     if std::env::var("CARGO_FEATURE_E2E").is_ok() {
         std::env::set_var(
             "TAURI_CONFIG",
-            r#"{"app":{"windows":[{"label":"main","title":"Unibrowser","width":1200,"height":800,"url":"http://127.0.0.1:18765/index.html"}]}}"#,
+            r#"{"app":{"windows":[{"label":"main","title":"Unibrowser","width":1200,"height":800,"visible":true,"url":"http://127.0.0.1:18765/index.html"}]}}"#,
         );
     }
     tauri_build::build()

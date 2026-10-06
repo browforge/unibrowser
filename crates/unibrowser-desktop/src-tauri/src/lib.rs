@@ -1,4 +1,5 @@
 mod commands;
+mod launch_args;
 mod proofing;
 mod toolbar_windows;
 mod workspace_personas;
@@ -86,6 +87,7 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    launch_args::ingest_process_args();
     crash_log::install_panic_hook();
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -424,6 +426,8 @@ pub fn run() {
             commands::get_csv_preview,
             commands::search_open_vsx_catalog,
             rhai_host::describe_rhai_script,
+            launch_args::take_launch_open_paths,
+            launch_args::get_demo_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

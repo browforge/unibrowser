@@ -8,13 +8,13 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 ## Morning summary for Bear
 
-**Try first:** `./scripts/e2e.sh` on Linux (needs `xvfb`, `webkit2gtk-driver`, free ports **18765** (E2E static dist), **4444**, **4445**). `cargo test --workspace` and `cd crates/unibrowser-desktop && npm run build` should stay green.
+**Try first:** `./scripts/e2e.sh` on Linux (needs `xvfb`, `webkit2gtk-driver`, free ports **4444**, **4445**; bundled `frontendDist`, no Vite). `cargo test --workspace` and `cd crates/unibrowser-desktop && npm run build` should stay green.
 
-**Top wins this slice:** Production release **no longer references `localhost:1420`** (`tauri.dev.conf.json` for dev only; `scripts/verify-release-frontend.sh`); E2E smoke green **3×** via `@wdio/tauri-service` + `tauri-driver`; `docs/screenshots/shell-desktop.png`; [perf.md](perf.md) cold-start sample; [e2e.md](e2e.md) updated.
+**Top wins this slice:** E2E **loopback `dist/`** + capability `e2e-loopback` (`remote.urls`); **`10-shell.e2e.ts` un-quarantined** (single spec / one session); CLI **`--open <path>`**; **`UNIBROWSER_DEMO_STATE`**; **10** doc screenshots (&lt;400KB); AppImage verify via extract + `docs/verify-release-frontend-last.txt`.
 
-**Top gaps (honest):** Full `shell.e2e.ts` **quarantined** until loopback shell + invoke stabilises under xvfb; idle RSS perf metric unreliable headless; CI still manual for E2E.
+**Top gaps (honest):** Full shell WDIO still **timing-sensitive** under xvfb (run `./scripts/e2e.sh` 3× before release); embedded WebDriver hits “No window” on this VM; screenshot captures may need richer demo fixtures for marketing polish.
 
-**Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); when to re-enable quarantined shell specs in CI.
+**Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); wire `./scripts/e2e.sh` into CI when Origin runs workflows.
 
 ## Shipped (highlights)
 

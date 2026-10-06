@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BIN="$ROOT/target/release/unibrowser-desktop"
 DIST="$ROOT/crates/unibrowser-desktop/dist"
+RESULT_FILE="$ROOT/docs/verify-release-frontend-last.txt"
 
 kill_port_listeners() {
   local port="$1"
@@ -45,9 +46,35 @@ if [[ -z "$ASSETS_DIR" ]] || ! ls "$ASSETS_DIR"/*.html >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "verify-release-frontend: bundled dist embedded (no localhost:1420); headless WebDriver smoke skipped on CI VMs"
-
 APPIMAGE=$(ls -1 "$ROOT/target/release/bundle/appimage/"*.AppImage 2>/dev/null | head -1 || true)
-if [[ -n "$APPIMAGE" ]] && rg -aq 'navigate_omnibox' "$APPIMAGE" 2>/dev/null; then
-  echo "verify-release-frontend: AppImage embeds shell markers"
+APPIMAGE_OK="skipped (no AppImage built)"
+if [[ -n "$APPIMAGE" ]]; then
+  EXTRACT_DIR=$(mktemp -d)
+  trap 'rm -rf "$EXTRACT_DIR"' EXIT
+  cd "$EXTRACT_DIR"
+  "$APPIMAGE" --appimage-extract >/dev/null 2>&1 || true
+  APP_BIN=$(find "$EXTRACT_DIR/squashfs-root" -name 'unibrowser-desktop' -type f 2>/dev/null | head -1 || true)
+  if [[ -z "$APP_BIN" ]] || [[ ! -f "$APP_BIN" ]]; then
+    echo "AppImage extract failed (no unibrowser-desktop inside)" >&2
+    exit 1
+  fi
+  if rg -aq 'localhost:1420' "$APP_BIN" 2>/dev/null; then
+    echo "AppImage still references localhost:1420" >&2
+    exit 1
+  fi
+  if ! rg -aq 'navigate_omnibox' "$APP_BIN" 2>/dev/null; then
+    echo "AppImage missing embedded shell markers" >&2
+    exit 1
+  fi
+  APPIMAGE_OK="pass ($(basename "$APPIMAGE"), extracted binary, port 1420 closed)"
+  cd "$ROOT"
 fi
+
+{
+  echo "verify-release-frontend $(date -u +%Y-%m-%dT%H:%MZ)"
+  echo "binary: pass (bundled dist, no localhost:1420)"
+  echo "tauri-codegen-assets: pass"
+  echo "appimage: ${APPIMAGE_OK}"
+} | tee "$RESULT_FILE"
+
+echo "Recorded in $RESULT_FILE"

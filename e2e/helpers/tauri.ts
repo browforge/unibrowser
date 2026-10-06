@@ -1,5 +1,7 @@
 import { browser, $ } from "@wdio/globals";
 
+type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+
 export async function waitForWindowHandle(timeoutMs = 120000) {
   await browser.waitUntil(
     async () => {
@@ -14,20 +16,27 @@ export async function waitForWindowHandle(timeoutMs = 120000) {
   );
 }
 
-type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
-
 export async function tauriInvoke<T = unknown>(
   cmd: string,
   args: Record<string, unknown> = {},
 ): Promise<T> {
+  const tauri = (browser as unknown as { tauri?: { execute: Function } }).tauri;
+  if (tauri?.execute) {
+    try {
+      return (await tauri.execute(
+        ({ core }: { core: TauriInvoke }) => core.invoke(cmd, args),
+      )) as T;
+    } catch {
+      /* fall through to browser.execute */
+    }
+  }
   return browser.execute(
     (command, payload) => {
-      const tauri = (window as unknown as { __TAURI__?: { core: { invoke: TauriInvoke } } })
-        .__TAURI__;
-      if (!tauri?.core?.invoke) {
+      const api = (window as unknown as { __TAURI__?: { core: TauriInvoke } }).__TAURI__;
+      if (!api?.core?.invoke) {
         throw new Error("Tauri invoke API not available");
       }
-      return tauri.core.invoke(command, payload) as Promise<T>;
+      return api.core.invoke(command, payload) as Promise<T>;
     },
     cmd,
     args,
@@ -35,12 +44,17 @@ export async function tauriInvoke<T = unknown>(
 }
 
 export async function prepareCleanShell() {
-  // Rust `setup` already applies UNIBROWSER_E2E prefs (onboarding off, no session restore).
-  try {
-    await tauriInvoke("set_proofing_squiggles_enabled", { enabled: true });
-  } catch {
-    /* loopback shell may not expose invoke in some WebDriver attach timings */
-  }
+  await browser.waitUntil(
+    async () => {
+      try {
+        await tauriInvoke("set_proofing_squiggles_enabled", { enabled: true });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 60000, interval: 500, timeoutMsg: "Tauri invoke API not available on loopback shell" },
+  );
 }
 
 export async function openPath(filePath: string, line: number | null = null) {
@@ -87,21 +101,6 @@ export async function waitForUbReady(timeoutMs = 120000) {
 
 export async function waitForShellReady(timeoutMs = 120000) {
   await waitForUbReady(timeoutMs);
-  await browser.waitUntil(
-    async () => {
-      try {
-        const has = await browser.execute(() => !!document.getElementById("omnibox"));
-        if (has) {
-          return true;
-        }
-      } catch {
-        /* session not ready yet */
-      }
-      const html = await browser.getPageSource();
-      return html.includes("omnibox") || html.includes("id=\"omnibox\"");
-    },
-    { timeout: timeoutMs, interval: 500, timeoutMsg: "Unibrowser shell HTML did not load" },
-  );
 }
 
 export async function waitForSelector(sel: string, timeoutMs = 60000) {

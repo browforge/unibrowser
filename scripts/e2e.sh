@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export UNIBROWSER_E2E=1
+export UNIBROWSER_E2E_ASSET_BASE="http://127.0.0.1:18765/index.html"
 
 kill_port_listeners() {
   local port="$1"
@@ -14,7 +15,6 @@ kill_port_listeners() {
   elif command -v fuser >/dev/null 2>&1; then
     fuser -k "${port}/tcp" 2>/dev/null || true
   fi
-  pgrep -f "http.server ${port}" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
 }
 
 kill_stale_drivers() {
@@ -71,6 +71,9 @@ run_tests() {
     sleep 0.25
   done
 
+  echo "=== Warming GTK/WebKit under xvfb (embedded WebDriver) ==="
+  sleep 5
+
   echo "=== WebdriverIO (@wdio/tauri-service, dist/ on :${E2E_ASSET_PORT}, no Vite) ==="
 
   run_wdio() {
@@ -99,19 +102,22 @@ run_tests() {
   exit "${TEST_EXIT}"
 }
 
+E2E_EXIT=1
 if command -v xvfb-run >/dev/null 2>&1; then
-  xvfb-run -a -s "-screen 0 1600x1000x24" env ROOT="$ROOT" UNIBROWSER_E2E=1 bash -c "
+  xvfb-run -a -s "-screen 0 1600x1000x24" env ROOT="$ROOT" UNIBROWSER_E2E=1 UNIBROWSER_E2E_ASSET_BASE="http://127.0.0.1:18765/index.html" bash -c "
     set -euo pipefail
     $(declare -f kill_port_listeners)
     $(declare -f kill_stale_drivers)
     $(declare -f run_tests)
     cd \"\$ROOT\"
     run_tests
-  "
+  " && E2E_EXIT=0
 else
   export DISPLAY="${DISPLAY:-:99}"
-  run_tests
+  run_tests && E2E_EXIT=0
 fi
 
-echo "E2E finished OK"
-exit 0
+if [[ "$E2E_EXIT" -eq 0 ]]; then
+  echo "E2E finished OK"
+fi
+exit "$E2E_EXIT"

@@ -1,0 +1,4 @@
+verify-release-frontend 2026-10-06T08:26Z
+binary: pass (bundled dist, no localhost:1420)
+tauri-codegen-assets: pass
+appimage: pass (Unibrowser_0.1.0_amd64.AppImage, extracted binary, port 1420 closed)

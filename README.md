@@ -4,7 +4,12 @@ Open source **browser for files and the web**: one tab strip for folders, local 
 
 **Status:** Phase 1 MVP browser shell on **Tauri 2** (`unibrowser-desktop`). See [docs/vision.md](docs/vision.md) and [docs/roadmap.md](docs/roadmap.md).
 
-![Unibrowser shell (xvfb capture)](docs/screenshots/shell-desktop.png)
+| | |
+| --- | --- |
+| ![New tab](docs/screenshots/unibrowser-01-ntp.png) | ![Command palette](docs/screenshots/unibrowser-03-palette.png) |
+| ![`.unibrow` timeline](docs/screenshots/unibrowser-05-unibrow.png) | ![Problems panel](docs/screenshots/unibrowser-07-problems.png) |
+
+More captures: `docs/screenshots/` (viewer, settings, AI sidebar, live preview, mod portal).
 
 ## What works today
 
@@ -55,6 +60,7 @@ Release build:
 cd crates/unibrowser-desktop
 npm run tauri build
 # Binary: ../../target/release/unibrowser-desktop (workspace target)
+# Open a file from the shell: ../../target/release/unibrowser-desktop --open /path/to/file.txt
 ```
 
 ## egui spike (optional)

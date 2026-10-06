@@ -1,12 +1,11 @@
 # End-to-end UI tests
 
-Unibrowser drives the **real Tauri shell** on Linux via `@wdio/tauri-service` and **tauri-driver** + WebKitWebDriver (`driverProvider: 'external'`). Release builds use **bundled `frontendDist`** (no Vite on port 1420).
+Unibrowser drives the **real Tauri shell** on Linux via `@wdio/tauri-service` with the **embedded** WebDriver server (`tauri-plugin-wdio-webdriver`, `driverProvider: 'embedded'`). Helpers use **`browser.tauri.execute`** (direct eval in the app webview). Run only under **xvfb** (`./scripts/e2e.sh`). **Shipping** builds use bundled `frontendDist` (no Vite on port 1420). **E2E release** (`--features e2e`) points the main window at the same `dist/` bytes on **http://127.0.0.1:18765** (static server in `scripts/e2e.sh`) with capability `e2e-loopback` so WebKitGTK + invoke work under xvfb.
 
 ## Stack
 
 - **Runner:** WebdriverIO + `@wdio/tauri-service` (spawns `target/release/unibrowser-desktop` with `UNIBROWSER_E2E=1`).
-- **App:** `cargo build -p unibrowser-desktop --release --features e2e` (WDIO plugins + loopback shell URL for headless WebKit).
-- **Frontend:** Same bytes as `crates/unibrowser-desktop/dist/`, served on **http://127.0.0.1:18765** during E2E only (static `python3 -m http.server`, not Vite).
+- **App:** `cargo build -p unibrowser-desktop --release --features e2e` (WDIO plugins + loopback window URL; capability `capabilities/e2e-loopback.json`).
 - **Display:** `xvfb-run` at **1600x1000**.
 
 ## Run locally
@@ -25,26 +24,15 @@ Doc screenshots (xvfb):
 
 | Scenario | Spec | Status |
 | --- | --- | --- |
-| WebDriver session + window handle | `e2e/specs/smoke.e2e.ts` | **Green** (default in `e2e.sh`) |
-| Full shell flows (font, banner, undo, proofing, palette, CM, `.unibrow`) | `e2e/specs/shell.e2e.ts` | **Quarantined** — shell HTML/invoke timing on loopback URL under xvfb (see below) |
+| Smoke (`get_browser_state`) | `e2e/specs/10-shell.e2e.ts` (first `it`) | Same session as shell |
+| Full shell flows (font, banner, undo, proofing, palette, CM, `.unibrow`) | `e2e/specs/10-shell.e2e.ts` | **Default** (loopback `dist/` + `e2e-loopback` capability; flaky on slow VMs — retry harness) |
 | Doc screenshots | `e2e/specs/screenshots.e2e.ts` | Optional (`CAPTURE_SCREENSHOTS=1`) |
 
-Helpers use `browser.execute` → `window.__TAURI__.core.invoke` where the webview exposes the Tauri bridge.
+Helpers use `browser.execute` → `window.__TAURI__.core.invoke` on the bundled webview.
 
-## Reliability (2026-10-06)
+## Reliability
 
-On this VM, `./scripts/e2e.sh` (smoke only) was run **three times in a row** with **1 passed / 0 failed** each run (recorded 2026-10-06 UTC).
-
-Harness details:
-
-- Poll **`getWindowHandles()`** in `e2e/helpers/tauri.ts` (`waitForWindowHandle`).
-- Optional **`document.body.dataset.ubReady`** (set from `main.ts` when shell chrome is present).
-- WDIO **`connectionRetryCount: 3`**; `scripts/e2e.sh` retries the WDIO run up to **3** times on failure.
-- Production release verified by `scripts/verify-release-frontend.sh` (**no `localhost:1420`** in the shipping binary).
-
-## Quarantined: `shell.e2e.ts`
-
-Excluded in `e2e/wdio.conf.ts` until loopback E2E reliably loads the shell with Tauri invoke (WebDriver sometimes attaches before `http://127.0.0.1:18765/index.html` paints). Re-enable by removing the `exclude` entry after fixing navigation/ACL on the E2E URL.
+`scripts/e2e.sh` retries WDIO up to **3** times; production release is checked with `scripts/verify-release-frontend.sh` (**no `localhost:1420`**). Run **three consecutive** full `./scripts/e2e.sh` passes before release candidates. On this cloud VM (Oct 2026), full `10-shell.e2e.ts` still times out waiting for the loopback shell under external `tauri-driver`; use a local Linux box with `webkit2gtk-driver` if WDIO stays red here.
 
 ## Troubleshooting
 

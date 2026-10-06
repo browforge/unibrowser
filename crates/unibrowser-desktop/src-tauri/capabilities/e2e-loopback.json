@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "e2e-loopback",
+  "description": "E2E release only: dist on loopback (see build.rs + scripts/e2e.sh). Not used when window loads bundled index.html.",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:18765", "http://127.0.0.1:18765/*"]
+  },
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "dialog:default",
+    "wdio:default",
+    "wdio-webdriver:default"
+  ]
+}
