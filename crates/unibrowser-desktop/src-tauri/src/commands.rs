@@ -125,6 +125,8 @@ pub struct ManagerTabDto {
     pub selected: bool,
     pub commands: Vec<UiCommandDto>,
     pub families: Vec<unibrowser_mod_api::ResolvedFamily>,
+    pub resolved_family_count: usize,
+    pub resolved_control_count: usize,
 }
 
 #[derive(Serialize)]
@@ -3007,6 +3009,12 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .map(|tab| {
             let families =
                 cm.resolve_families_for_tab(&registry, &host, doc_ref, &tab.id, label_path_ref);
+            let resolved_family_count = families.len();
+            let resolved_control_count = families
+                .iter()
+                .flat_map(|family| &family.groups)
+                .map(|group| group.controls.len())
+                .sum();
             let resolved_cmds = if families.is_empty() {
                 cm.resolve_tab_commands(&registry, &host, doc_ref, &tab.id)
             } else {
@@ -3029,6 +3037,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 selected: tab.id == selected,
                 commands,
                 families,
+                resolved_family_count,
+                resolved_control_count,
             }
         })
         .collect();
@@ -3102,6 +3112,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                     })
                     .collect(),
                 families: vec![],
+                resolved_family_count: 0,
+                resolved_control_count: 0,
             });
         }
     }

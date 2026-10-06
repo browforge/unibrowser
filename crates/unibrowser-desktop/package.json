@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && node scripts/write-frontend-stamp.mjs",
+    "test:overflow": "node --experimental-strip-types --test tests/commandOverflow.test.mjs",
     "preview": "vite preview",
     "tauri": "tauri"
   },

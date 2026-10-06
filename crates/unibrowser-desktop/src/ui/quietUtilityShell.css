@@ -135,6 +135,10 @@ body {
   flex-direction: column;
 }
 
+.script-output-panel.ub-dock-panel.problems-populated {
+  height: var(--ub-bottom-panel-problems-height, 12rem);
+}
+
 .script-output-panel.ub-dock-panel.hidden {
   display: none !important;
   height: 0 !important;
@@ -164,6 +168,7 @@ body {
   flex-direction: column;
   min-height: 0;
   flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .problems-head {
@@ -190,12 +195,46 @@ body {
 .problems-table-wrap {
   overflow: auto;
   flex: 1 1 auto;
+  min-height: 0;
+}
+
+.problems-empty.hidden,
+.problems-table-wrap.hidden,
+.problems-table.hidden,
+.problems-detail.hidden {
+  display: none !important;
 }
 
 .problems-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 12px;
+}
+
+.problems-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ub-panel);
+}
+
+.problems-table th {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: var(--ub-border-width) solid var(--ub-border);
+}
+
+.problems-table th:nth-child(1) {
+  width: 5.5rem;
+}
+
+.problems-table th:nth-child(3) {
+  width: 8rem;
+}
+
+.problems-table th:nth-child(4) {
+  width: 8rem;
 }
 
 .problems-table tbody tr {
@@ -214,6 +253,8 @@ body {
   padding: 4px 8px;
   border-bottom: var(--ub-border-width) solid var(--ub-border);
   vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .problems-sev {

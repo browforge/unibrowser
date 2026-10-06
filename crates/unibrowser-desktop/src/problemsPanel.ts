@@ -47,6 +47,9 @@ async function refresh() {
     severity: severityFilter || null,
     source: sourceFilter || null,
   });
+  document
+    .getElementById("script-output-panel")
+    ?.classList.toggle("problems-populated", list.length > 0);
   const problemsTab = document.getElementById("bottom-panel-tab-problems");
   if (problemsTab) {
     problemsTab.textContent = list.length ? `Problems ${list.length}` : "Problems";
@@ -135,9 +138,10 @@ async function refresh() {
   }
   table.appendChild(tbody);
 
-  const selected = filtered.find((p) => p.id === selectedId) ?? filtered[0];
+  const selected = selectedId
+    ? filtered.find((p) => p.id === selectedId) ?? null
+    : null;
   if (selected) {
-    selectedId = selected.id;
     detail.textContent = `${selected.message} (${selected.source}${selected.navigate_hint ? ` · ${selected.navigate_hint}` : ""})`;
     detail.classList.remove("hidden");
   } else {

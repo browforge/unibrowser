@@ -3,6 +3,7 @@ import { bindCommandTooltip } from "./commandTooltip";
 import { createLucideIcon, type LucideName } from "./lucideIcon";
 import { getEditorFontSizePt } from "../textEditor";
 import type { UiCommandDto } from "../commandManager";
+export { partitionGroupsByAvailableWidth } from "./commandOverflow";
 
 export type CapabilityDto =
   | { state: "supported" }
@@ -262,55 +263,6 @@ export function renderResolvedGroups(
     wrap.appendChild(name);
     container.appendChild(wrap);
   });
-}
-
-const CM_CONTROL_WIDTH = 36;
-const CM_GROUP_PADDING = 10;
-const CM_DIVIDER_WIDTH = 9;
-
-export function estimateRenderGroupWidth(
-  group: ReturnType<typeof familiesToRenderGroups>[number],
-): number {
-  const controls = group.resolved.controls.length;
-  if (controls === 0) {
-    return 0;
-  }
-  return controls * CM_CONTROL_WIDTH + CM_GROUP_PADDING;
-}
-
-export function partitionGroupsByAvailableWidth(
-  groups: ReturnType<typeof familiesToRenderGroups>,
-  availableWidth: number,
-  reserveOverflow = 34,
-): {
-  visible: ReturnType<typeof familiesToRenderGroups>;
-  overflow: ReturnType<typeof familiesToRenderGroups>;
-} {
-  if (!groups.length || availableWidth <= 0) {
-    return { visible: groups, overflow: [] };
-  }
-  const budget = Math.max(0, availableWidth - reserveOverflow);
-  const ordered = [...groups];
-  const overflow: ReturnType<typeof familiesToRenderGroups> = [];
-  let used = ordered.reduce(
-    (sum, g, i) => sum + estimateRenderGroupWidth(g) + (i > 0 ? CM_DIVIDER_WIDTH : 0),
-    0,
-  );
-  while (ordered.length > 1 && used > budget) {
-    const pick =
-      [...ordered]
-        .map((g, idx) => ({ g, idx }))
-        .filter(({ g }) => g.priority === "low")
-        .pop() ??
-      { g: ordered[ordered.length - 1], idx: ordered.length - 1 };
-    overflow.unshift(pick.g);
-    ordered.splice(pick.idx, 1);
-    used = ordered.reduce(
-      (sum, g, i) => sum + estimateRenderGroupWidth(g) + (i > 0 ? CM_DIVIDER_WIDTH : 0),
-      0,
-    );
-  }
-  return { visible: ordered, overflow };
 }
 
 export function partitionFamiliesForOverflow(

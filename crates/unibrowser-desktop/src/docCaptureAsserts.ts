@@ -40,6 +40,19 @@ export interface CommandManagerCaptureDiagnostics {
   contrastOkCount: number;
   contextLabel: string;
   autoContext: string | null;
+  pipeline: Record<string, unknown> | null;
+  controls: Array<{
+    controlId: string;
+    label: string;
+    width: number;
+    height: number;
+    labelWidth: number;
+    iconWidth: number;
+    opacity: string;
+    foreground: string;
+    background: string;
+    contrast: number | null;
+  }>;
 }
 
 export interface DocCaptureDiagnostics {
@@ -48,6 +61,14 @@ export interface DocCaptureDiagnostics {
   canvas: EditorCanvasDiagnostics | null;
   monacoTheme: MonacoThemeCaptureDiagnostics | null;
   commandManager: CommandManagerCaptureDiagnostics | null;
+  problems: {
+    tabText: string;
+    rowCount: number;
+    visibleRowCount: number;
+    emptyVisible: boolean;
+    panelHeight: number;
+    tableHeight: number;
+  };
   editorPointStack: Array<{
     tag: string;
     id: string;
@@ -163,15 +184,38 @@ export function sampleMonacoCanvasVariance(): EditorCanvasDiagnostics | null {
   };
 }
 
-function parseRgbLuminance(rgb: string): number | null {
-  const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+function parseRgb(rgb: string): { r: number; g: number; b: number; a: number } | null {
+  const m = rgb.match(
+    /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?/,
+  );
   if (!m) {
     return null;
   }
-  const r = Number(m[1]) / 255;
-  const g = Number(m[2]) / 255;
-  const b = Number(m[3]) / 255;
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return {
+    r: Number(m[1]),
+    g: Number(m[2]),
+    b: Number(m[3]),
+    a: m[4] === undefined ? 1 : Number(m[4]),
+  };
+}
+
+function channelLuminance(value: number): number {
+  const normalised = value / 255;
+  return normalised <= 0.04045
+    ? normalised / 12.92
+    : ((normalised + 0.055) / 1.055) ** 2.4;
+}
+
+function parseRgbLuminance(rgb: string): number | null {
+  const parsed = parseRgb(rgb);
+  if (!parsed) {
+    return null;
+  }
+  return (
+    0.2126 * channelLuminance(parsed.r) +
+    0.7152 * channelLuminance(parsed.g) +
+    0.0722 * channelLuminance(parsed.b)
+  );
 }
 
 function contrastRatio(l1: number, l2: number): number {
@@ -211,29 +255,72 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
   ) as HTMLElement[];
   let visibleCount = 0;
   let contrastOkCount = 0;
+  const controlDiagnostics: CommandManagerCaptureDiagnostics["controls"] = [];
   for (const el of controls) {
     const rect = el.getBoundingClientRect();
-    if (rect.width < 4 || rect.height < 4) {
-      continue;
-    }
     const style = getComputedStyle(el);
-    if (style.visibility === "hidden" || style.display === "none" || style.opacity === "0") {
-      continue;
+    const label = el.querySelector(".cm-cmd-label") as HTMLElement | null;
+    const icon = el.querySelector("svg") as SVGElement | null;
+    const labelRect = label?.getBoundingClientRect();
+    const iconRect = icon?.getBoundingClientRect();
+    let backgroundNode: HTMLElement | null = el;
+    let background = style.backgroundColor;
+    while (backgroundNode) {
+      const candidate = getComputedStyle(backgroundNode).backgroundColor;
+      const parsed = parseRgb(candidate);
+      if (parsed && parsed.a >= 0.99) {
+        background = candidate;
+        break;
+      }
+      backgroundNode = backgroundNode.parentElement;
     }
-    visibleCount += 1;
     const fg = parseRgbLuminance(style.color);
-    const bg = parseRgbLuminance(style.backgroundColor);
-    if (fg !== null && bg !== null && contrastRatio(fg, bg) >= 2.5) {
+    const effectiveBg = parseRgbLuminance(background);
+    const contrast =
+      fg !== null && effectiveBg !== null ? contrastRatio(fg, effectiveBg) : null;
+    const hasGeometry =
+      rect.width >= 24 &&
+      rect.height >= 20 &&
+      (labelRect?.width ?? 0) >= 4 &&
+      (iconRect?.width ?? 0) >= 12;
+    const visiblyStyled =
+      style.visibility !== "hidden" &&
+      style.display !== "none" &&
+      Number(style.opacity) >= 0.8;
+    if (hasGeometry && visiblyStyled) {
+      visibleCount += 1;
+    }
+    if (hasGeometry && visiblyStyled && contrast !== null && contrast >= 3) {
       contrastOkCount += 1;
     }
+    controlDiagnostics.push({
+      controlId: el.dataset.controlId ?? el.dataset.commandId ?? "",
+      label: label?.textContent?.trim() ?? "",
+      width: rect.width,
+      height: rect.height,
+      labelWidth: labelRect?.width ?? 0,
+      iconWidth: iconRect?.width ?? 0,
+      opacity: style.opacity,
+      foreground: style.color,
+      background,
+      contrast,
+    });
   }
   const contextEl = document.getElementById("command-manager-context");
+  let pipeline: Record<string, unknown> | null = null;
+  try {
+    pipeline = JSON.parse(document.documentElement.dataset.cmPipeline ?? "null");
+  } catch {
+    pipeline = null;
+  }
   return {
     controlCount: controls.length,
     visibleCount,
     contrastOkCount,
     contextLabel: contextEl?.textContent?.trim() ?? "",
     autoContext: document.body.dataset.cmAutoContext ?? null,
+    pipeline,
+    controls: controlDiagnostics,
   };
 }
 
@@ -242,6 +329,44 @@ export function validateCommandContextLabel(expected: string): string | null {
     document.getElementById("command-manager-context")?.textContent?.trim() ?? "";
   if (label !== expected) {
     return `expected CM context "${expected}", got "${label}"`;
+  }
+  return null;
+}
+
+export function validateProblemsForCapture(minRows = 3): string | null {
+  const panel = document.getElementById("problems-panel");
+  if (!panel) {
+    return "problems panel missing";
+  }
+  const rows = Array.from(
+    panel.querySelectorAll(".problems-table tbody tr"),
+  ) as HTMLElement[];
+  const visibleRows = rows.filter((row) => {
+    const rect = row.getBoundingClientRect();
+    const style = getComputedStyle(row);
+    return rect.width > 0 && rect.height > 0 && style.display !== "none";
+  });
+  const empty = panel.querySelector(".problems-empty") as HTMLElement | null;
+  const emptyVisible = Boolean(
+    empty &&
+      !empty.classList.contains("hidden") &&
+      getComputedStyle(empty).display !== "none",
+  );
+  if (emptyVisible) {
+    return "problems empty state is visible with populated evidence";
+  }
+  if (visibleRows.length < minRows) {
+    return `visible problem rows ${visibleRows.length} < ${minRows}`;
+  }
+  const tableWrap = panel.querySelector(".problems-table-wrap") as HTMLElement | null;
+  const tableRect = tableWrap?.getBoundingClientRect() ?? panel.getBoundingClientRect();
+  if (
+    visibleRows.some((row) => {
+      const rect = row.getBoundingClientRect();
+      return rect.top < tableRect.top || rect.bottom > tableRect.bottom + 1;
+    })
+  ) {
+    return "problem row escapes the problems panel";
   }
   return null;
 }
@@ -269,12 +394,35 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
           };
         })
     : [];
+  const problemsPanel = document.getElementById("problems-panel");
+  const problemsTable = problemsPanel?.querySelector(".problems-table") as HTMLElement | null;
+  const problemRows = Array.from(
+    problemsPanel?.querySelectorAll(".problems-table tbody tr") ?? [],
+  ) as HTMLElement[];
+  const empty = problemsPanel?.querySelector(".problems-empty") as HTMLElement | null;
   return {
     theme: collectThemeDiagnostics(),
     monaco: collectMonacoDiagnostics(),
     canvas: sampleMonacoCanvasVariance(),
     monacoTheme: collectMonacoThemeDiagnostics(),
     commandManager: collectCommandManagerDiagnostics(),
+    problems: {
+      tabText:
+        document.getElementById("bottom-panel-tab-problems")?.textContent?.trim() ?? "",
+      rowCount: problemRows.length,
+      visibleRowCount: problemRows.filter((row) => {
+        const rowRect = row.getBoundingClientRect();
+        const style = getComputedStyle(row);
+        return rowRect.width > 0 && rowRect.height > 0 && style.display !== "none";
+      }).length,
+      emptyVisible: Boolean(
+        empty &&
+          !empty.classList.contains("hidden") &&
+          getComputedStyle(empty).display !== "none",
+      ),
+      panelHeight: problemsPanel?.getBoundingClientRect().height ?? 0,
+      tableHeight: problemsTable?.getBoundingClientRect().height ?? 0,
+    },
     editorPointStack: pointStack,
   };
 }

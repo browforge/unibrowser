@@ -37,6 +37,8 @@ export interface ManagerTabDto {
   selected: boolean;
   commands: UiCommandDto[];
   families: ResolvedFamilyDto[];
+  resolved_family_count: number;
+  resolved_control_count: number;
 }
 
 export interface FloatingBarDto {
@@ -516,6 +518,34 @@ export const commandManager = {
       } else {
         renderCommandButtons(groupsEl, active.commands, onRun, true);
       }
+      const frontendResolvedControlCount = allGroups.reduce(
+        (count, group) => count + group.resolved.controls.length,
+        0,
+      );
+      const frontendVisibleModelCount = visible.reduce(
+        (count, group) => count + group.resolved.controls.length,
+        0,
+      );
+      document.documentElement.dataset.cmPipeline = JSON.stringify({
+        activeTabId: active.id,
+        rustFamilyCount: active.resolved_family_count,
+        rustControlCount: active.resolved_control_count,
+        ipcFamilyCount: active.families.length,
+        ipcControlCount: active.families.reduce(
+          (count, family) =>
+            count +
+            family.groups.reduce(
+              (groupCount, group) => groupCount + group.controls.length,
+              0,
+            ),
+          0,
+        ),
+        frontendGroupCount: allGroups.length,
+        frontendResolvedControlCount,
+        frontendVisibleModelCount,
+        frontendOverflowModelCount: frontendResolvedControlCount - frontendVisibleModelCount,
+        groupsWidth: groupsEl.clientWidth,
+      });
       if (overflowEl) {
         const hasOverflow = overflow.length > 0;
         overflowEl.classList.toggle("visible", hasOverflow);

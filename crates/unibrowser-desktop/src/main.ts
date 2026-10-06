@@ -157,6 +157,7 @@ import {
   collectDocCaptureDiagnostics,
   validateCommandContextLabel,
   validateCommandManagerForCapture,
+  validateProblemsForCapture,
   formatDiagnosticsForLog,
   validateEditorForCapture,
 } from "./docCaptureAsserts";
@@ -2632,6 +2633,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             if (ctxErr) {
               await invoke("abort_doc_capture", {
                 reason: `${ctxErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          }
+          if (
+            demoAgain?.toLowerCase().includes("problems") ||
+            demoAgain?.toLowerCase().includes("document-mockup")
+          ) {
+            const problemsErr = validateProblemsForCapture();
+            if (problemsErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${problemsErr}; ${formatDiagnosticsForLog(diag)}`,
               });
               return;
             }

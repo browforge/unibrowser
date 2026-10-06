@@ -182,6 +182,7 @@ export async function applyDemoState(raw: string) {
         await invoke("clear_command_manager_context_pin").catch(() => undefined);
         document.body.classList.add("doc-capture-mode");
         document.body.classList.add("ub-status-compact");
+        document.body.dataset.cmDensity = "compact";
         applyThemeFromDemoState(demoRaw);
         {
           const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
