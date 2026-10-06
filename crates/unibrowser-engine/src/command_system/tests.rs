@@ -5,7 +5,9 @@ mod resolver_tests {
         commands,
     };
 
-    use crate::command_system::context::{ResolutionContext, infer_work_context};
+    use crate::command_system::context::{
+        ResolutionContext, command_context_display_label, infer_work_context,
+    };
     use crate::command_system::resolver::CapabilityResolver;
     use crate::command_system::save_guard::{assert_save_independent, save_commands_always_supported};
 
@@ -74,6 +76,18 @@ mod resolver_tests {
         assert_eq!(
             infer_work_context(CommandContext::Text, Mode::Text, Some("x.md")),
             WorkContext::Markdown
+        );
+    }
+
+    #[test]
+    fn pdf_and_image_context_labels() {
+        assert_eq!(
+            command_context_display_label(CommandContext::Office, Mode::Document, Some("a.pdf")),
+            "PDF Annotation"
+        );
+        assert_eq!(
+            command_context_display_label(CommandContext::Image, Mode::Vector, Some("a.svg")),
+            "Image"
         );
     }
 }

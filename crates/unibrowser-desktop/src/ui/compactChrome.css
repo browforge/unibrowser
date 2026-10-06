@@ -279,6 +279,10 @@ body.cm-collapsed #command-manager {
   white-space: nowrap;
 }
 
+body:not([data-cm-density="large"]) .cm-group-name {
+  display: none;
+}
+
 .cm-group .ui-command {
   display: inline-flex;
   align-items: center;
@@ -448,10 +452,19 @@ body[data-cm-density="large"] .cm-overflow.visible {
   }
 }
 
-@media (max-width: 850px) {
-  .command-manager-groups .cm-group.priority-normal:nth-of-type(n + 4) {
-    display: none;
-  }
+
+.workspace-rail .rail-destination {
+  color: #d5dfe4;
+}
+
+.workspace-rail .rail-destination.active {
+  color: #f0efeb;
+  background: #253e4c;
+}
+
+.workspace-rail .rail-destination .ub-icon {
+  opacity: 1;
+  stroke-width: 2;
 }
 
 .workspace-rail {

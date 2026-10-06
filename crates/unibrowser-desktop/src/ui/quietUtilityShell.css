@@ -370,10 +370,11 @@ body {
 }
 
 .ai-assistant-starter-card {
-  padding: var(--ub-space-3);
-  border: var(--ub-border-width) solid var(--ub-border);
-  border-radius: var(--ub-radius-6);
-  background: var(--ub-control);
+  padding: var(--ub-space-3) var(--ub-space-3) var(--ub-space-3) var(--ub-space-2);
+  border: none;
+  border-left: 3px solid var(--ub-accent);
+  border-radius: 0;
+  background: var(--ub-well);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -381,6 +382,35 @@ body {
 .ai-assistant-starter-card p {
   margin: 0.35rem 0 0;
   color: var(--ub-text-2);
+}
+
+.ai-assistant-chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ub-space-2);
+}
+
+.ai-assistant-chat-msg {
+  padding: var(--ub-space-2) var(--ub-space-3);
+  border-left: 3px solid transparent;
+  background: var(--ub-well);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ai-assistant-chat-msg--user {
+  border-left-color: var(--ub-accent);
+}
+
+.ai-assistant-chat-msg--assistant {
+  border-left-color: var(--ub-border-strong);
+}
+
+.ai-assistant-chat-msg pre {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  font-family: var(--font-ui);
+  font-size: 13px;
 }
 
 .ai-assistant-composer {

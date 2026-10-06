@@ -82,8 +82,12 @@ async function refresh() {
     wrap.classList.add("hidden");
     detail.classList.add("hidden");
     table.classList.add("hidden");
+    if (!document.body.dataset.demoProblems && !document.body.dataset.demoMockupProblems) {
+      document.getElementById("script-output-panel")?.classList.add("hidden");
+    }
     return;
   }
+  document.getElementById("script-output-panel")?.classList.remove("hidden");
   table.classList.remove("hidden");
   empty.classList.add("hidden");
 

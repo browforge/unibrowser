@@ -1,4 +1,8 @@
-# Command system batch (CMD-11)
+# Command system batch (CMD-11) — historical
+
+**Superseded.** These PNGs document pre-VQA failures (empty CM, black viewers,
+third chrome row). Do not use them for current review. See `docs/screenshots/vqa/`
+and `docs/screenshots/cmd-fix/` instead.
 
 App captures of the resolved Command Manager and Text Formatting family.
 

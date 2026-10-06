@@ -179,6 +179,7 @@ export async function applyDemoState(raw: string) {
         document.body.classList.add("cm-collapsed");
         break;
       case "capture-ready":
+        await invoke("clear_command_manager_context_pin").catch(() => undefined);
         document.body.classList.add("doc-capture-mode");
         document.body.classList.add("ub-status-compact");
         applyThemeFromDemoState(demoRaw);

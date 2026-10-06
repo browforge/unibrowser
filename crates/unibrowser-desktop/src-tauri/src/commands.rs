@@ -143,6 +143,7 @@ pub struct FloatingBarDto {
 pub struct CommandManagerDto {
     pub auto_context: String,
     pub selected_tab: String,
+    pub context_display_label: String,
     pub context_pinned: bool,
     pub tabs: Vec<ManagerTabDto>,
     pub floating_bars: Vec<FloatingBarDto>,
@@ -2993,11 +2994,19 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
     let auto_context = cm.auto_context.tab_id().to_string();
+    let label_path_buf = doc_ref.map(|d| d.path.clone()).or_else(|| {
+        active.and_then(|t| match &t.location {
+            BrowserLocation::File { path } => Some(path.to_string_lossy().into_owned()),
+            _ => None,
+        })
+    });
+    let label_path_ref = label_path_buf.as_deref();
     let mut tab_dtos: Vec<ManagerTabDto> = cm
         .tabs
         .iter()
         .map(|tab| {
-            let families = cm.resolve_families_for_tab(&registry, &host, doc_ref, &tab.id);
+            let families =
+                cm.resolve_families_for_tab(&registry, &host, doc_ref, &tab.id, label_path_ref);
             let resolved_cmds = if families.is_empty() {
                 cm.resolve_tab_commands(&registry, &host, doc_ref, &tab.id)
             } else {
@@ -3096,9 +3105,16 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
             });
         }
     }
+    let context_display_label = unibrowser_engine::command_context_display_label(
+        cm.auto_context,
+        host.mode,
+        label_path_ref,
+    )
+    .to_string();
     Ok(CommandManagerDto {
         auto_context,
         selected_tab: selected,
+        context_display_label,
         context_pinned: cm.is_context_pinned(),
         tabs: tab_dtos,
         floating_bars,

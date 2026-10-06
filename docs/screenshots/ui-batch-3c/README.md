@@ -1,4 +1,7 @@
-# UI batch 3c
+# UI batch 3c — historical
+
+**Superseded.** These captures predate VQA remediation and show black editors, extra
+chrome rows, and raw `file://` URLs. Use `docs/screenshots/vqa/` for current evidence.
 
 Regenerate: `./scripts/capture-ui-batch-3c.sh` (uses `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_COMPOSITING_MODE=1`).
 

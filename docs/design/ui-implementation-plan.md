@@ -877,12 +877,16 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 
 ### VQA-03: Route viewer kind to the correct CM context
 
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-03-*.png`.
+
 - Resolve PDF to PDF Annotation and SVG/raster to Image.
 - Prove that active viewer context replaces Text without a second switcher.
 - Likely files: `main.ts`, `commandManager.ts`, Rust context resolver.
 - Evidence: PDF and SVG with context label and resolved model diagnostics.
 
 ### VQA-04: Make compact CM groups overflow without label collisions
+
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-04-*.png`.
 
 - Measure and overflow complete groups before any label overlaps.
 - Keep context and Follow/Pin fixed; preserve stable control positions.
@@ -891,6 +895,8 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 - Evidence: Text, PDF, and Image at 800, 1024, and 1280 widths.
 
 ### VQA-05: Restore dark-slate shell identity in light theme
+
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-05-*.png`.
 
 - Use dark slate for title bar, CM, and rail while retaining warm document
   surfaces.
@@ -901,6 +907,8 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 
 ### VQA-06: Render the rich DOCX fixture as a document
 
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-06-rich-docx.png`.
+
 - Replace the black/fallback region with a centred readable page.
 - Preserve bold/italic hierarchy and expose mixed rich-text states.
 - Remove capture-only flattened fallback text.
@@ -908,6 +916,8 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 - Evidence: `text-family-rich-docx.png`.
 
 ### VQA-07: Build the PDF evidence shell
+
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-07-pdf-annotation.png`.
 
 - Render page thumbnails, centred page, annotation overlay, and Annotations
   dock.
@@ -917,12 +927,16 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 
 ### VQA-08: Render the image evidence shell
 
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-08-image-svg.png`.
+
 - Show the actual SVG/raster on a recessed canvas with zoom/metadata.
 - Replace Text formatting controls with Image family controls.
 - Likely files: `documentViewer.ts`, SVG/image renderer, Image family defaults.
 - Evidence: `image-cm.png`.
 
 ### VQA-09: Match activity rail icon and contrast rules
+
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-09-rail-*.png`.
 
 - Use 16 px Lucide icons, consistent stroke, visible selected state, and at
   least 3:1 contrast.
@@ -932,6 +946,8 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 
 ### VQA-10: Replace AI cards with transcript structure
 
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-10-ai-*.png`.
+
 - Remove the rounded response card inside the dock.
 - Use a subtle speaker edge/surface change and preserve a visibly bounded
   composer input.
@@ -940,6 +956,8 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 
 ### VQA-11: Make Problems truthful and proportional
 
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-11-problems-ai-*.png`.
+
 - Collapse an empty Problems/Output panel.
 - When opened for evidence, show at least three structured rows and no duplicate
   `No problems` message.
@@ -947,6 +965,8 @@ Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa-monaco/`.
 - Evidence: `document-problems-ai` light/dark equivalents.
 
 ### VQA-12: Load and enforce the Source font pair
+
+Status: complete 2026-10-06. Evidence: `docs/screenshots/vqa/vqa-12-text-*.png`.
 
 - Load Source Sans 3 and Source Code Pro and use the documented 12/13/14 px
   scale.
@@ -967,6 +987,8 @@ wrong theme surfaces.
 - Evidence: one intentional failing fixture per gate plus the passing matrix.
 
 ### VQA-14: Retire superseded visual evidence
+
+Status: complete 2026-10-06.
 
 - Mark `cmd-batch/` and `ui-batch-3c/` as historical failures in their READMEs.
 - Remove them from current review/report links without deleting useful

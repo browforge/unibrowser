@@ -66,6 +66,14 @@ fn history_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
 }
 
 fn text_or_editor_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    if matches!(ctx.work, WorkContext::Pdf | WorkContext::Image) {
+        return ResolvedFamily {
+            family_id: family_ids::TEXT_FORMATTING.into(),
+            label: "Formatting".into(),
+            overflow_priority: OverflowPriority::Primary,
+            groups: vec![],
+        };
+    }
     if ctx.work == WorkContext::CodeEditor {
         return editor_appearance_family(ctx, resolver);
     }

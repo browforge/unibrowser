@@ -12,8 +12,8 @@ pub mod ui_command;
 
 pub use command::{CommandRegistry, HandlerRegistration};
 pub use command_system::{
-    CapabilityResolver, LayoutStore, ResolutionContext, core_tab_layout, infer_work_context,
-    migrate_toolbars_json, save_commands_always_supported,
+    CapabilityResolver, LayoutStore, ResolutionContext, command_context_display_label,
+    core_tab_layout, infer_work_context, migrate_toolbars_json, save_commands_always_supported,
 };
 pub use document::{DocumentBackend, DocumentSession};
 pub use mode::ModeController;

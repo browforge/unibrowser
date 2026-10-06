@@ -701,9 +701,43 @@ async function renderPdf(
     highlights = [];
   }
 
+  const workspace = document.createElement("div");
+  workspace.className = "pdf-workspace";
+  const center = document.createElement("div");
+  center.className = "pdf-workspace-center";
+  root.appendChild(workspace);
+  workspace.appendChild(center);
+
+  const annotDock = document.createElement("aside");
+  annotDock.className = "pdf-annotations-dock";
+  annotDock.setAttribute("aria-label", "PDF annotations");
+  const annotTitle = document.createElement("h3");
+  annotTitle.className = "pdf-annotations-title";
+  annotTitle.textContent = "Annotations";
+  annotDock.appendChild(annotTitle);
+  const annotBody = document.createElement("div");
+  annotBody.className = "pdf-annotations-body";
+  if (!highlights.length) {
+    const empty = document.createElement("p");
+    empty.className = "pdf-annotations-empty";
+    empty.textContent = "No annotations on this page.";
+    annotBody.appendChild(empty);
+  } else {
+    const list = document.createElement("ul");
+    list.className = "pdf-annotations-list";
+    for (const h of highlights) {
+      const li = document.createElement("li");
+      li.textContent = `Page ${h.page} highlight`;
+      list.appendChild(li);
+    }
+    annotBody.appendChild(list);
+  }
+  annotDock.appendChild(annotBody);
+  workspace.appendChild(annotDock);
+
   const wrap = document.createElement("div");
   wrap.className = "pdf-page-wrap";
-  root.appendChild(wrap);
+  center.appendChild(wrap);
 
   const paintHighlights = (pageNum: number, host: HTMLElement, width: number, height: number) => {
     host.querySelectorAll(".pdf-highlight-rect").forEach((el) => el.remove());
@@ -788,7 +822,7 @@ async function renderPdf(
   nav.appendChild(highlightBtn);
   nav.appendChild(copyBtn);
   nav.appendChild(printBtn);
-  root.appendChild(nav);
+  center.insertBefore(nav, wrap);
 
   const thumbs = document.createElement("div");
   thumbs.className = "pdf-thumbs pdf-thumbs--strip";
@@ -984,7 +1018,7 @@ async function renderPdf(
     for (let n = eager + 1; n <= doc.numPages; n += 1) {
       addThumb(n, true);
     }
-    root.insertBefore(thumbs, wrap);
+    workspace.insertBefore(thumbs, center);
   }
 
   jumpBtn.onclick = async () => {
@@ -4288,40 +4322,11 @@ function applyTabMutedToViewer(el: HTMLElement, muted: boolean) {
   });
 }
 
-function decorateViewerForCapture(el: HTMLElement, viewer: DocumentViewerDto) {
-  const body = el.querySelector(".viewer-body");
-  if (!body) {
-    return;
-  }
-  body.querySelectorAll("canvas").forEach((canvas) => {
-    canvas.classList.add("capture-viewer-hidden");
+function decorateViewerForCapture(el: HTMLElement, _viewer: DocumentViewerDto) {
+  el.querySelector(".doc-capture-viewer-overlay")?.remove();
+  el.querySelectorAll(".capture-viewer-hidden").forEach((node) => {
+    node.classList.remove("capture-viewer-hidden");
   });
-  let overlay = el.querySelector(".doc-capture-viewer-overlay") as HTMLDivElement | null;
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.className = "doc-capture-viewer-overlay";
-    el.appendChild(overlay);
-  }
-  const docx = body.querySelector(".docx-view");
-  if (docx) {
-    overlay.textContent =
-      docx.textContent?.trim() ||
-      "Rich document sample for Text Formatting family capture.\nBold and italic emphasis.";
-    return;
-  }
-  const img = body.querySelector("img.image-view, img") as HTMLImageElement | null;
-  if (img && (viewer.viewer === "image" || viewer.viewer === "svg")) {
-    img.style.maxWidth = "100%";
-    img.style.height = "auto";
-    img.style.display = "block";
-    overlay.textContent = viewer.title;
-    return;
-  }
-  if (viewer.viewer === "pdf") {
-    overlay.textContent = `${viewer.title}\nPDF preview — page ${viewer.pdf_page ?? 1}`;
-    return;
-  }
-  overlay.textContent = viewer.title;
 }
 
 export interface DocumentViewerApplyExtras {

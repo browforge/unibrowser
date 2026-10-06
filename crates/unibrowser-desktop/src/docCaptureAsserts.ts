@@ -38,6 +38,8 @@ export interface CommandManagerCaptureDiagnostics {
   controlCount: number;
   visibleCount: number;
   contrastOkCount: number;
+  contextLabel: string;
+  autoContext: string | null;
 }
 
 export interface DocCaptureDiagnostics {
@@ -225,11 +227,23 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
       contrastOkCount += 1;
     }
   }
+  const contextEl = document.getElementById("command-manager-context");
   return {
     controlCount: controls.length,
     visibleCount,
     contrastOkCount,
+    contextLabel: contextEl?.textContent?.trim() ?? "",
+    autoContext: document.body.dataset.cmAutoContext ?? null,
   };
+}
+
+export function validateCommandContextLabel(expected: string): string | null {
+  const label =
+    document.getElementById("command-manager-context")?.textContent?.trim() ?? "";
+  if (label !== expected) {
+    return `expected CM context "${expected}", got "${label}"`;
+  }
+  return null;
 }
 
 export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {

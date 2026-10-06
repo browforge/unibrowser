@@ -5,7 +5,7 @@ import { t } from "./i18n";
 import { bindCommandTooltip } from "./ui/commandTooltip";
 import {
   familiesToRenderGroups,
-  partitionFamiliesForOverflow,
+  partitionGroupsByAvailableWidth,
   renderResolvedGroups,
   type ResolvedFamilyDto,
 } from "./ui/commandControls";
@@ -53,6 +53,7 @@ export interface FloatingBarDto {
 export interface CommandManagerDto {
   auto_context: string;
   selected_tab: string;
+  context_display_label: string;
   context_pinned: boolean;
   tabs: ManagerTabDto[];
   floating_bars: FloatingBarDto[];
@@ -466,10 +467,20 @@ export const commandManager = {
     const snapshot = await invoke<CommandManagerDto>("get_command_manager");
     lastSnapshot = snapshot;
     updatePinControl(pinEl, labelEl, snapshot);
-    const active = snapshot.tabs.find((tab) => tab.selected) ?? snapshot.tabs[0];
-    const contextText =
-      active?.label ?? contextLabel(snapshot.selected_tab, snapshot.tabs);
+    const commandTabId = snapshot.context_pinned
+      ? snapshot.selected_tab
+      : snapshot.auto_context;
+    const active =
+      snapshot.tabs.find((tab) => tab.id === commandTabId) ??
+      snapshot.tabs.find((tab) => tab.selected) ??
+      snapshot.tabs[0];
+    const contextText = snapshot.context_pinned
+      ? (active?.label ?? contextLabel(snapshot.selected_tab, snapshot.tabs))
+      : (snapshot.context_display_label ||
+        active?.label ||
+        contextLabel(snapshot.auto_context, snapshot.tabs));
     contextEl.textContent = contextText;
+    document.body.dataset.cmAutoContext = snapshot.auto_context;
     contextEl.setAttribute("aria-label", `${contextText} commands`);
     if (!contextEl.dataset.bound) {
       contextEl.dataset.bound = "1";
@@ -496,9 +507,10 @@ export const commandManager = {
         active.families?.length > 0
           ? familiesToRenderGroups(active.families)
           : [];
-      const maxVisible = 8;
-      const { visible, overflow } = partitionFamiliesForOverflow(allGroups, maxVisible);
+      const widthBudget = groupsEl.clientWidth || window.innerWidth - 420;
+      const { visible, overflow } = partitionGroupsByAvailableWidth(allGroups, widthBudget);
       overflowGroupsCache = overflow;
+      groupsEl.classList.toggle("cm-overflow-active", overflow.length > 0);
       if (visible.length > 0) {
         renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
       } else {

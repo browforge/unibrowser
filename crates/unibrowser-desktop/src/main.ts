@@ -15,6 +15,22 @@ import { initCommandPalette } from "./ui/commandPalette";
 import { initDockPanel } from "./ui/dockPanel";
 
 /** WebDriver waits on this; set once shell chrome from index.html is in the DOM. */
+function expectedCaptureContextLabel(launchPaths: string[]): string | null {
+  const joined = launchPaths.join("|").toLowerCase();
+  if (joined.includes(".pdf")) {
+    return "PDF Annotation";
+  }
+  if (
+    joined.includes(".svg") ||
+    joined.includes(".png") ||
+    joined.includes(".jpg") ||
+    joined.includes(".jpeg")
+  ) {
+    return "Image";
+  }
+  return null;
+}
+
 function markUbReadyWhenDomChromePresent() {
   const mark = () => {
     if (document.getElementById("title-bar") && document.getElementById("omnibox")) {
@@ -139,6 +155,7 @@ import { applyDemoState } from "./demoState";
 import {
   assertLightThemeForCapture,
   collectDocCaptureDiagnostics,
+  validateCommandContextLabel,
   validateCommandManagerForCapture,
   formatDiagnosticsForLog,
   validateEditorForCapture,
@@ -2608,6 +2625,16 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               reason: `${cmErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
+          }
+          const expectedContext = expectedCaptureContextLabel(launchPaths);
+          if (expectedContext) {
+            const ctxErr = validateCommandContextLabel(expectedContext);
+            if (ctxErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${ctxErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
           }
           const editorErr = validateEditorForCapture();
           if (launchPathsNeedEditor(launchPaths) && editorErr) {

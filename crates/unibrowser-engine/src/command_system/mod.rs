@@ -8,7 +8,7 @@ mod save_guard;
 #[cfg(test)]
 mod tests;
 
-pub use context::{ResolutionContext, infer_work_context};
+pub use context::{ResolutionContext, command_context_display_label, infer_work_context};
 pub use families::core_tab_layout;
 pub use layout::{LayoutStore, migrate_toolbars_json};
 pub use provider::{ProviderRegistry, ProviderRuntime};

@@ -83,10 +83,10 @@
   --ub-warning: #8a5a12;
   --ub-danger: #a33b32;
 
-  --ub-concept-chrome-bg: #f0eeea;
-  --ub-concept-chrome-border: #c8c6bf;
-  --ub-concept-chrome-text: #202223;
-  --ub-concept-tab-well: #e3e1db;
+  --ub-concept-chrome-bg: #172532;
+  --ub-concept-chrome-border: #344451;
+  --ub-concept-chrome-text: #e9edef;
+  --ub-concept-tab-well: #12202b;
 }
 
 [data-high-contrast="true"] {

@@ -2074,9 +2074,6 @@ body.doc-capture-mode .document-viewer-host .image-view {
   min-height: 8rem;
 }
 
-body.doc-capture-mode .document-viewer-host canvas.capture-viewer-hidden {
-  visibility: hidden !important;
-}
 
 body.doc-capture-mode .document-viewer-host .doc-capture-viewer-fallback {
   margin: 0;
@@ -2399,6 +2396,60 @@ body.doc-capture-mode .document-viewer-host .doc-capture-viewer-overlay {
 
 .viewer-error {
   color: #f88;
+}
+
+.pdf-workspace {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 16rem;
+}
+
+.pdf-workspace-center {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.pdf-workspace .pdf-thumbs--strip {
+  flex: 0 0 108px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 100%;
+  margin: 0;
+}
+
+.pdf-annotations-dock {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px 12px;
+  border-left: 1px solid var(--ub-border, #4d5151);
+  background: var(--ub-well, #141617);
+  font-size: 12px;
+}
+
+.pdf-annotations-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ub-text-2, #c9cbc8);
+}
+
+.pdf-annotations-empty {
+  margin: 0;
+  color: var(--ub-text-3, #aeb2af);
+}
+
+.pdf-annotations-list {
+  margin: 0;
+  padding-left: 1.1rem;
 }
 
 .pdf-page-wrap {

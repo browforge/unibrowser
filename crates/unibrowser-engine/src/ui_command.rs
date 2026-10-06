@@ -267,13 +267,16 @@ impl CommandManagerState {
         host: &HostContext,
         doc: Option<&crate::document::DocumentSession>,
         tab_id: &str,
+        fallback_doc_path: Option<&str>,
     ) -> Vec<ResolvedFamily> {
         let structured_tab = matches!(tab_id, "text" | "code" | "image" | "office")
             || tab_id == self.auto_context.tab_id();
         if !structured_tab {
             return Vec::new();
         }
-        let doc_path = doc.map(|d| d.path.clone());
+        let doc_path = doc
+            .map(|d| d.path.clone())
+            .or_else(|| fallback_doc_path.map(String::from));
         let ctx = ResolutionContext::new(
             self.auto_context,
             host.clone(),
@@ -396,7 +399,7 @@ impl CommandManagerState {
         doc: Option<&crate::document::DocumentSession>,
         tab_id: &str,
     ) -> Vec<ResolvedUiCommand> {
-        let families = self.resolve_families_for_tab(registry, host, doc, tab_id);
+        let families = self.resolve_families_for_tab(registry, host, doc, tab_id, None);
         if !families.is_empty() {
             return Self::flatten_resolved_controls(&families);
         }

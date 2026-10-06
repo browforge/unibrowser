@@ -29,6 +29,24 @@ impl ResolutionContext {
     }
 }
 
+/// User-visible Command Manager context label (follows active document work context).
+pub fn command_context_display_label(
+    command_context: CommandContext,
+    mode: Mode,
+    path: Option<&str>,
+) -> &'static str {
+    match infer_work_context(command_context, mode, path) {
+        WorkContext::Pdf => "PDF Annotation",
+        WorkContext::Image => "Image",
+        WorkContext::Cad3d => "CAD / 3D",
+        WorkContext::CodeEditor => "Code",
+        WorkContext::Markdown | WorkContext::PlainText => "Text",
+        WorkContext::RichDocument => "Office",
+        WorkContext::Browse => "Browse",
+        WorkContext::Web => "Web",
+    }
+}
+
 pub fn infer_work_context(
     command_context: CommandContext,
     mode: Mode,

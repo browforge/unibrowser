@@ -197,7 +197,7 @@ async function refreshPanel() {
 
   if (!chatMessages.length && !chatStreaming) {
     const card = document.createElement("div");
-    card.className = "ai-assistant-starter-card";
+    card.className = "ai-assistant-starter-card ai-assistant-transcript-block";
     const title = document.createElement("strong");
     title.textContent = "Ready for the open document";
     const copy = document.createElement("p");
