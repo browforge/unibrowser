@@ -6,6 +6,16 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 **CI:** [ci.md](ci.md) — workflow YAML is in-repo; **Origin does not automatically run it** (no green checks assumed).
 
+## Morning summary for Bear
+
+**Try first:** `./scripts/e2e.sh` on Linux (needs `xvfb`, `webkit2gtk-driver`, free ports **1420** and **4445**). `cargo test --workspace` and `cd crates/unibrowser-desktop && npm run build` should stay green.
+
+**Top wins this slice:** Real WDIO spec coverage drafted (font across text/SVG, unknown banner, undo close, proofing dictionary, palette, CM grey states, blank `.unibrow` save); embedded WebDriver plugins behind `e2e` feature; `UNIBROWSER_E2E` prefs skip session restore / content webview for stable automation; [e2e.md](e2e.md) runbook.
+
+**Top gaps (honest):** `./scripts/e2e.sh` can still fail with WebDriver `No window could be found` on cold start until warm-up is tuned; doc screenshots in `docs/screenshots/` not captured yet (blocked on green E2E); [docs/perf.md](perf.md) baseline needs a local run of `scripts/measure-perf-baseline.sh`.
+
+**Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); whether to wire E2E into CI once session timing is stable; whether release builds should stop embedding `http://localhost:1420` for icons (today E2E relies on `vite preview` on 1420).
+
 ## Shipped (highlights)
 
 | Area | What works |

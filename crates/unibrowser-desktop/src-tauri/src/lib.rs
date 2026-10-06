@@ -87,18 +87,35 @@ use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     crash_log::install_panic_hook();
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_dialog::init());
+    #[cfg(any(debug_assertions, feature = "e2e"))]
+    let builder = builder
+        .plugin(tauri_plugin_wdio::init())
+        .plugin(tauri_plugin_wdio_webdriver::init());
+    builder
         .manage(AppState::new())
         .setup(|app| {
-            webview::ensure_content_webview(app.handle(), "main")?;
+            let e2e = std::env::var("UNIBROWSER_E2E").as_deref() == Ok("1");
+            if e2e {
+                let mut p = preferences::load_preferences();
+                p.onboarding_dismissed = true;
+                p.onboarding_tour_skipped_forever = true;
+                p.restore_session_on_launch = false;
+                let _ = preferences::save_preferences(&p);
+            }
+            if !e2e {
+                webview::ensure_content_webview(app.handle(), "main")?;
+            }
             if let Some(window) = app.get_window("main") {
                 let saved = preferences::load_window_state();
                 let _ = preferences::apply_window_state(&window, &saved);
             }
             if let Some(state) = app.try_state::<AppState>() {
-                commands::restore_session_on_launch(state.inner(), app.handle())?;
+                if !e2e {
+                    commands::restore_session_on_launch(state.inner(), app.handle())?;
+                }
                 let _ = toolbar_windows::restore_detached_toolbars(app.handle(), state.inner());
             }
             let _ = unibrowser_media::warm_sidecar_pool();

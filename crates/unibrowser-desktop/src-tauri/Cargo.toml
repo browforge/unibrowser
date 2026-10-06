@@ -9,6 +9,8 @@ authors = ["Unibrowser contributors"]
 [features]
 default = ["dynamic-mods"]
 dynamic-mods = ["unibrowser-mod-host/dynamic-mods"]
+# Release E2E/CI: WebDriver plugins + dist assets (no Vite dev server).
+e2e = []
 
 [lib]
 name = "unibrowser_desktop_lib"
@@ -71,6 +73,10 @@ dirs = "6"
 
 [dev-dependencies]
 tempfile = "3"
+
+[target.'cfg(any(debug_assertions, feature = "e2e"))'.dependencies]
+tauri-plugin-wdio = "1.4"
+tauri-plugin-wdio-webdriver = "1.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { version = "0.18", features = ["v3_24"] }

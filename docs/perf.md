@@ -1,33 +1,22 @@
-# Performance notes
+# Performance baseline (local)
 
-## Lazy-loaded heavy modules
+Record numbers on a quiet Linux machine with the release desktop binary. Re-run after large viewer or startup changes.
 
-| Module | When loaded |
-| --- | --- |
-| **Monaco** | First text/diff editor tab (`import()` via `@monaco-editor/loader`) |
-| **pdf.js** | First PDF tab (`loadPdfJs()` in `lazyModules.ts`) |
-| **three.js** | First 3D/board views that need it (`loadThree()`) |
-| **mammoth** | First DOCX preview (`import("mammoth")` in `renderDocx`) |
-| **dxf-parser** | First DXF tab (dynamic import in viewer) |
-
-The Vite bundle still contains these packages; lazy `import()` defers parse/compile cost until the viewer opens.
-
-## Cold start measurement
-
-Run on your machine (Linux/macOS):
+## How to measure
 
 ```bash
-./scripts/measure-cold-start.sh
+./scripts/measure-perf-baseline.sh
 ```
 
-The script prints wall time for:
+The script prints JSON lines for each scenario. Paste results into the table below with date and git SHA.
 
-1. `cargo test -p unibrowser-engine` (Rust core smoke)
-2. `npm run build` in `crates/unibrowser-desktop` (UI production build)
+| Metric | Method | Result | Notes |
+| --- | --- | --- | --- |
+| Cold start | Time from process spawn until embedded WebDriver `/status` `ready: true` | _pending_ | Under xvfb; see `scripts/measure-perf-baseline.sh` |
+| Idle RAM | RSS from `/proc` after 10s idle | _pending_ | |
+| Open 100MB text | `open_path` on generated fixture | _pending_ | |
+| Open 4K PNG | `open_path` on `examples/demo-pack` or generated 4K | _pending_ | |
 
-Use the output in release notes; numbers vary by CPU and cache state. For apples-to-apples comparisons, run twice and use the second run, or clear `target/` and `node_modules/.vite` when measuring true cold builds.
+## Flags
 
-## Tips
-
-- Prefer opening files over browsing huge directories when testing listing performance (`UB_LIST_STRESS=1` for stress tests).
-- Large PDFs: see `UNIBROWSER_PROFILE_OPEN=1` in [blitz-status.md](blitz-status.md).
+Anything above **3s** cold start, **800MB** idle RSS on an empty shell, or **>5s** to first paint on 100MB text deserves a look (not necessarily a blocker for blitz).
