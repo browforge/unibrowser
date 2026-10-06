@@ -8,6 +8,8 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 ## Morning summary for Bear
 
+**Design phase (Oct 6):** the feature blitz is closed. The next UI pass is specified in [docs/design/](design/README.md) using the required **user stories -> workflows -> UX -> layout -> UI** sequence. The package defines a quiet six-region shell, removes developer clutter from primary chrome, makes AI/Problems proper docked regions that push content, preserves the SOLIDWORKS-style Command Manager with explicit Follow/Pin, and provides Composer-sized implementation tickets. Five rendered wireframes cover the 1280 document/New tab/Settings layouts, a 1600 Live layout, and all eleven requested contexts.
+
 **Try first:** `./scripts/e2e.sh` on Linux (xvfb; **in-app self-test**, no WebDriver). Optional WDIO: `E2E_WDIO=1 ./scripts/e2e.sh`. `cargo test --workspace` and `npm run build` stay green.
 
 **Top wins this slice:** **Tabs mutex deadlock audit** (`TabsMutex` + [concurrency.md](concurrency.md), clone-out/drop-guard across commands); **`--self-test`** now **10 scenarios** (adds **live-preview** + **ai-sidebar** with `mock://unibrowser-self-test`); `./scripts/self-test.sh` **3× green**; doc screenshots **poll for paint** (Monaco, NTP, LIVE badge, AI grants) before `--doc-capture`; AI sidebar shows read-only grants table when configured.

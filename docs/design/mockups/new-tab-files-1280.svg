@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <style>
+    text{font-family:"Segoe UI",Arial,sans-serif;fill:#20252c}.s{font-size:12px}.m{font-size:13px}.h{font-size:16px;font-weight:600}.title{font-size:28px;font-weight:650}
+    .line{stroke:#c9cfd7}.panel{fill:#fff}.chrome{fill:#eceff3}.soft{fill:#f4f5f7}.accent{fill:#1769aa}.muted{fill:#707a87}.card{fill:#fff;stroke:#c9cfd7}
+  </style>
+  <rect width="1280" height="800" class="soft"/>
+  <rect width="1280" height="32" class="chrome"/><text x="14" y="21" class="s">File   Edit   View   Go   Tools   Help</text><text x="1160" y="21" class="s">Unibrowser          </text>
+  <rect y="32" width="1280" height="34" class="chrome"/><rect x="8" y="36" width="150" height="30" class="panel"/><rect x="8" y="36" width="150" height="2" class="accent"/><text x="31" y="56" class="m">New tab</text><text x="140" y="56" class="s"> </text><text x="174" y="56" class="h">+</text>
+  <rect y="66" width="1280" height="40" class="panel"/><text x="15" y="91" class="h">9  :   </text><rect x="86" y="72" width="1050" height="28" rx="4" class="chrome"/><text x="103" y="91" class="m muted">Search files and the web</text><text x="1162" y="91" class="m">     </text>
+  <rect x="180" y="136" width="920" height="590" rx="8" class="panel"/><text x="220" y="196" class="title">What do you want to open?</text><text x="220" y="226" class="m muted">Files, folders and websites share one tab strip.</text>
+  <rect x="220" y="258" width="180" height="44" rx="4" class="accent"/><text x="278" y="285" class="h" fill="#fff">Open</text><rect x="412" y="258" width="180" height="44" rx="4" class="card"/><text x="450" y="285" class="h">New project</text>
+  <text x="220" y="354" class="h">Recent</text><text x="1026" y="354" class="s" fill="#1769aa">See all</text>
+  <rect x="220" y="372" width="840" height="56" rx="4" class="card"/><text x="240" y="396" class="m" font-weight="600">Backyard weather.unibrow</text><text x="240" y="416" class="s muted">Projects   opened 18 minutes ago</text><text x="1028" y="404" class="m">:</text>
+  <rect x="220" y="438" width="840" height="56" rx="4" class="card"/><text x="240" y="462" class="m" font-weight="600">Council agenda.pdf</text><text x="240" y="482" class="s muted">Downloads   opened yesterday</text><text x="1028" y="470" class="m">:</text>
+  <rect x="220" y="504" width="840" height="56" rx="4" class="card"/><text x="240" y="528" class="m" font-weight="600">Notes</text><text x="240" y="548" class="s muted">Documents   folder</text><text x="1028" y="536" class="m">:</text>
+  <text x="220" y="612" class="h">Downloads</text><text x="220" y="642" class="m">photo.jpg</text><text x="770" y="642" class="s muted">Completed</text><text x="986" y="642" class="s" fill="#1769aa">Open</text>
+  <text x="220" y="688" class="s muted">Ctrl+L location   Ctrl+P quick open   Ctrl+Shift+P commands</text>
+  <rect y="752" width="1280" height="24" class="chrome"/><text x="12" y="769" class="s">Ready</text><text x="1110" y="769" class="s">0 Problems   100%</text>
+  <rect y="776" width="1280" height="24" fill="#20252c"/><text x="12" y="793" class="s" fill="#fff">1280   800   New tab   no dashboard clutter</text>
+</svg>
