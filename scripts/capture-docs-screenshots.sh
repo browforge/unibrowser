@@ -48,6 +48,7 @@ capture_scene() {
 
   xvfb-run -a -s "-screen 0 1280x800x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+    WEBKIT_DISABLE_COMPOSITING_MODE=1 \
     UNIBROWSER_SAFE_MODE=1 \
     UNIBROWSER_DOC_CAPTURE=1 \
     UNIBROWSER_DEMO_STATE="$demo_state" \

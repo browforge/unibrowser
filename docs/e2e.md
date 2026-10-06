@@ -54,7 +54,7 @@ See `e2e/wdio.conf.ts`, `docs/diagnose-release-shell.sh` (blank shell vs WDIO).
 ./scripts/capture-docs-screenshots.sh
 ```
 
-Uses `UNIBROWSER_DEMO_STATE` presets under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). The shell waits for Monaco / NTP / live badge paint before `--doc-capture` PNG write.
+Uses `UNIBROWSER_DEMO_STATE` presets under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`, `WEBKIT_DISABLE_COMPOSITING_MODE=1`). The shell waits for paint, then `--doc-capture` writes a composited X11 root crop (includes native child webviews; not shell-webview snapshot alone).
 
 ## CI note
 

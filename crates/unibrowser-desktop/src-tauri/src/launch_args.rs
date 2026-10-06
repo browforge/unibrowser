@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
+use tauri::Manager;
+
 use crate::self_test::{ALL_SCENARIOS, configure as configure_self_test};
 
 fn launch_open_paths() -> &'static Mutex<Vec<String>> {
@@ -117,7 +119,7 @@ Usage:\n\
   <path>          Same as --open (for shell \"Open with\" and drag-free launch).\n\
   --self-test     Run in-app UI scenarios (no WebDriver); writes JSON report and exits.\n\
   --report        JSON report path (screenshots beside it in self-test-shots/).\n\
-  --doc-capture   After launch + demo state, write shell webview PNG and exit.\n\
+  --doc-capture   After launch + demo state, write composited X11 window PNG and exit.\n\
 \n\
 Hidden (docs / screenshots):\n\
   UNIBROWSER_DEMO_STATE   Comma-separated UI preset (problems,ai,live,vsix,ntp,palette,settings,mods).\n\
@@ -157,7 +159,8 @@ pub fn finish_doc_capture_and_exit(app: tauri::AppHandle) -> Result<(), String> 
         .ok()
         .and_then(|d| d.clone())
         .ok_or("doc capture path not configured")?;
-    let bytes = crate::webview_capture::capture_shell_webview_png(&app)?;
+    let window = app.get_window("main").ok_or("main window missing")?;
+    let bytes = crate::webview_capture::capture_doc_screenshot_png(&app, &window)?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
