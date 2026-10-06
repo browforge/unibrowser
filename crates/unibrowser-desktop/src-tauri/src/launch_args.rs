@@ -127,6 +127,20 @@ Hidden (docs / screenshots):\n\
     );
 }
 
+pub fn launch_open_paths_snapshot() -> Vec<String> {
+    launch_open_paths()
+        .lock()
+        .map(|p| p.clone())
+        .unwrap_or_default()
+}
+
+pub fn doc_capture_output_path() -> Option<PathBuf> {
+    doc_capture_slot()
+        .lock()
+        .ok()
+        .and_then(|d| d.as_ref().cloned())
+}
+
 #[tauri::command]
 pub fn take_launch_open_paths() -> Vec<String> {
     launch_open_paths()
@@ -153,19 +167,56 @@ pub fn take_doc_capture_path() -> Option<String> {
 }
 
 #[tauri::command]
+pub fn abort_doc_capture(reason: String) -> Result<(), String> {
+    eprintln!("[doc-capture] aborted: {}", reason);
+    std::process::exit(2);
+}
+
+pub fn is_doc_capture_mode() -> bool {
+    doc_capture_slot()
+        .lock()
+        .ok()
+        .and_then(|d| d.as_ref().cloned())
+        .is_some()
+}
+
+pub fn write_doc_capture_png(app: &tauri::AppHandle, path: &std::path::Path) -> Result<(), String> {
+    let window = app.get_window("main").ok_or("main window missing")?;
+    let bytes = crate::webview_capture::capture_doc_screenshot_png(app, &window)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(path, bytes).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn finish_doc_capture_and_exit(app: tauri::AppHandle) -> Result<(), String> {
     let path = doc_capture_slot()
         .lock()
         .ok()
         .and_then(|d| d.clone())
         .ok_or("doc capture path not configured")?;
-    let window = app.get_window("main").ok_or("main window missing")?;
-    let bytes = crate::webview_capture::capture_doc_screenshot_png(&app, &window)?;
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
-    std::process::exit(0);
+    eprintln!("[doc-capture] finish requested -> {}", path.display());
+    // IPC may run on the GTK main thread; never block it waiting for capture (deadlock). Defer like self-test.
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(80));
+        let app_main = app2.clone();
+        let _ = app2.run_on_main_thread(move || {
+            match write_doc_capture_png(&app_main, &path) {
+                Ok(()) => {
+                    eprintln!("[doc-capture] wrote {}", path.display());
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("[doc-capture] failed: {}", e);
+                    std::process::exit(3);
+                }
+            }
+        });
+    });
+    Ok(())
 }
 
 #[cfg(test)]

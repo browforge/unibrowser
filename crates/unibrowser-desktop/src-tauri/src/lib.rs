@@ -2,6 +2,7 @@ mod commands;
 mod tabs_mutex;
 mod self_test;
 mod launch_args;
+mod doc_capture;
 mod proofing;
 mod toolbar_windows;
 mod workspace_personas;
@@ -103,7 +104,8 @@ pub fn run() {
         .setup(|app| {
             let e2e = std::env::var("UNIBROWSER_E2E").as_deref() == Ok("1");
             let self_test = launch_args::is_self_test_mode();
-            if e2e || self_test {
+            let doc_capture = launch_args::is_doc_capture_mode();
+            if e2e || self_test || doc_capture {
                 let mut p = preferences::load_preferences();
                 p.onboarding_dismissed = true;
                 p.onboarding_tour_skipped_forever = true;
@@ -117,7 +119,7 @@ pub fn run() {
                 webview::ensure_content_webview(app.handle(), "main")?;
             }
             if let Some(window) = app.get_window("main") {
-                if e2e || self_test {
+                if e2e || self_test || doc_capture {
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
@@ -126,9 +128,12 @@ pub fn run() {
                 if self_test {
                     self_test::schedule_run(app.handle().clone());
                 }
+                if doc_capture {
+                    doc_capture::schedule_run(app.handle().clone());
+                }
             }
             if let Some(state) = app.try_state::<AppState>() {
-                if !e2e && !self_test {
+                if !e2e && !self_test && !doc_capture {
                     commands::restore_session_on_launch(state.inner(), app.handle())?;
                 }
                 let _ = toolbar_windows::restore_detached_toolbars(app.handle(), state.inner());
@@ -439,7 +444,9 @@ pub fn run() {
             launch_args::take_launch_open_paths,
             launch_args::get_demo_state,
             launch_args::take_doc_capture_path,
+            launch_args::abort_doc_capture,
             launch_args::finish_doc_capture_and_exit,
+            self_test::self_test_submit_shell_chrome_audit,
             self_test::self_test_ping,
             self_test::get_self_test_plan,
             self_test::self_test_capture_screenshot,

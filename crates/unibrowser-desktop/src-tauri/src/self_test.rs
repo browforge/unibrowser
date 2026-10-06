@@ -23,8 +23,30 @@ pub const SCENARIO_PALETTE: &str = "palette-command";
 pub const SCENARIO_CM_GREY: &str = "cm-grey-tab-switch";
 pub const SCENARIO_UNIBROW_BLANK: &str = "unibrow-blank-save";
 pub const SCENARIO_PROBLEMS_JUMP: &str = "problems-jump";
+pub const SCENARIO_SHELL_CHROME_BATCH1: &str = "shell-chrome-batch1";
+
+static SHELL_CHROME_AUDIT: Mutex<Option<Vec<String>>> = Mutex::new(None);
+
+#[tauri::command]
+pub fn self_test_submit_shell_chrome_audit(errors: Vec<String>) {
+    if let Ok(mut g) = SHELL_CHROME_AUDIT.lock() {
+        *g = Some(errors);
+    }
+}
+
+fn take_shell_chrome_audit() -> Option<Vec<String>> {
+    drain_shell_chrome_audit()
+}
+
+pub fn drain_shell_chrome_audit() -> Option<Vec<String>> {
+    SHELL_CHROME_AUDIT
+        .lock()
+        .ok()
+        .and_then(|mut g| g.take())
+}
 
 pub const ALL_SCENARIOS: &[&str] = &[
+    SCENARIO_SHELL_CHROME_BATCH1,
     SCENARIO_PROOFING_DICT,
     SCENARIO_PROBLEMS_JUMP,
     SCENARIO_UNKNOWN_BANNER,
@@ -241,7 +263,8 @@ fn run_all_scenarios(app: &AppHandle) -> Result<SelfTestReportDto, String> {
             SCENARIO_UNIBROW_BLANK => scenario_unibrow_blank(&window, app, &state, &projects),
             SCENARIO_PROBLEMS_JUMP => scenario_problems_jump(&state, &fixtures),
             SCENARIO_LIVE_PREVIEW => scenario_live_preview(&window, app, &state, &projects),
-            SCENARIO_AI_SIDEBAR => scenario_ai_sidebar(&window, &state),
+            SCENARIO_AI_SIDEBAR => scenario_ai_sidebar(&window, app, &state),
+            SCENARIO_SHELL_CHROME_BATCH1 => scenario_shell_chrome_batch1(app),
             other => Err(format!("unknown scenario: {other}")),
         };
         let (passed, message) = match run {
@@ -524,8 +547,28 @@ fn scenario_live_preview(
     Ok(())
 }
 
+pub fn scenario_shell_chrome_batch1(app: &AppHandle) -> Result<(), String> {
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    for _ in 0..40 {
+        let _ = wv.eval(
+            r"(function(){try{var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var errs=fn();var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:errs});}}catch(e){}})();",
+        );
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        if let Some(errs) = take_shell_chrome_audit() {
+            if errs.is_empty() {
+                return Ok(());
+            }
+            return Err(errs.join("; "));
+        }
+    }
+    Err("shell chrome audit not received from frontend".into())
+}
+
 fn scenario_ai_sidebar(
     window: &tauri::Window,
+    app: &AppHandle,
     state: &State<crate::state::AppState>,
 ) -> Result<(), String> {
     use crate::ai_assistant_host::{
@@ -567,7 +610,23 @@ fn scenario_ai_sidebar(
     if loaded.grants.is_empty() {
         return Err("grants not persisted".into());
     }
-    Ok(())
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    for _ in 0..20 {
+        let _ = wv.eval(
+            r"(function(){try{var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var errs=fn();var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:errs});}}catch(e){}})();",
+        );
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        if let Some(errs) = take_shell_chrome_audit() {
+            if !errs.is_empty() {
+                return Err(format!("AI open shell audit: {}", errs.join("; ")));
+            }
+            return Ok(());
+        }
+    }
+    Err("AI sidebar shell audit not received".into())
 }
 
 fn scenario_problems_jump(

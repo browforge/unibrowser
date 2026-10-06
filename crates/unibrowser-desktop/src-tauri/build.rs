@@ -2,6 +2,22 @@ use std::path::Path;
 
 fn main() {
     stage_media_sidecar();
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_default();
+    let stamp_src = Path::new(&manifest_dir).join("../dist/.ub-frontend-stamp");
+    if !stamp_src.is_file() {
+        panic!(
+            "missing {} — run `npm run build` in crates/unibrowser-desktop before `cargo build`",
+            stamp_src.display()
+        );
+    }
+    let out_dir = std::env::var("OUT_DIR").unwrap_or_default();
+    let stamp_dst = Path::new(&out_dir).join("frontend-stamp.txt");
+    if let Ok(bytes) = std::fs::read(&stamp_src) {
+        std::fs::write(&stamp_dst, bytes).expect("write frontend-stamp.txt");
+    }
+    println!("cargo:rerun-if-changed={}", stamp_src.display());
+    let index_html = Path::new(&manifest_dir).join("../dist/index.html");
+    println!("cargo:rerun-if-changed={}", index_html.display());
     if std::env::var("CARGO_FEATURE_E2E").is_ok() {
         std::env::set_var(
             "TAURI_CONFIG",

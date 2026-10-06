@@ -25,6 +25,11 @@ if [[ ! -f "$DIST/index.html" ]]; then
   exit 1
 fi
 
+if [[ "$BIN" -ot "$DIST/index.html" ]]; then
+  echo "Release binary is older than dist/index.html — run scripts/ensure-release-desktop.sh" >&2
+  exit 1
+fi
+
 if ! rg -aq 'navigate_omnibox' "$BIN" 2>/dev/null; then
   echo "Release binary missing embedded shell markers (navigate_omnibox)" >&2
   exit 1
@@ -41,8 +46,14 @@ if rg -aq 'localhost:1420' "$BIN" 2>/dev/null; then
 fi
 
 ASSETS_DIR=$(ls -d "$ROOT/target/release/build/unibrowser-desktop-"*/out/tauri-codegen-assets 2>/dev/null | head -1 || true)
-if [[ -z "$ASSETS_DIR" ]] || ! ls "$ASSETS_DIR"/*.html >/dev/null 2>&1; then
-  echo "Missing tauri-codegen-assets (run release build after npm run build)" >&2
+STAMP="$DIST/.ub-frontend-stamp"
+if [[ ! -f "$STAMP" ]]; then
+  echo "Missing $STAMP — run npm run build in crates/unibrowser-desktop" >&2
+  exit 1
+fi
+EMBED_STAMP_FILE=$(ls -t "$ROOT/target/release/build/unibrowser-desktop-"*/out/frontend-stamp.txt 2>/dev/null | head -1 || true)
+if [[ -z "$EMBED_STAMP_FILE" ]] || [[ "$(tr -d '\n' <"$STAMP")" != "$(tr -d '\n' <"$EMBED_STAMP_FILE")" ]]; then
+  echo "Embedded frontend stamp does not match dist (run scripts/ensure-release-desktop.sh)" >&2
   exit 1
 fi
 

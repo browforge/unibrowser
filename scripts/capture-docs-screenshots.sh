@@ -4,15 +4,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/docs/screenshots"
+# shellcheck source=ensure-release-desktop.sh
+source "$ROOT/scripts/ensure-release-desktop.sh"
 BIN="$ROOT/target/release/unibrowser-desktop"
 DEMO="$ROOT/examples/demo-pack"
 FIX="$ROOT/e2e/fixtures"
 mkdir -p "$OUT"
-
-if [[ ! -x "$BIN" ]]; then
-  echo "Build release desktop first: cargo build -p unibrowser-desktop --release" >&2
-  exit 1
-fi
 
 if ! command -v convert >/dev/null 2>&1; then
   echo "ImageMagick convert required" >&2
@@ -53,7 +50,7 @@ capture_scene() {
     UNIBROWSER_DOC_CAPTURE=1 \
     UNIBROWSER_DEMO_STATE="$demo_state" \
     UNIBROWSER_REPO_ROOT="$ROOT" \
-    timeout 90 "$BIN" "${args[@]}"
+    timeout 120 "$BIN" "${args[@]}"
 
   convert "$tmp" -resize 1200x -strip -quality 82 "$out"
   rm -f "$tmp"

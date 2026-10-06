@@ -4,6 +4,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=ensure-release-desktop.sh
+source "$ROOT/scripts/ensure-release-desktop.sh"
 
 RUNS="${SELF_TEST_RUNS:-3}"
 TIMEOUT_SECS="${SELF_TEST_TIMEOUT_SECS:-240}"

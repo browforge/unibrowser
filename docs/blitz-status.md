@@ -14,7 +14,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 **Shipped on `main`:** primary chrome declutter (mods banner, demo download, CM layout import/export, duplicate nav/bookmark row defaults); **AI assistant** docked as a right sidebar with resize + width persistence; shell **token/region** CSS (`src/ui/tokens.css`); **File/Edit/View/Go/Tools/Help** menu row plus canonical nav (Back/Forward/Reload, omnibox, Find, Downloads, overflow); Command Manager frame (28 px tabs, 44 px command row, Following/Pinned + Pin); disabled-command tooltips shared with palette hints.
 
-**Checks:** `npm run build`, `cargo test --workspace`, `./scripts/self-test.sh` (3×). Doc capture: `docs/screenshots/unibrowser-01-ntp.png`, `unibrowser-08-ai-sidebar.png` (chrome-layer; headless content webview still black per table below).
+**Checks:** `npm run build`, `cargo test --workspace`, `./scripts/self-test.sh` (3×, includes `shell-chrome-batch1`). Doc capture: `./scripts/capture-docs-screenshots.sh` (sources `ensure-release-desktop.sh` + embedded `dist/.ub-frontend-stamp`).
+
+**Batch 1 screenshot incident (root cause):** Tauri embeds `frontendDist` at **cargo build** time. Doc/self-test scripts launched `target/release/unibrowser-desktop` without rebuilding when `dist/` was newer, so PNGs showed **pre–Batch-1** chrome while source on `main` was already updated. **Guards:** `scripts/ensure-release-desktop.sh` (stamp match), `scripts/verify-release-frontend.sh`, `shellChromeAudit` + `shell-chrome-batch1` self-test, `doc_capture::schedule_run` on the GTK main thread (avoids `finish_doc_capture` deadlock), frontend audit pings while `--doc-capture` is active.
 
 **Deferred:** UI-07+ (tab strip/omnibox polish, remaining contexts) — out of Batch 1 scope. `/opt/cursor/artifacts/` store returned `Resource temporarily unavailable` on this VM; copies live under `workspace/.artifacts/` (design mockups + `ui-batch-1/`).
 
@@ -27,7 +29,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | File | Doc-quality on xvfb? | Notes |
 | --- | --- | --- |
 | `unibrowser-03-palette` | Yes | Command palette overlay visible |
-| `unibrowser-07-problems` | Yes | Problems panel + spell rows |
+| `unibrowser-07-problems` | Chrome only | Problems preset; panel may not paint on xvfb (black content) |
 | `unibrowser-08-ai-sidebar` | Yes | Grants table + chat chrome |
 | `unibrowser-01-ntp`, `02-files`, `04-settings`, `05-unibrow`, `06-viewer`, `09-live`, `10-vsix` | No | Tab chrome OK; main viewer/editor area black (child webview / DMABUF on headless X) |
 | `shell-desktop.png` | Yes | Copied from `08-ai-sidebar` in capture script |

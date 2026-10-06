@@ -36,7 +36,7 @@ export async function applyDemoState(raw: string) {
             panel_visible: true,
             panel_x: 24,
             panel_y: 96,
-            panel_docked: false,
+            panel_docked: true,
           },
         });
         await setAiPanelVisible(true);

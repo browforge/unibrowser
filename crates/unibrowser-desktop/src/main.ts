@@ -24,6 +24,22 @@ function markUbReadyWhenDomChromePresent() {
   }
 }
 markUbReadyWhenDomChromePresent();
+exposeShellChromeAudit();
+void invoke<{ scenarios: string[] } | null>("get_self_test_plan").then((plan) => {
+  if (plan) {
+    void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
+  }
+});
+void invoke<string | null>("take_doc_capture_path").then((docCapture) => {
+  if (!docCapture) {
+    return;
+  }
+  const pushAudit = () => {
+    void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
+    window.setTimeout(pushAudit, 200);
+  };
+  pushAudit();
+});
 
 import { commandManager, getStatusContextMode } from "./commandManager";
 import {
@@ -106,7 +122,7 @@ import {
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
 import { applyDemoState } from "./demoState";
-import { waitForShellPaintReady } from "./shellPaintReady";
+import { exposeShellChromeAudit, runShellChromeAudit } from "./shellChromeAudit";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
@@ -2491,28 +2507,16 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       }
       const docCapture = await invoke<string | null>("take_doc_capture_path");
       if (docCapture) {
-        const demoForShot = await invoke<string | null>("get_demo_state");
-        const wantsAi =
-          demoForShot?.split(/[,;]+/).some((t) => /^(ai|ai-sidebar|ai-open)$/i.test(t.trim())) ??
-          false;
-        if (!wantsAi) {
-          const prefs = await invoke<{
-            base_url?: string | null;
-            model?: string | null;
-            api_key?: string | null;
-            grants: unknown[];
-            panel_visible: boolean;
-            panel_x: number;
-            panel_y: number;
-            panel_docked: boolean;
-          }>("get_ai_assistant_prefs");
-          prefs.panel_visible = false;
-          await invoke("set_ai_assistant_prefs", { prefs });
-          await setAiPanelVisible(false);
+        const demoAgain = await invoke<string | null>("get_demo_state");
+        if (demoAgain) {
+          try {
+            await applyDemoState(demoAgain);
+          } catch (err) {
+            reportSubsystemError("demo-state", err);
+          }
         }
-        const demoRaw = await invoke<string | null>("get_demo_state");
-        await waitForShellPaintReady(demoRaw, launchPaths);
-        await invoke("finish_doc_capture_and_exit");
+        // Exit + PNG write: `doc_capture::schedule_run` on the GTK main thread.
+        return;
       }
       void maybePromptProjectRecovery((data) => {
         void applyState(data as TabContentDto);
