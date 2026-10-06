@@ -9,6 +9,9 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import "./ui/tokens.css";
+import "./ui/quietUtilityShell.css";
+import { initCommandPalette } from "./ui/commandPalette";
+import { initDockPanel } from "./ui/dockPanel";
 
 /** WebDriver waits on this; set once shell chrome from index.html is in the DOM. */
 function markUbReadyWhenDomChromePresent() {
@@ -105,7 +108,6 @@ import { setViewerZoomListener } from "./viewerZoom";
 import { clearImagePixelSample, getImagePixelSample } from "./viewerPixelSample";
 import { applyChromeI18n } from "./chromeI18n";
 import { initAppMenu } from "./appMenu";
-import { paletteEntryHint } from "./ui/commandTooltip";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { initHttpLoadingListeners, syncHttpLoadingForTab } from "./httpLoadingOverlay";
 import { configureAutoSave } from "./autoSave";
@@ -310,15 +312,6 @@ interface RecentFileDto {
   pinned: boolean;
 }
 
-interface PaletteEntryDto {
-  command_id: string;
-  title: string;
-  chord: string | null;
-  enabled: boolean;
-  reason: string | null;
-  open_path?: string | null;
-}
-
 const omnibox = document.getElementById("omnibox") as HTMLInputElement;
 const tabStrip = document.getElementById("tab-strip")!;
 const filesBrowserWrap = document.getElementById("files-browser-wrap")!;
@@ -466,6 +459,7 @@ let tabSearchOpen = false;
 
 let paletteOpen = false;
 let paletteChordLabel = "Ctrl+Shift+P";
+let paletteController: ReturnType<typeof initCommandPalette> | null = null;
 
 async function syncContentBounds() {
   const rect = contentHost.getBoundingClientRect();
@@ -2091,6 +2085,7 @@ window.addEventListener("move", scheduleGeometrySave);
 function closePalette() {
   paletteOpen = false;
   palette.classList.add("hidden");
+  paletteController?.close();
 }
 
 function togglePalette() {
@@ -2102,8 +2097,10 @@ function togglePalette() {
     paletteQuery.placeholder = t("palette.placeholder", { chord: paletteChordLabel });
     paletteQuery.value = "";
     paletteQuery.focus();
-    paletteQuery.dispatchEvent(new Event("input", { bubbles: true }));
+    paletteController?.open();
     void markChecklistStep("palette");
+  } else {
+    paletteController?.close();
   }
 }
 
@@ -2286,41 +2283,28 @@ async function loadKeybindingHints() {
   }
 }
 
-paletteQuery.addEventListener("input", async () => {
-  const entries = await invoke<PaletteEntryDto[]>("palette_search", {
-    query: paletteQuery.value,
-  });
-  paletteResults.innerHTML = "";
-  entries.forEach((entry) => {
-    const row = document.createElement("button");
-    row.className = entry.enabled ? "palette-item" : "palette-item disabled";
-    row.textContent = paletteEntryHint({
-      title: entry.title,
-      chord: entry.chord,
-      reason: entry.reason,
-      enabled: entry.enabled,
-    });
-    row.title = entry.enabled ? "" : (entry.reason ?? "");
-    row.disabled = !entry.enabled;
-    row.onclick = () => {
-      if (entry.open_path) {
-        void invoke<TabContentDto>("open_path", { path: entry.open_path }).then((d) => {
-          if (d) {
-            void applyState(d);
-          }
-          togglePalette();
-        });
-        return;
-      }
-      void invoke<string>("execute_command", { commandId: entry.command_id }).then(async (msg) => {
-        togglePalette();
-        await processCommandResult(msg, entry.command_id);
-        await refreshCommandManager();
-        await refreshState();
+paletteController = initCommandPalette({
+  palette,
+  query: paletteQuery,
+  results: paletteResults,
+  onClose: closePalette,
+  onExecute: (entry) => {
+    if (entry.open_path) {
+      void invoke<TabContentDto>("open_path", { path: entry.open_path }).then((d) => {
+        if (d) {
+          void applyState(d);
+        }
+        closePalette();
       });
-    };
-    paletteResults.appendChild(row);
-  });
+      return;
+    }
+    void invoke<string>("execute_command", { commandId: entry.command_id }).then(async (msg) => {
+      closePalette();
+      await processCommandResult(msg, entry.command_id);
+      await refreshCommandManager();
+      await refreshState();
+    });
+  },
 });
 
 window.addEventListener("resize", () => syncContentBounds());
@@ -2461,6 +2445,7 @@ function deferNonCriticalInit(fn: () => void) {
 safeSubsystemInit("script-output", () => initScriptOutputPanel());
 safeSubsystemInit("terminal", () => initTerminalPanel());
 safeSubsystemInit("problems", () => initProblemsPanel());
+safeSubsystemInit("dock-panel", () => initDockPanel());
 safeSubsystemInit("ai-assistant", () => initAiAssistantPanel());
 safeSubsystemInit("keys-overlay", () => initKeysOverlay());
 window.addEventListener("unibrowser-prefs-changed", () => {

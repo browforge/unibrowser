@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { navigateToTarget, type NavigationTarget } from "./locatorNavigate";
 import { selectBottomPanelTab } from "./terminalPanel";
+import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 
 interface ProblemDto {
   id: string;
@@ -15,6 +16,28 @@ interface ProblemDto {
 let panelEl: HTMLElement | null = null;
 let severityFilter = "";
 let sourceFilter = "";
+let messageFilter = "";
+let selectedId: string | null = null;
+
+function severityIcon(sev: string): LucideName {
+  if (sev === "error") {
+    return "circle-x";
+  }
+  if (sev === "warning") {
+    return "triangle-alert";
+  }
+  return "info";
+}
+
+function severityClass(sev: string): string {
+  if (sev === "error") {
+    return "problems-sev-error";
+  }
+  if (sev === "warning") {
+    return "problems-sev-warning";
+  }
+  return "problems-sev-info";
+}
 
 async function refresh() {
   if (!panelEl) {
@@ -24,22 +47,81 @@ async function refresh() {
     severity: severityFilter || null,
     source: sourceFilter || null,
   });
-  const ul = panelEl.querySelector(".problems-list");
-  if (!ul) {
+  const wrap = panelEl.querySelector(".problems-table-wrap");
+  const detail = panelEl.querySelector(".problems-detail");
+  const empty = panelEl.querySelector(".problems-empty");
+  const table = panelEl.querySelector<HTMLTableElement>(".problems-table");
+  if (!wrap || !table || !detail || !empty) {
     return;
   }
-  ul.innerHTML = "";
-  for (const p of list) {
-    const li = document.createElement("li");
-    li.className = `problems-item problems-${p.severity}`;
-    li.textContent = `[${p.source}] ${p.message}`;
-    if (p.navigate_hint) {
-      li.title = `${p.locator_kind}: ${p.navigate_hint}`;
+
+  const q = messageFilter.trim().toLowerCase();
+  const filtered = q
+    ? list.filter((p) => p.message.toLowerCase().includes(q) || p.source.toLowerCase().includes(q))
+    : list;
+
+  table.querySelector("tbody")?.remove();
+  const tbody = document.createElement("tbody");
+
+  if (!list.length) {
+    empty.textContent = "No problems in this workspace.";
+    empty.classList.remove("hidden");
+    wrap.classList.add("hidden");
+    detail.classList.add("hidden");
+    return;
+  }
+
+  if (!filtered.length) {
+    empty.textContent = "No problems match the current filters.";
+    empty.classList.remove("hidden");
+    wrap.classList.add("hidden");
+    detail.classList.add("hidden");
+    return;
+  }
+
+  empty.classList.add("hidden");
+  wrap.classList.remove("hidden");
+
+  for (const p of filtered) {
+    const tr = document.createElement("tr");
+    tr.dataset.problemId = p.id;
+    if (p.id === selectedId) {
+      tr.classList.add("is-selected");
     }
-    li.addEventListener("click", () => {
+    const sevTd = document.createElement("td");
+    sevTd.className = `problems-sev ${severityClass(p.severity)}`;
+    const sevWrap = document.createElement("span");
+    sevWrap.appendChild(createLucideIcon(severityIcon(p.severity), 14));
+    sevWrap.appendChild(document.createTextNode(` ${p.severity}`));
+    sevTd.appendChild(sevWrap);
+
+    const msgTd = document.createElement("td");
+    msgTd.textContent = p.message;
+
+    const srcTd = document.createElement("td");
+    srcTd.textContent = p.source;
+
+    const locTd = document.createElement("td");
+    locTd.className = "problems-loc";
+    locTd.textContent = p.navigate_hint ?? p.locator_kind;
+
+    tr.append(sevTd, msgTd, srcTd, locTd);
+    tr.addEventListener("click", () => {
+      selectedId = p.id;
+      void refresh();
       void navigateToTarget(p.navigation);
     });
-    ul.appendChild(li);
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+
+  const selected = filtered.find((p) => p.id === selectedId) ?? filtered[0];
+  if (selected) {
+    selectedId = selected.id;
+    detail.textContent = `${selected.message} (${selected.source}${selected.navigate_hint ? ` · ${selected.navigate_hint}` : ""})`;
+    detail.classList.remove("hidden");
+  } else {
+    detail.classList.add("hidden");
   }
 }
 
@@ -57,9 +139,6 @@ export function initProblemsPanel() {
   document.getElementById("bottom-panel-tab-problems")?.addEventListener("click", () => {
     showProblemsBottomPanel();
   });
-  panelEl.querySelector(".problems-close")?.addEventListener("click", () => {
-    document.getElementById("script-output-panel")?.classList.add("hidden");
-  });
   const sev = panelEl.querySelector<HTMLSelectElement>(".problems-filter-severity");
   sev?.addEventListener("change", () => {
     severityFilter = sev.value;
@@ -68,6 +147,11 @@ export function initProblemsPanel() {
   const src = panelEl.querySelector<HTMLInputElement>(".problems-filter-source");
   src?.addEventListener("input", () => {
     sourceFilter = src.value.trim();
+    void refresh();
+  });
+  const msg = panelEl.querySelector<HTMLInputElement>(".problems-filter-message");
+  msg?.addEventListener("input", () => {
+    messageFilter = msg.value;
     void refresh();
   });
 }
@@ -83,7 +167,8 @@ export function toggleProblemsPanel() {
 }
 
 export function refreshProblemsPanel() {
-  if (panelEl && !panelEl.classList.contains("hidden")) {
+  const pane = document.getElementById("bottom-panel-problems-pane");
+  if (pane && !pane.classList.contains("hidden")) {
     void refresh();
   }
 }

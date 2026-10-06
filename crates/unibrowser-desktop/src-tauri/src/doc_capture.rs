@@ -46,7 +46,7 @@ fn run_on_main(app: &AppHandle) -> Result<PathBuf, String> {
     if let Some(demo) = launch_args::get_demo_state() {
         if !demo.is_empty() {
             apply_demo_state(app, &window, &state, &demo)?;
-            std::thread::sleep(Duration::from_millis(900));
+            std::thread::sleep(Duration::from_millis(2500));
         }
     }
 
@@ -73,8 +73,18 @@ fn apply_demo_state(
             "palette" => {
                 eval_js(
                     app,
-                    "document.getElementById('palette')?.classList.remove('hidden');",
+                    r"(function(){
+  document.getElementById('palette')?.classList.remove('hidden');
+  const q = document.getElementById('palette-query');
+  if (q) { q.value = 'font'; q.dispatchEvent(new Event('input', { bubbles: true })); }
+})();",
                 )?;
+            }
+            "theme-light" => {
+                eval_js(app, "document.documentElement.setAttribute('data-theme','light');")?;
+            }
+            "theme-dark" => {
+                eval_js(app, "document.documentElement.setAttribute('data-theme','dark');")?;
             }
             "settings" => {
                 crate::commands::open_path(
@@ -107,7 +117,11 @@ fn apply_demo_state(
                 );
                 eval_js(
                     app,
-                    "document.getElementById('problems-bottom-panel')?.classList.remove('hidden');",
+                    r"(function(){
+  const p = document.getElementById('script-output-panel');
+  if (p) p.classList.remove('hidden');
+  document.getElementById('bottom-panel-tab-problems')?.click();
+})();",
                 )?;
             }
             "ai" | "ai-sidebar" | "ai-open" => {

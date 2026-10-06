@@ -58,7 +58,6 @@
         <div id="command-manager-commands" class="command-manager-commands"></div>
       </section>
       <div id="floating-toolbar-host" class="floating-toolbar-host"></div>
-      <div id="toast-host" class="toast-host hidden" role="status" aria-live="polite"></div>
     </header>
     <div id="work-area" class="ub-work-area">
     <div id="recovery-bar-host" class="recovery-bar-host hidden" role="status" aria-live="polite"></div>
@@ -69,6 +68,7 @@
       <button type="button" id="onboarding-dismiss">Dismiss</button>
     </div>
     <div id="onboarding-tour" class="onboarding-tour hidden" aria-live="polite"></div>
+    <div class="ub-work-area-row">
     <main id="content-host" class="content-host">
       <div id="new-tab-page-host" class="new-tab-page-host hidden" aria-label="Start page"></div>
       <div id="split-primary" class="split-pane">
@@ -123,26 +123,41 @@
       </div>
       <div id="bottom-panel-problems-pane" class="bottom-panel-pane hidden" role="tabpanel" aria-hidden="true">
         <div id="problems-panel" class="problems-panel">
-          <div class="problems-toolbar">
+          <div class="problems-head">
             <select class="problems-filter-severity" aria-label="Severity filter">
               <option value="">All severities</option>
               <option value="error">Error</option>
               <option value="warning">Warning</option>
               <option value="info">Info</option>
             </select>
-            <input type="search" class="problems-filter-source" placeholder="Filter source" />
-            <button type="button" class="problems-close" aria-label="Close problems">×</button>
+            <input type="search" class="problems-filter-source" placeholder="Filter source" aria-label="Filter by source" />
+            <input type="search" class="problems-filter-message" placeholder="Filter message" aria-label="Filter by message" />
           </div>
-          <ul class="problems-list"></ul>
+          <p class="problems-empty hidden" role="status">No problems</p>
+          <div class="problems-table-wrap">
+            <table class="problems-table" aria-label="Problems">
+              <thead>
+                <tr>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Message</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Location</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+          <div class="problems-detail hidden" aria-live="polite"></div>
         </div>
       </div>
     </aside>
+    </div>
     <div id="extension-tip" class="extension-tip hidden" role="status" aria-live="polite">
       <span id="extension-tip-message" class="extension-tip-message"></span>
       <button type="button" id="extension-tip-mods" class="extension-tip-action">Mods</button>
       <button type="button" id="extension-tip-dismiss" class="extension-tip-action">Dismiss forever</button>
     </div>
-    <footer id="status-bar" class="status-bar ub-shell-status">
+    <div id="toast-host" class="toast-host ub-toast-layer hidden" role="status" aria-live="polite"></div>
+    <footer id="status-bar" class="status-bar ub-shell-status" tabindex="-1">
       <span id="status-path" class="status-segment status-path"></span>
       <span id="status-context" class="status-segment status-context muted"></span>
       <span id="status-dirty" class="status-segment status-dirty"></span>

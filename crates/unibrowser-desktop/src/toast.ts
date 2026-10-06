@@ -46,15 +46,18 @@ export function showActionToast(
   message: string,
   actionLabel: string,
   onAction: () => void,
-  kind: "error" | "info" = "info",
+  kind: "error" | "info" | "success" = "info",
 ) {
-  pushNotification(message, kind);
+  pushNotification(message, kind === "success" ? "info" : kind);
   const host = document.getElementById("toast-host");
   if (!host) {
     return;
   }
-  host.classList.remove("hidden", "toast-error", "toast-info");
-  host.classList.add(kind === "error" ? "toast-error" : "toast-info");
+  host.classList.remove("hidden", "toast-error", "toast-info", "toast-success", "ub-toast-layer");
+  host.classList.add("ub-toast-layer");
+  host.classList.add(
+    kind === "error" ? "toast-error" : kind === "success" ? "toast-success" : "toast-info",
+  );
   host.innerHTML = "";
   const msg = document.createElement("span");
   msg.className = "toast-message";
@@ -81,16 +84,24 @@ export function showActionToast(
 
 export function showToast(
   message: string,
-  kind: "error" | "info" = "error",
+  kind: "error" | "info" | "success" | "warning" = "error",
   details?: string,
 ) {
-  pushNotification(message, kind, details);
+  const notifyKind = kind === "error" ? "error" : "info";
+  pushNotification(message, notifyKind, details);
   const host = document.getElementById("toast-host");
   if (!host) {
     return;
   }
-  host.classList.remove("hidden", "toast-error", "toast-info");
-  host.classList.add(kind === "error" ? "toast-error" : "toast-info");
+  host.classList.remove("hidden", "toast-error", "toast-info", "toast-success", "ub-toast-layer");
+  host.classList.add("ub-toast-layer");
+  host.classList.add(
+    kind === "error"
+      ? "toast-error"
+      : kind === "success"
+        ? "toast-success"
+        : "toast-info",
+  );
   host.innerHTML = "";
   const msg = document.createElement("span");
   msg.className = "toast-message";

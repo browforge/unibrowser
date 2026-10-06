@@ -1,15 +1,17 @@
-/* Design tokens — see docs/design/ui-spec.md */
+/* Design tokens — Quiet Utility (docs/design/ui-spec.md, visual-language.md) */
+
+@import "./fonts.css";
 
 :root {
-  --font-ui: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Cascadia Code", "Cascadia Mono", ui-monospace, monospace;
+  --font-ui: "Source Sans 3", "Segoe UI Variable", "Segoe UI", "DejaVu Sans", sans-serif;
+  --font-mono: "Source Code Pro", "JetBrains Mono", "Cascadia Mono", ui-monospace, monospace;
 
   --ub-space-1: 4px;
   --ub-space-2: 8px;
   --ub-space-3: 12px;
   --ub-space-4: 16px;
 
-  --ub-shell-title-menu: 32px;
+  --ub-shell-title-menu: 30px;
   --ub-shell-tab-strip: 34px;
   --ub-shell-nav: 40px;
   --ub-shell-cm-tabs: 28px;
@@ -22,37 +24,69 @@
   --ub-radius-4: 4px;
   --ub-radius-6: 6px;
 
-  --ub-canvas: #17191d;
-  --ub-surface-1: #202329;
-  --ub-surface-2: #282c33;
-  --ub-surface-3: #323740;
-  --ub-text-1: #f3f5f7;
-  --ub-text-2: #c0c7d0;
-  --ub-text-3: #929caa;
-  --ub-border: #434a55;
-  --ub-border-strong: #687382;
-  --ub-accent: #69b7f2;
-  --ub-accent-hover: #8dc9f6;
-  --ub-accent-soft: #183a54;
-  --ub-focus: #79c0ff;
+  /* Dark workbench */
+  --ub-base: #1b1d1e;
+  --ub-well: #141617;
+  --ub-panel: #232526;
+  --ub-control: #2d3031;
+  --ub-selected: #253e4c;
+  --ub-canvas: var(--ub-base);
+  --ub-surface-1: var(--ub-panel);
+  --ub-surface-2: var(--ub-control);
+  --ub-surface-3: var(--ub-well);
+  --ub-text-1: #f0efeb;
+  --ub-text-2: #c9cbc8;
+  --ub-text-3: #aeb2af;
+  --ub-border: #4d5151;
+  --ub-border-strong: #777c7b;
+  --ub-accent: #79b1c9;
+  --ub-accent-hover: #9cc7d9;
+  --ub-accent-soft: var(--ub-selected);
+  --ub-accent-on: #142027;
+  --ub-focus: #83c7e6;
+  --ub-success: #74be91;
+  --ub-warning: #e1b466;
+  --ub-danger: #ec8178;
+
+  --ub-concept-chrome-bg: #172532;
+  --ub-concept-chrome-border: #344451;
+  --ub-concept-chrome-text: #e9edef;
+  --ub-concept-tab-well: #12202b;
 
   --ub-density-cm-commands: var(--ub-shell-cm-commands);
+  --ub-border-width: 1px;
+  --ub-shadow-palette: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --ub-shadow-toast: 0 6px 18px rgba(0, 0, 0, 0.22);
 }
 
 [data-theme="light"] {
-  --ub-canvas: #f4f5f7;
-  --ub-surface-1: #ffffff;
-  --ub-surface-2: #eceff3;
-  --ub-surface-3: #e2e6eb;
-  --ub-text-1: #171a1f;
-  --ub-text-2: #4d5662;
-  --ub-text-3: #707a87;
-  --ub-border: #c9cfd7;
-  --ub-border-strong: #949eaa;
-  --ub-accent: #1769aa;
-  --ub-accent-hover: #0f5a94;
-  --ub-accent-soft: #dceeff;
-  --ub-focus: #0067c0;
+  --ub-base: #f1f0ec;
+  --ub-well: #e7e5df;
+  --ub-panel: #faf9f6;
+  --ub-control: #ffffff;
+  --ub-selected: #dce9f2;
+  --ub-canvas: var(--ub-base);
+  --ub-surface-1: var(--ub-panel);
+  --ub-surface-2: var(--ub-well);
+  --ub-surface-3: var(--ub-control);
+  --ub-text-1: #202223;
+  --ub-text-2: #4b5052;
+  --ub-text-3: #62686a;
+  --ub-border: #c8c6bf;
+  --ub-border-strong: #8a8d8c;
+  --ub-accent: #2d647d;
+  --ub-accent-hover: #214f65;
+  --ub-accent-soft: var(--ub-selected);
+  --ub-accent-on: #ffffff;
+  --ub-focus: #176b94;
+  --ub-success: #2f6b48;
+  --ub-warning: #8a5a12;
+  --ub-danger: #a33b32;
+
+  --ub-concept-chrome-bg: #172532;
+  --ub-concept-chrome-border: #344451;
+  --ub-concept-chrome-text: #e9edef;
+  --ub-concept-tab-well: #12202b;
 }
 
 [data-high-contrast="true"] {
@@ -69,6 +103,8 @@ body[data-cm-density="comfortable"] {
   height: 100vh;
   min-height: 0;
   font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.43;
   background: var(--ub-canvas);
   color: var(--ub-text-1);
 }
@@ -76,8 +112,9 @@ body[data-cm-density="comfortable"] {
 .ub-region--chrome {
   flex: 0 0 auto;
   background: var(--ub-surface-1);
-  border-bottom: 1px solid var(--ub-border);
+  border-bottom: var(--ub-border-width) solid var(--ub-border);
   padding: 0;
+  box-shadow: none;
 }
 
 .ub-shell-title-menu {
@@ -87,7 +124,7 @@ body[data-cm-density="comfortable"] {
   min-height: var(--ub-shell-title-menu);
   padding: 0 var(--ub-space-2);
   gap: var(--ub-space-2);
-  border-bottom: 1px solid var(--ub-border);
+  border-bottom: var(--ub-border-width) solid var(--ub-border);
 }
 
 .app-title-text {
@@ -98,13 +135,22 @@ body[data-cm-density="comfortable"] {
 
 .ub-work-area {
   display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   position: relative;
 }
 
-.ub-work-area.ai-open #content-host {
+.ub-work-area-row {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.ub-work-area.ai-open .ub-work-area-row #content-host {
   flex: 1 1 auto;
   min-width: 0;
 }

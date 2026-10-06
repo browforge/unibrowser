@@ -14,31 +14,7 @@ let outputListenerReady = false;
 export function initTerminalPanel() {
   panelEl = document.getElementById("script-output-panel");
   hostEl = document.getElementById("terminal-host");
-  const resizeGrip = document.getElementById("bottom-panel-resize-grip");
-  if (resizeGrip && panelEl) {
-    let dragging = false;
-    let startY = 0;
-    let startHeight = 0;
-    resizeGrip.addEventListener("mousedown", (ev) => {
-      dragging = true;
-      startY = ev.clientY;
-      startHeight = panelEl?.getBoundingClientRect().height ?? 128;
-      ev.preventDefault();
-    });
-    window.addEventListener("mousemove", (ev) => {
-      if (!dragging || !panelEl) {
-        return;
-      }
-      const delta = startY - ev.clientY;
-      const next = Math.min(Math.max(startHeight + delta, 96), window.innerHeight * 0.6);
-      panelEl.style.maxHeight = `${next}px`;
-      panelEl.style.height = `${next}px`;
-      fitTerminal();
-    });
-    window.addEventListener("mouseup", () => {
-      dragging = false;
-    });
-  }
+  window.addEventListener("unibrowser-bottom-panel-resize", () => fitTerminal());
   void ensureOutputListener();
 }
 

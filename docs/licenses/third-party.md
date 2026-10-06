@@ -12,6 +12,8 @@ Short attributions for components users commonly ask about. Full Rust crate lice
 | [marked](https://github.com/markedjs/marked) | MIT | Markdown preview in Monaco split view |
 | [Mermaid](https://github.com/mermaid-js/mermaid) | MIT | Diagram rendering in Markdown preview (lazy `import()`; bundles transitive libs such as [cytoscape](https://github.com/cytoscape/cytoscape.js) MIT and [KaTeX](https://github.com/KaTeX/KaTeX) MIT) |
 | [Vite](https://github.com/vitejs/vite) / [Rolldown](https://github.com/rolldown/rolldown) | MIT | Front-end build (dev/build only) |
+| [Source Sans 3](https://fonts.google.com/specimen/Source+Sans+3) / [Source Code Pro](https://fonts.google.com/specimen/Source+Code+Pro) | SIL OFL 1.1 | Shell UI typography (bundled under `public/fonts/`) |
+| [Lucide](https://lucide.dev/) | ISC | Shell icons (inlined in `src/ui/lucideIcon.ts`) |
 
 Monaco and pdf.js retain their own copyright notices in `node_modules` and in production bundles.
 

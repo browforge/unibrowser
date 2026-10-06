@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { setAiPanelVisible } from "./aiAssistantPanel";
+import { t } from "./i18n";
+import { showActionToast } from "./toast";
 
 /** Hidden preset for docs screenshots (`UNIBROWSER_DEMO_STATE`, comma-separated). */
 export async function applyDemoState(raw: string) {
@@ -56,6 +58,11 @@ export async function applyDemoState(raw: string) {
         break;
       case "palette":
         document.getElementById("palette")?.classList.remove("hidden");
+        const pq = document.getElementById("palette-query") as HTMLInputElement | null;
+        if (pq) {
+          pq.value = "font";
+          pq.dispatchEvent(new Event("input", { bubbles: true }));
+        }
         break;
       case "settings":
         await invoke("open_path", { path: "unibrowser://settings", line: null });
@@ -63,6 +70,32 @@ export async function applyDemoState(raw: string) {
       case "mods":
         await invoke("open_path", { path: "unibrowser://mods", line: null });
         break;
+      case "theme-light":
+        document.documentElement.setAttribute("data-theme", "light");
+        break;
+      case "theme-dark":
+        document.documentElement.setAttribute("data-theme", "dark");
+        break;
+      case "feedback-demo": {
+        showActionToast(t("tabs.closedUndo"), t("tabs.undo"), () => undefined, "info");
+        const host = document.getElementById("recovery-bar-host");
+        if (host) {
+          host.classList.remove("hidden");
+          const row = document.createElement("div");
+          row.className = "recovery-bar-row";
+          const label = document.createElement("span");
+          label.textContent = "Unsaved changes were recovered for spell-test.txt";
+          const view = document.createElement("button");
+          view.type = "button";
+          view.textContent = "View original";
+          const discard = document.createElement("button");
+          discard.type = "button";
+          discard.textContent = "Discard";
+          row.append(label, view, discard);
+          host.replaceChildren(row);
+        }
+        break;
+      }
       case "ntp":
         await invoke("new_tab", {});
         break;
