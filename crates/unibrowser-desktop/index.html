@@ -60,6 +60,18 @@
         <div id="command-manager-commands" class="command-manager-commands"></div>
       </section>
       <div id="floating-toolbar-host" class="floating-toolbar-host"></div>
+    <aside
+      id="ai-assistant-panel"
+      class="ai-assistant-panel floating-bar hidden"
+      aria-label="AI assistant"
+    >
+      <div class="ai-assistant-drag-handle drag-handle" title="Drag panel">AI</div>
+      <div class="ai-assistant-head">
+        <span>AI assistant</span>
+        <button type="button" class="ai-assistant-close" aria-label="Close">×</button>
+      </div>
+      <div class="ai-assistant-body"></div>
+    </aside>
       <div id="toast-host" class="toast-host hidden" role="status" aria-live="polite"></div>
     </header>
     <div id="unknown-file-banner" class="unknown-file-banner hidden" role="status" aria-live="polite"></div>
@@ -124,6 +136,7 @@
         <button type="button" id="status-zoom-in" class="status-zoom-btn hidden">+</button>
       </span>
       <span id="status-encode" class="status-segment status-encode muted"></span>
+      <span id="status-ai-visibility" class="status-segment status-ai hidden" role="status"></span>
       <span id="status-hint" class="status-hint"></span>
     </footer>
     <div id="tab-search" class="palette hidden" role="dialog" aria-label="Search open tabs">

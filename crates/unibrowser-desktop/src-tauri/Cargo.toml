@@ -58,6 +58,9 @@ dxf-checker = { path = "../../../mods/dxf-checker" }
 unibrow-checker = { path = "../../../mods/unibrow-checker" }
 live-proving = { path = "../../../mods/live-proving" }
 unibrowser-live = { path = "../../unibrowser-live" }
+unibrowser-ai-assistant = { path = "../../unibrowser-ai-assistant" }
+unibrowser-projections = { path = "../../unibrowser-projections" }
+ai-assistant = { path = "../../../mods/ai-assistant" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"

@@ -434,6 +434,9 @@ export async function renderSettings(root: HTMLElement) {
   networkSection.appendChild(networkDoc);
   root.appendChild(networkSection);
 
+  const { renderAiAssistantSettings } = await import("./settingsAiAssistant");
+  renderAiAssistantSettings(root);
+
   const cmSection = document.createElement("section");
   cmSection.className = "settings-section";
   const cmHeading = document.createElement("h3");

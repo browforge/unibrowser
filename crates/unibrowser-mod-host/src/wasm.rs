@@ -7,6 +7,7 @@ use std::sync::{OnceLock, RwLock};
 use unibrowser_engine::{CommandRegistry, HandlerRegistration};
 use unibrowser_mod_api::{CommandMeta, Enablement, ModManifest};
 
+use crate::api_registry::ModApiRegistry;
 use crate::ModHostError;
 use crate::wasm_backend::WasmStubBackend;
 
@@ -111,6 +112,7 @@ mod runtime {
 
     struct HostState {
         pending: PendingWasmRegistrations,
+        api_registry: std::sync::Arc<ModApiRegistry>,
     }
 
     fn read_guest_utf8(
@@ -159,6 +161,18 @@ mod runtime {
         Ok("Executed WASM mod command".into())
     }
 
+    fn host_audio_levels_peak(
+        mut caller: Caller<'_, HostState>,
+        req_ptr: i32,
+        req_len: i32,
+    ) -> f64 {
+        let req = match read_guest_utf8(&mut caller, req_ptr, req_len) {
+            Ok(s) => s,
+            Err(_) => return -1.0,
+        };
+        caller.data().api_registry.guest_audio_levels_peak(&req)
+    }
+
     fn host_register_extension(mut caller: Caller<'_, HostState>, ext_ptr: i32, ext_len: i32) -> i32 {
         let ext = match read_guest_utf8(&mut caller, ext_ptr, ext_len) {
             Ok(s) => s,
@@ -172,6 +186,7 @@ mod runtime {
         wasm_bytes: &[u8],
         mod_name: &str,
         registry: &mut CommandRegistry,
+        api_registry: &std::sync::Arc<ModApiRegistry>,
     ) -> Result<(), ModHostError> {
         let engine = Engine::default();
         let module = Module::new(&engine, wasm_bytes)
@@ -182,7 +197,13 @@ mod runtime {
             extensions: Vec::new(),
             mod_name: mod_name.to_string(),
         };
-        let mut store = Store::new(&engine, HostState { pending });
+        let mut store = Store::new(
+            &engine,
+            HostState {
+                pending,
+                api_registry: std::sync::Arc::clone(api_registry),
+            },
+        );
         let mut linker = Linker::new(&engine);
         linker
             .func_wrap(
@@ -193,6 +214,13 @@ mod runtime {
             .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
         linker
             .func_wrap("ub_host", "ub_host_register_extension", host_register_extension)
+            .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
+        linker
+            .func_wrap(
+                "ub_host",
+                "ub_host_audio_levels_peak",
+                host_audio_levels_peak,
+            )
             .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
 
         let instance = linker
@@ -290,7 +318,8 @@ pub fn load_wasm_mod(
     let bytes = std::fs::read(&wasm_path)?;
     #[cfg(feature = "wasm-mods")]
     {
-        load_wasm_bytes(&bytes, &manifest.name, registry)?;
+        let apis = std::sync::Arc::new(ModApiRegistry::new());
+        load_wasm_bytes(&bytes, &manifest.name, registry, &apis)?;
         return Ok(manifest.name);
     }
     #[cfg(not(feature = "wasm-mods"))]
@@ -366,7 +395,8 @@ mod tests {
         }
         let bytes = std::fs::read(wasm_path.unwrap()).expect("read wasm");
         let mut registry = CommandRegistry::with_builtins();
-        load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry).expect("load wasm");
+        let apis = std::sync::Arc::new(ModApiRegistry::new());
+        load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry, &apis).expect("load wasm");
         assert!(registry.command_meta("mod.wasm.demo").is_some());
         let exts = wasm_file_extensions();
         assert_eq!(exts.get("ubwasm").as_deref(), Some(&"ub-mod-wasm".to_string()));

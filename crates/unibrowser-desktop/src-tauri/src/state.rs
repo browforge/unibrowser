@@ -94,6 +94,7 @@ fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
         ("dxf-checker", dxf_checker::register as ModRegisterFn),
         ("unibrow-checker", unibrow_checker::register as ModRegisterFn),
         ("live-proving", live_proving::register as ModRegisterFn),
+        ("ai-assistant", ai_assistant::register as ModRegisterFn),
     ]
     .into_iter()
     .collect()

@@ -1,0 +1,30 @@
+[package]
+name = "unibrowser-projections"
+description = "Text and raster projections for bundled document viewers (ADR 0025)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+unibrowser-engine = { path = "../unibrowser-engine" }
+unibrowser-mod-api = { path = "../unibrowser-mod-api" }
+unibrowser-docx = { path = "../unibrowser-docx" }
+unibrowser-project = { path = "../unibrowser-project" }
+unibrowser-media = { path = "../unibrowser-media" }
+base-text = { path = "../../mods/base-text" }
+base-js = { path = "../../mods/base-js" }
+toy-markdown = { path = "../../mods/toy-markdown" }
+base-web = { path = "../../mods/base-web" }
+base-docx = { path = "../../mods/base-docx" }
+base-epub = { path = "../../mods/base-epub" }
+base-pdf = { path = "../../mods/base-pdf" }
+base-svg = { path = "../../mods/base-svg" }
+base-png = { path = "../../mods/base-png" }
+base-dxf = { path = "../../mods/base-dxf" }
+base-csv = { path = "../../mods/base-csv" }
+base-hex = { path = "../../mods/base-hex" }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
+regex = "1"
+
+[dev-dependencies]
+tempfile = "3"

@@ -91,6 +91,13 @@ impl ModApiRegistry {
         Ok(entry.handler.clone())
     }
 
+    /// WASM `ub_host_audio_levels_peak` — returns level or `-1.0` when unavailable.
+    pub fn guest_audio_levels_peak(&self, requirement: &str) -> f64 {
+        self.resolve_audio_levels(requirement)
+            .map(|a| a.peak_level())
+            .unwrap_or(-1.0)
+    }
+
     pub fn list_provided(&self) -> Vec<ProvidedApi> {
         self.audio_levels
             .lock()

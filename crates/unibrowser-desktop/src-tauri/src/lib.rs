@@ -15,6 +15,7 @@ pub mod path_security;
 pub mod preferences;
 mod project_backend;
 mod live_host;
+mod ai_assistant_host;
 mod smf;
 mod midi_stub;
 mod settings_stub;
@@ -221,6 +222,16 @@ pub fn run() {
             live_host::unibrow_live_status,
             live_host::start_unibrow_live_recording,
             live_host::stop_unibrow_live_recording,
+            ai_assistant_host::get_ai_assistant_prefs,
+            ai_assistant_host::set_ai_assistant_prefs,
+            ai_assistant_host::test_ai_connection,
+            ai_assistant_host::ai_assistant_invoke,
+            ai_assistant_host::ai_assistant_status,
+            ai_assistant_host::document_projection_snapshot,
+            ai_assistant_host::ai_assistant_tools,
+            ai_assistant_host::ai_assistant_read_tab_text,
+            ai_assistant_host::ai_assistant_propose_write,
+            ai_assistant_host::ai_assistant_approve_pending,
             commands::get_home_dir,
             commands::get_downloads_dir,
             commands::get_build_info,

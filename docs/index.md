@@ -94,7 +94,8 @@ ADRs are numbered in `docs/adr/`. Read the ones that touch your area before larg
 | [0023](adr/0023-saving-is-sacred.md) | Saving is sacred; local autosave | [principles.md](principles.md), `crates/unibrowser-fs` |
 | [0024](adr/0024-live-sources-compositor-outputs.md) | Live sources, compositor, outputs | `crates/unibrowser-live`, `mods/live-proving`, [live-mod-authoring.md](live-mod-authoring.md) |
 | [0025](adr/0025-mod-apis-and-dependencies.md) | Mod APIs, semver deps, projections | `crates/unibrowser-mod-host` (`resolve_mod_graph`, `ModApiRegistry`) |
-| [0026](adr/0026-ai-assistant-as-mod.md) | AI assistant as mod (OpenAI-compatible) | `crates/unibrowser-ai-assistant` |
+| [0026](adr/0026-ai-assistant-as-mod.md) | AI assistant as mod (OpenAI-compatible) | `crates/unibrowser-ai-assistant`, `mods/ai-assistant` |
+| [projections-coverage.md](projections-coverage.md) | Text/raster projection matrix | `crates/unibrowser-projections` |
 | [principles.md](principles.md) | Product principles (local-first, sacred save) | ADRs 0021–0023 |
 
 ## Changelog

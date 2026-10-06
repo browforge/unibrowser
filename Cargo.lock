@@ -48,6 +48,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai-assistant"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
 name = "alloc-no-stdlib"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9114,6 +9122,7 @@ dependencies = [
 name = "unibrowser-desktop"
 version = "0.1.0"
 dependencies = [
+ "ai-assistant",
  "base-audio",
  "base-csv",
  "base-docx",
@@ -9147,6 +9156,7 @@ dependencies = [
  "tempfile",
  "toy-markdown",
  "unibrow-checker",
+ "unibrowser-ai-assistant",
  "unibrowser-build-info",
  "unibrowser-diagnostics",
  "unibrowser-docx",
@@ -9159,6 +9169,7 @@ dependencies = [
  "unibrowser-mod-host",
  "unibrowser-ocr",
  "unibrowser-project",
+ "unibrowser-projections",
  "unibrowser-script-host",
  "unibrowser-terminal",
  "unibrowser-vsix",
@@ -9258,6 +9269,7 @@ dependencies = [
 name = "unibrowser-mod-host"
 version = "0.1.0"
 dependencies = [
+ "ai-assistant",
  "base-audio",
  "base-csv",
  "base-docx",
@@ -9310,6 +9322,32 @@ dependencies = [
  "thiserror 2.0.21",
  "unibrowser-fs",
  "zip 2.4.2",
+]
+
+[[package]]
+name = "unibrowser-projections"
+version = "0.1.0"
+dependencies = [
+ "base-csv",
+ "base-docx",
+ "base-dxf",
+ "base-epub",
+ "base-hex",
+ "base-js",
+ "base-pdf",
+ "base-png",
+ "base-svg",
+ "base-text",
+ "base-web",
+ "image 0.25.10",
+ "regex",
+ "tempfile",
+ "toy-markdown",
+ "unibrowser-docx",
+ "unibrowser-engine",
+ "unibrowser-media",
+ "unibrowser-mod-api",
+ "unibrowser-project",
 ]
 
 [[package]]

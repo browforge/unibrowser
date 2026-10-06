@@ -1,0 +1,11 @@
+{
+  "name": "ai-assistant",
+  "version": "0.1.0",
+  "title": "AI assistant",
+  "author": "Unibrowser",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "OpenAI-compatible chat sidebar (local endpoints only unless configured)."
+}

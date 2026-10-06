@@ -75,6 +75,7 @@ import {
   initScriptOutputPanel,
 } from "./scriptOutputPanel";
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
+import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
@@ -1454,6 +1455,11 @@ async function processCommandResult(msg: string, commandId?: string) {
 }
 
 async function runUiCommand(commandId: string) {
+  if (commandId === "ai-assistant.toggle") {
+    const prefs = await invoke<{ panel_visible: boolean }>("get_ai_assistant_prefs");
+    await setAiPanelVisible(!prefs.panel_visible);
+    return;
+  }
   if (commandId === PROOFING_TOGGLE) {
     await toggleProofingSquiggles();
     await textEditor.refreshProofingMarkers();
@@ -1732,6 +1738,7 @@ async function applyState(data: TabContentDto) {
     fontLabel.title = fontResetable ? t("status.fontResetTitle") : "";
   }
   refreshStatusBar(data, active, showText, showViewer);
+  await refreshAiAssistantChrome();
   await refreshCommandManager();
   await syncContentBounds();
   window.requestAnimationFrame(() => syncContentBounds());
@@ -2016,6 +2023,11 @@ function chordFromKeyboardEvent(e: KeyboardEvent) {
 }
 
 async function runKeybindingCommand(commandId: string) {
+  if (commandId === "ai-assistant.toggle") {
+    const prefs = await invoke<{ panel_visible: boolean }>("get_ai_assistant_prefs");
+    await setAiPanelVisible(!prefs.panel_visible);
+    return;
+  }
   if (commandId === PALETTE_TOGGLE) {
     togglePalette();
     return;
@@ -2307,6 +2319,7 @@ function deferNonCriticalInit(fn: () => void) {
 
 initScriptOutputPanel();
 initTerminalPanel();
+initAiAssistantPanel();
 initKeysOverlay();
 window.addEventListener("unibrowser-prefs-changed", () => {
   void refreshState();

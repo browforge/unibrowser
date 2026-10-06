@@ -6,6 +6,7 @@ pub trait TextProjection {
 }
 
 /// RGBA raster for vision models / thumbnails (optional per backend).
+#[derive(Debug, Clone)]
 pub struct RasterProjection {
     pub width: u32,
     pub height: u32,
