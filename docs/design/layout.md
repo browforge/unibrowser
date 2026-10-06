@@ -7,68 +7,69 @@ See [UX architecture](ux.md) for region jobs and [UI specification](ui-spec.md) 
 ### 1280 x 800 reference
 
 ```text
-+------------------------------------------------------------------------------+ 32
-| File Edit View Go Tools Help | Browse Text Create Live | Undo Redo [Save] ...| global top
-+------+-----------------------------------------------------------------------+ 34
-|      | [tab] [tab] [active tab * x]                               [ + ] [v] |
-| work +-----------------------------------------------------------------------+ 40
-| space| Back Fwd Reload [ location / search                       ] Find  ... |
-| rail +-----------------------------------------------------------------------+ 72 max
-|      | Browse Text PDF Image Create       Following: Text [Pin]              |
-| Files| Undo Redo | Find | Font - 14 pt + | Proofing | Export                 |
-+------+--------------+--------------------------------------+-----------------+
-|      | left sidebar |                                      | right sidebar   |
-|      | 0 / 240 px   |          content surface             | 0 / 320 px      |
-|      |              |                                      | AI Tools Assets |
-+------+--------------+--------------------------------------+-----------------+
-|      | bottom panel 0 / 220 px: Problems | Output | Terminal                |
++------------------------------------------------------------------------------+ 40
+| [menu] [tab] [active tab * x] [ location / command ] Undo Redo [Save] [_][x]|
++----+-------------------------------------------------------------------------+ 40
+|rail| Text | Undo Redo | Find | Font - 14 pt + | Proofing | Export  Follow Pin|
++----+--------------+--------------------------------------+-------------------+
+|    | left sidebar |                                      | right sidebar     |
+| 40 | 0 / 240 px   |          content surface             | 0 / 320 px        |
+| px |              |                                      | AI Tools Assets   |
++----+--------------+--------------------------------------+-------------------+
+|    | bottom panel 0 / 220 px: Problems | Output | Terminal                  |
 +------------------------------------------------------------------------------+ 24
-| saved 2m ago          Ln 12, Col 8              3 Problems  100%  UTF-8     | status
+| saved 2m ago          Ln 12, Col 8              3 Problems  100%  UTF-8      | status
 +------------------------------------------------------------------------------+
 ```
 
-The workspace rail is 58 px at 1280 and occupies the left edge below the global
-top bar to above the status bar. Tabs, navigation, Command Manager, sidebars,
-content, and bottom panel are inset by the rail. The rail is a stable workspace
-destination, not a second command toolbar.
+The compact shell spends exactly **80 px above content**: a 40 px custom
+title-bar row and a 40 px Command Manager row. Collapsing the Command Manager
+reduces this to **40 px**. The previous Batch 1 stack spent 176 px
+(30 + 34 + 40 + 28 + 44); its chrome is replaced, not refined.
 
-Nominal content height with manager expanded and no panel is 598 px. The shell
-must not spend more than 188 px above content in Compact density.
+The first row combines window chrome and global navigation:
 
-The top bar reconciles native application structure with the reference
-concepts:
+- one compact menu button, with full File/Edit/View/Go/Tools/Help menus and
+  Alt-key access;
+- scrollable document tabs;
+- a flexible location/command field, showing a breadcrumb for local content
+  and an editable URL for web content;
+- Undo, Redo, Save, layout overflow, and platform window controls;
+- Back, Forward, and Reload appear only for folder and web tabs.
 
-- Menus remain first for predictable desktop access.
-- The workspace switcher shares the top bar and does not create another
-  permanent row.
-- Save is the only filled primary shell action.
-- Undo, Redo, AI, and overflow may appear at the right when width permits.
-- The Command Manager remains contextual and detailed below navigation. It is
-  not replaced by the workspace switcher.
+The second row is the only persistent tool row. Its left edge carries the
+active file-type context label and contextual commands; **Following / Pin**
+stays at the right. It never wraps. Less-used commands enter overflow.
+
+The left rail is an activity bar, not a context or workspace switcher. It is
+40 px in collapsed mode at 1280 and opens a labelled 188 px panel picker on
+request. Files, Search, Project, Assets, and installed contributions are
+allowed only when each opens a genuinely distinct side panel. It can be
+collapsed, auto-hidden, or moved into View. Saved workspaces are layouts reached
+from View > Workspaces and the command palette.
 
 ### 1600 x 1000 wide reference
 
 ```text
-+ global top -----------------------------------------------------------------+
-+ rail | tabs ----------------------------------------------------------------+
-+ rail | nav/omnibox ---------------------------------------------------------+
-+ rail | Command Manager tabs + commands ------------------------------------+
++ title bar: menu + tabs + location/command + actions + window controls ------+
++ rail | Command Manager: context + commands + Follow/Pin --------------------+
 +------+-----------+-----------------------------------------+----------------+
-| rail | 260 left  |           content / preview             | 340 right      |
-|      | sidebar   |                                         | sidebar        |
+| 40   | 260 left  |           content / preview             | 340 right      |
+| rail | sidebar   |                                         | sidebar        |
 +------+-----------+-----------------------------------------+----------------+
 | rail | 260 bottom panel / timeline / mixer                                  |
 + status ---------------------------------------------------------------------+
 ```
 
-Wide layouts may show both sidebars. They do not add another permanent top row.
+Wide layouts may show both sidebars. They do not add another permanent top row
+or a workspace switcher.
 
 ## Docking model
 
 Dock targets:
 
-- Workspace rail destinations activate named layouts; they are not drop
-  targets.
+- Activity rail destinations open or focus side panels; they do not change file
+  context, activate layouts, or act as drop targets.
 - Left sidebar.
 - Right sidebar.
 - Bottom panel.
@@ -94,38 +95,38 @@ Rules:
 ### >=1440 px
 
 - Both sidebars supported.
-- Workspace rail is 64 px; labels stay visible.
+- Activity rail is 40 px collapsed or 188 px expanded; labels appear only when
+  expanded.
 - Command Manager command labels visible in Compact mode.
 - Wide Live/Create workspaces use three columns.
 
 ### 1024-1439 px
 
-- Workspace rail is 58 px with persistent labels.
+- Activity rail defaults to 40 px icon mode and can auto-hide.
 - One sidebar per side, but opening both requires content >=480 px.
-- Low-priority navigation actions move to overflow.
+- Low-priority title-bar actions move to overflow.
 - Command groups may scroll horizontally; they do not wrap into a second row.
 
 ### 800-1023 px
 
-- Workspace rail is 52 px; labels may collapse only when content would fall
-  below 480 px.
+- Activity rail auto-hides by default and opens as a pushing 40 px strip.
 - Only one sidebar visible at a time.
 - Command Manager labels hide for recognised icons; tooltips/accessible names remain.
-- Workspace switcher moves to View menu/palette if necessary.
+- Saved layouts remain in View > Workspaces and the palette.
 - Bottom panel opens to 35% height.
 
 ### <800 px
 
 - Supported as a compact utility layout, not primary editing.
-- Workspace rail moves to the View menu and command palette.
+- Activity rail destinations move to View and the command palette.
 - Command Manager collapses to tabs + overflow.
 - Sidebar/panel becomes a full-height dock replacing content, with Back to document.
-- Tab strip scrolls.
+- Title-bar tabs scroll; location moves to Ctrl+L overlay when needed.
 
 ## Context layouts
 
-All contexts retain global top bar, workspace rail at desktop widths, tab
-strip, navigation, Command Manager frame, and status bar.
+All contexts retain the compact title-bar row, activity rail when enabled,
+single-row Command Manager, and status bar.
 
 ### New tab page
 
@@ -200,9 +201,10 @@ strip, navigation, Command Manager frame, and status bar.
 
 ### Multimodal workshop
 
-- Named workspace for simultaneous CAD/3D, video, code, paint/compositing, and
-  diagnostics work. It is not the default document arrangement.
-- Workspace rail provides stable context entry; top switcher shows `Workshop`.
+- Saved layout for simultaneous CAD/3D, video, code, paint/compositing, and
+  diagnostics work. It is not a permanent mode or file-type switcher.
+- Open it from View > Workspaces or the palette; the active file still decides
+  the Command Manager context.
 - Centre prioritises the active CAD/3D viewport and programme preview.
 - Left dock: scene/project tree and source assets.
 - Right dock: Inspector, colour/effects/audio tabs with numeric fields and
@@ -269,3 +271,5 @@ Wireframes use final region proportions and representative labels, not final vis
 High-fidelity Quiet Utility studies live in
 [`mockups/quiet-utility/`](mockups/quiet-utility/README.md). They cover the five
 required ordinary contexts plus 1280x800 and 1920x1080 multimodal workspaces.
+[`chrome-before-after.png`](mockups/quiet-utility/chrome-before-after.png)
+annotates the Batch 1 176 px stack and accepted 80 px replacement.

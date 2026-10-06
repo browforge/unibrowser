@@ -52,12 +52,11 @@ Base unit 4 px.
 
 ### Size
 
-- Global top bar: 32 px.
-- Workspace rail: 58 px wide at 1280, 64 px at 1440+.
-- Tab strip: 34 px.
-- Navigation: 40 px.
-- Command Manager tabs: 28 px.
-- Command Manager body: 44 px Compact, 52 px Comfortable.
+- Unified custom title bar: 40 px.
+- Command Manager: 40 px Compact, 48 px Comfortable.
+- Total expanded chrome above content: **80 px Compact**.
+- Collapsed Command Manager: 0 px; total chrome above content **40 px**.
+- Activity rail: 40 px collapsed, 188 px expanded, 0 px auto-hidden.
 - Status bar: 24 px.
 - Standard button: 30 px, compact 26 px.
 - Icon button: 30x30 px.
@@ -178,25 +177,32 @@ Rules:
 
 ## Components
 
-### Shell frame and workspace rail
+### Shell frame and activity rail
 
 - The default shell frame is dark slate in both themes; task surfaces use the
   light/dark workbench tokens appropriate to their content.
-- Global top bar: menus left, workspace switcher centred where space permits,
-  one primary Save action, undo/redo, overflow, and app/window controls.
-- Workspace rail begins below the global top bar and ends above the status bar.
-- Rail items are 44-50 px high with a 16 px Lucide icon and persistent 11-12 px
-  label at desktop widths.
-- Files, Search, Project, CAD/3D, Video, Audio, Code, Paint, Assets, and Settings
-  are stable destinations. Contexts without an installed capability may be
-  omitted rather than shown as decorative disabled destinations.
+- Unified title bar order: menu, tabs, conditional browser navigation,
+  location/command field, Undo, Redo, Save, layout overflow, drag region,
+  platform window controls.
+- There is no permanent Browse/Text/Create/Live switcher.
+- Activity rail begins below the title bar and ends above the status bar.
+- Collapsed rail items are 40x40 px with a 16 px Lucide icon. Expanded mode
+  adds a 12 px label in a 188 px pushing region.
+- Core destinations are Files (`files`), Search (`search`), Project
+  (`panels-top-left`), Assets (`package-open`), and Settings (`settings`).
+  Use Lucide 16 px, 1.75 px stroke. Contributions may add an item only when it
+  opens a distinct side panel.
+- CAD, Video, Audio, Code, and Paint are file contexts, not rail destinations.
 - Active destination uses a 3 px accent leading edge, selected surface, icon,
   and label weight. Colour is not the only cue.
-- At widths below 800 px the rail collapses to the View menu/palette.
+- Rail modes are Expanded, Collapsed, Auto-hide, and Hidden under
+  View > Appearance. Auto-hide reveals on pointer edge, Alt+Shift+A, or a panel
+  command and pushes content while open.
+- At widths below 800 px the rail moves to View and the palette.
 
-### Tab strip
+### Unified title-bar tabs
 
-- 34 px high, `surface-2`.
+- Share the 40 px title-bar row; no independent full-width tab-strip row.
 - Tab min 112 px, preferred 180 px, max 240 px.
 - Active tab `surface-1`; inactive transparent; active has 2 px accent top edge.
 - Icon 16, label ellipsised, state glyph, close 20 hit/16 icon.
@@ -204,22 +210,24 @@ Rules:
 - Pinned tabs 40 px icon-only only when user pins them.
 - Drag insertion marker 2 px accent.
 
-### Omnibox
+### Location / command field
 
-- 32 px high inside 40 px row.
+- 30 px high inside the 40 px title-bar row.
 - Default shows breadcrumb for local path; focus switches to editable full path.
 - URL security/origin identity sits at leading edge.
-- Results drop below omnibox but never cover toolbar rows; max 8 results.
+- Results drop below the title bar but never cover the Command Manager; max 8 results.
 - Technical schemes such as `unibrowser://` show friendly names until focused.
+- Back/Forward/Reload occupy the same leading group only for folder and web
+  tabs. They are absent, not disabled placeholders, for document tabs.
 
 ### Command Manager
 
-Tabs:
-
-- 28 px, no pill background.
-- Active tab has 2 px accent underline and `text-1`.
-- Inactive `text-2`; hover `surface-2`.
-- **Follow/Pin** at right with explicit label.
+- One 40 px row; 48 px Comfortable.
+- File-type context label at left with 2 px accent underline and `text-1`.
+- Clicking it opens available contexts/customisation without creating another
+  permanent row.
+- **Following: {type} / Pin** at right with explicit labels.
+- It follows the active file type automatically unless pinned.
 
 Buttons:
 
@@ -243,6 +251,7 @@ Customisation:
 - Edit mode adds 6-dot drag handle to groups.
 - Drop markers appear only during drag.
 - Import/export layouts live in workspace management, not the normal row.
+- Collapse removes the whole row. Ctrl+F1 toggles it.
 
 ### Command palette
 

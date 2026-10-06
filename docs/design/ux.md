@@ -6,28 +6,35 @@ This document makes interaction decisions. It is not a menu of alternatives.
 
 These are taste-sensitive defaults. Each is switchable without changing the underlying model.
 
-1. **Workspace switcher location:** default is the left edge of the Command Manager tab row, not a permanent app-wide page rail. Switchable to hidden (palette-only) or compact icon mode.
-2. **Command Manager density:** default is Compact (44 px manager body, 28 px tabs). Comfortable adds 8 px height; Dense removes labels only when the user explicitly chooses it.
+1. **Custom title bar:** default is a 40 px row combining menu access, tabs,
+   location/command field, Save/Undo/Redo, and window controls. Native title
+   bars remain an accessibility/compatibility preference.
+2. **Command Manager density:** default is one 40 px row. Collapse hides it
+   entirely, leaving 40 px total chrome above content.
 3. **Right sidebar default width:** 320 px, resizable 260-520 px. Each sidebar remembers its width.
 4. **Bottom panel default height:** 220 px, resizable 140 px to 55% of window.
 5. **Accent:** restrained Windows-blue by default. The user can choose accent, system accent, or no accent.
-6. **Tab shape:** squared lower edge and 6 px top corners, closer to browser/workstation chrome than pill tabs.
+6. **Activity rail:** 40 px icon mode by default at 1280, with expanded,
+   auto-hidden, and hidden options. It opens side panels only.
 7. **New tab page:** recent work plus Open/New project, not a dashboard of widgets. Sections can be hidden.
 
 ## Information architecture
 
 ### Stable shell
 
-The shell has six persistent regions:
+The shell has five persistent regions:
 
-1. **Title/menu row**: Windows title controls plus File, Edit, View, Go, Tools, Help. Linux uses the same command grouping with platform window chrome.
-2. **Tab strip**: files, folders, web pages, settings, downloads, projects.
-3. **Navigation row**: Back, Forward, Reload/Stop, omnibox, tab-local actions, overflow.
-4. **Command Manager**: workspace/context tabs, Pin/Follow, command groups.
-5. **Work area**: optional left sidebar, content, optional right sidebar, optional bottom panel.
-6. **Status bar**: concise document/system state and panel toggles.
+1. **Unified title bar**: compact menu access, tabs, location/command field,
+   global document actions, layout controls, and platform window controls.
+2. **Command Manager**: one file-type-driven tool row with Follow/Pin.
+3. **Activity rail + work area**: rail opens side panels; sidebars, content, and
+   bottom panel remain docked.
+4. **Status bar**: concise document/system state and panel toggles.
+5. **Transient overlays**: palette, menus, and tooltips only.
 
-Only tab strip, navigation row, content, and a 24 px status bar are always visible. The Command Manager may collapse to its tab row. Sidebars and bottom panels are opt-in and docked.
+Only the unified title bar, content, and a 24 px status bar are always visible.
+The Command Manager collapses completely. The activity rail may auto-hide.
+Sidebars and bottom panels are opt-in and docked.
 
 ### Content types
 
@@ -40,32 +47,87 @@ Only tab strip, navigation row, content, and a 24 px status bar are always visib
 
 These are tab content types, not separate apps.
 
-### Workspaces
+### Saved layouts
 
 - **Browse:** files/web navigation; minimal panels.
 - **Write:** outline/files left; content centre; Problems bottom on demand.
 - **Create:** sources left; preview centre; inspector right; timeline bottom.
 - **Live:** sources left; programme preview centre; properties/chat right; mixer/status bottom.
 
-Workspace controls arrangement. Document context controls commands. Neither changes file format or closes tabs.
+These are saved arrangements reached from View > Workspaces and the palette.
+They are not a permanent mode switcher. The active file type alone controls the
+Command Manager. Layout changes neither file format nor open tabs.
+
+## Evidence behind the compact chrome
+
+The decision is synthesis, not imitation:
+
+- Chromium defines tabs and the tab strip as browser-window chrome, including
+  toolbar overlap and maximised hit targets. This supports tabs in the title
+  region rather than a separate application row:
+  [Chromium layout constants](https://chromium.googlesource.com/chromium/src/+/refs/tags/128.0.6613.18/chrome/browser/ui/layout_constants.h).
+- Edge documents horizontal tabs at the top of the browser window as its
+  compact default, with vertical tabs as an optional high-tab-count layout:
+  [Edge horizontal and vertical tabs](https://www.microsoft.com/en-us/edge/learning-center/vertical-tabs-versus-horizontal-tabs).
+- VS Code puts Command Center and layout controls in its custom title bar and
+  supports classic, toggle, compact, and hidden menu presentation:
+  [VS Code Custom Layout](https://code.visualstudio.com/docs/configure/custom-layout).
+- Windows CommandBar defaults to a compact row of primary icons plus overflow;
+  Microsoft explicitly recommends overflow and context-only commands when
+  space is scarce:
+  [Command bar](https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/command-bar) and
+  [Toolbar guidelines](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars).
+- Windows 11 File Explorer applies that model in practice: common operations
+  remain immediate, compact file spacing is optional, and older commands remain
+  under "Show more options":
+  [File Explorer in Windows](https://support.microsoft.com/en-us/windows/experience/fileexplorer/file-explorer-in-windows).
+- Office's Simplified Ribbon keeps common commands on one line, groups related
+  commands under split buttons, and sends the remainder to overflow:
+  [Use the Simplified Ribbon](https://support.microsoft.com/en-us/office/use-the-simplified-ribbon-44bef9c3-295d-4092-b7f0-f471fa629a98).
+- Firefox Compact Mode reduces tab and toolbar spacing specifically to return
+  room to content:
+  [Firefox compact design](https://blog.mozilla.org/en/firefox/new-firefox-design-is-here/).
+- Zed exposes title-bar, tab-bar, breadcrumb, and toolbar visibility
+  independently. Its maintainers also document why per-pane tabs cannot always
+  be merged into a per-window title bar; Unibrowser therefore keeps split-pane
+  tabs local to the pane:
+  [Zed visual customisation](https://zed.dev/docs/visual-customization) and
+  [title-bar/tab-bar design discussion](https://github.com/zed-industries/zed/issues/5066).
+- Arc proves the value of hiding a navigation surface and summoning actions
+  from the command bar, but its sidebar combines tabs and spaces. Unibrowser
+  does not copy that overlap: its rail only opens panels:
+  [Arc Command Bar actions](https://start.arc.net/command-bar-actions).
+
+Result: two rows and one context authority. The title row answers "what is open
+and where am I?" The Command Manager answers "what can I do to this file?"
+The rail answers "which supporting panel do I need?"
 
 ## Chrome region jobs
 
-### 1. Title/menu row
+### 1. Unified title bar
 
-Job: app/window commands, durable menus, workspace switcher in narrow layouts.
+Job: window movement/controls, tab identity, location, and global document
+commands in one 40 px row.
 
 Contains:
 
-- App icon and document/window title.
-- Menus with canonical command locations.
-- Window controls.
+- Compact menu button. Alt reveals/focuses the full File/Edit/View/Go/Tools/Help
+  menu bar without changing command taxonomy.
+- Scrollable tabs. A split pane owns any secondary local tab strip.
+- Flexible location/command field: breadcrumb for local files/folders, URL for
+  web, friendly identity for internal pages.
+- Undo, Redo, Save, layout overflow.
+- Windows controls on the right in Windows order; Linux follows the desktop
+  environment when server-side decorations are used.
+- Explicit drag regions between controls. Interactive controls are excluded
+  from drag hit testing.
 
 Does not contain:
 
-- Loaded mods, demo actions, document tools, Save status, AI grants.
+- Workspace modes, file-type modes, loaded mods, demo actions, contextual
+  document tools, Save status, or AI grants.
 
-### 2. Tab strip
+### Tab behaviour
 
 Job: identity and switching among all open locations.
 
@@ -78,42 +140,34 @@ Rules:
 - Close button appears on active/hovered tabs; keyboard focus always exposes it.
 - Overflow becomes a searchable tab list, grouped by window.
 
-### 3. Navigation row
+### Conditional navigation
 
 Job: location and navigation.
 
-Left:
+Back, Forward, and Reload/Stop appear at the leading edge of the location field
+only for web and folder tabs. Text, PDF, image, media, and project tabs do not
+pay for browser navigation they cannot use. Find is a Command Manager command
+for the active file type. Downloads progress appears in the status area and
+Downloads tab, not as a permanent button.
 
-- Back, Forward, Reload/Stop.
-
-Centre:
-
-- Omnibox with human-readable path/URL.
-- Breadcrumb mode for folders when not focused.
-
-Right:
-
-- Bookmark/Favourite where applicable.
-- Find.
-- Downloads progress.
-- Overflow menu.
-
-No permanent Home/Downloads/Settings button row. Those live in the New tab page, menus, palette, and optional user toolbar.
-
-### 4. Command Manager
+### 2. Command Manager
 
 Job: visible, context-relevant commands with stable placement.
 
 Structure:
 
-- 28 px tab row: workspace switcher, context tabs, spacer, **Follow/Pin**, customise overflow.
-- 44 px command row (Compact): grouped actions with separators.
-- Tab labels: Browse, Text, Office, PDF, Image, Draw, Video, Live. Only relevant/baseline tabs show; user-pinned custom tabs remain.
+- One 40 px row.
+- Active file-type context label at the left, followed by stable command groups.
+- **Following: Text / PDF / Image / Create** and **Pin** at the right.
+- Context choices may open from the context label for preview/customisation, but
+  no second permanent tab row exists.
+- The default context follows the active tab's file type automatically.
 
 Interpretation of "grey out, do not hide":
 
-- Commands in a selected/known tab remain in fixed slots and grey out.
-- Context tabs not relevant to the installed capability set need not all occupy the bar. They remain reachable through tab overflow and customisation.
+- Commands in the active/pinned context remain in fixed slots and grey out.
+- Other file-type contexts do not occupy permanent chrome. They remain
+  reachable through the context menu and customisation.
 - Disabled tooltip states cause and remedy: "Increase font size is unavailable: this image has no text layer."
 
 Pin model:
@@ -123,7 +177,7 @@ Pin model:
 - **Pin** is a labelled toggle adjacent to the status.
 - Pinned state reads **Pinned: Image** and survives tab changes.
 
-### 5. Work area
+### 3. Activity rail and work area
 
 Job: user content and supporting views.
 
@@ -139,13 +193,18 @@ Layout:
 
 Rules:
 
+- Rail entries open side panels only. Core entries: Files, Search, Project,
+  Assets, Settings. Extensions may add a destination only for a distinct panel.
+- CAD, Video, Audio, Code, and Paint are not rail entries merely because those
+  file types exist.
+- Rail modes: expanded 188 px, collapsed 40 px, auto-hide, hidden.
 - Sidebars push content.
 - Minimum content width is 480 px. Below it, only one sidebar may be open; opening another replaces the current sidebar.
 - Bottom panel pushes content upward.
 - Sidebar/panel headers contain title, tab switch if needed, More, Close.
 - Detached panels are owned windows and never always-on-top by default.
 
-### 6. Status bar
+### 4. Status bar
 
 Job: glanceable state and panel entry points.
 
@@ -241,6 +300,11 @@ S-key style popup is optional and unbound by default. Users may bind it to palet
 
 ### Focus rules
 
+- Unified-title-bar focus order is menu, tabs, conditional navigation,
+  location/command field, Undo, Redo, Save, layout overflow, then window
+  controls where the platform exposes them to web content.
+- Alt focuses/reveals the canonical menu; arrow keys traverse menus and tabs.
+- Every icon-only rail/title action has an accessible name and tooltip.
 - Opening a docked sidebar does not steal focus unless invoked for immediate input (e.g. AI chat command).
 - Closing a sidebar/panel returns focus to the originating control/content.
 - Palette remembers and restores focus.
@@ -268,7 +332,11 @@ S-key style popup is optional and unbound by default. Users may bind it to palet
 
 ### Screen readers
 
-- Regions have landmarks and names: Tabs, Navigation, Command Manager, Left sidebar, Document, Right sidebar, Bottom panel, Status.
+- Regions have landmarks and names: Window navigation, Tabs, Location,
+  Command Manager, Activity rail, Left sidebar, Document, Right sidebar,
+  Bottom panel, Status.
+- The custom title bar exposes separate named landmarks for menu, tabs, and
+  location even though they share one visual row.
 - Tabs use `tablist`/`tab`/`tabpanel`.
 - Disabled reasons use `aria-describedby`.
 - Save/LIVE/record/progress state changes use polite live regions; errors use assertive only when immediate action is required.
@@ -333,7 +401,11 @@ No application modal is introduced for confirmation. Recoverable destructive act
 
 - Use Segoe UI Variable when available; system UI fallback elsewhere.
 - Respect system accent and light/dark preference.
-- Use familiar Windows menus, shortcuts, window controls, drag regions, and density.
+- Use familiar Windows menus, shortcuts, right-aligned minimise/maximise/close,
+  snap-layout-compatible maximise behaviour, drag regions, and density.
+- Linux defaults to server-side decorations when required by the compositor.
+  With client-side decorations, control side/order follow the desktop setting;
+  never hard-code Windows controls on Linux.
 - Keep Unibrowser's workstation character: squared content frames, compact Command Manager, restrained radii, no pervasive acrylic or oversized cards.
 - Linux uses the same information architecture with system font and window decoration.
 

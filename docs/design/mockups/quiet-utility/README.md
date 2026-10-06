@@ -13,6 +13,20 @@ in each filename.
 | `new-tab.html` | `new-tab.png` | 1280x800 | Recents and active downloads |
 | `multimodal-workshop.html` | `multimodal-workshop.png` | 1280x800 | Dense CAD, code, timeline, Problems, inspector |
 | `multimodal-workshop-wide.html` | `multimodal-workshop-wide.png` | 1920x1080 | Wide multimodal layout with Layers and scopes |
+| `chrome-before-after.html` | `chrome-before-after.png` | 1280x800 | Annotated 176 px to 80 px chrome comparison |
+
+Run `./render.sh` to regenerate all PNGs with an isolated Chromium profile.
+
+## Accepted chrome
+
+- 40 px unified custom title bar: menu, tabs, location/command field, global
+  actions, drag region, platform window controls.
+- 40 px Command Manager: one file-type context, commands, Follow/Pin.
+- 80 px expanded budget; 40 px when the manager is collapsed.
+- 40 px collapsed activity rail with Lucide icons. Expanded, auto-hide, and
+  hidden are preferences. The rail opens panels only.
+- No Browse/Text/Create/Live switcher. Saved layouts live in View > Workspaces
+  and the palette.
 
 ## Drift review
 
@@ -30,13 +44,14 @@ The set passes the applicable drift checklist:
 
 Weakest areas:
 
-1. The rail labels are correct in placement and density but the HTML studies do
-   not yet include the final Lucide glyph for every destination.
-2. The synthetic CAD viewport proves hierarchy and density, not rendering
+1. The synthetic CAD viewport proves hierarchy and density, not rendering
    quality or actual DXF interaction.
-3. The light document AI transcript is intentionally sparse. Real conversation
+2. The light document AI transcript is intentionally sparse. Real conversation
    content will need careful density testing so it does not become a bubble
    feed or compete with the document.
+3. A 40 px title bar is sufficient at 100% scaling, but 150-200% Windows
+   scaling and Linux client-side decoration metrics remain implementation
+   acceptance tests.
 
 The concept references are direction only. These mockups deliberately remove
 their large rounded chat bubbles, glossy toggles, and decorative softness.

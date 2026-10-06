@@ -47,9 +47,12 @@ What this language takes from them:
 
 - A dark slate shell frames the work without making every document dark.
 - Text, PDF, and office documents may sit on a warm off-white working surface.
-- A slim, labelled left workspace rail gives stable access to Files, Search,
-  Project, 3D/CAD, Video, Audio, Code, Paint, Assets, and Settings.
-- The compact top bar carries workspace switching and one primary Save action.
+- A slim activity rail opens supporting panels only: Files, Search, Project,
+  Assets, Settings, and genuine contributed panels.
+- One compact title-bar row carries tabs, location/command access, global
+  document actions, and platform window controls.
+- The active file type is the only command context authority. There is no
+  permanent Browse/Text/Create/Live switcher.
 - AI is a docked right work region with AI Assistant, Tools, and Assets tabs.
 - Dense multimodal work uses clear dock headers, joined panes, numeric
   inspector fields, restrained sliders, a timeline, and a slim status bar.
@@ -267,13 +270,16 @@ renders consistently on Windows and Linux. It is not used as decoration.
 ### Density
 
 - Base spacing unit: 4 px.
-- Menus and tab rows: 28 to 34 px.
+- Unified title bar: 40 px.
+- Command Manager: one 40 px row (48 px Comfortable).
+- Total chrome above content: 80 px Compact; 40 px with Command Manager
+  collapsed.
 - Standard controls: 30 px; compact controls: 26 px.
-- Navigation row: 40 px; dock header: 36 px; status bar: 24 px.
+- Dock header: 36 px; status bar: 24 px.
 - List rows: 30 to 34 px; selected rows may expand to 44 to 56 px for detail.
 - Sidebars: 256 px left, 320 px right by default.
-- Workspace rail: 58 px at 1280, 64 px at 1440+, with 16 px icon, visible
-  11 to 12 px label, and 44 to 50 px item height.
+- Activity rail: 40 px collapsed, 188 px expanded, or auto-hidden; 16 px Lucide
+  icons and 12 px labels in expanded mode.
 - Content padding: 12 to 16 px for tools, 20 to 24 px for settings pages.
 - A 1280x800 document view must show the document, its primary tools, at least
   eight problem rows when the panel is open, and the AI composer when docked.
@@ -330,6 +336,10 @@ A reviewer must be able to answer yes to every applicable item:
     UI?
 14. Would a user plausibly say "of course that is where it is" rather than
     notice the styling?
+15. Is there exactly one visible file-type context authority, with the rail
+    limited to side-panel destinations and saved layouts absent from permanent
+    chrome?
+16. Does expanded chrome above content stay within 80 px in Compact density?
 
 ## Review requirement
 

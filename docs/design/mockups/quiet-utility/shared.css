@@ -71,9 +71,205 @@ button {
   color: var(--text-1);
 }
 
+.titlebar,
+.command-manager {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: #e9edef;
+  border-bottom: 1px solid #344451;
+  background: #172532;
+}
+
+.titlebar {
+  gap: 2px;
+  padding-left: 4px;
+  -webkit-app-region: drag;
+}
+
+.titlebar button,
+.titlebar [role="tab"],
+.command-manager button {
+  -webkit-app-region: no-drag;
+}
+
+.title-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  flex: 0 0 30px;
+  color: #d5dfe4;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  place-items: center;
+}
+
+.title-icon:hover {
+  border-color: #435461;
+  background: #20313e;
+}
+
+.app-menu {
+  margin-right: 2px;
+}
+
+.title-tabs {
+  display: flex;
+  align-self: stretch;
+  min-width: 170px;
+  max-width: 43%;
+  overflow: hidden;
+}
+
+.title-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 112px;
+  max-width: 190px;
+  padding: 0 8px;
+  flex: 1 1 160px;
+  color: #bdc8ce;
+  border-right: 1px solid #344451;
+}
+
+.title-tab > span:not(.close) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title-tab.active {
+  color: #f2f5f6;
+  background: #21313f;
+  box-shadow: inset 0 2px 0 #79b1c9;
+}
+
+.title-tab .svg-icon {
+  flex: 0 0 16px;
+}
+
+.title-tab .close {
+  margin-left: auto;
+  color: #aebbc1;
+}
+
+.command-centre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 160px;
+  max-width: 480px;
+  height: 30px;
+  margin: 0 4px;
+  padding: 0 10px;
+  flex: 1;
+  overflow: hidden;
+  color: #e9edef;
+  border: 1px solid #435461;
+  border-radius: 4px;
+  background: #20313e;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.command-centre .crumb-muted {
+  overflow: hidden;
+  color: #aebbc1;
+  text-overflow: ellipsis;
+}
+
+.title-save {
+  height: 28px;
+  margin-inline: 2px;
+}
+
+.drag-region {
+  min-width: 12px;
+  flex: 1 1 36px;
+  align-self: stretch;
+}
+
+.window-controls {
+  display: flex;
+  align-self: stretch;
+  margin-left: auto;
+}
+
+.window-controls button {
+  width: 40px;
+  color: #d5dfe4;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
+}
+
+.window-controls button:hover {
+  background: #2b3d4b;
+}
+
+.window-controls button:last-child:hover {
+  color: #fff;
+  background: #a33b32;
+}
+
+.command-manager {
+  gap: 2px;
+  padding: 4px 6px;
+  background: #172532;
+}
+
+.context-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  color: #f2f5f6;
+  border: 0;
+  border-radius: 4px;
+  background: #213747;
+  box-shadow: inset 0 -2px 0 #79b1c9;
+  font-weight: 600;
+}
+
+.command-manager .tool {
+  height: 30px;
+  color: #e9edef;
+}
+
+.command-manager .tool:hover {
+  border-color: #435461;
+  background: #20313e;
+}
+
+.command-manager .follow {
+  margin-left: 0;
+  color: #bdc8ce;
+}
+
+.pin-button {
+  height: 28px;
+  padding: 0 8px;
+  color: #d7e8f0;
+  border: 1px solid #435461;
+  border-radius: 4px;
+  background: #20313e;
+}
+
+.collapse-manager {
+  width: 26px;
+  height: 28px;
+  flex-basis: 26px;
+}
+
 .app {
   display: grid;
-  grid-template-rows: 30px 34px 40px 28px 44px minmax(0, 1fr) 24px;
+  grid-template-rows: 40px 40px minmax(0, 1fr) 24px;
   width: 1280px;
   height: 800px;
   background: var(--base);
@@ -128,8 +324,8 @@ button {
 
 .workspace-rail {
   display: flex;
-  width: 58px;
-  flex: 0 0 58px;
+  width: 40px;
+  flex: 0 0 40px;
   flex-direction: column;
   color: #c6d0d5;
   border-right: 1px solid #344451;
@@ -141,10 +337,14 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 50px;
-  gap: 2px;
+  width: 40px;
+  height: 40px;
+  gap: 0;
   flex-direction: column;
   color: #c6d0d5;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   font-size: 12px;
   line-height: 14px;
 }
@@ -167,6 +367,24 @@ button {
 
 .rail-destination.settings {
   margin-top: auto;
+}
+
+.workspace-rail .svg-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.75;
+}
+
+.rail-label {
+  display: none;
+}
+
+.rail-collapse {
+  margin-top: auto;
+}
+
+.rail-collapse + .settings {
+  margin-top: 0;
 }
 
 .ai-tabs {
@@ -1066,7 +1284,7 @@ body.wide .app {
 }
 
 body.wide .app {
-  grid-template-rows: 32px 34px 40px 28px 44px minmax(0, 1fr) 24px;
+  grid-template-rows: 40px 40px minmax(0, 1fr) 24px;
 }
 
 .multimodal-grid {

@@ -35,7 +35,8 @@ Work:
 
 Acceptance:
 
-- First 106 px contain title/menu, tabs, navigation only.
+- This cleanup remains valid, but Batch 1 chrome geometry is explicitly
+  temporary and will be replaced by UI-07.
 - No debug/demo text in default shell.
 - Every removed action remains reachable through a canonical command.
 
@@ -97,7 +98,7 @@ Screenshot:
 
 - Annotated 1280 shell-region screenshot in light/dark.
 
-### UI-04: Menus and canonical navigation row
+### UI-04: Canonical menus and title-bar command model
 
 Likely files:
 
@@ -108,9 +109,14 @@ Likely files:
 
 Work:
 
-- Add File/Edit/View/Go/Tools/Help commands.
-- Navigation row: Back, Forward, Reload/Stop, omnibox, Find, Downloads, overflow.
+- Keep File/Edit/View/Go/Tools/Help as the canonical taxonomy.
+- Add a compact menu button for the future unified title bar while retaining
+  full Alt-key menu access and arrow-key traversal.
+- Define title-bar global commands: Undo, Redo, Save, layout overflow.
+- Keep Back, Forward, Reload/Stop conditional to web and folder tabs.
 - Move Home/Settings/Mods/Layout actions into menus and palette.
+- Put saved layouts under View > Workspaces and the palette; do not add a
+  permanent workspace switcher.
 - Keep Windows/Linux menu conventions.
 
 Acceptance:
@@ -118,6 +124,8 @@ Acceptance:
 - No duplicated action appears in permanent chrome.
 - All menu entries execute registry commands.
 - Alt/menu keyboard access works.
+- Windows and Linux window controls, drag regions, and focus order remain
+  platform-correct.
 
 Screenshot:
 
@@ -125,7 +133,7 @@ Screenshot:
 
 ## Phase B: Command Manager and tab/navigation clarity
 
-### UI-05: Rebuild Command Manager frame
+### UI-05: Rebuild Command Manager as one contextual row
 
 Likely files:
 
@@ -136,16 +144,21 @@ Likely files:
 
 Work:
 
-- Separate 28 px context-tab row from 44 px commands.
+- Replace the separate context-tab and command rows with one 40 px row.
+- Active file type selects the context automatically.
+- Put the context label at the left, commands next, and Follow/Pin at the right.
 - Add explicit Following/Pinned status and labelled Pin toggle.
 - Group commands; remove dashed debug container.
 - Prevent wrapping; horizontal scroll/overflow.
+- Remove the stray blank control after Find.
 
 Acceptance:
 
-- Manual tab click previews without pinning.
+- Context-menu selection previews without pinning.
 - Pin persists.
 - Slots do not shift when disabled.
+- No second context switcher is visible.
+- The row collapses completely with Ctrl+F1.
 
 Screenshot:
 
@@ -176,8 +189,9 @@ Screenshot:
 
 ### UI-06A: Restyle the Batch 1 shell foundation
 
-This ticket is required before UI-07. Batch 1 established the correct regions
-and interactions before the visual language was binding.
+Batch 1 established temporary regions before the visual language was binding.
+Its menu/tab/navigation/Command Manager frame is superseded by UI-07; do not
+polish that geometry further.
 
 Likely files:
 
@@ -192,7 +206,7 @@ Work:
 
 - Replace the Batch 1 token values with the Quiet Utility palette, Source Sans
   3 / Source Code Pro stacks, 4 to 6 px radius scale, and WCAG AA text roles.
-- Restyle menu, navigation, Command Manager, docked AI, buttons, inputs, and
+- Restyle non-chrome shared surfaces, docked AI, panels, buttons, inputs, and
   status bar as joined workbench regions.
 - Replace ad hoc text/symbol icons with Lucide at the specified sizes.
 - Remove shadows from docked regions and redundant borders between adjacent
@@ -212,34 +226,61 @@ Screenshot:
 
 - Text document at 1280x800 with Command Manager and docked AI in light and dark.
 
-### UI-07: Tab strip and omnibox
+### UI-07: Unified compact title bar and activity rail
 
-**Visual-language impact:** Revised. Use Source Sans 3, 4 px exposed tab corners, workbench surfaces, visible input boundaries, and Lucide 16 px icons.
+**Visual-language impact:** Replaces Batch 1 chrome. One file-type context,
+two rows above content, Lucide activity rail, no permanent workspace switcher.
 
 Likely files:
 
-- tab rendering in `src/main.ts`
+- shell/title-bar rendering in `src/main.ts`
+- `src/appMenu.ts`
+- `src/commandManager.ts`
 - `src/styles.css`
 - omnibox suggestion module
+- window decoration / platform integration
 
 Work:
 
-- Apply tab dimensions/states.
-- Add file/folder/web/project icons.
-- Dirty/pinned/audio/LIVE redundancy.
-- Breadcrumb display for local paths; full path on focus.
-- Add tab overflow/search.
+- Merge compact menu access, tabs, conditional browser navigation,
+  location/command field, Undo/Redo/Save, layout overflow, drag regions, and
+  platform window controls into one 40 px custom title-bar row.
+- Keep full keyboard menus: Alt reveals/focuses
+  File/Edit/View/Go/Tools/Help.
+- Use one 40 px Command Manager row below it. Context label and commands share
+  the row; Follow/Pin stays at the right.
+- Active file type automatically selects the context. Remove the permanent
+  Browse/Text/Create/Live switcher.
+- Restrict the left rail to Files, Search, Project, Assets, Settings, and
+  installed views that open a genuinely distinct panel. Remove CAD/Video/
+  Audio/Code/Paint mode entries.
+- Add Lucide rail icons and Expanded (188 px), Collapsed (40 px), Auto-hide,
+  and Hidden options.
+- Put saved layouts in View > Workspaces and the palette.
+- Preserve dirty/pinned/audio/LIVE redundancy, tab search, breadcrumb/full-path
+  editing, and secure origin identity.
+- Back/Forward/Reload appear only for folder and web tabs.
+- Ensure split panes own local secondary tabs instead of forcing all pane tabs
+  into the window title bar.
 
 Acceptance:
 
+- Expanded Compact chrome is exactly 80 px above content; collapsed is 40 px.
 - 12 tabs remain operable at 1280.
 - Keyboard tab movement and close work.
 - Local path and URL identities are unambiguous.
+- No overlapping context switcher exists.
+- Rail switching changes a panel, never the active file context or layout.
+- Windows 11 and Linux controls, snap/maximise behaviour, drag regions,
+  screen-reader names, and focus order pass.
+- Chrome never covers content.
 - Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
-- Mixed tabs: folder, PDF, web, `.unibrow`, dirty text.
+- Mixed tabs at 1280 with Text context and collapsed rail; folder tab showing
+  navigation; expanded/auto-hidden rail states; Windows and Linux variants.
+- Annotated before/after chrome-height comparison.
 
 ### UI-08: Full command palette
 
@@ -450,7 +491,7 @@ Likely files:
 Work:
 
 - Sources left, preview centre, Inspector right, timeline bottom.
-- Workspace switch without closing/changing tabs.
+- Saved-layout switch from View/palette without closing/changing tabs.
 - Keep the one global primary Save distinct from contextual Export.
 
 Acceptance:
@@ -521,7 +562,7 @@ Screenshot:
 
 ## Phase E: customisation, accessibility, polish
 
-### UI-18: Workspace/layout customisation
+### UI-18: Saved layout customisation
 
 **Visual-language impact:** Revised. Docking targets are functional overlays, with no decorative glow, glass, or oversized rounded drop zones.
 
@@ -536,6 +577,7 @@ Work:
 
 - Explicit edit mode, drag handles, docking overlays.
 - Named layouts and import/export management.
+- View > Workspaces and palette entry; no permanent switcher.
 - Monitor-loss recovery.
 
 Acceptance:

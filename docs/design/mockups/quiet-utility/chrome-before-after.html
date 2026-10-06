@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <title>Unibrowser chrome height comparison</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body { background: #e7e5df; }
+    .comparison {
+      width: 1280px;
+      height: 800px;
+      padding: 30px 38px;
+      color: #202223;
+      background: #f1f0ec;
+    }
+    .comparison h1 { margin: 0 0 4px; font-size: 26px; line-height: 32px; }
+    .comparison > p { margin: 0 0 22px; color: #4b5052; }
+    .example {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) 72px;
+      margin-bottom: 30px;
+      align-items: start;
+    }
+    .example h2 { margin: 0; font-size: 18px; line-height: 24px; }
+    .example h2 span { display: block; color: #62686a; font-size: 13px; font-weight: 400; }
+    .bars { border: 1px solid #344451; background: #172532; }
+    .bar {
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      color: #e9edef;
+      border-bottom: 1px solid #344451;
+      font-size: 12px;
+    }
+    .bar:last-child { border-bottom: 0; }
+    .b30 { height: 30px; } .b34 { height: 34px; } .b40 { height: 40px; }
+    .b28 { height: 28px; } .b44 { height: 44px; }
+    .bar em { margin-left: auto; color: #9fb0b8; font-style: normal; }
+    .after .bar { height: 40px; }
+    .after .bar:first-child { background: #172532; }
+    .after .bar:last-child { background: #1d2c38; }
+    .measure {
+      position: relative;
+      margin-left: 18px;
+      color: #2d647d;
+      font: 600 13px/18px "Source Sans 3", sans-serif;
+      text-align: center;
+    }
+    .measure::before {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -8px;
+      width: 7px;
+      border-top: 2px solid #2d647d;
+      border-right: 2px solid #2d647d;
+      border-bottom: 2px solid #2d647d;
+      content: "";
+    }
+    .before .measure { height: 176px; padding-top: 72px; }
+    .after .measure { height: 80px; padding-top: 30px; }
+    .budget {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin: 28px 150px 0;
+      border: 1px solid #c8c6bf;
+      background: #c8c6bf;
+    }
+    .budget div { padding: 14px 16px; background: #faf9f6; }
+    .budget strong { display: block; color: #2d647d; font-size: 20px; line-height: 26px; }
+    .note { margin: 22px 150px 0; color: #4b5052; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="comparison">
+    <h1>Top chrome: Batch 1 to compact workbench</h1>
+    <p>1280 x 800 reference, CSS pixels at 100% scaling</p>
+
+    <section class="example before">
+      <h2>Before<span>Five permanent rows</span></h2>
+      <div class="bars">
+        <div class="bar b30">Menu + workspace switcher + global actions <em>30 px</em></div>
+        <div class="bar b34">Tabs <em>34 px</em></div>
+        <div class="bar b40">Navigation + omnibox <em>40 px</em></div>
+        <div class="bar b28">Command Manager contexts <em>28 px</em></div>
+        <div class="bar b44">Command Manager commands <em>44 px</em></div>
+      </div>
+      <div class="measure">176 px</div>
+    </section>
+
+    <section class="example after">
+      <h2>After<span>Two purposeful rows</span></h2>
+      <div class="bars">
+        <div class="bar">Menu + tabs + location/command + Save + window controls <em>40 px</em></div>
+        <div class="bar">File-type context + contextual commands + Follow/Pin <em>40 px</em></div>
+      </div>
+      <div class="measure">80 px</div>
+    </section>
+
+    <div class="budget">
+      <div><strong>96 px</strong>returned to content</div>
+      <div><strong>54.5%</strong>less expanded chrome</div>
+      <div><strong>40 px</strong>with tools collapsed</div>
+    </div>
+    <p class="note">The activity rail is separate: 40 px collapsed, 188 px expanded, or auto-hidden. It opens panels only and never changes file context or saved layout.</p>
+  </main>
+</body>
+</html>
