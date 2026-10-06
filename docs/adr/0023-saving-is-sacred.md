@@ -7,6 +7,17 @@
 
 Bear’s product principles: FOSS users and everyday users want the same thing — easy, predictable, local-first software. Nothing may hold the user’s work hostage behind validation, diagnostics, or “fix this first” gates. Cloud accounts and hosted autosave are out of scope.
 
+## Principles check
+
+| Check | Answer |
+| --- | --- |
+| Trusts the user | Yes — user owns files; autosave is sidecar only |
+| Never blocks save or work | Yes — core of this ADR |
+| Local-first | Yes — rotating slots on disk, no cloud |
+| Predictable across formats | Yes — same save posture for text, projects, settings |
+| Simple durable mechanism | Yes — temp + rename, timer, slot files |
+| Mod not core | N/A — fundamental host IO policy |
+
 ## Decision
 
 ### 1. Nothing blocks Save

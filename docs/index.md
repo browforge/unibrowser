@@ -64,6 +64,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 
 ADRs are numbered in `docs/adr/`. Read the ones that touch your area before large changes. New ADRs: copy [0000-template.md](adr/0000-template.md) (includes **Principles check** aligned with [principles.md](principles.md)).
 
+| [0000](adr/0000-template.md) | ADR template (+ Principles check) | Use for new ADRs |
 | ADR | Title | Implemented (blitz) |
 | --- | --- | --- |
 | [0001](adr/0001-shell-and-rendering.md) | Shell and rendering | `crates/unibrowser-desktop`, [architecture.md](architecture.md) |
