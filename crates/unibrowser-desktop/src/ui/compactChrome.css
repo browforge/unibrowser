@@ -245,8 +245,14 @@
   border-top: 0;
 }
 
-body.cm-collapsed #command-manager {
-  display: none;
+body.cm-collapsed #chrome #command-manager.command-manager {
+  display: none !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
 }
 
 .context-label {

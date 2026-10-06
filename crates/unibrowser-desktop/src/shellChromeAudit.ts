@@ -83,7 +83,18 @@ export function runShellChromeAudit(): string[] {
 
   const heights = measureChromeHeights();
   const density = document.body.dataset.cmDensity;
-  if (!heights.cmCollapsed && density === "compact") {
+  if (heights.cmCollapsed) {
+    if (heights.commandManagerPx !== 0) {
+      errors.push(
+        `cm-collapsed but command manager still measures ${heights.commandManagerPx}px tall`,
+      );
+    }
+    if (heights.totalChromePx < 38 || heights.totalChromePx > 42) {
+      errors.push(
+        `collapsed chrome height ${heights.totalChromePx}px (expected ~40px title bar only)`,
+      );
+    }
+  } else if (density === "compact") {
     if (heights.totalChromePx < 78 || heights.totalChromePx > 82) {
       errors.push(
         `compact chrome height ${heights.totalChromePx}px (title ${heights.titleBarPx}px, cm ${heights.commandManagerPx}px) outside 78-82px budget`,

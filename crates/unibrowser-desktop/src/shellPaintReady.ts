@@ -88,7 +88,14 @@ function docViewerReady(): boolean {
   if (!host || host.classList.contains("hidden")) {
     return false;
   }
-  return host.querySelector(".docx-reader, .pdf-page, .viewer-note, section") !== null;
+  if (
+    host.querySelector(
+      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .viewer-note, section",
+    )
+  ) {
+    return true;
+  }
+  return host.childElementCount > 0 && host.textContent.trim().length > 0;
 }
 
 function problemsReady(): boolean {
@@ -183,6 +190,32 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
 
   if (checks.length === 0) {
     checks.push(() => document.querySelector("#shell-root, #app-shell, body") !== null);
+  }
+  if (tokens.includes("cm-collapsed")) {
+    return [
+      () => {
+        const title = document.getElementById("title-bar");
+        const chrome = document.getElementById("chrome");
+        if (!title || !chrome) {
+          return false;
+        }
+        const collapsed = document.body.classList.contains("cm-collapsed");
+        const chromeH = chrome.getBoundingClientRect().height;
+        if (collapsed) {
+          return chromeH >= 38 && chromeH <= 42;
+        }
+        return title.getBoundingClientRect().height >= 38;
+      },
+    ];
+  }
+  if (joined.includes(".pdf")) {
+    return [
+      () => {
+        const host = document.getElementById("document-viewer-host");
+        return Boolean(host && !host.classList.contains("hidden"));
+      },
+      docViewerReady,
+    ];
   }
   return checks;
 }
