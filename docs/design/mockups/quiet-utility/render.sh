@@ -42,5 +42,7 @@ render "pdf-annotation.html?density=compact" "pdf-command-compact.png" "1280,800
 render "pdf-annotation.html?density=large" "pdf-command-large.png" "1280,800"
 render "multimodal-workshop.html?wide=1&density=compact" "cad-command-compact-wide.png" "1920,1080"
 render "multimodal-workshop.html?wide=1&density=large" "cad-command-large-wide.png" "1920,1080"
+render "command-system-gallery.html" "command-system-gallery-light.png" "1920,1080"
+render "command-system-gallery.html?theme=dark" "command-system-gallery-dark.png" "1920,1080"
 
 echo "Rendered Quiet Utility mockups in $ROOT"

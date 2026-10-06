@@ -14,6 +14,7 @@ in each filename.
 | `multimodal-workshop.html` | `multimodal-workshop.png` | 1280x800 | Dense CAD, code, timeline, Problems, inspector |
 | `multimodal-workshop-wide.html` | `multimodal-workshop-wide.png` | 1920x1080 | Wide multimodal layout with Layers and scopes |
 | `chrome-before-after.html` | `chrome-before-after.png` | 1280x800 | Annotated 176 px to 80 px chrome comparison |
+| `command-system-gallery.html` | `command-system-gallery-light.png`, `command-system-gallery-dark.png` | 1920x1080 | Control states, stable text family, and mod toolbar |
 
 Command Manager density studies:
 

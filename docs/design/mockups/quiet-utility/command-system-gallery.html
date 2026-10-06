@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, initial-scale=1">
+  <title>Unibrowser Command System component sheet</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    html, body { width: 1920px; height: 1080px; }
+    body { padding: 28px 34px; }
+    body.dark { background: var(--base); }
+    .sheet { display: grid; grid-template-rows: auto 286px 356px 260px; gap: 18px; height: 100%; }
+    .sheet-head { display: flex; align-items: end; gap: 20px; }
+    .sheet-head h1 { margin: 0; font-size: 26px; line-height: 32px; }
+    .sheet-head p { margin: 0 0 2px; color: var(--text-2); }
+    .sheet-head .tag { margin-left: auto; border: 1px solid var(--border); background: var(--panel); border-radius: 4px; padding: 5px 9px; font-size: 12px; color: var(--text-2); }
+    .panel-sheet { border: 1px solid var(--border); background: var(--panel); min-width: 0; overflow: hidden; }
+    .section-head { height: 38px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--border); background: var(--well); }
+    .section-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+    .section-head span { color: var(--text-3); font-size: 12px; }
+    .gallery { display: grid; grid-template-columns: repeat(4, 1fr); height: calc(100% - 38px); }
+    .state-column { padding: 12px; border-right: 1px solid var(--border); min-width: 0; }
+    .state-column:last-child { border-right: 0; }
+    .state-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 600; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .dot.emulated { background: transparent; border: 2px dotted var(--accent); }
+    .dot.unsupported { background: var(--text-3); }
+    .dot.hidden-state { background: transparent; border: 1px dashed var(--border-strong); }
+    .control-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }
+    .control { display: inline-flex; height: 30px; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid var(--border); border-radius: 4px; background: var(--control); color: var(--text-1); font-size: 12px; white-space: nowrap; }
+    .control.icon-only { width: 30px; justify-content: center; padding: 0; }
+    .control.toggle.on { background: var(--selected); border-color: var(--accent); }
+    .control.unsupported { color: var(--text-3); background: var(--well); }
+    .control.emulated { position: relative; }
+    .control.emulated::after { content: ""; position: absolute; right: 3px; top: 3px; width: 5px; height: 5px; border: 1px dotted var(--accent); border-radius: 50%; }
+    .control .caret { border-left: 1px solid var(--border); margin-left: 2px; padding-left: 7px; }
+    .control.large { height: 52px; min-width: 58px; flex-direction: column; justify-content: center; gap: 2px; }
+    .control.segmented { padding: 0; overflow: hidden; gap: 0; }
+    .control.segmented span { padding: 5px 8px; border-right: 1px solid var(--border); }
+    .control.segmented span:last-child { border-right: 0; }
+    .control.segmented .active { background: var(--selected); }
+    .swatch { width: 14px; height: 14px; background: #a33b32; border: 1px solid var(--border-strong); }
+    .tooltip-note { margin-top: 9px; padding: 8px 9px; border: 1px solid var(--border); border-radius: 4px; background: var(--well); font-size: 11px; line-height: 15px; color: var(--text-2); }
+    .hidden-slot { height: 30px; display: flex; align-items: center; border: 1px dashed var(--border-strong); color: var(--text-3); padding: 0 9px; font-size: 12px; }
+    .contexts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 12px; height: calc(100% - 38px); }
+    .context-card { border: 1px solid var(--border); background: var(--base); min-width: 0; }
+    .context-title { height: 34px; display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--border); background: var(--well); font-weight: 600; }
+    .context-title span { margin-left: auto; color: var(--text-3); font-size: 11px; font-weight: 400; }
+    .family { display: grid; grid-template-columns: 64px 1fr; min-height: 164px; }
+    .family-name { padding: 10px 8px; color: var(--text-2); font-size: 11px; border-right: 1px solid var(--border); }
+    .family-groups { display: flex; min-width: 0; overflow: hidden; }
+    .family-group { padding: 9px 8px 5px; border-right: 1px solid var(--border); min-width: 0; }
+    .family-group:last-child { border-right: 0; }
+    .family-tools { display: flex; gap: 4px; align-items: center; min-height: 31px; }
+    .family-tools .control { padding: 0 7px; }
+    .family-tools .control.icon-only { padding: 0; }
+    .group-name { display: block; margin-top: 8px; text-align: center; font-size: 10px; color: var(--text-3); }
+    .context-foot { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--border); color: var(--text-2); font-size: 11px; }
+    .legend-mark { border: 1px dotted var(--accent); border-radius: 50%; width: 7px; height: 7px; }
+    .mod-area { display: grid; grid-template-columns: 1.35fr .65fr; gap: 12px; padding: 12px; height: calc(100% - 38px); }
+    .toolbar-window { border: 1px solid var(--border-strong); background: var(--panel); box-shadow: 0 8px 20px rgba(25,22,16,.16); align-self: start; }
+    .toolbar-title { height: 30px; display: flex; align-items: center; padding: 0 9px; background: var(--well); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; }
+    .toolbar-title span { margin-left: auto; color: var(--text-3); font-weight: 400; }
+    .toolbar-content { display: flex; align-items: center; gap: 6px; padding: 9px; }
+    .manifest { margin: 0; padding: 10px 12px; font: 11px/15px var(--font-mono); color: var(--text-2); white-space: pre-wrap; background: var(--well); border: 1px solid var(--border); }
+    .guardrails { display: grid; gap: 7px; }
+    .guardrail { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+    .check { color: var(--success); font-weight: 700; }
+    .icon { font-family: var(--font-mono); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <script>if (new URLSearchParams(location.search).get("theme") === "dark") document.body.classList.add("dark");</script>
+  <main class="sheet">
+    <header class="sheet-head">
+      <div>
+        <h1>Command System / component and capability gallery</h1>
+        <p>Quiet Utility. Stable controls, honest support, host-rendered extension.</p>
+      </div>
+      <span class="tag">Command -> Control -> Group -> Family -> Tab -> Context</span>
+    </header>
+
+    <section class="panel-sheet">
+      <div class="section-head"><h2>Control types and four capability states</h2><span>Geometry stays stable; state changes honestly.</span></div>
+      <div class="gallery">
+        <article class="state-column">
+          <div class="state-title"><span class="dot"></span>Supported</div>
+          <div class="control-row"><button class="control"><span class="icon">U</span>Undo</button><button class="control icon-only" aria-label="Bold"><b>B</b></button><button class="control toggle on"><b>B</b> Bold</button></div>
+          <div class="control-row"><button class="control"><span class="icon">T</span>14 pt<span class="caret">v</span></button><button class="control"><span class="swatch"></span>Colour<span class="caret">v</span></button></div>
+          <div class="control-row"><div class="control segmented"><span>L</span><span class="active">C</span><span>R</span></div><button class="control">Styles<span class="caret">v</span></button></div>
+          <div class="control-row"><button class="control large"><span class="icon">Aa</span><span>Gallery</span></button><button class="control large"><span class="icon">E</span><span>Export</span></button></div>
+        </article>
+        <article class="state-column">
+          <div class="state-title"><span class="dot emulated"></span>Emulated</div>
+          <div class="control-row"><button class="control emulated toggle on">x<sub>2</sub> Subscript</button><button class="control emulated">Underline</button></div>
+          <div class="control-row"><button class="control emulated"><span class="swatch"></span>Colour<span class="caret">v</span></button><button class="control emulated">12 pt<span class="caret">v</span></button></div>
+          <div class="tooltip-note"><strong>Subscript</strong><br>Approximated with font scaling.<br><span class="muted">Alt+Shift+=</span></div>
+        </article>
+        <article class="state-column">
+          <div class="state-title"><span class="dot unsupported"></span>Unsupported</div>
+          <div class="control-row"><button class="control unsupported" disabled><s>S</s> Strikethrough</button><button class="control unsupported" disabled>x<sup>2</sup> Superscript</button></div>
+          <div class="control-row"><button class="control unsupported" disabled><span class="swatch"></span>Colour<span class="caret">v</span></button><button class="control unsupported" disabled>Font<span class="caret">v</span></button></div>
+          <div class="tooltip-note"><strong>Strikethrough</strong><br>Plain text has no strikethrough formatting.<br><span class="muted">Save as Markdown to preserve it.</span></div>
+        </article>
+        <article class="state-column">
+          <div class="state-title"><span class="dot hidden-state"></span>Hidden by user / mixed</div>
+          <div class="hidden-slot">Strikethrough: hidden in this context</div>
+          <div class="control-row" style="margin-top:8px"><button class="control toggle">- Bold (Mixed)</button><button class="control">Mixed<span class="caret">v</span></button></div>
+          <div class="control-row"><button class="control"><span class="swatch" style="background:linear-gradient(135deg,#a33b32 50%,#2d647d 50%)"></span>Mixed colour</button></div>
+          <div class="tooltip-note">Hidden is a user customisation, never a provider response. Mixed is selection state and remains actionable.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel-sheet">
+      <div class="section-head"><h2>Trustworthy repetition: Text Formatting across contexts</h2><span>Same order and position; support changes, not geometry.</span></div>
+      <div class="contexts">
+        <article class="context-card">
+          <div class="context-title">Plain text (.txt)<span>Family default: unsupported formatting</span></div>
+          <div class="family">
+            <div class="family-name">Text<br>Formatting</div>
+            <div class="family-groups">
+              <div class="family-group"><div class="family-tools"><button class="control unsupported" disabled>Font</button><button class="control">14 pt<span class="caret">v</span></button></div><span class="group-name">Type</span></div>
+              <div class="family-group"><div class="family-tools"><button class="control unsupported icon-only" disabled>B</button><button class="control unsupported icon-only" disabled><i>I</i></button><button class="control unsupported icon-only" disabled><u>U</u></button><button class="control unsupported icon-only" disabled><s>S</s></button></div><span class="group-name">Emphasis</span></div>
+              <div class="family-group"><div class="family-tools"><button class="control unsupported icon-only" disabled>x<sub>2</sub></button><button class="control unsupported icon-only" disabled>x<sup>2</sup></button><button class="control unsupported icon-only" disabled><span class="swatch"></span></button></div><span class="group-name">Baseline / colour</span></div>
+            </div>
+          </div>
+          <div class="context-foot">Size changes editor display only. Strikethrough stays greyed in place.</div>
+        </article>
+        <article class="context-card">
+          <div class="context-title">Markdown (.md)<span>Direct + emulated</span></div>
+          <div class="family">
+            <div class="family-name">Text<br>Formatting</div>
+            <div class="family-groups">
+              <div class="family-group"><div class="family-tools"><button class="control unsupported" disabled>Font</button><button class="control">14 pt<span class="caret">v</span></button></div><span class="group-name">Type</span></div>
+              <div class="family-group"><div class="family-tools"><button class="control icon-only toggle on">B</button><button class="control icon-only"><i>I</i></button><button class="control emulated icon-only"><u>U</u></button><button class="control icon-only"><s>S</s></button></div><span class="group-name">Emphasis</span></div>
+              <div class="family-group"><div class="family-tools"><button class="control emulated icon-only">x<sub>2</sub></button><button class="control emulated icon-only">x<sup>2</sup></button><button class="control emulated icon-only"><span class="swatch"></span></button></div><span class="group-name">Baseline / colour</span></div>
+            </div>
+          </div>
+          <div class="context-foot"><span class="legend-mark"></span>Subscript approximated with font scaling or inline HTML.</div>
+        </article>
+        <article class="context-card">
+          <div class="context-title">Rich document (.docx)<span>Direct support + mixed selection</span></div>
+          <div class="family">
+            <div class="family-name">Text<br>Formatting</div>
+            <div class="family-groups">
+              <div class="family-group"><div class="family-tools"><button class="control">Source Sans<span class="caret">v</span></button><button class="control">Mixed<span class="caret">v</span></button></div><span class="group-name">Type</span></div>
+              <div class="family-group"><div class="family-tools"><button class="control icon-only toggle">-</button><button class="control icon-only"><i>I</i></button><button class="control icon-only"><u>U</u></button><button class="control icon-only"><s>S</s></button></div><span class="group-name">Emphasis</span></div>
+              <div class="family-group"><div class="family-tools"><button class="control icon-only">x<sub>2</sub></button><button class="control icon-only">x<sup>2</sup></button><button class="control icon-only"><span class="swatch" style="background:linear-gradient(135deg,#a33b32 50%,#2d647d 50%)"></span></button></div><span class="group-name">Baseline / colour</span></div>
+            </div>
+          </div>
+          <div class="context-foot">Bold and size expose mixed selection without moving controls.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel-sheet">
+      <div class="section-head"><h2>Mod-contributed toolbar</h2><span>Host-rendered, floatable, detachable, recoverable.</span></div>
+      <div class="mod-area">
+        <div>
+          <div class="toolbar-window">
+            <div class="toolbar-title">Acme CAD analysis <span>Monitor 2 / Detached</span></div>
+            <div class="toolbar-content">
+              <button class="control"><span class="icon">M</span>Measure</button>
+              <button class="control toggle on"><span class="icon">S</span>Section</button>
+              <button class="control emulated"><span class="icon">H</span>Heat map</button>
+              <button class="control">Tolerance<span class="caret">v</span></button>
+              <button class="control unsupported" disabled>Cloud solve</button>
+            </div>
+          </div>
+          <pre class="manifest">acme-cad-analysis@2.1
+extends: unibrowser.family.cad-analysis
+provider: acme-cad-analysis.selection
+permissions: selection.read, document.edit, ui.toolbar.detach
+placement: after unibrowser.family.measure
+overflow: custom / last</pre>
+        </div>
+        <div class="guardrails">
+          <div class="guardrail"><span class="check">OK</span> Host owns pixels, focus, menus, and placement.</div>
+          <div class="guardrail"><span class="check">OK</span> Missing licence greys controls with a reason.</div>
+          <div class="guardrail"><span class="check">OK</span> Monitor loss restores toolbar on-screen.</div>
+          <div class="guardrail"><span class="check">OK</span> Save and content remain unobstructed.</div>
+          <div class="guardrail"><span class="check">OK</span> Mod removal preserves orphaned layout IDs.</div>
+          <div class="tooltip-note"><strong>Cloud solve</strong><br>Unsupported: this provider has no network grant.<br>Saving the model remains available.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

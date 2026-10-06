@@ -662,3 +662,189 @@ Acceptance:
 Screenshot:
 
 - Final 1280 and 1600 shell matrix matching `mockups/context-matrix.png`.
+
+## Command System: CMD series
+
+These tickets implement [command-system.md](command-system.md) and
+[ADR 0027](../adr/0027-command-system-capabilities-and-extensibility.md).
+Order is architectural: registry/capability core, components, Command Manager
+rendering, mod API, then layout persistence.
+
+### CMD-01: Versioned command and capability core
+
+Work:
+
+- Add stable data types for Command, Control, Group, Family, Tab, and Context.
+- Add capability states: supported, emulated, unsupported, hidden-by-user.
+- Keep mixed selection orthogonal to capability.
+- Add context revision and stale-response rejection.
+- Adapt current Enabled/Disabled handlers without changing behaviour.
+- Prove that capability resolution cannot affect Save, Save As, autosave, or
+  recovery.
+
+Acceptance:
+
+- Resolver unit tests cover family defaults, per-control overrides, mixed
+  state, emulation notes, missing providers, and stale callbacks.
+- Unsupported results always carry a user-facing reason.
+- Existing command IDs and handlers continue to execute.
+
+### CMD-02: Provider resolution and conflict diagnostics
+
+Work:
+
+- Implement user/backend/mod/emulation provider precedence.
+- Add deterministic dependency, priority, and lexical tie-breaking.
+- Record considered providers and winner reason.
+- Add callback timeout, cancellation, failure fallback, and diagnostics.
+
+Acceptance:
+
+- Load order alone cannot change the winning provider.
+- Provider failure degrades to unsupported without blocking document input.
+- Conflict output identifies contribution IDs and remediation.
+
+### CMD-03: Host control component primitives
+
+Work:
+
+- Build host-rendered button, toggle, split button, dropdown, value stepper,
+  colour, gallery, segmented, menu button, and indicator-action components.
+- Add Compact/Large, icon/label, supported/emulated/unsupported, mixed, and
+  value variants.
+- Implement one tooltip/description contract for unsupported and emulated
+  states.
+
+Acceptance:
+
+- Component gallery matches the design sheet in light, dark, and high contrast.
+- No component permits arbitrary mod HTML or CSS.
+- Emulated and mixed states are readable without colour.
+
+### CMD-04: Keyboard, palette, and accessibility integration
+
+Work:
+
+- Add roving group focus, arrow/Home/End, Enter/Space, Alt+Down, and Escape.
+- Render the same resolved model in the command palette.
+- Expose roles, names, descriptions, shortcuts, mixed values, emulation notes,
+  and unsupported reasons.
+- Preserve Ctrl+Shift+P; allow user-defined S binding.
+
+Acceptance:
+
+- Every visible control is reachable by keyboard and palette.
+- Unsupported controls explain but do not execute.
+- Screen-reader checks announce emulated, unsupported, and mixed states.
+
+### CMD-05: Family and group composition
+
+Work:
+
+- Define core Text Formatting, History, Find, Proofing, and Export families or
+  groups with canonical order and extension points.
+- Add text family context defaults for plain text, Markdown, rich document,
+  and code.
+- Add PDF Annotation, Image, and CAD/3D family definitions.
+
+Acceptance:
+
+- The same family retains order across all worked contexts.
+- Strikethrough remains visible and unsupported in plain text.
+- Markdown Subscript resolves emulated with its approximation note.
+
+### CMD-06: Command Manager resolved rendering
+
+Work:
+
+- Replace slot-as-button rendering with ResolvedControl rendering.
+- Keep context, Following/Pin, family/group order, and complete-group overflow.
+- Implement the `14 pt` value stepper from registry state.
+- Keep unsupported controls greyed in place.
+
+Acceptance:
+
+- No wrapping or third row at 800, 1024, 1280, and 1600 px.
+- Complete groups/families enter overflow in deterministic order.
+- Component positions do not shift when support or selection changes.
+
+### CMD-07: Mod contribution manifest schema
+
+Work:
+
+- Add versioned optional `contributes` metadata for commands, controls, groups,
+  families, tabs, toolbars, extension points, and capability providers.
+- Validate namespaces, IDs, references, insertion constraints, and schema
+  compatibility before loading payload callbacks.
+- Keep manifest declarative and executable behaviour in native/WASM payloads.
+
+Acceptance:
+
+- Invalid contributions isolate safely and do not prevent unrelated mods or
+  the shell from loading.
+- Core `unibrowser.*` namespace cannot be claimed by mods.
+- Schema migration and compatibility fixtures cover current manifests.
+
+### CMD-08: Runtime mod capability and emulation API
+
+Work:
+
+- Add versioned runtime callbacks for family/control capability, selection
+  state, value, emulation, and execution.
+- Add permissions for capability provision, selection read, document edit,
+  Command Manager contribution, toolbar contribution, and detachment.
+- Route edits through host transactions and undo.
+
+Acceptance:
+
+- Native and WASM proving mods expose equivalent resolved data.
+- Capability callbacks are read-only and cannot cover content or block Save.
+- Markdown Subscript proving mod executes one undoable emulation.
+
+### CMD-09: Mod groups, families, and toolbars
+
+Work:
+
+- Merge extensions at declared family extension points.
+- Render mod-contributed groups and host-owned toolbars.
+- Support floating and detached toolbar windows on other monitors.
+- Enforce reserved content, Save geometry, focus, and screen-bound recovery.
+
+Acceptance:
+
+- A proving mod adds one core-family control and one detached toolbar.
+- Duplicate IDs, order cycles, and keybinding conflicts have deterministic
+  diagnostics.
+- Toolbars cannot cover content or strand themselves off-screen.
+
+### CMD-10: Versioned layout persistence and migration
+
+Work:
+
+- Persist customisation per context and per family using stable IDs.
+- Persist hidden-by-user separately from capability.
+- Persist control variants, provider choices, group/family order, pinned tabs,
+  and monitor anchors.
+- Migrate current `toolbars.json`; preserve orphaned mod contributions.
+
+Acceptance:
+
+- Restart and monitor-loss tests restore safely.
+- Removing and reinstalling a compatible mod restores customisation.
+- Reset works per control, family, context, toolbar, and entire system.
+
+### CMD-11: Worked-context integration and evidence
+
+Work:
+
+- Integrate plain text, Markdown, rich document, code, PDF annotation, image,
+  and CAD/3D proving contexts.
+- Add API contract tests, keyboard tests, accessibility tests, and screenshot
+  matrices.
+- Document provider resolution and trust diagnostics for mod authors.
+
+Acceptance:
+
+- Worked examples in `command-system.md` match runtime resolved models.
+- Light, dark, high contrast, 100%, and 150% evidence passes drift checks.
+- Saving remains available through every unsupported/provider-failure state.
