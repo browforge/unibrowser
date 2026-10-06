@@ -71,9 +71,12 @@ pub struct Preferences {
     /// Opt-in automatic save for text/SVG (off by default).
     #[serde(default)]
     pub auto_save_enabled: bool,
-    /// Seconds between auto-save attempts (clamped 30–600 when enabled).
+    /// Seconds between auto-save attempts (Factorio-style presets when enabled).
     #[serde(default = "default_auto_save_interval")]
     pub auto_save_interval_secs: u32,
+    /// Rotating autosave slots per document (sidecar dir).
+    #[serde(default = "default_auto_save_slot_count")]
+    pub auto_save_slot_count: u32,
     #[serde(default)]
     pub pinned_locations: Vec<PinnedLocation>,
     #[serde(default)]
@@ -230,7 +233,20 @@ pub struct PinnedLocation {
 }
 
 fn default_auto_save_interval() -> u32 {
-    120
+    300
+}
+
+fn default_auto_save_slot_count() -> u32 {
+    5
+}
+
+pub fn normalize_auto_save_interval_secs(secs: u32) -> u32 {
+    const ALLOWED: [u32; 6] = [60, 120, 300, 600, 900, 1800];
+    if ALLOWED.contains(&secs) {
+        secs
+    } else {
+        default_auto_save_interval()
+    }
 }
 
 fn default_editor_theme_id() -> String {
@@ -310,6 +326,7 @@ impl Default for Preferences {
             restore_session_on_launch: true,
             auto_save_enabled: false,
             auto_save_interval_secs: default_auto_save_interval(),
+            auto_save_slot_count: default_auto_save_slot_count(),
             pinned_locations: Vec::new(),
             download_preference: DownloadPreference::default(),
             board_snap_to_grid: false,

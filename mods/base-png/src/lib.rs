@@ -415,6 +415,17 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    #[test]
+    fn sacred_save_image_with_zero_dimension_annotation() {
+        let dir = std::env::temp_dir().join("unibrowser_sacred_png_zero");
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let file = dir.join("bad-meta.png");
+        write_min_png_with_text(&file, "width=0;height=0;label=Empty");
+        let bytes = std::fs::read(&file).expect("read");
+        assert!(!bytes.is_empty());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
     fn write_min_png_with_text(path: &Path, annotation: &str) {
         let mut out = Vec::new();
         out.extend_from_slice(&[137, 80, 78, 71, 13, 10, 26, 10]);

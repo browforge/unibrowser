@@ -6,6 +6,7 @@ license.workspace = true
 description = "Native .unibrow project package (ADR 0015)"
 
 [dependencies]
+unibrowser-fs = { path = "../unibrowser-fs" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

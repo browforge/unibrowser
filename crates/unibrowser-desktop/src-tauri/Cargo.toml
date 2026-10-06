@@ -51,6 +51,7 @@ unibrowser-docx = { path = "../../unibrowser-docx" }
 unibrowser-terminal = { path = "../../unibrowser-terminal" }
 unibrowser-ocr = { path = "../../unibrowser-ocr" }
 unibrowser-diagnostics = { path = "../../unibrowser-diagnostics" }
+unibrowser-fs = { path = "../../unibrowser-fs" }
 spell-en-nz = { path = "../../../mods/spell-en-nz" }
 grammar-harper = { path = "../../../mods/grammar-harper" }
 dxf-checker = { path = "../../../mods/dxf-checker" }
@@ -62,6 +63,9 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 base64 = "0.22"
 dirs = "6"
+
+[dev-dependencies]
+tempfile = "3"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { version = "0.18", features = ["v3_24"] }

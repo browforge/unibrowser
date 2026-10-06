@@ -40,7 +40,6 @@ use crate::preferences::{
     WindowState,
 };
 use crate::state::{FileCompareState, ImageCompareState};
-use unibrowser_mod_api::types::commands::TEXT_SAVE;
 use crate::epub_preview::{EpubChapterDto, EpubChapterListItem, EpubSearchHitDto};
 use crate::user_backup::{self, GrandmaBackupV1};
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
@@ -4162,6 +4161,7 @@ pub struct PreferencesDto {
     pub restore_session_on_launch: bool,
     pub auto_save_enabled: bool,
     pub auto_save_interval_secs: u32,
+    pub auto_save_slot_count: u32,
     pub download_preference: String,
     pub board_snap_to_grid: bool,
     pub midi_scrub_audio_enabled: bool,
@@ -4251,7 +4251,7 @@ pub fn write_document_bytes(path: String, bytes: Vec<u8>, state: State<AppState>
             return Err("parent directory does not exist".into());
         }
     }
-    std::fs::write(&p, bytes).map_err(|e| e.to_string())
+    unibrowser_fs::atomic_write(&p, &bytes).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -4872,9 +4872,6 @@ fn open_unibrow_package_for_export(project_path: &Path) -> Result<unibrowser_pro
     let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
     let root = unibrowser_project::resolve_package_root(project_path, &cache).map_err(|e| e.to_string())?;
     let pkg = unibrowser_project::open_package(&root).map_err(|e| e.to_string())?;
-    if pkg.manifest.timeline.clips.is_empty() {
-        return Err("timeline has no clips".into());
-    }
     Ok(pkg)
 }
 
@@ -4889,7 +4886,16 @@ pub async fn export_unibrow_mp4_h264(
     let pkg = open_unibrow_package_for_export(Path::new(&project_path))?;
     let intent = unibrowser_project::build_timeline_encode_intent(&pkg);
     if unibrowser_project::video_segments(&intent).is_empty() {
-        return Err("timeline has no visual clips to export".into());
+        let path = unibrowser_project::write_mp4_export_stub(
+            &pkg,
+            "timeline has no visual clips (save your project anytime; add clips to export video)",
+        )
+        .map_err(|e| e.to_string())?;
+        return Ok(Mp4PreviewExportDto {
+            path: path.to_string_lossy().into_owned(),
+            mode: "stub".into(),
+            message: "Nothing to render yet. Your project is saved; add visual clips or use Save to keep editing.".into(),
+        });
     }
     let probe = unibrowser_media::probe_ffmpeg_install();
     if !probe.available {
@@ -5475,6 +5481,7 @@ fn preferences_dto() -> PreferencesDto {
         restore_session_on_launch: p.restore_session_on_launch,
         auto_save_enabled: p.auto_save_enabled,
         auto_save_interval_secs: p.auto_save_interval_secs,
+        auto_save_slot_count: p.auto_save_slot_count,
         download_preference: download_pref_to_str(&p.download_preference),
         board_snap_to_grid: p.board_snap_to_grid,
         midi_scrub_audio_enabled: p.midi_scrub_audio_enabled,
@@ -5877,54 +5884,85 @@ pub fn set_download_preference(window: tauri::Window, preference: String) -> Res
 }
 
 #[tauri::command]
-pub fn set_auto_save_settings(window: tauri::Window, 
+pub fn set_auto_save_settings(
+    _window: tauri::Window,
     enabled: bool,
     interval_secs: u32,
+    slot_count: Option<u32>,
 ) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.auto_save_enabled = enabled;
-    p.auto_save_interval_secs = interval_secs.clamp(30, 600);
+    p.auto_save_interval_secs = crate::preferences::normalize_auto_save_interval_secs(interval_secs);
+    if let Some(n) = slot_count {
+        p.auto_save_slot_count = n.clamp(1, 32);
+    }
     save_preferences(&p)?;
     Ok(preferences_dto())
 }
 
+#[derive(Serialize)]
+pub struct AutosaveTickDto {
+    pub wrote_slot: bool,
+    pub last_autosave_at_ms: u64,
+}
+
 #[tauri::command]
-pub fn auto_save_active_document(window: tauri::Window, state: State<AppState>) -> Result<String, String> {
+pub fn get_autosave_status() -> AutosaveTickDto {
+    AutosaveTickDto {
+        wrote_slot: false,
+        last_autosave_at_ms: crate::autosave::last_autosave_at_ms(),
+    }
+}
+
+#[tauri::command]
+pub fn auto_save_active_document(window: tauri::Window, state: State<AppState>) -> Result<AutosaveTickDto, String> {
     let _sess_tabs = ws(&state, &window)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no active tab")?;
     if tab.document.is_none() {
-        return Ok(String::new());
+        return Ok(AutosaveTickDto {
+            wrote_slot: false,
+            last_autosave_at_ms: crate::autosave::last_autosave_at_ms(),
+        });
     }
     let doc = tab.document.as_mut().unwrap();
     if !doc.backend.is_dirty() {
-        return Ok(String::new());
+        return Ok(AutosaveTickDto {
+            wrote_slot: false,
+            last_autosave_at_ms: crate::autosave::last_autosave_at_ms(),
+        });
     }
-    let backend_id = doc.backend.backend_id();
+    let path = doc.path.clone();
+    let backend_id = doc.backend.backend_id().to_string();
+    let content = if backend_id == base_text::BACKEND_ID {
+        base_text::try_text_backend(&mut *doc.backend)
+            .map(|b| b.content.clone())
+    } else if backend_id == base_js::BACKEND_ID {
+        base_js::try_js_backend(&mut *doc.backend).map(|b| b.content.clone())
+    } else if backend_id == base_svg::BACKEND_ID {
+        base_svg::try_svg_backend(&mut *doc.backend).map(|b| b.content.clone())
+    } else {
+        None
+    };
+    if let Some(text) = content {
+        crate::autosave::write_document_autosave_slot(&path, &backend_id, &text)?;
+        return Ok(AutosaveTickDto {
+            wrote_slot: true,
+            last_autosave_at_ms: crate::autosave::last_autosave_at_ms(),
+        });
+    }
     if backend_id == base_docx::BACKEND_ID {
         if let Some(b) = base_docx::try_docx_backend(&mut *doc.backend) {
-            if !b.font_dirty {
-                return Ok(String::new());
+            if b.font_dirty {
+                crate::preferences::remember_docx_reader_font(&doc.path, b.reader_font_pt);
+                b.font_dirty = false;
             }
-            crate::preferences::remember_docx_reader_font(&doc.path, b.reader_font_pt);
-            b.font_dirty = false;
-            return Ok("saved".into());
         }
-        return Ok(String::new());
     }
-    if backend_id != base_text::BACKEND_ID
-        && backend_id != base_js::BACKEND_ID
-        && backend_id != base_svg::BACKEND_ID
-    {
-        return Ok(String::new());
-    }
-    state
-        .registry
-        .lock()
-        .map_err(|e| e.to_string())?
-        .execute(TEXT_SAVE, doc)
-        .map_err(|e| e.to_string())?;
-    Ok("saved".into())
+    Ok(AutosaveTickDto {
+        wrote_slot: false,
+        last_autosave_at_ms: crate::autosave::last_autosave_at_ms(),
+    })
 }
 
 fn is_text_compare_file(path: &Path) -> bool {
@@ -6609,7 +6647,8 @@ pub fn set_project_autosave_settings(
 ) -> Result<PreferencesDto, String> {
     let mut p = load_preferences();
     p.project_autosave_enabled = enabled;
-    p.project_autosave_interval_secs = interval_secs.clamp(30, 600);
+    p.project_autosave_interval_secs =
+        crate::preferences::normalize_auto_save_interval_secs(interval_secs);
     save_preferences(&p)?;
     Ok(preferences_dto())
 }

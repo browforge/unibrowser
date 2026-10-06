@@ -16,6 +16,7 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 | `.unibrow` cross-format project | **Shipped** | `unibrowser-project`, board/timeline UI, share zip |
 | One cross-format font command | **Partial** | Same id on text, web, SVG text, DOCX, EPUB, DXF TEXT/MTEXT, PNG `unibrowser_text`, `.unibrow` titles; grey on plain PNG/PDF/CSV ([commands-cross-format.md](commands-cross-format.md), `cross_format_commands` tests) |
 | One offline diagnostics host + proofing mods (squiggles) | **Partial** | `unibrowser-diagnostics` + `spell-en-nz` / `grammar-harper`; Monaco live; DXF/unibrow locator mods; DOCX/web/SVG adapters partial ([proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022) |
+| Saving is sacred + local autosave | **Partial** | Permissive `write_manifest`; rotating `.ubautosave` slots; status bar time; export stubs do not block save ([principles.md](principles.md), ADR 0023) |
 | Skippable onboarding; no repeat unless asked | **Shipped** | Tour + checklist; Settings **Show welcome** |
 | Suggestions never cover content | **Shipped** | Unknown-file **header banner** (not modal); onboarding card; mod portal optional (`unknown-file-banner`, ADR 0013) |
 | Unknown file grandma path | **Shipped** | Banner + Open as text/hex + mod suggestions (`open_active_file_as_*`, `mods/base-hex`) |

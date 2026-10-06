@@ -8,6 +8,7 @@ members = [
     "crates/unibrowser-engine",
     "crates/unibrowser-proofing",
     "crates/unibrowser-diagnostics",
+    "crates/unibrowser-fs",
     "crates/unibrowser-mod-host",
     "crates/unibrowser-project",
     "crates/unibrowser-media",

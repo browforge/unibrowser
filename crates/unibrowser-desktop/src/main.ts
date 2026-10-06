@@ -283,7 +283,18 @@ const statusBarEl = document.getElementById("status-bar")!;
 const newTabPageHost = document.getElementById("new-tab-page-host")!;
 let paletteChordHint = "Ctrl+Shift+P for command palette";
 let webZoomPercent = 100;
+let lastAutosaveAtMs = 0;
 let lastViewerZoomLabel = "";
+
+function formatAutosaveClock(ms: number): string {
+  if (!ms) {
+    return "";
+  }
+  return new Date(ms).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 let editorLine = 1;
 let editorCol = 1;
 const modsLine = document.getElementById("mods-line")!;
@@ -381,6 +392,10 @@ function refreshStatusBar(
       }
     }
   }
+  const autosave =
+    lastAutosaveAtMs > 0
+      ? t("status.autosave", { time: formatAutosaveClock(lastAutosaveAtMs) })
+      : "";
   updateStatusBar({
     path,
     pathHint: path ? t("status.copyPath") : undefined,
@@ -392,6 +407,7 @@ function refreshStatusBar(
     zoom,
     encode,
     reading,
+    autosave,
     hint: data.status.includes("command palette") ? paletteChordHint : data.status,
   });
 }
@@ -2262,6 +2278,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     }
   };
   void loadKeybindingHints();
+  window.addEventListener("unibrowser-autosave-tick", (event) => {
+    const detail = (event as CustomEvent<number>).detail;
+    if (typeof detail === "number" && detail > 0) {
+      lastAutosaveAtMs = detail;
+      void refreshState();
+    }
+  });
+  void invoke<{ last_autosave_at_ms: number }>("get_autosave_status").then((st) => {
+    if (st.last_autosave_at_ms > 0) {
+      lastAutosaveAtMs = st.last_autosave_at_ms;
+    }
+  });
   void invoke<{
     auto_save_enabled: boolean;
     auto_save_interval_secs: number;

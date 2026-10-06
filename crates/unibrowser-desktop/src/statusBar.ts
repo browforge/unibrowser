@@ -9,6 +9,7 @@ export interface StatusBarModel {
   zoom: string;
   encode?: string;
   reading?: string;
+  autosave?: string;
   hint: string;
 }
 
@@ -21,6 +22,7 @@ let fontEl: HTMLElement | null = null;
 let zoomEl: HTMLElement | null = null;
 let encodeEl: HTMLElement | null = null;
 let readingEl: HTMLElement | null = null;
+let autosaveEl: HTMLElement | null = null;
 let hintEl: HTMLElement | null = null;
 let zoomOutBtn: HTMLButtonElement | null = null;
 let zoomInBtn: HTMLButtonElement | null = null;
@@ -42,6 +44,7 @@ export function bindStatusBar(root: HTMLElement) {
   zoomEl = root.querySelector("#status-zoom-label");
   encodeEl = root.querySelector("#status-encode");
   readingEl = root.querySelector("#status-reading");
+  autosaveEl = root.querySelector("#status-autosave");
   hintEl = root.querySelector("#status-hint");
   encodingEl?.setAttribute("role", "status");
   cursorEl?.setAttribute("role", "status");
@@ -151,6 +154,7 @@ export function updateStatusBar(model: StatusBarModel) {
     encodeEl.setAttribute("aria-busy", model.encode ? "true" : "false");
   }
   setOptional(readingEl, model.reading);
+  setOptional(autosaveEl, model.autosave);
   if (hintEl) {
     hintEl.textContent = model.hint;
   }

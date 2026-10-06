@@ -47,6 +47,7 @@ interface PrefsDto {
   restore_session_on_launch: boolean;
   auto_save_enabled: boolean;
   auto_save_interval_secs: number;
+  auto_save_slot_count: number;
   download_preference: string;
   board_snap_to_grid: boolean;
   midi_scrub_audio_enabled: boolean;
@@ -462,20 +463,30 @@ export async function renderSettings(root: HTMLElement) {
   autoLabel.htmlFor = autoCb.id;
   autoLabel.textContent = t("autosave.label");
   const intervalSelect = document.createElement("select");
-  [30, 60, 120, 300, 600].forEach((secs) => {
+  [60, 120, 300, 600, 900, 1800].forEach((secs) => {
     const opt = document.createElement("option");
     opt.value = String(secs);
-    opt.textContent = t("autosave.interval", { seconds: secs });
+    const mins = secs / 60;
+    opt.textContent = t("autosave.intervalMinutes", { minutes: String(mins) });
     intervalSelect.appendChild(opt);
   });
   intervalSelect.value = String(prefs.auto_save_interval_secs);
   intervalSelect.disabled = !prefs.auto_save_enabled;
+  const slotInput = document.createElement("input");
+  slotInput.type = "number";
+  slotInput.min = "1";
+  slotInput.max = "32";
+  slotInput.value = String(prefs.auto_save_slot_count);
+  slotInput.disabled = !prefs.auto_save_enabled;
+  slotInput.setAttribute("aria-label", t("autosave.keepSlots"));
   const persistAuto = async () => {
     const next = await invoke<PrefsDto>("set_auto_save_settings", {
       enabled: autoCb.checked,
       intervalSecs: Number.parseInt(intervalSelect.value, 10),
+      slotCount: Number.parseInt(slotInput.value, 10),
     });
     intervalSelect.disabled = !next.auto_save_enabled;
+    slotInput.disabled = !next.auto_save_enabled;
     configureAutoSave(next.auto_save_enabled, next.auto_save_interval_secs);
   };
   autoCb.onchange = () => void persistAuto();
@@ -483,6 +494,11 @@ export async function renderSettings(root: HTMLElement) {
   autoRow.appendChild(autoCb);
   autoRow.appendChild(autoLabel);
   autoRow.appendChild(intervalSelect);
+  const slotLabel = document.createElement("label");
+  slotLabel.textContent = t("autosave.keepSlots");
+  autoRow.appendChild(slotLabel);
+  autoRow.appendChild(slotInput);
+  slotInput.onchange = () => void persistAuto();
   const autoNote = document.createElement("p");
   autoNote.className = "viewer-note";
   autoNote.textContent = t("autosave.powerHint");

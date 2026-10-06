@@ -85,6 +85,8 @@ ADRs are numbered in `docs/adr/`. Read the ones that touch your area before larg
 | [0020](adr/0020-linux-download-open-as-tab.md) | Linux web download → fetch → file tab | `webview.rs` + `handle_download_url`; [browser-shell.md](browser-shell.md) |
 | [0021](adr/0021-diagnostics-host-lsp.md) | Diagnostics host + LSP client | `crates/unibrowser-diagnostics` |
 | [0022](adr/0022-proofing-as-mods.md) | Proofing as mods (spell, grammar, format checkers) | `mods/spell-en-nz`, `mods/grammar-harper`, [proofing-cross-format.md](proofing-cross-format.md) |
+| [0023](adr/0023-saving-is-sacred.md) | Saving is sacred; local autosave | [principles.md](principles.md), `crates/unibrowser-fs` |
+| [principles.md](principles.md) | Product principles (local-first, sacred save) | ADRs 0021–0023 |
 
 ## Changelog
 

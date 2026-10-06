@@ -31,6 +31,7 @@ mod paths;
 mod web_font_prefs;
 mod web_zoom_prefs;
 mod web_reader_prefs;
+mod autosave;
 mod crash_recovery;
 mod crash_log;
 mod process_status;
@@ -297,6 +298,7 @@ pub fn run() {
             commands::set_midi_scrub_audio_enabled,
             commands::set_fluidsynth_soundfont_path,
             commands::auto_save_active_document,
+            commands::get_autosave_status,
             commands::pick_and_compare,
             commands::close_file_compare,
             commands::pick_and_compare_images,

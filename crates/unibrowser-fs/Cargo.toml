@@ -1,0 +1,12 @@
+[package]
+name = "unibrowser-fs"
+description = "Atomic local file writes and rotating slot storage (autosave)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

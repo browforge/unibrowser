@@ -390,4 +390,22 @@ mod tests {
         assert_eq!(again, "beta");
         let _ = std::fs::remove_dir_all(dir);
     }
+
+    #[test]
+    fn sacred_save_with_spelling_errors_in_content() {
+        let dir = std::env::temp_dir().join("unibrowser_sacred_text_spell");
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let file = dir.join("draft.txt");
+        let mut backend = TextBackend {
+            path: file.to_string_lossy().into_owned(),
+            content: "wrng speling".into(),
+            selection_start: 0,
+            selection_end: 0,
+            font_size_pt: 12.0,
+            dirty: true,
+        };
+        backend.save().expect("save must not consult diagnostics");
+        assert_eq!(std::fs::read_to_string(&file).expect("read"), "wrng speling");
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }

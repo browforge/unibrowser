@@ -94,25 +94,36 @@ pub fn scan_original_fidelity(docx_path: &Path) -> Result<Vec<String>, DocxSaveE
 
 /// Replace document body from HTML produced by the Mammoth preview (supported subset only).
 pub fn save_docx_from_html(docx_path: &Path, html: &str) -> Result<DocxSaveReport, DocxSaveError> {
+    let mut warnings = Vec::new();
     let original_issues = scan_original_fidelity(docx_path)?;
     if !original_issues.is_empty() {
-        return Err(DocxSaveError::UnsupportedOriginal(original_issues.join(", ")));
+        warnings.push(format!(
+            "Original used unsupported Word features ({}); body will be replaced with the preview subset.",
+            original_issues.join(", ")
+        ));
     }
     let html_issues = unsupported_html_tags(html);
     if !html_issues.is_empty() {
-        return Err(DocxSaveError::UnsupportedHtml(html_issues.join(", ")));
+        warnings.push(format!(
+            "Preview HTML contained unsupported tags ({}); those regions may be omitted.",
+            html_issues.join(", ")
+        ));
     }
     let blocks = parse_html_blocks(html)?;
-    if blocks.is_empty() {
-        return Err(DocxSaveError::Msg("no paragraphs to write".into()));
-    }
+    let blocks = if blocks.is_empty() {
+        warnings.push("Preview had no paragraphs; writing a single empty paragraph.".into());
+        vec![Block::Paragraph(Vec::new())]
+    } else {
+        blocks
+    };
     let sect = extract_sect_pr(&read_zip_entry(docx_path, "word/document.xml")?)?;
     let new_document_xml = build_document_xml(&blocks, sect.as_deref())?;
     rewrite_document_xml_in_place(docx_path, &new_document_xml)?;
+    warnings.push(
+        "Body replaced with supported paragraph/heading markup only; styles and numbering from Word are not round-tripped.".into(),
+    );
     Ok(DocxSaveReport {
-        warnings: vec![
-            "Body replaced with supported paragraph/heading markup only; styles and numbering from Word are not round-tripped.".into(),
-        ],
+        warnings,
         paragraphs_written: blocks.len(),
     })
 }
@@ -383,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn refuses_original_table() {
+    fn sacred_save_despite_original_table() {
         let dir = std::env::temp_dir().join("unibrowser-docx-tbl");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
@@ -397,8 +408,11 @@ mod tests {
         repack_docx(&path, &path.with_extension("tmp.docx"), "word/document.xml", injected.as_bytes())
             .unwrap();
         std::fs::rename(path.with_extension("tmp.docx"), &path).unwrap();
-        let err = save_docx_from_html(&path, "<p>ok</p>").unwrap_err();
-        assert!(matches!(err, DocxSaveError::UnsupportedOriginal(_)));
+        let report = save_docx_from_html(&path, "<p>ok</p>").expect("save must not refuse");
+        assert!(report
+            .warnings
+            .iter()
+            .any(|w| w.contains("unsupported Word features")));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

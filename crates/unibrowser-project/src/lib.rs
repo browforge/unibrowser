@@ -196,26 +196,11 @@ pub fn friendly_open_error(err: &ProjectError) -> String {
     }
 }
 
+/// Full validation when opening or importing a package.
 pub fn validate_manifest(manifest: &ProjectManifest) -> Result<(), ProjectError> {
-    if manifest.format_version < MIN_FORMAT_VERSION || manifest.format_version > FORMAT_VERSION {
-        return Err(ProjectError::Msg(format!(
-            "unsupported format_version {} (supported {}–{})",
-            manifest.format_version,
-            MIN_FORMAT_VERSION,
-            FORMAT_VERSION
-        )));
-    }
+    validate_manifest_for_save(manifest)?;
     if manifest.title.trim().is_empty() {
         return Err(ProjectError::Msg("project title must not be empty".into()));
-    }
-    let mut seen = std::collections::HashSet::new();
-    for node in &manifest.nodes {
-        if node.id.trim().is_empty() {
-            return Err(ProjectError::Msg("every board node needs a non-empty id".into()));
-        }
-        if !seen.insert(node.id.clone()) {
-            return Err(ProjectError::Msg(format!("duplicate node id {}", node.id)));
-        }
     }
     for clip in &manifest.timeline.clips {
         if !manifest.nodes.iter().any(|n| n.id == clip.node_id) {
@@ -224,6 +209,28 @@ pub fn validate_manifest(manifest: &ProjectManifest) -> Result<(), ProjectError>
                 clip.id,
                 clip.node_id
             )));
+        }
+    }
+    Ok(())
+}
+
+/// Minimal checks for Save (ADR 0023): never block saving work-in-progress.
+pub fn validate_manifest_for_save(manifest: &ProjectManifest) -> Result<(), ProjectError> {
+    if manifest.format_version < MIN_FORMAT_VERSION || manifest.format_version > FORMAT_VERSION {
+        return Err(ProjectError::Msg(format!(
+            "unsupported format_version {} (supported {}–{})",
+            manifest.format_version,
+            MIN_FORMAT_VERSION,
+            FORMAT_VERSION
+        )));
+    }
+    let mut seen = std::collections::HashSet::new();
+    for node in &manifest.nodes {
+        if node.id.trim().is_empty() {
+            return Err(ProjectError::Msg("every board node needs a non-empty id".into()));
+        }
+        if !seen.insert(node.id.clone()) {
+            return Err(ProjectError::Msg(format!("duplicate node id {}", node.id)));
         }
     }
     Ok(())
@@ -1012,9 +1019,13 @@ pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
 pub fn write_manifest(root: &Path, manifest: &ProjectManifest) -> Result<(), ProjectError> {
     let mut to_write = manifest.clone();
     to_write.format_version = FORMAT_VERSION;
-    validate_manifest(&to_write)?;
+    if to_write.title.trim().is_empty() {
+        to_write.title = "Untitled project".into();
+    }
+    validate_manifest_for_save(&to_write)?;
     let data = serde_json::to_string_pretty(&to_write)?;
-    fs::write(root.join(PROJECT_FILE), data)?;
+    let dest = root.join(PROJECT_FILE);
+    unibrowser_fs::atomic_write(&dest, data.as_bytes()).map_err(|e| ProjectError::Msg(e.to_string()))?;
     Ok(())
 }
 
@@ -1355,6 +1366,52 @@ pub fn rename_node_label(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sacred_save_empty_timeline_writes_manifest() {
+        let dir = std::env::temp_dir().join("unibrow-sacred-empty-timeline");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("dir");
+        let manifest = ProjectManifest::empty("No video yet");
+        write_manifest(&dir, &manifest).expect("save must not block on empty timeline");
+        assert!(dir.join(PROJECT_FILE).is_file());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn sacred_save_orphan_clip_allowed_on_write() {
+        let dir = std::env::temp_dir().join("unibrow-sacred-orphan-clip");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("dir");
+        let manifest = ProjectManifest {
+            format_version: FORMAT_VERSION,
+            title: "WIP".into(),
+            description: None,
+            nodes: Vec::new(),
+            timeline: {
+                let mut tl = ProjectTimeline::default();
+                tl.clips = vec![TimelineClip {
+                    id: "c1".into(),
+                    node_id: "missing-node".into(),
+                    start_sec: 0.0,
+                    duration_sec: 1.0,
+                    label: "wip".into(),
+                    color: None,
+                    clip_markers: Vec::new(),
+                    duck_under_video: false,
+                    fade_in_sec: 0.0,
+                    fade_out_sec: 0.0,
+                    pdf_page: None,
+                    title_text: None,
+                    title_font_pt: None,
+                }];
+                tl
+            },
+        };
+        write_manifest(&dir, &manifest).expect("save work-in-progress");
+        assert!(validate_manifest(&manifest).is_err());
+        let _ = fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn validate_manifest_rejects_duplicate_nodes() {
