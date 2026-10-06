@@ -6,6 +6,7 @@
 mod binding;
 mod clock;
 mod compositor;
+mod html_snapshot;
 mod scene;
 mod sink;
 mod source;
@@ -13,11 +14,12 @@ mod source;
 pub use binding::{DataBinding, LayerProperty, PropertyBinding};
 pub use clock::{DropFramePolicy, FrameClock, FrameTick};
 pub use compositor::{LiveCompositor, LiveCompositorConfig};
-pub use scene::{LiveLayer, LiveScene, SceneId};
+pub use html_snapshot::{HtmlSnapshotKind, render_html_snapshot_rgba};
+pub use scene::{LiveLayer, LiveLayerKind, LiveScene, SceneId};
 pub use sink::{FileVideoSink, LiveSessionReport, SinkKind};
 pub use source::{
-    DataSample, DataSource, DataValue, LiveMediaSource, MediaFrame, MediaSource, SourceFrameResult,
-    SourceId, SourceTiming, TimingMode,
+    DataSample, DataSource, DataValue, LiveMediaSource, MediaFrame, MediaSource,
+    SourceFrameResult, SourceId, SourceTiming, TimingMode,
 };
 
 pub use sink::session::run_live_session_to_file;

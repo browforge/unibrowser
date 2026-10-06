@@ -2,6 +2,9 @@
 
 mod zip_bundle;
 mod timeline_encode;
+mod layer_transform;
+
+pub use layer_transform::{blit_rgba_with_transform, LayerTransform, NormalizedCrop};
 
 pub use timeline_encode::{
     build_timeline_encode_intent, audio_segments, video_segments, EncodeSegment,

@@ -76,7 +76,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Cross-format | One id per action: font (text/web/SVG text/DOCX/EPUB/DXF/PNG annotation/`.unibrow` titles), **Find**, **Zoom to fit** (Ctrl+0), **Export PDF** — coverage tables in [commands-cross-format.md](commands-cross-format.md); `cross_format_commands` integration tests |
 | Proofing | `unibrowser-diagnostics` host; bundled `spell-en-nz` + `grammar-harper` mods; Monaco squiggles; F8 / Shift+F8; dictionaries — [proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022 |
 | Sacred save + autosave | ADR 0023; [principles.md](principles.md); `unibrowser-fs` atomic writes; 1–30 min autosave presets + rotating slots |
-| Live engine (ADR 0024) | `unibrowser-live` sources/bindings/compositor/clock/file sink; `mods/live-proving` test pattern + sine data; e2e MP4 duration test |
+| Live engine (ADR 0024) | Shared `LayerTransform`; compositor layers (media, SVG, HTML clock, chart); `.unibrow` **Live mode** preview + **LIVE** badge + local record to `derived/live-record.mp4` |
 | Bundled EPUB/CSV | `base-epub`, `base-csv` mods (no longer `src-tauri` stubs) |
 | Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |

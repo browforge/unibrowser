@@ -15,6 +15,9 @@ pub mod midi_render;
 pub mod sidecar;
 mod lazy_materialize;
 mod timeline_intent_encode;
+pub mod svg_raster;
+
+pub use svg_raster::{rasterize_svg_file_to_rgba, rasterize_svg_to_rgba};
 
 pub use encode::encode_h264_timeline;
 pub use midi_render::{probe_midi_audio_render, MidiAudioRenderProbe};

@@ -14,6 +14,7 @@ mod open_vsx;
 pub mod path_security;
 pub mod preferences;
 mod project_backend;
+mod live_host;
 mod smf;
 mod midi_stub;
 mod settings_stub;
@@ -216,6 +217,10 @@ pub fn run() {
             commands::allow_asset_path,
             commands::allow_unibrow_asset,
             commands::get_ffmpeg_probe,
+            live_host::set_unibrow_live_mode,
+            live_host::unibrow_live_status,
+            live_host::start_unibrow_live_recording,
+            live_host::stop_unibrow_live_recording,
             commands::get_home_dir,
             commands::get_downloads_dir,
             commands::get_build_info,

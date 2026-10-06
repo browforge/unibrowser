@@ -17,7 +17,7 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 | One cross-format font command | **Partial** | Same id on text, web, SVG text, DOCX, EPUB, DXF TEXT/MTEXT, PNG `unibrowser_text`, `.unibrow` titles; grey on plain PNG/PDF/CSV ([commands-cross-format.md](commands-cross-format.md), `cross_format_commands` tests) |
 | One offline diagnostics host + proofing mods (squiggles) | **Partial** | `unibrowser-diagnostics` + `spell-en-nz` / `grammar-harper`; Monaco live; DXF/unibrow locator mods; DOCX/web/SVG adapters partial ([proofing-cross-format.md](proofing-cross-format.md), ADR 0021–0022) |
 | Saving is sacred + local autosave | **Partial** | Permissive `write_manifest`; rotating `.ubautosave` slots; status bar time; export stubs do not block save ([principles.md](principles.md), ADR 0023) |
-| Live sources + compositor + outputs | **Partial** | Engine traits, frame clock, CPU compositor, file sink; proving mods only ([ADR 0024](adr/0024-live-sources-compositor-outputs.md), `unibrowser-live`) |
+| Live sources + compositor + outputs | **Partial** | SVG (resvg) + HTML clock snapshot + shared `LayerTransform`; `.unibrow` live preview/record UI; proving mods ([ADR 0024](adr/0024-live-sources-compositor-outputs.md)) |
 | Skippable onboarding; no repeat unless asked | **Shipped** | Tour + checklist; dismiss forever; Settings **Show welcome** only when asked |
 | Principles watchlist (close tab, VSIX trust, offline catalog, save pickers) | **Shipped** | [blitz-status.md](blitz-status.md) Resolved table; [network.md](network.md) |
 | Suggestions never cover content | **Shipped** | Unknown-file **header banner** (not modal); onboarding card; mod portal optional (`unknown-file-banner`, ADR 0013) |

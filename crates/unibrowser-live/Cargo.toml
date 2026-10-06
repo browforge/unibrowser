@@ -9,6 +9,8 @@ description = "Live sources, compositor clock, and output sinks (ADR 0024)"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+unibrowser-project = { path = "../unibrowser-project" }
+unibrowser-media = { path = "../unibrowser-media" }
 
 [dev-dependencies]
 tempfile = "3"

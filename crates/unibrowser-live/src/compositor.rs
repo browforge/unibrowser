@@ -1,8 +1,13 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::time::Instant;
 
+use unibrowser_media::rasterize_svg_file_to_rgba;
+use unibrowser_project::blit_rgba_with_transform;
+
 use crate::binding::LayerProperty;
-use crate::scene::{LiveLayer, LiveScene};
+use crate::html_snapshot::{render_html_snapshot_rgba, HtmlSnapshotKind};
+use crate::scene::{LiveLayer, LiveLayerKind, LiveScene};
 use crate::source::{DataSource, MediaFrame, MediaSource, SourceFrameResult};
 
 #[derive(Debug, Clone)]
@@ -37,34 +42,71 @@ impl LiveCompositor {
         let h = self.config.height;
         let mut rgba = vec![0u8; (w * h * 4) as usize];
 
-        let mut numbers: Vec<(String, f64)> = Vec::new();
-        for ds in data.values_mut() {
-            for sample in ds.poll(at_sec) {
-                if let crate::source::DataValue::Number(n) = sample.value {
-                    numbers.push((sample.channel.clone(), n));
-                }
-            }
-        }
+        let numbers = collect_number_samples(data, at_sec);
 
         for layer in &scene.layers {
-            if let Some(ref sid) = layer.media_source_id {
-                if let Some(src) = media.get_mut(sid) {
-                    match src.next_frame(at_sec, deadline) {
-                        SourceFrameResult::Frame(frame) => {
-                            blit_scale(&mut rgba, w, h, &frame);
+            match &layer.kind {
+                LiveLayerKind::Media { source_id } => {
+                    if let Some(src) = media.get_mut(source_id) {
+                        match src.next_frame(at_sec, deadline) {
+                            SourceFrameResult::Frame(frame) => {
+                                blit_rgba_with_transform(
+                                    &mut rgba,
+                                    w,
+                                    h,
+                                    &frame.rgba,
+                                    frame.width,
+                                    frame.height,
+                                    &layer.transform,
+                                );
+                            }
+                            SourceFrameResult::Dropped { .. } | SourceFrameResult::End => {}
                         }
-                        SourceFrameResult::Dropped { .. } => {}
-                        SourceFrameResult::End => {}
                     }
                 }
-            }
-            if layer.chart_bar {
-                let scalar = chart_scalar(layer, &numbers);
-                draw_chart_bar(&mut rgba, w, h, scalar);
-            }
-            if let Some(ref tpl) = layer.text_template {
-                let text = resolve_template(tpl, layer, &numbers);
-                draw_text_overlay(&mut rgba, w, h, &text, 8, 8);
+                LiveLayerKind::SvgOverlay { path } => {
+                    let sw = 128u32;
+                    let sh = 48u32;
+                    if let Ok(svg_rgba) = rasterize_svg_file_to_rgba(Path::new(path), sw, sh) {
+                        blit_rgba_with_transform(
+                            &mut rgba,
+                            w,
+                            h,
+                            &svg_rgba,
+                            sw,
+                            sh,
+                            &layer.transform,
+                        );
+                    }
+                }
+                LiveLayerKind::HtmlSnapshot { kind } => {
+                    let html_rgba = render_html_snapshot_rgba(*kind, w, h, at_sec);
+                    blit_rgba_with_transform(
+                        &mut rgba,
+                        w,
+                        h,
+                        &html_rgba,
+                        w,
+                        h,
+                        &layer.transform,
+                    );
+                }
+                LiveLayerKind::Text { template } => {
+                    let text = resolve_template(template, layer, &numbers);
+                    let ox = layer.transform.offset_x.max(0.0) as u32;
+                    let oy = layer.transform.offset_y.max(0.0) as u32;
+                    draw_text_overlay_rgba(&mut rgba, w, h, &text, ox, oy);
+                }
+                LiveLayerKind::Chart => {
+                    let scalar = chart_scalar(layer, &numbers);
+                    draw_chart_bar(
+                        &mut rgba,
+                        w,
+                        h,
+                        scalar,
+                        layer.transform.offset_x,
+                    );
+                }
             }
         }
 
@@ -77,6 +119,21 @@ impl LiveCompositor {
     }
 }
 
+fn collect_number_samples(
+    data: &mut HashMap<String, &mut dyn DataSource>,
+    at_sec: f64,
+) -> Vec<(String, f64)> {
+    let mut numbers = Vec::new();
+    for ds in data.values_mut() {
+        for sample in ds.poll(at_sec) {
+            if let crate::source::DataValue::Number(n) = sample.value {
+                numbers.push((sample.channel.clone(), n));
+            }
+        }
+    }
+    numbers
+}
+
 fn chart_scalar(layer: &LiveLayer, numbers: &[(String, f64)]) -> f32 {
     for b in &layer.bindings.bindings {
         if matches!(b.target, LayerProperty::ChartScalar { .. }) {
@@ -85,7 +142,6 @@ fn chart_scalar(layer: &LiveLayer, numbers: &[(String, f64)]) -> f32 {
                 .find(|(c, _)| c == &b.data_channel)
                 .map(|(_, n)| *n)
             {
-                // Map 0..40 C to 0..1 for proving sine ~15..25
                 return ((v / 40.0).clamp(0.0, 1.0)) as f32;
             }
         }
@@ -109,34 +165,16 @@ fn resolve_template(tpl: &str, layer: &LiveLayer, numbers: &[(String, f64)]) -> 
     tpl.replace("{value}", &value)
 }
 
-fn blit_scale(dst: &mut [u8], dw: u32, dh: u32, src: &MediaFrame) {
-    if src.width == 0 || src.height == 0 {
-        return;
-    }
-    for y in 0..dh {
-        for x in 0..dw {
-            let sx = x * src.width / dw;
-            let sy = y * src.height / dh;
-            let si = ((sy * src.width + sx) * 4) as usize;
-            if si + 3 >= src.rgba.len() {
-                continue;
-            }
-            let di = ((y * dw + x) * 4) as usize;
-            if di + 3 >= dst.len() {
-                continue;
-            }
-            dst[di..di + 4].copy_from_slice(&src.rgba[si..si + 4]);
-        }
-    }
-}
-
-fn draw_chart_bar(rgba: &mut [u8], w: u32, h: u32, scalar: f32) {
+fn draw_chart_bar(rgba: &mut [u8], w: u32, h: u32, scalar: f32, offset_x: f32) {
     let bar_w = 24u32;
-    let x0 = w - bar_w - 8;
+    let x0 = (offset_x as u32 + w - bar_w - 8).min(w.saturating_sub(bar_w));
     let bar_h = ((h as f32 - 16.0) * scalar) as u32;
     let y0 = h - 8 - bar_h;
     for y in y0..h - 8 {
         for x in x0..x0 + bar_w {
+            if x >= w {
+                continue;
+            }
             let i = ((y * w + x) * 4) as usize;
             if i + 3 < rgba.len() {
                 rgba[i] = 40;
@@ -148,7 +186,14 @@ fn draw_chart_bar(rgba: &mut [u8], w: u32, h: u32, scalar: f32) {
     }
 }
 
-fn draw_text_overlay(rgba: &mut [u8], w: u32, _h: u32, text: &str, x0: u32, y0: u32) {
+pub fn draw_text_overlay_rgba(
+    rgba: &mut [u8],
+    w: u32,
+    _h: u32,
+    text: &str,
+    x0: u32,
+    y0: u32,
+) {
     let mut x = x0;
     for ch in text.chars().take(24) {
         draw_char(rgba, w, ch, x, y0);
@@ -192,6 +237,7 @@ fn glyph_5x7(ch: char) -> [u8; 7] {
         '8' => [0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E],
         '9' => [0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C],
         '.' => [0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C],
+        ':' => [0x00, 0x0C, 0x0C, 0x00, 0x0C, 0x0C, 0x00],
         '-' => [0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00],
         'C' => [0x0E, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0E],
         ' ' => [0; 7],

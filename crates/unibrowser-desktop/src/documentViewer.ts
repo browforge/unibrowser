@@ -2288,6 +2288,120 @@ function renderMidi(viewer: DocumentViewerDto, root: HTMLElement) {
 
 async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
+  const liveSection = document.createElement("section");
+  liveSection.className = "unibrow-live-panel";
+  const liveHeading = document.createElement("h3");
+  liveHeading.textContent = t("unibrow.liveHeading");
+  liveSection.appendChild(liveHeading);
+  const liveRow = document.createElement("div");
+  liveRow.className = "unibrow-live-controls";
+  const liveToggle = document.createElement("input");
+  liveToggle.type = "checkbox";
+  liveToggle.id = "unibrow-live-mode";
+  const liveToggleLbl = document.createElement("label");
+  liveToggleLbl.htmlFor = liveToggle.id;
+  liveToggleLbl.textContent = t("unibrow.liveMode");
+  liveRow.appendChild(liveToggle);
+  liveRow.appendChild(liveToggleLbl);
+  const liveBadge = document.createElement("span");
+  liveBadge.className = "unibrow-live-indicator hidden";
+  liveBadge.textContent = t("unibrow.liveBadge");
+  liveBadge.setAttribute("aria-live", "polite");
+  liveRow.appendChild(liveBadge);
+  const recordBtn = document.createElement("button");
+  recordBtn.type = "button";
+  recordBtn.textContent = t("unibrow.liveRecordStart");
+  recordBtn.disabled = true;
+  const stopBtn = document.createElement("button");
+  stopBtn.type = "button";
+  stopBtn.textContent = t("unibrow.liveRecordStop");
+  stopBtn.disabled = true;
+  liveRow.appendChild(recordBtn);
+  liveRow.appendChild(stopBtn);
+  liveSection.appendChild(liveRow);
+  const liveNote = document.createElement("p");
+  liveNote.className = "viewer-note";
+  liveNote.textContent = t("unibrow.liveNote");
+  liveSection.appendChild(liveNote);
+  const previewImg = document.createElement("img");
+  previewImg.className = "unibrow-live-preview hidden";
+  previewImg.alt = t("unibrow.livePreviewAlt");
+  liveSection.appendChild(previewImg);
+  root.appendChild(liveSection);
+
+  let livePoll: number | undefined;
+  const stopLivePoll = () => {
+    if (livePoll !== undefined) {
+      window.clearInterval(livePoll);
+      livePoll = undefined;
+    }
+  };
+
+  const refreshLiveUi = async () => {
+    try {
+      const status = await invoke<{
+        live_mode: boolean;
+        recording: boolean;
+        png_base64: string | null;
+        record_path: string | null;
+      }>("unibrow_live_status");
+      liveToggle.checked = status.live_mode;
+      liveBadge.classList.toggle("hidden", !status.live_mode);
+      recordBtn.disabled = !status.live_mode || status.recording;
+      stopBtn.disabled = !status.recording;
+      if (status.png_base64 && status.live_mode) {
+        previewImg.src = `data:image/png;base64,${status.png_base64}`;
+        previewImg.classList.remove("hidden");
+      } else {
+        previewImg.classList.add("hidden");
+      }
+    } catch {
+      /* tab may not be live */
+    }
+  };
+
+  liveToggle.onchange = async () => {
+    stopLivePoll();
+    try {
+      await invoke("set_unibrow_live_mode", { enabled: liveToggle.checked });
+      if (liveToggle.checked) {
+        livePoll = window.setInterval(() => {
+          void refreshLiveUi();
+        }, 100);
+      }
+      await refreshLiveUi();
+    } catch (err) {
+      liveToggle.checked = false;
+      showErrorToast(err);
+    }
+  };
+
+  recordBtn.onclick = async () => {
+    try {
+      await invoke("start_unibrow_live_recording");
+      await refreshLiveUi();
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+
+  stopBtn.onclick = async () => {
+    try {
+      const status = await invoke<{
+        live_mode: boolean;
+        recording: boolean;
+        png_base64: string | null;
+        record_path: string | null;
+      }>("stop_unibrow_live_recording");
+      if (status.record_path) {
+        showToast(t("unibrow.liveSaved", { path: status.record_path }), "info");
+      }
+      await refreshLiveUi();
+    } catch (err) {
+      showErrorToast(err);
+    }
+  };
+
   const snapGrid = viewer.board_snap_to_grid ?? false;
   const hint = document.createElement("p");
   hint.className = "viewer-note unibrow-board-hint";
