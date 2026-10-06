@@ -36,6 +36,7 @@ pub fn command_context_display_label(
     path: Option<&str>,
 ) -> &'static str {
     match infer_work_context(command_context, mode, path) {
+        WorkContext::Start => "Start",
         WorkContext::Pdf => "PDF Annotation",
         WorkContext::Image => "Image",
         WorkContext::Cad3d => "CAD / 3D",
@@ -64,6 +65,7 @@ pub fn infer_work_context(
         return WorkContext::Cad3d;
     }
     match command_context {
+        CommandContext::Start => WorkContext::Start,
         CommandContext::Browse => WorkContext::Browse,
         CommandContext::Web => WorkContext::Web,
         CommandContext::Image => WorkContext::Image,

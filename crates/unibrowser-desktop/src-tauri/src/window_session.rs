@@ -36,14 +36,11 @@ impl WindowSession {
         }
     }
 
-    pub fn new_with_home(cwd: &Path) -> Self {
-        let home = BrowserLocation::File {
-            path: cwd.to_path_buf(),
+    pub fn new_with_home(_cwd: &Path) -> Self {
+        let home = BrowserLocation::Internal {
+            page: "home".into(),
         };
-        let mut tab_mgr = TabManager::new_with_home(home);
-        if let Some(tab) = tab_mgr.active_tab_mut() {
-            tab.is_directory = cwd.is_dir();
-        }
+        let tab_mgr = TabManager::new_with_home(home);
         Self {
             tabs: TabsMutex::new(tab_mgr),
             closed_tabs: Mutex::new(ClosedTabStack::default()),

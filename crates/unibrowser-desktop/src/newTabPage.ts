@@ -11,6 +11,18 @@ export interface DirEntry {
 export interface RecentFileDto {
   path: string;
   label: string;
+  pinned?: boolean;
+  opened_at_ms?: number;
+}
+
+export interface DownloadHistoryEntryDto {
+  id: string;
+  url: string;
+  label: string;
+  status: string;
+  error?: string | null;
+  destination?: string | null;
+  at_ms: number;
 }
 
 export interface NtpSectionPrefs {
@@ -23,6 +35,7 @@ export interface NtpSectionPrefs {
 export interface NewTabDeps {
   entries: DirEntry[] | null;
   recent: RecentFileDto[];
+  downloads: DownloadHistoryEntryDto[];
   browsePath: string;
   sections: NtpSectionPrefs;
   onOpenPath: (path: string) => void;
@@ -30,83 +43,140 @@ export interface NewTabDeps {
   onPickFolder: () => void;
 }
 
+function fileTypeLabel(path: string): string {
+  const base = path.split(/[/\\]/).pop() ?? path;
+  const ext = base.includes(".") ? base.split(".").pop()?.toLowerCase() ?? "" : "";
+  if (ext === "pdf") {
+    return "PDF";
+  }
+  if (ext === "svg") {
+    return "SVG";
+  }
+  if (ext === "unibrow") {
+    return "Create";
+  }
+  if (["dxf", "step", "stp", "iges", "igs"].includes(ext)) {
+    return "CAD";
+  }
+  if (["ts", "tsx", "js", "jsx", "rs", "py", "md", "txt"].includes(ext)) {
+    return "Text";
+  }
+  if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) {
+    return "Image";
+  }
+  return ext ? ext.toUpperCase() : "File";
+}
+
+function typeIconText(path: string): string {
+  const kind = fileTypeLabel(path);
+  if (kind === "PDF") {
+    return "PDF";
+  }
+  if (kind === "CAD") {
+    return "DXF";
+  }
+  if (kind === "Create") {
+    return "UB";
+  }
+  if (kind === "Text") {
+    return "#";
+  }
+  return kind.slice(0, 3).toUpperCase();
+}
+
+function relativePathSubtitle(path: string): string {
+  const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
+  if (parts.length <= 2) {
+    return parts.join(" / ");
+  }
+  return `${parts[parts.length - 3]} / ${parts[parts.length - 2]}`;
+}
+
+function formatRelativeTime(ms?: number): string {
+  if (!ms) {
+    return "";
+  }
+  const delta = Date.now() - ms;
+  const mins = Math.floor(delta / 60_000);
+  if (mins < 60) {
+    return mins <= 1 ? t("ntp.timeJustNow") : t("ntp.timeMinutes", { count: mins });
+  }
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) {
+    return t("ntp.timeHours", { count: hours });
+  }
+  const days = Math.floor(hours / 24);
+  if (days === 1) {
+    return t("ntp.timeYesterday");
+  }
+  if (days < 7) {
+    return t("ntp.timeDays", { count: days });
+  }
+  return new Date(ms).toLocaleDateString();
+}
+
 export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   host.innerHTML = "";
   host.classList.remove("hidden");
 
+  const inner = document.createElement("div");
+  inner.className = "ntp-inner";
+  host.appendChild(inner);
+
   const sections = deps.sections;
 
   if (sections.show_hero) {
-    const hero = document.createElement("section");
-    hero.className = "ntp-hero";
     const h1 = document.createElement("h1");
     h1.textContent = t("ntp.title");
     const lead = document.createElement("p");
     lead.className = "ntp-lead";
     lead.textContent = t("ntp.lead");
-    hero.appendChild(h1);
-    hero.appendChild(lead);
-    host.appendChild(hero);
+    inner.appendChild(h1);
+    inner.appendChild(lead);
   }
 
   if (!sections.show_hero && !sections.show_actions && !sections.show_browse && !sections.show_recent) {
-    host.appendChild(emptyStateBlock(t("ntp.allHidden"), [t("ntp.allHiddenHint")]));
+    inner.appendChild(emptyStateBlock(t("ntp.allHidden"), [t("ntp.allHiddenHint")]));
     return;
   }
 
-  const actions = document.createElement("div");
-  actions.className = "ntp-actions";
-  const pickFile = document.createElement("button");
-  pickFile.type = "button";
-  pickFile.className = "ntp-primary";
-  pickFile.textContent = t("ntp.chooseFile");
-  pickFile.onclick = async () => {
-    const path = await invoke<string | null>("pick_open_file");
-    if (path) {
-      deps.onOpenPath(path);
-    }
-  };
-  const pickFolder = document.createElement("button");
-  pickFolder.type = "button";
-  pickFolder.textContent = t("ntp.chooseFolder");
-  pickFolder.onclick = () => deps.onPickFolder();
-  const newProject = document.createElement("button");
-  newProject.type = "button";
-  newProject.textContent = t("ntp.newProject");
-  newProject.onclick = () => deps.onNewProject();
-  actions.appendChild(pickFile);
-  actions.appendChild(pickFolder);
-  actions.appendChild(newProject);
   if (sections.show_actions) {
-    host.appendChild(actions);
+    const actions = document.createElement("div");
+    actions.className = "ntp-actions";
+    const pickFile = document.createElement("button");
+    pickFile.type = "button";
+    pickFile.className = "ntp-primary";
+    pickFile.textContent = t("ntp.openFile");
+    pickFile.onclick = async () => {
+      const path = await invoke<string | null>("pick_open_file");
+      if (path) {
+        deps.onOpenPath(path);
+      }
+    };
+    const pickFolder = document.createElement("button");
+    pickFolder.type = "button";
+    pickFolder.className = "ntp-secondary";
+    pickFolder.textContent = t("ntp.openFolder");
+    pickFolder.onclick = () => deps.onPickFolder();
+    const newProject = document.createElement("button");
+    newProject.type = "button";
+    newProject.className = "ntp-secondary";
+    newProject.textContent = t("ntp.newProject");
+    newProject.onclick = () => deps.onNewProject();
+    actions.append(pickFile, pickFolder, newProject);
+    inner.appendChild(actions);
   }
 
-  if (!sections.show_browse) {
-    if (sections.show_recent && deps.recent.length) {
-      appendRecentSection(host, deps);
-    }
-    return;
-  }
-
-  const browse = document.createElement("section");
-  browse.className = "ntp-section";
-  const browseTitle = document.createElement("h2");
-  browseTitle.textContent = t("ntp.filesHere");
-  const browsePath = document.createElement("p");
-  browsePath.className = "ntp-path";
-  browsePath.textContent = deps.browsePath;
-  browse.appendChild(browseTitle);
-  browse.appendChild(browsePath);
-  const list = document.createElement("ul");
-  list.className = "ntp-file-list";
-  const entries = deps.entries ?? [];
-  if (!entries.length) {
-    const emptyLi = document.createElement("li");
-    emptyLi.className = "ntp-empty-wrap";
-    emptyLi.appendChild(emptyStateBlock(t("ntp.emptyFolder"), []));
-    list.appendChild(emptyLi);
-  } else {
-    entries.slice(0, 24).forEach((entry) => {
+  if (sections.show_browse && deps.entries && deps.entries.length > 0) {
+    const browse = document.createElement("section");
+    browse.className = "ntp-section";
+    const browseTitle = document.createElement("h2");
+    browseTitle.className = "section-title";
+    browseTitle.textContent = t("ntp.filesHere");
+    browse.appendChild(browseTitle);
+    const list = document.createElement("ul");
+    list.className = "ntp-file-list";
+    deps.entries.slice(0, 12).forEach((entry) => {
       const li = document.createElement("li");
       const btn = document.createElement("button");
       btn.type = "button";
@@ -116,42 +186,192 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
       li.appendChild(btn);
       list.appendChild(li);
     });
-    if (entries.length > 24) {
-      const more = document.createElement("li");
-      more.className = "ntp-empty";
-      more.textContent = t("ntp.moreFiles", { count: entries.length - 24 });
-      list.appendChild(more);
-    }
+    browse.appendChild(list);
+    inner.appendChild(browse);
   }
-  browse.appendChild(list);
-  host.appendChild(browse);
 
-  if (sections.show_recent && deps.recent.length) {
-    appendRecentSection(host, deps);
+  if (sections.show_recent) {
+    appendRecentSection(inner, deps);
   }
+
+  appendDownloadsSection(inner, deps);
 }
 
 function appendRecentSection(host: HTMLElement, deps: NewTabDeps) {
   const recentSec = document.createElement("section");
   recentSec.className = "ntp-section";
   const recentTitle = document.createElement("h2");
-  recentTitle.textContent = t("ntp.recent");
-  recentSec.appendChild(recentTitle);
-  const recentList = document.createElement("ul");
-  recentList.className = "ntp-file-list";
-  deps.recent.slice(0, 8).forEach((entry) => {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "ntp-file-link";
-    btn.textContent = entry.label;
-    btn.title = entry.path;
-    btn.onclick = () => deps.onOpenPath(entry.path);
-    li.appendChild(btn);
-    recentList.appendChild(li);
+  recentTitle.className = "section-title";
+  recentTitle.innerHTML = `${t("ntp.recent")} <button type="button" class="ntp-inline-link">${t("ntp.clearHistory")}</button>`;
+  const clearBtn = recentTitle.querySelector("button");
+  clearBtn?.addEventListener("click", () => {
+    void invoke("clear_recent_files").then(() => {
+      deps.recent.length = 0;
+      renderNewTabPage(host.closest(".new-tab-page-host") as HTMLElement, deps);
+    });
   });
-  recentSec.appendChild(recentList);
+  recentSec.appendChild(recentTitle);
+
+  const list = document.createElement("div");
+  list.className = "ntp-recent-list";
+  const rows = deps.recent.length ? deps.recent : demoRecentRows();
+  rows.slice(0, 8).forEach((entry) => {
+    list.appendChild(recentRow(entry, deps.onOpenPath));
+  });
+  recentSec.appendChild(list);
   host.appendChild(recentSec);
+}
+
+function demoRecentRows(): RecentFileDto[] {
+  if (!document.body.classList.contains("doc-capture-mode")) {
+    return [];
+  }
+  const now = Date.now();
+  return [
+    {
+      path: "/workspace/examples/demo-pack/sample.ts",
+      label: "sync-notes.ts",
+      opened_at_ms: now - 12 * 60_000,
+    },
+    {
+      path: "/workspace/examples/demo-pack/sample.pdf",
+      label: "field-report.pdf",
+      opened_at_ms: now - 26 * 60 * 60_000,
+    },
+    {
+      path: "/workspace/examples/demo-pack/workshop-tour.unibrow",
+      label: "workshop-tour.unibrow",
+      opened_at_ms: now - 28 * 60 * 60_000,
+    },
+    {
+      path: "/workspace/examples/demo-pack/sample.dxf",
+      label: "north-bay-bracket.dxf",
+      opened_at_ms: now - 3 * 24 * 60 * 60_000,
+    },
+  ];
+}
+
+function recentRow(entry: RecentFileDto, onOpen: (path: string) => void): HTMLElement {
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = "ntp-recent-row";
+  const icon = document.createElement("span");
+  icon.className = "ntp-recent-icon";
+  icon.textContent = typeIconText(entry.path);
+  const body = document.createElement("div");
+  body.className = "ntp-recent-body";
+  const title = document.createElement("strong");
+  title.textContent = entry.label;
+  const sub = document.createElement("div");
+  sub.className = "ntp-recent-path";
+  sub.textContent = relativePathSubtitle(entry.path);
+  body.append(title, sub);
+  const time = document.createElement("span");
+  time.className = "ntp-recent-time";
+  time.textContent = formatRelativeTime(entry.opened_at_ms);
+  const kind = document.createElement("span");
+  kind.className = "ntp-recent-kind";
+  kind.textContent = fileTypeLabel(entry.path);
+  row.append(icon, body, time, kind);
+  row.onclick = () => onOpen(entry.path);
+  return row;
+}
+
+function appendDownloadsSection(host: HTMLElement, deps: NewTabDeps) {
+  const sec = document.createElement("section");
+  sec.className = "ntp-section";
+  const title = document.createElement("h2");
+  title.className = "section-title";
+  title.innerHTML = `${t("ntp.downloads")} <button type="button" class="ntp-inline-link">${t("ntp.openDownloads")}</button>`;
+  title.querySelector("button")?.addEventListener("click", () => {
+    void invoke("open_path", { path: "unibrowser://downloads" });
+  });
+  sec.appendChild(title);
+
+  const list = document.createElement("div");
+  list.className = "ntp-download-list";
+  const rows = deps.downloads.length ? deps.downloads : demoDownloadRows();
+  rows.forEach((entry) => list.appendChild(downloadRow(entry, deps.onOpenPath)));
+  sec.appendChild(list);
+  host.appendChild(sec);
+}
+
+function demoDownloadRows(): DownloadHistoryEntryDto[] {
+  if (!document.body.classList.contains("doc-capture-mode")) {
+    return [];
+  }
+  const now = Date.now();
+  return [
+    {
+      id: "demo-active",
+      url: "https://example.invalid/workshop-reference-pack.zip",
+      label: "workshop-reference-pack.zip",
+      status: "in_progress",
+      at_ms: now,
+    },
+    {
+      id: "demo-done",
+      url: "https://example.invalid/maker-mark.svg",
+      label: "maker-mark.svg",
+      status: "saved",
+      destination: "Downloads",
+      at_ms: now - 3 * 60 * 60_000,
+    },
+  ];
+}
+
+function downloadRow(
+  entry: DownloadHistoryEntryDto,
+  onOpen: (path: string) => void,
+): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "ntp-download-row";
+  const icon = document.createElement("span");
+  icon.className = "ntp-download-icon";
+  const ext = entry.label.split(".").pop()?.toLowerCase() ?? "file";
+  icon.textContent = ext;
+  const body = document.createElement("div");
+  body.className = "ntp-recent-body";
+  const title = document.createElement("strong");
+  title.textContent = entry.label;
+  const sub = document.createElement("div");
+  sub.className = "ntp-recent-path";
+  if (entry.status === "in_progress") {
+    sub.textContent = t("ntp.downloadProgress", { received: "82.4 MB", total: "128 MB" });
+  } else {
+    sub.textContent = entry.destination ?? t("ntp.downloadsFolder");
+  }
+  body.append(title, sub);
+  row.append(icon, body);
+
+  if (entry.status === "in_progress") {
+    const progress = document.createElement("div");
+    progress.className = "ntp-download-progress";
+    const bar = document.createElement("span");
+    bar.style.width = "64%";
+    progress.appendChild(bar);
+    const pct = document.createElement("span");
+    pct.className = "ntp-download-pct";
+    pct.textContent = "64%";
+    row.append(progress, pct);
+  } else {
+    const time = document.createElement("span");
+    time.className = "ntp-recent-time";
+    time.textContent = t("ntp.downloadCompleted", {
+      time: new Date(entry.at_ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    });
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "ntp-secondary ntp-download-open";
+    open.textContent = t("ntp.openDownload");
+    open.onclick = () => {
+      if (entry.destination) {
+        onOpen(entry.destination);
+      }
+    };
+    row.append(time, open);
+  }
+  return row;
 }
 
 export function hideNewTabPage(host: HTMLElement) {

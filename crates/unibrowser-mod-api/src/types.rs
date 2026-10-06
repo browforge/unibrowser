@@ -139,6 +139,15 @@ pub mod commands {
     pub const PDF_ANNOTATE_HIGHLIGHT: &str = "unibrowser.pdf.annotate.highlight";
     pub const PDF_ANNOTATE_STAMP: &str = "unibrowser.pdf.annotate.stamp";
     pub const PDF_ANNOTATE_INK: &str = "unibrowser.pdf.annotate.ink";
+    pub const PDF_TOOL_SELECT: &str = "unibrowser.pdf.tool.select";
+    pub const PDF_ANNOTATE_NOTE: &str = "unibrowser.pdf.annotate.note";
+    pub const PDF_ANNOTATE_AREA: &str = "unibrowser.pdf.annotate.area";
+    pub const PDF_PAGE_NAV: &str = "unibrowser.pdf.page.nav";
+    pub const PDF_VIEW_ZOOM: &str = "unibrowser.pdf.view.zoom";
+    pub const START_OPEN_FILE: &str = "unibrowser.start.openFile";
+    pub const START_OPEN_FOLDER: &str = "unibrowser.start.openFolder";
+    pub const START_NEW_PROJECT: &str = "unibrowser.start.newProject";
+    pub const START_RECENT: &str = "unibrowser.start.recent";
     pub const SVG_PATH_BOOLEAN: &str = "unibrowser.svg.path.boolean";
     pub const SVG_PATH_SIMPLIFY: &str = "unibrowser.svg.path.simplify";
     pub const PROOFING_TOGGLE: &str = "unibrowser.proofing.toggle";

@@ -6,6 +6,7 @@ use crate::Mode;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CommandContext {
+    Start,
     Browse,
     Text,
     Office,
@@ -18,6 +19,7 @@ pub enum CommandContext {
 impl CommandContext {
     pub fn tab_id(self) -> &'static str {
         match self {
+            CommandContext::Start => "start",
             CommandContext::Browse => "browse",
             CommandContext::Text => "text",
             CommandContext::Office => "office",
@@ -30,6 +32,7 @@ impl CommandContext {
 
     pub fn label(self) -> &'static str {
         match self {
+            CommandContext::Start => "Start",
             CommandContext::Browse => "Browse",
             CommandContext::Text => "Text",
             CommandContext::Office => "Office",

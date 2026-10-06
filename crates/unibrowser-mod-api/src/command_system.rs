@@ -92,6 +92,16 @@ pub mod control_ids {
     pub const TEXT_COLOUR: &str = "unibrowser.control.text.colour";
     pub const EDITOR_FONT: &str = "unibrowser.control.editor.font";
     pub const EDITOR_SIZE: &str = "unibrowser.control.editor.size";
+    pub const START_OPEN_FILE: &str = "unibrowser.control.start.openFile";
+    pub const START_OPEN_FOLDER: &str = "unibrowser.control.start.openFolder";
+    pub const START_NEW_PROJECT: &str = "unibrowser.control.start.newProject";
+    pub const START_RECENT: &str = "unibrowser.control.start.recent";
+    pub const PDF_SELECT: &str = "unibrowser.control.pdf.select";
+    pub const PDF_NOTE: &str = "unibrowser.control.pdf.note";
+    pub const PDF_AREA: &str = "unibrowser.control.pdf.area";
+    pub const PDF_PAGE: &str = "unibrowser.control.pdf.page";
+    pub const PDF_VIEW_ZOOM: &str = "unibrowser.control.pdf.viewZoom";
+    pub const PDF_EXPORT: &str = "unibrowser.control.pdf.export";
 }
 
 pub mod family_ids {
@@ -103,6 +113,7 @@ pub mod family_ids {
     pub const EXPORT: &str = "unibrowser.family.export";
     pub const PDF_ANNOTATION: &str = "unibrowser.family.pdf-annotation";
     pub const IMAGE_ADJUST: &str = "unibrowser.family.image-adjust";
+    pub const START: &str = "unibrowser.family.start";
 }
 
 pub mod group_ids {
@@ -115,6 +126,7 @@ pub mod group_ids {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkContext {
+    Start,
     PlainText,
     Markdown,
     RichDocument,

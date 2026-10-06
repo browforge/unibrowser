@@ -269,7 +269,7 @@ impl CommandManagerState {
         tab_id: &str,
         fallback_doc_path: Option<&str>,
     ) -> Vec<ResolvedFamily> {
-        let structured_tab = matches!(tab_id, "text" | "code" | "image" | "office")
+        let structured_tab = matches!(tab_id, "start" | "text" | "code" | "image" | "office")
             || tab_id == self.auto_context.tab_id();
         if !structured_tab {
             return Vec::new();

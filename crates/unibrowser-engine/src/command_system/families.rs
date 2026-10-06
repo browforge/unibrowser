@@ -13,6 +13,9 @@ use super::context::ResolutionContext;
 use super::resolver::CapabilityResolver;
 
 pub fn core_tab_layout(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Vec<ResolvedFamily> {
+    if ctx.work == WorkContext::Start {
+        return vec![start_family(ctx, resolver)];
+    }
     vec![
         history_family(ctx, resolver),
         text_or_editor_family(ctx, resolver),
@@ -25,6 +28,76 @@ pub fn core_tab_layout(ctx: &ResolutionContext, resolver: &CapabilityResolver) -
     .into_iter()
     .filter(|f| !f.groups.is_empty())
     .collect()
+}
+
+fn start_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let open = ResolvedGroup {
+        group_id: "unibrowser.group.start.open".into(),
+        label: "Open".into(),
+        overflow_priority: OverflowPriority::Normal,
+        controls: vec![
+            control_spec(
+                control_ids::START_OPEN_FILE,
+                ControlType::Button,
+                commands::START_OPEN_FILE,
+                "File",
+                "file",
+                "unibrowser.group.start.open",
+                family_ids::START,
+                ctx,
+                resolver,
+            ),
+            control_spec(
+                control_ids::START_OPEN_FOLDER,
+                ControlType::Button,
+                commands::START_OPEN_FOLDER,
+                "Folder",
+                "folder",
+                "unibrowser.group.start.open",
+                family_ids::START,
+                ctx,
+                resolver,
+            ),
+        ],
+    };
+    let create = ResolvedGroup {
+        group_id: "unibrowser.group.start.create".into(),
+        label: "Create".into(),
+        overflow_priority: OverflowPriority::Normal,
+        controls: vec![control_spec(
+            control_ids::START_NEW_PROJECT,
+            ControlType::Button,
+            commands::START_NEW_PROJECT,
+            "Project",
+            "layout-grid",
+            "unibrowser.group.start.create",
+            family_ids::START,
+            ctx,
+            resolver,
+        )],
+    };
+    let recent = ResolvedGroup {
+        group_id: "unibrowser.group.start.recent".into(),
+        label: "Recent".into(),
+        overflow_priority: OverflowPriority::Low,
+        controls: vec![control_spec(
+            control_ids::START_RECENT,
+            ControlType::Button,
+            commands::START_RECENT,
+            "Recent",
+            "file",
+            "unibrowser.group.start.recent",
+            family_ids::START,
+            ctx,
+            resolver,
+        )],
+    };
+    ResolvedFamily {
+        family_id: family_ids::START.into(),
+        label: "Start".into(),
+        overflow_priority: OverflowPriority::Primary,
+        groups: vec![open, create, recent],
+    }
 }
 
 fn history_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
@@ -323,55 +396,120 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     if ctx.work != WorkContext::Pdf {
         return ResolvedFamily {
             family_id: family_ids::PDF_ANNOTATION.into(),
-            label: "Annotation".into(),
+            label: "PDF".into(),
             overflow_priority: OverflowPriority::Normal,
             groups: vec![],
         };
     }
+    let tools = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.tools".into(),
+        label: "Tools".into(),
+        overflow_priority: OverflowPriority::Normal,
+        controls: vec![control_spec(
+            control_ids::PDF_SELECT,
+            ControlType::SplitButton,
+            commands::PDF_TOOL_SELECT,
+            "Select",
+            "lasso",
+            "unibrowser.group.pdf.tools",
+            family_ids::PDF_ANNOTATION,
+            ctx,
+            resolver,
+        )],
+    };
+    let annotate = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.annotate".into(),
+        label: "Annotate".into(),
+        overflow_priority: OverflowPriority::Normal,
+        controls: vec![
+            control_spec(
+                "unibrowser.control.pdf.highlight",
+                ControlType::SplitButton,
+                commands::PDF_ANNOTATE_HIGHLIGHT,
+                "Highlight",
+                "highlighter",
+                "unibrowser.group.pdf.annotate",
+                family_ids::PDF_ANNOTATION,
+                ctx,
+                resolver,
+            ),
+            control_spec(
+                control_ids::PDF_NOTE,
+                ControlType::Button,
+                commands::PDF_ANNOTATE_NOTE,
+                "Note",
+                "message-square",
+                "unibrowser.group.pdf.annotate",
+                family_ids::PDF_ANNOTATION,
+                ctx,
+                resolver,
+            ),
+            control_spec(
+                control_ids::PDF_AREA,
+                ControlType::Button,
+                commands::PDF_ANNOTATE_AREA,
+                "Area",
+                "square-dashed",
+                "unibrowser.group.pdf.annotate",
+                family_ids::PDF_ANNOTATION,
+                ctx,
+                resolver,
+            ),
+        ],
+    };
+    let page = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.page".into(),
+        label: "Page".into(),
+        overflow_priority: OverflowPriority::Normal,
+        controls: vec![control_spec(
+            control_ids::PDF_PAGE,
+            ControlType::SplitButton,
+            commands::PDF_PAGE_NAV,
+            "1 / 1",
+            "file",
+            "unibrowser.group.pdf.page",
+            family_ids::PDF_ANNOTATION,
+            ctx,
+            resolver,
+        )],
+    };
+    let view = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.view".into(),
+        label: "View".into(),
+        overflow_priority: OverflowPriority::Low,
+        controls: vec![control_spec(
+            control_ids::PDF_VIEW_ZOOM,
+            ControlType::SplitButton,
+            commands::PDF_VIEW_ZOOM,
+            "100%",
+            "zoom-in",
+            "unibrowser.group.pdf.view",
+            family_ids::PDF_ANNOTATION,
+            ctx,
+            resolver,
+        )],
+    };
+    let export = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.export".into(),
+        label: "Export".into(),
+        overflow_priority: OverflowPriority::Low,
+        controls: vec![control_spec(
+            control_ids::PDF_EXPORT,
+            ControlType::Button,
+            commands::EXPORT_PRINT_PDF,
+            "Export PDF",
+            "share",
+            "unibrowser.group.pdf.export",
+            family_ids::PDF_ANNOTATION,
+            ctx,
+            resolver,
+        )],
+    };
     ResolvedFamily {
         family_id: family_ids::PDF_ANNOTATION.into(),
-        label: "Annotation".into(),
+        label: "PDF".into(),
         overflow_priority: OverflowPriority::Normal,
-        groups: vec![ResolvedGroup {
-            group_id: "unibrowser.group.pdf.annotate".into(),
-            label: "Annotate".into(),
-            overflow_priority: OverflowPriority::Normal,
-            controls: vec![
-                control_spec(
-                    "unibrowser.control.pdf.highlight",
-                    ControlType::Toggle,
-                    commands::PDF_ANNOTATE_HIGHLIGHT,
-                    "Highlight",
-                    "highlighter",
-                    "unibrowser.group.pdf.annotate",
-                    family_ids::PDF_ANNOTATION,
-                    ctx,
-                    resolver,
-                ),
-                control_spec(
-                    "unibrowser.control.pdf.stamp",
-                    ControlType::Button,
-                    commands::PDF_ANNOTATE_STAMP,
-                    "Stamp",
-                    "stamp",
-                    "unibrowser.group.pdf.annotate",
-                    family_ids::PDF_ANNOTATION,
-                    ctx,
-                    resolver,
-                ),
-                control_spec(
-                    "unibrowser.control.pdf.ink",
-                    ControlType::Button,
-                    commands::PDF_ANNOTATE_INK,
-                    "Ink",
-                    "pen-line",
-                    "unibrowser.group.pdf.annotate",
-                    family_ids::PDF_ANNOTATION,
-                    ctx,
-                    resolver,
-                ),
-            ],
-        }],
+        groups: vec![tools, annotate, page, view, export],
     }
 }
 

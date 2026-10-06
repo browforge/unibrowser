@@ -222,7 +222,7 @@ impl AppState {
         let cm_file = load_command_manager_file(toolbars_file_path().as_deref());
         let command_manager = Mutex::new(CommandManagerState::with_layout_path(
             &cm_file,
-            unibrowser_mod_api::CommandContext::Browse,
+            unibrowser_mod_api::CommandContext::Start,
             toolbars_file_path().as_deref(),
         ));
 
@@ -270,26 +270,33 @@ impl AppState {
         let tabs = sess.tabs.lock().expect("tabs lock");
         let tab = tabs.active_tab();
         let ctx = if let Some(tab) = tab {
-            let path = tab
-                .document
-                .as_ref()
-                .map(|d| d.path.clone())
-                .or_else(|| {
-                    if let BrowserLocation::File { path } = &tab.location {
-                        Some(path.to_string_lossy().to_string())
-                    } else {
-                        None
-                    }
-                });
-            let mode = tab.document.as_ref().map(|d| d.backend.mode());
-            infer_context(
-                tab.is_directory,
-                matches!(tab.location, BrowserLocation::Http { .. }),
-                path.as_deref(),
-                mode,
-            )
+            if matches!(
+                &tab.location,
+                BrowserLocation::Internal { page } if page == "home"
+            ) {
+                unibrowser_mod_api::CommandContext::Start
+            } else {
+                let path = tab
+                    .document
+                    .as_ref()
+                    .map(|d| d.path.clone())
+                    .or_else(|| {
+                        if let BrowserLocation::File { path } = &tab.location {
+                            Some(path.to_string_lossy().to_string())
+                        } else {
+                            None
+                        }
+                    });
+                let mode = tab.document.as_ref().map(|d| d.backend.mode());
+                infer_context(
+                    tab.is_directory,
+                    matches!(tab.location, BrowserLocation::Http { .. }),
+                    path.as_deref(),
+                    mode,
+                )
+            }
         } else {
-            unibrowser_mod_api::CommandContext::Browse
+            unibrowser_mod_api::CommandContext::Start
         };
         let mut cm = self.command_manager.lock().expect("command manager lock");
         cm.bump_context_revision();

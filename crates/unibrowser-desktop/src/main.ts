@@ -151,6 +151,7 @@ import {
 } from "./scriptOutputPanel";
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
+import { syncContextDockPolicy } from "./contextDock";
 import { applyDemoState } from "./demoState";
 import {
   assertLightThemeForCapture,
@@ -1561,6 +1562,34 @@ async function processCommandResult(msg: string, commandId?: string) {
     toggleWorkspaceQuickOpen();
     return;
   }
+  if (msg === "start-open-file") {
+    const path = await invoke<string | null>("pick_open_file");
+    if (path) {
+      const data = await invoke<TabContentDto>("open_path", { path });
+      if (data) {
+        await applyState(data);
+      }
+    }
+    return;
+  }
+  if (msg === "start-open-folder") {
+    const folder = await invoke<string | null>("pick_browse_folder");
+    if (folder) {
+      const data = await invoke<TabContentDto>("open_path", { path: folder });
+      if (data) {
+        await applyState(data);
+      }
+    }
+    return;
+  }
+  if (msg === "start-new-project") {
+    document.getElementById("btn-new-project")?.click();
+    return;
+  }
+  if (msg === "start-recent") {
+    document.getElementById("new-tab-page-host")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
   if (msg === "find-files-deep") {
     toggleGlobalFind(lastBrowseFolderPath);
     return;
@@ -1714,10 +1743,11 @@ async function applyState(data: TabContentDto) {
   syncTitleBar(data);
   const showBookmarkBar =
     (data.bookmark_bar_enabled ?? false) &&
+    !showHome &&
     !showText &&
     !showViewer &&
     !active?.is_http &&
-    (showHome || Boolean(active?.is_directory));
+    Boolean(active?.is_directory);
   renderBookmarkBar(
     showBookmarkBar,
     data.pinned_locations ?? [],
@@ -1745,6 +1775,7 @@ async function applyState(data: TabContentDto) {
     renderNewTabPage(newTabPageHost, {
       entries: data.directory_entries,
       recent: data.recent_files ?? [],
+      downloads: data.download_history ?? [],
       browsePath: data.browse_folder_path,
       sections: data.ntp_sections ?? {
         show_hero: true,
@@ -1883,6 +1914,7 @@ async function applyState(data: TabContentDto) {
       void refreshState();
     });
   }
+  await syncContextDockPolicy(data);
   await refreshAiAssistantChrome();
   await refreshCommandManager();
   syncBottomPanelEmptyState();
@@ -2585,10 +2617,16 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       }
       for (const p of launchPaths) {
         try {
-          await invoke("open_path", { path: p, line: null });
+          const opened = await invoke<TabContentDto>("open_path", { path: p, line: null });
+          if (opened) {
+            await applyState(opened);
+          }
         } catch {
           /* argv open failures surface via toast on next interaction */
         }
+      }
+      if (launchPaths.length > 0) {
+        await refreshState();
       }
       if (demo) {
         try {
@@ -2609,7 +2647,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           }
         }
         try {
-          const painted = await waitForShellPaintReady(demoAgain, launchPaths, 45_000);
+          const painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
           if (!painted) {
             await invoke("abort_doc_capture", {
               reason: "Shell paint readiness timed out",

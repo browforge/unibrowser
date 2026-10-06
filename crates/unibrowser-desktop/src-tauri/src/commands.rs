@@ -1230,7 +1230,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
     let browse_folder_path = listing_cwd(state, &tabs).to_string_lossy().into_owned();
     let directory_entries = if let Some(active) = tabs.active_tab() {
         if tab_is_new_tab_home(active) {
-            Some(list_dir_snapshot(&sess, Path::new(&browse_folder_path))?)
+            None
         } else if active.is_directory {
             if let BrowserLocation::File { path } = &active.location {
                 Some(list_dir_snapshot(&sess, path)?)
@@ -2113,10 +2113,26 @@ pub fn open_path(
     let _sess_tabs = ws(&state, &window)?;
     {
         let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        tabs.navigate_active(loc.clone(), is_dir, doc);
-        if let Some(line) = line.filter(|l| *l > 0) {
+        let open_in_new_tab = tabs
+            .active_tab()
+            .map(tab_is_new_tab_home)
+            .unwrap_or(false)
+            && !is_dir;
+        if open_in_new_tab {
+            tabs.open_tab(loc.clone());
             if let Some(tab) = tabs.active_tab_mut() {
-                tab.reveal_line = Some(line);
+                tab.is_directory = is_dir;
+                tab.document = doc;
+                if let Some(line) = line.filter(|l| *l > 0) {
+                    tab.reveal_line = Some(line);
+                }
+            }
+        } else {
+            tabs.navigate_active(loc.clone(), is_dir, doc);
+            if let Some(line) = line.filter(|l| *l > 0) {
+                if let Some(tab) = tabs.active_tab_mut() {
+                    tab.reveal_line = Some(line);
+                }
             }
         }
     }
@@ -3613,6 +3629,33 @@ fn execute_command_impl(
     }
     if command_id == unibrowser_mod_api::commands::WORKSPACE_QUICK_OPEN {
         return Ok("workspace-quick-open".into());
+    }
+    if command_id == unibrowser_mod_api::commands::START_OPEN_FILE {
+        return Ok("start-open-file".into());
+    }
+    if command_id == unibrowser_mod_api::commands::START_OPEN_FOLDER {
+        return Ok("start-open-folder".into());
+    }
+    if command_id == unibrowser_mod_api::commands::START_NEW_PROJECT {
+        return Ok("start-new-project".into());
+    }
+    if command_id == unibrowser_mod_api::commands::START_RECENT {
+        return Ok("start-recent".into());
+    }
+    if command_id == unibrowser_mod_api::commands::PDF_TOOL_SELECT {
+        return Ok("pdf-select".into());
+    }
+    if command_id == unibrowser_mod_api::commands::PDF_ANNOTATE_NOTE {
+        return Ok("pdf-note".into());
+    }
+    if command_id == unibrowser_mod_api::commands::PDF_ANNOTATE_AREA {
+        return Ok("pdf-area".into());
+    }
+    if command_id == unibrowser_mod_api::commands::PDF_PAGE_NAV {
+        return Ok("pdf-page-nav".into());
+    }
+    if command_id == unibrowser_mod_api::commands::PDF_VIEW_ZOOM {
+        return Ok("pdf-view-zoom".into());
     }
     if command_id == unibrowser_mod_api::commands::FIND_FILES_DEEP {
         return Ok("find-files-deep".into());

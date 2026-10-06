@@ -104,9 +104,20 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         WorkContext::Cad3d => CapabilityState::Unsupported {
             reason: "CAD tools are not available in this build.".into(),
         },
+        WorkContext::Start => start_capability(control_id),
         WorkContext::Browse | WorkContext::Web => CapabilityState::Unsupported {
             reason: "Open a document to use formatting commands.".into(),
         },
+    }
+}
+
+fn start_capability(control_id: &str) -> CapabilityState {
+    if control_id.starts_with("unibrowser.control.start.") {
+        CapabilityState::Supported
+    } else {
+        CapabilityState::Unsupported {
+            reason: "Start commands are available on the new tab page.".into(),
+        }
     }
 }
 

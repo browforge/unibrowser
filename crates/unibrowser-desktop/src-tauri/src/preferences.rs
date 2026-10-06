@@ -315,7 +315,7 @@ impl Default for NtpSectionPrefs {
         Self {
             show_hero: true,
             show_actions: true,
-            show_browse: true,
+            show_browse: false,
             show_recent: true,
         }
     }

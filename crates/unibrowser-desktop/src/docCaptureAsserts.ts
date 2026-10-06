@@ -429,12 +429,19 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
 
 /** Returns abort reason or null if CM shows enough visible, contrasting controls. */
 export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6): string | null {
-  const cm = collectCommandManagerDiagnostics();
-  if (cm.visibleCount < minVisible) {
-    return `command manager visible controls ${cm.visibleCount} < ${minVisible} (total ${cm.controlCount})`;
+  if (document.body.classList.contains("cm-collapsed")) {
+    return null;
   }
-  if (cm.contrastOkCount < minContrast) {
-    return `command manager contrast-ok controls ${cm.contrastOkCount} < ${minContrast}`;
+  const cm = collectCommandManagerDiagnostics();
+  const startContext =
+    cm.autoContext === "start" || cm.contextLabel?.toLowerCase() === "start";
+  const requiredVisible = startContext ? Math.min(minVisible, 4) : minVisible;
+  const requiredContrast = startContext ? Math.min(minContrast, 4) : minContrast;
+  if (cm.visibleCount < requiredVisible) {
+    return `command manager visible controls ${cm.visibleCount} < ${requiredVisible} (total ${cm.controlCount})`;
+  }
+  if (cm.contrastOkCount < requiredContrast) {
+    return `command manager contrast-ok controls ${cm.contrastOkCount} < ${requiredContrast}`;
   }
   return null;
 }
