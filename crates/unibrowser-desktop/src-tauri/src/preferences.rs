@@ -125,8 +125,8 @@ pub struct Preferences {
     /// Favourite folder paths (bookmarked from files view).
     #[serde(default)]
     pub folder_favorites: Vec<String>,
-    /// Smaller command chips in the Command Manager toolbar.
-    #[serde(default)]
+    /// Compact (40px) Command Manager row; false = Large (64px).
+    #[serde(default = "default_command_manager_dense")]
     pub command_manager_dense: bool,
     /// User has seen the Command Manager pin tip (toast or Settings).
     #[serde(default)]
@@ -220,6 +220,10 @@ fn default_proofing_grammar() -> bool {
 
 fn default_bookmark_bar_enabled() -> bool {
     false
+}
+
+fn default_command_manager_dense() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -348,7 +352,7 @@ impl Default for Preferences {
             open_downloads_in_system_browser: false,
             files_view: FilesViewPrefs::default(),
             folder_favorites: Vec::new(),
-            command_manager_dense: false,
+            command_manager_dense: default_command_manager_dense(),
             cm_pin_tip_seen: false,
             high_contrast: false,
             reduce_motion: ReduceMotionPref::default(),

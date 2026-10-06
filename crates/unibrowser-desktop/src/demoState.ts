@@ -9,11 +9,13 @@ export async function applyDemoState(raw: string) {
     .split(/[,;]+/)
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
+  const demoRaw = raw.toLowerCase();
 
   for (const token of tokens) {
     switch (token) {
       case "problems":
       case "problems-open": {
+        document.body.dataset.demoProblems = "1";
         const { showProblemsBottomPanel } = await import("./problemsPanel");
         await invoke("proofing_check", {
           text: "teh quick brown fox",
@@ -101,6 +103,53 @@ export async function applyDemoState(raw: string) {
         break;
       case "files":
         await invoke("open_path", { path: "~", line: null }).catch(() => undefined);
+        break;
+      case "cm-large": {
+        const { applyCommandManagerDensity } = await import("./accessibility");
+        applyCommandManagerDensity(false);
+        break;
+      }
+      case "cm-compact": {
+        const { applyCommandManagerDensity } = await import("./accessibility");
+        applyCommandManagerDensity(true);
+        break;
+      }
+      case "rail-expanded": {
+        try {
+          localStorage.setItem("ub-rail-mode", "expanded");
+        } catch {
+          /* ignore */
+        }
+        const rail = document.getElementById("activity-rail");
+        rail?.classList.remove("collapsed", "auto-hide", "hidden");
+        rail?.classList.add("expanded");
+        break;
+      }
+      case "rail-collapsed": {
+        try {
+          localStorage.setItem("ub-rail-mode", "collapsed");
+        } catch {
+          /* ignore */
+        }
+        const rail = document.getElementById("activity-rail");
+        rail?.classList.remove("expanded", "auto-hide", "hidden");
+        rail?.classList.add("collapsed");
+        break;
+      }
+      case "scale-150":
+        document.documentElement.style.fontSize = "150%";
+        break;
+      case "cm-collapsed":
+        document.body.classList.add("cm-collapsed");
+        break;
+      case "capture-ready":
+        document.getElementById("palette")?.classList.add("hidden");
+        document.getElementById("bookmark-bar")?.classList.add("hidden");
+        document.getElementById("onboarding-banner")?.classList.add("hidden");
+        document.getElementById("floating-toolbar-host")?.classList.add("hidden");
+        if (!demoRaw.includes("problems")) {
+          document.getElementById("script-output-panel")?.classList.add("hidden");
+        }
         break;
       default:
         break;

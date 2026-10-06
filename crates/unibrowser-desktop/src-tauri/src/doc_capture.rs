@@ -10,7 +10,12 @@ use crate::self_test;
 
 pub fn schedule_run(app: AppHandle) {
     std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_secs(8));
+        let wait_secs = if launch_args::launch_open_paths_snapshot().is_empty() {
+            8
+        } else {
+            14
+        };
+        std::thread::sleep(Duration::from_secs(wait_secs));
         eprintln!("[doc-capture] scheduling capture on main thread");
         let app2 = app.clone();
         let _ = app.run_on_main_thread(move || {
@@ -50,6 +55,10 @@ fn run_on_main(app: &AppHandle) -> Result<PathBuf, String> {
         }
     }
 
+    eval_js(
+        app,
+        r"(function(){try{var h=window.__unibrowserMeasureChromeHeights?.();if(h){console.error('[chrome-metrics] '+JSON.stringify(h));}}catch(e){}})();",
+    )?;
     self_test::scenario_shell_chrome_batch1(app)?;
     launch_args::write_doc_capture_png(app, &path)?;
     Ok(path)
@@ -105,6 +114,7 @@ fn apply_demo_state(
                 )?;
             }
             "problems" | "problems-open" => {
+                eval_js(app, "document.body.dataset.demoProblems='1';")?;
                 let _ = crate::proofing::proofing_check(
                     state.clone(),
                     crate::proofing::ProofingCheckRequest {
@@ -155,6 +165,20 @@ fn apply_demo_state(
             }
             "live" | "live-preview" => {
                 let _ = crate::live_host::set_unibrow_live_mode(window.clone(), true, state.clone());
+            }
+            "capture-ready" => {
+                eval_js(
+                    app,
+                    r"(function(){
+  document.getElementById('palette')?.classList.add('hidden');
+  document.getElementById('bookmark-bar')?.classList.add('hidden');
+  document.getElementById('onboarding-banner')?.classList.add('hidden');
+  document.getElementById('floating-toolbar-host')?.classList.add('hidden');
+  if (!document.body.dataset.demoProblems) {
+    document.getElementById('script-output-panel')?.classList.add('hidden');
+  }
+})();",
+                )?;
             }
             _ => {}
         }

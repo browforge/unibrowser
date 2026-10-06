@@ -1647,7 +1647,7 @@ async function applyState(data: TabContentDto) {
   updateTitleBarNavVisibility(activeTabForNav);
   syncTitleBar(data);
   renderBookmarkBar(
-    data.bookmark_bar_enabled ?? true,
+    data.bookmark_bar_enabled ?? false,
     data.pinned_locations ?? [],
     data.bookmark_quick_links ?? [],
   );

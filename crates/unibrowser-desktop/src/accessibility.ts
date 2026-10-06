@@ -55,7 +55,7 @@ export async function loadAccessibilityPreferences() {
     applyLargerHitTargets(prefs.larger_hit_targets);
   } catch {
     applyReduceMotionToDocument();
-    applyCommandManagerDensity(false);
+    applyCommandManagerDensity(true);
   }
   if (!motionMedia) {
     motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");

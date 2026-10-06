@@ -19,6 +19,10 @@ body {
   color: var(--ub-text-1);
 }
 
+#palette.command-palette.hidden {
+  display: none !important;
+}
+
 #palette.command-palette {
   position: fixed;
   top: 12%;
