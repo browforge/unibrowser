@@ -104,7 +104,7 @@ run_tests() {
 
 E2E_EXIT=1
 if command -v xvfb-run >/dev/null 2>&1; then
-  xvfb-run -a -s "-screen 0 1600x1000x24" env ROOT="$ROOT" UNIBROWSER_E2E=1 UNIBROWSER_E2E_ASSET_BASE="http://127.0.0.1:18765/index.html" bash -c "
+  xvfb-run -a -s "-screen 0 1600x1000x24" env ROOT="$ROOT" UNIBROWSER_E2E=1 UNIBROWSER_E2E_ASSET_BASE="http://127.0.0.1:18765/index.html" WEBKIT_DISABLE_DMABUF_RENDERER=1 bash -c "
     set -euo pipefail
     $(declare -f kill_port_listeners)
     $(declare -f kill_stale_drivers)

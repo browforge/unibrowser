@@ -6430,6 +6430,18 @@ pub fn record_diagnostic_error(message: String, details: Option<String>) {
     crate::diagnostic_log::record_error(message, details);
 }
 
+/// Frontend shell bootstrap: window errors, unhandled rejections, optional subsystem failures.
+#[tauri::command]
+pub fn log_shell_ui_event(level: String, message: String, detail: Option<String>) {
+    let tag = format!("[shell-ui:{}]", message.trim());
+    let lvl = level.trim().to_ascii_lowercase();
+    if lvl == "info" || lvl == "debug" {
+        crate::diagnostic_log::record_info(tag, detail);
+    } else {
+        crate::diagnostic_log::record_error(tag, detail);
+    }
+}
+
 #[derive(Serialize)]
 pub struct VsixActivationDto {
     pub extension_id: String,

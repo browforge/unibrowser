@@ -1,0 +1,20 @@
+=== Unibrowser release shell diagnosis 2026-10-06T08:47:56Z ===
+
+1) Bare release binary
+  screenshot bare-binary: 53289 bytes (/tmp/unibrowser-diag-bare-binary.png)
+  OK: bare-binary likely shows UI
+
+2) AppImage --appimage-extract-and-run
+  screenshot appimage: 53289 bytes (/tmp/unibrowser-diag-appimage.png)
+  OK: appimage likely shows UI
+
+3) Wrong launch (squashfs binary without AppRun) — documented false blank
+  SKIP: no squashfs-root/unibrowser-desktop
+
+Findings:
+  - Release shell renders when launched as target/release/unibrowser-desktop or AppImage with extract-and-run.
+  - Tiny captures: wrong AppImage layout (WebKitNetworkProcess) or screenshot before paint.
+  - On xvfb/VMs use WEBKIT_DISABLE_DMABUF_RENDERER=1 for stable WebKitGTK paint.
+  - E2E: embedded WebDriver + loopback dist; external driver often sees empty DOM.
+
+OVERALL: PASS

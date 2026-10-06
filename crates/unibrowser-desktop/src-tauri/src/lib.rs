@@ -361,6 +361,7 @@ pub fn run() {
             commands::capture_visible_tab,
             commands::save_tab_capture_png,
             commands::record_diagnostic_error,
+            commands::log_shell_ui_event,
             commands::get_diagnostics_info,
             commands::pin_current_location,
             commands::begin_file_compare,

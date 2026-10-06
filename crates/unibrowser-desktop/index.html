@@ -6,6 +6,13 @@
     <title>Unibrowser</title>
   </head>
   <body>
+    <div id="shell-fallback" class="shell-fallback" role="status" aria-live="polite">
+      <strong>Unibrowser</strong>
+      <span class="shell-fallback-detail">Loading shell…</span>
+    </div>
+    <div id="shell-subsystem-notice" class="shell-subsystem-notice hidden" role="status">
+      <span class="shell-subsystem-notice-text"></span>
+    </div>
     <header id="chrome">
       <div id="mods-line" class="mods-line"></div>
       <div id="bookmark-bar" class="bookmark-bar" aria-label="Pinned places"></div>

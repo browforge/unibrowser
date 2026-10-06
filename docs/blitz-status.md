@@ -10,9 +10,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 **Try first:** `./scripts/e2e.sh` on Linux (needs `xvfb`, `webkit2gtk-driver`, free ports **4444**, **4445**; bundled `frontendDist`, no Vite). `cargo test --workspace` and `cd crates/unibrowser-desktop && npm run build` should stay green.
 
-**Top wins this slice:** E2E **loopback `dist/`** + capability `e2e-loopback` (`remote.urls`); **`10-shell.e2e.ts` un-quarantined** (single spec / one session); CLI **`--open <path>`**; **`UNIBROWSER_DEMO_STATE`**; **10** doc screenshots (&lt;400KB); AppImage verify via extract + `docs/verify-release-frontend-last.txt`.
+**Top wins this slice:** Release shell **does render** under xvfb when launched correctly (`./scripts/diagnose-release-shell.sh` → `docs/release-shell-diagnosis-last.txt`); **shell bootstrap** (`shellBootstrap.ts`, `#shell-fallback`, `log_shell_ui_event` → diagnostics ring buffer); E2E back on **embedded** WebDriver + `WEBKIT_DISABLE_DMABUF_RENDERER=1`; loopback `dist/` + `e2e-loopback`; CLI **`--open`** + **`UNIBROWSER_DEMO_STATE`**; capture script rejects &lt;8KB blank PNGs.
 
-**Top gaps (honest):** Full shell WDIO still **timing-sensitive** under xvfb (run `./scripts/e2e.sh` 3× before release); embedded WebDriver hits “No window” on this VM; screenshot captures may need richer demo fixtures for marketing polish.
+**Top gaps (honest):** Doc screenshots during the blitz often looked **identical** (timing/demo state), not because release `frontendDist` was missing; **wrong AppImage extract** (binary without `AppRun`) produces a **real blank window** (~200B PNG). Full `./scripts/e2e.sh` still flaky on headless VMs — retry 3× locally before release.
 
 **Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); wire `./scripts/e2e.sh` into CI when Origin runs workflows.
 

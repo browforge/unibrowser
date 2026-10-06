@@ -24,13 +24,15 @@ export const config = {
     [
       "@wdio/tauri-service",
       {
-        driverProvider: "external",
+        driverProvider: (process.env.E2E_DRIVER_PROVIDER as "embedded" | "external") || "embedded",
         appBinaryPath: APP_BINARY,
         tauriDriverPort: 4444,
         startTimeout: 180000,
         captureBackendLogs: process.env.CAPTURE_SCREENSHOTS === "1",
         env: {
           UNIBROWSER_E2E: "1",
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1",
+          WEBKIT_DISABLE_COMPOSITING_MODE: "0",
         },
       },
     ],

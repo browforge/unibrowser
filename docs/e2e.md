@@ -32,7 +32,7 @@ Helpers use `browser.execute` → `window.__TAURI__.core.invoke` on the bundled 
 
 ## Reliability
 
-`scripts/e2e.sh` retries WDIO up to **3** times; production release is checked with `scripts/verify-release-frontend.sh` (**no `localhost:1420`**). Run **three consecutive** full `./scripts/e2e.sh` passes before release candidates. On this cloud VM (Oct 2026), full `10-shell.e2e.ts` still times out waiting for the loopback shell under external `tauri-driver`; use a local Linux box with `webkit2gtk-driver` if WDIO stays red here.
+`scripts/e2e.sh` retries WDIO up to **3** times; production release is checked with `scripts/verify-release-frontend.sh` (**no `localhost:1420`**). Run **three consecutive** full `./scripts/e2e.sh` passes before release candidates. `e2e/wdio.conf.ts` defaults to `driverProvider: 'embedded'` and `WEBKIT_DISABLE_DMABUF_RENDERER=1`. Override with `E2E_DRIVER_PROVIDER=external` if you use system `tauri-driver` + `webkit2gtk-driver`. On headless cloud VMs (Oct 2026), embedded often fails session create (`No window could be found`); external may connect but see an empty WebDriver page until the driver attaches to the shell webview — run `./scripts/diagnose-release-shell.sh` to separate **blank release** from **WDIO attachment** issues.
 
 ## Troubleshooting
 

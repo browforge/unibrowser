@@ -42,6 +42,7 @@ capture_scene() {
   local out="$OUT/${name}.png"
 
   xvfb-run -a -s "-screen 0 1280x800x24" env \
+    WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     UNIBROWSER_DEMO_STATE="$demo_state" \
     UB_CAPTURE_OPEN="$open_path" \
     UB_BIN="$BIN" \
@@ -54,7 +55,7 @@ capture_scene() {
     fi
     "$UB_BIN" "${args[@]}" &
     APP_PID=$!
-    sleep 10
+    sleep 12
     if command -v import >/dev/null 2>&1; then
       import -window root "$UB_TMP"
     elif command -v xwd >/dev/null 2>&1; then
@@ -72,6 +73,12 @@ capture_scene() {
   '
   convert "$tmp" -resize 1200x -strip -quality 82 "$out"
   rm -f "$tmp"
+  local bytes
+  bytes=$(wc -c <"$out" | tr -d " ")
+  if [[ "$bytes" -lt 8000 ]]; then
+    echo "FAIL: ${out} is only ${bytes} bytes (likely blank shell)" >&2
+    exit 1
+  fi
   compress_png "$out"
 }
 
@@ -90,5 +97,11 @@ capture_scene "unibrowser-10-vsix-mods" "vsix"
 
 cp -f "$OUT/unibrowser-01-ntp.png" "$OUT/shell-desktop.png"
 compress_png "$OUT/shell-desktop.png"
+
+echo "Checking screenshot diversity (md5)…"
+mapfile -t HASHES < <(md5sum "$OUT"/*.png | awk '{print $1}' | sort -u)
+if [[ "${#HASHES[@]}" -lt 3 ]]; then
+  echo "WARN: only ${#HASHES[@]} unique PNG hashes in $OUT (captures may be identical frames)" >&2
+fi
 
 echo "Done."

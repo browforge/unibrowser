@@ -1,3 +1,9 @@
+import "./shellBootstrap";
+import {
+  hideShellFallback,
+  reportSubsystemError,
+  safeSubsystemInit,
+} from "./shellBootstrap";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
@@ -7,7 +13,7 @@ import "./styles.css";
 function markUbReadyWhenDomChromePresent() {
   const mark = () => {
     if (document.getElementById("omnibox")) {
-      document.body.dataset.ubReady = "1";
+      hideShellFallback();
     }
   };
   if (document.readyState === "loading") {
@@ -2380,11 +2386,11 @@ function deferNonCriticalInit(fn: () => void) {
   }
 }
 
-initScriptOutputPanel();
-initTerminalPanel();
-initProblemsPanel();
-initAiAssistantPanel();
-initKeysOverlay();
+safeSubsystemInit("script-output", () => initScriptOutputPanel());
+safeSubsystemInit("terminal", () => initTerminalPanel());
+safeSubsystemInit("problems", () => initProblemsPanel());
+safeSubsystemInit("ai-assistant", () => initAiAssistantPanel());
+safeSubsystemInit("keys-overlay", () => initKeysOverlay());
 window.addEventListener("unibrowser-prefs-changed", () => {
   void refreshState();
 });
@@ -2411,7 +2417,7 @@ window.addEventListener("focus", () => {
 
 void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
   if (!toolbarOnly) {
-    document.body.dataset.ubReady = "1";
+    hideShellFallback();
     void refreshState().then(async () => {
       const launchPaths = await invoke<string[]>("take_launch_open_paths");
       for (const p of launchPaths) {
@@ -2423,7 +2429,11 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       }
       const demo = await invoke<string | null>("get_demo_state");
       if (demo) {
-        await applyDemoState(demo);
+        try {
+          await applyDemoState(demo);
+        } catch (err) {
+          reportSubsystemError("demo-state", err);
+        }
       }
       void maybePromptProjectRecovery((data) => {
         void applyState(data as TabContentDto);
