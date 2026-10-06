@@ -8,6 +8,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
+import "./ui/tokens.css";
 
 /** WebDriver waits on this; set once shell chrome from index.html is in the DOM. */
 function markUbReadyWhenDomChromePresent() {
@@ -49,7 +50,7 @@ import {
   toggleProofingSquiggles,
 } from "./proofing";
 import { markChecklistStep } from "./onboardingChecklist";
-import { cycleTheme, loadThemePreference, themeButtonLabel } from "./theme";
+import { cycleTheme, loadThemePreference } from "./theme";
 import { initMonacoEditorThemes } from "./monacoEditorTheme";
 import { setEditorThemePreference } from "./textEditor";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
@@ -86,7 +87,9 @@ import { t } from "./i18n";
 import { renderNewTabPage, hideNewTabPage } from "./newTabPage";
 import { setViewerZoomListener } from "./viewerZoom";
 import { clearImagePixelSample, getImagePixelSample } from "./viewerPixelSample";
-import { applyChromeI18n, modsLineText } from "./chromeI18n";
+import { applyChromeI18n } from "./chromeI18n";
+import { initAppMenu } from "./appMenu";
+import { paletteEntryHint } from "./ui/commandTooltip";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
 import { initHttpLoadingListeners, syncHttpLoadingForTab } from "./httpLoadingOverlay";
 import { configureAutoSave } from "./autoSave";
@@ -328,7 +331,6 @@ function formatAutosaveClock(ms: number): string {
 }
 let editorLine = 1;
 let editorCol = 1;
-const modsLine = document.getElementById("mods-line")!;
 const bookmarkBar = document.getElementById("bookmark-bar")!;
 const diffEditorHost = document.getElementById("diff-editor-host")!;
 const imageCompareHost = document.getElementById("image-compare-host")!;
@@ -343,12 +345,10 @@ const splitTextEditorHost = document.getElementById("split-text-editor-host")!;
 const splitDocumentViewerHost = document.getElementById("split-document-viewer-host")!;
 const splitDocPanel = document.getElementById("split-doc-panel")!;
 const omniboxSuggestions = document.getElementById("omnibox-suggestions")!;
-const btnSplit = document.getElementById("btn-split") as HTMLButtonElement;
 const modPortalPanel = document.getElementById("mod-portal-panel")!;
 const onboardingBanner = document.getElementById("onboarding-banner")!;
 const onboardingDismiss = document.getElementById("onboarding-dismiss")!;
 const recentPanel = document.getElementById("recent-panel")!;
-const recentToggle = document.getElementById("btn-recent")!;
 let recentPanelOpen = false;
 
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
@@ -1250,7 +1250,7 @@ function renderBookmarkBar(
     btn.title = pin.location;
     btn.onclick = () => {
       if (pin.location === "unibrowser://action/new-project") {
-        document.getElementById("btn-new-project")!.click();
+        void openNewProjectFromNav();
         return;
       }
       omnibox.value = pin.location;
@@ -1540,12 +1540,10 @@ async function applySplitPane(data: TabContentDto) {
   if (!data.split_view_enabled) {
     splitSecondary.classList.add("hidden");
     contentHost.classList.remove("split-active");
-    btnSplit.classList.remove("active");
     return;
   }
   splitSecondary.classList.remove("hidden");
   contentHost.classList.add("split-active");
-  btnSplit.classList.add("active");
   const showSplitViewer = Boolean(data.split_document_viewer);
   const showSplitText = Boolean(data.split_text_document) && !showSplitViewer;
   if (showSplitViewer && data.split_document_viewer) {
@@ -1611,8 +1609,6 @@ async function applyState(data: TabContentDto) {
   const showViewer = Boolean(data.document_viewer) && !active?.is_http;
   const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
-  const remoteHint = active?.is_http ? ` · ${t("trust.remoteWeb")}` : "";
-  modsLine.textContent = modsLineText(data.mods_loaded) + remoteHint;
   renderBookmarkBar(
     data.bookmark_bar_enabled ?? true,
     data.pinned_locations ?? [],
@@ -1920,16 +1916,19 @@ listen<{ message: string; severity?: string }>("unibrowser-extension-toast", (ev
   showToast(event.payload.message, severity === "error" ? "error" : "info");
 });
 
-btnSplit.onclick = () => {
-  void invokeWithToast(() => invoke<TabContentDto>("toggle_split_view"), t("chrome.splitFailed")).then(
-    (data) => {
-      if (data) {
-        void markChecklistStep("split_view");
-        applyState(data);
-      }
-    },
-  );
-};
+async function openNewProjectFromNav() {
+  const choice = await openNewProjectDialog();
+  if (!choice) {
+    return;
+  }
+  const home = await invoke<string>("get_home_dir").catch(() => "/tmp");
+  const data = await invoke<TabContentDto>("create_unibrow_project", {
+    parentDir: home,
+    name: choice.name,
+    template: choice.template,
+  });
+  void applyState(data);
+}
 
 document.getElementById("btn-back")!.onclick = () =>
   invoke<TabContentDto>("go_back").then(applyState);
@@ -1937,28 +1936,6 @@ document.getElementById("btn-forward")!.onclick = () =>
   invoke<TabContentDto>("go_forward").then(applyState);
 document.getElementById("btn-reload")!.onclick = () =>
   invoke<TabContentDto>("reload_tab").then(applyState);
-
-document.getElementById("btn-demo-download")!.onclick = () =>
-  invoke<TabContentDto>("handle_download_url", {
-    url: "https://example.com/",
-    destination: null,
-  }).then(applyState);
-
-document.getElementById("btn-compare")!.onclick = () => {
-  void invokeWithToast(
-    () => invoke<TabContentDto>("pick_and_compare"),
-    t("compare.needFile"),
-  ).then((data) => {
-    if (data) {
-      showToast(t("compare.started"), "info");
-      void applyState(data);
-    }
-  });
-};
-
-document.getElementById("btn-pin")!.onclick = () => {
-  void refreshState();
-};
 
 diffEditorHost.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
@@ -1977,32 +1954,101 @@ imageCompareHost.addEventListener("click", (e) => {
   }
 });
 
-document.getElementById("btn-mod-portal")!.onclick = () =>
-  invoke<TabContentDto>("open_mod_portal", { ext: null }).then(applyState);
-
-const themeBtn = document.getElementById("btn-theme") as HTMLButtonElement;
-recentToggle.onclick = () => {
-  recentPanelOpen = !recentPanelOpen;
-  recentToggle.setAttribute("aria-expanded", recentPanelOpen ? "true" : "false");
-  void refreshState();
+document.getElementById("btn-find")!.onclick = () => {
+  void runKeybindingCommand("unibrowser.find.inDocument");
 };
 
-themeBtn.onclick = async () => {
-  await cycleTheme();
-  themeBtn.textContent = themeButtonLabel();
+document.getElementById("btn-downloads")!.onclick = () => {
+  omnibox.value = "unibrowser://downloads";
+  void navigateOmnibox();
 };
 
-document.getElementById("btn-new-project")!.onclick = async () => {
-  const choice = await openNewProjectDialog();
-  if (!choice) {
+function openNavOverflow() {
+  const anchor = document.getElementById("nav-overflow");
+  if (!anchor) {
     return;
   }
-  const home = await invoke<string>("get_home_dir").catch(() => "/tmp");
-  await invoke<TabContentDto>("create_unibrow_project", {
-    parentDir: home,
-    name: choice.name,
-    template: choice.template,
-  }).then(applyState);
+  const menu = document.createElement("div");
+  menu.className = "nav-overflow-menu";
+  const items: { label: string; run: () => void }[] = [
+    {
+      label: t("chrome.tabs"),
+      run: () => toggleTabSearch(),
+    },
+    {
+      label: t("chrome.split"),
+      run: () => {
+        void invokeWithToast(
+          () => invoke<TabContentDto>("toggle_split_view"),
+          t("chrome.splitFailed"),
+        ).then((data) => data && applyState(data));
+      },
+    },
+    {
+      label: t("chrome.mods"),
+      run: () => {
+        void invoke<TabContentDto>("open_mod_portal", { ext: null }).then(applyState);
+      },
+    },
+    {
+      label: t("chrome.newProject"),
+      run: () => void openNewProjectFromNav(),
+    },
+    {
+      label: t("chrome.theme"),
+      run: () => void cycleTheme(),
+    },
+    {
+      label: t("chrome.compare"),
+      run: () => {
+        void invokeWithToast(
+          () => invoke<TabContentDto>("pick_and_compare"),
+          t("compare.needFile"),
+        ).then((data) => data && applyState(data));
+      },
+    },
+    {
+      label: t("chrome.recent"),
+      run: () => {
+        recentPanelOpen = !recentPanelOpen;
+        void refreshState();
+      },
+    },
+    {
+      label: t("settings.open"),
+      run: () => {
+        omnibox.value = "unibrowser://settings";
+        void navigateOmnibox();
+      },
+    },
+  ];
+  for (const item of items) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "nav-overflow-item";
+    btn.textContent = item.label;
+    btn.onclick = () => {
+      menu.remove();
+      item.run();
+    };
+    menu.appendChild(btn);
+  }
+  const rect = anchor.getBoundingClientRect();
+  menu.style.left = `${rect.right - 180}px`;
+  menu.style.top = `${rect.bottom + 4}px`;
+  document.body.appendChild(menu);
+  const close = (ev: MouseEvent) => {
+    if (!menu.contains(ev.target as Node)) {
+      menu.remove();
+      document.removeEventListener("click", close);
+    }
+  };
+  window.setTimeout(() => document.addEventListener("click", close), 0);
+}
+
+document.getElementById("nav-overflow")!.onclick = (e) => {
+  e.stopPropagation();
+  openNavOverflow();
 };
 
 onboardingDismiss.onclick = async () => {
@@ -2232,8 +2278,13 @@ paletteQuery.addEventListener("input", async () => {
   entries.forEach((entry) => {
     const row = document.createElement("button");
     row.className = entry.enabled ? "palette-item" : "palette-item disabled";
-    const chord = entry.chord ? `  ·  ${entry.chord}` : "";
-    row.textContent = entry.title + chord + (entry.enabled ? "" : " (greyed)");
+    row.textContent = paletteEntryHint({
+      title: entry.title,
+      chord: entry.chord,
+      reason: entry.reason,
+      enabled: entry.enabled,
+    });
+    row.title = entry.enabled ? "" : (entry.reason ?? "");
     row.disabled = !entry.enabled;
     row.onclick = () => {
       if (entry.open_path) {
@@ -2405,9 +2456,7 @@ listen<string>("unibrowser-script-output", (event) => {
 initHttpLoadingListeners(contentHost);
 applyChromeI18n();
 void loadUiLocale().then(() => applyChromeI18n());
-void loadThemePreference().then(() => {
-  themeBtn.textContent = themeButtonLabel();
-});
+void loadThemePreference();
 void invoke<{ editor_theme_id: string }>("get_preferences").then((prefs) => {
   setEditorThemePreference(prefs.editor_theme_id);
   void initMonacoEditorThemes(prefs.editor_theme_id);
@@ -2481,24 +2530,19 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     floatingToolbarHost,
     runUiCommand,
   );
-  document.getElementById("command-manager-export")!.onclick = async () => {
-    const path = await invoke<string | null>("export_command_manager_layout_file");
-    if (path) {
-      showToast(t("commandManager.exported", { path }), "info");
-    }
-  };
   window.addEventListener("unibrowser-workspace-layout-loaded", () => {
     void refreshCommandManager();
   });
-  document.getElementById("command-manager-import")!.onclick = async () => {
-    try {
-      await invoke("import_command_manager_layout_file");
-      showToast(t("commandManager.imported"), "info");
-      await refreshCommandManager();
-    } catch (err) {
-      showToast(String(err), "error");
-    }
-  };
+  window.addEventListener("unibrowser-shell-layout-changed", () => {
+    void syncContentBounds();
+  });
+  initAppMenu(
+    (commandId) => runKeybindingCommand(commandId),
+    (path) => {
+      omnibox.value = path;
+      void navigateOmnibox();
+    },
+  );
   void loadKeybindingHints();
   window.addEventListener("unibrowser-autosave-tick", (event) => {
     const detail = (event as CustomEvent<number>).detail;

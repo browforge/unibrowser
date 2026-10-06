@@ -38,7 +38,7 @@ function aiPanelReady(): boolean {
   if (!panel || panel.classList.contains("hidden")) {
     return false;
   }
-  const grants = panel.querySelector(".ai-assistant-grants .ai-grants-row");
+  const grants = panel.querySelector(".ai-grants-row, .ai-assistant-grants-collapse");
   if (grants) {
     return true;
   }

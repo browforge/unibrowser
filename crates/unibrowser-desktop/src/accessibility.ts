@@ -24,6 +24,7 @@ export function applyCommandManagerDensity(dense: boolean) {
   if (el) {
     el.classList.toggle("command-manager-dense", dense);
   }
+  document.body.dataset.cmDensity = dense ? "compact" : "comfortable";
 }
 
 export function applyChromeFocusMode(enabled: boolean) {

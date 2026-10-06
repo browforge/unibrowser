@@ -13,33 +13,29 @@
     <div id="shell-subsystem-notice" class="shell-subsystem-notice hidden" role="status">
       <span class="shell-subsystem-notice-text"></span>
     </div>
-    <header id="chrome">
-      <div id="mods-line" class="mods-line"></div>
-      <div id="bookmark-bar" class="bookmark-bar" aria-label="Pinned places"></div>
-      <div id="tab-strip" class="tab-strip" role="tablist" aria-label="Open tabs"></div>
-      <div class="nav-row">
-        <button type="button" id="btn-back" title="Back">←</button>
-        <button type="button" id="btn-forward" title="Forward">→</button>
-        <button type="button" id="btn-reload" title="Reload">↻</button>
+    <div id="app-shell" class="ub-shell">
+    <header id="chrome" class="ub-region ub-region--chrome">
+      <div class="ub-shell-title-menu">
+        <nav id="app-menu-bar" class="app-menu-bar" aria-label="Application menu"></nav>
+        <span class="app-title-text">Unibrowser</span>
+      </div>
+      <div id="bookmark-bar" class="bookmark-bar hidden" aria-label="Pinned places"></div>
+      <div id="tab-strip" class="tab-strip ub-shell-tab-strip" role="tablist" aria-label="Open tabs"></div>
+      <div class="nav-row ub-shell-nav">
+        <button type="button" id="btn-back" class="nav-icon-btn" title="Back">←</button>
+        <button type="button" id="btn-forward" class="nav-icon-btn" title="Forward">→</button>
+        <button type="button" id="btn-reload" class="nav-icon-btn" title="Reload">↻</button>
         <div class="omnibox-wrap">
           <input id="omnibox" type="text" placeholder="file://, https://, or path" autocomplete="off" />
           <div id="omnibox-suggestions" class="omnibox-suggestions hidden" role="listbox"></div>
         </div>
-        <button type="button" id="btn-tab-search" title="Search open tabs (Ctrl+Shift+T)">Tabs</button>
-        <button type="button" id="btn-split" title="Experimental: vertical split, two tabs side by side (Shift+click tab)">Split</button>
-        <button type="button" id="btn-mod-portal" title="Browse and install mods">Mods</button>
-        <button type="button" id="btn-new-project" title="Create a .unibrow project folder">New project</button>
-        <button type="button" id="btn-theme" title="Cycle light / dark / system theme">Theme</button>
-        <button type="button" id="btn-compare" title="Compare with another file">Compare</button>
-        <button type="button" id="btn-pin" title="Pin this page">Pin</button>
-        <button type="button" id="btn-recent" class="muted" title="Recent files (optional)">Recent</button>
-        <button type="button" id="btn-demo-download" class="muted" title="Simulate download → new tab">
-          Demo download
-        </button>
+        <button type="button" id="btn-find" class="nav-text-btn" title="Find in document">Find</button>
+        <button type="button" id="btn-downloads" class="nav-text-btn" title="Downloads">Downloads</button>
+        <button type="button" id="nav-overflow" class="nav-icon-btn" title="More actions" aria-haspopup="true">⋯</button>
       </div>
       <div id="recent-panel" class="recent-panel hidden" aria-label="Recent files"></div>
       <section id="command-manager" class="command-manager" aria-label="Command manager">
-        <div class="command-manager-header">
+        <div class="command-manager-tabs-row">
           <div
             id="command-manager-tabs"
             class="command-manager-tabs"
@@ -47,40 +43,23 @@
             aria-label="Command manager phases"
           ></div>
           <div class="cm-pin-wrap">
-            <span id="command-manager-pin-label" class="cm-pin-label">Commands follow document</span>
+            <span id="command-manager-pin-label" class="cm-pin-label">Following: …</span>
             <button
               type="button"
               id="command-manager-pin"
               class="cm-pin"
               title="Pin the commands tab (stop following document context)"
             >
-              Pin commands tab
+              Pin
             </button>
           </div>
-          <button type="button" id="command-manager-export" class="cm-layout-btn">
-            Export layout
-          </button>
-          <button type="button" id="command-manager-import" class="cm-layout-btn">
-            Import layout
-          </button>
         </div>
         <div id="command-manager-commands" class="command-manager-commands"></div>
       </section>
       <div id="floating-toolbar-host" class="floating-toolbar-host"></div>
-    <aside
-      id="ai-assistant-panel"
-      class="ai-assistant-panel floating-bar hidden"
-      aria-label="AI assistant"
-    >
-      <div class="ai-assistant-drag-handle drag-handle" title="Drag panel">AI</div>
-      <div class="ai-assistant-head">
-        <span>AI assistant</span>
-        <button type="button" class="ai-assistant-close" aria-label="Close">×</button>
-      </div>
-      <div class="ai-assistant-body"></div>
-    </aside>
       <div id="toast-host" class="toast-host hidden" role="status" aria-live="polite"></div>
     </header>
+    <div id="work-area" class="ub-work-area">
     <div id="recovery-bar-host" class="recovery-bar-host hidden" role="status" aria-live="polite"></div>
     <div id="inline-ui-layer" class="inline-ui-layer hidden" aria-hidden="true"></div>
     <div id="unknown-file-banner" class="unknown-file-banner hidden" role="status" aria-live="polite"></div>
@@ -109,6 +88,22 @@
         <div id="split-doc-panel" class="panel doc-panel hidden"></div>
       </div>
     </main>
+    <aside
+      id="ai-assistant-panel"
+      class="ai-assistant-panel hidden"
+      aria-label="AI assistant"
+    >
+      <div id="ai-assistant-resize" class="ai-assistant-resize" title="Resize sidebar" aria-hidden="true"></div>
+      <div class="ai-assistant-head">
+        <div class="ai-assistant-head-text">
+          <span class="ai-assistant-title">AI assistant</span>
+          <span class="ai-assistant-provider muted"></span>
+        </div>
+        <button type="button" class="ai-assistant-close" aria-label="Close">×</button>
+      </div>
+      <div class="ai-assistant-body"></div>
+    </aside>
+    </div>
     <aside id="script-output-panel" class="script-output-panel hidden" aria-label="Bottom panel">
       <div id="bottom-panel-resize-grip" class="bottom-panel-resize-grip" title="Drag to resize panel" aria-hidden="true"></div>
       <div class="script-output-head">
@@ -146,7 +141,7 @@
       <button type="button" id="extension-tip-mods" class="extension-tip-action">Mods</button>
       <button type="button" id="extension-tip-dismiss" class="extension-tip-action">Dismiss forever</button>
     </div>
-    <footer id="status-bar" class="status-bar">
+    <footer id="status-bar" class="status-bar ub-shell-status">
       <span id="status-path" class="status-segment status-path"></span>
       <span id="status-context" class="status-segment status-context muted"></span>
       <span id="status-dirty" class="status-segment status-dirty"></span>
@@ -164,6 +159,7 @@
       <span id="status-ai-visibility" class="status-segment status-ai hidden" role="status"></span>
       <span id="status-hint" class="status-hint"></span>
     </footer>
+    </div>
     <div id="tab-search" class="palette hidden" role="dialog" aria-label="Search open tabs">
       <input id="tab-search-query" type="text" placeholder="Filter open tabs…" />
       <div id="tab-search-results"></div>

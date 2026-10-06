@@ -219,7 +219,7 @@ fn default_proofing_grammar() -> bool {
 }
 
 fn default_bookmark_bar_enabled() -> bool {
-    true
+    false
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -39,6 +39,12 @@ pub struct AiAssistantPrefs {
     pub panel_x: f64,
     pub panel_y: f64,
     pub panel_docked: bool,
+    #[serde(default = "default_panel_width")]
+    pub panel_width: f64,
+}
+
+fn default_panel_width() -> f64 {
+    320.0
 }
 
 fn prefs_path() -> Option<PathBuf> {

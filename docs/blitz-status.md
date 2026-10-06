@@ -10,6 +10,14 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 **Design phase (Oct 6):** the feature blitz is closed. The next UI pass is specified in [docs/design/](design/README.md) using the required **user stories -> workflows -> UX -> layout -> UI** sequence. The package defines a quiet six-region shell, removes developer clutter from primary chrome, makes AI/Problems proper docked regions that push content, preserves the SOLIDWORKS-style Command Manager with explicit Follow/Pin, and provides Composer-sized implementation tickets. Five rendered wireframes cover the 1280 document/New tab/Settings layouts, a 1600 Live layout, and all eleven requested contexts.
 
+## UI blitz — Batch 1 (UI-01 … UI-06)
+
+**Shipped on `main`:** primary chrome declutter (mods banner, demo download, CM layout import/export, duplicate nav/bookmark row defaults); **AI assistant** docked as a right sidebar with resize + width persistence; shell **token/region** CSS (`src/ui/tokens.css`); **File/Edit/View/Go/Tools/Help** menu row plus canonical nav (Back/Forward/Reload, omnibox, Find, Downloads, overflow); Command Manager frame (28 px tabs, 44 px command row, Following/Pinned + Pin); disabled-command tooltips shared with palette hints.
+
+**Checks:** `npm run build`, `cargo test --workspace`, `./scripts/self-test.sh` (3×). Doc capture: `docs/screenshots/unibrowser-01-ntp.png`, `unibrowser-08-ai-sidebar.png` (chrome-layer; headless content webview still black per table below).
+
+**Deferred:** UI-07+ (tab strip/omnibox polish, remaining contexts) — out of Batch 1 scope. `/opt/cursor/artifacts/` store returned `Resource temporarily unavailable` on this VM; copies live under `workspace/.artifacts/` (design mockups + `ui-batch-1/`).
+
 **Try first:** `./scripts/e2e.sh` on Linux (xvfb; **in-app self-test**, no WebDriver). Optional WDIO: `E2E_WDIO=1 ./scripts/e2e.sh`. `cargo test --workspace` and `npm run build` stay green.
 
 **Top wins this slice:** **Tabs mutex deadlock audit** (`TabsMutex` + [concurrency.md](concurrency.md), clone-out/drop-guard across commands); **`--self-test`** now **10 scenarios** (adds **live-preview** + **ai-sidebar** with `mock://unibrowser-self-test`); `./scripts/self-test.sh` **3× green**; doc screenshots **poll for paint** (Monaco, NTP, LIVE badge, AI grants) before `--doc-capture`; AI sidebar shows read-only grants table when configured.

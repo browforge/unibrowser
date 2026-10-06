@@ -3,6 +3,18 @@ import { patchPictureInPictureCommand } from "./mediaPip";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { showToast } from "./toast";
 import { t } from "./i18n";
+import { bindCommandTooltip } from "./ui/commandTooltip";
+
+let chordByCommand = new Map<string, string>();
+
+export async function loadCommandChords() {
+  try {
+    const bindings = await invoke<{ command_id: string; chord: string }[]>("get_keybindings");
+    chordByCommand = new Map(bindings.map((b) => [b.command_id, b.chord]));
+  } catch {
+    chordByCommand = new Map();
+  }
+}
 
 export interface UiCommandDto {
   command_id: string;
@@ -189,11 +201,16 @@ function renderCommandButtons(
     label.className = "cm-cmd-label";
     label.textContent = patched.title;
     btn.appendChild(label);
-    btn.title = patched.reason ?? patched.command_id;
-    btn.setAttribute("aria-label", patched.title);
     btn.disabled = !patched.enabled;
     btn.className = patched.enabled ? "ui-command" : "ui-command disabled";
     btn.dataset.commandId = patched.command_id;
+    const chord = chordByCommand.get(patched.command_id) ?? null;
+    bindCommandTooltip(btn, {
+      title: patched.title,
+      reason: patched.enabled ? null : patched.reason,
+      chord,
+      enabled: patched.enabled,
+    });
     if (draggable) {
       btn.draggable = true;
       btn.addEventListener("dragstart", (e) => {
@@ -213,7 +230,9 @@ function renderCommandButtons(
         dragCommandId = null;
       });
     }
-    btn.onclick = () => onRun(cmd.command_id);
+    if (patched.enabled) {
+      btn.onclick = () => onRun(patched.command_id);
+    }
     container.appendChild(btn);
   });
 }
@@ -341,6 +360,9 @@ export const commandManager = {
     onRun: RunCommand,
   ) {
     const labelEl = document.getElementById("command-manager-pin-label");
+    if (chordByCommand.size === 0) {
+      await loadCommandChords();
+    }
     const snapshot = await invoke<CommandManagerDto>("get_command_manager");
     lastSnapshot = snapshot;
     updatePinControl(pinEl, labelEl, snapshot);

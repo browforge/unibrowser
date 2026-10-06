@@ -28,6 +28,7 @@ import { setExperimentalSpellcheckEnabled } from "./experimentalSpellcheck";
 import { setProofingSquigglesEnabled } from "./proofing";
 import { showErrorToast, showToast } from "./toast";
 import { showInlineConfirm } from "./inlineUi";
+import { appendDeveloperSettingsSection } from "./developerSettings";
 
 interface NtpSectionsDto {
   show_hero: boolean;
@@ -877,6 +878,8 @@ export async function renderSettings(root: HTMLElement) {
   resetRow.appendChild(resetToolbarsBtn);
   resetSection.appendChild(resetRow);
   root.appendChild(resetSection);
+
+  await appendDeveloperSettingsSection(root);
 
   const advancedSection = document.createElement("details");
   advancedSection.className = "settings-section settings-advanced";

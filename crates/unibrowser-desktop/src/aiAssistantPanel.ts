@@ -13,6 +13,7 @@ interface AiPrefs {
   panel_x: number;
   panel_y: number;
   panel_docked: boolean;
+  panel_width?: number;
 }
 
 interface AiStatus {
@@ -22,21 +23,17 @@ interface AiStatus {
   pending: { id: number; summary: string; preview: string }[];
 }
 
-interface AiTool {
-  command_id: string;
-  title: string;
-  enabled: boolean;
-  reason: string | null;
-}
-
 interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
 }
 
+const DEFAULT_PANEL_WIDTH = 320;
+const MIN_PANEL_WIDTH = 220;
+const MAX_PANEL_WIDTH_RATIO = 0.4;
+
 let panelEl: HTMLElement | null = null;
-let dragOffsetX = 0;
-let dragOffsetY = 0;
+let workAreaEl: HTMLElement | null = null;
 let chatMessages: ChatMessage[] = [];
 let chatStreaming = false;
 let chatListenersReady = false;
@@ -47,6 +44,23 @@ function configured(prefs: AiPrefs): boolean {
 
 function viewerHost(): HTMLElement | null {
   return document.querySelector<HTMLElement>("#document-viewer-host");
+}
+
+function panelWidth(prefs: AiPrefs): number {
+  const w = prefs.panel_width ?? DEFAULT_PANEL_WIDTH;
+  return Math.max(MIN_PANEL_WIDTH, w);
+}
+
+function applyDockLayout(visible: boolean, widthPx: number) {
+  if (!workAreaEl || !panelEl) {
+    return;
+  }
+  workAreaEl.classList.toggle("ai-open", visible);
+  document.documentElement.style.setProperty(
+    "--ub-ai-sidebar-width",
+    visible ? `${widthPx}px` : "0px",
+  );
+  window.dispatchEvent(new Event("unibrowser-shell-layout-changed"));
 }
 
 async function ensureChatListeners() {
@@ -80,13 +94,15 @@ async function sendChat(userText: string) {
   chatMessages.push({ role: "user", content: userText.trim() });
   chatStreaming = true;
   const host = viewerHost();
-  const extras = host ? gatherProjectionExtras(host) : {
-    web_dom_text: null,
-    ocr_text: null,
-    epub_chapter_text: null,
-    pdf_page_text: null,
-    docx_preview_text: null,
-  };
+  const extras = host
+    ? gatherProjectionExtras(host)
+    : {
+        web_dom_text: null,
+        ocr_text: null,
+        epub_chapter_text: null,
+        pdf_page_text: null,
+        docx_preview_text: null,
+      };
   const status = await invoke<AiStatus>("ai_assistant_status");
   try {
     await invoke("ai_assistant_chat", {
@@ -103,23 +119,36 @@ async function sendChat(userText: string) {
   }
 }
 
+function updateHeader(prefs: AiPrefs, status: AiStatus) {
+  const provider = panelEl?.querySelector(".ai-assistant-provider");
+  if (!provider) {
+    return;
+  }
+  if (!configured(prefs)) {
+    provider.textContent = t("aiAssistant.notConfigured");
+    return;
+  }
+  const model = prefs.model?.trim() || t("aiAssistant.defaultModel");
+  const grants = prefs.grants.length
+    ? t("aiAssistant.grantsSummary", { count: String(prefs.grants.length) })
+    : t("aiAssistant.noGrants");
+  provider.textContent = `${model} · ${grants}${
+    status.can_see_tab ? "" : ` · ${t("aiAssistant.cannotSeeTab")}`
+  }`;
+}
+
 async function refreshPanel() {
   if (!panelEl) {
     return;
   }
   const prefs = await invoke<AiPrefs>("get_ai_assistant_prefs");
   const status = await invoke<AiStatus>("ai_assistant_status");
+  updateHeader(prefs, status);
   const body = panelEl.querySelector(".ai-assistant-body");
   if (!body) {
     return;
   }
   body.innerHTML = "";
-  const indicator = document.createElement("p");
-  indicator.className = "ai-assistant-visibility";
-  indicator.textContent = status.can_see_tab
-    ? t("aiAssistant.canSeeTab")
-    : t("aiAssistant.cannotSeeTab");
-  body.appendChild(indicator);
 
   if (!configured(prefs)) {
     const hint = document.createElement("p");
@@ -130,8 +159,13 @@ async function refreshPanel() {
   }
 
   if (prefs.grants.length > 0) {
-    const grantsWrap = document.createElement("div");
-    grantsWrap.className = "ai-assistant-grants";
+    const grantsDetails = document.createElement("details");
+    grantsDetails.className = "ai-assistant-grants-collapse";
+    const grantsSummary = document.createElement("summary");
+    grantsSummary.textContent = t("aiAssistant.grantsSummary", {
+      count: String(prefs.grants.length),
+    });
+    grantsDetails.appendChild(grantsSummary);
     const grantsTable = document.createElement("div");
     grantsTable.className = "ai-grants-table";
     for (const g of prefs.grants) {
@@ -142,8 +176,8 @@ async function refreshPanel() {
       }`;
       grantsTable.appendChild(row);
     }
-    grantsWrap.appendChild(grantsTable);
-    body.appendChild(grantsWrap);
+    grantsDetails.appendChild(grantsTable);
+    body.appendChild(grantsDetails);
   }
 
   const chatLog = document.createElement("div");
@@ -152,7 +186,8 @@ async function refreshPanel() {
     const row = document.createElement("div");
     row.className = `ai-assistant-chat-msg ai-assistant-chat-msg--${msg.role}`;
     const label = document.createElement("strong");
-    label.textContent = msg.role === "user" ? t("aiAssistant.chatYou") : t("aiAssistant.chatAssistant");
+    label.textContent =
+      msg.role === "user" ? t("aiAssistant.chatYou") : t("aiAssistant.chatAssistant");
     row.appendChild(label);
     const pre = document.createElement("pre");
     pre.textContent = msg.content;
@@ -188,33 +223,11 @@ async function refreshPanel() {
   chatForm.appendChild(sendBtn);
   body.appendChild(chatForm);
 
-  const readBtn = document.createElement("button");
-  readBtn.type = "button";
-  readBtn.textContent = t("aiAssistant.readTab");
-  readBtn.addEventListener("click", async () => {
-    await invoke("ai_assistant_invoke");
-    const host = viewerHost();
-    const extras = host
-      ? gatherProjectionExtras(host)
-      : {
-          web_dom_text: null,
-          ocr_text: null,
-          epub_chapter_text: null,
-          pdf_page_text: null,
-          docx_preview_text: null,
-        };
-    const text = await invoke<string>("ai_assistant_read_tab_text", { extras });
-    const pre = document.createElement("pre");
-    pre.className = "ai-assistant-projection";
-    pre.textContent = text;
-    body.appendChild(pre);
-  });
-  body.appendChild(readBtn);
-
   for (const p of status.pending) {
-    const card = document.createElement("div");
+    const card = document.createElement("details");
     card.className = "ai-assistant-pending-card";
-    const title = document.createElement("strong");
+    card.open = true;
+    const title = document.createElement("summary");
     title.textContent = p.summary;
     card.appendChild(title);
     const preview = document.createElement("pre");
@@ -230,67 +243,65 @@ async function refreshPanel() {
     card.appendChild(approve);
     body.appendChild(card);
   }
-
-  const toolsHead = document.createElement("h4");
-  toolsHead.textContent = t("aiAssistant.tools");
-  body.appendChild(toolsHead);
-  const tools = await invoke<AiTool[]>("ai_assistant_tools");
-  const ul = document.createElement("ul");
-  ul.className = "ai-assistant-tools";
-  for (const tool of tools.slice(0, 40)) {
-    const li = document.createElement("li");
-    li.textContent = tool.enabled ? tool.title : `${tool.title} (${tool.reason ?? "disabled"})`;
-    if (!tool.enabled) {
-      li.classList.add("muted");
-    }
-    ul.appendChild(li);
-  }
-  body.appendChild(ul);
 }
 
 export async function setAiPanelVisible(visible: boolean) {
   const prefs = await invoke<AiPrefs>("get_ai_assistant_prefs");
   prefs.panel_visible = visible;
+  prefs.panel_docked = true;
   await invoke("set_ai_assistant_prefs", { prefs });
   if (panelEl) {
     panelEl.classList.toggle("hidden", !visible);
   }
+  applyDockLayout(visible, panelWidth(prefs));
   if (visible) {
     await refreshPanel();
+  } else {
+    const content = document.getElementById("content-host");
+    content?.focus({ preventScroll: true });
   }
+}
+
+function bindResize() {
+  const grip = document.getElementById("ai-assistant-resize");
+  if (!grip || !panelEl) {
+    return;
+  }
+  let startX = 0;
+  let startW = 0;
+  const onMove = async (e: PointerEvent) => {
+    const delta = startX - e.clientX;
+    const maxW = window.innerWidth * MAX_PANEL_WIDTH_RATIO;
+    const next = Math.min(maxW, Math.max(MIN_PANEL_WIDTH, startW + delta));
+    document.documentElement.style.setProperty("--ub-ai-sidebar-width", `${next}px`);
+    window.dispatchEvent(new Event("unibrowser-shell-layout-changed"));
+  };
+  const onUp = async (e: PointerEvent) => {
+    grip.releasePointerCapture(e.pointerId);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    const w = panelEl?.getBoundingClientRect().width ?? DEFAULT_PANEL_WIDTH;
+    const prefs = await invoke<AiPrefs>("get_ai_assistant_prefs");
+    prefs.panel_width = w;
+    prefs.panel_docked = true;
+    await invoke("set_ai_assistant_prefs", { prefs });
+  };
+  grip.addEventListener("pointerdown", (e) => {
+    startX = e.clientX;
+    startW = panelEl?.getBoundingClientRect().width ?? DEFAULT_PANEL_WIDTH;
+    grip.setPointerCapture(e.pointerId);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  });
 }
 
 export function initAiAssistantPanel() {
   panelEl = document.getElementById("ai-assistant-panel");
+  workAreaEl = document.getElementById("work-area");
   if (!panelEl) {
     return;
   }
-  const handle = panelEl.querySelector(".ai-assistant-drag-handle") as HTMLElement | null;
-  handle?.addEventListener("pointerdown", (e) => {
-    if (!panelEl) {
-      return;
-    }
-    dragOffsetX = e.clientX - panelEl.offsetLeft;
-    dragOffsetY = e.clientY - panelEl.offsetTop;
-    handle.setPointerCapture(e.pointerId);
-  });
-  handle?.addEventListener("pointermove", (e) => {
-    if (!panelEl || !handle.hasPointerCapture(e.pointerId)) {
-      return;
-    }
-    panelEl.style.left = `${e.clientX - dragOffsetX}px`;
-    panelEl.style.top = `${e.clientY - dragOffsetY}px`;
-  });
-  handle?.addEventListener("pointerup", async (e) => {
-    if (!panelEl) {
-      return;
-    }
-    handle?.releasePointerCapture(e.pointerId);
-    const prefs = await invoke<AiPrefs>("get_ai_assistant_prefs");
-    prefs.panel_x = panelEl.offsetLeft;
-    prefs.panel_y = panelEl.offsetTop;
-    await invoke("set_ai_assistant_prefs", { prefs });
-  });
+  bindResize();
   panelEl.querySelector(".ai-assistant-close")?.addEventListener("click", () => {
     void setAiPanelVisible(false);
   });
@@ -298,10 +309,12 @@ export function initAiAssistantPanel() {
     invoke<AiPrefs>("get_ai_assistant_prefs"),
     invoke<string | null>("take_doc_capture_path"),
   ]).then(([prefs, docCapture]) => {
-    panelEl!.style.left = `${prefs.panel_x || 48}px`;
-    panelEl!.style.top = `${prefs.panel_y || 96}px`;
+    if (!prefs.panel_docked) {
+      prefs.panel_docked = true;
+    }
     const visible = prefs.panel_visible && !docCapture;
     panelEl!.classList.toggle("hidden", !visible);
+    applyDockLayout(visible, panelWidth(prefs));
     if (visible) {
       void refreshPanel();
     }

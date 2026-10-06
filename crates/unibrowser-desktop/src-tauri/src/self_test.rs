@@ -544,7 +544,8 @@ fn scenario_ai_sidebar(
         panel_visible: true,
         panel_x: 0.0,
         panel_y: 0.0,
-        panel_docked: false,
+        panel_docked: true,
+        panel_width: 320.0,
     };
     set_ai_assistant_prefs(prefs.clone())?;
     let reply = test_ai_connection(

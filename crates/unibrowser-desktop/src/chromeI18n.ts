@@ -24,15 +24,9 @@ export function applyChromeI18n() {
   set("btn-forward", "→", t("chrome.forward"));
   set("btn-reload", "↻", t("chrome.reload"));
   set("omnibox", t("chrome.omniboxPlaceholder"));
-  set("btn-tab-search", t("chrome.tabs"), t("chrome.tabsTitle"));
-  set("btn-split", t("chrome.split"), t("chrome.splitTitle"));
-  set("btn-mod-portal", t("chrome.mods"), t("chrome.modsTitle"));
-  set("btn-new-project", t("chrome.newProject"), t("chrome.newProjectTitle"));
-  set("btn-theme", t("chrome.theme"), t("chrome.themeTitle"));
-  set("btn-recent", t("chrome.recent"), t("chrome.recentTitle"));
-  set("btn-demo-download", t("chrome.demoDownload"), t("chrome.demoDownloadTitle"));
-  set("btn-compare", t("chrome.compare"), t("chrome.compareTitle"));
-  set("btn-pin", t("chrome.pin"), t("chrome.pinTitle"));
+  set("btn-find", t("menu.findInDocument"), t("menu.findInDocument"));
+  set("btn-downloads", t("bookmark.downloads"), t("bookmark.downloadManager"));
+  set("nav-overflow", t("menu.overflow"), t("menu.overflow"));
 
   const pin = document.getElementById("command-manager-pin");
   const pinLabel = document.getElementById("command-manager-pin-label");
@@ -42,16 +36,6 @@ export function applyChromeI18n() {
   if (pin) {
     pin.textContent = t("commandManager.pinCommandsTab");
     pin.title = t("commandManager.pinCommandsTabTitle", { auto: "…" });
-  }
-  const cmExport = document.getElementById("command-manager-export");
-  if (cmExport) {
-    cmExport.textContent = t("commandManager.exportLayout");
-    cmExport.title = t("commandManager.exportLayoutTitle");
-  }
-  const cmImport = document.getElementById("command-manager-import");
-  if (cmImport) {
-    cmImport.textContent = t("commandManager.importLayout");
-    cmImport.title = t("commandManager.importLayoutTitle");
   }
   const dismiss = document.getElementById("onboarding-dismiss");
   if (dismiss) {
@@ -90,6 +74,3 @@ export function applyChromeI18n() {
   }
 }
 
-export function modsLineText(list: string): string {
-  return t("chrome.modsLoaded", { list });
-}
