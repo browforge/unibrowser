@@ -613,3 +613,55 @@ body[data-cm-density="large"] .cm-overflow.visible {
   border-radius: var(--ub-radius-6);
   box-shadow: var(--ub-shadow-palette);
 }
+
+[data-theme="light"] #chrome .cm-group .ui-command {
+  color: #1f2326 !important;
+  border-color: transparent;
+  background: transparent;
+}
+
+[data-theme="light"] #chrome .cm-group .ui-command .ub-icon {
+  color: #1f2326 !important;
+  stroke: #1f2326 !important;
+}
+
+[data-theme="light"] #chrome .cm-group .ui-command:hover:not(:disabled) {
+  color: var(--ub-text-1);
+  border-color: var(--ub-border);
+  background: var(--ub-well);
+}
+
+[data-theme="light"] #chrome .cm-group .ui-command.disabled {
+  color: var(--ub-text-3);
+  opacity: 0.85;
+}
+
+[data-theme="light"] #chrome .cm-group-name {
+  color: var(--ub-text-3);
+}
+
+[data-theme="light"] #chrome .window-controls button {
+  color: var(--ub-text-1);
+  border: 1px solid var(--ub-border);
+  background: var(--ub-panel);
+}
+
+[data-theme="light"] #chrome .window-controls button:hover {
+  background: var(--ub-well);
+}
+
+[data-theme="light"] #chrome .title-tabs .tab {
+  color: var(--ub-text-2);
+}
+
+[data-theme="light"] #chrome .title-tabs .tab.active {
+  color: var(--ub-text-1);
+  background: var(--ub-panel);
+  box-shadow: inset 0 2px 0 var(--ub-accent);
+}
+
+[data-theme="light"] #chrome .title-omnibox input#omnibox {
+  color: var(--ub-text-1);
+  background: var(--ub-control);
+  border-color: var(--ub-border);
+}

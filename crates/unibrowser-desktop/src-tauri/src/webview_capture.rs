@@ -171,6 +171,17 @@ pub fn capture_composited_root_crop_png(_window: &Window) -> Result<Vec<u8>, Str
 /// Doc screenshots: prefer the shell WebKitGTK snapshot (Monaco lives in the main webview).
 /// Composited X11 root crops can miss GPU-layered editor paint on WebKitGTK.
 pub fn capture_doc_screenshot_png(app: &AppHandle, window: &Window) -> Result<Vec<u8>, String> {
+    // Prefer composited X11 root when it paints the editor brighter than the shell snapshot
+    // (WebKitGTK shell snapshots often flatten Monaco to a dark rectangle under xvfb).
+    if let Ok(root_bytes) = capture_composited_root_crop_png(window) {
+        if let Ok(shell_bytes) = capture_shell_webview_png(app) {
+            if editor_region_luma(&root_bytes) > editor_region_luma(&shell_bytes) + 0.08 {
+                return Ok(root_bytes);
+            }
+        } else if editor_region_luma(&root_bytes) > 0.35 {
+            return Ok(root_bytes);
+        }
+    }
     if let Ok(bytes) = capture_shell_webview_png(app) {
         if score_png_informativeness(&bytes) > 100 {
             return Ok(bytes);
@@ -193,6 +204,50 @@ pub fn capture_doc_screenshot_png(app: &AppHandle, window: &Window) -> Result<Ve
         .into_iter()
         .max_by_key(|b| score_png_informativeness(b))
         .expect("candidates non-empty"))
+}
+
+/// Mean luma (0..1) of the central document band (where Monaco usually lives).
+#[cfg(target_os = "linux")]
+fn editor_region_luma(png: &[u8]) -> f64 {
+    use image::GenericImageView;
+    match image::load_from_memory(png) {
+        Ok(img) => {
+            let (w, h) = img.dimensions();
+            if w < 32 || h < 32 {
+                return 0.0;
+            }
+            let x0 = (w as f64 * 0.14) as u32;
+            let x1 = (w as f64 * 0.62) as u32;
+            let y0 = (h as f64 * 0.18) as u32;
+            let y1 = (h as f64 * 0.78) as u32;
+            let step_x = ((x1 - x0) / 32).max(1);
+            let step_y = ((y1 - y0) / 32).max(1);
+            let mut sum = 0.0;
+            let mut n = 0u64;
+            for y in (y0..y1).step_by(step_y as usize) {
+                for x in (x0..x1).step_by(step_x as usize) {
+                    let p = img.get_pixel(x, y);
+                    sum += (p[0] as f64 + p[1] as f64 + p[2] as f64) / (3.0 * 255.0);
+                    n += 1;
+                }
+            }
+            if n == 0 {
+                0.0
+            } else {
+                sum / n as f64
+            }
+        }
+        Err(_) => 0.0,
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn editor_region_luma(_png: &[u8]) -> f64 {
+    0.0
+}
+
+pub fn editor_region_luma_pub(png: &[u8]) -> f64 {
+    editor_region_luma(png)
 }
 
 #[cfg(target_os = "linux")]

@@ -1,8 +1,10 @@
-const BREADCRUMB_PARTS = ["Projects", "Field kit"];
-
 export function pathToBreadcrumbSegments(filePath: string): string[] {
-  const name = filePath.replace(/^file:\/\//, "").split(/[/\\]/).pop() ?? filePath;
-  return [...BREADCRUMB_PARTS, name];
+  const normalised = filePath.replace(/^file:\/\//, "");
+  const parts = normalised.split(/[/\\]/).filter(Boolean);
+  if (parts.length <= 3) {
+    return parts;
+  }
+  return [...parts.slice(0, -2), parts[parts.length - 2], parts[parts.length - 1]];
 }
 
 export function renderTitleBreadcrumb(filePath: string | null, useBreadcrumb: boolean) {
@@ -11,9 +13,15 @@ export function renderTitleBreadcrumb(filePath: string | null, useBreadcrumb: bo
   if (!crumbEl || !omnibox) {
     return;
   }
-  const show = useBreadcrumb && Boolean(filePath) && !filePath!.startsWith("http");
+  const show =
+    useBreadcrumb &&
+    Boolean(filePath) &&
+    !filePath!.startsWith("http") &&
+    !filePath!.startsWith("unibrowser://");
   crumbEl.classList.toggle("hidden", !show);
   omnibox.classList.toggle("hidden", show);
+  omnibox.toggleAttribute("aria-hidden", show);
+  omnibox.style.display = show ? "none" : "";
   if (!show) {
     crumbEl.replaceChildren();
     return;

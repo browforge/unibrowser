@@ -6533,6 +6533,11 @@ pub fn record_diagnostic_error(message: String, details: Option<String>) {
 pub fn log_shell_ui_event(level: String, message: String, detail: Option<String>) {
     let tag = format!("[shell-ui:{}]", message.trim());
     let lvl = level.trim().to_ascii_lowercase();
+    if message.trim() == "doc-capture-diagnostics" {
+        if let Some(d) = &detail {
+            eprintln!("[doc-capture] diagnostics {}", d);
+        }
+    }
     if lvl == "info" || lvl == "debug" {
         crate::diagnostic_log::record_info(tag, detail);
     } else {

@@ -182,6 +182,10 @@ export async function applyDemoState(raw: string) {
         document.body.classList.add("doc-capture-mode");
         document.body.classList.add("ub-status-compact");
         applyThemeFromDemoState(demoRaw);
+        {
+          const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
+          await applyMonacoEditorTheme("auto");
+        }
         document.getElementById("palette")?.classList.add("hidden");
         document.getElementById("bookmark-bar")?.classList.add("hidden");
         document.getElementById("onboarding-banner")?.classList.add("hidden");

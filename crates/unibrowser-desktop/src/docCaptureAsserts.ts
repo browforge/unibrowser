@@ -20,10 +20,27 @@ export interface EditorCanvasDiagnostics {
   sampleHeight: number;
 }
 
+export interface MonacoThemeCaptureDiagnostics {
+  resolvedTheme: string | null;
+  themeColorsJson: string | null;
+  editorBackground: string;
+  editorForeground: string;
+  viewLineColor: string;
+  viewLineBackground: string;
+}
+
+export interface CommandManagerCaptureDiagnostics {
+  controlCount: number;
+  visibleCount: number;
+  contrastOkCount: number;
+}
+
 export interface DocCaptureDiagnostics {
   theme: ThemeCaptureDiagnostics;
   monaco: MonacoCaptureDiagnostics | null;
   canvas: EditorCanvasDiagnostics | null;
+  monacoTheme: MonacoThemeCaptureDiagnostics | null;
+  commandManager: CommandManagerCaptureDiagnostics | null;
 }
 
 const LIGHT_UB_BASE = "#f1f0ec";
@@ -128,16 +145,111 @@ export function sampleMonacoCanvasVariance(): EditorCanvasDiagnostics | null {
   };
 }
 
+function parseRgbLuminance(rgb: string): number | null {
+  const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (!m) {
+    return null;
+  }
+  const r = Number(m[1]) / 255;
+  const g = Number(m[2]) / 255;
+  const b = Number(m[3]) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(l1: number, l2: number): number {
+  const hi = Math.max(l1, l2);
+  const lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+export function collectMonacoThemeDiagnostics(): MonacoThemeCaptureDiagnostics | null {
+  const host = document.getElementById("text-editor-host");
+  if (!host || host.classList.contains("hidden")) {
+    return null;
+  }
+  const bgEl = host.querySelector(".monaco-editor-background") as HTMLElement | null;
+  const root = host.querySelector(".monaco-editor") as HTMLElement | null;
+  const line = host.querySelector(".view-line span") as HTMLElement | null;
+  const bgStyle = bgEl ? getComputedStyle(bgEl) : root ? getComputedStyle(root) : null;
+  const lineStyle = line ? getComputedStyle(line) : null;
+  return {
+    resolvedTheme: document.documentElement.dataset.monacoThemeResolved ?? null,
+    themeColorsJson: document.documentElement.dataset.monacoThemeColors ?? null,
+    editorBackground: bgStyle?.backgroundColor ?? "",
+    editorForeground: bgStyle?.color ?? "",
+    viewLineColor: lineStyle?.color ?? "",
+    viewLineBackground: lineStyle?.backgroundColor ?? "",
+  };
+}
+
+export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnostics {
+  const controls = Array.from(
+    document.querySelectorAll("#command-manager-groups .ui-command"),
+  ) as HTMLElement[];
+  let visibleCount = 0;
+  let contrastOkCount = 0;
+  for (const el of controls) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 4 || rect.height < 4) {
+      continue;
+    }
+    const style = getComputedStyle(el);
+    if (style.visibility === "hidden" || style.display === "none" || style.opacity === "0") {
+      continue;
+    }
+    visibleCount += 1;
+    const fg = parseRgbLuminance(style.color);
+    const bg = parseRgbLuminance(style.backgroundColor);
+    if (fg !== null && bg !== null && contrastRatio(fg, bg) >= 2.5) {
+      contrastOkCount += 1;
+    }
+  }
+  return {
+    controlCount: controls.length,
+    visibleCount,
+    contrastOkCount,
+  };
+}
+
 export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
   return {
     theme: collectThemeDiagnostics(),
     monaco: collectMonacoDiagnostics(),
     canvas: sampleMonacoCanvasVariance(),
+    monacoTheme: collectMonacoThemeDiagnostics(),
+    commandManager: collectCommandManagerDiagnostics(),
   };
+}
+
+/** Returns abort reason or null if CM shows enough visible, contrasting controls. */
+export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6): string | null {
+  const cm = collectCommandManagerDiagnostics();
+  if (cm.visibleCount < minVisible) {
+    return `command manager visible controls ${cm.visibleCount} < ${minVisible} (total ${cm.controlCount})`;
+  }
+  if (cm.contrastOkCount < minContrast) {
+    return `command manager contrast-ok controls ${cm.contrastOkCount} < ${minContrast}`;
+  }
+  return null;
 }
 
 /** Returns abort reason or null if editor area looks painted. */
 export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
+  const host = document.getElementById("text-editor-host");
+  const mirror = host?.querySelector(".doc-capture-text-mirror") as HTMLElement | null;
+  if (mirror && !mirror.classList.contains("hidden")) {
+    const text = (mirror.textContent ?? "").trim();
+    if (text.length < 80) {
+      return `capture text mirror length ${text.length} < 80`;
+    }
+    const style = getComputedStyle(mirror);
+    const fg = parseRgbLuminance(style.color);
+    const bg = parseRgbLuminance(style.backgroundColor);
+    if (fg !== null && bg !== null && contrastRatio(fg, bg) < 3.5) {
+      return `capture text mirror contrast too low (fg=${style.color}, bg=${style.backgroundColor})`;
+    }
+    return null;
+  }
   const m = collectMonacoDiagnostics();
   if (!m) {
     return "text editor host missing or hidden";
@@ -160,6 +272,24 @@ export function validateEditorForCapture(minLines = 6, minVariance = 12): string
     canvas.sampleVariance < minVariance
   ) {
     return `monaco canvas pixel variance ${canvas.sampleVariance.toFixed(2)} < ${minVariance} (compositing or blank paint)`;
+  }
+  const theme = collectMonacoThemeDiagnostics();
+  if (theme) {
+    const shellTheme = document.documentElement.dataset.theme;
+    if (shellTheme === "light" && theme.resolvedTheme !== "vs") {
+      return `expected monaco theme vs for light shell, got ${theme.resolvedTheme ?? "null"}`;
+    }
+    if (shellTheme === "dark" && theme.resolvedTheme !== "vs-dark") {
+      return `expected monaco theme vs-dark for dark shell, got ${theme.resolvedTheme ?? "null"}`;
+    }
+    const bg = parseRgbLuminance(theme.editorBackground);
+    const fg = parseRgbLuminance(theme.viewLineColor || theme.editorForeground);
+    if (bg !== null && fg !== null && contrastRatio(fg, bg) < 2.0) {
+      return `monaco text/background contrast too low (fg=${theme.viewLineColor}, bg=${theme.editorBackground})`;
+    }
+    if (theme.editorBackground.includes("var(")) {
+      return `monaco editor background still uses CSS var(): ${theme.editorBackground}`;
+    }
   }
   return null;
 }

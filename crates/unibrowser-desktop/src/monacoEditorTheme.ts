@@ -34,15 +34,16 @@ export function resolveEditorThemeId(prefId: string): string {
   return prefId;
 }
 
-async function ensureThemeDefined(themeId: string): Promise<void> {
-  if (themeId === "vs" || themeId === "vs-dark" || registered.has(themeId)) {
-    return;
+async function ensureThemeDefined(themeId: string): Promise<MonacoThemeDto | null> {
+  if (registered.has(themeId)) {
+    return null;
   }
   const dto = await invoke<MonacoThemeDto | null>("get_editor_monaco_theme", {
     themeId,
   });
   if (!dto) {
-    return;
+    registered.add(themeId);
+    return null;
   }
   const monaco = await import("monaco-editor");
   monaco.editor.defineTheme(dto.id, {
@@ -57,16 +58,21 @@ async function ensureThemeDefined(themeId: string): Promise<void> {
     colors: dto.colors,
   });
   registered.add(dto.id);
+  return dto;
 }
 
 export async function applyMonacoEditorTheme(prefId: string): Promise<string> {
   const resolved = resolveEditorThemeId(prefId);
-  await ensureThemeDefined(resolved);
+  const defined = await ensureThemeDefined(resolved);
   const monaco = await import("monaco-editor");
   monaco.editor.setTheme(resolved);
   document.documentElement.dataset.editorTheme = prefId;
+  document.documentElement.dataset.monacoThemeResolved = resolved;
+  if (defined) {
+    document.documentElement.dataset.monacoThemeColors = JSON.stringify(defined.colors);
+  }
   window.dispatchEvent(
-    new CustomEvent("unibrowser-editor-theme", { detail: { themeId: resolved } }),
+    new CustomEvent("unibrowser-editor-theme", { detail: { themeId: resolved, dto: defined } }),
   );
   return resolved;
 }
@@ -78,6 +84,8 @@ export async function initMonacoEditorThemes(prefId: string): Promise<void> {
       await ensureThemeDefined(t.id);
     }
   }
+  await ensureThemeDefined("vs");
+  await ensureThemeDefined("vs-dark");
   await applyMonacoEditorTheme(prefId);
 }
 

@@ -73,6 +73,7 @@ import {
 import { markChecklistStep } from "./onboardingChecklist";
 import { cycleTheme, loadThemePreference } from "./theme";
 import { initMonacoEditorThemes } from "./monacoEditorTheme";
+import { applyThemeFromDemoState } from "./theme";
 import { setEditorThemePreference } from "./textEditor";
 import { bindOmniboxAutocomplete } from "./omniboxUi";
 import { isInsecureHttpNavigation } from "./omniboxSecurity";
@@ -130,6 +131,7 @@ import { showOnboardingTour } from "./onboardingTour";
 import {
   appendScriptOutput,
   initScriptOutputPanel,
+  syncBottomPanelEmptyState,
 } from "./scriptOutputPanel";
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
@@ -137,6 +139,7 @@ import { applyDemoState } from "./demoState";
 import {
   assertLightThemeForCapture,
   collectDocCaptureDiagnostics,
+  validateCommandManagerForCapture,
   formatDiagnosticsForLog,
   validateEditorForCapture,
 } from "./docCaptureAsserts";
@@ -470,7 +473,12 @@ function refreshStatusBar(
       ? data.text_document.language?.replace("typescript", "TypeScript") ?? "TypeScript"
       : undefined;
   const zoomOut = compact ? "100%" : zoom;
-  renderTitleBreadcrumb(path, document.body.dataset.titleBreadcrumb === "1");
+  const useBreadcrumb =
+    Boolean(path) &&
+    !active?.is_http &&
+    !active?.is_directory &&
+    (showText || showViewer || Boolean(path?.includes(".")));
+  renderTitleBreadcrumb(path ?? null, useBreadcrumb);
   updateStatusBar({
     path,
     pathHint: path ? t("status.copyPath") : undefined,
@@ -1676,8 +1684,14 @@ async function applyState(data: TabContentDto) {
   const activeTabForNav = data.tabs[data.active_index];
   updateTitleBarNavVisibility(activeTabForNav);
   syncTitleBar(data);
+  const showBookmarkBar =
+    (data.bookmark_bar_enabled ?? false) &&
+    !showText &&
+    !showViewer &&
+    !active?.is_http &&
+    (showHome || Boolean(active?.is_directory));
   renderBookmarkBar(
-    data.bookmark_bar_enabled ?? false,
+    showBookmarkBar,
     data.pinned_locations ?? [],
     data.bookmark_quick_links ?? [],
   );
@@ -1843,6 +1857,7 @@ async function applyState(data: TabContentDto) {
   }
   await refreshAiAssistantChrome();
   await refreshCommandManager();
+  syncBottomPanelEmptyState();
   await syncContentBounds();
   window.requestAnimationFrame(() => syncContentBounds());
 }
@@ -2523,6 +2538,14 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     void refreshState().then(async () => {
       await loadThemePreference();
       const launchPaths = await invoke<string[]>("take_launch_open_paths");
+      const demo = await invoke<string | null>("get_demo_state");
+      if (demo) {
+        applyThemeFromDemoState(demo);
+        if (demo.toLowerCase().includes("theme-light") || demo.toLowerCase().includes("theme-dark")) {
+          const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
+          await applyMonacoEditorTheme("auto");
+        }
+      }
       for (const p of launchPaths) {
         try {
           await invoke("open_path", { path: p, line: null });
@@ -2530,7 +2553,6 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           /* argv open failures surface via toast on next interaction */
         }
       }
-      const demo = await invoke<string | null>("get_demo_state");
       if (demo) {
         try {
           await applyDemoState(demo);
@@ -2566,13 +2588,26 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             return;
           }
           const diag = collectDocCaptureDiagnostics();
-          console.error(`[doc-capture] diagnostics ${formatDiagnosticsForLog(diag)}`);
+          const diagJson = formatDiagnosticsForLog(diag);
+          console.error(`[doc-capture] diagnostics ${diagJson}`);
+          void invoke("log_shell_ui_event", {
+            level: "error",
+            message: "doc-capture-diagnostics",
+            detail: diagJson,
+          });
           if (demoAgain?.toLowerCase().includes("theme-light")) {
             const themeErr = assertLightThemeForCapture();
             if (themeErr) {
               await invoke("abort_doc_capture", { reason: themeErr });
               return;
             }
+          }
+          const cmErr = validateCommandManagerForCapture();
+          if (cmErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${cmErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
           }
           const editorErr = validateEditorForCapture();
           if (launchPathsNeedEditor(launchPaths) && editorErr) {

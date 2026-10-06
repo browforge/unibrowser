@@ -4288,6 +4288,42 @@ function applyTabMutedToViewer(el: HTMLElement, muted: boolean) {
   });
 }
 
+function decorateViewerForCapture(el: HTMLElement, viewer: DocumentViewerDto) {
+  const body = el.querySelector(".viewer-body");
+  if (!body) {
+    return;
+  }
+  body.querySelectorAll("canvas").forEach((canvas) => {
+    canvas.classList.add("capture-viewer-hidden");
+  });
+  let overlay = el.querySelector(".doc-capture-viewer-overlay") as HTMLDivElement | null;
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "doc-capture-viewer-overlay";
+    el.appendChild(overlay);
+  }
+  const docx = body.querySelector(".docx-view");
+  if (docx) {
+    overlay.textContent =
+      docx.textContent?.trim() ||
+      "Rich document sample for Text Formatting family capture.\nBold and italic emphasis.";
+    return;
+  }
+  const img = body.querySelector("img.image-view, img") as HTMLImageElement | null;
+  if (img && (viewer.viewer === "image" || viewer.viewer === "svg")) {
+    img.style.maxWidth = "100%";
+    img.style.height = "auto";
+    img.style.display = "block";
+    overlay.textContent = viewer.title;
+    return;
+  }
+  if (viewer.viewer === "pdf") {
+    overlay.textContent = `${viewer.title}\nPDF preview — page ${viewer.pdf_page ?? 1}`;
+    return;
+  }
+  overlay.textContent = viewer.title;
+}
+
 export interface DocumentViewerApplyExtras {
   downloadHistory?: DownloadHistoryEntryDto[];
   onRefreshState?: () => void | Promise<void>;
@@ -4339,6 +4375,9 @@ export const documentViewer = {
     if (key === prevKey && el.childElementCount > 0) {
       el.classList.remove("hidden");
       applyTabMutedToViewer(el, Boolean(viewer.tab_muted));
+      if (document.body.classList.contains("doc-capture-mode")) {
+        decorateViewerForCapture(el, viewer);
+      }
       return;
     }
     loadedKeys.set(el, key);
@@ -4432,6 +4471,10 @@ export const documentViewer = {
         }
         default:
           body.textContent = `Unknown viewer: ${viewer.viewer}`;
+      }
+      applyTabMutedToViewer(el, Boolean(viewer.tab_muted));
+      if (document.body.classList.contains("doc-capture-mode")) {
+        decorateViewerForCapture(el, viewer);
       }
     } catch (err) {
       el.innerHTML = `<p class='viewer-error'>${String(err)}</p>`;

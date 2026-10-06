@@ -11,10 +11,14 @@ function hasVisibleText(selector: string, minLen = 1): boolean {
   return text.length >= minLen;
 }
 
-export function editorReadyForCapture(minChars = 160): boolean {
+export function editorReadyForCapture(minChars = 80): boolean {
   const host = document.getElementById("text-editor-host");
   if (!host || host.classList.contains("hidden")) {
     return false;
+  }
+  const mirror = host.querySelector(".doc-capture-text-mirror") as HTMLElement | null;
+  if (mirror && !mirror.classList.contains("hidden")) {
+    return (mirror.textContent ?? "").trim().length >= minChars;
   }
   const monacoRoot = host.querySelector(".monaco-editor") as HTMLElement | null;
   if (!monacoRoot) {
@@ -34,6 +38,9 @@ export function editorReadyForCapture(minChars = 160): boolean {
 }
 
 function monacoReady(): boolean {
+  if (document.body.classList.contains("doc-capture-mode")) {
+    return editorReadyForCapture(80);
+  }
   const host = document.getElementById("text-editor-host");
   if (!host || host.classList.contains("hidden")) {
     return false;
@@ -162,6 +169,8 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   }
   if (
     joined.includes(".txt") ||
+    joined.includes(".md") ||
+    joined.includes(".markdown") ||
     joined.includes(".ts") ||
     joined.includes(".js") ||
     joined.includes("spell-test") ||
@@ -186,6 +195,8 @@ export function launchPathsNeedEditor(launchPaths: string[]): boolean {
   const joined = launchPaths.join("|").toLowerCase();
   return (
     joined.includes(".txt") ||
+    joined.includes(".md") ||
+    joined.includes(".markdown") ||
     joined.includes(".ts") ||
     joined.includes(".js") ||
     joined.includes("spell-test") ||

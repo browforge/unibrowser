@@ -20,6 +20,11 @@ fn doc_capture_slot() -> &'static Mutex<Option<PathBuf>> {
     SLOT.get_or_init(|| Mutex::new(None))
 }
 
+fn doc_capture_open_paths_slot() -> &'static Mutex<Vec<String>> {
+    static SLOT: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+    SLOT.get_or_init(|| Mutex::new(Vec::new()))
+}
+
 /// Parse argv (after program name). Supports `--open <path>`, `--self-test`, `--report`, `--help`, and positional file paths.
 pub fn ingest_process_args() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -74,6 +79,9 @@ pub fn ingest_process_args() {
         i += 1;
     }
     if let Ok(mut slot) = launch_open_paths().lock() {
+        *slot = open_paths.clone();
+    }
+    if let Ok(mut slot) = doc_capture_open_paths_slot().lock() {
         *slot = open_paths;
     }
     if let Ok(mut demo) = demo_state_slot().lock() {
@@ -192,6 +200,32 @@ pub fn is_doc_capture_mode() -> bool {
 pub fn write_doc_capture_png(app: &tauri::AppHandle, path: &std::path::Path) -> Result<(), String> {
     let window = app.get_window("main").ok_or("main window missing")?;
     let bytes = crate::webview_capture::capture_doc_screenshot_png(app, &window)?;
+    let joined = doc_capture_open_paths_slot()
+        .lock()
+        .map(|p| p.join("|").to_ascii_lowercase())
+        .unwrap_or_default();
+    if joined.contains(".txt")
+        || joined.contains(".md")
+        || joined.contains(".markdown")
+    {
+        let luma = crate::webview_capture::editor_region_luma_pub(&bytes);
+        let demo_dark = std::env::var("UNIBROWSER_DEMO_STATE")
+            .map(|s| s.to_ascii_lowercase().contains("theme-dark"))
+            .unwrap_or(false);
+        let path_dark = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_ascii_lowercase().contains("dark"))
+            .unwrap_or(false);
+        let min_luma = if demo_dark || path_dark { 0.12 } else { 0.32 };
+        if luma < min_luma {
+            return Err(format!(
+                "doc capture editor region too dark (mean luma {:.3} < {:.2}); editor likely unpainted",
+                luma,
+                min_luma
+            ));
+        }
+    }
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }

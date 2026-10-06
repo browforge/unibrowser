@@ -110,7 +110,7 @@ pub fn list_editor_themes(root: &Path) -> Result<Vec<EditorThemeSummary>, VsixEr
 }
 
 pub fn resolve_monaco_theme(root: &Path, theme_id: &str) -> Result<Option<MonacoThemeDto>, VsixError> {
-    if theme_id == "auto" || theme_id == "vs" || theme_id == "vs-dark" {
+    if theme_id == "auto" {
         return Ok(None);
     }
     if !theme_id.starts_with("vsix:") {

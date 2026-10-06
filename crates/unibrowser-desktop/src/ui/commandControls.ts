@@ -42,7 +42,7 @@ export interface ResolvedFamilyDto {
 
 export function familiesToRenderGroups(
   families: ResolvedFamilyDto[],
-): { name: string; priority: "normal" | "low"; controls: UiCommandDto[]; resolved: ResolvedGroupDto }[] {
+): { name: string; priority: "normal" | "low"; commands: UiCommandDto[]; resolved: ResolvedGroupDto }[] {
   const out: {
     name: string;
     priority: "normal" | "low";

@@ -47,6 +47,24 @@ let toolbarEl: HTMLElement | null = null;
 let plainToolbarEl: HTMLDivElement | null = null;
 let plainToolbarPath: string | null = null;
 let findBound = false;
+let captureMirrorEl: HTMLPreElement | null = null;
+
+function syncCaptureTextMirror(host: HTMLElement, content: string): void {
+  const capture = document.body.classList.contains("doc-capture-mode");
+  if (!capture) {
+    captureMirrorEl?.classList.add("hidden");
+    host.querySelector(".monaco-editor")?.classList.remove("capture-mirror-hidden");
+    return;
+  }
+  if (!captureMirrorEl) {
+    captureMirrorEl = document.createElement("pre");
+    captureMirrorEl.className = "doc-capture-text-mirror hidden";
+    host.appendChild(captureMirrorEl);
+  }
+  captureMirrorEl.textContent = content;
+  captureMirrorEl.classList.remove("hidden");
+  host.querySelector(".monaco-editor")?.remove();
+}
 
 async function getMonaco(): Promise<Monaco> {
   if (!monacoApi) {
@@ -284,6 +302,10 @@ function ensurePreviewShell(host: HTMLElement) {
 }
 
 function ensureMarkdownToolbar(host: HTMLElement, path: string) {
+  if (document.body.classList.contains("doc-capture-mode") && isMarkdownPath(path)) {
+    toolbarEl?.classList.add("hidden");
+    return;
+  }
   if (!isMarkdownPath(path)) {
     if (plainToolbarEl) {
       plainToolbarEl.remove();
@@ -355,14 +377,23 @@ function bindFindShortcut(api: Monaco) {
   findBound = true;
 }
 
+async function syncMonacoTheme(): Promise<void> {
+  const api = await getMonaco();
+  await applyMonacoEditorTheme(editorThemePref);
+  api.editor.setTheme(resolveEditorThemeId(editorThemePref));
+  editor?.layout();
+}
+
 async function ensureEditor(host: HTMLElement) {
   if (editor && hostEl === host) {
+    await syncMonacoTheme();
     return;
   }
   findBound = false;
   const api = await getMonaco();
   hostEl = host;
   host.innerHTML = "";
+  await applyMonacoEditorTheme(editorThemePref);
   const monacoTheme = resolveEditorThemeId(editorThemePref);
   // Spellcheck: Monaco has no built-in dictionary; see docs/qa-desktop.md.
   editor = api.editor.create(host, {
@@ -371,6 +402,7 @@ async function ensureEditor(host: HTMLElement) {
     minimap: { enabled: false },
     fontSize: currentFontPt,
     wordWrap: "on",
+    experimentalGpuAcceleration: "off",
   });
   host.classList.add("monaco-host-ready");
   bindFindShortcut(api);
@@ -476,8 +508,18 @@ export const textEditor = {
       return;
     }
     this.show(host);
+    if (document.body.classList.contains("doc-capture-mode")) {
+      markdownPreview = false;
+      previewShellEl?.classList.add("hidden");
+      host.classList.remove("md-split");
+    }
     ensureMarkdownToolbar(host, doc.path);
     await ensureEditor(host);
+    await syncMonacoTheme();
+    if (document.body.classList.contains("doc-capture-mode")) {
+      editor?.layout();
+      relayoutTextEditor();
+    }
     const api = await getMonaco();
     bindFindShortcut(api);
     const model = editor!.getModel();
@@ -504,6 +546,7 @@ export const textEditor = {
     }
     currentFontPt = doc.font_size_pt;
     editor!.updateOptions({ fontSize: doc.font_size_pt });
+    syncCaptureTextMirror(host, doc.content);
     if (doc.reveal_line && doc.reveal_line > 0) {
       const line = doc.reveal_line;
       editor!.revealLineInCenter(line);
