@@ -24,7 +24,7 @@ export function applyCommandManagerDensity(dense: boolean) {
   if (el) {
     el.classList.toggle("command-manager-dense", dense);
   }
-  document.body.dataset.cmDensity = dense ? "compact" : "comfortable";
+  document.body.dataset.cmDensity = dense ? "compact" : "large";
 }
 
 export function applyChromeFocusMode(enabled: boolean) {
@@ -55,6 +55,7 @@ export async function loadAccessibilityPreferences() {
     applyLargerHitTargets(prefs.larger_hit_targets);
   } catch {
     applyReduceMotionToDocument();
+    applyCommandManagerDensity(false);
   }
   if (!motionMedia) {
     motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");

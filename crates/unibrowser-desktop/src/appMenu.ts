@@ -75,7 +75,80 @@ function buildMenus(): MenuDef[] {
   ];
 }
 
-export function initAppMenu(run: MenuRun, openPath: MenuOpenPath) {
+let closeOpenMenu: (() => void) | null = null;
+
+function openMenuPanelAt(anchor: HTMLElement, panel: HTMLElement) {
+  closeOpenMenu?.();
+  const rect = anchor.getBoundingClientRect();
+  panel.style.left = `${rect.left}px`;
+  panel.style.top = `${rect.bottom}px`;
+  document.body.appendChild(panel);
+  closeOpenMenu = () => {
+    panel.remove();
+    closeOpenMenu = null;
+  };
+  const first = panel.querySelector<HTMLButtonElement>(".app-menu-item, .app-menu-root-item");
+  first?.focus();
+}
+
+export function openAppMenuFromButton(
+  anchor: HTMLElement,
+  run: MenuRun,
+  openPath: MenuOpenPath,
+) {
+  const panel = document.createElement("div");
+  panel.className = "app-menu-dropdown";
+  panel.setAttribute("role", "menu");
+  for (const menu of buildMenus()) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "app-menu-root-item";
+    btn.textContent = menu.label;
+    btn.setAttribute("role", "menuitem");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.remove();
+      closeOpenMenu = null;
+      const sub = document.createElement("div");
+      sub.className = "app-menu-dropdown";
+      sub.setAttribute("role", "menu");
+      for (const item of menu.items) {
+        if (item.divider) {
+          const hr = document.createElement("hr");
+          hr.className = "app-menu-divider";
+          sub.appendChild(hr);
+          continue;
+        }
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "app-menu-item";
+        action.textContent = item.label;
+        action.setAttribute("role", "menuitem");
+        action.addEventListener("click", () => {
+          sub.remove();
+          if (item.path) {
+            void openPath(item.path);
+          } else if (item.commandId) {
+            void run(item.commandId);
+          }
+        });
+        sub.appendChild(action);
+      }
+      const rect = btn.getBoundingClientRect();
+      sub.style.left = `${rect.left}px`;
+      sub.style.top = `${rect.bottom}px`;
+      document.body.appendChild(sub);
+    });
+    panel.appendChild(btn);
+  }
+  openMenuPanelAt(anchor, panel);
+}
+
+export function initAppMenu(
+  run: MenuRun,
+  openPath: MenuOpenPath,
+  options?: { menuButtonId?: string },
+) {
   const bar = document.getElementById("app-menu-bar");
   if (!bar) {
     return;
@@ -86,7 +159,9 @@ export function initAppMenu(run: MenuRun, openPath: MenuOpenPath) {
   const closeOpen = () => {
     openMenu?.remove();
     openMenu = null;
+    closeOpenMenu = null;
   };
+  closeOpenMenu = closeOpen;
 
   document.addEventListener("click", (e) => {
     if (openMenu && !openMenu.contains(e.target as Node)) {
@@ -174,4 +249,12 @@ export function initAppMenu(run: MenuRun, openPath: MenuOpenPath) {
       el.setAttribute("data-menu-id", menus[i].id);
     }
   });
+
+  if (options?.menuButtonId) {
+    const compactBtn = document.getElementById(options.menuButtonId);
+    compactBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openAppMenuFromButton(compactBtn, run, openPath);
+    });
+  }
 }

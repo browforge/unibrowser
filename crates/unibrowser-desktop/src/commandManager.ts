@@ -1,9 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { patchPictureInPictureCommand } from "./mediaPip";
-import { bindRovingTablist, setTabA11y } from "./rovingTabs";
 import { showToast } from "./toast";
 import { t } from "./i18n";
 import { bindCommandTooltip } from "./ui/commandTooltip";
+import { buildCommandGroups, type CommandGroupModel } from "./ui/commandManagerGroups";
+import { createLucideIcon } from "./ui/lucideIcon";
 
 let chordByCommand = new Map<string, string>();
 
@@ -180,7 +181,7 @@ export function getStatusContextMode(): { tab: string; pinned: boolean } | null 
   return { tab: tab.label, pinned: snapshot.context_pinned };
 }
 let dragCommandId: string | null = null;
-let cmTabButtons: HTMLButtonElement[] = [];
+let overflowGroupsCache: CommandGroupModel[] = [];
 
 function renderCommandButtons(
   container: HTMLElement,
@@ -319,6 +320,114 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
   };
 }
 
+function renderCommandGroups(
+  container: HTMLElement,
+  groups: CommandGroupModel[],
+  onRun: RunCommand,
+) {
+  container.innerHTML = "";
+  groups.forEach((group, index) => {
+    if (index > 0) {
+      const div = document.createElement("span");
+      div.className = "cm-divider";
+      div.setAttribute("aria-hidden", "true");
+      container.appendChild(div);
+    }
+    const wrap = document.createElement("div");
+    wrap.className = `cm-group priority-${group.priority}`;
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", group.name);
+    const tools = document.createElement("div");
+    tools.className = "cm-group-tools";
+    renderCommandButtons(tools, group.commands, onRun, true);
+    const name = document.createElement("span");
+    name.className = "cm-group-name";
+    name.textContent = group.name;
+    wrap.appendChild(tools);
+    wrap.appendChild(name);
+    container.appendChild(wrap);
+  });
+}
+
+function openContextTabMenu(
+  anchor: HTMLElement,
+  snapshot: CommandManagerDto,
+  onPick: (tabId: string) => void,
+) {
+  const menu = document.createElement("div");
+  menu.className = "context-menu-panel";
+  menu.setAttribute("role", "menu");
+  snapshot.tabs.forEach((tab) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("role", "menuitem");
+    const preview = isPreviewingTab(snapshot, tab.id);
+    const autoMatch = !snapshot.context_pinned && tab.id === snapshot.auto_context;
+    btn.textContent =
+      autoMatch ? `${tab.label} *` : preview ? `${tab.label} ...` : tab.label;
+    if (tab.selected) {
+      btn.setAttribute("aria-current", "true");
+    }
+    btn.onclick = () => {
+      menu.remove();
+      onPick(tab.id);
+    };
+    menu.appendChild(btn);
+  });
+  const rect = anchor.getBoundingClientRect();
+  menu.style.left = `${rect.left}px`;
+  menu.style.top = `${rect.bottom + 4}px`;
+  document.body.appendChild(menu);
+  const close = (ev: MouseEvent) => {
+    if (!menu.contains(ev.target as Node)) {
+      menu.remove();
+      document.removeEventListener("click", close);
+    }
+  };
+  window.setTimeout(() => document.addEventListener("click", close), 0);
+}
+
+function openOverflowGroupsMenu(
+  anchor: HTMLElement,
+  groups: CommandGroupModel[],
+  onRun: RunCommand,
+) {
+  const menu = document.createElement("div");
+  menu.className = "cm-overflow-menu";
+  groups.forEach((group) => {
+    const heading = document.createElement("div");
+    heading.className = "palette-section-label";
+    heading.textContent = group.name;
+    menu.appendChild(heading);
+    group.commands.forEach((cmd) => {
+      const patched = patchPictureInPictureCommand(cmd);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "palette-item-row";
+      btn.textContent = patched.title;
+      btn.disabled = !patched.enabled;
+      btn.onclick = () => {
+        menu.remove();
+        if (patched.enabled) {
+          void onRun(patched.command_id);
+        }
+      };
+      menu.appendChild(btn);
+    });
+  });
+  const rect = anchor.getBoundingClientRect();
+  menu.style.left = `${rect.left}px`;
+  menu.style.top = `${rect.bottom + 4}px`;
+  document.body.appendChild(menu);
+  const close = (ev: MouseEvent) => {
+    if (!menu.contains(ev.target as Node)) {
+      menu.remove();
+      document.removeEventListener("click", close);
+    }
+  };
+  window.setTimeout(() => document.addEventListener("click", close), 0);
+}
+
 function updatePinControl(
   pinEl: HTMLElement,
   labelEl: HTMLElement | null,
@@ -353,10 +462,11 @@ function isPreviewingTab(snapshot: CommandManagerDto, tabId: string): boolean {
 
 export const commandManager = {
   async refresh(
-    tabsEl: HTMLElement,
-    commandsEl: HTMLElement,
+    groupsEl: HTMLElement,
     floatingEl: HTMLElement,
     pinEl: HTMLElement,
+    contextEl: HTMLElement,
+    overflowEl: HTMLElement | null,
     onRun: RunCommand,
   ) {
     const labelEl = document.getElementById("command-manager-pin-label");
@@ -366,50 +476,59 @@ export const commandManager = {
     const snapshot = await invoke<CommandManagerDto>("get_command_manager");
     lastSnapshot = snapshot;
     updatePinControl(pinEl, labelEl, snapshot);
-    tabsEl.innerHTML = "";
-    cmTabButtons = [];
-    snapshot.tabs.forEach((tab) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className =
-        "cm-tab" +
-        (tab.selected ? " active" : "") +
-        (tab.phase === "planned" ? " planned" : "");
-      setTabA11y(btn, tab.selected, `cm-tab-${tab.id}`, "command-manager-commands");
-      const autoMatch =
-        !snapshot.context_pinned && tab.id === snapshot.auto_context;
-      const preview = isPreviewingTab(snapshot, tab.id);
-      btn.textContent =
-        autoMatch ? `${tab.label} *` : preview ? `${tab.label} …` : tab.label;
-      btn.title =
-        tab.phase === "planned"
-          ? t("commandManager.tabPlannedTitle", { tab: tab.label })
-          : preview
-            ? t("commandManager.tabPreviewTitle", { tab: tab.label })
-            : autoMatch
-              ? t("commandManager.tabAutoMatchTitle", { tab: tab.label })
-              : tab.selected && snapshot.context_pinned
-                ? t("commandManager.tabPinnedTitle", { tab: tab.label })
-                : tab.label;
-      btn.setAttribute("aria-label", btn.title);
-      btn.onclick = async () => {
-        await invoke("select_command_manager_tab", { tabId: tab.id });
-        await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
-      };
-      tabsEl.appendChild(btn);
-      cmTabButtons.push(btn);
-    });
-    if (!tabsEl.dataset.rovingBound) {
-      tabsEl.dataset.rovingBound = "1";
-      bindRovingTablist(tabsEl, () => cmTabButtons);
+    const active = snapshot.tabs.find((tab) => tab.selected) ?? snapshot.tabs[0];
+    const contextText =
+      active?.label ?? contextLabel(snapshot.selected_tab, snapshot.tabs);
+    contextEl.textContent = contextText;
+    contextEl.setAttribute("aria-label", `${contextText} commands`);
+    if (!contextEl.dataset.bound) {
+      contextEl.dataset.bound = "1";
+      contextEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!lastSnapshot) {
+          return;
+        }
+        openContextTabMenu(contextEl, lastSnapshot, async (tabId) => {
+          await invoke("select_command_manager_tab", { tabId });
+          await commandManager.refresh(
+            groupsEl,
+            floatingEl,
+            pinEl,
+            contextEl,
+            overflowEl,
+            onRun,
+          );
+        });
+      });
     }
-    commandsEl.id = "command-manager-commands";
-    commandsEl.setAttribute("role", "tabpanel");
-    const active = snapshot.tabs.find((t) => t.selected) ?? snapshot.tabs[0];
     if (active) {
-      renderCommandButtons(commandsEl, active.commands, onRun, true);
+      const groups = buildCommandGroups(active.id, active.commands);
+      overflowGroupsCache = groups.filter((g) => g.priority === "low");
+      renderCommandGroups(groupsEl, groups, onRun);
+      if (overflowEl) {
+        const hasLow = groups.some((g) => g.priority === "low");
+        overflowEl.classList.toggle("visible", hasLow);
+        overflowEl.classList.toggle("hidden", !hasLow);
+        if (!overflowEl.dataset.bound) {
+          overflowEl.dataset.bound = "1";
+          overflowEl.innerHTML = "";
+          overflowEl.appendChild(createLucideIcon("chevron-down", 16, "ub-icon svg-icon"));
+          overflowEl.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const snap = lastSnapshot;
+            const tab = snap?.tabs.find((t) => t.selected) ?? snap?.tabs[0];
+            if (!tab) {
+              return;
+            }
+            const hidden = overflowGroupsCache.length
+              ? overflowGroupsCache
+              : buildCommandGroups(tab.id, tab.commands).slice(3);
+            openOverflowGroupsMenu(overflowEl, hidden, onRun);
+          });
+        }
+      }
     } else {
-      commandsEl.innerHTML = "";
+      groupsEl.innerHTML = "";
     }
     floatingEl.innerHTML = "";
     floatingEl.classList.add("floating-toolbar-drop-host");
@@ -552,7 +671,14 @@ export const commandManager = {
         });
       }
       bindFloatingBarContextMenu(wrap, bar, async () => {
-        await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
+        await commandManager.refresh(
+          groupsEl,
+          floatingEl,
+          pinEl,
+          contextEl,
+          overflowEl,
+          onRun,
+        );
       });
       floatingEl.appendChild(wrap);
     });
@@ -560,9 +686,10 @@ export const commandManager = {
 
   bindPinControl(
     pinEl: HTMLElement,
-    tabsEl: HTMLElement,
-    commandsEl: HTMLElement,
+    groupsEl: HTMLElement,
     floatingEl: HTMLElement,
+    contextEl: HTMLElement,
+    overflowEl: HTMLElement | null,
     onRun: RunCommand,
   ) {
     pinEl.addEventListener("click", async () => {
@@ -579,7 +706,26 @@ export const commandManager = {
           await invoke("dismiss_cm_pin_tip");
         }
       }
-      await commandManager.refresh(tabsEl, commandsEl, floatingEl, pinEl, onRun);
+      await commandManager.refresh(
+        groupsEl,
+        floatingEl,
+        pinEl,
+        contextEl,
+        overflowEl,
+        onRun,
+      );
+    });
+  },
+
+  bindCollapseControl(collapseEl: HTMLElement | null) {
+    if (!collapseEl || collapseEl.dataset.bound) {
+      return;
+    }
+    collapseEl.dataset.bound = "1";
+    collapseEl.innerHTML = "";
+    collapseEl.appendChild(createLucideIcon("chevron-down", 16, "ub-icon svg-icon"));
+    collapseEl.addEventListener("click", () => {
+      document.body.classList.toggle("cm-collapsed");
     });
   },
 };

@@ -1,4 +1,6 @@
-/** Batch-1 shell invariants for self-test and doc capture guards. */
+/** Batch-3 shell invariants for self-test and doc capture guards. */
+
+import { measureChromeHeights } from "./ui/chromeMetrics";
 
 export function runShellChromeAudit(): string[] {
   const errors: string[] = [];
@@ -21,6 +23,24 @@ export function runShellChromeAudit(): string[] {
   }
   if (!document.getElementById("app-menu-bar")) {
     errors.push("missing #app-menu-bar");
+  }
+  if (!document.getElementById("title-bar")) {
+    errors.push("missing #title-bar");
+  }
+  if (!document.getElementById("command-manager-groups")) {
+    errors.push("missing #command-manager-groups");
+  }
+  if (!document.querySelector(".workspace-rail")) {
+    errors.push("missing .workspace-rail activity rail");
+  }
+  if (document.querySelector(".nav-row")) {
+    errors.push("legacy .nav-row still present");
+  }
+  if (document.querySelector(".ub-shell-title-menu")) {
+    errors.push("legacy .ub-shell-title-menu still present");
+  }
+  if (document.getElementById("command-manager-tabs")) {
+    errors.push("legacy #command-manager-tabs still present");
   }
   if (!document.getElementById("work-area")) {
     errors.push("missing #work-area dock layout");
@@ -57,8 +77,18 @@ export function runShellChromeAudit(): string[] {
   }
 
   const shellGen = document.documentElement.getAttribute("data-ub-shell");
-  if (shellGen !== "batch1-v1") {
-    errors.push("missing data-ub-shell=batch1-v1 on document element");
+  if (shellGen !== "batch3-v1") {
+    errors.push("missing data-ub-shell=batch3-v1 on document element");
+  }
+
+  const heights = measureChromeHeights();
+  const density = document.body.dataset.cmDensity;
+  if (!heights.cmCollapsed && density === "compact") {
+    if (heights.totalChromePx < 78 || heights.totalChromePx > 82) {
+      errors.push(
+        `compact chrome height ${heights.totalChromePx}px (title ${heights.titleBarPx}px, cm ${heights.commandManagerPx}px) outside 78-82px budget`,
+      );
+    }
   }
 
   return errors;
