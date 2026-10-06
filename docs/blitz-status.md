@@ -10,9 +10,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 **Try first:** `./scripts/e2e.sh` on Linux (xvfb; **in-app self-test**, no WebDriver). Optional WDIO: `E2E_WDIO=1 ./scripts/e2e.sh`. `cargo test --workspace` and `npm run build` stay green.
 
-**Top wins this slice:** **`--self-test <scenario|all> --report out.json`** (Rust runner + per-scenario PNGs); `./scripts/self-test.sh` **3× green** on headless (`proofing-dictionary`, `problems-jump`); `./scripts/e2e.sh` defaults to self-test; release shell diagnosis + resilient `shellBootstrap`; doc captures show distinct features (palette, problems, etc.) when demo states are set.
+**Top wins this slice:** **`--self-test <scenario|all> --report out.json`** (Rust runner + per-scenario PNGs, no WebDriver deadlock on file opens); `./scripts/self-test.sh` **3× green** on full `all` under xvfb; `./scripts/e2e.sh` defaults to self-test; **`--doc-capture`** for README shots via shell webview; release shell diagnosis + resilient `shellBootstrap`.
 
-**Top gaps (honest):** Full `all` self-test (file-open scenarios) can **block on WebKitGTK** under xvfb — use a local desktop for font/banner/undo/CM/unibrow paths or `UNIBROWSER_SELF_TEST_HEADLESS=0`. WDIO remains optional and flaky on cloud VMs. Some NTP demo shots still show a dark content host until demo fixtures mature.
+**Top gaps (honest):** WDIO remains optional and flaky on cloud VMs. Doc captures still depend on demo presets and timing — re-run `./scripts/capture-docs-screenshots.sh` after UI changes.
 
 **Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); wire `./scripts/e2e.sh` into CI when Origin runs workflows.
 

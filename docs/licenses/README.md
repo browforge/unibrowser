@@ -1,6 +1,6 @@
 # Licences and third-party notices
 
-Unibrowser **application code** is [Apache-2.0](../LICENSE). This folder collects **attribution and licence notes** for bundled or optional runtime components.
+Unibrowser **application code** is [Apache-2.0](../../LICENSE). This folder collects **attribution and licence notes** for bundled or optional runtime components.
 
 | Document | Contents |
 | --- | --- |

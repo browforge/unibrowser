@@ -277,11 +277,15 @@ export function initAiAssistantPanel() {
   panelEl.querySelector(".ai-assistant-close")?.addEventListener("click", () => {
     void setAiPanelVisible(false);
   });
-  void invoke<AiPrefs>("get_ai_assistant_prefs").then((prefs) => {
+  void Promise.all([
+    invoke<AiPrefs>("get_ai_assistant_prefs"),
+    invoke<string | null>("take_doc_capture_path"),
+  ]).then(([prefs, docCapture]) => {
     panelEl!.style.left = `${prefs.panel_x || 48}px`;
     panelEl!.style.top = `${prefs.panel_y || 96}px`;
-    panelEl!.classList.toggle("hidden", !prefs.panel_visible);
-    if (prefs.panel_visible) {
+    const visible = prefs.panel_visible && !docCapture;
+    panelEl!.classList.toggle("hidden", !visible);
+    if (visible) {
       void refreshPanel();
     }
   });

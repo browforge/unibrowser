@@ -27,9 +27,9 @@ target/release/unibrowser-desktop --self-test <scenario|all> --report out.json
 | `close-undo` | Close dirty tab + undo |
 | `cm-grey-tab-switch` | Disabled commands on image tab |
 | `unibrow-blank-save` | Blank `.unibrow` autosave |
-| `all` | All scenarios (see headless note below) |
+| `all` | All eight scenarios in order |
 
-**Headless CI default:** `UNIBROWSER_SELF_TEST_HEADLESS=1` (set in `scripts/self-test.sh`) runs `proofing-dictionary` + `problems-jump` only. File-open scenarios can block on WebKitGTK under xvfb; run full `all` on a local desktop with `UNIBROWSER_SELF_TEST_HEADLESS=0`.
+`scripts/self-test.sh` runs `all` **3×** under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). The Rust runner skips `browser-state-updated` events during self-test so file opens do not deadlock the UI thread.
 
 Environment:
 

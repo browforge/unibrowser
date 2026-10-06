@@ -13,6 +13,11 @@ export async function applyDemoState(raw: string) {
       case "problems":
       case "problems-open": {
         const { showProblemsBottomPanel } = await import("./problemsPanel");
+        await invoke("proofing_check", {
+          text: "teh quick brown fox",
+          surface: "plaintext",
+          language: "en-NZ",
+        }).catch(() => undefined);
         showProblemsBottomPanel();
         break;
       }

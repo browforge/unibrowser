@@ -2439,6 +2439,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           reportSubsystemError("demo-state", err);
         }
       }
+      const docCapture = await invoke<string | null>("take_doc_capture_path");
+      if (docCapture) {
+        const demoForShot = await invoke<string | null>("get_demo_state");
+        const wantsAi =
+          demoForShot?.split(/[,;]+/).some((t) => /^(ai|ai-sidebar|ai-open)$/i.test(t.trim())) ??
+          false;
+        if (!wantsAi) {
+          await setAiPanelVisible(false);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await invoke("finish_doc_capture_and_exit");
+      }
       void maybePromptProjectRecovery((data) => {
         void applyState(data as TabContentDto);
       });

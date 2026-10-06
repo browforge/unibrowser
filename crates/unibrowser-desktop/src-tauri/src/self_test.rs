@@ -352,7 +352,21 @@ fn scenario_close_undo(
     fixtures: &std::path::Path,
 ) -> Result<(), String> {
     let path = fixtures.join("spell-test.txt");
+    let filler = repo_root().join("examples/demo-pack/sample.txt");
     open_path(window, app, state, &path)?;
+    crate::commands::open_path_in_new_tab(
+        window.clone(),
+        filler.to_string_lossy().into_owned(),
+        app.clone(),
+        state.clone(),
+    )?;
+    crate::commands::select_tab(window.clone(), 0, app.clone(), state.clone())?;
+    let tab_count = crate::commands::get_browser_state(window.clone(), state.clone())?
+        .tabs
+        .len();
+    if tab_count < 2 {
+        return Err(format!("expected at least 2 tabs before close, got {tab_count}"));
+    }
     let marker = format!("self-test-undo-{}", now_ms());
     let content = {
         let dto = crate::commands::get_browser_state(window.clone(), state.clone())?;
@@ -412,8 +426,9 @@ fn scenario_palette(
     window: &tauri::Window,
     app: &AppHandle,
     state: &State<crate::state::AppState>,
-    _demo: &std::path::Path,
+    demo: &std::path::Path,
 ) -> Result<(), String> {
+    open_path(window, app, state, &demo.join("sample.txt"))?;
     let msg = crate::commands::execute_command(
         window.clone(),
         "unibrowser.palette.toggle".into(),

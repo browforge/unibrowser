@@ -33,7 +33,7 @@ Monaco and pdf.js retain their own copyright notices in `node_modules` and in pr
 | [wkhtmltopdf](https://wkhtmltopdf.org/) | LGPL-3.0 | Optional PDF export fallback on Linux |
 | Chromium (system) | BSD-style + others | Optional headless print-to-PDF |
 
-Users install ffmpeg/Chromium themselves; Unibrowser invokes them as separate processes ([ADR 0007](../adr/0007-ffmpeg-sidecar.md)).
+Users install ffmpeg/Chromium themselves; Unibrowser invokes them as separate processes ([ffmpeg-sidecar.md](../ffmpeg-sidecar.md)).
 
 ## Rust crates (workspace)
 

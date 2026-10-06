@@ -13,12 +13,18 @@ fn demo_state_slot() -> &'static Mutex<Option<String>> {
     SLOT.get_or_init(|| Mutex::new(None))
 }
 
+fn doc_capture_slot() -> &'static Mutex<Option<PathBuf>> {
+    static SLOT: OnceLock<Mutex<Option<PathBuf>>> = OnceLock::new();
+    SLOT.get_or_init(|| Mutex::new(None))
+}
+
 /// Parse argv (after program name). Supports `--open <path>`, `--self-test`, `--report`, `--help`, and positional file paths.
 pub fn ingest_process_args() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut open_paths: Vec<String> = Vec::new();
     let mut self_test_scenario: Option<String> = None;
     let mut report_path: Option<PathBuf> = None;
+    let mut doc_capture_path: Option<PathBuf> = None;
     let mut i = 0;
     while i < args.len() {
         let a = &args[i];
@@ -50,6 +56,14 @@ pub fn ingest_process_args() {
             i += 1;
             continue;
         }
+        if a == "--doc-capture" {
+            i += 1;
+            if i < args.len() {
+                doc_capture_path = Some(PathBuf::from(&args[i]));
+            }
+            i += 1;
+            continue;
+        }
         if a.starts_with('-') {
             i += 1;
             continue;
@@ -72,17 +86,16 @@ pub fn ingest_process_args() {
         configure_self_test(scenarios, report);
         std::env::set_var("UNIBROWSER_SELF_TEST", "1");
     }
+    if let Some(path) = doc_capture_path {
+        if let Ok(mut slot) = doc_capture_slot().lock() {
+            *slot = Some(path);
+        }
+    }
 }
 
 fn expand_self_test_scenarios(raw: &str) -> Vec<String> {
     let key = raw.trim().to_lowercase();
     if key == "all" {
-        if std::env::var("UNIBROWSER_SELF_TEST_HEADLESS").as_deref() == Ok("1") {
-            return vec![
-                crate::self_test::SCENARIO_PROOFING_DICT.to_string(),
-                crate::self_test::SCENARIO_PROBLEMS_JUMP.to_string(),
-            ];
-        }
         return ALL_SCENARIOS.iter().map(|s| (*s).to_string()).collect();
     }
     vec![raw.trim().to_string()]
@@ -104,6 +117,7 @@ Usage:\n\
   <path>          Same as --open (for shell \"Open with\" and drag-free launch).\n\
   --self-test     Run in-app UI scenarios (no WebDriver); writes JSON report and exits.\n\
   --report        JSON report path (screenshots beside it in self-test-shots/).\n\
+  --doc-capture   After launch + demo state, write shell webview PNG and exit.\n\
 \n\
 Hidden (docs / screenshots):\n\
   UNIBROWSER_DEMO_STATE   Comma-separated UI preset (problems,ai,live,vsix,ntp,palette,settings,mods).\n\
@@ -126,6 +140,29 @@ pub fn take_launch_open_paths() -> Vec<String> {
 #[tauri::command]
 pub fn get_demo_state() -> Option<String> {
     demo_state_slot().lock().ok().and_then(|d| d.clone())
+}
+
+#[tauri::command]
+pub fn take_doc_capture_path() -> Option<String> {
+    doc_capture_slot()
+        .lock()
+        .ok()
+        .and_then(|d| d.as_ref().map(|p| p.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+pub fn finish_doc_capture_and_exit(app: tauri::AppHandle) -> Result<(), String> {
+    let path = doc_capture_slot()
+        .lock()
+        .ok()
+        .and_then(|d| d.clone())
+        .ok_or("doc capture path not configured")?;
+    let bytes = crate::webview_capture::capture_shell_webview_png(&app)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+    std::process::exit(0);
 }
 
 #[cfg(test)]

@@ -437,6 +437,8 @@ pub fn run() {
             rhai_host::describe_rhai_script,
             launch_args::take_launch_open_paths,
             launch_args::get_demo_state,
+            launch_args::take_doc_capture_path,
+            launch_args::finish_doc_capture_and_exit,
             self_test::self_test_ping,
             self_test::get_self_test_plan,
             self_test::self_test_capture_screenshot,

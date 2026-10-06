@@ -48,6 +48,14 @@ use crate::webview::{
     reset_page_font_for_url, reset_page_zoom_for_url, sync_content_bounds,
     sync_content_webview_for_window,
 };
+/// Avoid main-thread deadlock: self-test runs `open_path` on the UI thread while JS `refreshState` would `invoke` back.
+pub(crate) fn maybe_emit_browser_state_updated(app: &AppHandle) {
+    if std::env::var("UNIBROWSER_SELF_TEST").as_deref() == Ok("1") {
+        return;
+    }
+    let _ = app.emit("browser-state-updated", ());
+}
+
 use unibrowser_mod_api::handlers::{
     CONTEXT_HELP_ID, DOCUMENT_REDO_ID, DOCUMENT_UNDO_ID, EXPORT_PRINT_PDF_ID, FIND_IN_DOCUMENT_ID,
     FONT_DECREASE_ID, FONT_INCREASE_ID, FORMAT_DOCUMENT_ID, PAGE_ZOOM_DECREASE_ID,
@@ -256,7 +264,7 @@ pub struct MidiNoteOnDto {
     pub velocity: u8,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct OpenFileTabDto {
     pub tab_index: usize,
     pub path: String,
@@ -593,15 +601,7 @@ fn record_closed_tab(sess: &crate::window_session::WindowSession, loc: BrowserLo
     }
 }
 
-fn open_file_tabs_dto(state: &AppState, window_label: &str) -> Vec<OpenFileTabDto> {
-    let session = ws_label(state, window_label).ok();
-    let Some(sess) = session else {
-        return Vec::new();
-    };
-    let tabs = match sess.tabs.lock() {
-        Ok(t) => t,
-        Err(_) => return Vec::new(),
-    };
+fn collect_open_file_tabs(tabs: &unibrowser_engine::TabManager) -> Vec<OpenFileTabDto> {
     tabs
         .tabs()
         .iter()
@@ -619,6 +619,18 @@ fn open_file_tabs_dto(state: &AppState, window_label: &str) -> Vec<OpenFileTabDt
             None
         })
         .collect()
+}
+
+fn open_file_tabs_dto(state: &AppState, window_label: &str) -> Vec<OpenFileTabDto> {
+    let session = ws_label(state, window_label).ok();
+    let Some(sess) = session else {
+        return Vec::new();
+    };
+    let tabs = match sess.tabs.lock() {
+        Ok(t) => t,
+        Err(_) => return Vec::new(),
+    };
+    collect_open_file_tabs(&tabs)
 }
 
 fn open_unibrow_package(path: &Path) -> Result<unibrowser_project::ProjectPackage, String> {
@@ -654,6 +666,7 @@ fn document_viewer_dto(
     state: &AppState,
     window_label: &str,
     tab_muted: bool,
+    open_file_tabs: &[OpenFileTabDto],
 ) -> Option<DocumentViewerDto> {
     if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
         let root = Path::new(&doc.path);
@@ -752,7 +765,7 @@ fn document_viewer_dto(
             media_note: None,
             project_nodes: nodes,
             orphan_assets,
-            open_file_tabs: Some(open_file_tabs_dto(state, window_label)),
+            open_file_tabs: Some(open_file_tabs.to_vec()),
             project_clips: clips,
             project_transitions: transitions,
             project_markers: markers,
@@ -1056,6 +1069,7 @@ fn tab_pane_dtos(
     Option<DocumentViewerDto>,
     Option<String>,
 ) {
+    let open_file_tabs = collect_open_file_tabs(tabs);
     let tab = match tabs.tab_mut(index) {
         Some(t) => t,
         None => return (None, None, None),
@@ -1068,7 +1082,7 @@ fn tab_pane_dtos(
     let viewer = tab
         .document
         .as_mut()
-        .and_then(|d| document_viewer_dto(d, state, window_label, tab_muted));
+        .and_then(|d| document_viewer_dto(d, state, window_label, tab_muted, &open_file_tabs));
     let reveal_line = tab.reveal_line;
     if reveal_line.is_some() {
         tab.reveal_line = None;
@@ -1232,6 +1246,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .active_tab()
         .and_then(|t| t.document.as_ref())
         .map(|d| d.backend.status_line());
+    let open_file_tabs = collect_open_file_tabs(&tabs);
     let (document_viewer, text_document) = match tabs.active_tab_mut() {
         Some(tab) => {
             let tab_muted = tab.muted;
@@ -1242,7 +1257,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
             let viewer = tab
                 .document
                 .as_mut()
-                .and_then(|d| document_viewer_dto(d, state, window_label, tab_muted));
+                .and_then(|d| document_viewer_dto(d, state, window_label, tab_muted, &open_file_tabs));
             let text = if viewer.is_some() {
                 None
             } else {
@@ -1581,11 +1596,13 @@ pub fn new_tab(window: tauri::Window, state: State<AppState>) -> Result<TabConte
     };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.open_tab(loc.clone());
-    if let Some(tab) = tabs.active_tab_mut() {
-        tab.is_directory = is_dir;
-        tab.document = doc;
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+        }
     }
     snapshot(&state, window.label())
 }
@@ -1597,12 +1614,14 @@ pub fn select_tab(window: tauri::Window,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.set_active(index);
-    let loc = tabs
-        .active_tab()
-        .map(|t| t.location.clone())
-        .ok_or("no tab")?;
+    let loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.set_active(index);
+        tabs
+            .active_tab()
+            .map(|t| t.location.clone())
+            .ok_or("no tab")?
+    };
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
 }
@@ -1673,18 +1692,21 @@ pub fn undo_close_tab(
         .take()
         .ok_or("nothing to undo")?;
     let (loc, is_dir, doc) = state.resolve_location(entry.location.clone());
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let insert_at = entry.insert_index.min(tabs.tab_count());
-    tabs.insert_tab(insert_at, loc.clone());
-    if let Some(tab) = tabs.tab_mut(insert_at) {
-        tab.is_directory = is_dir;
-        tab.document = doc;
-        tab.location = loc.clone();
-        if let (Some(doc), Some(record)) = (tab.document.as_mut(), entry.autosave.as_ref()) {
-            let _ = apply_autosave_record(doc, record);
+    let loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let insert_at = entry.insert_index.min(tabs.tab_count());
+        tabs.insert_tab(insert_at, loc.clone());
+        if let Some(tab) = tabs.tab_mut(insert_at) {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+            tab.location = loc.clone();
+            if let (Some(doc), Some(record)) = (tab.document.as_mut(), entry.autosave.as_ref()) {
+                let _ = apply_autosave_record(doc, record);
+            }
         }
-    }
-    tabs.set_active(insert_at);
+        tabs.set_active(insert_at);
+        loc
+    };
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
 }
@@ -1776,7 +1798,7 @@ pub fn activate_tab_in_window(
     if let Some(w) = app.get_webview_window(&window_label) {
         let _ = w.set_focus();
     }
-    let _ = app.emit("browser-state-updated", ());
+    maybe_emit_browser_state_updated(&app);
     Ok(())
 }
 
@@ -1947,8 +1969,7 @@ pub fn open_dropped_paths(
         }
         update_content_webview(app, window_label, &loc)?;
     }
-    app.emit("browser-state-updated", ())
-        .map_err(|e| e.to_string())?;
+    maybe_emit_browser_state_updated(app);
     Ok(())
 }
 
@@ -2046,8 +2067,10 @@ pub fn open_path(
             path: file_path.clone(),
         };
         let _sess_tabs = ws(&state, &window)?;
-        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        tabs.navigate_active(loc.clone(), false, Some(doc));
+        {
+            let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+            tabs.navigate_active(loc.clone(), false, Some(doc));
+        }
         touch_recent_file(&file_path);
         update_content_webview(&app, window.label(), &loc)?;
         return snapshot(&state, window.label());
@@ -2075,11 +2098,13 @@ pub fn open_path(
         );
     }
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.navigate_active(loc.clone(), is_dir, doc);
-    if let Some(line) = line.filter(|l| *l > 0) {
-        if let Some(tab) = tabs.active_tab_mut() {
-            tab.reveal_line = Some(line);
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.navigate_active(loc.clone(), is_dir, doc);
+        if let Some(line) = line.filter(|l| *l > 0) {
+            if let Some(tab) = tabs.active_tab_mut() {
+                tab.reveal_line = Some(line);
+            }
         }
     }
     if let BrowserLocation::File { path } = &loc {
@@ -2089,7 +2114,7 @@ pub fn open_path(
     }
     update_content_webview(&app, window.label(), &loc)?;
     let dto = snapshot(&state, window.label())?;
-    let _ = app.emit("browser-state-updated", ());
+    maybe_emit_browser_state_updated(&app);
     Ok(dto)
 }
 
@@ -2198,11 +2223,13 @@ pub fn open_path_in_new_tab(
         state.resolve_location(loc)
     };
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.open_tab(loc.clone());
-    if let Some(tab) = tabs.active_tab_mut() {
-        tab.is_directory = is_dir;
-        tab.document = doc;
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+        }
     }
     if let BrowserLocation::File { path } = &loc {
         if path.is_file() {
@@ -7068,11 +7095,13 @@ pub fn create_unibrow_project(window: tauri::Window,
     let loc = BrowserLocation::File { path: root.clone() };
     let doc = crate::state::open_file_document(&root);
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.open_tab(loc.clone());
-    if let Some(tab) = tabs.active_tab_mut() {
-        tab.is_directory = false;
-        tab.document = doc;
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = false;
+            tab.document = doc;
+        }
     }
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())

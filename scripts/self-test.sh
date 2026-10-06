@@ -27,7 +27,6 @@ run_once() {
     UNIBROWSER_SELF_TEST_SKIP_SHOTS="${UNIBROWSER_SELF_TEST_SKIP_SHOTS:-0}" \
     UNIBROWSER_REPO_ROOT="$ROOT" \
     UNIBROWSER_SAFE_MODE=1 \
-    UNIBROWSER_SELF_TEST_HEADLESS=1 \
     "$BIN" --self-test all --report "$report"
 }
 

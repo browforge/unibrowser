@@ -25,10 +25,11 @@ Honest status for core product decisions. **Shipped** = usable in the desktop sh
 | Principles watchlist (close tab, VSIX trust, offline catalog, save pickers) | **Shipped** | [blitz-status.md](blitz-status.md) Resolved table; [network.md](network.md) |
 | Suggestions never cover content | **Shipped** | Unknown-file **header banner** (not modal); onboarding card; mod portal optional (`unknown-file-banner`, ADR 0013) |
 | Unknown file grandma path | **Shipped** | Banner + Open as text/hex + mod suggestions (`open_active_file_as_*`, `mods/base-hex`) |
+| Release UI verification without WebDriver | **Shipped** | `unibrowser-desktop --self-test`; `./scripts/e2e.sh` default; optional `E2E_WDIO=1` ([e2e.md](e2e.md)) |
 
 ## Recent slice
 
-- No `window.alert` / `confirm` / `prompt` in shell; inline UI + autosave slot palette; pinned tab explicit close + Undo; crash recovery bar at launch; Problems Locator jumps; browbridge repo-split prep (`registry/`, `org/dot-github/`, DCO scripts, [repo-layout.md](repo-layout.md)).
+- No `window.alert` / `confirm` / `prompt` in shell; inline UI + autosave slot palette; pinned tab explicit close + Undo; crash recovery bar at launch; Problems Locator jumps; in-app self-test + `--doc-capture` for xvfb screenshots; browbridge repo-split prep (`registry/`, `org/dot-github/`, DCO scripts, [repo-layout.md](repo-layout.md)).
 
 ## Top gaps
 
