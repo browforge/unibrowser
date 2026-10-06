@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <title>Unibrowser - New tab</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <main class="app concept-shell" aria-label="Unibrowser New tab">
+    <header class="menu"><span class="menu-item">File</span><span class="menu-item">Edit</span><span class="menu-item">View</span><span class="menu-item">Go</span><span class="menu-item">Tools</span><span class="menu-item">Help</span><span style="margin-left:90px;color:#bdc8ce">Browse</span><strong style="margin-left:12px">New tab</strong><span style="margin-left:12px;color:#bdc8ce">Create</span><span style="margin-left:12px;color:#bdc8ce">Live</span><span class="app-name">Unibrowser</span></header>
+    <div class="tabs"><div class="tab active"><span>+</span><span>New tab</span><span class="close">x</span></div><div class="tab"><span>#</span><span>sync-notes.ts</span><span class="close">x</span></div><button class="new-tab" aria-label="New tab">+</button></div>
+    <nav class="nav" aria-label="Navigation">
+      <button class="icon-button quiet" aria-label="Back"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/><path d="M9 12h10"/></svg></button>
+      <button class="icon-button quiet" aria-label="Forward"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/><path d="M5 12h10"/></svg></button>
+      <button class="icon-button quiet" aria-label="Reload"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.2 6.2L4 8"/><path d="M5.5 15A7 7 0 0 0 17.8 17.8L20 16"/></svg></button>
+      <div class="omnibox"><span class="crumb-muted">Search, open a path, or enter a web address</span></div>
+      <button class="button nav-action">Find</button><button class="button nav-action">Downloads</button><button class="icon-button quiet">...</button>
+    </nav>
+    <div class="context-tabs"><span class="context-tab active">Browse</span><span class="context-tab">Text</span><span class="context-tab">Office</span><span class="context-tab">PDF</span><span class="context-tab">Image</span><span class="follow">Following: <strong>Browse</strong></span></div>
+    <div class="command-bar"><button class="tool">Open file</button><button class="tool">Open folder</button><span class="separator"></span><button class="tool">New project</button><span class="spacer"></span><button class="tool">Recent files</button></div>
+    <section class="workspace">
+      <nav class="workspace-rail" aria-label="Workspaces"><span class="rail-destination active">Files</span><span class="rail-destination">Search</span><span class="rail-destination">Project</span><span class="rail-destination">CAD</span><span class="rail-destination">Video</span><span class="rail-destination">Audio</span><span class="rail-destination">Code</span><span class="rail-destination">Paint</span><span class="rail-destination">Assets</span><span class="rail-destination settings">Settings</span></nav>
+      <section class="ntp">
+        <div class="ntp-inner">
+          <h1>Start where you left off</h1>
+          <p class="ntp-lead">Open a local file or project. Nothing is uploaded unless you choose a network action.</p>
+          <div class="ntp-actions"><button class="button primary">Open file</button><button class="button">Open folder</button><button class="button">New project</button></div>
+          <h2 class="section-title">Recent <span>Clear history</span></h2>
+          <div class="recent-list">
+            <div class="recent-row"><span>#</span><div><strong>sync-notes.ts</strong><div class="recent-path">Projects / Field kit</div></div><span class="recent-time">12 minutes ago</span><span>Text</span></div>
+            <div class="recent-row"><span>PDF</span><div><strong>field-report.pdf</strong><div class="recent-path">Documents / Site visit</div></div><span class="recent-time">Yesterday</span><span>PDF</span></div>
+            <div class="recent-row"><span>UB</span><div><strong>workshop-tour.unibrow</strong><div class="recent-path">Projects / Workshop tour</div></div><span class="recent-time">Yesterday</span><span>Create</span></div>
+            <div class="recent-row"><span>DXF</span><div><strong>north-bay-bracket.dxf</strong><div class="recent-path">Projects / Ventilation</div></div><span class="recent-time">Monday</span><span>CAD</span></div>
+          </div>
+          <h2 class="section-title">Downloads <span>Open Downloads</span></h2>
+          <div class="download-row"><span>zip</span><div><strong>workshop-reference-pack.zip</strong><div class="recent-path">82.4 MB of 128 MB</div></div><div class="progress"><span></span></div><span>64%</span></div>
+          <div class="download-row"><span>svg</span><div><strong>maker-mark.svg</strong><div class="recent-path">Downloads</div></div><span class="recent-time">Completed 09:42</span><button class="button">Open</button></div>
+        </div>
+      </section>
+    </section>
+    <footer class="status"><span>Local-first</span><span class="right"><span>2 active tabs</span><span>Online</span></span></footer>
+  </main>
+</body>
+</html>

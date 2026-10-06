@@ -7,7 +7,8 @@ Strict pipeline:
 3. [UX architecture](ux.md)
 4. [Layout specification](layout.md)
 5. [UI specification](ui-spec.md)
-6. [Implementation plan](ui-implementation-plan.md)
+6. [Visual language](visual-language.md)
+7. [Implementation plan](ui-implementation-plan.md)
 
 Rendered wireframes:
 
@@ -18,6 +19,8 @@ Rendered wireframes:
 | New tab, 1280x800 | [SVG](mockups/new-tab-files-1280.svg) | [PNG](mockups/new-tab-files-1280.png) |
 | Settings, 1280x800 | [SVG](mockups/settings-mods-1280.svg) | [PNG](mockups/settings-mods-1280.png) |
 | Eleven-context matrix | [SVG](mockups/context-matrix.svg) | [PNG](mockups/context-matrix.png) |
+
+High-fidelity HTML/CSS studies: [Quiet Utility mockup set](mockups/quiet-utility/README.md).
 
 Inputs:
 

@@ -4,9 +4,11 @@ Normative visual/component spec for implementation. Values are CSS logical pixel
 
 ## Visual direction
 
-**Quiet workstation.** Familiar browser structure, compact professional tools, warm-neutral surfaces, and one restrained accent. It should feel native beside Windows 11 apps without copying Fluent cards, acrylic, or oversized spacing.
+**Quiet Utility / Workshop Modernism.** Familiar browser structure, compact professional tools, warm-neutral workbench surfaces, and one restrained accent. It should feel durable beside Windows and Linux applications without copying Fluent cards, acrylic, or oversized spacing.
 
 Hierarchy comes from typography, spacing, and surface tone before borders. Cards are used only for independent objects (mod result, recovery item), not every section.
+
+[Visual language](visual-language.md) is normative. Its drift checklist is part of screenshot acceptance.
 
 ## Tokens
 
@@ -15,21 +17,22 @@ Hierarchy comes from typography, spacing, and surface tone before borders. Cards
 Font stack:
 
 ```css
---font-ui: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
---font-mono: "Cascadia Code", "Cascadia Mono", ui-monospace, monospace;
+--font-ui: "Source Sans 3", "Segoe UI", "DejaVu Sans", sans-serif;
+--font-mono: "Source Code Pro", "Cascadia Mono", "DejaVu Sans Mono", monospace;
 ```
 
 | Token | Size / line | Weight | Use |
 | --- | --- | --- | --- |
-| `type-11` | 11 / 16 | 400 | metadata, status |
-| `type-12` | 12 / 18 | 400 | dense controls |
-| `type-13` | 13 / 20 | 400 | default UI/body |
-| `type-14` | 14 / 21 | 600 | panel headings |
-| `type-16` | 16 / 24 | 600 | section heading |
-| `type-20` | 20 / 28 | 650 | page heading |
-| `type-28` | 28 / 36 | 650 | New tab title only |
+| `type-12` | 12 / 16 | 400 | status, compact metadata; minimum UI size |
+| `type-13` | 13 / 18 | 400 | dense controls, secondary copy |
+| `type-14` | 14 / 20 | 400 | default UI/body |
+| `type-14-strong` | 14 / 20 | 600 | panel headings |
+| `type-16` | 16 / 22 | 600 | section heading |
+| `type-20` | 20 / 26 | 600 | page heading |
+| `type-26` | 26 / 32 | 600 | New tab title only |
 
 Do not use all caps except short status labels such as LIVE.
+Normal text must meet WCAG AA 4.5:1. Large text, icons, focus, and control boundaries must meet 3:1. `text-3` is still readable metadata, not a low-contrast exemption.
 
 ### Spacing
 
@@ -49,7 +52,8 @@ Base unit 4 px.
 
 ### Size
 
-- Title/menu: 32 px.
+- Global top bar: 32 px.
+- Workspace rail: 58 px wide at 1280, 64 px at 1440+.
 - Tab strip: 34 px.
 - Navigation: 40 px.
 - Command Manager tabs: 28 px.
@@ -58,22 +62,22 @@ Base unit 4 px.
 - Standard button: 30 px, compact 26 px.
 - Icon button: 30x30 px.
 - Touch mode target: 44x44 px.
-- Sidebar header: 40 px.
+- Sidebar header: 36 px.
 - Settings row: min 48 px.
 
 ### Radius
 
-- `radius-2`: 2 px for focus-adjacent inner elements.
-- `radius-4`: 4 px for buttons, inputs, tooltips.
-- `radius-6`: 6 px for tabs (top only), menus, toasts.
-- `radius-8`: 8 px for cards and empty-state containers.
+- `radius-4`: 4 px for buttons, inputs, tabs (exposed corners only), tooltips.
+- `radius-6`: 6 px for menus, palettes, toasts, independent cards.
+- `radius-none`: 0 px for docked joins, tables, editor/canvas regions.
 - No pill buttons except status chips/toggles whose shape communicates state.
+- No control or panel radius above 6 px.
 
 ### Elevation
 
 - Docked regions: no shadow; use surface difference or 1 px boundary.
-- Menus/palette: `0 8px 24px rgba(0,0,0,.18)`, plus 1 px border.
-- Toast: `0 4px 16px rgba(0,0,0,.16)`.
+- Menus/palette: `0 8px 20px rgba(25,22,16,.16)`, plus 1 px border.
+- Toast: `0 4px 12px rgba(25,22,16,.14)`, plus 1 px border.
 - Detached toolbar window uses platform window shadow.
 - High contrast: shadows removed; 2 px boundaries.
 
@@ -93,47 +97,49 @@ Colour names describe jobs, not pigments.
 
 | Token | Value |
 | --- | --- |
-| `canvas` | `#F4F5F7` |
-| `surface-1` | `#FFFFFF` |
-| `surface-2` | `#ECEFF3` |
-| `surface-3` | `#E2E6EB` |
-| `text-1` | `#171A1F` |
-| `text-2` | `#4D5662` |
-| `text-3` | `#707A87` |
-| `border` | `#C9CFD7` |
-| `border-strong` | `#949EAA` |
-| `accent` | `#1769AA` |
-| `accent-hover` | `#0F5A94` |
-| `accent-soft` | `#DCEEFF` |
-| `focus` | `#0067C0` |
-| `success` | `#167846` |
-| `warning` | `#9A5B00` |
-| `danger` | `#B42318` |
-| `live` | `#C21E32` |
-| `recording` | `#A8172A` |
+| `canvas` / `base` | `#F1F0EC` |
+| `well` | `#E7E5DF` |
+| `surface-1` / `panel` | `#FAF9F6` |
+| `surface-2` / `control` | `#FFFFFF` |
+| `selected` | `#DCE9F2` |
+| `text-1` | `#202223` |
+| `text-2` | `#4B5052` |
+| `text-3` | `#62686A` |
+| `border` | `#C8C6BF` |
+| `border-strong` | `#8A8D8C` |
+| `accent` | `#2D647D` |
+| `accent-hover` | `#214F65` |
+| `accent-strong` | `#173F52` |
+| `accent-on` | `#FFFFFF` |
+| `focus` | `#176B94` |
+| `success` | `#2F6B48` |
+| `warning` | `#8A5A12` |
+| `danger` | `#A33B32` |
+| `live` / `recording` | `#A33B32` |
 
 ### Dark
 
 | Token | Value |
 | --- | --- |
-| `canvas` | `#17191D` |
-| `surface-1` | `#202329` |
-| `surface-2` | `#282C33` |
-| `surface-3` | `#323740` |
-| `text-1` | `#F3F5F7` |
-| `text-2` | `#C0C7D0` |
-| `text-3` | `#929CAA` |
-| `border` | `#434A55` |
-| `border-strong` | `#687382` |
-| `accent` | `#69B7F2` |
-| `accent-hover` | `#8DC9F6` |
-| `accent-soft` | `#183A54` |
-| `focus` | `#79C0FF` |
-| `success` | `#55C58A` |
-| `warning` | `#E2A64E` |
-| `danger` | `#FF786D` |
-| `live` | `#FF5266` |
-| `recording` | `#FF5266` |
+| `canvas` / `base` | `#1B1D1E` |
+| `well` | `#141617` |
+| `surface-1` / `panel` | `#232526` |
+| `surface-2` / `control` | `#2D3031` |
+| `selected` | `#253E4C` |
+| `text-1` | `#F0EFEB` |
+| `text-2` | `#C9CBC8` |
+| `text-3` | `#AEB2AF` |
+| `border` | `#4D5151` |
+| `border-strong` | `#777C7B` |
+| `accent` | `#79B1C9` |
+| `accent-hover` | `#9CC7D9` |
+| `accent-strong` | `#B7D7E5` |
+| `accent-on` | `#142027` |
+| `focus` | `#83C7E6` |
+| `success` | `#74BE91` |
+| `warning` | `#E1B466` |
+| `danger` | `#EC8178` |
+| `live` / `recording` | `#EC8178` |
 
 ### High contrast
 
@@ -152,7 +158,7 @@ Rules:
 
 ## Icons
 
-Use **Lucide** icons, ISC licence.
+Use **Lucide** icons, ISC licence. See [visual-language.md](visual-language.md) for the reject rules and attribution requirement.
 
 Reasons:
 
@@ -164,13 +170,29 @@ Reasons:
 Rules:
 
 - Standard optical size 16 px in 30 px controls; 18 px in sidebar/page actions.
-- Stroke 1.75 at 16 px; avoid mixing filled icon packs.
+- Stroke 1.75 at 16/18 px and 2 at 20 px; avoid mixing filled icon packs.
 - Text accompanies unfamiliar, destructive, LIVE, and permission actions.
 - Never use an icon as the only error/severity channel.
 - Product/file-type icons may be custom but must share a 16/20/24 grid.
 - Add Lucide ISC attribution to `NOTICE.md` / third-party docs when implemented.
 
 ## Components
+
+### Shell frame and workspace rail
+
+- The default shell frame is dark slate in both themes; task surfaces use the
+  light/dark workbench tokens appropriate to their content.
+- Global top bar: menus left, workspace switcher centred where space permits,
+  one primary Save action, undo/redo, overflow, and app/window controls.
+- Workspace rail begins below the global top bar and ends above the status bar.
+- Rail items are 44-50 px high with a 16 px Lucide icon and persistent 11-12 px
+  label at desktop widths.
+- Files, Search, Project, CAD/3D, Video, Audio, Code, Paint, Assets, and Settings
+  are stable destinations. Contexts without an installed capability may be
+  omitted rather than shown as decorative disabled destinations.
+- Active destination uses a 3 px accent leading edge, selected surface, icon,
+  and label weight. Colour is not the only cue.
+- At widths below 800 px the rail collapses to the View menu/palette.
 
 ### Tab strip
 
@@ -273,6 +295,7 @@ Customisation:
 - Content scrolls independently.
 - Opening pushes content.
 - AI sidebar:
+  - Internal tabs: AI Assistant, Tools, Assets.
   - Provider/model row.
   - Grant chip/button, e.g. `Read: this file` / `Edits: ask`.
   - Conversation.

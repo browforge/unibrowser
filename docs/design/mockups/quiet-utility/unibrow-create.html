@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <title>Unibrowser - Create workspace</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <main class="app concept-shell" aria-label="Unibrowser Create workspace">
+    <header class="menu"><span class="menu-item">File</span><span class="menu-item">Edit</span><span class="menu-item">View</span><span class="menu-item">Go</span><span class="menu-item">Tools</span><span class="menu-item">Help</span><span style="margin-left:90px;color:#bdc8ce">Browse</span><span style="margin-left:12px;color:#bdc8ce">Text</span><strong style="margin-left:12px">Create</strong><span style="margin-left:12px;color:#bdc8ce">Live</span><span class="app-name">Undo&nbsp;&nbsp; Redo&nbsp;&nbsp;</span><button class="button primary" style="height:26px">Save</button></header>
+    <div class="tabs"><div class="tab active"><span>UB</span><span>workshop-tour.unibrow</span><span class="close">x</span></div><div class="tab"><span>folder</span><span>Workshop media</span><span class="close">x</span></div><button class="new-tab" aria-label="New tab">+</button></div>
+    <nav class="nav" aria-label="Navigation">
+      <button class="icon-button quiet" aria-label="Back"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/><path d="M9 12h10"/></svg></button>
+      <button class="icon-button quiet" aria-label="Forward"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/><path d="M5 12h10"/></svg></button>
+      <button class="icon-button quiet" aria-label="Reload"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.2 6.2L4 8"/><path d="M5.5 15A7 7 0 0 0 17.8 17.8L20 16"/></svg></button>
+      <div class="omnibox"><span class="crumb-muted">Projects / Workshop tour /</span><strong>workshop-tour.unibrow</strong></div>
+      <button class="button nav-action">Find</button><button class="button nav-action">Downloads</button>
+      <button class="icon-button quiet" aria-label="More"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+    </nav>
+    <div class="context-tabs"><span class="context-tab">Browse</span><span class="context-tab">Text</span><span class="context-tab">Office</span><span class="context-tab">PDF</span><span class="context-tab active">Create</span><span class="context-tab">Live</span><span class="follow">Workspace: <strong>Create</strong><span class="pin">Saved</span></span></div>
+    <div class="command-bar">
+      <span style="padding:0 8px;color:#bdc8ce">Saved 14:22</span><span class="separator"></span><button class="tool">Undo</button><button class="tool">Redo</button>
+      <span class="separator"></span><button class="tool">Import media</button><button class="tool">Add title</button><button class="tool">Split clip</button>
+      <span class="separator"></span><button class="tool">-</button><button class="tool">Timeline 80%</button><button class="tool">+</button>
+      <span class="spacer"></span><button class="tool">Export video</button>
+    </div>
+    <section class="workspace">
+      <nav class="workspace-rail" aria-label="Workspaces"><span class="rail-destination">Files</span><span class="rail-destination">Search</span><span class="rail-destination active">Project</span><span class="rail-destination">CAD</span><span class="rail-destination">Video</span><span class="rail-destination">Audio</span><span class="rail-destination">Code</span><span class="rail-destination">Paint</span><span class="rail-destination">Assets</span><span class="rail-destination settings">Settings</span></nav>
+      <div class="create-workspace">
+        <aside class="panel sources" aria-label="Sources">
+          <div class="panel-header">Sources <span class="muted">5</span><span class="spacer"></span><span>+</span></div>
+          <div class="source-item selected"><span>film</span><span>workshop-wide.mp4</span></div>
+          <div class="source-item"><span>film</span><span>lathe-closeup.mp4</span></div>
+          <div class="source-item"><span>wav</span><span>room-tone.wav</span></div>
+          <div class="source-item"><span>img</span><span>maker-mark.svg</span></div>
+          <div class="source-item"><span>txt</span><span>Lower third - North workshop</span></div>
+        </aside>
+        <section class="preview" aria-label="Video preview">
+          <div>
+            <div class="video-frame"><div class="video-sky"></div><div class="video-title">North workshop<br><span style="font-size: 14px; font-weight: 400;">Tool maintenance and setup</span></div></div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:18px; height:36px; color:var(--text-2);"><span>00:00:14:08</span><strong style="color:var(--text-1);">|&lt;&nbsp;&nbsp; &gt; &nbsp;&nbsp;&gt;|</strong><span>00:01:42:12</span></div>
+          </div>
+        </section>
+        <aside class="panel inspector" aria-label="Inspector">
+          <div class="panel-header">Inspector<span class="spacer"></span><span>...</span><span>x</span></div>
+          <div class="property-group"><strong>Lower third</strong><div style="color:var(--text-2); margin-top:3px;">Title clip, track 2</div></div>
+          <div class="property-group"><span class="property-label">Heading</span><div class="field">North workshop</div></div>
+          <div class="property-group"><span class="property-label">Subtitle</span><div class="field">Tool maintenance and setup</div></div>
+          <div class="property-group"><span class="property-label">Duration</span><div class="field">00:00:05:00</div></div>
+          <div class="property-group"><span class="property-label">Position</span><div class="field">Lower left <span class="spacer"></span>v</div></div>
+        </aside>
+        <section class="timeline" aria-label="Timeline">
+          <div class="timeline-ruler"><span>00:00</span><span>00:15</span><span>00:30</span><span>00:45</span><span>01:00</span><span>01:15</span><span>01:30</span></div>
+          <div class="track"><div class="track-name"><span>V1</span><strong>Video</strong></div><div class="track-well"><div class="clip video">workshop-wide.mp4</div><div class="playhead"></div></div></div>
+          <div class="track"><div class="track-name"><span>T2</span><strong>Titles</strong></div><div class="track-well"><div class="clip title">North workshop</div><div class="playhead"></div></div></div>
+          <div class="track"><div class="track-name"><span>A1</span><strong>Audio</strong></div><div class="track-well"><div class="clip audio">room-tone.wav&nbsp;&nbsp; ~~~~~~~ ~~~~~~ ~~~~~~~</div><div class="playhead"></div></div></div>
+        </section>
+      </div>
+    </section>
+    <footer class="status"><span>Saved 14:22</span><span>Create workspace</span><span class="right"><span>1080p / 25 fps</span><span>00:00:14:08</span><span>48 kHz</span></span></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <title>Unibrowser - document, Problems, and AI</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <script>if (new URLSearchParams(location.search).get("theme") === "dark") document.body.classList.add("dark");</script>
+  <main class="app concept-shell" aria-label="Unibrowser document workspace">
+    <header class="menu">
+      <span class="menu-item">File</span><span class="menu-item">Edit</span><span class="menu-item">View</span>
+      <span class="menu-item">Go</span><span class="menu-item">Tools</span><span class="menu-item">Help</span>
+      <span style="margin-left: 90px; color: #bdc8ce;">Browse</span><strong style="margin-left: 12px;">Text</strong><span style="margin-left: 12px; color: #bdc8ce;">Create</span><span style="margin-left: 12px; color: #bdc8ce;">Live</span>
+      <span class="app-name">Undo&nbsp;&nbsp; Redo&nbsp;&nbsp;</span><button class="button primary" style="height: 26px;">Save</button><span style="margin-left:8px">...</span>
+    </header>
+    <div class="tabs">
+      <div class="tab active"><span aria-hidden="true">#</span><span>sync-notes.ts</span><span class="close">x</span></div>
+      <div class="tab"><span aria-hidden="true">PDF</span><span>field-report.pdf</span><span class="close">x</span></div>
+      <button class="new-tab" aria-label="New tab">+</button>
+    </div>
+    <nav class="nav" aria-label="Navigation">
+      <button class="icon-button quiet" aria-label="Back">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/><path d="M9 12h10"/></svg>
+      </button>
+      <button class="icon-button quiet" aria-label="Forward">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/><path d="M5 12h10"/></svg>
+      </button>
+      <button class="icon-button quiet" aria-label="Reload">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.2 6.2L4 8"/><path d="M5.5 15A7 7 0 0 0 17.8 17.8L20 16"/></svg>
+      </button>
+      <div class="omnibox"><span class="crumb-muted">Projects / Field kit /</span><strong>sync-notes.ts</strong></div>
+      <button class="button nav-action">Find</button>
+      <button class="button nav-action">Downloads</button>
+      <button class="icon-button quiet" aria-label="More">
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+      </button>
+    </nav>
+    <div class="context-tabs">
+      <span class="context-tab">Browse</span><span class="context-tab active">Text</span>
+      <span class="context-tab">Office</span><span class="context-tab">PDF</span><span class="context-tab">Image</span>
+      <span class="follow">Following: <strong>Text</strong><span class="pin">Pinned</span></span>
+    </div>
+    <div class="command-bar">
+      <span style="padding:0 8px; color:#bdc8ce;">Saved 14:26</span><span class="separator"></span>
+      <button class="tool"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v1"/></svg>Undo</button>
+      <button class="tool"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0-6 6v1"/></svg>Redo</button>
+      <span class="separator"></span>
+      <button class="tool">A-</button><button class="tool">14 pt</button><button class="tool">A+</button>
+      <span class="separator"></span>
+      <button class="tool"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Find</button>
+      <button class="tool disabled" disabled>Format document</button>
+      <span class="spacer"></span>
+      <button class="tool">Export</button>
+    </div>
+    <section class="workspace">
+      <nav class="workspace-rail" aria-label="Workspaces">
+        <span class="rail-destination active">Files</span><span class="rail-destination">Search</span><span class="rail-destination">Project</span><span class="rail-destination">CAD</span><span class="rail-destination">Video</span><span class="rail-destination">Audio</span><span class="rail-destination">Code</span><span class="rail-destination">Paint</span><span class="rail-destination">Assets</span><span class="rail-destination settings">Settings</span>
+      </nav>
+      <div class="centre-stack">
+        <div class="editor-wrap">
+          <div class="rail"><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div></div>
+          <div class="code" aria-label="TypeScript editor"><div class="code-line"><span class="kw">import</span> { watch } <span class="kw">from</span> <span class="str">"node:fs"</span>;</div><div class="code-line"><span class="kw">import</span> { resolve } <span class="kw">from</span> <span class="str">"node:path"</span>;</div><div class="code-line"></div><div class="code-line"><span class="kw">const</span> notes = resolve(process.cwd(), <span class="str">"field-notes.md"</span>);</div><div class="code-line"></div><div class="code-line"><span class="comment">// Keep the document mirror current without touching source files.</span></div><div class="code-line">watch(notes, { persistent: <span class="kw">false</span> }, <span class="kw">async</span> () =&gt; {</div><div class="code-line">  <span class="kw">const</span> <span class="squiggle">summery</span> = <span class="kw">await</span> refreshPreview(notes);</div><div class="code-line">  console.info(<span class="str">`Preview updated: ${summery}`</span>);<span class="caret"></span></div><div class="code-line">});</div></div>
+        </div>
+        <section class="panel problems" aria-label="Problems">
+          <div class="panel-header">Problems <span class="muted">3</span><span class="filter">All sources&nbsp;&nbsp; | &nbsp;&nbsp;Search</span><span>x</span></div>
+          <div class="problem-head"><span></span><span>Message</span><span>Source</span><span>Location</span></div>
+          <div class="problem-row selected"><span class="severity-error">x</span><span>"summery" may be a misspelling of "summary"</span><span>Spell check</span><span>8:9</span></div>
+          <div class="problem-row"><span class="severity-warning">!</span><span>Promise result is written to the console only</span><span>TypeScript</span><span>9:3</span></div>
+          <div class="problem-row"><span class="severity-warning">!</span><span>field-notes.md is outside the saved project sources</span><span>Project</span><span>4:15</span></div>
+        </section>
+      </div>
+      <aside class="panel ai" aria-label="AI assistant">
+        <div class="ai-tabs"><span class="ai-tab active">AI Assistant</span><span class="ai-tab">Tools</span><span class="ai-tab">Assets</span><span class="spacer"></span><span style="padding:7px 9px;">x</span></div>
+        <div class="ai-meta">Local provider&nbsp; / &nbsp;Qwen 2.5 Coder</div>
+        <div class="grant">Read: this file | Edits: ask</div>
+        <div class="conversation">
+          <div class="assistant-note"><strong>Ready for the open document</strong>I can explain this file, trace an error, or propose an edit. Changes are shown as a diff before they are applied.</div>
+        </div>
+        <div class="composer"><textarea aria-label="Ask about the open document">Why does line 8 trigger a warning?</textarea><div class="composer-row"><span>Nothing is sent without permission.</span><span class="spacer"></span><button class="button primary">Send</button></div></div>
+      </aside>
+    </section>
+    <footer class="status"><span>Saved 14:26</span><span>TypeScript</span><span>Ln 9, Col 49</span><span class="right"><span class="status-problem">3 Problems</span><span>AI: Read</span><span>UTF-8</span><span>100%</span></span></footer>
+  </main>
+</body>
+</html>

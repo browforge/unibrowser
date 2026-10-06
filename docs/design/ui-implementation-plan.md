@@ -10,6 +10,7 @@ Ordered Composer-sized tickets. Each ticket should land independently with `npm 
 - No new modal, content overlap, or duplicate command implementation.
 - Existing command ids are reused.
 - Screenshot at 1280x800; wide screenshot when layout changes.
+- Screenshot passes every applicable item in [visual-language.md](visual-language.md#screenshot-drift-checklist); deliberate exceptions are documented.
 
 ## Phase A: remove prototype clutter and establish regions
 
@@ -173,7 +174,47 @@ Screenshot:
 
 - Disabled font command on plain image with reason.
 
+### UI-06A: Restyle the Batch 1 shell foundation
+
+This ticket is required before UI-07. Batch 1 established the correct regions
+and interactions before the visual language was binding.
+
+Likely files:
+
+- `src/ui/tokens.css`
+- `src/styles.css`
+- `src/appMenu.ts`
+- `src/commandManager.ts`
+- `src/aiAssistantPanel.ts`
+- shell HTML and icon imports
+
+Work:
+
+- Replace the Batch 1 token values with the Quiet Utility palette, Source Sans
+  3 / Source Code Pro stacks, 4 to 6 px radius scale, and WCAG AA text roles.
+- Restyle menu, navigation, Command Manager, docked AI, buttons, inputs, and
+  status bar as joined workbench regions.
+- Replace ad hoc text/symbol icons with Lucide at the specified sizes.
+- Remove shadows from docked regions and redundant borders between adjacent
+  regions.
+- Preserve every Batch 1 interaction, shell audit, and stale-bundle guard.
+
+Acceptance:
+
+- Existing Batch 1 self-tests and release frontend stamp verification pass.
+- No control or panel radius exceeds 6 px.
+- Docked regions have no shadow and no doubled boundaries.
+- Secondary text and control boundaries meet WCAG AA.
+- Light, dark, and high-contrast screenshots pass the visual-language drift
+  checklist.
+
+Screenshot:
+
+- Text document at 1280x800 with Command Manager and docked AI in light and dark.
+
 ### UI-07: Tab strip and omnibox
+
+**Visual-language impact:** Revised. Use Source Sans 3, 4 px exposed tab corners, workbench surfaces, visible input boundaries, and Lucide 16 px icons.
 
 Likely files:
 
@@ -194,12 +235,15 @@ Acceptance:
 - 12 tabs remain operable at 1280.
 - Keyboard tab movement and close work.
 - Local path and URL identities are unambiguous.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - Mixed tabs: folder, PDF, web, `.unibrow`, dirty text.
 
 ### UI-08: Full command palette
+
+**Visual-language impact:** Revised. This is a permitted elevated overlay: 6 px radius, one border, and the specified functional shadow.
 
 Likely files:
 
@@ -219,6 +263,7 @@ Acceptance:
 - Palette is fully keyboard navigable.
 - Disabled commands explain but do not execute.
 - No conflict with sidebars.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
@@ -227,6 +272,8 @@ Screenshot:
 ## Phase C: panels, feedback, and ordinary journeys
 
 ### UI-09: Standard docked panel component
+
+**Visual-language impact:** Revised. Docked joins use zero radius and no shadow; surfaces and one purposeful divider establish the workbench.
 
 Likely files:
 
@@ -246,12 +293,15 @@ Acceptance:
 - Problems/Output/Terminal share one shell.
 - Panel pushes content.
 - Resize works by mouse and keyboard.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - Problems open at 1280 with editor visible above.
 
 ### UI-10: Problems redesign
+
+**Visual-language impact:** Revised. Rows use compact density and selection surfaces, not card wrappers or a divider after every item.
 
 Likely files:
 
@@ -271,12 +321,15 @@ Acceptance:
 - Selecting a row navigates.
 - Empty/filter/no-results states differ.
 - 200+ entries remain responsive.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - Spelling + code/project problems, selected row.
 
 ### UI-11: Feedback ladder
+
+**Visual-language impact:** Revised. Feedback uses semantic colour with text/icon redundancy; only toasts receive functional elevation.
 
 Likely files:
 
@@ -296,12 +349,15 @@ Acceptance:
 
 - Close tab Undo, recovery, unknown handler, failed export, completed download each use specified surface.
 - No modal/alert/confirm/prompt.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - Recovery inline bar and Closed tab Undo toast.
 
 ### UI-12: New tab and Downloads
+
+**Visual-language impact:** Revised. The New tab page is an organised work surface, not a dashboard of rounded cards or a performative empty state.
 
 Likely files:
 
@@ -321,6 +377,7 @@ Acceptance:
 - Useful empty state at first launch.
 - Download opens new tab by default.
 - No account/news/promo.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
@@ -329,6 +386,8 @@ Screenshot:
 ## Phase D: context layouts
 
 ### UI-13: File browser and settings layouts
+
+**Visual-language impact:** Revised. Rails, lists, and settings groups use spacing and surface roles; cards are reserved for independent objects.
 
 Likely files:
 
@@ -347,12 +406,15 @@ Acceptance:
 
 - Settings is usable at 800-1600 px.
 - File actions live in Browse context/context menus.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - File browser with preview; Settings > Developer collapsed/expanded.
 
 ### UI-14: PDF/image/DXF context shells
+
+**Visual-language impact:** Revised. Canvas surrounds are recessed wells, property panels are docked workbench surfaces, and annotations use semantic colour sparingly.
 
 Likely files:
 
@@ -369,12 +431,15 @@ Work:
 Acceptance:
 
 - Switching among PDF/image/DXF preserves shell and expected universal-command positions.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - Three 1280 context comparisons.
 
 ### UI-15: `.unibrow` Create workspace
+
+**Visual-language impact:** Revised. Timeline tracks are recessed wells; source, preview, inspector, and timeline are joined workbench regions without floating cards.
 
 Likely files:
 
@@ -386,18 +451,21 @@ Work:
 
 - Sources left, preview centre, Inspector right, timeline bottom.
 - Workspace switch without closing/changing tabs.
-- Save vs Export hierarchy.
+- Keep the one global primary Save distinct from contextual Export.
 
 Acceptance:
 
 - Title-card journey completes without modal.
 - Missing source appears in timeline + Problems; Save stays enabled.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - 1600x1000 project with title selected.
 
 ### UI-16: Live workspace
+
+**Visual-language impact:** Revised. Red is reserved for LIVE/recording/error and all broadcast states remain clear without colour.
 
 Likely files:
 
@@ -417,12 +485,15 @@ Acceptance:
 
 - LIVE cannot be mistaken for Preview or Recording in greyscale.
 - No notification/sidebar covers programme preview/header.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - Preview, LIVE, Recording states at 1600x1000.
 
 ### UI-17: Mod Portal and unknown-handler journey
+
+**Visual-language impact:** Revised. Mod results may use independent 6 px cards; permission and risk states use restrained semantic colour and explicit labels.
 
 Likely files:
 
@@ -442,6 +513,7 @@ Acceptance:
 
 - Install occurs without obscuring/replacing current file.
 - Sideload remains available under More/Developer.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
@@ -450,6 +522,8 @@ Screenshot:
 ## Phase E: customisation, accessibility, polish
 
 ### UI-18: Workspace/layout customisation
+
+**Visual-language impact:** Revised. Docking targets are functional overlays, with no decorative glow, glass, or oversized rounded drop zones.
 
 Likely files:
 
@@ -468,12 +542,15 @@ Acceptance:
 
 - Two-monitor detach/restart test.
 - No accidental drag from command body.
+- Screenshot passes the visual-language drift checklist.
 
 Screenshot:
 
 - Edit mode with docking targets; detached toolbar window.
 
 ### UI-19: Accessibility and scaling pass
+
+**Visual-language impact:** Revised. Enforce Source Sans 3 minimum sizes, WCAG AA contrast, system-colour high contrast, and non-colour state redundancy.
 
 Likely files:
 
@@ -493,12 +570,15 @@ Acceptance:
 - Keyboard-only top journeys.
 - Axe/manual screen-reader pass.
 - No clipping at required scales.
+- Screenshot passes the visual-language drift checklist in light, dark, and high contrast.
 
 Screenshot:
 
 - HC at 150%; focus-visible keyboard sequence.
 
 ### UI-20: Remove legacy CSS/components and update evidence
+
+**Visual-language impact:** Revised. Remove legacy styling that exceeds the radius scale, introduces card nesting, duplicates dividers, or uses non-semantic colour.
 
 Likely files:
 
@@ -517,6 +597,7 @@ Acceptance:
 - No legacy duplicate chrome in DOM.
 - Ten self-test scenarios 3x green.
 - `cargo test --workspace`, `npm run build` green.
+- Final screenshot matrix passes the visual-language drift checklist with no undocumented exceptions.
 
 Screenshot:
 

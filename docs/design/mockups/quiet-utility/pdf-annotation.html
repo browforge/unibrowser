@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <title>Unibrowser - PDF annotation</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <main class="app concept-shell" aria-label="Unibrowser PDF workspace">
+    <header class="menu"><span class="menu-item">File</span><span class="menu-item">Edit</span><span class="menu-item">View</span><span class="menu-item">Go</span><span class="menu-item">Tools</span><span class="menu-item">Help</span><span style="margin-left:90px;color:#bdc8ce">Browse</span><strong style="margin-left:12px">PDF</strong><span style="margin-left:12px;color:#bdc8ce">Create</span><span class="app-name">Undo&nbsp;&nbsp; Redo&nbsp;&nbsp;</span><button class="button primary" style="height:26px">Save</button></header>
+    <div class="tabs"><div class="tab active"><span>PDF</span><span>field-report.pdf</span><span class="close">x</span></div><div class="tab"><span>#</span><span>sync-notes.ts</span><span class="close">x</span></div><button class="new-tab" aria-label="New tab">+</button></div>
+    <nav class="nav" aria-label="Navigation">
+      <button class="icon-button quiet" aria-label="Back"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/><path d="M9 12h10"/></svg></button>
+      <button class="icon-button quiet" aria-label="Forward"><svg class="svg-icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/><path d="M5 12h10"/></svg></button>
+      <button class="icon-button quiet" aria-label="Reload"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.2 6.2L4 8"/><path d="M5.5 15A7 7 0 0 0 17.8 17.8L20 16"/></svg></button>
+      <div class="omnibox"><span class="crumb-muted">Documents / Site visit /</span><strong>field-report.pdf</strong></div>
+      <button class="button nav-action">Find</button><button class="button nav-action">Downloads</button>
+      <button class="icon-button quiet" aria-label="More"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+    </nav>
+    <div class="context-tabs"><span class="context-tab">Browse</span><span class="context-tab">Text</span><span class="context-tab">Office</span><span class="context-tab active">PDF</span><span class="context-tab">Image</span><span class="follow">Following: <strong>PDF</strong><span class="pin">Pinned</span></span></div>
+    <div class="command-bar">
+      <span style="padding:0 8px;color:#bdc8ce">Annotations saved</span><span class="separator"></span><button class="tool">Select</button><button class="tool">Highlight</button><button class="tool">Note</button><button class="tool">Area</button>
+      <span class="separator"></span><button class="tool">Previous</button><button class="tool">Page 3 of 12</button><button class="tool">Next</button>
+      <span class="separator"></span><button class="tool">90%</button><span class="spacer"></span><button class="tool">Export annotated PDF</button>
+    </div>
+    <section class="workspace">
+      <nav class="workspace-rail" aria-label="Workspaces"><span class="rail-destination active">Files</span><span class="rail-destination">Search</span><span class="rail-destination">Project</span><span class="rail-destination">CAD</span><span class="rail-destination">Video</span><span class="rail-destination">Audio</span><span class="rail-destination">Code</span><span class="rail-destination">Paint</span><span class="rail-destination">Assets</span><span class="rail-destination settings">Settings</span></nav>
+      <aside class="panel pages" aria-label="PDF pages">
+        <div class="panel-header">Pages <span class="muted">12</span><span class="spacer"></span><span>x</span></div>
+        <div class="page-thumb"><strong>Field inspection</strong><br><br>Monday 6 October<br><br>Summary and observations from the north workshop.</div>
+        <div class="page-thumb active"><strong>3. Ventilation</strong><br><br>Measurements at the north wall indicate reduced air movement near the storage bay.</div>
+      </aside>
+      <section class="canvas" aria-label="PDF page canvas">
+        <article class="pdf-page">
+          <h1>3. Ventilation and dust control</h1>
+          <p>Air movement was measured at four points along the north wall during normal operation. The extraction system was running at its documented setting.</p>
+          <p><span class="highlight">Average movement near the storage bay was 0.18 m/s, below the 0.25 m/s target in the maintenance guide.</span></p>
+          <div class="annotation-box"></div><div class="annotation-pin">1</div>
+          <p>The eastern extraction hood remained within specification. Inspect the flexible duct at bay three before increasing fan speed.</p>
+          <p><strong>Recommended action</strong><br>Clear the bay-three intake and repeat measurements before the next production shift.</p>
+        </article>
+      </section>
+      <aside class="panel properties" aria-label="Annotation properties">
+        <div class="panel-header">Annotations <span class="muted">4</span><span class="spacer"></span><span>...</span><span>x</span></div>
+        <div class="property-group"><span class="property-label">Selected tool</span><div class="field">Area annotation</div></div>
+        <div class="property-group"><span class="property-label">Border</span><div class="field"><span style="color: var(--danger);">Red, 2 px</span><span class="spacer"></span>v</div></div>
+        <div class="comment-card"><strong>1 &nbsp; Check against maintenance log</strong><span style="color: var(--text-2)">The figure may reflect the blocked intake noted on 2 October.</span><div style="margin-top: 8px; color: var(--text-3); font-size: 12px;">Bear - 14:18</div></div>
+        <div class="property-group"><button class="button primary">Add reply</button> <button class="button">Resolve</button></div>
+      </aside>
+    </section>
+    <footer class="status"><span>Annotations saved</span><span>Page 3 of 12</span><span class="right"><span>4 annotations</span><span>90%</span><span>42.6 MB</span></span></footer>
+  </main>
+</body>
+</html>
