@@ -42,6 +42,15 @@ pub enum ToolbarAnchor {
 }
 
 /// How `x` / `y` for floating bars are interpreted when persisted in `toolbars.json`.
+/// Where a floating bar is rendered (main webview overlay vs its own OS window).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolbarPresentation {
+    #[default]
+    InWindow,
+    DetachedWindow,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolbarCoordSpace {
@@ -61,6 +70,8 @@ pub struct FloatingToolbarLayout {
     pub y: f64,
     #[serde(default)]
     pub coord_space: ToolbarCoordSpace,
+    #[serde(default)]
+    pub presentation: ToolbarPresentation,
     pub commands: Vec<UiCommandSlot>,
 }
 
@@ -158,6 +169,7 @@ impl CommandManagerFile {
                 x: 0.0,
                 y: 0.0,
                 coord_space: ToolbarCoordSpace::Viewport,
+                presentation: ToolbarPresentation::InWindow,
                 commands: vec![slot(commands::TEXT_SAVE)],
             }],
         }

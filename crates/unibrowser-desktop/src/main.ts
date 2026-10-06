@@ -94,6 +94,7 @@ import {
 } from "./keysOverlay";
 import { applyImageCompare, type ImageCompareViewDto } from "./imageCompare";
 import { runCaptureVisibleTab } from "./tabCapture";
+import { initToolbarOnlyShell } from "./toolbarOnly";
 
 interface TabDto {
   id: number;
@@ -2123,16 +2124,22 @@ void invoke<{ editor_theme_id: string }>("get_preferences").then((prefs) => {
 });
 void loadAccessibilityPreferences();
 void loadExperimentalSpellcheckPref();
-void refreshState().then(() => {
-  void maybePromptProjectRecovery((data) => {
-    void applyState(data as TabContentDto);
-  });
-});
 window.addEventListener("focus", () => {
   void invoke("reload_keybindings").then(() => loadKeybindingHints());
 });
 
-deferNonCriticalInit(() => {
+void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
+  if (!toolbarOnly) {
+    void refreshState().then(() => {
+      void maybePromptProjectRecovery((data) => {
+        void applyState(data as TabContentDto);
+      });
+    });
+  }
+  if (toolbarOnly) {
+    return;
+  }
+  deferNonCriticalInit(() => {
   commandManager.bindPinControl(
     commandManagerPin,
     commandManagerTabs,
@@ -2170,5 +2177,6 @@ deferNonCriticalInit(() => {
       prefs.project_autosave_enabled,
       prefs.project_autosave_interval_secs,
     );
+  });
   });
 });

@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Vision matrix:** [docs/vision-matrix.md](docs/vision-matrix.md) — shipped/partial/missing per Bear decision with file pointers.
+- **WASM mod runtime:** wasmi loader in `unibrowser-mod-host`, guest `unibrowser-mod-sdk`, out-of-tree `examples/ub-mod-wasm` (palette command + `.ubwasm` file handler); integration test loads built `.wasm`.
+- **Detached toolbars:** Right-click **Detach to own window**; `presentation: detached_window` in `toolbars.json`; Tauri windows `toolbar-{id}` restored on launch (`toolbar_windows.rs`).
+- **Onboarding:** Settings **Show welcome** re-enables skippable tour/checklist (`reset_onboarding_prefs_cmd`).
 - **Terminal panel:** xterm.js + `unibrowser-terminal` / portable-pty; Ctrl+`; resize grip; [terminal-panel.md](docs/terminal-panel.md).
 - **Web proxy:** manual mode → `proxy_url` on new content webviews; [network-proxy.md](docs/network-proxy.md).
 - **OCR:** Tesseract CLI + palette **Copy text from image**; [ocr-sidecar.md](docs/ocr-sidecar.md).

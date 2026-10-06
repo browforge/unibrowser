@@ -27,6 +27,7 @@ export interface FloatingBarDto {
   x: number;
   y: number;
   coord_space?: string;
+  presentation?: string;
   commands: UiCommandDto[];
 }
 
@@ -54,6 +55,7 @@ export interface CommandManagerFile {
     x: number;
     y: number;
     coord_space?: string;
+    presentation?: string;
     commands: { command_id: string }[];
   }[];
 }
@@ -119,6 +121,22 @@ function bindFloatingBarContextMenu(
       showToast(t("commandManager.toolbarReset"), "info");
     };
     menu.appendChild(reset);
+    const detached = bar.presentation === "detached_window";
+    const detachBtn = document.createElement("button");
+    detachBtn.type = "button";
+    detachBtn.textContent = detached
+      ? t("commandManager.dockToolbar")
+      : t("commandManager.detachToolbar");
+    detachBtn.onclick = async () => {
+      menu.remove();
+      if (detached) {
+        await invoke("dock_floating_toolbar_window", { barId: bar.id });
+      } else {
+        await invoke("detach_floating_toolbar_window", { barId: bar.id });
+      }
+      await onRefresh();
+    };
+    menu.appendChild(detachBtn);
     const close = () => menu.remove();
     menu.addEventListener("pointerdown", (ev) => ev.stopPropagation());
     document.body.appendChild(menu);
@@ -276,6 +294,7 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
       x: bar.x,
       y: bar.y,
       coord_space: bar.coord_space ?? "viewport",
+      presentation: bar.presentation ?? "in_window",
       commands: bar.commands.map((c) => ({ command_id: c.command_id })),
     })),
   };

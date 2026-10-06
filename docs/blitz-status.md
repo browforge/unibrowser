@@ -72,7 +72,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | Viewers | Monaco text, PDF (multi-engine proving banner + lazy raster proxy), DOCX, SVG, CSV, EPUB search, images, video/audio, MIDI stub, `.unibrow` board/timeline + MIDI scrub status |
 | Projects | Templates, `project.json` autosave backup, share zip import/export; timeline **H.264 export** (ffmpeg, fast/balanced) with progress toasts |
 | Mods | Bundled `base-*`, mod portal (context install panel + Open VSX / `.ubmod` stubs), Rhai scripts, Linux user `mods/` + dynamic cdylib (feature flag); VSIX `activationEvents` stored |
-| Toolbars | Floating bars drag-anywhere; screen coords across monitors/DPI ([toolbars.md](toolbars.md)); right-click **Reset this toolbar**; theme + high-contrast on CM and floating bars |
+| Toolbars | Floating bars drag-anywhere; screen coords across monitors/DPI ([toolbars.md](toolbars.md)); **Detach to own window** (Tauri `toolbar-*` windows, `presentation` in `toolbars.json`); right-click **Reset this toolbar**; theme + high-contrast on CM and floating bars |
 | Cross-format | `unibrowser.font.size.increase` live on text, SVG, DOCX, EPUB, HTTP user-style; per-origin page zoom (+/-) with palette **Reset zoom for all sites** ([commands-cross-format.md](commands-cross-format.md)) |
 | Reader mode | Per-origin reader on/off remembered in `web-reader-prefs.json` when you toggle on https tabs |
 | Places | Files manager **Places** (recent + pinned); palette fuzzy open for paths ([commands-cross-format.md](commands-cross-format.md) palette) |
@@ -88,7 +88,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | File associations | Documented: opens paths in-app, no OS default handler claims yet — [file-associations.md](file-associations.md) |
 | About feedback | **Report an issue** opens GitHub issue template chooser (`UNIBROWSER_REPORT_ISSUE_URL` override) |
 | Downloads | Linux WebKit `on_download` → shell; **https + platform path** fetches then opens file tab; **Content-Disposition** renames generic hints; failed fetch toast + history ([browser-shell.md](browser-shell.md)) |
-| Settings reset | Confirmable **Reset onboarding**, **Clear recent files**, **Reset floating toolbars** |
+| Settings reset | **Show welcome** (re-opens tour/checklist), **Clear recent files**, **Reset floating toolbars** |
 | Command Manager | Scrollable command chips; horizontal tab strip; pin + layout buttons stay visible |
 | Tab sleep (stub) | Background https tabs **sleeping** after 10 min idle (UI only) — [tab-sleep.md](tab-sleep.md) |
 | Print selection | Palette **Print selection** for Monaco / DOCX fragment via print CSS |
@@ -99,7 +99,7 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 | DOCX lite | Mammoth preview + **Save edits as HTML** sibling `.ub-edit.html` — [docx-roundtrip.md](docx-roundtrip.md) |
 | EPUB notes | Reading notes in prefs; **Export reading notes** → `{book}.reading-notes.txt` beside the EPUB |
 | A11y prefs | High contrast, reduce motion (system/on/off + `prefers-reduced-motion`), optional **larger hit targets**, **Focus mode** denser chrome; skippable tour + Settings checklist ([onboarding.md](onboarding.md), [ux-a11y.md](ux-a11y.md)); CM tab keys, palette Escape, focus rings |
-| WASM proving | When `examples/hello-wasm/hello.wasm` is present, palette **`mod.wasm.hello`** host stub (no wasmtime); [wasm-t2-status.md](wasm-t2-status.md) |
+| WASM mods (T2) | wasmi loader + `unibrowser-mod-sdk`; example `examples/ub-mod-wasm` (command + `.ubwasm`); user `mods/` with `wasm_module` in `info.json`; [vision-matrix.md](vision-matrix.md), [wasm-t2-status.md](wasm-t2-status.md) |
 | Palette history | Last **10** executed commands at top of palette (**Recent:**); stored in config only |
 | Context help | **F1** / **What's this** opens `unibrowser://docs/{slug}` from repo `docs/` (dev checkout) |
 | PDF annotate stub | Highlight rects in `{file}.pdf.ub-annotations.json`; stamp/ink grey — [pdf-annotate.md](pdf-annotate.md) |
@@ -185,7 +185,7 @@ Recent blitz ships (tab reopen/mute, PDF text copy, web zoom reset-all, reader p
 | 2 | WebView2 download wiring | Hook in repo; Bear hardware QA + edge cases |
 | 3 | OCR depth | Tesseract CLI wired; multi-lang / hOCR not done |
 | 4 | Full timeline / DAW encode | ffmpeg H.264 + approximate duck/fade; no full DAW mix bus |
-| 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today |
+| 5 | Native mod load on Win/macOS | Linux `mods/` + cdylib today; WASM loads on all platforms when built with `wasm-mods` |
 | 6 | EPUB/DOCX fidelity | Lite `.docx` save for simple bodies; Mammoth layout + tables/images still gaps |
 | 7 | Web proxy edge cases | PAC/SOCKS/auth; hot-reload open tabs |
 | 8 | i18n depth | Chrome only (`en-NZ` / `en-US`) |

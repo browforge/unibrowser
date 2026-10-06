@@ -1,0 +1,9 @@
+[package]
+name = "unibrowser-mod-sdk"
+description = "Guest SDK for Unibrowser WASM mods (wasm32)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["rlib"]

@@ -20,6 +20,9 @@ pub struct ModManifest {
     /// Optional native library file name (platform-specific).
     #[serde(default)]
     pub library: Option<String>,
+    /// Optional WASM module file name (T2 sandbox).
+    #[serde(default)]
+    pub wasm_module: Option<String>,
     #[serde(default)]
     pub capabilities: Vec<String>,
 }

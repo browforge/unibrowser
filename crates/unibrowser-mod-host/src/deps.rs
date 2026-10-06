@@ -138,6 +138,7 @@ mod tests {
             optional_dependencies: BTreeMap::new(),
             description: String::new(),
             library: None,
+            wasm_module: None,
             capabilities: vec![],
         }
     }

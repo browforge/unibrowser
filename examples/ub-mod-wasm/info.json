@@ -1,0 +1,8 @@
+{
+  "name": "ub-mod-wasm",
+  "version": "0.1.0",
+  "title": "WASM demo mod",
+  "unibrowser_api": "0.1.0",
+  "wasm_module": "ub_mod_wasm.wasm",
+  "description": "Example T2 mod built from examples/ub-mod-wasm (command + .ubwasm handler)."
+}

@@ -653,6 +653,40 @@ button.proving-disabled,
   margin-bottom: 0.25rem;
 }
 
+body.toolbar-window-mode #tab-strip,
+body.toolbar-window-mode #omnibox-row,
+body.toolbar-window-mode #content-host,
+body.toolbar-window-mode #status-bar,
+body.toolbar-window-mode #command-manager-tabs,
+body.toolbar-window-mode #command-manager-commands,
+body.toolbar-window-mode #command-manager-pin,
+body.toolbar-window-mode #onboarding-banner,
+body.toolbar-window-mode #onboarding-tour,
+body.toolbar-window-mode .bottom-panel {
+  display: none !important;
+}
+
+body.toolbar-window-mode #app-header {
+  min-height: auto;
+  padding: 0.35rem 0.5rem;
+}
+
+body.toolbar-window-mode .floating-toolbar-host {
+  margin: 0;
+  min-height: 3rem;
+}
+
+body.toolbar-window-mode .floating-bar.floating {
+  position: relative;
+  left: auto !important;
+  top: auto !important;
+  box-shadow: none;
+}
+
+.toolbar-window-dock {
+  margin-right: 0.5rem;
+}
+
 .floating-bar {
   display: flex;
   align-items: center;

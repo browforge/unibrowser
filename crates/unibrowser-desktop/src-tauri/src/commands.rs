@@ -59,7 +59,7 @@ use unibrowser_mod_api::handlers::{
 use unibrowser_engine::document::DocumentSession;
 use unibrowser_engine::{
     host_context_for_browse, navigation::parse_user_input, save_command_manager_file,
-    CommandManagerFile, ToolbarPhase,
+    CommandManagerFile, ToolbarAnchor, ToolbarCoordSpace, ToolbarPhase, ToolbarPresentation,
 };
 use tauri::Emitter;
 
@@ -127,6 +127,7 @@ pub struct FloatingBarDto {
     pub x: f64,
     pub y: f64,
     pub coord_space: String,
+    pub presentation: String,
     pub commands: Vec<UiCommandDto>,
 }
 
@@ -2543,9 +2544,11 @@ pub fn reset_onboarding_prefs_cmd() -> Result<PreferencesDto, String> {
 
 #[tauri::command]
 pub fn reset_floating_toolbars(
+    app: tauri::AppHandle,
     window: tauri::Window,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
+    crate::toolbar_windows::close_all_toolbar_windows(&app, state.inner());
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let mut file = cm.to_file();
     file.floating_bars.clear();
@@ -2807,9 +2810,16 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
             }
         })
         .collect();
+    let window_label = window.label();
+    let toolbar_only_id = crate::toolbar_windows::bar_id_from_toolbar_window(window_label);
+
     let floating_bars = cm
         .floating_bars
         .iter()
+        .filter(|bar| match bar.presentation {
+            ToolbarPresentation::DetachedWindow => toolbar_only_id == Some(bar.id.as_str()),
+            ToolbarPresentation::InWindow => toolbar_only_id.is_none(),
+        })
         .map(|bar| {
             let commands = map_ui_commands(
                 cm.resolve_floating_bar(&registry, &host, doc_ref, &bar.id)
@@ -2835,6 +2845,11 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 coord_space: match bar.coord_space {
                     unibrowser_engine::ToolbarCoordSpace::Viewport => "viewport",
                     unibrowser_engine::ToolbarCoordSpace::Screen => "screen",
+                }
+                .into(),
+                presentation: match bar.presentation {
+                    ToolbarPresentation::InWindow => "in_window",
+                    ToolbarPresentation::DetachedWindow => "detached_window",
                 }
                 .into(),
                 commands,
@@ -2958,6 +2973,55 @@ pub fn save_command_manager_layout(
     state: State<AppState>,
 ) -> Result<(), String> {
     apply_command_manager_layout(&layout, state.inner())
+}
+
+#[tauri::command]
+pub fn detach_floating_toolbar_window(
+    app: tauri::AppHandle,
+    window: tauri::Window,
+    bar_id: String,
+    state: State<AppState>,
+) -> Result<CommandManagerDto, String> {
+    let (x, y) = {
+        let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+        let bar = cm
+            .floating_bars
+            .iter_mut()
+            .find(|b| b.id == bar_id)
+            .ok_or_else(|| format!("toolbar not found: {}", bar_id))?;
+        bar.presentation = ToolbarPresentation::DetachedWindow;
+        if bar.anchor != ToolbarAnchor::Floating {
+            bar.anchor = ToolbarAnchor::Floating;
+            bar.coord_space = ToolbarCoordSpace::Screen;
+            if bar.x == 0.0 && bar.y == 0.0 {
+                bar.x = 96.0;
+                bar.y = 96.0;
+            }
+        }
+        (bar.x, bar.y)
+    };
+    let file = {
+        let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+        cm.to_file()
+    };
+    apply_command_manager_layout(&file, state.inner())?;
+    crate::toolbar_windows::ensure_toolbar_window(&app, &bar_id, x, y)?;
+    get_command_manager(window, state)
+}
+
+#[tauri::command]
+pub fn dock_floating_toolbar_window(
+    app: tauri::AppHandle,
+    bar_id: String,
+    state: State<AppState>,
+) -> Result<(), String> {
+    crate::toolbar_windows::set_bar_presentation(
+        state.inner(),
+        &bar_id,
+        ToolbarPresentation::InWindow,
+    )?;
+    crate::toolbar_windows::close_toolbar_window(&app, &bar_id);
+    Ok(())
 }
 
 #[tauri::command]

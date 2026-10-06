@@ -144,6 +144,17 @@ fn build_command_registry(
     }
     #[cfg(feature = "dynamic-mods")]
     let mut dynamic_libs = Vec::new();
+    if !crate::preferences::user_mods_disabled() {
+        if let Some(root) = crate::config::user_mods_dir() {
+            if let Ok(wasm_names) =
+                unibrowser_mod_host::wasm::load_user_wasm_mods(&root, &mut registry)
+            {
+                for name in wasm_names {
+                    append_mod_name(&mut mods_line, &name);
+                }
+            }
+        }
+    }
     #[cfg(all(feature = "dynamic-mods", target_os = "linux"))]
     {
         if !crate::preferences::user_mods_disabled() {
@@ -467,7 +478,7 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         "epub" => Some(crate::epub_stub::open_file(path)),
         "zip" | "7z" | "rar" | "tar" | "gz" => None,
         _ if is_known_text_extension(effective) => base_text::open_file(path).ok(),
-        _ => None,
+        _ => unibrowser_mod_host::wasm::open_wasm_extension_backend(path),
     };
     backend.map(|b| DocumentSession::new(path_str, b))
 }

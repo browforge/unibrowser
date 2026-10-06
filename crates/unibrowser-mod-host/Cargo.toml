@@ -25,9 +25,9 @@ serde_json = { workspace = true }
 semver = { workspace = true }
 thiserror = { workspace = true }
 libloading = { version = "0.8", optional = true }
+wasmi = { version = "0.40", optional = true }
 
 [features]
-default = []
+default = ["wasm-mods"]
 dynamic-mods = ["dep:libloading"]
-# Reserved for T2 loader (wasmtime dependency added when wiring lands; see ADR 0019).
-wasm-mods = []
+wasm-mods = ["dep:wasmi"]

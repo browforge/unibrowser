@@ -1,4 +1,5 @@
 mod commands;
+mod toolbar_windows;
 mod config;
 pub mod downloads;
 mod download_history;
@@ -91,12 +92,22 @@ pub fn run() {
             }
             if let Some(state) = app.try_state::<AppState>() {
                 commands::restore_session_on_launch(state.inner(), app.handle())?;
+                let _ = toolbar_windows::restore_detached_toolbars(app.handle(), state.inner());
             }
             let _ = unibrowser_media::warm_sidecar_pool();
             Ok(())
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
+                if toolbar_windows::is_toolbar_window_label(window.label()) {
+                    if let Some(state) = window.try_state::<AppState>() {
+                        let _ = toolbar_windows::dock_bar_on_window_close(
+                            window.app_handle(),
+                            state.inner(),
+                            window.label(),
+                        );
+                    }
+                }
                 if let Ok(state) = preferences::capture_window_state(window) {
                     let _ = preferences::save_window_state(&state);
                 }
@@ -151,6 +162,8 @@ pub fn run() {
             commands::probe_midi_audio_render,
             commands::get_command_manager,
             commands::save_command_manager_layout,
+            commands::detach_floating_toolbar_window,
+            commands::dock_floating_toolbar_window,
             commands::export_command_manager_layout_file,
             commands::import_command_manager_layout_file,
             commands::select_command_manager_tab,
