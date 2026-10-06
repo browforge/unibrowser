@@ -1,45 +1,59 @@
 # End-to-end UI tests
 
-Unibrowser drives the **real Tauri shell** on Linux via `@wdio/tauri-service` with the **embedded** WebDriver server (`tauri-plugin-wdio-webdriver`, `driverProvider: 'embedded'`). Helpers use **`browser.tauri.execute`** (direct eval in the app webview). Run only under **xvfb** (`./scripts/e2e.sh`). **Shipping** builds use bundled `frontendDist` (no Vite on port 1420). **E2E release** (`--features e2e`) points the main window at the same `dist/` bytes on **http://127.0.0.1:18765** (static server in `scripts/e2e.sh`) with capability `e2e-loopback` so WebKitGTK + invoke work under xvfb.
+**Default:** `./scripts/e2e.sh` runs the **in-app self-test** (no WebDriver). Optional WDIO: `E2E_WDIO=1 ./scripts/e2e.sh`.
 
-## Stack
+## In-app self-test (recommended)
 
-- **Runner:** WebdriverIO + `@wdio/tauri-service` (spawns `target/release/unibrowser-desktop` with `UNIBROWSER_E2E=1`).
-- **App:** `cargo build -p unibrowser-desktop --release --features e2e` (WDIO plugins + loopback window URL; capability `capabilities/e2e-loopback.json`).
-- **Display:** `xvfb-run` at **1600x1000**.
-
-## Run locally
+Runs inside the real Tauri shell on Linux under **xvfb**, using Rust command handlers (same code paths as `invoke`) plus optional shell PNG captures.
 
 ```bash
-./scripts/e2e.sh
+./scripts/self-test.sh          # 3 consecutive passes
+./scripts/e2e.sh                # build + verify-release-frontend + self-test
 ```
 
-Doc screenshots (xvfb):
+CLI:
+
+```bash
+target/release/unibrowser-desktop --self-test <scenario|all> --report out.json
+```
+
+| Scenario id | What it checks |
+| --- | --- |
+| `proofing-dictionary` | `proofing_check` hit + workspace dictionary add |
+| `problems-jump` | Problems list + text navigation target |
+| `palette-command` | Command palette toggle (full desktop) |
+| `font-text-svg` | Font command on text + SVG |
+| `unknown-file-banner` | Non-modal unknown-file banner |
+| `close-undo` | Close dirty tab + undo |
+| `cm-grey-tab-switch` | Disabled commands on image tab |
+| `unibrow-blank-save` | Blank `.unibrow` autosave |
+| `all` | All scenarios (see headless note below) |
+
+**Headless CI default:** `UNIBROWSER_SELF_TEST_HEADLESS=1` (set in `scripts/self-test.sh`) runs `proofing-dictionary` + `problems-jump` only. File-open scenarios can block on WebKitGTK under xvfb; run full `all` on a local desktop with `UNIBROWSER_SELF_TEST_HEADLESS=0`.
+
+Environment:
+
+- `UNIBROWSER_REPO_ROOT` — repo path for fixtures (default: cwd)
+- `WEBKIT_DISABLE_DMABUF_RENDERER=1` — set by scripts on xvfb
+- `UNIBROWSER_SELF_TEST_SKIP_SHOTS=1` — skip PNG captures (faster)
+- `SELF_TEST_RUNS` / `SELF_TEST_TIMEOUT_SECS` — harness tuning
+
+Reports: JSON at `--report`; PNGs beside it in `self-test-shots/`.
+
+## WebdriverIO (optional)
+
+`E2E_WDIO=1 ./scripts/e2e.sh` builds `--features e2e`, serves loopback `dist/` on **18765**, and runs `e2e/specs/10-shell.e2e.ts` via `@wdio/tauri-service` (`driverProvider: embedded` by default). Still flaky on headless VMs (empty DOM or “No window”); use self-test for release gates.
+
+See `e2e/wdio.conf.ts`, `docs/diagnose-release-shell.sh` (blank shell vs WDIO).
+
+## Doc screenshots
 
 ```bash
 ./scripts/capture-docs-screenshots.sh
 ```
 
-## What is covered
-
-| Scenario | Spec | Status |
-| --- | --- | --- |
-| Smoke (`get_browser_state`) | `e2e/specs/10-shell.e2e.ts` (first `it`) | Same session as shell |
-| Full shell flows (font, banner, undo, proofing, palette, CM, `.unibrow`) | `e2e/specs/10-shell.e2e.ts` | **Default** (loopback `dist/` + `e2e-loopback` capability; flaky on slow VMs — retry harness) |
-| Doc screenshots | `e2e/specs/screenshots.e2e.ts` | Optional (`CAPTURE_SCREENSHOTS=1`) |
-
-Helpers use `browser.execute` → `window.__TAURI__.core.invoke` on the bundled webview.
-
-## Reliability
-
-`scripts/e2e.sh` retries WDIO up to **3** times; production release is checked with `scripts/verify-release-frontend.sh` (**no `localhost:1420`**). Run **three consecutive** full `./scripts/e2e.sh` passes before release candidates. `e2e/wdio.conf.ts` defaults to `driverProvider: 'embedded'` and `WEBKIT_DISABLE_DMABUF_RENDERER=1`. Override with `E2E_DRIVER_PROVIDER=external` if you use system `tauri-driver` + `webkit2gtk-driver`. On headless cloud VMs (Oct 2026), embedded often fails session create (`No window could be found`); external may connect but see an empty WebDriver page until the driver attaches to the shell webview — run `./scripts/diagnose-release-shell.sh` to separate **blank release** from **WDIO attachment** issues.
-
-## Troubleshooting
-
-- **Stale port 4444/4445:** zombie `unibrowser-desktop` or `tauri-driver` — `scripts/e2e.sh` kills listeners before each attempt.
-- **Embedded WebDriver `ready:false`:** spawn with `WDIO_EMBEDDED_SERVER=true` (the external driver path does not need this).
-- **No `import`/`scrot`:** install ImageMagick or scrot for `scripts/capture-docs-screenshots.sh`.
+Uses `UNIBROWSER_DEMO_STATE` presets under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`).
 
 ## CI note
 
-E2E is not wired into GitHub Actions yet. Run `./scripts/e2e.sh` on Linux before release candidates.
+Not wired into GitHub Actions yet. Run `./scripts/e2e.sh` on Linux before release candidates.

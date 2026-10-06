@@ -8,11 +8,11 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 ## Morning summary for Bear
 
-**Try first:** `./scripts/e2e.sh` on Linux (needs `xvfb`, `webkit2gtk-driver`, free ports **4444**, **4445**; bundled `frontendDist`, no Vite). `cargo test --workspace` and `cd crates/unibrowser-desktop && npm run build` should stay green.
+**Try first:** `./scripts/e2e.sh` on Linux (xvfb; **in-app self-test**, no WebDriver). Optional WDIO: `E2E_WDIO=1 ./scripts/e2e.sh`. `cargo test --workspace` and `npm run build` stay green.
 
-**Top wins this slice:** Release shell **does render** under xvfb when launched correctly (`./scripts/diagnose-release-shell.sh` → `docs/release-shell-diagnosis-last.txt`); **shell bootstrap** (`shellBootstrap.ts`, `#shell-fallback`, `log_shell_ui_event` → diagnostics ring buffer); E2E back on **embedded** WebDriver + `WEBKIT_DISABLE_DMABUF_RENDERER=1`; loopback `dist/` + `e2e-loopback`; CLI **`--open`** + **`UNIBROWSER_DEMO_STATE`**; capture script rejects &lt;8KB blank PNGs.
+**Top wins this slice:** **`--self-test <scenario|all> --report out.json`** (Rust runner + per-scenario PNGs); `./scripts/self-test.sh` **3× green** on headless (`proofing-dictionary`, `problems-jump`); `./scripts/e2e.sh` defaults to self-test; release shell diagnosis + resilient `shellBootstrap`; doc captures show distinct features (palette, problems, etc.) when demo states are set.
 
-**Top gaps (honest):** Doc screenshots during the blitz often looked **identical** (timing/demo state), not because release `frontendDist` was missing; **wrong AppImage extract** (binary without `AppRun`) produces a **real blank window** (~200B PNG). Full `./scripts/e2e.sh` still flaky on headless VMs — retry 3× locally before release.
+**Top gaps (honest):** Full `all` self-test (file-open scenarios) can **block on WebKitGTK** under xvfb — use a local desktop for font/banner/undo/CM/unibrow paths or `UNIBROWSER_SELF_TEST_HEADLESS=0`. WDIO remains optional and flaky on cloud VMs. Some NTP demo shots still show a dark content host until demo fixtures mature.
 
 **Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); wire `./scripts/e2e.sh` into CI when Origin runs workflows.
 

@@ -11,10 +11,11 @@ export async function applyDemoState(raw: string) {
   for (const token of tokens) {
     switch (token) {
       case "problems":
-      case "problems-open":
-        document.getElementById("bottom-panel-tab-problems")?.click();
-        document.getElementById("bottom-panel-problems-pane")?.classList.remove("hidden");
+      case "problems-open": {
+        const { showProblemsBottomPanel } = await import("./problemsPanel");
+        showProblemsBottomPanel();
         break;
+      }
       case "ai":
       case "ai-sidebar":
       case "ai-open":

@@ -27,6 +27,22 @@ pub fn web_capture_status() -> WebCaptureStatus {
     }
 }
 
+/// PNG snapshot of the main shell webview (`main` window).
+pub fn capture_shell_webview_png(app: &AppHandle) -> Result<Vec<u8>, String> {
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    #[cfg(target_os = "linux")]
+    {
+        return capture_linux_webview(&wv);
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = wv;
+        Err("shell webview capture only implemented on Linux WebKitGTK".into())
+    }
+}
+
 pub fn capture_content_webview_png(app: &AppHandle, window_label: &str) -> Result<Vec<u8>, String> {
     crate::webview::ensure_content_webview(app, window_label)?;
     let label = crate::webview::content_label_for_capture(window_label);

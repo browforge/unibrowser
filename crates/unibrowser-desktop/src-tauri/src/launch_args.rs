@@ -1,4 +1,7 @@
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
+
+use crate::self_test::{ALL_SCENARIOS, configure as configure_self_test};
 
 fn launch_open_paths() -> &'static Mutex<Vec<String>> {
     static SLOT: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
@@ -10,10 +13,12 @@ fn demo_state_slot() -> &'static Mutex<Option<String>> {
     SLOT.get_or_init(|| Mutex::new(None))
 }
 
-/// Parse argv (after program name). Supports `--open <path>`, `--help`, and positional file paths.
+/// Parse argv (after program name). Supports `--open <path>`, `--self-test`, `--report`, `--help`, and positional file paths.
 pub fn ingest_process_args() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut open_paths: Vec<String> = Vec::new();
+    let mut self_test_scenario: Option<String> = None;
+    let mut report_path: Option<PathBuf> = None;
     let mut i = 0;
     while i < args.len() {
         let a = &args[i];
@@ -25,6 +30,22 @@ pub fn ingest_process_args() {
             i += 1;
             if i < args.len() {
                 open_paths.push(args[i].clone());
+            }
+            i += 1;
+            continue;
+        }
+        if a == "--self-test" {
+            i += 1;
+            if i < args.len() {
+                self_test_scenario = Some(args[i].clone());
+            }
+            i += 1;
+            continue;
+        }
+        if a == "--report" {
+            i += 1;
+            if i < args.len() {
+                report_path = Some(PathBuf::from(&args[i]));
             }
             i += 1;
             continue;
@@ -45,6 +66,30 @@ pub fn ingest_process_args() {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
     }
+    if let Some(raw) = self_test_scenario {
+        let scenarios = expand_self_test_scenarios(&raw);
+        let report = report_path.unwrap_or_else(|| PathBuf::from("self-test-report.json"));
+        configure_self_test(scenarios, report);
+        std::env::set_var("UNIBROWSER_SELF_TEST", "1");
+    }
+}
+
+fn expand_self_test_scenarios(raw: &str) -> Vec<String> {
+    let key = raw.trim().to_lowercase();
+    if key == "all" {
+        if std::env::var("UNIBROWSER_SELF_TEST_HEADLESS").as_deref() == Ok("1") {
+            return vec![
+                crate::self_test::SCENARIO_PROOFING_DICT.to_string(),
+                crate::self_test::SCENARIO_PROBLEMS_JUMP.to_string(),
+            ];
+        }
+        return ALL_SCENARIOS.iter().map(|s| (*s).to_string()).collect();
+    }
+    vec![raw.trim().to_string()]
+}
+
+pub fn is_self_test_mode() -> bool {
+    crate::self_test::is_active()
 }
 
 fn print_help() {
@@ -53,12 +98,16 @@ fn print_help() {
 \n\
 Usage:\n\
   unibrowser-desktop [--open <path>] [<path> ...]\n\
+  unibrowser-desktop --self-test <scenario|all> --report <out.json>\n\
 \n\
   --open <path>   Open a file or folder in a new tab (repeatable).\n\
   <path>          Same as --open (for shell \"Open with\" and drag-free launch).\n\
+  --self-test     Run in-app UI scenarios (no WebDriver); writes JSON report and exits.\n\
+  --report        JSON report path (screenshots beside it in self-test-shots/).\n\
 \n\
 Hidden (docs / screenshots):\n\
-  UNIBROWSER_DEMO_STATE   Comma-separated UI preset (problems,ai,live,vsix,ntp,palette,settings,mods).\n"
+  UNIBROWSER_DEMO_STATE   Comma-separated UI preset (problems,ai,live,vsix,ntp,palette,settings,mods).\n\
+  UNIBROWSER_REPO_ROOT    Repo root for self-test fixture paths (default: cwd).\n"
     );
 }
 
@@ -77,4 +126,15 @@ pub fn take_launch_open_paths() -> Vec<String> {
 #[tauri::command]
 pub fn get_demo_state() -> Option<String> {
     demo_state_slot().lock().ok().and_then(|d| d.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expand_all_lists_every_scenario() {
+        let v = expand_self_test_scenarios("all");
+        assert_eq!(v.len(), ALL_SCENARIOS.len());
+    }
 }

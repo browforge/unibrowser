@@ -23,6 +23,7 @@ function markUbReadyWhenDomChromePresent() {
   }
 }
 markUbReadyWhenDomChromePresent();
+
 import { commandManager, getStatusContextMode } from "./commandManager";
 import {
   textEditor,
@@ -1781,6 +1782,9 @@ async function applyState(data: TabContentDto) {
   await syncContentBounds();
   window.requestAnimationFrame(() => syncContentBounds());
 }
+
+(window as unknown as { __selfTestApplyState?: (d: TabContentDto) => Promise<void> }).__selfTestApplyState =
+  applyState;
 
 async function refreshState() {
   try {

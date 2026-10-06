@@ -77,3 +77,4 @@ window.addEventListener("unhandledrejection", (ev) => {
   logUi("error", "unhandled rejection", reason);
   showShellFallbackMessage(reason);
 });
+

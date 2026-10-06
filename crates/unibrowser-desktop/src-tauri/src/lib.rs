@@ -1,4 +1,5 @@
 mod commands;
+mod self_test;
 mod launch_args;
 mod proofing;
 mod toolbar_windows;
@@ -100,26 +101,33 @@ pub fn run() {
         .manage(AppState::new())
         .setup(|app| {
             let e2e = std::env::var("UNIBROWSER_E2E").as_deref() == Ok("1");
-            if e2e {
+            let self_test = launch_args::is_self_test_mode();
+            if e2e || self_test {
                 let mut p = preferences::load_preferences();
                 p.onboarding_dismissed = true;
                 p.onboarding_tour_skipped_forever = true;
                 p.restore_session_on_launch = false;
+                if self_test {
+                    p.proofing_squiggles_enabled = true;
+                }
                 let _ = preferences::save_preferences(&p);
             }
             if !e2e {
                 webview::ensure_content_webview(app.handle(), "main")?;
             }
             if let Some(window) = app.get_window("main") {
-                if e2e {
+                if e2e || self_test {
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
                 let saved = preferences::load_window_state();
                 let _ = preferences::apply_window_state(&window, &saved);
+                if self_test {
+                    self_test::schedule_run(app.handle().clone());
+                }
             }
             if let Some(state) = app.try_state::<AppState>() {
-                if !e2e {
+                if !e2e && !self_test {
                     commands::restore_session_on_launch(state.inner(), app.handle())?;
                 }
                 let _ = toolbar_windows::restore_detached_toolbars(app.handle(), state.inner());
@@ -429,6 +437,10 @@ pub fn run() {
             rhai_host::describe_rhai_script,
             launch_args::take_launch_open_paths,
             launch_args::get_demo_state,
+            self_test::self_test_ping,
+            self_test::get_self_test_plan,
+            self_test::self_test_capture_screenshot,
+            self_test::self_test_finish,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

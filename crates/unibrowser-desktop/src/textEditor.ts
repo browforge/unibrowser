@@ -119,6 +119,22 @@ export function getActiveTextContent(): string | null {
   return editor.getModel()?.getValue() ?? null;
 }
 
+/** Self-test / automation: append text at end of active Monaco document. */
+export function appendActiveEditorText(chunk: string): boolean {
+  if (!editor || !monacoApi) {
+    return false;
+  }
+  const model = editor.getModel();
+  if (!model) {
+    return false;
+  }
+  const end = model.getFullModelRange().getEndPosition();
+  const range = new monacoApi.Range(end.lineNumber, end.column, end.lineNumber, end.column);
+  editor.executeEdits("self-test", [{ range, text: chunk, forceMoveMarkers: true }]);
+  void pushToHost();
+  return true;
+}
+
 function emitCursorStatus() {
   if (!editor || !cursorListener) {
     return;

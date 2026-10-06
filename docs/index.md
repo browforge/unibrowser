@@ -9,7 +9,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 1. Read [getting-started.md](getting-started.md) for clone, build, test, and where to send changes.
 2. Read [principles.md](principles.md), then skim [vision.md](vision.md) and [architecture.md](architecture.md) so engine / mod / shell boundaries stay clear.
 3. Follow [docs/CONTRIBUTING.md](CONTRIBUTING.md) (build, checks, proving mods, PR expectations) and [CONTRIBUTING.md](../CONTRIBUTING.md) (community and asset policy).
-4. Run `./scripts/smoke-desktop-qa.sh` before you open a PR. Optionally `./scripts/lint-doc-links.sh` on doc edits.
+4. Run `./scripts/e2e.sh` (in-app self-test under xvfb) and `./scripts/smoke-desktop-qa.sh` before you open a PR. Optionally `./scripts/lint-doc-links.sh` on doc edits.
 
 ## Architecture and product
 
@@ -59,6 +59,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [ux-a11y.md](ux-a11y.md) | Keyboard map, motion, hit targets, focus mode |
 | [wasm-t2-status.md](wasm-t2-status.md) | T2 WASM loader plan and proving stub |
 | [pdf-annotate.md](pdf-annotate.md) | PDF highlight sidecar (stub) |
+| [e2e.md](e2e.md) | In-app self-test (`--self-test`) and optional WebdriverIO |
 | [report-visuals.md](report-visuals.md) | Wednesday report screenshots and capture script |
 | [ocr-sidecar.md](ocr-sidecar.md) | Planned Tesseract OCR sidecar (UI stub today) |
 

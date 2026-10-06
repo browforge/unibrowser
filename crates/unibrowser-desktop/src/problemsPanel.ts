@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { navigateToTarget, type NavigationTarget } from "./locatorNavigate";
+import { selectBottomPanelTab } from "./terminalPanel";
 
 interface ProblemDto {
   id: string;
@@ -42,13 +43,22 @@ async function refresh() {
   }
 }
 
+export function showProblemsBottomPanel() {
+  document.getElementById("script-output-panel")?.classList.remove("hidden");
+  selectBottomPanelTab("problems");
+  void refresh();
+}
+
 export function initProblemsPanel() {
   panelEl = document.getElementById("problems-panel");
   if (!panelEl) {
     return;
   }
+  document.getElementById("bottom-panel-tab-problems")?.addEventListener("click", () => {
+    showProblemsBottomPanel();
+  });
   panelEl.querySelector(".problems-close")?.addEventListener("click", () => {
-    panelEl?.classList.add("hidden");
+    document.getElementById("script-output-panel")?.classList.add("hidden");
   });
   const sev = panelEl.querySelector<HTMLSelectElement>(".problems-filter-severity");
   sev?.addEventListener("change", () => {

@@ -2088,7 +2088,9 @@ pub fn open_path(
         }
     }
     update_content_webview(&app, window.label(), &loc)?;
-    snapshot(&state, window.label())
+    let dto = snapshot(&state, window.label())?;
+    let _ = app.emit("browser-state-updated", ());
+    Ok(dto)
 }
 
 #[tauri::command]
@@ -7860,6 +7862,11 @@ pub(crate) fn update_content_webview(
     window_label: &str,
     loc: &BrowserLocation,
 ) -> Result<(), String> {
+    if std::env::var("UNIBROWSER_SELF_TEST").as_deref() == Ok("1") {
+        if matches!(loc, BrowserLocation::File { .. }) {
+            return Ok(());
+        }
+    }
     let (reader, muted) = app
         .try_state::<AppState>()
         .map(|s| {

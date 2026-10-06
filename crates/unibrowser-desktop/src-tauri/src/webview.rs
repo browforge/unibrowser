@@ -220,6 +220,9 @@ pub fn content_webview_navigate(
     let label = content_label(window_label);
     let wv = app.get_webview(&label).ok_or("content webview missing")?;
     if url == "about:blank" {
+        if std::env::var("UNIBROWSER_SELF_TEST").as_deref() == Ok("1") {
+            return Ok(());
+        }
         wv.hide().map_err(|e| e.to_string())?;
         return Ok(());
     }
