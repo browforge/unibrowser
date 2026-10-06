@@ -79,7 +79,12 @@ capture_scene "unibrowser-08-ai-sidebar" "ai"
 capture_scene "unibrowser-09-live-preview" "live" "$DEMO/sample.unibrow"
 capture_scene "unibrowser-10-vsix-mods" "vsix"
 
-cp -f "$OUT/unibrowser-01-ntp.png" "$OUT/shell-desktop.png"
+# Prefer a shot that shows product UI, not an empty content webview on xvfb.
+if [[ -f "$OUT/unibrowser-08-ai-sidebar.png" ]]; then
+  cp -f "$OUT/unibrowser-08-ai-sidebar.png" "$OUT/shell-desktop.png"
+else
+  cp -f "$OUT/unibrowser-03-palette.png" "$OUT/shell-desktop.png"
+fi
 compress_png "$OUT/shell-desktop.png"
 
 echo "Checking screenshot diversity (md5)…"

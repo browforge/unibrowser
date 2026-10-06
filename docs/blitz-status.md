@@ -12,7 +12,17 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 **Top wins this slice:** **Tabs mutex deadlock audit** (`TabsMutex` + [concurrency.md](concurrency.md), clone-out/drop-guard across commands); **`--self-test`** now **10 scenarios** (adds **live-preview** + **ai-sidebar** with `mock://unibrowser-self-test`); `./scripts/self-test.sh` **3× green**; doc screenshots **poll for paint** (Monaco, NTP, LIVE badge, AI grants) before `--doc-capture`; AI sidebar shows read-only grants table when configured.
 
-**Top gaps (honest):** WDIO remains optional and flaky on cloud VMs. Live preview PNG in docs still depends on compositor timing on slow VMs.
+**Top gaps (honest):** WDIO remains optional and flaky on cloud VMs. **Doc screenshots (xvfb, Oct 6):** `--doc-capture` now uses composited X11 root crop plus best-of WebKitGTK snapshots (`capture_doc_screenshot_png`). On this CI VM the native **content** webview still paints as a black rectangle in root capture; only chrome-layer presets read well in PNGs:
+
+| File | Doc-quality on xvfb? | Notes |
+| --- | --- | --- |
+| `unibrowser-03-palette` | Yes | Command palette overlay visible |
+| `unibrowser-07-problems` | Yes | Problems panel + spell rows |
+| `unibrowser-08-ai-sidebar` | Yes | Grants table + chat chrome |
+| `unibrowser-01-ntp`, `02-files`, `04-settings`, `05-unibrow`, `06-viewer`, `09-live`, `10-vsix` | No | Tab chrome OK; main viewer/editor area black (child webview / DMABUF on headless X) |
+| `shell-desktop.png` | Yes | Copied from `08-ai-sidebar` in capture script |
+
+Re-capture on a real desktop session (or Wayland compositor with working WebKit paint) before marketing README swaps.
 
 **Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); wire `./scripts/e2e.sh` into CI when Origin runs workflows.
 
