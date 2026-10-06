@@ -56,6 +56,7 @@ spell-en-nz = { path = "../../../mods/spell-en-nz" }
 grammar-harper = { path = "../../../mods/grammar-harper" }
 dxf-checker = { path = "../../../mods/dxf-checker" }
 unibrow-checker = { path = "../../../mods/unibrow-checker" }
+live-proving = { path = "../../../mods/live-proving" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"

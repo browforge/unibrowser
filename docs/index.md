@@ -32,6 +32,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [workspace-folders.md](workspace-folders.md) | Workspace root tree + git dirty hints in Files |
 | [privacy.md](privacy.md) | No telemetry; local data |
 | [network.md](network.md) | Offline mode; what can call out |
+| [live-mod-authoring.md](live-mod-authoring.md) | Live source/sink mod stub (ADR 0024) |
 | [safe-mode.md](safe-mode.md) | Disable user mods for troubleshooting |
 | [updates.md](updates.md) | Manual FOSS update check (releases URL) |
 | [fullscreen-content.md](fullscreen-content.md) | F11 chrome-hidden content focus |
@@ -91,6 +92,7 @@ ADRs are numbered in `docs/adr/`. Read the ones that touch your area before larg
 | [0021](adr/0021-diagnostics-host-lsp.md) | Diagnostics host + LSP client | `crates/unibrowser-diagnostics` |
 | [0022](adr/0022-proofing-as-mods.md) | Proofing as mods (spell, grammar, format checkers) | `mods/spell-en-nz`, `mods/grammar-harper`, [proofing-cross-format.md](proofing-cross-format.md) |
 | [0023](adr/0023-saving-is-sacred.md) | Saving is sacred; local autosave | [principles.md](principles.md), `crates/unibrowser-fs` |
+| [0024](adr/0024-live-sources-compositor-outputs.md) | Live sources, compositor, outputs | `crates/unibrowser-live`, `mods/live-proving`, [live-mod-authoring.md](live-mod-authoring.md) |
 | [principles.md](principles.md) | Product principles (local-first, sacred save) | ADRs 0021–0023 |
 
 ## Changelog

@@ -1,0 +1,23 @@
+{
+  "name": "live-proving",
+  "version": "0.1.0",
+  "title": "Live proving sources",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": { "base": ">=0.1.0" },
+  "description": "Fake live video (test pattern) and sine temperature data for ADR 0024 engine proofs.",
+  "contributes": {
+    "liveSources": [
+      {
+        "id": "live-proving/test-pattern",
+        "kind": "live_media",
+        "title": "Test pattern (fake camera)"
+      },
+      {
+        "id": "live-proving/sine-temperature",
+        "kind": "data_stream",
+        "title": "Sine wave temperature (fake IoT)"
+      }
+    ]
+  }
+}

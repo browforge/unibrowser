@@ -1,0 +1,14 @@
+[package]
+name = "live-proving"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Proving live sources (test pattern + sine data) — ADR 0024 skeleton"
+
+[lib]
+name = "live_proving"
+path = "src/lib.rs"
+
+[dependencies]
+unibrowser-engine = { path = "../../crates/unibrowser-engine" }
+unibrowser-live = { path = "../../crates/unibrowser-live" }

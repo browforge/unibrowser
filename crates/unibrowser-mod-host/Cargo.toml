@@ -27,6 +27,7 @@ spell-en-nz = { path = "../../mods/spell-en-nz" }
 grammar-harper = { path = "../../mods/grammar-harper" }
 dxf-checker = { path = "../../mods/dxf-checker" }
 unibrow-checker = { path = "../../mods/unibrow-checker" }
+live-proving = { path = "../../mods/live-proving" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 semver = { workspace = true }
