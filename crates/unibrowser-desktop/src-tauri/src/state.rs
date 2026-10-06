@@ -220,9 +220,11 @@ impl AppState {
         let sessions = Mutex::new(HashMap::from([("main".to_string(), main_session)]));
         let keybindings = Mutex::new(load_merged_keybindings());
         let cm_file = load_command_manager_file(toolbars_file_path().as_deref());
-        let command_manager = Mutex::new(
-            CommandManagerState::from_file(&cm_file, unibrowser_mod_api::CommandContext::Browse),
-        );
+        let command_manager = Mutex::new(CommandManagerState::with_layout_path(
+            &cm_file,
+            unibrowser_mod_api::CommandContext::Browse,
+            toolbars_file_path().as_deref(),
+        ));
 
         Self {
             registry: Mutex::new(built.registry),
@@ -290,6 +292,7 @@ impl AppState {
             unibrowser_mod_api::CommandContext::Browse
         };
         let mut cm = self.command_manager.lock().expect("command manager lock");
+        cm.bump_context_revision();
         cm.select_tab_for_context(ctx);
     }
 

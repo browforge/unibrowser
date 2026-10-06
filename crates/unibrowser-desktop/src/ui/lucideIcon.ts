@@ -37,7 +37,16 @@ export type LucideName =
   | "settings"
   | "spell-check"
   | "pen-line"
-  | "type";
+  | "type"
+  | "bold"
+  | "italic"
+  | "underline"
+  | "strikethrough"
+  | "subscript"
+  | "superscript"
+  | "palette"
+  | "highlighter"
+  | "stamp";
 
 const PATHS: Record<LucideName, string> = {
   "arrow-left": '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
@@ -84,6 +93,18 @@ const PATHS: Record<LucideName, string> = {
   "pen-line":
     '<path d="M13 21h8"/><path d="m17 3 4 4L7 21l-4 1 1-4Z"/>',
   type: '<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
+  bold: '<path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>',
+  italic: '<path d="M19 4h-9M14 20H5M15 4 9 20"/>',
+  underline: '<path d="M6 4v6a6 6 0 0 0 12 0V4"/><path d="M4 20h16"/>',
+  strikethrough: '<path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><path d="M4 12h16"/>',
+  subscript: '<path d="m4 5 8 8"/><path d="m12 13-8 8"/><path d="M20 19h-4c0-1.5.44-2 1.5-2.5S20 15.33 20 13a4 4 0 0 0-4-4"/>',
+  superscript: '<path d="m4 19 8-8"/><path d="m12 11-8-8"/><path d="M20 5h-4c0 1.5.44 2 1.5 2.5S20 8.67 20 11a4 4 0 0 1-4 4"/>',
+  palette:
+    '<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="7.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="12" cy="7.5" r=".5" fill="currentColor"/><circle cx="16.5" cy="10.5" r=".5" fill="currentColor"/>',
+  highlighter:
+    '<path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>',
+  stamp:
+    '<path d="M5 22h14"/><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>',
   "redo-2":

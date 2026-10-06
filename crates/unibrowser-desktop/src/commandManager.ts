@@ -3,8 +3,12 @@ import { patchPictureInPictureCommand } from "./mediaPip";
 import { showToast } from "./toast";
 import { t } from "./i18n";
 import { bindCommandTooltip } from "./ui/commandTooltip";
-import { buildCommandGroups, type CommandGroupModel } from "./ui/commandManagerGroups";
-import { getEditorFontSizePt } from "./textEditor";
+import {
+  familiesToRenderGroups,
+  partitionFamiliesForOverflow,
+  renderResolvedGroups,
+  type ResolvedFamilyDto,
+} from "./ui/commandControls";
 import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 
 let chordByCommand = new Map<string, string>();
@@ -32,6 +36,7 @@ export interface ManagerTabDto {
   phase: string;
   selected: boolean;
   commands: UiCommandDto[];
+  families: ResolvedFamilyDto[];
 }
 
 export interface FloatingBarDto {
@@ -182,7 +187,8 @@ export function getStatusContextMode(): { tab: string; pinned: boolean } | null 
   return { tab: tab.label, pinned: snapshot.context_pinned };
 }
 let dragCommandId: string | null = null;
-let overflowGroupsCache: CommandGroupModel[] = [];
+type RenderGroup = ReturnType<typeof familiesToRenderGroups>[number];
+let overflowGroupsCache: RenderGroup[] = [];
 
 function lucideForRegistryIcon(icon: string): LucideName {
   const map: Record<string, LucideName> = {
@@ -333,105 +339,6 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
   };
 }
 
-function renderTypeGroupTools(
-  tools: HTMLElement,
-  commands: UiCommandDto[],
-  onRun: RunCommand,
-) {
-  const fontInc = commands.find((c) => c.command_id.includes("fontSize.increase"));
-  const fontDec = commands.find((c) => c.command_id.includes("fontSize.decrease"));
-  const format = commands.find((c) => c.command_id.includes("formatDocument"));
-  const rest = commands.filter(
-    (c) => c !== fontInc && c !== fontDec && c !== format,
-  );
-
-  if (fontInc || fontDec) {
-    const split = document.createElement("button");
-    split.type = "button";
-    split.className = "ui-command split-button";
-    split.title = "Font size";
-    split.appendChild(createLucideIcon("type", 16, "ub-icon svg-icon"));
-    const label = document.createElement("span");
-    label.className = "cm-cmd-label";
-    label.textContent = `${getEditorFontSizePt()} pt`;
-    split.appendChild(label);
-    const caret = document.createElement("span");
-    caret.className = "split-caret";
-    caret.textContent = "v";
-    caret.setAttribute("aria-hidden", "true");
-    split.appendChild(caret);
-    split.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).classList.contains("split-caret")) {
-        e.stopPropagation();
-        if (fontInc?.enabled) {
-          void onRun(fontInc.command_id);
-        } else if (fontDec?.enabled) {
-          void onRun(fontDec.command_id);
-        }
-        return;
-      }
-      if (fontInc?.enabled) {
-        void onRun(fontInc.command_id);
-      }
-    });
-    tools.appendChild(split);
-  }
-
-  if (format) {
-    const patched = patchPictureInPictureCommand(format);
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.appendChild(createLucideIcon(lucideForRegistryIcon(format.icon), 16, "ub-icon svg-icon"));
-    const label = document.createElement("span");
-    label.className = "cm-cmd-label";
-    label.textContent = patched.title;
-    btn.appendChild(label);
-    btn.disabled = !patched.enabled;
-    btn.className = patched.enabled ? "ui-command" : "ui-command disabled";
-    if (patched.enabled) {
-      btn.onclick = () => onRun(patched.command_id);
-    }
-    tools.appendChild(btn);
-  }
-
-  if (rest.length) {
-    renderCommandButtons(tools, rest, onRun, true);
-  }
-}
-
-function renderCommandGroups(
-  container: HTMLElement,
-  groups: CommandGroupModel[],
-  onRun: RunCommand,
-) {
-  container.innerHTML = "";
-  groups.forEach((group, index) => {
-    if (index > 0) {
-      const div = document.createElement("span");
-      div.className = "cm-divider";
-      div.setAttribute("aria-hidden", "true");
-      container.appendChild(div);
-    }
-    const wrap = document.createElement("div");
-    wrap.className = `cm-group priority-${group.priority}`;
-    wrap.setAttribute("role", "group");
-    wrap.setAttribute("aria-label", group.name);
-    const tools = document.createElement("div");
-    tools.className = "cm-group-tools";
-    if (group.name === "Type") {
-      renderTypeGroupTools(tools, group.commands, onRun);
-    } else {
-      renderCommandButtons(tools, group.commands, onRun, true);
-    }
-    const name = document.createElement("span");
-    name.className = "cm-group-name";
-    name.textContent = group.name;
-    wrap.appendChild(tools);
-    wrap.appendChild(name);
-    container.appendChild(wrap);
-  });
-}
-
 function openContextTabMenu(
   anchor: HTMLElement,
   snapshot: CommandManagerDto,
@@ -472,7 +379,7 @@ function openContextTabMenu(
 
 function openOverflowGroupsMenu(
   anchor: HTMLElement,
-  groups: CommandGroupModel[],
+  groups: RenderGroup[],
   onRun: RunCommand,
 ) {
   const menu = document.createElement("div");
@@ -585,28 +492,29 @@ export const commandManager = {
       });
     }
     if (active) {
-      const groups = buildCommandGroups(active.id, active.commands);
-      overflowGroupsCache = groups.filter((g) => g.priority === "low");
-      renderCommandGroups(groupsEl, groups, onRun);
+      const allGroups =
+        active.families?.length > 0
+          ? familiesToRenderGroups(active.families)
+          : [];
+      const maxVisible = 8;
+      const { visible, overflow } = partitionFamiliesForOverflow(allGroups, maxVisible);
+      overflowGroupsCache = overflow;
+      if (visible.length > 0) {
+        renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
+      } else {
+        renderCommandButtons(groupsEl, active.commands, onRun, true);
+      }
       if (overflowEl) {
-        const hasLow = groups.some((g) => g.priority === "low");
-        overflowEl.classList.toggle("visible", hasLow);
-        overflowEl.classList.toggle("hidden", !hasLow);
+        const hasOverflow = overflow.length > 0;
+        overflowEl.classList.toggle("visible", hasOverflow);
+        overflowEl.classList.toggle("hidden", !hasOverflow);
         if (!overflowEl.dataset.bound) {
           overflowEl.dataset.bound = "1";
           overflowEl.innerHTML = "";
           overflowEl.appendChild(createLucideIcon("chevron-down", 16, "ub-icon svg-icon"));
           overflowEl.addEventListener("click", (e) => {
             e.stopPropagation();
-            const snap = lastSnapshot;
-            const tab = snap?.tabs.find((t) => t.selected) ?? snap?.tabs[0];
-            if (!tab) {
-              return;
-            }
-            const hidden = overflowGroupsCache.length
-              ? overflowGroupsCache
-              : buildCommandGroups(tab.id, tab.commands).slice(3);
-            openOverflowGroupsMenu(overflowEl, hidden, onRun);
+            openOverflowGroupsMenu(overflowEl, overflowGroupsCache, onRun);
           });
         }
       }

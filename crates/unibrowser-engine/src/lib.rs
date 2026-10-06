@@ -1,5 +1,6 @@
 pub mod command;
 pub mod command_manager;
+pub mod command_system;
 pub mod document;
 pub mod keybinding;
 pub mod mode;
@@ -10,6 +11,10 @@ pub mod toolbar;
 pub mod ui_command;
 
 pub use command::{CommandRegistry, HandlerRegistration};
+pub use command_system::{
+    CapabilityResolver, LayoutStore, ResolutionContext, core_tab_layout, infer_work_context,
+    migrate_toolbars_json, save_commands_always_supported,
+};
 pub use document::{DocumentBackend, DocumentSession};
 pub use mode::ModeController;
 pub use keybinding::{

@@ -146,4 +146,15 @@ pub mod commands {
     pub const PROOFING_PREVIOUS: &str = "unibrowser.proofing.previousProblem";
     pub const RESTORE_AUTOSAVE: &str = "unibrowser.autosave.restore";
     pub const TOGGLE_PROBLEMS_PANEL: &str = "unibrowser.problems.toggle";
+    pub const TEXT_BOLD: &str = "unibrowser.text.bold";
+    pub const TEXT_ITALIC: &str = "unibrowser.text.italic";
+    pub const TEXT_UNDERLINE: &str = "unibrowser.text.underline";
+    pub const TEXT_STRIKETHROUGH: &str = "unibrowser.text.strikethrough";
+    pub const TEXT_SUBSCRIPT: &str = "unibrowser.text.baseline.subscript";
+    pub const TEXT_SUPERSCRIPT: &str = "unibrowser.text.baseline.superscript";
+    pub const TEXT_COLOUR: &str = "unibrowser.text.colour";
+    pub const TEXT_FONT_FAMILY: &str = "unibrowser.text.fontFamily";
+    pub const TEXT_SIZE_SET: &str = "unibrowser.text.size.set";
+    pub const EDITOR_FONT_FAMILY: &str = "unibrowser.editor.fontFamily";
+    pub const EDITOR_FONT_SIZE: &str = "unibrowser.editor.fontSize";
 }

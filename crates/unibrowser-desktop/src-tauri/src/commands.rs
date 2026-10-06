@@ -124,6 +124,7 @@ pub struct ManagerTabDto {
     pub phase: String,
     pub selected: bool,
     pub commands: Vec<UiCommandDto>,
+    pub families: Vec<unibrowser_mod_api::ResolvedFamily>,
 }
 
 #[derive(Serialize)]
@@ -2996,8 +2997,14 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .tabs
         .iter()
         .map(|tab| {
+            let families = cm.resolve_families_for_tab(&registry, &host, doc_ref, &tab.id);
+            let resolved_cmds = if families.is_empty() {
+                cm.resolve_tab_commands(&registry, &host, doc_ref, &tab.id)
+            } else {
+                unibrowser_engine::CommandManagerState::flatten_resolved_controls(&families)
+            };
             let commands = map_ui_commands(
-                cm.resolve_tab_commands(&registry, &host, doc_ref, &tab.id),
+                resolved_cmds,
                 active_location,
                 tab_count,
                 active_index,
@@ -3012,6 +3019,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                 phase: phase_name(tab.phase).into(),
                 selected: tab.id == selected,
                 commands,
+                families,
             }
         })
         .collect();
@@ -3084,6 +3092,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                         }
                     })
                     .collect(),
+                families: vec![],
             });
         }
     }
@@ -3164,9 +3173,10 @@ fn apply_command_manager_layout(layout: &CommandManagerFile, state: &AppState) -
     let path = toolbars_file_path().ok_or("config path unavailable")?;
     save_command_manager_file(&path, layout)?;
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
-    *cm = unibrowser_engine::CommandManagerState::from_file(
+    *cm = unibrowser_engine::CommandManagerState::with_layout_path(
         layout,
         cm.auto_context,
+        Some(path.as_path()),
     );
     Ok(())
 }

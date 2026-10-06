@@ -2,6 +2,8 @@
 
 pub const MOD_API_VERSION: &str = "0.1.0";
 
+pub mod command_system;
+pub mod contributes;
 pub mod context;
 pub mod handlers;
 pub mod manifest;
@@ -9,6 +11,11 @@ pub mod navigation;
 pub mod projections;
 pub mod types;
 
+pub use command_system::*;
+pub use contributes::{
+    CommandLayoutFileV2, ContextLayout, ContributionValidationError, HiddenControlEntry,
+    LAYOUT_VERSION_V2, ModContributes, MonitorAnchor, ToolbarLayoutEntry, validate_contributes,
+};
 pub use context::CommandContext;
 pub use manifest::ModManifest;
 pub use projections::{RasterProjection, RasterProjectionSource, TextProjection};

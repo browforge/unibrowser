@@ -1,7 +1,13 @@
 use serde::{Deserialize, Serialize};
-use unibrowser_mod_api::{CommandContext, HostContext};
+use unibrowser_mod_api::{
+    CapabilityState, CommandContext, HostContext, ResolvedControl, ResolvedFamily,
+    enablement_from_capability,
+};
 
 use crate::command::CommandRegistry;
+use crate::command_system::{
+    CapabilityResolver, LayoutStore, ResolutionContext, core_tab_layout,
+};
 
 /// Where the same logical command may appear (shared UI building blocks).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -105,6 +111,9 @@ pub struct CommandManagerState {
     pub transient_tab: Option<String>,
     pub tabs: Vec<ManagerTabLayout>,
     pub floating_bars: Vec<FloatingToolbarLayout>,
+    pub resolver: CapabilityResolver,
+    pub layout_store: LayoutStore,
+    pub context_revision: u64,
 }
 
 impl Default for CommandManagerFile {
@@ -229,7 +238,114 @@ impl CommandManagerState {
             transient_tab: None,
             tabs: file.tabs.clone(),
             floating_bars: file.floating_bars.clone(),
+            resolver: CapabilityResolver::default(),
+            layout_store: LayoutStore::default(),
+            context_revision: 1,
         }
+    }
+
+    pub fn with_layout_path(file: &CommandManagerFile, auto_context: CommandContext, path: Option<&std::path::Path>) -> Self {
+        let mut state = Self::from_file(file, auto_context);
+        state.layout_store = LayoutStore::load(path, file);
+        let ctx_id = auto_context.tab_id();
+        for id in state.layout_store.hidden_for_context(ctx_id) {
+            state.resolver.hidden_controls.insert(id, true);
+        }
+        for (control, provider) in state.layout_store.provider_overrides_for(ctx_id) {
+            state.resolver.user_provider_overrides.insert(control, provider);
+        }
+        state
+    }
+
+    pub fn bump_context_revision(&mut self) {
+        self.context_revision += 1;
+    }
+
+    pub fn resolve_families_for_tab(
+        &self,
+        registry: &CommandRegistry,
+        host: &HostContext,
+        doc: Option<&crate::document::DocumentSession>,
+        tab_id: &str,
+    ) -> Vec<ResolvedFamily> {
+        let structured_tab = matches!(tab_id, "text" | "code" | "image" | "office")
+            || tab_id == self.auto_context.tab_id();
+        if !structured_tab {
+            return Vec::new();
+        }
+        let doc_path = doc.map(|d| d.path.clone());
+        let ctx = ResolutionContext::new(
+            self.auto_context,
+            host.clone(),
+            doc_path,
+            self.context_revision,
+        );
+        let mut families = core_tab_layout(&ctx, &self.resolver);
+        self.refine_capabilities(registry, host, doc, &ctx, &mut families);
+        families
+    }
+
+    fn refine_capabilities(
+        &self,
+        registry: &CommandRegistry,
+        host: &HostContext,
+        doc: Option<&crate::document::DocumentSession>,
+        ctx: &ResolutionContext,
+        families: &mut [ResolvedFamily],
+    ) {
+        for family in families.iter_mut() {
+            for group in &mut family.groups {
+                for control in &mut group.controls {
+                    if matches!(control.capability, CapabilityState::HiddenByUser) {
+                        continue;
+                    }
+                    let primary = control
+                        .command_ids
+                        .first()
+                        .map(String::as_str)
+                        .unwrap_or("");
+                    control.capability = self.resolver.resolve_with_registry(
+                        registry,
+                        doc,
+                        host,
+                        &control.control_id,
+                        primary,
+                        ctx,
+                    );
+                }
+                group.controls.retain(|c| !matches!(c.capability, CapabilityState::HiddenByUser));
+            }
+            family.groups.retain(|g| !g.controls.is_empty());
+        }
+    }
+
+    pub fn flatten_resolved_controls(families: &[ResolvedFamily]) -> Vec<ResolvedUiCommand> {
+        let mut out = Vec::new();
+        for family in families {
+            for group in &family.groups {
+                for control in &group.controls {
+                    let primary = control
+                        .command_ids
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| control.control_id.clone());
+                    let en = enablement_from_capability(&control.capability);
+                    out.push(ResolvedUiCommand {
+                        command_id: primary,
+                        title: control.label.clone(),
+                        icon: control.icon.clone(),
+                        enabled: en.is_enabled(),
+                        reason: en.disabled_reason().map(String::from),
+                        surfaces: vec![
+                            CommandSurface::CommandManagerTab,
+                            CommandSurface::FloatingToolbar,
+                            CommandSurface::CommandPalette,
+                        ],
+                    });
+                }
+            }
+        }
+        out
     }
 
     pub fn select_tab_manual(&mut self, tab_id: &str) {
@@ -280,6 +396,10 @@ impl CommandManagerState {
         doc: Option<&crate::document::DocumentSession>,
         tab_id: &str,
     ) -> Vec<ResolvedUiCommand> {
+        let families = self.resolve_families_for_tab(registry, host, doc, tab_id);
+        if !families.is_empty() {
+            return Self::flatten_resolved_controls(&families);
+        }
         let tab = self.tabs.iter().find(|t| t.id == tab_id);
         match tab {
             Some(tab) => self.resolve_slots(registry, host, doc, &tab.commands),

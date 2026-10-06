@@ -53,6 +53,7 @@ impl ModHost {
     ) -> Result<Self, ModHostError> {
         let mut manifests = Vec::new();
         let mut paths = HashMap::new();
+        let mut contribution_notes = Vec::new();
 
         for root in mod_roots {
             if !root.is_dir() {
@@ -71,6 +72,15 @@ impl ModHost {
                 let text = fs::read_to_string(&info)?;
                 let manifest: ModManifest = serde_json::from_str(&text)?;
                 check_api_version(&manifest)?;
+                if let Some(contrib) = &manifest.contributes {
+                    let errs = unibrowser_mod_api::validate_contributes(&manifest.name, contrib);
+                    for err in errs {
+                        contribution_notes.push(format!(
+                            "mod {} contribution: {}",
+                            err.mod_name, err.message
+                        ));
+                    }
+                }
                 if paths.contains_key(&manifest.name) {
                     continue;
                 }
@@ -81,7 +91,8 @@ impl ModHost {
 
         let report = resolve_mod_graph(&manifests)?;
         let load_order = report.load_order;
-        let resolve_notes = report.notes;
+        let mut resolve_notes = report.notes;
+        resolve_notes.extend(contribution_notes);
         let mods: Vec<LoadedMod> = load_order
             .iter()
             .filter_map(|name| {

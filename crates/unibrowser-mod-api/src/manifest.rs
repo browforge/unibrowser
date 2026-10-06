@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+use crate::contributes::ModContributes;
+
 /// Factorio-style mod manifest (`info.json`).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModManifest {
@@ -34,4 +36,6 @@ pub struct ModManifest {
     pub wasm_module: Option<String>,
     #[serde(default)]
     pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub contributes: Option<ModContributes>,
 }

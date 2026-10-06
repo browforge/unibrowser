@@ -1,0 +1,39 @@
+{
+  "name": "cmd-proving-toolbar",
+  "version": "0.1.0",
+  "title": "Command system proving toolbar",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "Sample mod toolbar contribution for CMD-09 evidence",
+  "capabilities": ["commands.capability.provide"],
+  "contributes": {
+    "toolbars": [
+      {
+        "id": "cmd-proving-toolbar.quick",
+        "label": "Markdown baseline",
+        "groups": ["cmd-proving-toolbar.baseline"],
+        "floatable": true,
+        "detachable": true
+      }
+    ],
+    "groups": [
+      {
+        "id": "cmd-proving-toolbar.baseline",
+        "label": "Baseline",
+        "controls": []
+      }
+    ],
+    "capability_providers": [
+      {
+        "id": "cmd-proving-toolbar.provider",
+        "families": ["unibrowser.family.text-formatting"],
+        "contexts": ["text/markdown"],
+        "runtime": "selection",
+        "priority": 10
+      }
+    ]
+  }
+}

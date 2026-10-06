@@ -298,6 +298,22 @@ body.cm-collapsed #command-manager {
   background: #20313e;
 }
 
+.cm-emulation-mark {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  border: 1px dotted var(--ub-fg-muted);
+  pointer-events: none;
+}
+
+.ui-command.emulated,
+.ui-command.split-button.emulated {
+  position: relative;
+}
+
 .cm-divider {
   width: 1px;
   height: 24px;

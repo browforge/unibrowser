@@ -1,0 +1,279 @@
+import { patchPictureInPictureCommand } from "../mediaPip";
+import { bindCommandTooltip } from "./commandTooltip";
+import { createLucideIcon, type LucideName } from "./lucideIcon";
+import { getEditorFontSizePt } from "../textEditor";
+import type { UiCommandDto } from "../commandManager";
+
+export type CapabilityDto =
+  | { state: "supported" }
+  | { state: "emulated"; provider_id: string; note: string }
+  | { state: "unsupported"; reason: string }
+  | { state: "hidden_by_user" }
+  | { state: "locked"; reason: string };
+
+export interface ResolvedControlDto {
+  control_id: string;
+  control_type: string;
+  command_ids: string[];
+  capability: CapabilityDto;
+  selection: string;
+  value: string | null;
+  label: string;
+  icon: string;
+  shortcut: string | null;
+  density_variant: string;
+  group_id: string;
+  family_id: string;
+}
+
+export interface ResolvedGroupDto {
+  group_id: string;
+  label: string;
+  overflow_priority: string;
+  controls: ResolvedControlDto[];
+}
+
+export interface ResolvedFamilyDto {
+  family_id: string;
+  label: string;
+  overflow_priority: string;
+  groups: ResolvedGroupDto[];
+}
+
+export function familiesToRenderGroups(
+  families: ResolvedFamilyDto[],
+): { name: string; priority: "normal" | "low"; controls: UiCommandDto[]; resolved: ResolvedGroupDto }[] {
+  const out: {
+    name: string;
+    priority: "normal" | "low";
+    commands: UiCommandDto[];
+    resolved: ResolvedGroupDto;
+  }[] = [];
+  for (const family of families) {
+    for (const group of family.groups) {
+      const priority = group.overflow_priority === "low" ? "low" : "normal";
+      const commands = group.controls.map(controlToLegacyCommand);
+      out.push({ name: group.label, priority, commands, resolved: group });
+    }
+  }
+  return out;
+}
+
+function controlToLegacyCommand(control: ResolvedControlDto): UiCommandDto {
+  const commandId = control.command_ids[0] ?? control.control_id;
+  const actionable = capabilityActionable(control.capability);
+  const reason = capabilityReason(control.capability);
+  return {
+    command_id: commandId,
+    title: control.label,
+    icon: control.icon,
+    enabled: actionable,
+    reason,
+  };
+}
+
+export function capabilityActionable(cap: CapabilityDto): boolean {
+  return cap.state === "supported" || cap.state === "emulated";
+}
+
+export function capabilityReason(cap: CapabilityDto): string | null {
+  switch (cap.state) {
+    case "unsupported":
+    case "locked":
+      return cap.reason;
+    case "emulated":
+      return cap.note;
+    default:
+      return null;
+  }
+}
+
+const ICON_MAP: Record<string, LucideName> = {
+  undo: "undo-2",
+  redo: "redo-2",
+  search: "search",
+  download: "download",
+  "spell-check": "spell-check",
+  "pen-line": "pen-line",
+  type: "type",
+  save: "save",
+  bold: "bold",
+  italic: "italic",
+  underline: "underline",
+  strikethrough: "strikethrough",
+  subscript: "subscript",
+  superscript: "superscript",
+  palette: "palette",
+  highlighter: "highlighter",
+  stamp: "stamp",
+  image: "image",
+};
+
+export function lucideForControlIcon(icon: string): LucideName {
+  return ICON_MAP[icon] ?? "file";
+}
+
+type RunCommand = (commandId: string) => Promise<void>;
+
+export function renderResolvedControl(
+  control: ResolvedControlDto,
+  onRun: RunCommand,
+  chordByCommand: Map<string, string>,
+  draggable: boolean,
+): HTMLElement {
+  const legacy = controlToLegacyCommand(control);
+  const patched = patchPictureInPictureCommand(legacy);
+  const actionable = capabilityActionable(control.capability);
+  const emulated = control.capability.state === "emulated";
+  const locked = control.capability.state === "locked";
+
+  if (control.control_type === "value_stepper") {
+    return renderValueStepper(control, patched, onRun, chordByCommand, actionable, emulated);
+  }
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.dataset.controlId = control.control_id;
+  btn.appendChild(createLucideIcon(lucideForControlIcon(control.icon), 16, "ub-icon svg-icon"));
+  const label = document.createElement("span");
+  label.className = "cm-cmd-label";
+  label.textContent = patched.title;
+  btn.appendChild(label);
+  if (emulated) {
+    const mark = document.createElement("span");
+    mark.className = "cm-emulation-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.title = capabilityReason(control.capability) ?? "";
+    btn.appendChild(mark);
+  }
+  btn.disabled = !actionable;
+  btn.className = [
+    "ui-command",
+    control.control_type === "toggle" ? "toggle" : "",
+    !actionable ? "disabled" : "",
+    emulated ? "emulated" : "",
+    locked ? "locked" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const chord = chordByCommand.get(patched.command_id) ?? null;
+  bindCommandTooltip(btn, {
+    title: patched.title,
+    reason: patched.enabled ? null : patched.reason,
+    chord,
+    enabled: patched.enabled,
+  });
+  if (actionable) {
+    btn.onclick = () => onRun(patched.command_id);
+  }
+  if (draggable) {
+    btn.draggable = true;
+    btn.dataset.commandId = patched.command_id;
+  }
+  return btn;
+}
+
+function renderValueStepper(
+  control: ResolvedControlDto,
+  patched: UiCommandDto,
+  onRun: RunCommand,
+  chordByCommand: Map<string, string>,
+  actionable: boolean,
+  emulated: boolean,
+): HTMLElement {
+  const split = document.createElement("button");
+  split.type = "button";
+  split.className = `ui-command split-button value-stepper${emulated ? " emulated" : ""}`;
+  split.dataset.controlId = control.control_id;
+  split.appendChild(createLucideIcon(lucideForControlIcon(control.icon), 16, "ub-icon svg-icon"));
+  const label = document.createElement("span");
+  label.className = "cm-cmd-label";
+  const pt = control.value ?? `${getEditorFontSizePt()} pt`;
+  label.textContent = pt;
+  split.appendChild(label);
+  if (emulated) {
+    const mark = document.createElement("span");
+    mark.className = "cm-emulation-mark";
+    mark.setAttribute("aria-hidden", "true");
+    split.appendChild(mark);
+  }
+  const caret = document.createElement("span");
+  caret.className = "split-caret";
+  caret.textContent = "v";
+  caret.setAttribute("aria-hidden", "true");
+  split.appendChild(caret);
+  const inc = control.command_ids.find((id) => id.includes("increase"));
+  const dec = control.command_ids.find((id) => id.includes("decrease"));
+  bindCommandTooltip(split, {
+    title: patched.title,
+    reason: patched.reason,
+    chord: chordByCommand.get(patched.command_id) ?? null,
+    enabled: actionable,
+  });
+  split.disabled = !actionable;
+  if (!actionable) {
+    split.classList.add("disabled");
+  } else {
+    split.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).classList.contains("split-caret")) {
+        e.stopPropagation();
+        if (inc) {
+          void onRun(inc);
+        } else if (dec) {
+          void onRun(dec);
+        }
+        return;
+      }
+      if (inc) {
+        void onRun(inc);
+      }
+    });
+  }
+  return split;
+}
+
+export function renderResolvedGroups(
+  container: HTMLElement,
+  groups: ReturnType<typeof familiesToRenderGroups>,
+  onRun: RunCommand,
+  chordByCommand: Map<string, string>,
+) {
+  container.innerHTML = "";
+  groups.forEach((group, index) => {
+    if (index > 0) {
+      const div = document.createElement("span");
+      div.className = "cm-divider";
+      div.setAttribute("aria-hidden", "true");
+      container.appendChild(div);
+    }
+    const wrap = document.createElement("div");
+    wrap.className = `cm-group priority-${group.priority}`;
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", group.name);
+    const tools = document.createElement("div");
+    tools.className = "cm-group-tools";
+    for (const control of group.resolved.controls) {
+      tools.appendChild(renderResolvedControl(control, onRun, chordByCommand, true));
+    }
+    const name = document.createElement("span");
+    name.className = "cm-group-name";
+    name.textContent = group.name;
+    wrap.appendChild(tools);
+    wrap.appendChild(name);
+    container.appendChild(wrap);
+  });
+}
+
+export function partitionFamiliesForOverflow(
+  groups: ReturnType<typeof familiesToRenderGroups>,
+  maxVisible: number,
+): { visible: ReturnType<typeof familiesToRenderGroups>; overflow: ReturnType<typeof familiesToRenderGroups> } {
+  if (groups.length <= maxVisible) {
+    return { visible: groups, overflow: [] };
+  }
+  const low = groups.filter((g) => g.priority === "low");
+  const normal = groups.filter((g) => g.priority !== "low");
+  const visible = normal.concat(low.slice(0, Math.max(0, maxVisible - normal.length)));
+  const overflow = groups.filter((g) => !visible.includes(g));
+  return { visible, overflow };
+}

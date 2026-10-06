@@ -132,6 +132,76 @@ impl CommandRegistry {
             aliases: &["diagnostics panel", "problems list"],
         });
         reg.register_command(CommandMeta {
+            id: commands::TEXT_BOLD,
+            title: "Bold",
+            icon: "bold",
+            default_keybinding: Some("Ctrl+B"),
+            aliases: &["strong", "emphasis bold"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_ITALIC,
+            title: "Italic",
+            icon: "italic",
+            default_keybinding: Some("Ctrl+I"),
+            aliases: &["emphasis italic"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_UNDERLINE,
+            title: "Underline",
+            icon: "underline",
+            default_keybinding: Some("Ctrl+U"),
+            aliases: &["underline text"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_STRIKETHROUGH,
+            title: "Strikethrough",
+            icon: "strikethrough",
+            default_keybinding: None,
+            aliases: &["strike"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_SUBSCRIPT,
+            title: "Subscript",
+            icon: "subscript",
+            default_keybinding: None,
+            aliases: &["sub"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_SUPERSCRIPT,
+            title: "Superscript",
+            icon: "superscript",
+            default_keybinding: None,
+            aliases: &["sup"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_COLOUR,
+            title: "Text colour",
+            icon: "palette",
+            default_keybinding: None,
+            aliases: &["text color", "font colour"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_FONT_FAMILY,
+            title: "Font",
+            icon: "type",
+            default_keybinding: None,
+            aliases: &["font family", "typeface"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::EDITOR_FONT_FAMILY,
+            title: "Editor font",
+            icon: "type",
+            default_keybinding: None,
+            aliases: &["monospace font", "code font"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::EDITOR_FONT_SIZE,
+            title: "Editor font size",
+            icon: "type",
+            default_keybinding: None,
+            aliases: &["code font size"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::DOCUMENT_UNDO,
             title: "Undo",
             icon: "undo",
