@@ -81,8 +81,11 @@ async function refresh() {
     empty.classList.remove("hidden");
     wrap.classList.add("hidden");
     detail.classList.add("hidden");
+    table.classList.add("hidden");
     return;
   }
+  table.classList.remove("hidden");
+  empty.classList.add("hidden");
 
   if (!filtered.length) {
     empty.textContent = "No problems match the current filters.";
