@@ -260,6 +260,8 @@ export async function setAiPanelVisible(visible: boolean) {
   prefs.panel_visible = visible;
   prefs.panel_docked = true;
   await invoke("set_ai_assistant_prefs", { prefs });
+  const { getActiveDockContext, rememberAiVisibleForContext } = await import("./contextDock");
+  rememberAiVisibleForContext(getActiveDockContext(), visible);
   if (panelEl) {
     panelEl.classList.toggle("hidden", !visible);
   }

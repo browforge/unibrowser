@@ -6,6 +6,7 @@ import { showActionToast } from "./toast";
 
 /** Hidden preset for docs screenshots (`UNIBROWSER_DEMO_STATE`, comma-separated). */
 export async function applyDemoState(raw: string) {
+  document.body.dataset.demoState = raw;
   const tokens = raw
     .split(/[,;]+/)
     .map((t) => t.trim().toLowerCase())
