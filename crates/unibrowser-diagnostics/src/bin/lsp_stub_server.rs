@@ -11,10 +11,26 @@ fn main() {
     while read_lsp_body(&mut lines, &mut buf) {
         let msg: serde_json::Value = serde_json::from_str(&buf).unwrap_or(serde_json::json!({}));
         if let Some(id) = msg.get("id").and_then(|v| v.as_i64()) {
+            let method = msg.get("method").and_then(|m| m.as_str());
+            let result = if method == Some("shutdown") {
+                serde_json::json!(null)
+            } else if method == Some("textDocument/hover") {
+                serde_json::json!({
+                    "contents": { "kind": "plaintext", "value": format!("stub hover: {}", opened_text.chars().take(40).collect::<String>()) }
+                })
+            } else if method == Some("textDocument/codeAction") {
+                serde_json::json!([{
+                    "title": "Stub quick fix",
+                    "kind": "quickfix",
+                    "edit": { "changes": {} }
+                }])
+            } else {
+                serde_json::json!({ "capabilities": {} })
+            };
             let resp = serde_json::json!({
                 "jsonrpc": "2.0",
                 "id": id,
-                "result": { "capabilities": {} }
+                "result": result
             });
             write_message(&mut stdout, &resp.to_string());
         }

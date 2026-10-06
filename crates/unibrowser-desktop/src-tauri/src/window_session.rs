@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use unibrowser_engine::TabManager;
 use unibrowser_mod_api::BrowserLocation;
 
+use crate::close_undo::CloseUndoStack;
 use crate::closed_tabs::ClosedTabStack;
 use crate::state::{FileCompareState, ImageCompareState, SplitViewState};
 use crate::undo_stack::UndoStacks;
@@ -13,6 +14,7 @@ use crate::undo_stack::UndoStacks;
 pub struct WindowSession {
     pub tabs: Mutex<TabManager>,
     pub closed_tabs: Mutex<ClosedTabStack>,
+    pub close_undo: Mutex<CloseUndoStack>,
     pub split_view: Mutex<SplitViewState>,
     pub undo_stacks: Mutex<UndoStacks>,
     pub file_compare: Mutex<Option<FileCompareState>>,
@@ -41,6 +43,7 @@ impl WindowSession {
         Self {
             tabs: Mutex::new(tab_mgr),
             closed_tabs: Mutex::new(ClosedTabStack::default()),
+            close_undo: Mutex::new(CloseUndoStack::default()),
             split_view: Mutex::new(SplitViewState::default()),
             undo_stacks: Mutex::new(UndoStacks::default()),
             file_compare: Mutex::new(None),

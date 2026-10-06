@@ -61,6 +61,10 @@ impl TabManager {
     }
 
     pub fn open_tab(&mut self, location: BrowserLocation) -> TabId {
+        self.insert_tab(self.tabs.len(), location)
+    }
+
+    pub fn insert_tab(&mut self, index: usize, location: BrowserLocation) -> TabId {
         let id = TabId(self.next_id);
         self.next_id += 1;
         let tab = Tab {
@@ -74,8 +78,9 @@ impl TabManager {
             reveal_line: None,
             muted: false,
         };
-        self.tabs.push(tab);
-        self.active = self.tabs.len() - 1;
+        let index = index.min(self.tabs.len());
+        self.tabs.insert(index, tab);
+        self.active = index;
         id
     }
 
@@ -284,6 +289,22 @@ impl TabManager {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn insert_tab_sets_active_index() {
+        let home = BrowserLocation::Internal {
+            page: "home".into(),
+        };
+        let mut tabs = TabManager::new_with_home(home);
+        tabs.insert_tab(
+            0,
+            BrowserLocation::File {
+                path: std::path::PathBuf::from("/tmp/a.txt"),
+            },
+        );
+        assert_eq!(tabs.active_index(), 0);
+        assert_eq!(tabs.tab_count(), 2);
+    }
+
     use super::*;
     use std::path::PathBuf;
     use unibrowser_mod_api::BrowserLocation;

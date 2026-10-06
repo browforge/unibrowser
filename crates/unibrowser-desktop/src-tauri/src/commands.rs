@@ -99,7 +99,6 @@ pub fn report_issue_page_url() -> String {
     })
 }
 
-const ERR_UNSAVED_CLOSE: &str = "unsaved: confirm close";
 
 #[derive(Serialize)]
 pub struct UiCommandDto {
@@ -347,6 +346,7 @@ pub struct TabContentDto {
     pub chrome_notice: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extension_tip: Option<ExtensionTipDto>,
+    pub close_undo_available: bool,
     pub ntp_sections: NtpSectionsDto,
     pub files_view: FilesViewDto,
     pub folder_favorites: Vec<String>,
@@ -1284,6 +1284,11 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         .map_err(|e| e.to_string())?
         .take();
     let extension_tip = scripting_extension_tip(tabs.active_tab(), &prefs);
+    let close_undo_available = sess
+        .close_undo
+        .lock()
+        .map(|s| s.peek_available())
+        .unwrap_or(false);
     let (git_is_repo, git_dirty_paths) =
         crate::git_status::status_for_folder(Path::new(&browse_folder_path));
     Ok(TabContentDto {
@@ -1328,6 +1333,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         pinned_locations,
         chrome_notice,
         extension_tip,
+        close_undo_available,
         ntp_sections: ntp_sections_dto(&prefs),
         files_view: files_view_dto(&prefs),
         folder_favorites: prefs.folder_favorites.clone(),
@@ -1594,7 +1600,7 @@ pub fn select_tab(window: tauri::Window,
 #[tauri::command]
 pub fn close_tab(window: tauri::Window, 
     index: usize,
-    force: bool,
+    _force: bool,
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
@@ -1604,31 +1610,34 @@ pub fn close_tab(window: tauri::Window,
         if index >= tabs.tab_count() {
             return Err("invalid tab index".into());
         }
-        if !force {
-            let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
-            if tab.pinned {
-                return Err("pinned: unpin tab before closing".into());
-            }
-            if tab_is_dirty(tab) {
-                return Err(ERR_UNSAVED_CLOSE.into());
-            }
+        let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
+        if tab.pinned {
+            return Err("pinned: unpin tab before closing".into());
         }
-        let closed_loc = tabs.tabs().get(index).map(|t| t.location.clone());
-        if force {
-            if let Some(tab) = tabs.tab_mut(index) {
-                if let Some(doc) = tab.document.as_mut() {
-                    let _ = write_active_text_autosave_slot(doc);
-                }
-            }
-        }
+        let was_dirty = tab_is_dirty(tab);
+        let closed_loc = tab.location.clone();
+        let autosave = if let Some(tab) = tabs.tab_mut(index) {
+            tab.document
+                .as_mut()
+                .and_then(|doc| flush_document_autosave(doc))
+        } else {
+            None
+        };
         if let Some(tab) = tabs.tabs().get(index) {
             _sess_tabs.purge_tab_resources(tab);
         }
         if !tabs.close_tab(index) {
             return Err("cannot close last tab".into());
         }
-        if let Some(loc) = closed_loc {
-            record_closed_tab(&_sess_tabs, loc);
+        record_closed_tab(&_sess_tabs, closed_loc.clone());
+        if was_dirty || autosave.is_some() {
+            if let Ok(mut undo) = _sess_tabs.close_undo.lock() {
+                undo.push(crate::close_undo::CloseUndoEntry {
+                    location: closed_loc,
+                    insert_index: index,
+                    autosave,
+                });
+            }
         }
     }
     let loc = {
@@ -1639,6 +1648,36 @@ pub fn close_tab(window: tauri::Window,
             .map(|t| t.location.clone())
             .ok_or("no tab")?
     };
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn undo_close_tab(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let _sess_tabs = ws(&state, &window)?;
+    let entry = _sess_tabs
+        .close_undo
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take()
+        .ok_or("nothing to undo")?;
+    let (loc, is_dir, doc) = state.resolve_location(entry.location.clone());
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let insert_at = entry.insert_index.min(tabs.tab_count());
+    tabs.insert_tab(insert_at, loc.clone());
+    if let Some(tab) = tabs.tab_mut(insert_at) {
+        tab.is_directory = is_dir;
+        tab.document = doc;
+        tab.location = loc.clone();
+        if let (Some(doc), Some(record)) = (tab.document.as_mut(), entry.autosave.as_ref()) {
+            let _ = apply_autosave_record(doc, record);
+        }
+    }
+    tabs.set_active(insert_at);
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
 }
@@ -3352,18 +3391,34 @@ fn close_tabs_relative(
         if tab.pinned {
             continue;
         }
-        if tab_is_dirty(tab) {
-            continue;
-        }
         let closed_loc = tab.location.clone();
-        _sess_tabs.purge_tab_resources(tab);
+        let was_dirty = tab_is_dirty(tab);
+        let autosave = if let Some(tab) = tabs.tab_mut(index) {
+            tab.document
+                .as_mut()
+                .and_then(|doc| flush_document_autosave(doc))
+        } else {
+            None
+        };
+        if let Some(tab) = tabs.tabs().get(index) {
+            _sess_tabs.purge_tab_resources(tab);
+        }
         if tabs.close_tab(index) {
-            record_closed_tab(&_sess_tabs, closed_loc);
+            record_closed_tab(&_sess_tabs, closed_loc.clone());
+            if was_dirty || autosave.is_some() {
+                if let Ok(mut undo) = _sess_tabs.close_undo.lock() {
+                    undo.push(crate::close_undo::CloseUndoEntry {
+                        location: closed_loc,
+                        insert_index: index,
+                        autosave,
+                    });
+                }
+            }
             closed += 1;
         }
     }
     if closed == 0 {
-        return Err("Could not close tabs (pinned or unsaved)".into());
+        return Err("Could not close tabs (pinned only)".into());
     }
     let loc = tabs
         .active_tab()
@@ -3424,6 +3479,12 @@ fn execute_command_impl(
     }
     if command_id == unibrowser_mod_api::commands::REOPEN_CLOSED_TAB {
         return reopen_closed_tab(&window, &app, &state);
+    }
+    if command_id == unibrowser_mod_api::commands::RESTORE_AUTOSAVE {
+        return Ok("autosave-restore-prompt".into());
+    }
+    if command_id == unibrowser_mod_api::commands::TOGGLE_PROBLEMS_PANEL {
+        return Ok("problems-panel-toggle".into());
     }
     if command_id == unibrowser_mod_api::commands::TOGGLE_TAB_MUTE {
         return toggle_active_tab_muted(&window, &app, &state);
@@ -5976,6 +6037,29 @@ pub fn list_autosave_slots_for_active_tab(
 }
 
 #[tauri::command]
+pub fn restore_autosave_from_slot(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+    slot_path: String,
+) -> Result<TabContentDto, String> {
+    let text = std::fs::read_to_string(&slot_path).map_err(|e| e.to_string())?;
+    let record: crate::autosave::AutosaveSlotRecord =
+        serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+    let doc = tab.document.as_mut().ok_or("no document")?;
+    if doc.path != record.document_path {
+        return Err("autosave slot is for a different document".into());
+    }
+    apply_autosave_record(doc, &record)?;
+    let loc = tab.location.clone();
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
 pub fn restore_latest_autosave_for_active_tab(
     window: tauri::Window,
     app: AppHandle,
@@ -6008,23 +6092,84 @@ pub fn restore_latest_autosave_for_active_tab(
     snapshot(&state, window.label())
 }
 
-fn write_active_text_autosave_slot(doc: &mut DocumentSession) -> Result<(), String> {
+fn flush_document_autosave(doc: &mut DocumentSession) -> Option<crate::autosave::AutosaveSlotRecord> {
+    if !doc.backend.is_dirty() {
+        return None;
+    }
     let path = doc.path.clone();
     let backend_id = doc.backend.backend_id().to_string();
     let content = if backend_id == base_text::BACKEND_ID {
-        base_text::try_text_backend(&mut *doc.backend)
-            .map(|b| b.content.clone())
+        base_text::try_text_backend(&mut *doc.backend).map(|b| b.content.clone())
     } else if backend_id == base_js::BACKEND_ID {
         base_js::try_js_backend(&mut *doc.backend).map(|b| b.content.clone())
     } else if backend_id == base_svg::BACKEND_ID {
         base_svg::try_svg_backend(&mut *doc.backend).map(|b| b.content.clone())
+    } else if backend_id == crate::project_backend::BACKEND_ID {
+        crate::project_backend::try_unibrow_backend(&mut *doc.backend).and_then(|ub| {
+            serde_json::to_string(&ub.package.manifest).ok()
+        })
+    } else if backend_id == base_docx::BACKEND_ID {
+        base_docx::try_docx_backend(&mut *doc.backend).map(|b| {
+            serde_json::json!({
+                "path": b.path,
+                "reader_font_pt": b.reader_font_pt,
+                "font_dirty": b.font_dirty,
+            })
+            .to_string()
+        })
+    } else if backend_id == base_png::BACKEND_ID {
+        base_png::try_png_backend(&mut *doc.backend).map(|b| {
+            serde_json::json!({
+                "path": path,
+                "text_layer": b.text_layer.as_ref().map(|t| t.label.clone()),
+                "font_pt": b.text_layer.as_ref().map(|t| t.font_size_pt),
+            })
+            .to_string()
+        })
     } else {
         None
     };
     if let Some(text) = content {
-        if !text.is_empty() {
-            crate::autosave::write_document_autosave_slot(&path, &backend_id, &text)?;
+        if text.is_empty() {
+            return None;
         }
+        crate::crash_recovery::maybe_backup_dirty(&path, &backend_id, &text);
+        if let Ok(slot_path) =
+            crate::autosave::write_document_autosave_slot(&path, &backend_id, &text)
+        {
+            let saved = std::fs::read_to_string(&slot_path).ok();
+            return saved.and_then(|s| serde_json::from_str(&s).ok());
+        }
+    }
+    None
+}
+
+fn write_active_text_autosave_slot(doc: &mut DocumentSession) -> Result<(), String> {
+    flush_document_autosave(doc);
+    Ok(())
+}
+
+fn apply_autosave_record(doc: &mut DocumentSession, record: &crate::autosave::AutosaveSlotRecord) -> Result<(), String> {
+    if record.backend_id != doc.backend.backend_id() {
+        return Err("autosave backend mismatch".into());
+    }
+    if record.backend_id == base_text::BACKEND_ID {
+        let backend = try_text_backend(&mut *doc.backend).ok_or("not text")?;
+        backend.set_content(record.content.clone());
+    } else if record.backend_id == base_js::BACKEND_ID {
+        let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not js")?;
+        backend.set_content(record.content.clone());
+    } else if record.backend_id == base_svg::BACKEND_ID {
+        let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not svg")?;
+        backend.set_content(record.content.clone());
+    } else if record.backend_id == crate::project_backend::BACKEND_ID {
+        let backend =
+            crate::project_backend::try_unibrow_backend(&mut *doc.backend).ok_or("not unibrow")?;
+        let manifest: unibrowser_project::ProjectManifest =
+            serde_json::from_str(&record.content).map_err(|e| e.to_string())?;
+        backend.package.manifest = manifest;
+    } else {
+        return Err("restore not supported for this backend".into());
     }
     Ok(())
 }

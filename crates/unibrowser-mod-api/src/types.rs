@@ -144,4 +144,6 @@ pub mod commands {
     pub const PROOFING_TOGGLE: &str = "unibrowser.proofing.toggle";
     pub const PROOFING_NEXT: &str = "unibrowser.proofing.nextProblem";
     pub const PROOFING_PREVIOUS: &str = "unibrowser.proofing.previousProblem";
+    pub const RESTORE_AUTOSAVE: &str = "unibrowser.autosave.restore";
+    pub const TOGGLE_PROBLEMS_PANEL: &str = "unibrowser.problems.toggle";
 }

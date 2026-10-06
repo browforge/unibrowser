@@ -7,4 +7,5 @@ license.workspace = true
 [dependencies]
 unibrowser-diagnostics = { path = "../../crates/unibrowser-diagnostics" }
 unibrowser-engine = { path = "../../crates/unibrowser-engine" }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

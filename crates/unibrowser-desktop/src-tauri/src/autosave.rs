@@ -30,7 +30,7 @@ fn touch_last_autosave() -> u64 {
     now
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutosaveSlotRecord {
     pub document_path: String,
     pub backend_id: String,

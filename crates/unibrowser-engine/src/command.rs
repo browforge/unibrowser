@@ -104,6 +104,20 @@ impl CommandRegistry {
             aliases: &["previous spelling error"],
         });
         reg.register_command(CommandMeta {
+            id: commands::RESTORE_AUTOSAVE,
+            title: "Restore from autosave…",
+            icon: "history",
+            default_keybinding: None,
+            aliases: &["recover autosave", "autosave slot"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TOGGLE_PROBLEMS_PANEL,
+            title: "Toggle problems panel",
+            icon: "warning",
+            default_keybinding: None,
+            aliases: &["diagnostics panel", "problems list"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::DOCUMENT_UNDO,
             title: "Undo",
             icon: "undo",

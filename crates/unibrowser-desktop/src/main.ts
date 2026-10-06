@@ -40,7 +40,8 @@ import {
 } from "./fullscreenContent";
 import { initNotificationCenter } from "./notifications";
 import { tryMediaPictureInPicture } from "./mediaPip";
-import { invokeWithToast, showErrorToast, showToast } from "./toast";
+import { invokeWithToast, showActionToast, showErrorToast, showToast } from "./toast";
+import { initProblemsPanel, toggleProblemsPanel } from "./problemsPanel";
 import {
   bindStatusBar,
   patchStatusCursor,
@@ -218,6 +219,7 @@ interface TabContentDto {
   image_compare_view?: ImageCompareViewDto | null;
   pinned_locations: PinnedLocationDto[];
   chrome_notice?: string | null;
+  close_undo_available?: boolean;
   extension_tip?: {
     message: string;
     mod_id: string;
@@ -1428,6 +1430,14 @@ async function processCommandResult(msg: string, commandId?: string) {
     toggleTabSearch();
     return;
   }
+  if (msg === "autosave-restore-prompt") {
+    void openAutosaveRestorePicker();
+    return;
+  }
+  if (msg === "problems-panel-toggle") {
+    toggleProblemsPanel();
+    return;
+  }
   if (msg === "workspace-quick-open") {
     toggleWorkspaceQuickOpen();
     return;
@@ -1759,6 +1769,36 @@ async function selectTab(index: number) {
   await refreshState();
 }
 
+async function openAutosaveRestorePicker() {
+  const slots = await invoke<{ path: string; saved_at_ms: number }[]>(
+    "list_autosave_slots_for_active_tab",
+  ).catch(() => []);
+  if (slots.length === 0) {
+    showToast(t("autosave.noSlots"), "info");
+    return;
+  }
+  const labels = slots.map((s) => {
+    const when = new Date(s.saved_at_ms).toLocaleString();
+    return `${when} — ${s.path.split("/").pop() ?? s.path}`;
+  });
+  const pick = window.prompt(`${t("autosave.pickSlot")}\n${labels.join("\n")}`, "0");
+  if (pick === null) {
+    return;
+  }
+  const idx = Number.parseInt(pick, 10);
+  const slot = slots[Number.isNaN(idx) ? 0 : idx] ?? slots[0];
+  const data = await invoke<TabContentDto>("restore_autosave_from_slot", {
+    slotPath: slot.path,
+  }).catch((e) => {
+    showErrorToast(e);
+    return undefined;
+  });
+  if (data) {
+    await applyState(data);
+    showToast(t("autosave.restoreDone"), "info");
+  }
+}
+
 async function activateTabHit(hit: TabSearchHit) {
   await textEditor.flush();
   await invoke("activate_tab_in_window", {
@@ -1768,22 +1808,22 @@ async function activateTabHit(hit: TabSearchHit) {
   await refreshState();
 }
 
-async function closeTabAt(index: number, dirty: boolean) {
+async function closeTabAt(index: number, _dirty: boolean) {
   await textEditor.flush();
-  if (dirty) {
-    try {
-      await invoke("auto_save_active_document");
-    } catch {
-      /* best-effort slot before close */
-    }
+  try {
+    await invoke("auto_save_active_document");
+  } catch {
+    /* best-effort slot before close */
   }
   const data = await invokeWithToast(
     () => invoke<TabContentDto>("close_tab", { index, force: true }),
     "Could not close tab",
   );
   if (data) {
-    if (dirty) {
-      showToast(t("tabs.closedReopenHint"), "info");
+    if (data.close_undo_available) {
+      showActionToast(t("tabs.closedUndo"), t("tabs.undo"), () => {
+        void invoke<TabContentDto>("undo_close_tab").then((d) => d && applyState(d));
+      });
     }
     await applyState(data);
   }
@@ -2319,6 +2359,7 @@ function deferNonCriticalInit(fn: () => void) {
 
 initScriptOutputPanel();
 initTerminalPanel();
+initProblemsPanel();
 initAiAssistantPanel();
 initKeysOverlay();
 window.addEventListener("unibrowser-prefs-changed", () => {

@@ -6,6 +6,10 @@ All notable changes during the **36h blitz** on `main` are listed here. Format l
 
 ### Added (latest)
 
+- **Close tab (no modal):** Default close path (Ctrl+W, middle-click, close others) flushes autosave, closes dirty tabs, **Closed — Undo** toast; `undo_close_tab`; retired `unsaved: confirm close`.
+- **Autosave palette + crash flush:** **Restore from autosave…** lists timestamped slots; close flush backs up DOCX/PNG/unibrow JSON via crash-recovery path.
+- **LSP + Problems:** Extended stdio client; dockable Problems panel (filter severity/source); proofing merges LSP diagnostics; VSIX `languageServers` → Partial badge.
+- **Video checker:** `.unibrow` title-card spelling, audio clipping, ffmpeg blackdetect hints with timeline locators in Problems.
 - **Proofing + sacred save:** Harper grammar wired to prefs; DXF/unibrow checkers in host; Settings proofing dictionary add/remove; autosave slot list + restore latest (Settings); sacred-save audit doc updated; force-close writes autosave slot.
 - **Live from project:** `scene_from_unibrow_manifest` drives live preview and `record_unibrow_live_clip`; unit test for title clips.
 - **AI sidebar (grants + chat):** Full grants table (Read/Write/Ask × global/workspace/file type/site, revoke); streaming chat via Tauri events; `gatherProjectionExtras` (EPUB chapter, PDF page text, DOCX preview); `docx_preview_text` in projection DTO.

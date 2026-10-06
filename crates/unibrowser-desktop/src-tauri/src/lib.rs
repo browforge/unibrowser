@@ -33,7 +33,7 @@ mod paths;
 mod web_font_prefs;
 mod web_zoom_prefs;
 mod web_reader_prefs;
-mod autosave;
+pub mod autosave;
 mod crash_recovery;
 mod crash_log;
 mod process_status;
@@ -59,6 +59,9 @@ mod dir_search;
 mod listing_control;
 mod trash;
 mod closed_tabs;
+mod close_undo;
+mod lsp_host;
+mod problems_store;
 pub mod window_session;
 mod workspace_layouts;
 mod workspace_tree;
@@ -139,6 +142,7 @@ pub fn run() {
             commands::toggle_tab_pin,
             commands::toggle_tab_mute,
             commands::close_tab,
+            commands::undo_close_tab,
             commands::search_open_tabs,
             commands::activate_tab_in_window,
             commands::open_crash_logs_folder,
@@ -319,6 +323,9 @@ pub fn run() {
             commands::get_autosave_status,
             commands::list_autosave_slots_for_active_tab,
             commands::restore_latest_autosave_for_active_tab,
+            commands::restore_autosave_from_slot,
+            proofing::list_problems_panel,
+            proofing::proofing_check_unibrow_project,
             commands::pick_and_compare,
             commands::close_file_compare,
             commands::pick_and_compare_images,

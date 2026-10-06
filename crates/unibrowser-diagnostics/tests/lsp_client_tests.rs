@@ -24,4 +24,9 @@ fn lsp_client_receives_publish_diagnostics_from_stub() {
         .expect("diagnostics");
     assert!(!problems.is_empty());
     assert!(problems[0].message.contains("stub"));
+    let hover = client.hover("file:///test.txt", 0, 0).expect("hover");
+    assert!(hover.unwrap_or_default().contains("stub"));
+    let fixes = client.code_action_quick_fix("file:///test.txt", 0, 0).expect("codeAction");
+    assert!(!fixes.is_empty());
+    client.shutdown().expect("shutdown");
 }

@@ -42,6 +42,43 @@ export function friendlyErrorMessage(err: unknown, fallback?: string): string {
   return fallback ?? t("toast.errorDefault");
 }
 
+export function showActionToast(
+  message: string,
+  actionLabel: string,
+  onAction: () => void,
+  kind: "error" | "info" = "info",
+) {
+  pushNotification(message, kind);
+  const host = document.getElementById("toast-host");
+  if (!host) {
+    return;
+  }
+  host.classList.remove("hidden", "toast-error", "toast-info");
+  host.classList.add(kind === "error" ? "toast-error" : "toast-info");
+  host.innerHTML = "";
+  const msg = document.createElement("span");
+  msg.className = "toast-message";
+  msg.textContent = message;
+  host.appendChild(msg);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "toast-action";
+  btn.textContent = actionLabel;
+  btn.onclick = () => {
+    onAction();
+    host.classList.add("hidden");
+    host.innerHTML = "";
+  };
+  host.appendChild(btn);
+  if (timer) {
+    clearTimeout(timer);
+  }
+  timer = setTimeout(() => {
+    host.classList.add("hidden");
+    host.innerHTML = "";
+  }, 12_000);
+}
+
 export function showToast(
   message: string,
   kind: "error" | "info" = "error",

@@ -147,7 +147,49 @@ pub fn proofing_check(
         code_mode,
     };
     let doc_uri = format!("unibrowser://proofing/{}", req.surface);
-    let problems = h.check_text_document(&doc_uri, &req.text, &ctx);
+    let mut problems = h.check_text_document(&doc_uri, &req.text, &ctx);
+    if let Ok(lsp_problems) = crate::lsp_host::lsp_check_text_cached(
+        &state.cwd,
+        &doc_uri,
+        &ctx.language_id,
+        &req.text,
+    ) {
+        problems.extend(lsp_problems);
+    }
+    crate::problems_store::set_problems(problems.clone());
+    Ok(problems.iter().filter_map(dto).collect())
+}
+
+#[tauri::command]
+pub fn list_problems_panel(
+    severity: Option<String>,
+    source: Option<String>,
+) -> Result<Vec<crate::problems_store::ProblemDto>, String> {
+    let items = crate::problems_store::all_problems();
+    Ok(items
+        .iter()
+        .filter(|p| {
+            severity.as_ref().map_or(true, |s| {
+                crate::problems_store::problem_to_dto(p).severity == *s
+            })
+        })
+        .filter(|p| {
+            source.as_ref().map_or(true, |s| p.source.contains(s))
+        })
+        .map(crate::problems_store::problem_to_dto)
+        .collect())
+}
+
+#[tauri::command]
+pub fn proofing_check_unibrow_project(
+    state: State<AppState>,
+    project_json: String,
+) -> Result<Vec<DiagnosticDto>, String> {
+    let h = host()?;
+    let mut h = h.lock().map_err(|e| e.to_string())?;
+    h.set_dictionary(reload_dictionary_snapshot(&state.cwd));
+    let problems = h.check_unibrow(&project_json);
+    crate::problems_store::set_problems(problems.clone());
     Ok(problems.iter().filter_map(dto).collect())
 }
 

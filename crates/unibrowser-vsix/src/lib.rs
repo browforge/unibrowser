@@ -390,6 +390,18 @@ struct Contributes {
     themes: Vec<ThemeContrib>,
     #[serde(default)]
     grammars: Vec<GrammarContrib>,
+    #[serde(default, rename = "languageServers")]
+    language_servers: Vec<LanguageServerContrib>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct LanguageServerContrib {
+    #[serde(default)]
+    language: Option<String>,
+    #[serde(default)]
+    command: Option<String>,
+    #[serde(default)]
+    args: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -415,6 +427,12 @@ struct InstallCompatibility {
     missing_apis: Vec<String>,
 }
 
+fn read_package_json(install_dir: &Path) -> Option<PackageJson> {
+    let path = install_dir.join("extension").join("package.json");
+    let data = fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&data).ok()
+}
+
 fn compatibility_for_install(install_dir: &Path) -> InstallCompatibility {
     let main_rel = read_extension_main(install_dir);
     let mut source = String::new();
@@ -425,7 +443,12 @@ fn compatibility_for_install(install_dir: &Path) -> InstallCompatibility {
         }
     }
     let report = unibrowser_extension_host::compatibility_report(&source);
+    let has_lsp = read_package_json(install_dir)
+        .and_then(|p| p.contributes)
+        .map(|c| !c.language_servers.is_empty())
+        .unwrap_or(false);
     let level = match report.level {
+        unibrowser_extension_host::CompatibilityLevel::Works if has_lsp => "partial",
         unibrowser_extension_host::CompatibilityLevel::Works => "works",
         unibrowser_extension_host::CompatibilityLevel::Partial => "partial",
         unibrowser_extension_host::CompatibilityLevel::Unsupported => "unsupported",

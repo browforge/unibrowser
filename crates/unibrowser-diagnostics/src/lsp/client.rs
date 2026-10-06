@@ -96,6 +96,73 @@ impl LspClient {
         Err("no publishDiagnostics".into())
     }
 
+    pub fn shutdown(&mut self) -> Result<(), String> {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.send(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": "shutdown",
+            "params": null
+        }))?;
+        let _ = self.read_message_until_id(id)?;
+        self.notify("exit", serde_json::json!({}))?;
+        Ok(())
+    }
+
+    pub fn hover(&mut self, uri: &str, line: u32, character: u32) -> Result<Option<String>, String> {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.send(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": "textDocument/hover",
+            "params": {
+                "textDocument": { "uri": uri },
+                "position": { "line": line, "character": character }
+            }
+        }))?;
+        let msg = self.read_message_until_id(id)?;
+        let contents = msg
+            .pointer("/result/contents/value")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        Ok(contents)
+    }
+
+    pub fn code_action_quick_fix(
+        &mut self,
+        uri: &str,
+        line: u32,
+        character: u32,
+    ) -> Result<Vec<String>, String> {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.send(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": "textDocument/codeAction",
+            "params": {
+                "textDocument": { "uri": uri },
+                "range": {
+                    "start": { "line": line, "character": character },
+                    "end": { "line": line, "character": character }
+                },
+                "context": { "diagnostics": [] }
+            }
+        }))?;
+        let msg = self.read_message_until_id(id)?;
+        let mut titles = Vec::new();
+        if let Some(arr) = msg.pointer("/result").and_then(|v| v.as_array()) {
+            for item in arr {
+                if let Some(title) = item.get("title").and_then(|t| t.as_str()) {
+                    titles.push(title.to_string());
+                }
+            }
+        }
+        Ok(titles)
+    }
+
     fn send(&mut self, value: &Value) -> Result<(), String> {
         let body = serde_json::to_string(value).map_err(|e| e.to_string())?;
         write_message(&mut self.stdin, &body)?;

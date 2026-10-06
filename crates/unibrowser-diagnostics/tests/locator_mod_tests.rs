@@ -14,7 +14,7 @@ fn dxf_locator_diagnostic() {
 fn timeline_locator_diagnostic() {
     let mut host = DiagnosticsHost::new();
     host.register_checker(Box::new(UnibrowChecker));
-    let json = r#"{"clips":[{"title_text":"wrng title"}]}"#;
+    let json = r#"{"timeline":{"clips":[{"id":"c1","label":"t","title_text":"wrng title"}]}}"#;
     let problems = host.check_unibrow(json);
     assert!(problems.iter().any(|p| matches!(
         p.locator,

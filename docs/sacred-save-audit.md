@@ -12,7 +12,8 @@ Use this when adding save paths, validators, or export gates.
 | Autosave never overwrites the user's primary file | **Pass** |
 | Untitled buffers: picker only on explicit Save; path under config autosave | **Pass** |
 | Close tab: best-effort flush to autosave slot (force close) | **Pass** (text/SVG/JS backends) |
-| Restore from autosave slot | **Partial** — Settings **Restore latest autosave** + `list_autosave_slots_for_active_tab`; palette command still TODO |
+| Restore from autosave slot | **Shipped** — palette **Restore from autosave…** + Settings restore latest |
+| Close dirty tab | **Shipped** — no modal; autosave flush; **Closed — Undo** toast reopens tab with slot content |
 | Export / encode failures do not block document save | **Pass** |
 
 Tests: `crates/unibrowser-fs`, `crates/unibrowser-desktop/src-tauri/src/autosave.rs`, project save tests in `unibrowser-project`.
