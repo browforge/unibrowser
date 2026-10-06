@@ -129,6 +129,23 @@ async function refreshPanel() {
     return;
   }
 
+  if (prefs.grants.length > 0) {
+    const grantsWrap = document.createElement("div");
+    grantsWrap.className = "ai-assistant-grants";
+    const grantsTable = document.createElement("div");
+    grantsTable.className = "ai-grants-table";
+    for (const g of prefs.grants) {
+      const row = document.createElement("div");
+      row.className = "ai-grants-row";
+      row.textContent = `${g.permission} · ${g.scope_kind}${
+        g.scope_value ? ` (${g.scope_value})` : ""
+      }`;
+      grantsTable.appendChild(row);
+    }
+    grantsWrap.appendChild(grantsTable);
+    body.appendChild(grantsWrap);
+  }
+
   const chatLog = document.createElement("div");
   chatLog.className = "ai-assistant-chat-log";
   for (const msg of chatMessages) {

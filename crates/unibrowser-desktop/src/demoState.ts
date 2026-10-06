@@ -24,11 +24,30 @@ export async function applyDemoState(raw: string) {
       case "ai":
       case "ai-sidebar":
       case "ai-open":
+        await invoke("set_ai_assistant_prefs", {
+          prefs: {
+            base_url: "mock://unibrowser-self-test",
+            model: "docs",
+            api_key: null,
+            grants: [
+              { permission: "read", scope_kind: "global", scope_value: null },
+              { permission: "ask", scope_kind: "workspace", scope_value: "/workspace" },
+            ],
+            panel_visible: true,
+            panel_x: 24,
+            panel_y: 96,
+            panel_docked: false,
+          },
+        });
         await setAiPanelVisible(true);
         break;
       case "live":
       case "live-preview":
-        document.querySelector<HTMLElement>(".unibrow-live-preview")?.classList.remove("hidden");
+        try {
+          await invoke("set_unibrow_live_mode", { enabled: true });
+        } catch {
+          /* unibrow tab may not be active yet */
+        }
         break;
       case "vsix":
       case "vsix-badge":

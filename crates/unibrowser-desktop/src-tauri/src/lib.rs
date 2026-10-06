@@ -1,4 +1,5 @@
 mod commands;
+mod tabs_mutex;
 mod self_test;
 mod launch_args;
 mod proofing;

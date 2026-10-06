@@ -103,6 +103,7 @@ import {
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
 import { applyDemoState } from "./demoState";
+import { waitForShellPaintReady } from "./shellPaintReady";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
@@ -2448,7 +2449,8 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         if (!wantsAi) {
           await setAiPanelVisible(false);
         }
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const demoRaw = await invoke<string | null>("get_demo_state");
+        await waitForShellPaintReady(demoRaw, launchPaths);
         await invoke("finish_doc_capture_and_exit");
       }
       void maybePromptProjectRecovery((data) => {

@@ -10,9 +10,9 @@ Use this page for weekly status posts. Capability tables in [README.md](../READM
 
 **Try first:** `./scripts/e2e.sh` on Linux (xvfb; **in-app self-test**, no WebDriver). Optional WDIO: `E2E_WDIO=1 ./scripts/e2e.sh`. `cargo test --workspace` and `npm run build` stay green.
 
-**Top wins this slice:** **`--self-test <scenario|all> --report out.json`** (Rust runner + per-scenario PNGs, no WebDriver deadlock on file opens); `./scripts/self-test.sh` **3× green** on full `all` under xvfb; `./scripts/e2e.sh` defaults to self-test; **`--doc-capture`** for README shots via shell webview; release shell diagnosis + resilient `shellBootstrap`.
+**Top wins this slice:** **Tabs mutex deadlock audit** (`TabsMutex` + [concurrency.md](concurrency.md), clone-out/drop-guard across commands); **`--self-test`** now **10 scenarios** (adds **live-preview** + **ai-sidebar** with `mock://unibrowser-self-test`); `./scripts/self-test.sh` **3× green**; doc screenshots **poll for paint** (Monaco, NTP, LIVE badge, AI grants) before `--doc-capture`; AI sidebar shows read-only grants table when configured.
 
-**Top gaps (honest):** WDIO remains optional and flaky on cloud VMs. Doc captures still depend on demo presets and timing — re-run `./scripts/capture-docs-screenshots.sh` after UI changes.
+**Top gaps (honest):** WDIO remains optional and flaky on cloud VMs. Live preview PNG in docs still depends on compositor timing on slow VMs.
 
 **Decisions for you:** Create GitHub org **`browbridge`** and bot **`furrowed-dev`** for split mods/registry (see [docs/repo-layout.md](repo-layout.md)); wire `./scripts/e2e.sh` into CI when Origin runs workflows.
 

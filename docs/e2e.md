@@ -27,9 +27,11 @@ target/release/unibrowser-desktop --self-test <scenario|all> --report out.json
 | `close-undo` | Close dirty tab + undo |
 | `cm-grey-tab-switch` | Disabled commands on image tab |
 | `unibrow-blank-save` | Blank `.unibrow` autosave |
-| `all` | All eight scenarios in order |
+| `live-preview` | Open demo `.unibrow`, enable live mode, assert `live_mode` |
+| `ai-sidebar` | Mock AI endpoint, grants prefs, `test_ai_connection`, panel configured |
+| `all` | All ten scenarios in order |
 
-`scripts/self-test.sh` runs `all` **3×** under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). The Rust runner skips `browser-state-updated` events during self-test so file opens do not deadlock the UI thread.
+`scripts/self-test.sh` runs `all` **3×** under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). The Rust runner skips `browser-state-updated` events during self-test so file opens do not deadlock the UI thread. Tab mutex re-entrancy is rejected in debug builds; see [concurrency.md](concurrency.md).
 
 Environment:
 
@@ -52,7 +54,7 @@ See `e2e/wdio.conf.ts`, `docs/diagnose-release-shell.sh` (blank shell vs WDIO).
 ./scripts/capture-docs-screenshots.sh
 ```
 
-Uses `UNIBROWSER_DEMO_STATE` presets under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`).
+Uses `UNIBROWSER_DEMO_STATE` presets under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). The shell waits for Monaco / NTP / live badge paint before `--doc-capture` PNG write.
 
 ## CI note
 

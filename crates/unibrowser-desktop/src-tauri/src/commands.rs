@@ -1215,6 +1215,7 @@ fn tab_is_new_tab_home(tab: &unibrowser_engine::tabs::Tab) -> bool {
 }
 
 fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, String> {
+    crate::tabs_mutex::assert_tabs_lock_free();
     state.refresh_command_manager_context(window_label);
     let sess = ws_label(state, window_label)?;
     let mut tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
@@ -1568,19 +1569,21 @@ fn reopen_active_file_mode(
     mode: crate::state::FileOpenMode,
 ) -> Result<TabContentDto, String> {
     let _sess = ws_state(state, window)?;
-    let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.active_tab_mut().ok_or("no tab")?;
-    let path = match &tab.location {
-        BrowserLocation::File { path } => path.clone(),
-        _ => return Err("not a file tab".into()),
-    };
-    if !path.is_file() {
-        return Err("not a file".into());
+    {
+        let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no tab")?;
+        let path = match &tab.location {
+            BrowserLocation::File { path } => path.clone(),
+            _ => return Err("not a file tab".into()),
+        };
+        if !path.is_file() {
+            return Err("not a file".into());
+        }
+        let doc = crate::state::open_file_document_with_mode(&path, mode)
+            .ok_or("could not open file")?;
+        tab.document = Some(doc);
+        tab.is_directory = false;
     }
-    let doc = crate::state::open_file_document_with_mode(&path, mode)
-        .ok_or("could not open file")?;
-    tab.document = Some(doc);
-    tab.is_directory = false;
     snapshot(state, window.label())
 }
 
@@ -1719,9 +1722,11 @@ pub fn reorder_tabs(
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    if !tabs.move_tab(from_index, to_index) {
-        return Err("invalid tab reorder".into());
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        if !tabs.move_tab(from_index, to_index) {
+            return Err("invalid tab reorder".into());
+        }
     }
     snapshot(&state, window.label())
 }
@@ -1733,14 +1738,16 @@ pub fn toggle_tab_pin(
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let pinned = tabs
-        .tabs()
-        .get(index)
-        .map(|t| t.pinned)
-        .ok_or("invalid tab")?;
-    if !tabs.set_tab_pinned(index, !pinned) {
-        return Err("invalid tab".into());
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let pinned = tabs
+            .tabs()
+            .get(index)
+            .map(|t| t.pinned)
+            .ok_or("invalid tab")?;
+        if !tabs.set_tab_pinned(index, !pinned) {
+            return Err("invalid tab".into());
+        }
     }
     snapshot(&state, window.label())
 }
@@ -1788,12 +1795,14 @@ pub fn activate_tab_in_window(
     state: State<AppState>,
 ) -> Result<(), String> {
     let sess = ws_label(&state, &window_label)?;
-    let mut tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.set_active(tab_index);
-    let loc = tabs
-        .active_tab()
-        .map(|t| t.location.clone())
-        .ok_or("no tab")?;
+    let loc = {
+        let mut tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.set_active(tab_index);
+        tabs
+            .active_tab()
+            .map(|t| t.location.clone())
+            .ok_or("no tab")?
+    };
     update_content_webview(&app, &window_label, &loc)?;
     if let Some(w) = app.get_webview_window(&window_label) {
         let _ = w.set_focus();
@@ -2170,17 +2179,20 @@ pub fn open_selected_paths(
         allow_asset_protocol_file(&app, file_path);
     }
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let mut last_loc = None;
-    for (i, file_path) in resolved.iter().enumerate() {
-        let loc = open_resolved_path_on_tab(&mut tabs, file_path, &state, i > 0)?;
-        if let BrowserLocation::File { path } = &loc {
-            if path.is_file() {
-                touch_recent_file(path);
+    let last_loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let mut last_loc = None;
+        for (i, file_path) in resolved.iter().enumerate() {
+            let loc = open_resolved_path_on_tab(&mut tabs, file_path, &state, i > 0)?;
+            if let BrowserLocation::File { path } = &loc {
+                if path.is_file() {
+                    touch_recent_file(path);
+                }
             }
+            last_loc = Some(loc);
         }
-        last_loc = Some(loc);
-    }
+        last_loc
+    };
     if let Some(loc) = last_loc {
         update_content_webview(&app, window.label(), &loc)?;
     }
@@ -2359,8 +2371,10 @@ pub fn open_archive_entry(
         touch_recent_file(&extracted);
     }
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.navigate_active(loc.clone(), is_dir, doc);
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.navigate_active(loc.clone(), is_dir, doc);
+    }
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
 }
@@ -2554,13 +2568,20 @@ pub fn compress_paths_to_zip(
 #[tauri::command]
 pub fn go_back(window: tauri::Window, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    if let Some(loc) = tabs.go_back() {
-        let (loc, is_dir, doc) = state.resolve_location(loc);
-        if let Some(tab) = tabs.active_tab_mut() {
-            tab.is_directory = is_dir;
-            tab.document = doc;
+    let nav_loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        if let Some(loc) = tabs.go_back() {
+            let (loc, is_dir, doc) = state.resolve_location(loc);
+            if let Some(tab) = tabs.active_tab_mut() {
+                tab.is_directory = is_dir;
+                tab.document = doc;
+            }
+            Some(loc)
+        } else {
+            None
         }
+    };
+    if let Some(loc) = nav_loc {
         update_content_webview(&app, window.label(), &loc)?;
     }
     snapshot(&state, window.label())
@@ -2569,13 +2590,20 @@ pub fn go_back(window: tauri::Window, app: AppHandle, state: State<AppState>) ->
 #[tauri::command]
 pub fn go_forward(window: tauri::Window, app: AppHandle, state: State<AppState>) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    if let Some(loc) = tabs.go_forward() {
-        let (loc, is_dir, doc) = state.resolve_location(loc);
-        if let Some(tab) = tabs.active_tab_mut() {
-            tab.is_directory = is_dir;
-            tab.document = doc;
+    let nav_loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        if let Some(loc) = tabs.go_forward() {
+            let (loc, is_dir, doc) = state.resolve_location(loc);
+            if let Some(tab) = tabs.active_tab_mut() {
+                tab.is_directory = is_dir;
+                tab.document = doc;
+            }
+            Some(loc)
+        } else {
+            None
         }
+    };
+    if let Some(loc) = nav_loc {
         update_content_webview(&app, window.label(), &loc)?;
     }
     snapshot(&state, window.label())
@@ -2590,11 +2618,13 @@ pub fn reload_tab(window: tauri::Window, app: AppHandle, state: State<AppState>)
     };
     if let Some(loc) = loc {
         let (loc, is_dir, doc) = state.resolve_location(loc);
-        let _sess_tabs = ws(&state, &window)?;
-        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        if let Some(tab) = tabs.active_tab_mut() {
-            tab.is_directory = is_dir;
-            tab.document = doc;
+        {
+            let _sess_tabs = ws(&state, &window)?;
+            let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+            if let Some(tab) = tabs.active_tab_mut() {
+                tab.is_directory = is_dir;
+                tab.document = doc;
+            }
         }
         update_content_webview(&app, window.label(), &loc)?;
     }
@@ -3328,12 +3358,14 @@ fn reopen_closed_tab(
         .pop()
         .ok_or("No recently closed tabs")?;
     let (loc, is_dir, doc) = state.resolve_location(loc);
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.open_tab(loc.clone());
-    if let Some(tab) = tabs.active_tab_mut() {
-        tab.is_directory = is_dir;
-        tab.document = doc;
-        tab.location = loc.clone();
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+            tab.location = loc.clone();
+        }
     }
     update_content_webview(app, window.label(), &loc)?;
     Ok("Tab reopened".into())
@@ -3371,18 +3403,20 @@ pub fn toggle_tab_mute(
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.tab_mut(index).ok_or("invalid tab")?;
-    if !tab_mute_available(tab) {
-        return Err("Mute is only available on https and media tabs".into());
-    }
-    tab.muted = !tab.muted;
-    let muted = tab.muted;
-    let loc = tab.location.clone();
-    if index == tabs.active_index() {
-        if matches!(loc, BrowserLocation::Http { .. }) {
-            crate::webview::apply_tab_mute(&app, window.label(), muted)?;
+    let (muted, loc, apply_mute) = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.tab_mut(index).ok_or("invalid tab")?;
+        if !tab_mute_available(tab) {
+            return Err("Mute is only available on https and media tabs".into());
         }
+        tab.muted = !tab.muted;
+        let muted = tab.muted;
+        let loc = tab.location.clone();
+        let apply_mute = index == tabs.active_index() && matches!(loc, BrowserLocation::Http { .. });
+        (muted, loc, apply_mute)
+    };
+    if apply_mute {
+        crate::webview::apply_tab_mute(&app, window.label(), muted)?;
     }
     snapshot(&state, window.label())
 }
@@ -3393,16 +3427,19 @@ fn duplicate_active_tab(
     state: &State<AppState>,
 ) -> Result<String, String> {
     let _sess_tabs = ws(state, window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let index = tabs.active_index();
-    let src = tabs.active_tab().ok_or("no tab")?;
-    let loc = src.location.clone();
-    let (loc, is_dir, doc) = state.resolve_location(loc);
-    tabs.duplicate_tab(index, doc).ok_or("could not duplicate tab")?;
-    if let Some(tab) = tabs.active_tab_mut() {
-        tab.is_directory = is_dir;
-        tab.location = loc.clone();
-    }
+    let loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let index = tabs.active_index();
+        let src = tabs.active_tab().ok_or("no tab")?;
+        let loc = src.location.clone();
+        let (loc, is_dir, doc) = state.resolve_location(loc);
+        tabs.duplicate_tab(index, doc).ok_or("could not duplicate tab")?;
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.location = loc.clone();
+        }
+        loc
+    };
     update_content_webview(app, window.label(), &loc)?;
     Ok("Tab duplicated".into())
 }
@@ -3414,57 +3451,60 @@ fn close_tabs_relative(
     mode: CloseTabsMode,
 ) -> Result<String, String> {
     let _sess_tabs = ws(state, window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let active = tabs.active_index();
-    let candidates: Vec<usize> = match mode {
-        CloseTabsMode::Others => (0..tabs.tab_count()).filter(|i| *i != active).collect(),
-        CloseTabsMode::ToRight => ((active + 1)..tabs.tab_count()).collect(),
-    };
-    if candidates.is_empty() {
-        return Err("no tabs to close".into());
-    }
-    let mut closed = 0usize;
-    for index in candidates.into_iter().rev() {
-        if tabs.tab_count() <= 1 {
-            break;
-        }
-        let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
-        if tab.pinned {
-            continue;
-        }
-        let closed_loc = tab.location.clone();
-        let was_dirty = tab_is_dirty(tab);
-        let autosave = if let Some(tab) = tabs.tab_mut(index) {
-            tab.document
-                .as_mut()
-                .and_then(|doc| flush_document_autosave(doc))
-        } else {
-            None
+    let (closed, loc) = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let active = tabs.active_index();
+        let candidates: Vec<usize> = match mode {
+            CloseTabsMode::Others => (0..tabs.tab_count()).filter(|i| *i != active).collect(),
+            CloseTabsMode::ToRight => ((active + 1)..tabs.tab_count()).collect(),
         };
-        if let Some(tab) = tabs.tabs().get(index) {
-            _sess_tabs.purge_tab_resources(tab);
+        if candidates.is_empty() {
+            return Err("no tabs to close".into());
         }
-        if tabs.close_tab(index) {
-            record_closed_tab(&_sess_tabs, closed_loc.clone());
-            if was_dirty || autosave.is_some() {
-                if let Ok(mut undo) = _sess_tabs.close_undo.lock() {
-                    undo.push(crate::close_undo::CloseUndoEntry {
-                        location: closed_loc,
-                        insert_index: index,
-                        autosave,
-                    });
-                }
+        let mut closed = 0usize;
+        for index in candidates.into_iter().rev() {
+            if tabs.tab_count() <= 1 {
+                break;
             }
-            closed += 1;
+            let tab = tabs.tabs().get(index).ok_or("invalid tab")?;
+            if tab.pinned {
+                continue;
+            }
+            let closed_loc = tab.location.clone();
+            let was_dirty = tab_is_dirty(tab);
+            let autosave = if let Some(tab) = tabs.tab_mut(index) {
+                tab.document
+                    .as_mut()
+                    .and_then(|doc| flush_document_autosave(doc))
+            } else {
+                None
+            };
+            if let Some(tab) = tabs.tabs().get(index) {
+                _sess_tabs.purge_tab_resources(tab);
+            }
+            if tabs.close_tab(index) {
+                record_closed_tab(&_sess_tabs, closed_loc.clone());
+                if was_dirty || autosave.is_some() {
+                    if let Ok(mut undo) = _sess_tabs.close_undo.lock() {
+                        undo.push(crate::close_undo::CloseUndoEntry {
+                            location: closed_loc,
+                            insert_index: index,
+                            autosave,
+                        });
+                    }
+                }
+                closed += 1;
+            }
         }
-    }
-    if closed == 0 {
-        return Err("Could not close tabs (pinned only)".into());
-    }
-    let loc = tabs
-        .active_tab()
-        .map(|t| t.location.clone())
-        .ok_or("no tab")?;
+        if closed == 0 {
+            return Err("Could not close tabs (pinned only)".into());
+        }
+        let loc = tabs
+            .active_tab()
+            .map(|t| t.location.clone())
+            .ok_or("no tab")?;
+        (closed, loc)
+    };
     update_content_webview(app, window.label(), &loc)?;
     Ok(format!("Closed {} tab(s)", closed))
 }
@@ -4154,11 +4194,13 @@ pub async fn handle_download_url(window: tauri::Window,
         let loc = BrowserLocation::File { path: resolved };
         let (loc, is_dir, doc) = state.resolve_location(loc);
         let _sess_tabs = ws(&state, &window)?;
-        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        tabs.open_tab(loc.clone());
-        if let Some(tab) = tabs.active_tab_mut() {
-            tab.is_directory = is_dir;
-            tab.document = doc;
+        {
+            let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+            tabs.open_tab(loc.clone());
+            if let Some(tab) = tabs.active_tab_mut() {
+                tab.is_directory = is_dir;
+                tab.document = doc;
+            }
         }
         update_content_webview(&app, window.label(), &loc)?;
         crate::download_history::record_success(
@@ -4178,11 +4220,13 @@ pub async fn handle_download_url(window: tauri::Window,
         DownloadDisposition::OpenInNewTab { suggested_location } => {
             let (loc, is_dir, doc) = state.resolve_location(suggested_location);
             let _sess_tabs = ws(&state, &window)?;
-            let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-            tabs.open_tab(loc.clone());
-            if let Some(tab) = tabs.active_tab_mut() {
-                tab.is_directory = is_dir;
-                tab.document = doc;
+            {
+                let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+                tabs.open_tab(loc.clone());
+                if let Some(tab) = tabs.active_tab_mut() {
+                    tab.is_directory = is_dir;
+                    tab.document = doc;
+                }
             }
             update_content_webview(&app, window.label(), &loc)?;
             crate::download_history::record_success(
@@ -4623,26 +4667,28 @@ pub fn reset_active_page_zoom(
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.active_tab_mut().ok_or("no tab")?;
-    match &tab.location {
-        BrowserLocation::Http { url } => {
-            reset_page_zoom_for_url(&app, url)?;
-        }
-        BrowserLocation::File { .. } => {
-            let doc = tab.document.as_mut().ok_or("no document")?;
-            let backend_id = doc.backend.backend_id();
-            if backend_id == base_pdf::BACKEND_ID {
-                let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
-                pdf.set_render_scale(DEFAULT_PDF_RENDER_SCALE);
-            } else if backend_id == base_png::BACKEND_ID {
-                let img = base_png::try_png_backend(&mut *doc.backend).ok_or("not an image")?;
-                img.preview_zoom = DEFAULT_IMAGE_PREVIEW_ZOOM;
-            } else {
-                return Err("zoom reset is not available for this tab".into());
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no tab")?;
+        match &tab.location {
+            BrowserLocation::Http { url } => {
+                reset_page_zoom_for_url(&app, url)?;
             }
+            BrowserLocation::File { .. } => {
+                let doc = tab.document.as_mut().ok_or("no document")?;
+                let backend_id = doc.backend.backend_id();
+                if backend_id == base_pdf::BACKEND_ID {
+                    let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
+                    pdf.set_render_scale(DEFAULT_PDF_RENDER_SCALE);
+                } else if backend_id == base_png::BACKEND_ID {
+                    let img = base_png::try_png_backend(&mut *doc.backend).ok_or("not an image")?;
+                    img.preview_zoom = DEFAULT_IMAGE_PREVIEW_ZOOM;
+                } else {
+                    return Err("zoom reset is not available for this tab".into());
+                }
+            }
+            _ => return Err("zoom reset is not available for this tab".into()),
         }
-        _ => return Err("zoom reset is not available for this tab".into()),
     }
     snapshot(&state, window.label())
 }
@@ -4654,40 +4700,42 @@ pub fn reset_active_context_font(
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.active_tab_mut().ok_or("no tab")?;
-    match &tab.location {
-        BrowserLocation::Http { url } => {
-            reset_page_font_for_url(&app, url)?;
-        }
-        BrowserLocation::File { .. } => {
-            let doc = tab.document.as_mut().ok_or("no document")?;
-            let path = doc.path.clone();
-            let backend_id = doc.backend.backend_id();
-            if backend_id == base_text::BACKEND_ID || backend_id == base_js::BACKEND_ID {
-                if let Some(text) = try_text_backend(&mut *doc.backend) {
-                    text.font_size_pt = DEFAULT_TEXT_FONT_PT;
-                } else if let Some(text) = base_js::try_js_backend(&mut *doc.backend) {
-                    text.font_size_pt = DEFAULT_TEXT_FONT_PT;
-                } else {
-                    return Err("not a text document".into());
-                }
-            } else if backend_id == base_docx::BACKEND_ID {
-                let b = base_docx::try_docx_backend(&mut *doc.backend).ok_or("not DOCX")?;
-                b.reader_font_pt = DEFAULT_READER_FONT_PT;
-                b.font_dirty = true;
-                crate::preferences::remember_docx_reader_font(&path, b.reader_font_pt);
-            } else if backend_id == base_epub::BACKEND_ID {
-                let b = base_epub::try_epub_backend(&mut *doc.backend).ok_or("not EPUB")?;
-                b.reader_font_pt = DEFAULT_READER_FONT_PT;
-            } else if backend_id == base_svg::BACKEND_ID {
-                let b = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not SVG")?;
-                b.font_size_pt = DEFAULT_SVG_FONT_PT;
-            } else {
-                return Err("font reset is not available for this tab".into());
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no tab")?;
+        match &tab.location {
+            BrowserLocation::Http { url } => {
+                reset_page_font_for_url(&app, url)?;
             }
+            BrowserLocation::File { .. } => {
+                let doc = tab.document.as_mut().ok_or("no document")?;
+                let path = doc.path.clone();
+                let backend_id = doc.backend.backend_id();
+                if backend_id == base_text::BACKEND_ID || backend_id == base_js::BACKEND_ID {
+                    if let Some(text) = try_text_backend(&mut *doc.backend) {
+                        text.font_size_pt = DEFAULT_TEXT_FONT_PT;
+                    } else if let Some(text) = base_js::try_js_backend(&mut *doc.backend) {
+                        text.font_size_pt = DEFAULT_TEXT_FONT_PT;
+                    } else {
+                        return Err("not a text document".into());
+                    }
+                } else if backend_id == base_docx::BACKEND_ID {
+                    let b = base_docx::try_docx_backend(&mut *doc.backend).ok_or("not DOCX")?;
+                    b.reader_font_pt = DEFAULT_READER_FONT_PT;
+                    b.font_dirty = true;
+                    crate::preferences::remember_docx_reader_font(&path, b.reader_font_pt);
+                } else if backend_id == base_epub::BACKEND_ID {
+                    let b = base_epub::try_epub_backend(&mut *doc.backend).ok_or("not EPUB")?;
+                    b.reader_font_pt = DEFAULT_READER_FONT_PT;
+                } else if backend_id == base_svg::BACKEND_ID {
+                    let b = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not SVG")?;
+                    b.font_size_pt = DEFAULT_SVG_FONT_PT;
+                } else {
+                    return Err("font reset is not available for this tab".into());
+                }
+            }
+            _ => return Err("font reset is not available for this tab".into()),
         }
-        _ => return Err("font reset is not available for this tab".into()),
     }
     snapshot(&state, window.label())
 }
@@ -5878,37 +5926,39 @@ pub fn restore_crash_recovery_backup(window: tauri::Window,
     let loc = BrowserLocation::File { path: file_path.clone() };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let existing = tabs.tabs().iter().position(|t| {
-        match &t.location {
-            BrowserLocation::File { path } => {
-                resolve_open_path(&path.to_string_lossy(), &state.cwd).ok().as_ref()
-                    == Some(&file_path)
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let existing = tabs.tabs().iter().position(|t| {
+            match &t.location {
+                BrowserLocation::File { path } => {
+                    resolve_open_path(&path.to_string_lossy(), &state.cwd).ok().as_ref()
+                        == Some(&file_path)
+                }
+                _ => false,
             }
-            _ => false,
+        });
+        if let Some(index) = existing {
+            tabs.set_active(index);
+            if let Some(tab) = tabs.tab_mut(index) {
+                tab.location = loc.clone();
+                tab.is_directory = is_dir;
+                tab.document = doc;
+            }
+        } else {
+            tabs.navigate_active(loc.clone(), is_dir, doc);
         }
-    });
-    if let Some(index) = existing {
-        tabs.set_active(index);
-        if let Some(tab) = tabs.tab_mut(index) {
-            tab.location = loc.clone();
-            tab.is_directory = is_dir;
-            tab.document = doc;
+        if let BrowserLocation::File { path } = &loc {
+            if path.is_file() {
+                touch_recent_file(path);
+            }
         }
-    } else {
-        tabs.navigate_active(loc.clone(), is_dir, doc);
-    }
-    if let BrowserLocation::File { path } = &loc {
-        if path.is_file() {
-            touch_recent_file(path);
+        let tab = tabs.active_tab_mut().ok_or("no tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        if doc.path != record.path {
+            return Err("restore path mismatch".into());
         }
+        crate::autosave::apply_saved_content(doc, &record.backend_id, &record.content)?;
     }
-    let tab = tabs.active_tab_mut().ok_or("no tab")?;
-    let doc = tab.document.as_mut().ok_or("no document")?;
-    if doc.path != record.path {
-        return Err("restore path mismatch".into());
-    }
-    crate::autosave::apply_saved_content(doc, &record.backend_id, &record.content)?;
     update_content_webview(&app, window.label(), &loc)?;
     let _ = crate::crash_recovery::dismiss_backup(&backup_id);
     snapshot(&state, window.label())
@@ -5938,29 +5988,31 @@ pub fn restore_project_recovery_backup(
     let loc = BrowserLocation::File { path: file_path.clone() };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let existing = tabs.tabs().iter().position(|t| {
-        match &t.location {
-            BrowserLocation::File { path } => {
-                resolve_open_path(&path.to_string_lossy(), &state.cwd).ok().as_ref()
-                    == Some(&file_path)
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let existing = tabs.tabs().iter().position(|t| {
+            match &t.location {
+                BrowserLocation::File { path } => {
+                    resolve_open_path(&path.to_string_lossy(), &state.cwd).ok().as_ref()
+                        == Some(&file_path)
+                }
+                _ => false,
             }
-            _ => false,
+        });
+        if let Some(index) = existing {
+            tabs.set_active(index);
+            if let Some(tab) = tabs.tab_mut(index) {
+                tab.location = loc.clone();
+                tab.is_directory = is_dir;
+                tab.document = doc;
+            }
+        } else {
+            tabs.navigate_active(loc.clone(), is_dir, doc);
         }
-    });
-    if let Some(index) = existing {
-        tabs.set_active(index);
-        if let Some(tab) = tabs.tab_mut(index) {
-            tab.location = loc.clone();
-            tab.is_directory = is_dir;
-            tab.document = doc;
-        }
-    } else {
-        tabs.navigate_active(loc.clone(), is_dir, doc);
-    }
-    if let BrowserLocation::File { path } = &loc {
-        if path.is_file() {
-            touch_recent_file(path);
+        if let BrowserLocation::File { path } = &loc {
+            if path.is_file() {
+                touch_recent_file(path);
+            }
         }
     }
     update_content_webview(&app, window.label(), &loc)?;
@@ -6057,13 +6109,16 @@ pub fn reload_active_tab_from_disk(
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
-    let loc = tab.location.clone();
-    let (loc, is_dir, doc) = state.resolve_location(loc);
-    tab.location = loc.clone();
-    tab.is_directory = is_dir;
-    tab.document = doc;
+    let loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+        let loc = tab.location.clone();
+        let (loc, is_dir, doc) = state.resolve_location(loc);
+        tab.location = loc.clone();
+        tab.is_directory = is_dir;
+        tab.document = doc;
+        loc
+    };
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
 }
@@ -6109,14 +6164,16 @@ pub fn restore_autosave_from_slot(
     let record: crate::autosave::AutosaveSlotRecord =
         serde_json::from_str(&text).map_err(|e| e.to_string())?;
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
-    let doc = tab.document.as_mut().ok_or("no document")?;
-    if doc.path != record.document_path {
-        return Err("autosave slot is for a different document".into());
-    }
-    apply_autosave_record(doc, &record)?;
-    let loc = tab.location.clone();
+    let loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        if doc.path != record.document_path {
+            return Err("autosave slot is for a different document".into());
+        }
+        apply_autosave_record(doc, &record)?;
+        tab.location.clone()
+    };
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
 }
@@ -6128,28 +6185,30 @@ pub fn restore_latest_autosave_for_active_tab(
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
-    let doc = tab.document.as_mut().ok_or("no document")?;
-    let path = doc.path.clone();
-    let record = crate::autosave::read_latest_autosave_content(&path)?
-        .ok_or("no autosave slots for this document")?;
-    if record.backend_id != doc.backend.backend_id() {
-        return Err("autosave backend does not match active tab".into());
-    }
-    if record.backend_id == base_text::BACKEND_ID {
-        let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
-        backend.set_content(record.content);
-    } else if record.backend_id == base_js::BACKEND_ID {
-        let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not a script document")?;
-        backend.set_content(record.content);
-    } else if record.backend_id == base_svg::BACKEND_ID {
-        let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
-        backend.set_content(record.content);
-    } else {
-        return Err("autosave restore supports text, script, and SVG only".into());
-    }
-    let loc = tab.location.clone();
+    let loc = {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        let path = doc.path.clone();
+        let record = crate::autosave::read_latest_autosave_content(&path)?
+            .ok_or("no autosave slots for this document")?;
+        if record.backend_id != doc.backend.backend_id() {
+            return Err("autosave backend does not match active tab".into());
+        }
+        if record.backend_id == base_text::BACKEND_ID {
+            let backend = try_text_backend(&mut *doc.backend).ok_or("not a text document")?;
+            backend.set_content(record.content);
+        } else if record.backend_id == base_js::BACKEND_ID {
+            let backend = base_js::try_js_backend(&mut *doc.backend).ok_or("not a script document")?;
+            backend.set_content(record.content);
+        } else if record.backend_id == base_svg::BACKEND_ID {
+            let backend = base_svg::try_svg_backend(&mut *doc.backend).ok_or("not an SVG document")?;
+            backend.set_content(record.content);
+        } else {
+            return Err("autosave restore supports text, script, and SVG only".into());
+        }
+        tab.location.clone()
+    };
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
 }
@@ -6938,11 +6997,13 @@ pub fn import_unibrow_share_package(
     let loc = BrowserLocation::File { path: root.clone() };
     let doc = crate::state::open_file_document(&root);
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.open_tab(loc.clone());
-    if let Some(tab) = tabs.active_tab_mut() {
-        tab.is_directory = false;
-        tab.document = doc;
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = false;
+            tab.document = doc;
+        }
     }
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())
@@ -7331,11 +7392,13 @@ pub fn open_mod_portal(window: tauri::Window,
     let loc = BrowserLocation::Internal { page };
     let (loc, is_dir, doc) = state.resolve_location(loc);
     let _sess_tabs = ws(&state, &window)?;
-    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-    tabs.open_tab(loc.clone());
-    if let Some(tab) = tabs.active_tab_mut() {
-        tab.is_directory = is_dir;
-        tab.document = doc;
+    {
+        let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.open_tab(loc.clone());
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.is_directory = is_dir;
+            tab.document = doc;
+        }
     }
     update_content_webview(&app, window.label(), &loc)?;
     snapshot(&state, window.label())

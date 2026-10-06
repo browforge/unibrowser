@@ -60,6 +60,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | [wasm-t2-status.md](wasm-t2-status.md) | T2 WASM loader plan and proving stub |
 | [pdf-annotate.md](pdf-annotate.md) | PDF highlight sidecar (stub) |
 | [e2e.md](e2e.md) | In-app self-test (`--self-test`) and optional WebdriverIO |
+| [concurrency.md](concurrency.md) | Window session locks, tab mutex order, self-test deadlock notes |
 | [report-visuals.md](report-visuals.md) | Wednesday report screenshots and capture script |
 | [ocr-sidecar.md](ocr-sidecar.md) | Planned Tesseract OCR sidecar (UI stub today) |
 

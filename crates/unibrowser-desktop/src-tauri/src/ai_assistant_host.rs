@@ -19,6 +19,9 @@ use crate::preferences::load_preferences;
 use crate::project_backend::UnibrowBackend;
 use crate::state::AppState;
 
+/// Short-circuits `test_ai_connection` during `--self-test` (no network).
+pub const SELF_TEST_MOCK_BASE_URL: &str = "mock://unibrowser-self-test";
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AiGrantDto {
     pub permission: String,
@@ -159,6 +162,9 @@ pub fn test_ai_connection(
     model: Option<String>,
     api_key: Option<String>,
 ) -> Result<String, String> {
+    if base_url.as_deref() == Some(SELF_TEST_MOCK_BASE_URL) {
+        return Ok("mock-ok".into());
+    }
     let cfg = ChatClientConfig {
         base_url,
         api_key,

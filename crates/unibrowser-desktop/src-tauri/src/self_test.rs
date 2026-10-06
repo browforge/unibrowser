@@ -13,6 +13,8 @@ pub fn finished() -> bool {
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 
+pub const SCENARIO_LIVE_PREVIEW: &str = "live-preview";
+pub const SCENARIO_AI_SIDEBAR: &str = "ai-sidebar";
 pub const SCENARIO_FONT_TEXT_SVG: &str = "font-text-svg";
 pub const SCENARIO_UNKNOWN_BANNER: &str = "unknown-file-banner";
 pub const SCENARIO_CLOSE_UNDO: &str = "close-undo";
@@ -31,6 +33,8 @@ pub const ALL_SCENARIOS: &[&str] = &[
     SCENARIO_CLOSE_UNDO,
     SCENARIO_UNIBROW_BLANK,
     SCENARIO_FONT_TEXT_SVG,
+    SCENARIO_LIVE_PREVIEW,
+    SCENARIO_AI_SIDEBAR,
 ];
 
 #[derive(Clone)]
@@ -236,6 +240,8 @@ fn run_all_scenarios(app: &AppHandle) -> Result<SelfTestReportDto, String> {
             SCENARIO_CM_GREY => scenario_cm_grey(&window, app, &state, &demo),
             SCENARIO_UNIBROW_BLANK => scenario_unibrow_blank(&window, app, &state, &projects),
             SCENARIO_PROBLEMS_JUMP => scenario_problems_jump(&state, &fixtures),
+            SCENARIO_LIVE_PREVIEW => scenario_live_preview(&window, app, &state, &demo),
+            SCENARIO_AI_SIDEBAR => scenario_ai_sidebar(&window, &state),
             other => Err(format!("unknown scenario: {other}")),
         };
         let (passed, message) = match run {
@@ -487,6 +493,74 @@ fn scenario_unibrow_blank(
     let dest = crate::commands::autosave_unibrow_active_project(window.clone(), state.clone())?;
     if dest.len() < 4 {
         return Err("autosave path empty".into());
+    }
+    Ok(())
+}
+
+fn scenario_live_preview(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<crate::state::AppState>,
+    demo: &std::path::Path,
+) -> Result<(), String> {
+    let project = demo.join("sample.unibrow");
+    if !project.is_file() {
+        return Err("demo sample.unibrow missing".into());
+    }
+    open_path(window, app, state, &project)?;
+    let status = crate::live_host::set_unibrow_live_mode(window.clone(), true, state.clone())?;
+    if !status.live_mode {
+        return Err("live_mode false after enable".into());
+    }
+    let again = crate::live_host::unibrow_live_status(window.clone(), state.clone())?;
+    if !again.live_mode {
+        return Err("live_mode false in status poll".into());
+    }
+    let _ = crate::live_host::set_unibrow_live_mode(window.clone(), false, state.clone())?;
+    Ok(())
+}
+
+fn scenario_ai_sidebar(
+    window: &tauri::Window,
+    state: &State<crate::state::AppState>,
+) -> Result<(), String> {
+    use crate::ai_assistant_host::{
+        AiAssistantPrefs, AiGrantDto, SELF_TEST_MOCK_BASE_URL, set_ai_assistant_prefs,
+        test_ai_connection,
+    };
+    let prefs = AiAssistantPrefs {
+        base_url: Some(SELF_TEST_MOCK_BASE_URL.into()),
+        model: Some("self-test".into()),
+        api_key: None,
+        grants: vec![AiGrantDto {
+            permission: "read".into(),
+            scope_kind: "global".into(),
+            scope_value: None,
+        }],
+        panel_visible: true,
+        panel_x: 0.0,
+        panel_y: 0.0,
+        panel_docked: false,
+    };
+    set_ai_assistant_prefs(prefs.clone())?;
+    let reply = test_ai_connection(
+        prefs.base_url.clone(),
+        prefs.model.clone(),
+        prefs.api_key.clone(),
+    )?;
+    if reply != "mock-ok" {
+        return Err(format!("unexpected mock reply: {reply}"));
+    }
+    let status = crate::ai_assistant_host::ai_assistant_status(window.clone(), state.clone())?;
+    if !status.panel_visible {
+        return Err("panel_visible false".into());
+    }
+    if !status.configured {
+        return Err("assistant not configured".into());
+    }
+    let loaded = crate::ai_assistant_host::get_ai_assistant_prefs();
+    if loaded.grants.is_empty() {
+        return Err("grants not persisted".into());
     }
     Ok(())
 }
