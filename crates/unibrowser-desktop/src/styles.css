@@ -1294,11 +1294,27 @@ body.toolbar-window-mode .floating-bar.docked {
   font-weight: 600;
   padding: 0.45rem 0.9rem;
   border-radius: 6px;
+  border-color: var(--ub-accent, #196f93);
+  background: var(--ub-accent, #196f93);
+  color: #fff;
 }
 
 .ntp-actions .ntp-secondary {
   padding: 0.45rem 0.85rem;
   border-radius: 6px;
+}
+
+.ntp-recent-icon .ft-icon,
+.ntp-download-icon .ft-icon {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ub-text-2, #4e5963);
+  font-weight: 600;
+}
+
+[data-theme="light"] .ntp-recent-icon .ft-icon,
+[data-theme="light"] .ntp-download-icon .ft-icon {
+  color: #4f5c66;
 }
 
 .ntp-section h2 {

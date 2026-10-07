@@ -1,7 +1,7 @@
 //! Representative New-tab Recent and Downloads rows for docs captures and first-run polish.
 
 use crate::download_history::{DownloadHistoryEntry, DownloadHistoryStatus};
-use crate::preferences::{load_preferences, push_recent_file, save_preferences};
+use crate::preferences::{load_preferences, save_preferences, RecentFileEntry};
 
 fn demo_root() -> String {
     std::env::var("UNIBROWSER_REPO_ROOT")
@@ -26,13 +26,15 @@ pub fn seed_demo_ntp_fixture() -> Result<(), String> {
         (format!("{}/sample-rich.docx", root), "sample-rich.docx", now - 26 * 3600_000),
         (format!("{}/sample.svg", root), "sample.svg", now - 3 * 24 * 3600_000),
     ];
-    for (path, label, opened_at_ms) in recent {
-        let path = path;
-        push_recent_file(&mut prefs, path.clone(), label.to_string());
-        if let Some(entry) = prefs.recent_files.iter_mut().find(|e| e.path == path) {
-            entry.opened_at_ms = opened_at_ms;
-        }
-    }
+    prefs.recent_files = recent
+        .into_iter()
+        .map(|(path, label, opened_at_ms)| RecentFileEntry {
+            path,
+            label: label.to_string(),
+            pinned: false,
+            opened_at_ms,
+        })
+        .collect();
     save_preferences(&prefs)?;
 
     let in_progress = DownloadHistoryEntry {
@@ -55,7 +57,7 @@ pub fn seed_demo_ntp_fixture() -> Result<(), String> {
         progress_percent: None,
         at_ms: now - 2 * 3600_000,
     };
-    crate::download_history::seed_demo_entries_if_empty(vec![in_progress, completed])?;
+    crate::download_history::replace_with_demo_entries(vec![in_progress, completed])?;
     Ok(())
 }
 

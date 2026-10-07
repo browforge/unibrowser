@@ -103,6 +103,11 @@ pub fn seed_demo_entries_if_empty(entries: Vec<DownloadHistoryEntry>) -> Result<
     save_store(&store)
 }
 
+/// Replaces history with deterministic rows for hidden documentation captures.
+pub fn replace_with_demo_entries(entries: Vec<DownloadHistoryEntry>) -> Result<(), String> {
+    save_store(&Store { entries })
+}
+
 pub fn record_success(url: &str, status: DownloadHistoryStatus, destination: Option<&str>) {
     let label = crate::downloads::suggested_download_filename(url);
     let mut store = load_store();
