@@ -53,18 +53,19 @@ procedural fixture on a checkerboard viewport, and a status zoom that matches fi
 ### `dxf-proving-light-1280.png`
 
 The CAD / 3D row shows Select, Orientation, Pan, Orbit, Fit view, Zoom out,
-Zoom in, and Measure (greyed as unsupported). No tooltip or focus ring covers
-the Geometry header at capture time. The wireframe is fit-centred in the canvas
-well with margin. Layers use tokenised shell checkboxes; Geometry is an
-Entity/Count table. The status bar shows zoom once, omits the duplicate path
-when the title breadcrumb is visible, and keeps CAD dev metadata in the path
-tooltip only. Grade: Pass.
+Zoom in, and Measure. Fit view and both zoom controls use bright chrome labels
+(`cm-cap-supported`); Select, Orientation, Pan, Orbit, and Measure use the
+unsupported muted treatment only. No tooltip or focus ring covers the Geometry
+header at capture time. The wireframe is fit-centred in the canvas well with
+margin. Layers use tokenised shell checkboxes; Geometry is an Entity/Count table.
+The status bar shows the fitted zoom percentage (not a fixed 100% placeholder),
+once, with CAD path detail in the breadcrumb tooltip only. Grade: Pass.
 
 ### `dxf-proving-dark-1280.png` / `dxf-proving-hc-1280.png`
 
-Same layout on dark and high-contrast shells: fit-centred wireframe, greyed
-Measure, styled layer checkboxes, geometry table, and clean status bar without
-capture-time tooltips. Grade: Pass.
+Same layout on dark and high-contrast shells: fit-centred wireframe, bright
+Fit/Zoom labels versus muted unsupported tools, styled layer checkboxes, geometry
+table, fitted zoom in the status bar, and no capture-time tooltips. Grade: Pass.
 
 ## Grade
 
@@ -84,3 +85,5 @@ Totals: 3 Pass, 0 Drift, 0 Fail.
   present, raster Fit/Crop/Rotate are supported, and unavailable providers have
   reasons.
 - Overflow controls stay keyboard-focusable and announce unavailable reasons.
+- `tests/cmCapabilityChrome.test.mjs` checks supported vs unsupported CM classes.
+- `validateCommandManagerMutedForCapture()` guards doc-capture against muted styling leaks.

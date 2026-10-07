@@ -76,7 +76,7 @@ describe("Screenshot capture (1600x1000)", () => {
     await shot("problems-panel-mixed");
 
     await openPath(unibrow);
-    await waitForSelector(".unibrow-timeline");
+    await waitForSelector(".workshop-timeline-canvas");
     await shot("unibrow-timeline");
 
     await tauriInvoke("open_path", { path: "unibrowser://settings" });

@@ -10,6 +10,9 @@ Verification:
   and docked AI.
 - `scripts/capture-ui-15.sh` ran `npm run build` before producing four final
   workshop PNG files.
+- Grep across `crates/unibrowser-desktop/src` and `index.html` shows no live
+  `.unibrow-*` class hooks; legacy `.unibrow-*` rules were removed from
+  `styles.css` (workshop uses `workshop-*` classes).
 - The final PNG files have the expected 1600x1000 and 1280x800 dimensions and
   no duplicate SHA-256 hashes.
 
@@ -33,11 +36,9 @@ move into overflow rather than wrapping. No region overlaps or clips another.
 
 ## Grade
 
-UI-20 grade: Drift.
+UI-20 grade: **Pass**.
 
 The active shell has no legacy duplicate chrome according to 3 of 3 shell
-audits, the superseded workshop shell CSS was removed, and the inactive
-`renderUnibrowLegacy` path was deleted from `documentViewer.ts` (see
-`src/legacy/README.md`). Remaining `.unibrow-*` stylesheet rules are inert but
-still present. Full Pass would require pruning those rules and a final shell
-audit after stylesheet cleanup.
+audits, the superseded workshop shell CSS was removed, the inactive
+`renderUnibrowLegacy` path was deleted from `documentViewer.ts`, and the inert
+`.unibrow-*` stylesheet blocks were pruned after a grep-backed check.
