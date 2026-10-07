@@ -271,6 +271,89 @@ impl CommandRegistry {
             default_keybinding: None,
             aliases: &["pdf area", "area annotation"],
         });
+        for (id, title, icon, aliases) in [
+            (
+                commands::PDF_TOOL_HAND,
+                "Hand",
+                "move",
+                &["pdf hand", "pan pdf"][..],
+            ),
+            (
+                commands::PDF_ANNOTATE_UNDERLINE,
+                "Underline markup",
+                "underline",
+                &["pdf underline"][..],
+            ),
+            (
+                commands::PDF_ANNOTATE_STRIKETHROUGH,
+                "Strikethrough markup",
+                "strikethrough",
+                &["pdf strike"][..],
+            ),
+            (
+                commands::PDF_ANNOTATE_INK,
+                "Ink",
+                "pen-line",
+                &["pdf ink"][..],
+            ),
+            (
+                commands::PDF_ANNOTATE_TEXT_BOX,
+                "Text box",
+                "type",
+                &["pdf text box"][..],
+            ),
+            (
+                commands::PDF_ANNOTATE_STAMP,
+                "Stamp",
+                "stamp",
+                &["pdf stamp"][..],
+            ),
+            (
+                commands::PDF_ANNOTATION_PREVIOUS,
+                "Previous annotation",
+                "arrow-left",
+                &["previous annotation"][..],
+            ),
+            (
+                commands::PDF_ANNOTATION_NEXT,
+                "Next annotation",
+                "arrow-right",
+                &["next annotation"][..],
+            ),
+            (
+                commands::PDF_STROKE_COLOUR,
+                "Stroke colour",
+                "palette",
+                &["annotation stroke colour"][..],
+            ),
+            (
+                commands::PDF_FILL_COLOUR,
+                "Fill colour",
+                "palette",
+                &["annotation fill colour"][..],
+            ),
+            (
+                commands::PDF_STROKE_WIDTH,
+                "Stroke width",
+                "ruler",
+                &["annotation width"][..],
+            ),
+            (commands::IMAGE_FIT, "Fit image", "maximize", &["fit image"][..]),
+            (commands::IMAGE_CROP, "Crop", "square-dashed", &["crop image"][..]),
+            (commands::IMAGE_ROTATE, "Rotate", "refresh-cw", &["rotate image"][..]),
+            (commands::IMAGE_RESIZE, "Resize", "maximize", &["resize image"][..]),
+            (commands::IMAGE_EXPOSURE, "Exposure", "image", &["image exposure"][..]),
+            (commands::IMAGE_CONTRAST, "Contrast", "circle-dot", &["image contrast"][..]),
+            (commands::IMAGE_COLOUR, "Colour", "palette", &["image colour"][..]),
+        ] {
+            reg.register_command(CommandMeta {
+                id,
+                title,
+                icon,
+                default_keybinding: None,
+                aliases,
+            });
+        }
         reg.register_command(CommandMeta {
             id: commands::PDF_PAGE_NAV,
             title: "Page",

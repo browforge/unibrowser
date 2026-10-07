@@ -31,9 +31,11 @@ import {
   applySpellcheckToEditable,
   isExperimentalSpellcheckEnabled,
 } from "./experimentalSpellcheck";
+import { normalisedPdfRectToCss } from "./pdfAnnotationGeometry";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 let dxfViewCommand: ((commandId: string) => boolean) | null = null;
+let pdfViewCommand: ((commandId: string) => boolean) | null = null;
 
 type FindRunner = (query: string, next: boolean) => void;
 let viewerFindRunner: FindRunner | null = null;
@@ -62,6 +64,9 @@ export function runViewerContextCommand(commandId: string): boolean {
   if (commandId === "unibrowser.image.zoomIn") {
     adjustViewerZoom(1);
     return true;
+  }
+  if (commandId.startsWith("unibrowser.pdf.")) {
+    return pdfViewCommand?.(commandId) ?? false;
   }
   return dxfViewCommand?.(commandId) ?? false;
 }
@@ -514,15 +519,26 @@ function rebuildPdfAnnotationsDock(
       }
       const row = document.createElement("div");
       row.className = "pdf-annotation-card-head";
-      const badge = document.createElement("span");
-      badge.className = "pdf-annotation-kind";
-      badge.textContent = pdfAnnotationKindLabel(h.kind);
+      const identity = document.createElement("span");
+      identity.className = "pdf-annotation-identity";
+      const icon = document.createElement("span");
+      icon.className = `pdf-annotation-icon pdf-annotation-icon--${h.kind ?? "highlight"}`;
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = h.kind === "note" ? "N" : h.kind === "area" ? "A" : "H";
+      const swatch = document.createElement("span");
+      swatch.className = "pdf-annotation-colour";
+      swatch.style.backgroundColor = h.color;
+      swatch.setAttribute("aria-label", `Annotation colour ${h.color}`);
+      const kind = document.createElement("span");
+      kind.className = "pdf-annotation-kind";
+      kind.textContent = pdfAnnotationKindLabel(h.kind);
+      identity.append(icon, swatch, kind);
       const pageLink = document.createElement("button");
       pageLink.type = "button";
       pageLink.className = "pdf-annotation-page";
       pageLink.textContent = `Page ${h.page}`;
       pageLink.onclick = () => onJump(h.page);
-      row.appendChild(badge);
+      row.appendChild(identity);
       row.appendChild(pageLink);
       const title = document.createElement("p");
       title.className = "pdf-annotation-label";
@@ -532,30 +548,28 @@ function rebuildPdfAnnotationsDock(
       const who = h.author ?? "Unknown";
       const when = formatPdfAnnotationTime(h.created_at_ms);
       meta.textContent = when ? `${who} · ${when}` : who;
-      const props = document.createElement("div");
-      props.className = "pdf-annotation-props";
-      const toolRow = document.createElement("label");
-      toolRow.className = "pdf-annotation-prop";
-      toolRow.textContent = "Tool ";
-      const toolSelect = document.createElement("select");
-      ["Highlight", "Note", "Area"].forEach((name) => {
-        const opt = document.createElement("option");
-        opt.value = name.toLowerCase();
-        opt.textContent = name;
-        if (pdfAnnotationKindLabel(h.kind).toLowerCase() === name.toLowerCase()) {
-          opt.selected = true;
-        }
-        toolSelect.appendChild(opt);
-      });
-      toolRow.appendChild(toolSelect);
-      const borderRow = document.createElement("label");
-      borderRow.className = "pdf-annotation-prop";
-      borderRow.textContent = "Border ";
-      const borderInput = document.createElement("input");
-      borderInput.type = "text";
-      borderInput.value = h.kind === "area" ? "2px solid #c0392b" : "none";
-      borderRow.appendChild(borderInput);
-      props.append(toolRow, borderRow);
+      const appearance = document.createElement("details");
+      appearance.className = "pdf-annotation-appearance";
+      const appearanceTrigger = document.createElement("summary");
+      appearanceTrigger.setAttribute("aria-label", "Annotation style");
+      const appearanceSwatch = document.createElement("span");
+      appearanceSwatch.className = "pdf-annotation-colour";
+      appearanceSwatch.style.backgroundColor = h.color;
+      appearanceTrigger.append(appearanceSwatch, document.createTextNode("Style"));
+      const popover = document.createElement("div");
+      popover.className = "pdf-annotation-swatch-popover";
+      const colour = document.createElement("input");
+      colour.type = "color";
+      colour.value = h.kind === "area" ? "#c0392b" : "#ffe600";
+      colour.setAttribute("aria-label", "Annotation colour");
+      const thickness = document.createElement("input");
+      thickness.type = "range";
+      thickness.min = "1";
+      thickness.max = "8";
+      thickness.value = h.kind === "area" ? "2" : "1";
+      thickness.setAttribute("aria-label", "Annotation thickness");
+      popover.append(colour, thickness);
+      appearance.append(appearanceTrigger, popover);
       const reply = document.createElement("textarea");
       reply.className = "pdf-annotation-reply";
       reply.rows = 2;
@@ -570,11 +584,10 @@ function rebuildPdfAnnotationsDock(
       replyBtn.type = "button";
       replyBtn.className = "pdf-annotation-reply-btn";
       replyBtn.textContent = "Post reply";
-      actions.append(replyBtn, resolveBtn);
+      actions.append(appearance, replyBtn, resolveBtn);
       li.appendChild(row);
       li.appendChild(title);
       li.appendChild(meta);
-      li.appendChild(props);
       li.appendChild(reply);
       li.appendChild(actions);
       list.appendChild(li);
@@ -632,40 +645,6 @@ async function renderPdf(
   scrollSurface.appendChild(pageStage);
   center.appendChild(scrollSurface);
 
-  const footer = document.createElement("div");
-  footer.className = "pdf-viewer-footer";
-  footer.setAttribute("role", "toolbar");
-  footer.setAttribute("aria-label", "PDF page navigation");
-  const prev = document.createElement("button");
-  prev.type = "button";
-  prev.className = "pdf-footer-btn";
-  prev.textContent = "Previous";
-  prev.setAttribute("aria-label", "Previous page");
-  const next = document.createElement("button");
-  next.type = "button";
-  next.className = "pdf-footer-btn";
-  next.textContent = "Next";
-  next.setAttribute("aria-label", "Next page");
-  const pageLabel = document.createElement("span");
-  pageLabel.className = "pdf-page-label";
-  const jumpInput = document.createElement("input");
-  jumpInput.type = "number";
-  jumpInput.className = "pdf-jump-input";
-  jumpInput.min = "1";
-  jumpInput.max = String(doc.numPages);
-  jumpInput.value = String(currentPage);
-  jumpInput.setAttribute("aria-label", "Page number");
-  const jumpBtn = document.createElement("button");
-  jumpBtn.type = "button";
-  jumpBtn.className = "pdf-footer-btn";
-  jumpBtn.textContent = "Go";
-  footer.appendChild(prev);
-  footer.appendChild(pageLabel);
-  footer.appendChild(next);
-  footer.appendChild(jumpInput);
-  footer.appendChild(jumpBtn);
-  center.appendChild(footer);
-
   root.appendChild(workspace);
   workspace.appendChild(center);
 
@@ -690,10 +669,11 @@ async function renderPdf(
       const box = document.createElement("div");
       const isArea = h.kind === "area";
       box.className = isArea ? "pdf-highlight-rect pdf-area-rect" : "pdf-highlight-rect";
-      box.style.left = `${h.x * width}px`;
-      box.style.top = `${h.y * height}px`;
-      box.style.width = `${h.w * width}px`;
-      box.style.height = `${h.h * height}px`;
+      const cssRect = normalisedPdfRectToCss(h, width, height);
+      box.style.left = `${cssRect.left}px`;
+      box.style.top = `${cssRect.top}px`;
+      box.style.width = `${cssRect.width}px`;
+      box.style.height = `${cssRect.height}px`;
       if (isArea) {
         box.style.borderColor = h.color.includes("rgb") ? "#c0392b" : h.color;
       } else {
@@ -741,15 +721,23 @@ async function renderPdf(
     if (!ctx) {
       throw new Error("canvas 2d unavailable");
     }
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+    const outputScale = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.floor(viewport.width * outputScale);
+    canvas.height = Math.floor(viewport.height * outputScale);
+    canvas.style.width = `${viewport.width}px`;
+    canvas.style.height = `${viewport.height}px`;
     wrap.appendChild(canvas);
     const textLayer = document.createElement("div");
     textLayer.className = "pdf-text-layer";
     textLayer.style.width = `${viewport.width}px`;
     textLayer.style.height = `${viewport.height}px`;
     wrap.appendChild(textLayer);
-    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    await page.render({
+      canvasContext: ctx,
+      viewport,
+      canvas,
+      transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
+    }).promise;
     wrap.appendChild(overlay);
     overlay.style.pointerEvents = pdfHighlightArmed ? "auto" : "none";
     paintHighlights(pageNum, overlay, viewport.width, viewport.height);
@@ -759,8 +747,8 @@ async function renderPdf(
     const norm = (clientX: number, clientY: number) => {
       const rect = overlay.getBoundingClientRect();
       return {
-        x: (clientX - rect.left) / rect.width,
-        y: (clientY - rect.top) / rect.height,
+        x: Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)),
+        y: Math.min(1, Math.max(0, (clientY - rect.top) / rect.height)),
       };
     };
     overlay.onmousedown = (ev) => {
@@ -832,10 +820,6 @@ async function renderPdf(
       const has = Boolean(sel && !sel.isCollapsed && textLayer.contains(sel.anchorNode));
       void syncPdfSelection(has);
     });
-    pageLabel.textContent = `Page ${pageNum} / ${doc.numPages}`;
-    prev.disabled = pageNum <= 1;
-    next.disabled = pageNum >= doc.numPages;
-    jumpInput.value = String(pageNum);
     updateThumbActive();
     syncAnnotationDock();
   };
@@ -910,27 +894,6 @@ async function renderPdf(
     workspace.insertBefore(thumbsPanel, center);
   }
 
-  jumpBtn.onclick = async () => {
-    const n = Number(jumpInput.value);
-    if (!Number.isFinite(n) || n < 1 || n > doc.numPages) {
-      return;
-    }
-    await goToPage(Math.floor(n));
-  };
-
-  prev.onclick = async () => {
-    if (currentPage <= 1) {
-      return;
-    }
-    await goToPage(currentPage - 1);
-  };
-  next.onclick = async () => {
-    if (currentPage >= doc.numPages) {
-      return;
-    }
-    await goToPage(currentPage + 1);
-  };
-
   const bumpZoom = (delta: number) => {
     const factor = delta > 0 ? 1.12 : 1 / 1.12;
     currentScale = Math.min(4, Math.max(0.5, currentScale * factor));
@@ -939,6 +902,21 @@ async function renderPdf(
     void drawPage(currentPage);
   };
   viewerZoomAdjust = bumpZoom;
+  pdfViewCommand = (commandId: string) => {
+    if (commandId === "unibrowser.pdf.page.nav") {
+      void goToPage(currentPage >= doc.numPages ? 1 : currentPage + 1);
+      return true;
+    }
+    if (commandId === "unibrowser.pdf.view.zoom") {
+      bumpZoom(1);
+      return true;
+    }
+    if (commandId === "unibrowser.pdf.annotate.highlight") {
+      armPdfHighlightMode();
+      return true;
+    }
+    return false;
+  };
 
   const fitWidthScale = async () => {
     const page = await doc.getPage(currentPage);

@@ -2780,35 +2780,6 @@ body.content-fullscreen::after {
   min-height: min(100%, 24rem);
 }
 
-.pdf-viewer-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem 0.65rem;
-  flex: 0 0 auto;
-  padding: 6px 10px;
-  border-top: 1px solid var(--ub-border, #c8c4bc);
-  background: var(--ub-panel, #f7f6f2);
-  font-size: 12px;
-}
-
-[data-theme="dark"] .pdf-viewer-footer {
-  background: #1a1c1d;
-  border-top-color: #3a3d3f;
-}
-
-.pdf-footer-btn {
-  appearance: none;
-  padding: 2px 8px;
-  font-size: 12px;
-  border: 1px solid var(--ub-border, #c8c4bc);
-  border-radius: var(--ub-radius-4, 4px);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
 .pdf-footer-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--ub-accent, #3d7ea6) 12%, transparent);
 }
@@ -2921,6 +2892,33 @@ body.content-fullscreen::after {
   margin-bottom: 4px;
 }
 
+.pdf-annotation-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pdf-annotation-icon {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid var(--ub-border, #aeb6bf);
+  border-radius: 2px;
+  color: var(--ub-text-2, #4b5052);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.pdf-annotation-colour {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ub-border-strong, #8a8d8c);
+  border-radius: 2px;
+}
+
 .pdf-annotation-kind {
   font-size: 11px;
   font-weight: 600;
@@ -2962,50 +2960,82 @@ body.content-fullscreen::after {
   border: 1px solid rgba(31, 35, 38, 0.08);
 }
 
-.pdf-annotation-props {
-  display: grid;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
-}
-
-.pdf-annotation-prop {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 11px;
-}
-
 .pdf-annotation-reply {
   width: 100%;
-  margin-top: 0.35rem;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 6px 7px;
   font-size: 12px;
-  resize: vertical;
+  resize: none;
 }
 
 .pdf-annotation-actions {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 0.35rem;
-  margin-top: 0.35rem;
+  margin-top: 6px;
+}
+
+.pdf-annotation-actions button,
+.pdf-annotation-appearance > summary {
+  padding: 2px 4px;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--ub-text-2, #4b5052) !important;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pdf-annotation-appearance {
+  position: relative;
+  margin-right: auto;
+}
+
+.pdf-annotation-appearance > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  list-style: none;
+}
+
+.pdf-annotation-appearance > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pdf-annotation-swatch-popover {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 28px 92px;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--ub-border, #aeb6bf);
+  border-radius: 4px;
+  background: var(--ub-panel, #f7f6f2);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 18%);
+}
+
+.pdf-annotation-swatch-popover input[type="color"] {
+  width: 28px;
+  height: 24px;
+  padding: 1px;
+}
+
+.pdf-annotation-swatch-popover input[type="range"] {
+  width: 92px;
 }
 
 .pdf-annotations-dock button,
 .pdf-annotations-dock select,
 .pdf-annotations-dock input,
 .pdf-annotations-dock textarea,
-.pdf-viewer-footer input {
-  appearance: none;
-  border: 1px solid var(--ub-border, #c8c4bc);
-  border-radius: 4px;
-  background: var(--ub-surface-subtle, #25282a);
-  color: inherit;
-  font: inherit;
-}
-
 [data-theme="light"] .pdf-annotations-dock button,
 [data-theme="light"] .pdf-annotations-dock select,
 [data-theme="light"] .pdf-annotations-dock input,
-[data-theme="light"] .pdf-annotations-dock textarea,
-[data-theme="light"] .pdf-viewer-footer input {
+[data-theme="light"] .pdf-annotations-dock textarea {
   background: #eef1f3;
   border-color: #aeb6bf;
   color: #252a30;

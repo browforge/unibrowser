@@ -242,14 +242,48 @@ fn code_capability(control_id: &str) -> CapabilityState {
 }
 
 fn pdf_capability(control_id: &str) -> CapabilityState {
-    if control_id.starts_with("unibrowser.control.pdf.") {
-        CapabilityState::Supported
-    } else if control_id.starts_with("unibrowser.control.text.") {
-        CapabilityState::Unsupported {
-            reason: "PDF pages are not rich-text documents.".into(),
+    match control_id {
+        control_ids::PDF_SELECT
+        | control_ids::PDF_HIGHLIGHT
+        | control_ids::PDF_NOTE
+        | control_ids::PDF_AREA
+        | control_ids::PDF_PAGE
+        | control_ids::PDF_VIEW_ZOOM
+        | control_ids::PDF_EXPORT => CapabilityState::Supported,
+        control_ids::PDF_HAND => CapabilityState::Unsupported {
+            reason: "Hand tool needs the PDF pan provider.".into(),
+        },
+        control_ids::PDF_UNDERLINE | control_ids::PDF_STRIKETHROUGH => {
+            CapabilityState::Unsupported {
+                reason: "Text markup needs PDF text-range coordinate support.".into(),
+            }
         }
-    } else {
-        CapabilityState::Supported
+        control_ids::PDF_INK => CapabilityState::Unsupported {
+            reason: "Ink needs a PDF stroke annotation provider.".into(),
+        },
+        control_ids::PDF_TEXT_BOX => CapabilityState::Unsupported {
+            reason: "Text box needs a PDF free-text annotation provider.".into(),
+        },
+        control_ids::PDF_STAMP => CapabilityState::Unsupported {
+            reason: "Stamp needs a PDF stamp annotation provider.".into(),
+        },
+        control_ids::PDF_ANNOTATION_PREVIOUS | control_ids::PDF_ANNOTATION_NEXT => {
+            CapabilityState::Unsupported {
+                reason: "Annotation navigation needs selectable annotation identities.".into(),
+            }
+        }
+        control_ids::PDF_STROKE_COLOUR
+        | control_ids::PDF_FILL_COLOUR
+        | control_ids::PDF_STROKE_WIDTH => CapabilityState::Unsupported {
+            reason: "Select an editable annotation to change its appearance.".into(),
+        },
+        id if id.starts_with("unibrowser.control.text.") => CapabilityState::Unsupported {
+            reason: "PDF pages are not rich-text documents.".into(),
+        },
+        "unibrowser.control.proofing" => CapabilityState::Unsupported {
+            reason: "Spell check applies to editable text, not PDF page content.".into(),
+        },
+        _ => CapabilityState::Supported,
     }
 }
 
@@ -273,7 +307,30 @@ fn image_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityStat
         "unibrowser.control.image.curves" if vector_image => CapabilityState::Unsupported {
             reason: "Curves adjusts raster pixels, not SVG vector paths.".into(),
         },
-        id if id.starts_with("unibrowser.control.image.") => CapabilityState::Supported,
+        "unibrowser.control.image.zoomOut" | "unibrowser.control.image.zoomIn" => {
+            CapabilityState::Supported
+        }
+        "unibrowser.control.image.fit" => CapabilityState::Unsupported {
+            reason: "Fit-to-window needs a viewer fit provider.".into(),
+        },
+        "unibrowser.control.image.crop" => CapabilityState::Unsupported {
+            reason: "Crop needs a non-destructive image edit provider.".into(),
+        },
+        "unibrowser.control.image.rotate" => CapabilityState::Unsupported {
+            reason: "Rotate needs a non-destructive image transform provider.".into(),
+        },
+        "unibrowser.control.image.resize" => CapabilityState::Unsupported {
+            reason: "Resize needs an image resampling provider.".into(),
+        },
+        "unibrowser.control.image.exposure"
+        | "unibrowser.control.image.contrast"
+        | "unibrowser.control.image.colour"
+        | "unibrowser.control.image.curves" => CapabilityState::Unsupported {
+            reason: "Image adjustments need a non-destructive raster adjustment provider.".into(),
+        },
+        id if id.starts_with("unibrowser.control.image.") => CapabilityState::Unsupported {
+            reason: "No image provider currently implements this control.".into(),
+        },
         id if id.starts_with("unibrowser.control.text.") => CapabilityState::Unsupported {
             reason: "Adjust image pixels with the image tools, not text formatting.".into(),
         },
@@ -289,11 +346,25 @@ fn cad_capability(control_id: &str) -> CapabilityState {
         "unibrowser.control.cad.find" => CapabilityState::Unsupported {
             reason: "Entity search needs a CAD indexing provider.".into(),
         },
+        "unibrowser.control.cad.select" => CapabilityState::Unsupported {
+            reason: "Entity selection needs a CAD picking provider.".into(),
+        },
+        "unibrowser.control.cad.orientation"
+        | "unibrowser.control.cad.pan"
+        | "unibrowser.control.cad.orbit" => CapabilityState::Unsupported {
+            reason: "This view tool needs an interactive CAD camera provider.".into(),
+        },
         "unibrowser.control.cad.measure" => CapabilityState::Unsupported {
             reason: "Measure needs a full CAD geometry engine.".into(),
         },
         "unibrowser.control.cad.exportStep" => CapabilityState::Unsupported {
             reason: "STEP export needs a full CAD geometry engine.".into(),
+        },
+        "unibrowser.control.cad.section" => CapabilityState::Unsupported {
+            reason: "Section view needs a full CAD geometry engine.".into(),
+        },
+        "unibrowser.control.cad.appearance" => CapabilityState::Unsupported {
+            reason: "Appearance controls need a CAD material provider.".into(),
         },
         _ => CapabilityState::Unsupported {
             reason: "This command is not available for CAD documents.".into(),

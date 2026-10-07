@@ -336,8 +336,36 @@ fn pdf_context_exposes_annotation_family() {
         .flat_map(|g| g.controls.iter())
         .map(|c| c.control_id.as_str())
         .collect();
-    assert!(ids.iter().any(|id| *id == control_ids::PDF_PAGE));
-    assert!(ids.iter().any(|id| *id == control_ids::PDF_EXPORT));
+    for expected in [
+        control_ids::PDF_SELECT,
+        control_ids::PDF_HAND,
+        control_ids::PDF_HIGHLIGHT,
+        control_ids::PDF_UNDERLINE,
+        control_ids::PDF_STRIKETHROUGH,
+        control_ids::PDF_NOTE,
+        control_ids::PDF_AREA,
+        control_ids::PDF_INK,
+        control_ids::PDF_TEXT_BOX,
+        control_ids::PDF_STAMP,
+        control_ids::PDF_ANNOTATION_PREVIOUS,
+        control_ids::PDF_ANNOTATION_NEXT,
+        control_ids::PDF_STROKE_COLOUR,
+        control_ids::PDF_FILL_COLOUR,
+        control_ids::PDF_STROKE_WIDTH,
+        control_ids::PDF_PAGE,
+        control_ids::PDF_VIEW_ZOOM,
+        control_ids::PDF_EXPORT,
+    ] {
+        assert!(ids.contains(&expected), "missing PDF target control: {expected}");
+    }
+    assert!(
+        !families
+            .iter()
+            .flat_map(|family| family.groups.iter())
+            .flat_map(|group| group.controls.iter())
+            .any(|control| control.control_id == "unibrowser.control.proofing"),
+        "PDF context must not present spelling proofing"
+    );
 }
 
 #[test]
@@ -345,12 +373,30 @@ fn image_context_exposes_adjust_family() {
     let resolver = CapabilityResolver::default();
     let ctx = resolution_ctx(WorkContext::Image, "photo.svg");
     let families = core_tab_layout(&ctx, &resolver);
-    assert!(
-        families
-            .iter()
-            .any(|f| f.family_id == "unibrowser.family.image-adjust"),
-        "image adjust family present"
-    );
+    let image = families
+        .iter()
+        .find(|f| f.family_id == "unibrowser.family.image-adjust")
+        .expect("image adjust family present");
+    let ids: Vec<_> = image
+        .groups
+        .iter()
+        .flat_map(|group| group.controls.iter())
+        .map(|control| control.control_id.as_str())
+        .collect();
+    for expected in [
+        "unibrowser.control.image.fit",
+        "unibrowser.control.image.zoomOut",
+        "unibrowser.control.image.zoomIn",
+        "unibrowser.control.image.crop",
+        "unibrowser.control.image.rotate",
+        "unibrowser.control.image.resize",
+        "unibrowser.control.image.exposure",
+        "unibrowser.control.image.contrast",
+        "unibrowser.control.image.colour",
+        "unibrowser.control.image.curves",
+    ] {
+        assert!(ids.contains(&expected), "missing image target control: {expected}");
+    }
 }
 
 #[test]
@@ -447,8 +493,13 @@ fn cad3d_context_exposes_proving_view_family_and_reasons() {
         assert!(matches!(&control.capability, CapabilityState::Supported));
     }
     for (id, reason_fragment) in [
-        ("unibrowser.control.cad.find", "indexing provider"),
+        ("unibrowser.control.cad.select", "picking provider"),
+        ("unibrowser.control.cad.orientation", "camera provider"),
+        ("unibrowser.control.cad.pan", "camera provider"),
+        ("unibrowser.control.cad.orbit", "camera provider"),
         ("unibrowser.control.cad.measure", "geometry engine"),
+        ("unibrowser.control.cad.section", "geometry engine"),
+        ("unibrowser.control.cad.appearance", "material provider"),
         ("unibrowser.control.cad.exportStep", "geometry engine"),
     ] {
         let control = controls
