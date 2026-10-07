@@ -216,6 +216,14 @@ export async function applyDemoState(raw: string) {
           ?.focus();
         break;
       }
+      case "ui14-open-command-overflow": {
+        const overflow = await waitForElement<HTMLButtonElement>(
+          "#command-manager-overflow.visible",
+        );
+        overflow?.click();
+        await waitForElement(".cm-overflow-menu");
+        break;
+      }
       case "ui15-unibrow-title": {
         const clip = await waitForElement<HTMLElement>(
           '.workshop-clip[data-clip-id="clip-1"]',

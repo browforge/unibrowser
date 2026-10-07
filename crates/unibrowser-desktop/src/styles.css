@@ -2464,6 +2464,21 @@ body.content-fullscreen::after {
   font-size: 0.85rem;
 }
 
+.image-toolbar button {
+  min-height: 28px;
+  padding: 3px 7px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ub-text-2, #c9cbc8);
+  font: inherit;
+}
+
+.image-toolbar button:hover:not(:disabled),
+.image-toolbar button:focus-visible {
+  background: var(--ub-hover, rgba(127, 127, 127, 0.16));
+}
+
 .image-toolbar button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -3715,7 +3730,7 @@ select:focus-visible,
 
 .workshop-selection-meta {
   margin: 0 0 12px;
-  color: var(--ub-text-muted, #9aa5ac);
+  color: var(--ub-label, var(--ub-text-2, #c9cbc8));
   font-size: 11px;
   line-height: 1.45;
 }

@@ -78,6 +78,7 @@ export const SHELL_DENSITY_CONTRAST_TARGETS: Array<{
   { id: "workshop-source-badge", selector: ".workshop-source-badge", minRatio: 4.5, when: "workshop" },
   { id: "workshop-source-sub", selector: ".workshop-source-copy span", minRatio: 4.5, when: "workshop" },
   { id: "workshop-field-label", selector: ".workshop-field > span", minRatio: 4.5, when: "workshop" },
+  { id: "workshop-selection-meta", selector: ".workshop-selection-meta", minRatio: 4.5, when: "workshop" },
   { id: "title-breadcrumb", selector: ".title-breadcrumb:not(.hidden)", minRatio: 4.5, when: "always" },
   { id: "files-meta", selector: ".files-meta", minRatio: 4.5, when: "files" },
   { id: "settings-form-label", selector: ".settings-content label", minRatio: 4.5, when: "settings" },

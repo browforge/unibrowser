@@ -63,7 +63,7 @@ capture_workshop_hc() {
   done
 }
 capture_workshop_hc
-capture_scene "settings" "" "unibrowser://settings"
+capture_scene "settings" "settings" "$DEMO/sample.txt"
 capture_scene "mod-portal" "ui17-mod-portal" "$DEMO/unknown.ubunknown"
 
 echo "Shell density captures in $OUT"

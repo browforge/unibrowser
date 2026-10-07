@@ -445,12 +445,26 @@ function openOverflowGroupsMenu(
       btn.type = "button";
       btn.className = "palette-item-row";
       btn.textContent = patched.title;
-      btn.disabled = !patched.enabled;
+      btn.classList.toggle("disabled", !patched.enabled);
+      if (!patched.enabled) {
+        btn.setAttribute("aria-disabled", "true");
+      }
+      if (patched.reason) {
+        btn.setAttribute("aria-description", patched.reason);
+      }
+      bindCommandTooltip(btn, {
+        title: patched.title,
+        reason: patched.reason,
+        chord: chordByCommand.get(patched.command_id) ?? null,
+        enabled: patched.enabled,
+      });
       btn.onclick = () => {
-        menu.remove();
-        if (patched.enabled) {
-          void onRun(patched.command_id);
+        if (!patched.enabled) {
+          announceCm(`${patched.title}, unavailable, ${patched.reason ?? "No provider"}`);
+          return;
         }
+        menu.remove();
+        void onRun(patched.command_id);
       };
       menu.appendChild(btn);
     });

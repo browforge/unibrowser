@@ -36,6 +36,7 @@ capture() {
 }
 
 capture "pdf-annotation-light-1280" "$PACK/sample.pdf"
+capture "pdf-annotation-overflow-light-1280" "$PACK/sample.pdf" "ui14-open-command-overflow"
 capture "image-light-1280" "$PACK/sample.svg"
 capture "dxf-proving-light-1280" "$PACK/sample.dxf" "ui14-dxf-measure-reason"
 
