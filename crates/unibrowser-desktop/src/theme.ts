@@ -4,6 +4,7 @@ export type ResolvedTheme = "light" | "dark";
 
 let storedPreference: "light" | "dark" | "system" = "system";
 let media: MediaQueryList | null = null;
+let userChoseTheme = false;
 
 function systemTheme(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
@@ -24,17 +25,24 @@ export function applyThemeToDocument() {
 }
 
 export function applyThemeOverride(theme: "light" | "dark") {
+  if (userChoseTheme) {
+    return;
+  }
   storedPreference = theme;
   applyThemeToDocument();
 }
 
 /** Apply a user-chosen theme without re-reading demo-state overrides. */
 export function applyUserThemePreference(theme: "light" | "dark" | "system") {
+  userChoseTheme = true;
   storedPreference = theme;
   applyThemeToDocument();
 }
 
 export function applyThemeFromDemoState(raw: string) {
+  if (userChoseTheme) {
+    return false;
+  }
   const lower = raw.toLowerCase();
   if (lower.includes("theme-light")) {
     applyThemeOverride("light");
@@ -49,9 +57,11 @@ export function applyThemeFromDemoState(raw: string) {
 
 export async function loadThemePreference() {
   try {
-    const demo = await invoke<string | null>("get_demo_state");
-    if (demo && applyThemeFromDemoState(demo)) {
-      return;
+    if (!userChoseTheme) {
+      const demo = await invoke<string | null>("get_demo_state");
+      if (demo && applyThemeFromDemoState(demo)) {
+        return;
+      }
     }
     const prefs = await invoke<{ theme: string }>("get_preferences");
     const t = prefs.theme?.toLowerCase();
@@ -76,6 +86,7 @@ export async function cycleTheme(): Promise<string> {
   const order: ("light" | "dark" | "system")[] = ["light", "dark", "system"];
   const idx = order.indexOf(storedPreference);
   storedPreference = order[(idx + 1) % order.length];
+  userChoseTheme = true;
   await invoke("set_ui_theme", { theme: storedPreference });
   applyThemeToDocument();
   return storedPreference;

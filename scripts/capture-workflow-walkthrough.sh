@@ -251,14 +251,17 @@ start_app "settings" --open "$PACK/sample.txt"
 xdotool sleep 1.4
 assert_no_floating_toolbar
 shot "07-theme-light"
-# Appearance is the second category. Theme select is on that page.
-xdotool mousemove 95 215 click 1
+# Appearance sits under General on the settings category rail.
+xdotool mousemove 90 255 click 1
 xdotool sleep 0.5
 assert_no_floating_toolbar
 shot "07-theme-appearance"
-xdotool mousemove 1180 200 click 1
-xdotool sleep 0.3
+# Theme select sits on the first Appearance field row (~y 242-268).
+# Options are Light, Dark, Match system. Open, then take Dark.
+xdotool mousemove 1180 255 click 1
+xdotool sleep 0.25
 xdotool key Down
+xdotool sleep 0.1
 xdotool key Return
 xdotool sleep 0.8
 theme="$(read_pref theme)"
