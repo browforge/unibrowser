@@ -475,6 +475,7 @@ mod tests {
 
     #[test]
     fn loads_built_ub_mod_wasm() {
+        let _guard = WASM_DIR_LOCK.lock().expect("wasm test lock");
         let wasm_path = ensure_example_wasm_built().expect("build real wasm proving mod");
         let bytes = std::fs::read(wasm_path).expect("read wasm");
         let mut registry = CommandRegistry::with_builtins();
@@ -490,6 +491,7 @@ mod tests {
 
     #[test]
     fn real_wasm_snapshot_matches_native_proving_runtime() {
+        let _guard = WASM_DIR_LOCK.lock().expect("wasm test lock");
         let wasm_path = ensure_example_wasm_built().expect("build real wasm proving mod");
         let bytes = std::fs::read(wasm_path).expect("read wasm");
         let mut registry = CommandRegistry::with_builtins();
