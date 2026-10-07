@@ -267,7 +267,7 @@ export async function applyDemoState(raw: string) {
       }
       case "ui19-focus-visible": {
         const command = await waitForElement<HTMLButtonElement>(
-          '[data-control-id="unibrowser.control.find"]',
+          '[data-control-id="unibrowser.control.find"], #command-manager-groups .ui-command',
         );
         command?.focus();
         break;

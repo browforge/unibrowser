@@ -195,9 +195,9 @@ convert "$tmp/cells/03-rail-focus.png" \
   "$tmp/cells/03-rail-focus.png"
 stop_surface
 
-# The existing UI-19 path uses real keyboard focus on Find and is also covered
-# by the focus-ring capture guard. It is captured separately at 1280x800 so the
-# focused command cannot move into responsive overflow.
+# The existing UI-19 path uses real keyboard focus on a visible CM control and
+# is also covered by the focus-ring capture guard. It is captured separately at
+# 1280x800 so responsive overflow cannot remove the sampled target.
 convert "$OUT/cm-focus-${suffix}.png" -crop 300x90+560+28 +repage \
   "$tmp/cells/01-cm-focus.png"
 convert "$tmp/cells/01-cm-focus.png" \

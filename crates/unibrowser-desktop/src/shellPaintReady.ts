@@ -201,9 +201,7 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         break;
       case "ui19-focus-visible":
         checks.push(
-          () =>
-            document.activeElement?.getAttribute("data-control-id") ===
-            "unibrowser.control.find",
+          () => document.activeElement?.classList.contains("ui-command") ?? false,
         );
         break;
       default:

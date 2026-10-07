@@ -2996,7 +2996,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               await new Promise((resolve) => window.setTimeout(resolve, 50));
               document
                 .querySelector<HTMLElement>(
-                  '[data-control-id="unibrowser.control.find"]',
+                  '[data-control-id="unibrowser.control.find"], #command-manager-groups .ui-command',
                 )
                 ?.focus();
             }
