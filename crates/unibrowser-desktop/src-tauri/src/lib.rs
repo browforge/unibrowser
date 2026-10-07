@@ -132,7 +132,15 @@ pub fn run() {
                 if !e2e && !self_test && !doc_capture {
                     commands::restore_session_on_launch(state.inner(), app.handle())?;
                 }
-                let _ = toolbar_windows::restore_detached_toolbars(app.handle(), state.inner());
+                if let Err(error) =
+                    toolbar_windows::restore_detached_toolbars(app.handle(), state.inner())
+                {
+                    eprintln!("detached toolbar restore: {}", error);
+                    crate::diagnostic_log::record_error(
+                        "detached-toolbar-restore",
+                        Some(error),
+                    );
+                }
             }
             let _ = unibrowser_media::warm_sidecar_pool();
             Ok(())
