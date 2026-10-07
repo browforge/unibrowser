@@ -5946,7 +5946,7 @@ body.content-fullscreen #unknown-file-banner {
 }
 
 .status-ai {
-  color: var(--ub-accent);
+  color: var(--ub-accent-hover);
 }
 
 .floating-bar .drag-handle {

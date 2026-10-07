@@ -549,5 +549,5 @@ body.ub-status-compact .status-verbose-only {
 
 .status-bar .muted,
 .status-hint {
-  color: var(--ub-text-3);
+  color: var(--ub-text-2);
 }
