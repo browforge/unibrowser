@@ -515,10 +515,13 @@ function statusItemsForContext(
     return { context: "media", items: [...left, ...right] };
   }
   if (showText && data.text_document) {
+    const problemsText =
+      document.getElementById("bottom-panel-tab-problems")?.textContent ?? "";
+    const problemsCount = problemsText.match(/\d+/)?.[0] ?? "0";
     left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
     left.push(item("document-language", "left", values.language || data.text_document.language || "Text", 80));
     left.push(item("document-caret", "left", values.cursor, 80));
-    right.push(item("document-problems", "right", "Problems 0", 70));
+    right.push(item("document-problems", "right", `Problems ${problemsCount}`, 70));
     right.push(item("document-encoding", "right", values.encoding || "UTF-8", 60));
     if (values.encode) {
       right.push(item("document-encode", "right", values.encode, 110));

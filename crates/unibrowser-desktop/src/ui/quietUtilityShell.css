@@ -139,6 +139,10 @@ body {
   height: var(--ub-bottom-panel-problems-height, 12rem);
 }
 
+[data-high-contrast="true"] .script-output-panel.ub-dock-panel.problems-populated {
+  height: calc(var(--ub-bottom-panel-problems-height, 12rem) + 8px);
+}
+
 .script-output-panel.ub-dock-panel.hidden {
   display: none !important;
   height: 0 !important;
