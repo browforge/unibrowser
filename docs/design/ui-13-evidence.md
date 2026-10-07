@@ -15,8 +15,9 @@ folder through Delete visible; Sort, Direction, Hidden files, Set workspace, and
 Clear workspace in the overflow chevron). Left: collapsed activity rail and Places
 with recent files on single lines (ellipsis where long). Centre: quiet
 breadcrumbs without a raised Set workspace control; light bordered filter field;
-selection note; file table with type badge and name left-aligned on one row per
-file (no inline PNG thumbnails). `sample.svg` is selected. Right: joined Preview
+selection note; file table with sortable Name, Size, and Date modified headers
+(Size and Modified right-aligned); type badge and name left-aligned on one row
+per file (no inline PNG thumbnails). `sample.svg` is selected. Right: joined Preview
 dock with SVG thumb, metadata, path, and Open. Status bar: Browse context.
 
 ### `files-browser-preview-dark-100.png`

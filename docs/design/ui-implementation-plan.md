@@ -544,9 +544,9 @@ Screenshot:
 
 **Visual-language impact:** Revised. Red is reserved for LIVE/recording/error and all broadcast states remain clear without colour.
 
-Status: in progress 2026-10-07. Studio header states Preview / LIVE / Recording
-with restrained red semantics; capture script `scripts/capture-ui-16.sh` added.
-Evidence pending in `docs/design/ui-16-evidence.md`.
+Status: partial 2026-10-07. Studio header Preview / LIVE / Recording with
+restrained red semantics and three 1600 captures in `docs/design/ui-16-evidence.md`
+(3 Pass). Mixer, source health, and status redundancy still open.
 
 Likely files:
 
