@@ -508,8 +508,10 @@ function statusItemsForContext(
   }
   if (viewer === "video" || viewer === "audio" || viewer === "midi") {
     left.push(item("media-kind", "left", viewer === "video" ? "Video" : viewer === "audio" ? "Audio" : "MIDI", 100));
-    if (data.document_viewer?.media_note) {
-      left.push(item("media-format", "left", data.document_viewer.media_note, 50));
+    if (viewer === "video") {
+      left.push(item("media-format", "left", "Video preview", 50));
+    } else if (viewer === "audio") {
+      left.push(item("media-format", "left", "Audio preview", 50));
     }
     right.push(item("media-audio", "right", active?.muted ? "Muted" : "Audio on", 80));
     return { context: "media", items: [...left, ...right] };

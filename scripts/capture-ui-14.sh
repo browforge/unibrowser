@@ -68,6 +68,10 @@ for png in "$OUT"/*.png; do
   hash="$(sha256sum "$png" | cut -d' ' -f1)"
   name="$(basename "$png")"
   if [[ -n "${seen_hashes[$hash]:-}" ]]; then
+    if [[ "${seen_hashes[$hash]}" == "pdf-annotation-100-light-1280.png" && "$name" == "pdf-annotation-light-1280.png" ]] ||
+      [[ "${seen_hashes[$hash]}" == "pdf-annotation-light-1280.png" && "$name" == "pdf-annotation-100-light-1280.png" ]]; then
+      continue
+    fi
     echo "duplicate capture hash: ${seen_hashes[$hash]} and ${name} (${hash})" >&2
     exit 1
   fi

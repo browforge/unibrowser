@@ -230,6 +230,7 @@ export async function mountRasterImageViewer(
     panY = 0;
     fitMode = "fit";
     applyTransform();
+    root.dataset.imageFitReady = "1";
   };
 
   const applyActualSize = () => {

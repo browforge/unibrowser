@@ -43,14 +43,14 @@ def main() -> None:
     draw.ellipse((WIDTH // 2 - 180, HEIGHT // 2 - 120, WIDTH // 2 + 180, HEIGHT // 2 + 120), outline=(255, 255, 255), width=5)
     title_font = _font(56)
     sub_font = _font(28)
-    draw.text((140, 160), "UniBrowser raster fixture", fill=(255, 255, 255), font=title_font)
+    draw.text((140, 160), "North Bay colour study", fill=(255, 255, 255), font=title_font)
     draw.text(
         (140, 240),
-        "1600 x 1000  gradient  edges  centred fit QA",
+        "1600 x 1000  gradient and line study",
         fill=(240, 248, 255),
         font=sub_font,
     )
-    draw.text((140, HEIGHT - 200), "Procedural PNG  no licence encumbrance", fill=(30, 30, 40), font=sub_font)
+    draw.text((140, HEIGHT - 200), "Generated locally", fill=(30, 30, 40), font=sub_font)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUT, format="PNG", optimize=True)

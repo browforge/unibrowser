@@ -1,7 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { loadPdfJs, loadThree } from "./lazyModules";
 import { appendTrustBanner } from "./trustBanner";
-import { mountClickToPlay } from "./mediaPlayGate";
 import { bindMediaViewerKeys } from "./mediaKeyboard";
 import { renderDownloadsManager, type DownloadHistoryEntryDto } from "./downloadsPage";
 import { reportViewerPdfPage, reportViewerZoom } from "./viewerZoom";
@@ -980,109 +979,99 @@ async function renderPdf(
   });
 }
 
-function appendMediaNote(root: HTMLElement, note?: string) {
-  if (!note) {
-    return;
-  }
-  const meta = document.createElement("p");
-  meta.className = "viewer-note";
-  meta.textContent = note;
-  root.appendChild(meta);
-}
-
 async function ensureAssetAllowed(path: string) {
   await invoke("allow_asset_path", { path }).catch(() => {});
+}
+
+function formatMediaTime(value: number): string {
+  if (!Number.isFinite(value) || value < 0) {
+    return "0:00";
+  }
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function mountMediaControls(host: HTMLElement, media: HTMLMediaElement): void {
+  const controls = document.createElement("div");
+  controls.className = "media-controls";
+  const play = document.createElement("button");
+  play.type = "button";
+  play.className = "media-play-button";
+  play.textContent = "Play";
+  play.setAttribute("aria-label", "Play media");
+  const seek = document.createElement("input");
+  seek.type = "range";
+  seek.className = "media-seek";
+  seek.min = "0";
+  seek.max = "1000";
+  seek.value = "0";
+  seek.disabled = true;
+  seek.setAttribute("aria-label", "Media position");
+  const time = document.createElement("span");
+  time.className = "media-time";
+  time.textContent = "0:00 / 0:00";
+
+  const syncTime = () => {
+    const duration = Number.isFinite(media.duration) ? media.duration : 0;
+    const progress = duration > 0 ? media.currentTime / duration : 0;
+    seek.value = String(Math.round(progress * 1000));
+    seek.disabled = duration <= 0;
+    time.textContent = `${formatMediaTime(media.currentTime)} / ${formatMediaTime(duration)}`;
+  };
+  const syncPlay = () => {
+    const playing = !media.paused && !media.ended;
+    play.textContent = playing ? "Pause" : "Play";
+    play.setAttribute("aria-label", playing ? "Pause media" : "Play media");
+  };
+
+  play.addEventListener("click", () => {
+    if (media.paused || media.ended) {
+      void media.play().catch(() => {});
+      return;
+    }
+    media.pause();
+  });
+  seek.addEventListener("input", () => {
+    if (!Number.isFinite(media.duration) || media.duration <= 0) {
+      return;
+    }
+    media.currentTime = (Number.parseInt(seek.value, 10) / 1000) * media.duration;
+    syncTime();
+  });
+  media.addEventListener("loadedmetadata", syncTime);
+  media.addEventListener("durationchange", syncTime);
+  media.addEventListener("timeupdate", syncTime);
+  media.addEventListener("play", syncPlay);
+  media.addEventListener("pause", syncPlay);
+  media.addEventListener("ended", syncPlay);
+  controls.append(play, seek, time);
+  host.appendChild(controls);
+  syncTime();
+  syncPlay();
 }
 
 async function renderVideo(
   path: string,
   root: HTMLElement,
-  note?: string,
+  _note?: string,
   tabMuted = false,
 ) {
   await ensureAssetAllowed(path);
   root.innerHTML = "";
+  root.classList.add("media-viewer", "media-viewer--video");
+  const stage = document.createElement("div");
+  stage.className = "media-stage";
   const video = document.createElement("video");
   video.className = "media-view";
-  video.controls = true;
+  video.controls = false;
+  video.preload = "metadata";
   video.muted = tabMuted;
   video.src = convertFileSrc(path);
-  mountClickToPlay(root, video, "Click to play video");
+  stage.appendChild(video);
+  root.appendChild(stage);
+  mountMediaControls(root, video);
   bindMediaViewerKeys(video);
-
-  const scrubWrap = document.createElement("div");
-  scrubWrap.className = "video-scrub";
-  const scrubLabel = document.createElement("label");
-  scrubLabel.className = "video-scrub-label";
-  scrubLabel.textContent = "Scrub preview";
-  const scrubInput = document.createElement("input");
-  scrubInput.type = "range";
-  scrubInput.className = "video-scrub-range";
-  scrubInput.min = "0";
-  scrubInput.max = "1000";
-  scrubInput.value = "0";
-  scrubInput.disabled = true;
-  const scrubTime = document.createElement("span");
-  scrubTime.className = "video-scrub-time";
-  scrubTime.textContent = "0.0s";
-  const thumb = document.createElement("img");
-  thumb.className = "video-scrub-thumb hidden";
-  thumb.alt = "";
-  const scrubNote = document.createElement("p");
-  scrubNote.className = "viewer-note video-scrub-fallback hidden";
-  scrubNote.textContent = "Frame preview needs ffmpeg on PATH.";
-  scrubWrap.appendChild(scrubLabel);
-  scrubWrap.appendChild(scrubInput);
-  scrubWrap.appendChild(scrubTime);
-  scrubWrap.appendChild(thumb);
-  scrubWrap.appendChild(scrubNote);
-  root.appendChild(scrubWrap);
-
-  let scrubTimer: number | undefined;
-  let thumbEnabled = true;
-
-  const syncScrubMax = () => {
-    const dur = video.duration;
-    if (Number.isFinite(dur) && dur > 0) {
-      scrubInput.disabled = false;
-      scrubInput.max = String(Math.max(1, Math.floor(dur * 10)));
-    }
-  };
-  video.addEventListener("loadedmetadata", syncScrubMax);
-  syncScrubMax();
-
-  const requestThumb = (timeSec: number) => {
-    if (!thumbEnabled) {
-      return;
-    }
-    void invoke<{ path: string; mime: string }>("video_scrub_thumbnail", {
-      path,
-      timeSec,
-    })
-      .then(async (frame) => {
-        await ensureAssetAllowed(frame.path);
-        thumb.src = convertFileSrc(frame.path);
-        thumb.classList.remove("hidden");
-        scrubNote.classList.add("hidden");
-      })
-      .catch(() => {
-        thumb.classList.add("hidden");
-        scrubNote.classList.remove("hidden");
-        thumbEnabled = false;
-      });
-  };
-
-  scrubInput.addEventListener("input", () => {
-    const t = Number.parseFloat(scrubInput.value) / 10;
-    scrubTime.textContent = `${t.toFixed(1)}s`;
-    if (Number.isFinite(t)) {
-      video.currentTime = t;
-    }
-    window.clearTimeout(scrubTimer);
-    scrubTimer = window.setTimeout(() => requestThumb(t), 120);
-  });
-
-  appendMediaNote(root, note);
 }
 
 function drawAudioPeakArray(
@@ -1105,45 +1094,27 @@ function drawAudioPeakArray(
 async function renderAudio(
   path: string,
   root: HTMLElement,
-  note?: string,
+  _note?: string,
   tabMuted = false,
 ) {
   await ensureAssetAllowed(path);
   root.innerHTML = "";
-  const banner = document.createElement("p");
-  banner.className = "viewer-note";
-  banner.textContent =
-    "Audio proving viewer: HTML playback plus waveform sketch. Multitrack tools stay grey until a DAW engine ships.";
-  root.appendChild(banner);
-
-  const toolbar = document.createElement("div");
-  toolbar.className = "audio-proving-toolbar";
-  for (const label of ["Split clip", "Export stem", "Automation"]) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.disabled = true;
-    btn.className = "proving-disabled";
-    btn.title = "Requires DAW / multitrack engine (see Command Manager when audio tab is active)";
-    btn.textContent = label;
-    toolbar.appendChild(btn);
-  }
-  root.appendChild(toolbar);
+  root.classList.add("media-viewer", "media-viewer--audio");
 
   const audio = document.createElement("audio");
   audio.className = "media-view";
-  audio.controls = true;
+  audio.controls = false;
+  audio.preload = "metadata";
   audio.muted = tabMuted;
   audio.src = convertFileSrc(path);
-  const audioWrap = document.createElement("div");
-  root.appendChild(audioWrap);
-  mountClickToPlay(audioWrap, audio, "Click to play audio");
+  root.appendChild(audio);
   bindMediaViewerKeys(audio);
   const canvas = document.createElement("canvas");
   canvas.className = "audio-waveform";
   canvas.width = 640;
-  canvas.height = 48;
+  canvas.height = 160;
   root.appendChild(canvas);
-  let waveformNote = "";
+  mountMediaControls(root, audio);
   try {
     const bytes = await readBytes(path);
     const ctx = new AudioContext();
@@ -1154,7 +1125,6 @@ async function renderAudio(
       drawAudioPeaks(g, ch, canvas.width, canvas.height);
     }
     await ctx.close();
-    waveformNote = "Waveform from Web Audio decode.";
   } catch {
     try {
       const peaks = await invoke<number[]>("audio_waveform_peaks", {
@@ -1164,20 +1134,14 @@ async function renderAudio(
       const g = canvas.getContext("2d");
       if (g && peaks.length) {
         drawAudioPeakArray(g, peaks, canvas.width, canvas.height);
-        waveformNote = "Waveform from ffmpeg PCM decode.";
       }
     } catch {
       const g = canvas.getContext("2d");
       if (g) {
         drawAudioStubBars(g, canvas.width, canvas.height);
       }
-      waveformNote = "Waveform stub; install ffmpeg for decode or use a browser-supported codec.";
     }
   }
-  if (waveformNote) {
-    appendMediaNote(root, waveformNote);
-  }
-  appendMediaNote(root, note);
 }
 
 type DxfVertex = { x: number; y: number; z?: number };

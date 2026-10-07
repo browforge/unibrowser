@@ -205,7 +205,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       const label = document.createElement("strong");
       label.textContent = mode === "recording" ? "Recording programme" : "Live programme";
       const detail = document.createElement("span");
-      detail.textContent = "Local compositor";
+      detail.textContent = mode === "recording" ? "Recording in progress" : "Programme output";
       live.append(label, detail);
       stageContent.appendChild(live);
       return;

@@ -86,13 +86,16 @@ function browseFolderReady(): boolean {
 }
 
 function docViewerReady(): boolean {
-  const host = document.querySelector("#document-viewer-host");
+  const host = document.querySelector<HTMLElement>("#document-viewer-host");
   if (!host || host.classList.contains("hidden")) {
     return false;
   }
+  if (host.querySelector(".image-viewer-layout")) {
+    return host.dataset.imageFitReady === "1";
+  }
   if (
     host.querySelector(
-      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .image-viewport, .image-viewer-layout, .image-dock, .viewer-note, section",
+      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .viewer-note, section",
     )
   ) {
     return true;
