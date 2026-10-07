@@ -88,6 +88,23 @@ mod webview_download;
 mod webview_download_win;
 
 use state::AppState;
+
+fn doc_capture_size() -> (f64, f64) {
+    let raw = std::env::var("UNIBROWSER_DOC_CAPTURE_SIZE").unwrap_or_default();
+    let Some((width, height)) = raw.split_once('x') else {
+        return (1600.0, 1000.0);
+    };
+    let Ok(width) = width.parse::<f64>() else {
+        return (1600.0, 1000.0);
+    };
+    let Ok(height) = height.parse::<f64>() else {
+        return (1600.0, 1000.0);
+    };
+    if width < 480.0 || height < 400.0 {
+        return (1600.0, 1000.0);
+    }
+    (width, height)
+}
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -123,7 +140,8 @@ pub fn run() {
                     let _ = window.set_focus();
                 }
                 if doc_capture {
-                    let _ = window.set_size(tauri::LogicalSize::new(1600.0, 1000.0));
+                    let (width, height) = doc_capture_size();
+                    let _ = window.set_size(tauri::LogicalSize::new(width, height));
                     let _ = window.set_position(tauri::LogicalPosition::new(0.0, 0.0));
                 } else {
                     let saved = preferences::load_window_state();
