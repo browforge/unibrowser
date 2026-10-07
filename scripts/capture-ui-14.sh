@@ -51,12 +51,17 @@ capture "pdf-annotation-light-1280" "$PACK/sample.pdf"
 capture "pdf-annotation-100-light-1280" "$PACK/sample.pdf" "ui14-pdf-100"
 capture "pdf-annotation-overflow-light-1280" "$PACK/sample.pdf" "ui14-open-command-overflow"
 capture "image-light-1280" "$PACK/sample.svg"
+capture "image-svg-dark-1280" "$PACK/sample.svg" "" "dark"
+capture "image-svg-hc-1280" "$PACK/sample.svg" "high-contrast" "light"
+capture "image-svg-dark-hc-1280" "$PACK/sample.svg" "high-contrast" "dark"
 capture "image-raster-light-1280" "$PACK/sample.png"
 capture "image-raster-dark-1280" "$PACK/sample.png" "" "dark"
 capture "image-raster-hc-1280" "$PACK/sample.png" "high-contrast" "light"
+capture "image-raster-dark-hc-1280" "$PACK/sample.png" "high-contrast" "dark"
 capture "dxf-proving-light-1280" "$PACK/sample.dxf"
 capture "dxf-proving-dark-1280" "$PACK/sample.dxf" "" "dark"
 capture "dxf-proving-hc-1280" "$PACK/sample.dxf" "high-contrast" "light"
+capture "dxf-proving-dark-hc-1280" "$PACK/sample.dxf" "high-contrast" "dark"
 
 declare -A seen_hashes=()
 for png in "$OUT"/*.png; do
