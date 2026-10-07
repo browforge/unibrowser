@@ -38,6 +38,7 @@ fn resolution_ctx(work: WorkContext, path: &str) -> ResolutionContext {
         WorkContext::RichDocument => CommandContext::Office,
         WorkContext::Start => CommandContext::Start,
         WorkContext::Browse => CommandContext::Browse,
+        WorkContext::Settings => CommandContext::Browse,
         WorkContext::Web => CommandContext::Web,
         _ => CommandContext::Text,
     };

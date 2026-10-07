@@ -94,6 +94,28 @@ mod resolver_tests {
     }
 
     #[test]
+    fn settings_system_page_uses_settings_context() {
+        assert_eq!(
+            infer_work_context(
+                CommandContext::Browse,
+                Mode::Text,
+                Some("unibrowser://settings"),
+            ),
+            WorkContext::Settings,
+        );
+        let context = ctx(WorkContext::Settings, Some("unibrowser://settings"));
+        let families =
+            super::super::families::core_tab_layout(&context, &CapabilityResolver::default());
+        assert!(families
+            .iter()
+            .flat_map(|family| family.groups.iter())
+            .flat_map(|group| group.controls.iter())
+            .all(|control| control
+                .control_id
+                .starts_with("unibrowser.control.settings.")));
+    }
+
+    #[test]
     fn pdf_and_image_context_labels() {
         assert_eq!(
             command_context_display_label(CommandContext::Office, Mode::Document, Some("a.pdf")),

@@ -116,9 +116,19 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         },
         WorkContext::Start => start_capability(control_id),
         WorkContext::Browse => browse_capability(control_id),
+        WorkContext::Settings => settings_capability(control_id),
         WorkContext::Web => CapabilityState::Unsupported {
             reason: "Open a document to use formatting commands.".into(),
         },
+    }
+}
+
+fn settings_capability(control_id: &str) -> CapabilityState {
+    if control_id.starts_with("unibrowser.control.settings.") {
+        return CapabilityState::Supported;
+    }
+    CapabilityState::Unsupported {
+        reason: "This command is not available in Settings.".into(),
     }
 }
 

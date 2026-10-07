@@ -166,6 +166,9 @@ pub mod commands {
     pub const BROWSE_SORT: &str = "unibrowser.browse.sort";
     pub const BROWSE_SORT_DIRECTION: &str = "unibrowser.browse.sortDirection";
     pub const BROWSE_SHOW_HIDDEN: &str = "unibrowser.browse.showHidden";
+    pub const SETTINGS_SEARCH: &str = "unibrowser.settings.search";
+    pub const SETTINGS_KEYBINDINGS: &str = "unibrowser.settings.keybindings";
+    pub const SETTINGS_DIAGNOSTICS: &str = "unibrowser.settings.diagnostics";
     pub const RESTORE_AUTOSAVE: &str = "unibrowser.autosave.restore";
     pub const TOGGLE_PROBLEMS_PANEL: &str = "unibrowser.problems.toggle";
     pub const TEXT_BOLD: &str = "unibrowser.text.bold";

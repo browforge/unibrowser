@@ -111,6 +111,9 @@ pub mod control_ids {
     pub const BROWSE_SORT: &str = "unibrowser.control.browse.sort";
     pub const BROWSE_SORT_DIRECTION: &str = "unibrowser.control.browse.sortDirection";
     pub const BROWSE_SHOW_HIDDEN: &str = "unibrowser.control.browse.showHidden";
+    pub const SETTINGS_SEARCH: &str = "unibrowser.control.settings.search";
+    pub const SETTINGS_KEYBINDINGS: &str = "unibrowser.control.settings.keybindings";
+    pub const SETTINGS_DIAGNOSTICS: &str = "unibrowser.control.settings.diagnostics";
 }
 
 pub mod family_ids {
@@ -124,6 +127,7 @@ pub mod family_ids {
     pub const IMAGE_ADJUST: &str = "unibrowser.family.image-adjust";
     pub const START: &str = "unibrowser.family.start";
     pub const BROWSE: &str = "unibrowser.family.browse";
+    pub const SETTINGS: &str = "unibrowser.family.settings";
 }
 
 pub mod group_ids {
@@ -145,6 +149,7 @@ pub enum WorkContext {
     Image,
     Cad3d,
     Browse,
+    Settings,
     Web,
 }
 

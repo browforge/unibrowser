@@ -1333,6 +1333,8 @@ body.toolbar-window-mode .floating-bar.docked {
   min-height: 0;
   flex: 1;
   overflow: hidden;
+  position: absolute;
+  inset: 0;
 }
 
 .files-panel-main {
@@ -1713,6 +1715,19 @@ body.toolbar-window-mode .floating-bar.docked {
 [data-theme="light"] .files-layout-content {
   background: #f8f8f6;
   color: #252a30;
+}
+
+[data-theme="light"] .files-workspace-btn,
+[data-theme="light"] .files-workspace-clear {
+  background: #eef1f3;
+  border-color: #aeb6bf;
+  color: #252a30;
+}
+
+[data-theme="light"] .files-side-primary {
+  background: #1769aa !important;
+  border-color: #1769aa !important;
+  color: #fff;
 }
 
 .files-places {

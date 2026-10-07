@@ -1575,6 +1575,20 @@ async function runUiCommand(commandId: string) {
   if (await runFilesCommand(commandId)) {
     return;
   }
+  if (commandId === "unibrowser.settings.search") {
+    document.querySelector<HTMLInputElement>(".settings-search")?.focus();
+    return;
+  }
+  if (
+    commandId === "unibrowser.settings.keybindings" ||
+    commandId === "unibrowser.settings.diagnostics"
+  ) {
+    const path = commandId.endsWith("keybindings")
+      ? "unibrowser://keys"
+      : "unibrowser://diagnostics";
+    window.dispatchEvent(new CustomEvent("unibrowser-navigate", { detail: path }));
+    return;
+  }
   if (commandId === "ai-assistant.toggle") {
     const prefs = await invoke<{ panel_visible: boolean }>("get_ai_assistant_prefs");
     await setAiPanelVisible(!prefs.panel_visible);

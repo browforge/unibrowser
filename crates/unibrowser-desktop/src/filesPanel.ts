@@ -1386,7 +1386,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
         parts.push(formatFileSize(entry.size_bytes));
       }
       if (entry.modified_unix) {
-        parts.push(new Date(entry.modified_unix * 1000).toLocaleString());
+        parts.push(new Date(entry.modified_unix * 1000).toLocaleDateString());
       }
       metaCell.textContent = parts.join(" · ") || "";
     }

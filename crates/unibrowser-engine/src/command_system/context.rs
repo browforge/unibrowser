@@ -44,6 +44,7 @@ pub fn command_context_display_label(
         WorkContext::Markdown | WorkContext::PlainText => "Text",
         WorkContext::RichDocument => "Office",
         WorkContext::Browse => "Browse",
+        WorkContext::Settings => "Settings",
         WorkContext::Web => "Web",
     }
 }
@@ -54,6 +55,9 @@ pub fn infer_work_context(
     path: Option<&str>,
 ) -> WorkContext {
     let path = path.unwrap_or("");
+    if path.eq_ignore_ascii_case("unibrowser://settings") {
+        return WorkContext::Settings;
+    }
     let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     if ext == "pdf" {
         return WorkContext::Pdf;
@@ -94,8 +98,27 @@ fn is_code_path(path: &str) -> bool {
     let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     matches!(
         ext.as_str(),
-        "rs" | "ts" | "tsx" | "js" | "jsx" | "py" | "go" | "java" | "c" | "cpp" | "h" | "hpp"
-            | "cs" | "rb" | "swift" | "kt" | "sh" | "bash" | "zsh" | "json" | "toml" | "yaml"
+        "rs" | "ts"
+            | "tsx"
+            | "js"
+            | "jsx"
+            | "py"
+            | "go"
+            | "java"
+            | "c"
+            | "cpp"
+            | "h"
+            | "hpp"
+            | "cs"
+            | "rb"
+            | "swift"
+            | "kt"
+            | "sh"
+            | "bash"
+            | "zsh"
+            | "json"
+            | "toml"
+            | "yaml"
             | "yml"
     )
 }

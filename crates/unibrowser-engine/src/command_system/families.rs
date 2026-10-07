@@ -16,6 +16,9 @@ pub fn core_tab_layout(
     if ctx.work == WorkContext::Browse {
         return vec![browse_family(ctx, resolver)];
     }
+    if ctx.work == WorkContext::Settings {
+        return vec![settings_family(ctx, resolver)];
+    }
     vec![
         history_family(ctx, resolver),
         text_or_editor_family(ctx, resolver),
@@ -28,6 +31,56 @@ pub fn core_tab_layout(
     .into_iter()
     .filter(|f| !f.groups.is_empty())
     .collect()
+}
+
+fn settings_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let group_id = "unibrowser.group.settings";
+    let controls = vec![
+        control_spec(
+            control_ids::SETTINGS_SEARCH,
+            ControlType::Button,
+            commands::SETTINGS_SEARCH,
+            "Search settings",
+            "search",
+            group_id,
+            family_ids::SETTINGS,
+            ctx,
+            resolver,
+        ),
+        control_spec(
+            control_ids::SETTINGS_KEYBINDINGS,
+            ControlType::Button,
+            commands::SETTINGS_KEYBINDINGS,
+            "Keybindings",
+            "type",
+            group_id,
+            family_ids::SETTINGS,
+            ctx,
+            resolver,
+        ),
+        control_spec(
+            control_ids::SETTINGS_DIAGNOSTICS,
+            ControlType::Button,
+            commands::SETTINGS_DIAGNOSTICS,
+            "Diagnostics",
+            "info",
+            group_id,
+            family_ids::SETTINGS,
+            ctx,
+            resolver,
+        ),
+    ];
+    ResolvedFamily {
+        family_id: family_ids::SETTINGS.into(),
+        label: "Settings".into(),
+        overflow_priority: OverflowPriority::Primary,
+        groups: vec![ResolvedGroup {
+            group_id: group_id.into(),
+            label: "Settings".into(),
+            overflow_priority: OverflowPriority::Primary,
+            controls,
+        }],
+    }
 }
 
 fn browse_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
