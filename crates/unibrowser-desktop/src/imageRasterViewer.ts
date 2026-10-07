@@ -348,10 +348,10 @@ export async function mountRasterImageViewer(
     }
     fitAttempts += 1;
     if (fitAttempts < 120) {
-      requestAnimationFrame(fitWhenReady);
+      window.setTimeout(fitWhenReady, 16);
     }
   };
-  requestAnimationFrame(fitWhenReady);
+  fitWhenReady();
 
   const resizeObserver = new ResizeObserver(() => {
     if (fitMode === "fit") {
