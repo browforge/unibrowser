@@ -1,6 +1,7 @@
 import { patchPictureInPictureCommand } from "../mediaPip";
 import { bindCommandTooltip } from "./commandTooltip";
-import { createLucideIcon, type LucideName } from "./lucideIcon";
+import { lucideForControlIcon } from "./commandIconMap";
+import { createLucideIcon } from "./lucideIcon";
 import { getEditorFontSizePt } from "../textEditor";
 import type { UiCommandDto } from "../commandManager";
 import { announceCm } from "./cmA11y";
@@ -91,51 +92,7 @@ export function capabilityReason(cap: CapabilityDto): string | null {
   }
 }
 
-const ICON_MAP: Record<string, LucideName> = {
-  undo: "undo-2",
-  redo: "redo-2",
-  search: "search",
-  download: "download",
-  "spell-check": "spell-check",
-  "pen-line": "pen-line",
-  "folder-plus": "folder",
-  "file-plus": "file-text",
-  "folder-open": "folder",
-  move: "arrow-right",
-  pencil: "pen-line",
-  archive: "package-open",
-  trash: "x",
-  "arrow-up-down": "search",
-  "arrow-down-up": "rotate-cw",
-  eye: "eye",
-  "zoom-in": "zoom-in",
-  "zoom-out": "zoom-out",
-  maximize: "maximize",
-  share: "download",
-  "refresh-cw": "rotate-cw",
-  shield: "shield",
-  globe: "globe",
-  pin: "pin",
-  copy: "copy",
-  file: "file",
-  type: "type",
-  save: "save",
-  bold: "bold",
-  italic: "italic",
-  underline: "underline",
-  strikethrough: "strikethrough",
-  subscript: "subscript",
-  superscript: "superscript",
-  palette: "palette",
-  highlighter: "highlighter",
-  stamp: "stamp",
-  image: "image",
-  extension: "package-open",
-};
-
-export function lucideForControlIcon(icon: string): LucideName {
-  return ICON_MAP[icon] ?? "file";
-}
+export { CONTROL_ICON_MAP, controlIconUsesFallback, lucideForControlIcon } from "./commandIconMap";
 
 type RunCommand = (commandId: string) => Promise<void>;
 

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { emptyStateBlock } from "./emptyState";
+import { appendFileTypeIcon, fileTypeVisualForPath } from "./fileTypeIcons";
 import { t } from "./i18n";
 
 export interface DirEntry {
@@ -41,47 +42,6 @@ export interface NewTabDeps {
   onOpenPath: (path: string) => void;
   onNewProject: () => void;
   onPickFolder: () => void;
-}
-
-function fileTypeLabel(path: string): string {
-  const base = path.split(/[/\\]/).pop() ?? path;
-  const ext = base.includes(".") ? base.split(".").pop()?.toLowerCase() ?? "" : "";
-  if (ext === "pdf") {
-    return "PDF";
-  }
-  if (ext === "svg") {
-    return "SVG";
-  }
-  if (ext === "unibrow") {
-    return "Create";
-  }
-  if (["dxf", "step", "stp", "iges", "igs"].includes(ext)) {
-    return "CAD";
-  }
-  if (["ts", "tsx", "js", "jsx", "rs", "py", "md", "txt"].includes(ext)) {
-    return "Text";
-  }
-  if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) {
-    return "Image";
-  }
-  return ext ? ext.toUpperCase() : "File";
-}
-
-function typeIconText(path: string): string {
-  const kind = fileTypeLabel(path);
-  if (kind === "PDF") {
-    return "PDF";
-  }
-  if (kind === "CAD") {
-    return "DXF";
-  }
-  if (kind === "Create") {
-    return "UB";
-  }
-  if (kind === "Text") {
-    return "#";
-  }
-  return kind.slice(0, 3).toUpperCase();
 }
 
 function relativePathSubtitle(path: string): string {
@@ -229,7 +189,7 @@ function recentRow(entry: RecentFileDto, onOpen: (path: string) => void): HTMLEl
   row.className = "ntp-recent-row";
   const icon = document.createElement("span");
   icon.className = "ntp-recent-icon";
-  icon.textContent = typeIconText(entry.path);
+  appendFileTypeIcon(icon, fileTypeVisualForPath(entry.path));
   const body = document.createElement("div");
   body.className = "ntp-recent-body";
   const title = document.createElement("strong");
@@ -241,10 +201,7 @@ function recentRow(entry: RecentFileDto, onOpen: (path: string) => void): HTMLEl
   const time = document.createElement("span");
   time.className = "ntp-recent-time";
   time.textContent = formatRelativeTime(entry.opened_at_ms);
-  const kind = document.createElement("span");
-  kind.className = "ntp-recent-kind";
-  kind.textContent = fileTypeLabel(entry.path);
-  row.append(icon, body, time, kind);
+  row.append(icon, body, time);
   row.onclick = () => onOpen(entry.path);
   return row;
 }
@@ -275,8 +232,7 @@ function downloadRow(
   row.className = "ntp-download-row";
   const icon = document.createElement("span");
   icon.className = "ntp-download-icon";
-  const ext = entry.label.split(".").pop()?.toLowerCase() ?? "file";
-  icon.textContent = ext;
+  appendFileTypeIcon(icon, fileTypeVisualForPath(entry.label));
   const body = document.createElement("div");
   body.className = "ntp-recent-body";
   const title = document.createElement("strong");

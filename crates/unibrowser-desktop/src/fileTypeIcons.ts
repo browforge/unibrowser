@@ -40,6 +40,35 @@ const EXT_MAP: Record<string, FileTypeVisual> = {
   dxf: { label: "DXF", className: "ft-cad" },
 };
 
+/** Badge labels for Start page and file list (IMG, TXT, MD, TS, …). */
+export function fileTypeVisualForPath(path: string): FileTypeVisual {
+  const name = path.split(/[/\\]/).pop() ?? path;
+  const dot = name.lastIndexOf(".");
+  const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
+  const byExt: Record<string, FileTypeVisual> = {
+    pdf: { label: "PDF", className: "ft-pdf" },
+    png: { label: "IMG", className: "ft-image" },
+    jpg: { label: "IMG", className: "ft-image" },
+    jpeg: { label: "IMG", className: "ft-image" },
+    gif: { label: "IMG", className: "ft-image" },
+    webp: { label: "IMG", className: "ft-image" },
+    svg: { label: "SVG", className: "ft-vector" },
+    md: { label: "MD", className: "ft-text" },
+    markdown: { label: "MD", className: "ft-text" },
+    txt: { label: "TXT", className: "ft-text" },
+    ts: { label: "TS", className: "ft-code" },
+    tsx: { label: "TS", className: "ft-code" },
+    js: { label: "JS", className: "ft-code" },
+    rs: { label: "RS", className: "ft-code" },
+    docx: { label: "DOC", className: "ft-doc" },
+    unibrow: { label: "UBR", className: "ft-project" },
+  };
+  if (ext in byExt) {
+    return byExt[ext];
+  }
+  return fileTypeVisual({ name, is_dir: false, is_image: false, is_archive: false });
+}
+
 export function fileTypeVisual(entry: {
   name: string;
   is_dir: boolean;
@@ -57,10 +86,10 @@ export function fileTypeVisual(entry: {
   }
   const dot = entry.name.lastIndexOf(".");
   if (dot < 0) {
-    return { label: "FILE", className: "ft-generic" };
+    return { label: "?", className: "ft-generic" };
   }
   const ext = entry.name.slice(dot + 1).toLowerCase();
-  return EXT_MAP[ext] ?? { label: ext.slice(0, 3).toUpperCase() || "?", className: "ft-generic" };
+  return EXT_MAP[ext] ?? { label: "?", className: "ft-generic" };
 }
 
 export function appendFileTypeIcon(cell: HTMLElement, visual: FileTypeVisual) {

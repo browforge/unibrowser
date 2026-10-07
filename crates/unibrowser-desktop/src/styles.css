@@ -1090,7 +1090,8 @@ body.toolbar-window-mode .floating-bar.docked {
 .new-tab-page-host .ntp-inner {
   max-width: 52rem;
   margin: 0 auto;
-  padding: 2rem 1.5rem 2.5rem;
+  padding: 1.25rem 1.25rem 4.5rem;
+  box-sizing: border-box;
 }
 
 .new-tab-page-host h1 {
@@ -1128,12 +1129,13 @@ body.toolbar-window-mode .floating-bar.docked {
 
 .ntp-recent-row {
   display: grid;
-  grid-template-columns: 2.5rem 1fr auto auto;
-  gap: 0.65rem 0.75rem;
+  grid-template-columns: 2.75rem 1fr auto;
+  gap: 0.5rem 0.65rem;
   align-items: center;
   width: 100%;
+  min-height: 34px;
   text-align: left;
-  padding: 0.55rem 0.65rem;
+  padding: 0.3rem 0.5rem;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
@@ -1148,10 +1150,15 @@ body.toolbar-window-mode .floating-bar.docked {
 
 .ntp-recent-icon,
 .ntp-download-icon {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-align: center;
-  color: var(--ub-text-2, #9fb0bd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ntp-recent-icon .ft-icon,
+.ntp-download-icon .ft-icon {
+  min-width: 2.25rem;
+  font-size: 0.65rem;
 }
 
 .ntp-recent-path {
@@ -1169,10 +1176,11 @@ body.toolbar-window-mode .floating-bar.docked {
 
 .ntp-download-row {
   display: grid;
-  grid-template-columns: 2.5rem 1fr auto auto;
-  gap: 0.65rem 0.75rem;
+  grid-template-columns: 2.75rem 1fr auto auto;
+  gap: 0.5rem 0.65rem;
   align-items: center;
-  padding: 0.55rem 0.65rem;
+  min-height: 34px;
+  padding: 0.3rem 0.5rem;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.12);
@@ -3415,7 +3423,7 @@ select:focus-visible,
 .workshop {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr) 260px;
-  grid-template-rows: minmax(0, 1fr) 260px;
+  grid-template-rows: minmax(0, 1fr) minmax(148px, 200px);
   grid-template-areas:
     "sources stage inspector"
     "timeline timeline timeline";
@@ -3555,8 +3563,7 @@ select:focus-visible,
 }
 
 .workshop-state {
-  padding: 2px 7px;
-  border-left: 3px solid var(--ub-border, #626b72);
+  padding: 2px 6px;
   color: var(--ub-text-muted, #aeb7bd);
   font-size: 11px;
   font-weight: 750;
@@ -3565,14 +3572,13 @@ select:focus-visible,
 }
 
 .workshop-state[data-state="live"] {
-  border-left-color: #b33a3a;
   color: #e7a4a4;
 }
 
 .workshop-state[data-state="recording"] {
-  border-left-color: #d14848;
   color: #fff;
   background: #6a2424;
+  border-radius: 4px;
 }
 
 .workshop-stage-well {
@@ -3781,13 +3787,14 @@ select:focus-visible,
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .workshop-timeline-canvas {
   position: relative;
   min-width: calc(100% * var(--timeline-zoom, 1));
-  height: 100%;
+  min-height: 100%;
+  height: auto;
   padding-top: 25px;
   box-sizing: border-box;
 }
@@ -5443,7 +5450,7 @@ body.content-fullscreen #unknown-file-banner {
 .mod-result-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto auto auto;
+  grid-template-rows: auto auto auto auto auto;
   gap: 4px 10px;
   margin: 8px 0;
   padding: 10px 12px;
@@ -5487,10 +5494,11 @@ body.content-fullscreen #unknown-file-banner {
 }
 
 .mod-card-action {
-  grid-column: 2;
-  grid-row: 4;
-  align-self: end;
+  grid-column: 1 / -1;
+  grid-row: 5;
+  align-self: start;
   justify-self: end;
+  margin-top: 2px;
   padding: 4px 10px;
   font-size: 11px;
   border-radius: 4px;
@@ -5539,6 +5547,8 @@ body.content-fullscreen #unknown-file-banner {
 .mod-result-meta {
   grid-column: 1 / -1;
   grid-row: 4;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 [data-theme="light"] #mod-portal-panel.mod-portal:not(.hidden),
@@ -5562,7 +5572,12 @@ body.content-fullscreen #unknown-file-banner {
 [data-theme="light"] .mod-result-id,
 [data-theme="light"] .mod-result-reason,
 [data-theme="light"] .mod-result-meta {
-  color: #62686a;
+  color: #454b4e;
+}
+
+[data-theme="light"] .mod-portal-network-status[data-state="off"],
+[data-theme="light"] .mod-portal-search-status {
+  color: #454b4e;
 }
 
 [data-theme="light"] .mod-portal-tab {
@@ -5577,8 +5592,8 @@ body.content-fullscreen #unknown-file-banner {
 
 .mod-portal-catalog {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 8px 12px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px 14px;
   width: 100%;
   max-width: 1200px;
 }
