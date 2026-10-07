@@ -800,95 +800,95 @@
     "segmentCount": 4,
     "segments": [
       {
-        "id": "status-ai-visibility",
-        "label": "AI: hidden",
-        "bounds": {
-          "x": 243.546875,
-          "y": 777.5,
-          "width": 52,
-          "height": 17
-        },
-        "foreground": "rgb(33, 79, 101)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 7.031301929954518,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 4.993,
-        "pixelInkCount": 233,
-        "pixelBounds": {
-          "x": 243,
-          "y": 777,
-          "width": 53,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-zoom-label",
-        "label": "133%",
-        "bounds": {
-          "x": 307.546875,
-          "y": 777.5,
-          "width": 28,
-          "height": 17
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.329,
-        "pixelInkCount": 139,
-        "pixelBounds": {
-          "x": 307,
-          "y": 777,
-          "width": 29,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-context",
-        "label": "Commands: PDF Annotation (auto)",
-        "bounds": {
-          "x": 579.09375,
-          "y": 777,
-          "width": 160,
-          "height": 18
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 10.855,
-        "pixelInkCount": 695,
-        "pixelBounds": {
-          "x": 579,
-          "y": 777,
-          "width": 161,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-reading",
+        "id": "",
         "label": "Page 1 of 3",
         "bounds": {
-          "x": 751.09375,
-          "y": 777,
-          "width": 56.25,
-          "height": 18
+          "x": 12,
+          "y": 777.5,
+          "width": 63.09375,
+          "height": 17
         },
-        "foreground": "rgb(32, 34, 35)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 9.198,
-        "pixelInkCount": 273,
+        "pixelContrast": 7.087,
+        "pixelInkCount": 251,
         "pixelBounds": {
-          "x": 751,
+          "x": 12,
           "y": 777,
-          "width": 57,
+          "width": 64,
           "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "133%",
+        "bounds": {
+          "x": 1083.4375,
+          "y": 777.5,
+          "width": 37.796875,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 4.781,
+        "pixelInkCount": 154,
+        "pixelBounds": {
+          "x": 1083,
+          "y": 777,
+          "width": 39,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "2 annotations",
+        "bounds": {
+          "x": 1121.234375,
+          "y": 777.5,
+          "width": 79.1875,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 7.027,
+        "pixelInkCount": 290,
+        "pixelBounds": {
+          "x": 1121,
+          "y": 777,
+          "width": 80,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-ai-visibility",
+        "label": "AI",
+        "bounds": {
+          "x": 1212.421875,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
+        "pixelBounds": {
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

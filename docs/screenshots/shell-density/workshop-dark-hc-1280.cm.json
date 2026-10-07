@@ -894,39 +894,16 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 2,
+    "segmentCount": 4,
     "segments": [
       {
-        "id": "status-ai-visibility",
-        "label": "AI: hidden",
+        "id": "",
+        "label": "00:00:00.000",
         "bounds": {
-          "x": 381.921875,
+          "x": 12,
           "y": 777.5,
-          "width": 52,
+          "width": 72.796875,
           "height": 17
-        },
-        "foreground": "rgb(166, 235, 255)",
-        "background": "rgb(0, 0, 0)",
-        "contrast": 15.948730517995777,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 13.625,
-        "pixelInkCount": 216,
-        "pixelBounds": {
-          "x": 381,
-          "y": 777,
-          "width": 53,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-context",
-        "label": "Commands: Project (auto)",
-        "bounds": {
-          "x": 827.84375,
-          "y": 777,
-          "width": 138.578125,
-          "height": 18
         },
         "foreground": "rgb(255, 255, 255)",
         "background": "rgb(0, 0, 0)",
@@ -934,12 +911,81 @@
         "opacity": "1",
         "filter": "none",
         "pixelContrast": 14.734,
-        "pixelInkCount": 687,
+        "pixelInkCount": 357,
         "pixelBounds": {
-          "x": 827,
+          "x": 12,
           "y": 777,
-          "width": 140,
+          "width": 73,
           "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "1080p / 30 fps",
+        "bounds": {
+          "x": 84.796875,
+          "y": 777.5,
+          "width": 87.578125,
+          "height": 17
+        },
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(0, 0, 0)",
+        "contrast": 21,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 19.432,
+        "pixelInkCount": 361,
+        "pixelBounds": {
+          "x": 84,
+          "y": 777,
+          "width": 89,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "48 kHz / Stereo",
+        "bounds": {
+          "x": 1126.96875,
+          "y": 777.5,
+          "width": 73.4375,
+          "height": 17
+        },
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(0, 0, 0)",
+        "contrast": 21,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 16.826,
+        "pixelInkCount": 319,
+        "pixelBounds": {
+          "x": 1126,
+          "y": 777,
+          "width": 75,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-ai-visibility",
+        "label": "AI",
+        "bounds": {
+          "x": 1212.40625,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
+        },
+        "foreground": "rgb(166, 235, 255)",
+        "background": "rgb(0, 0, 0)",
+        "contrast": 15.948730517995777,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 14.014,
+        "pixelInkCount": 64,
+        "pixelBounds": {
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

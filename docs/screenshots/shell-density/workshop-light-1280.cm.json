@@ -894,52 +894,98 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 2,
+    "segmentCount": 4,
     "segments": [
       {
-        "id": "status-ai-visibility",
-        "label": "AI: hidden",
+        "id": "",
+        "label": "00:00:00.000",
         "bounds": {
-          "x": 381.921875,
+          "x": 12,
           "y": 777.5,
-          "width": 52,
+          "width": 72.796875,
           "height": 17
         },
-        "foreground": "rgb(33, 79, 101)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 7.031301929954518,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.017,
-        "pixelInkCount": 214,
+        "pixelContrast": 6.133,
+        "pixelInkCount": 357,
         "pixelBounds": {
-          "x": 381,
+          "x": 12,
           "y": 777,
-          "width": 53,
+          "width": 73,
           "height": 18
         }
       },
       {
-        "id": "status-context",
-        "label": "Commands: Project (auto)",
+        "id": "",
+        "label": "1080p / 30 fps",
         "bounds": {
-          "x": 827.84375,
-          "y": 777,
-          "width": 138.578125,
-          "height": 18
+          "x": 84.796875,
+          "y": 777.5,
+          "width": 87.578125,
+          "height": 17
         },
-        "foreground": "rgb(32, 34, 35)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 8.36,
-        "pixelInkCount": 687,
+        "pixelContrast": 5.852,
+        "pixelInkCount": 358,
         "pixelBounds": {
-          "x": 827,
+          "x": 84,
           "y": 777,
-          "width": 140,
+          "width": 89,
           "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "48 kHz / Stereo",
+        "bounds": {
+          "x": 1126.96875,
+          "y": 777.5,
+          "width": 73.4375,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 7.283,
+        "pixelInkCount": 317,
+        "pixelBounds": {
+          "x": 1126,
+          "y": 777,
+          "width": 75,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-ai-visibility",
+        "label": "AI",
+        "bounds": {
+          "x": 1212.40625,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
+        "pixelBounds": {
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

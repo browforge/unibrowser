@@ -603,75 +603,52 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 3,
+    "segmentCount": 2,
     "segments": [
       {
+        "id": "",
+        "label": "1 selected. Use Browse commands or the context menu for actions.",
+        "bounds": {
+          "x": 12,
+          "y": 777.5,
+          "width": 344.015625,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.74,
+        "pixelInkCount": 1390,
+        "pixelBounds": {
+          "x": 12,
+          "y": 777,
+          "width": 345,
+          "height": 18
+        }
+      },
+      {
         "id": "status-ai-visibility",
-        "label": "AI: hidden",
+        "label": "AI",
         "bounds": {
-          "x": 480.484375,
-          "y": 777.5,
-          "width": 52,
-          "height": 17
+          "x": 1212.421875,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
         },
-        "foreground": "rgb(33, 79, 101)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 7.031301929954518,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 4.993,
-        "pixelInkCount": 233,
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
         "pixelBounds": {
-          "x": 480,
-          "y": 777,
-          "width": 53,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-path",
-        "label": "/workspace/examples/demo-pack",
-        "bounds": {
-          "x": 556.484375,
-          "y": 777.5,
-          "width": 456.484375,
-          "height": 17
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.519,
-        "pixelInkCount": 794,
-        "pixelBounds": {
-          "x": 556,
-          "y": 777,
-          "width": 457,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-context",
-        "label": "Commands: Browse (auto)",
-        "bounds": {
-          "x": 1024.96875,
-          "y": 777,
-          "width": 140.65625,
-          "height": 18
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 10.379,
-        "pixelInkCount": 681,
-        "pixelBounds": {
-          "x": 1024,
-          "y": 777,
-          "width": 142,
-          "height": 18
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

@@ -216,49 +216,49 @@
     "segmentCount": 2,
     "segments": [
       {
-        "id": "status-ai-visibility",
-        "label": "AI: hidden",
+        "id": "",
+        "label": "Changes save immediately",
         "bounds": {
-          "x": 423.03125,
+          "x": 12,
           "y": 777.5,
-          "width": 52,
+          "width": 144.25,
           "height": 17
-        },
-        "foreground": "rgb(156, 199, 217)",
-        "background": "rgb(20, 22, 23)",
-        "contrast": 10.013915192855217,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.729,
-        "pixelInkCount": 214,
-        "pixelBounds": {
-          "x": 423,
-          "y": 777,
-          "width": 53,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-context",
-        "label": "Commands: Settings (auto)",
-        "bounds": {
-          "x": 910.0625,
-          "y": 777,
-          "width": 143.4375,
-          "height": 18
         },
         "foreground": "rgb(201, 203, 200)",
         "background": "rgb(20, 22, 23)",
         "contrast": 11.116014789048625,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 9.39,
-        "pixelInkCount": 710,
+        "pixelContrast": 8.122,
+        "pixelInkCount": 629,
         "pixelBounds": {
-          "x": 910,
+          "x": 12,
           "y": 777,
-          "width": 144,
+          "width": 145,
           "height": 18
+        }
+      },
+      {
+        "id": "status-ai-visibility",
+        "label": "AI",
+        "bounds": {
+          "x": 1212.40625,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
+        },
+        "foreground": "rgb(156, 199, 217)",
+        "background": "rgb(20, 22, 23)",
+        "contrast": 10.013915192855217,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.917,
+        "pixelInkCount": 64,
+        "pixelBounds": {
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

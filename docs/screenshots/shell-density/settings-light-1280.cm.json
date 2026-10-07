@@ -216,49 +216,49 @@
     "segmentCount": 2,
     "segments": [
       {
-        "id": "status-ai-visibility",
-        "label": "AI: hidden",
+        "id": "",
+        "label": "Changes save immediately",
         "bounds": {
-          "x": 423.03125,
+          "x": 12,
           "y": 777.5,
-          "width": 52,
+          "width": 144.25,
           "height": 17
         },
-        "foreground": "rgb(33, 79, 101)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 7.031301929954518,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.017,
-        "pixelInkCount": 214,
+        "pixelContrast": 6.23,
+        "pixelInkCount": 630,
         "pixelBounds": {
-          "x": 423,
+          "x": 12,
           "y": 777,
-          "width": 53,
+          "width": 145,
           "height": 18
         }
       },
       {
-        "id": "status-context",
-        "label": "Commands: Settings (auto)",
+        "id": "status-ai-visibility",
+        "label": "AI",
         "bounds": {
-          "x": 910.0625,
-          "y": 777,
-          "width": 143.4375,
-          "height": 18
+          "x": 1212.40625,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
         },
-        "foreground": "rgb(32, 34, 35)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 10.092,
-        "pixelInkCount": 729,
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
         "pixelBounds": {
-          "x": 910,
-          "y": 777,
-          "width": 144,
-          "height": 18
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

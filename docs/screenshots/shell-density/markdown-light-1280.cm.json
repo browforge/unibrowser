@@ -900,167 +900,144 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 7,
+    "segmentCount": 6,
     "segments": [
       {
-        "id": "status-cursor",
-        "label": "Ln 1, Col 1",
+        "id": "",
+        "label": "Saved",
         "bounds": {
           "x": 12,
           "y": 777.5,
-          "width": 51,
+          "width": 40.75,
           "height": 17
         },
-        "foreground": "rgb(32, 34, 35)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 10.498,
-        "pixelInkCount": 166,
+        "pixelContrast": 6.732,
+        "pixelInkCount": 171,
         "pixelBounds": {
           "x": 12,
           "y": 777,
-          "width": 51,
+          "width": 41,
           "height": 18
         }
       },
       {
-        "id": "status-problems-count",
-        "label": "3 Problems",
+        "id": "",
+        "label": "markdown",
         "bounds": {
-          "x": 390.5625,
+          "x": 52.75,
           "y": 777.5,
-          "width": 56.890625,
+          "width": 74.34375,
           "height": 17
         },
-        "foreground": "rgb(32, 34, 35)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 7.792,
-        "pixelInkCount": 253,
+        "pixelContrast": 7.087,
+        "pixelInkCount": 270,
         "pixelBounds": {
-          "x": 390,
+          "x": 52,
           "y": 777,
-          "width": 58,
+          "width": 76,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "Ln 1, Col 1",
+        "bounds": {
+          "x": 127.09375,
+          "y": 777.5,
+          "width": 69.59375,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 7.844,
+        "pixelInkCount": 181,
+        "pixelBounds": {
+          "x": 127,
+          "y": 777,
+          "width": 70,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "Problems 3",
+        "bounds": {
+          "x": 1094.9375,
+          "y": 777.5,
+          "width": 66.6875,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.23,
+        "pixelInkCount": 271,
+        "pixelBounds": {
+          "x": 1094,
+          "y": 777,
+          "width": 68,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "UTF-8",
+        "bounds": {
+          "x": 1161.625,
+          "y": 777.5,
+          "width": 38.796875,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.309,
+        "pixelInkCount": 141,
+        "pixelBounds": {
+          "x": 1161,
+          "y": 777,
+          "width": 40,
           "height": 18
         }
       },
       {
         "id": "status-ai-visibility",
-        "label": "AI: Read",
+        "label": "AI",
         "bounds": {
-          "x": 459.453125,
-          "y": 777.5,
-          "width": 40.71875,
-          "height": 17
+          "x": 1212.421875,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
         },
-        "foreground": "rgb(33, 79, 101)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 7.031301929954518,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 5.574,
-        "pixelInkCount": 181,
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
         "pixelBounds": {
-          "x": 459,
-          "y": 777,
-          "width": 42,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-encoding",
-        "label": "UTF-8",
-        "bounds": {
-          "x": 512.171875,
-          "y": 777.5,
-          "width": 30,
-          "height": 17
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 9.059,
-        "pixelInkCount": 122,
-        "pixelBounds": {
-          "x": 512,
-          "y": 777,
-          "width": 31,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-context",
-        "label": "Commands: Text (auto)",
-        "bounds": {
-          "x": 881.734375,
-          "y": 777,
-          "width": 123.59375,
-          "height": 18
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.36,
-        "pixelInkCount": 597,
-        "pixelBounds": {
-          "x": 881,
-          "y": 777,
-          "width": 125,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-reading",
-        "label": "35 words \u00b7 1 min read",
-        "bounds": {
-          "x": 1017.328125,
-          "y": 777,
-          "width": 111.515625,
-          "height": 18
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.95,
-        "pixelInkCount": 494,
-        "pixelBounds": {
-          "x": 1017,
-          "y": 777,
-          "width": 112,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-font",
-        "label": "12 pt",
-        "bounds": {
-          "x": 1140.84375,
-          "y": 777.5,
-          "width": 24.796875,
-          "height": 17
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 11.448,
-        "pixelInkCount": 116,
-        "pixelBounds": {
-          "x": 1140,
-          "y": 777,
-          "width": 26,
-          "height": 18
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

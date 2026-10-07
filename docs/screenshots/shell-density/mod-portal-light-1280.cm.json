@@ -504,72 +504,72 @@
     "segmentCount": 3,
     "segments": [
       {
+        "id": "",
+        "label": "Open VSX: offline",
+        "bounds": {
+          "x": 12,
+          "y": 777.5,
+          "width": 95.65625,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 7.027,
+        "pixelInkCount": 409,
+        "pixelBounds": {
+          "x": 12,
+          "y": 777,
+          "width": 96,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "Local mods",
+        "bounds": {
+          "x": 1142.65625,
+          "y": 777.5,
+          "width": 57.75,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.531,
+        "pixelInkCount": 244,
+        "pixelBounds": {
+          "x": 1142,
+          "y": 777,
+          "width": 59,
+          "height": 18
+        }
+      },
+      {
         "id": "status-ai-visibility",
-        "label": "AI: hidden",
+        "label": "AI",
         "bounds": {
-          "x": 485.90625,
-          "y": 777.5,
-          "width": 52,
-          "height": 17
+          "x": 1212.40625,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
         },
-        "foreground": "rgb(33, 79, 101)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 7.031301929954518,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.017,
-        "pixelInkCount": 214,
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
         "pixelBounds": {
-          "x": 485,
-          "y": 777,
-          "width": 53,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-path",
-        "label": "unibrowser://mods?ext=step",
-        "bounds": {
-          "x": 561.90625,
-          "y": 777.5,
-          "width": 461.90625,
-          "height": 17
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 9.198,
-        "pixelInkCount": 643,
-        "pixelBounds": {
-          "x": 561,
-          "y": 777,
-          "width": 463,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-context",
-        "label": "Commands: Mods (auto)",
-        "bounds": {
-          "x": 1035.8125,
-          "y": 777,
-          "width": 129.828125,
-          "height": 18
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.546,
-        "pixelInkCount": 640,
-        "pixelBounds": {
-          "x": 1035,
-          "y": 777,
-          "width": 131,
-          "height": 18
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]

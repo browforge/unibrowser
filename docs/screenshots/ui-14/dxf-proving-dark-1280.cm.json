@@ -16,7 +16,7 @@
     "frontendResolvedControlCount": 11,
     "frontendVisibleModelCount": 8,
     "frontendOverflowModelCount": 3,
-    "groupsWidth": 850
+    "groupsWidth": 847
   },
   "controls": [
     {
@@ -29,15 +29,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 75,
+      "width": 72,
       "height": 30,
       "labelBounds": {
-        "x": 133.6875,
-        "y": 51.5,
-        "width": 38,
-        "height": 16
+        "x": 133,
+        "y": 50.5,
+        "width": 35,
+        "height": 18
       },
-      "labelWidth": 38,
+      "labelWidth": 35,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -107,13 +107,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.271,
-      "pixelInkCount": 237,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 179,
       "pixelBounds": {
         "x": 133,
-        "y": 51,
-        "width": 39,
-        "height": 17
+        "y": 50,
+        "width": 35,
+        "height": 19
       }
     },
     {
@@ -126,15 +126,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 105.203125,
+      "width": 106,
       "height": 30,
       "labelBounds": {
-        "x": 241.6875,
-        "y": 51.5,
-        "width": 68.203125,
-        "height": 16
+        "x": 238,
+        "y": 50.5,
+        "width": 69,
+        "height": 18
       },
-      "labelWidth": 68.203125,
+      "labelWidth": 69,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -204,13 +204,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.501,
-      "pixelInkCount": 382,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 321,
       "pixelBounds": {
-        "x": 241,
-        "y": 51,
+        "x": 238,
+        "y": 50,
         "width": 69,
-        "height": 17
+        "height": 19
       }
     },
     {
@@ -226,10 +226,10 @@
       "width": 60,
       "height": 30,
       "labelBounds": {
-        "x": 347.890625,
-        "y": 51.5,
+        "x": 345,
+        "y": 50.5,
         "width": 23,
-        "height": 16
+        "height": 18
       },
       "labelWidth": 23,
       "iconWidth": 16,
@@ -301,13 +301,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.65,
-      "pixelInkCount": 126,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 102,
       "pixelBounds": {
-        "x": 347,
-        "y": 51,
-        "width": 24,
-        "height": 17
+        "x": 345,
+        "y": 50,
+        "width": 23,
+        "height": 19
       }
     },
     {
@@ -320,15 +320,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 67.203125,
+      "width": 68,
       "height": 30,
       "labelBounds": {
-        "x": 408.890625,
-        "y": 51.5,
-        "width": 30.203125,
-        "height": 16
+        "x": 406,
+        "y": 50.5,
+        "width": 31,
+        "height": 18
       },
-      "labelWidth": 30.203125,
+      "labelWidth": 31,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -398,13 +398,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 13.232,
-      "pixelInkCount": 175,
+      "pixelContrast": 11.955,
+      "pixelInkCount": 152,
       "pixelBounds": {
-        "x": 408,
-        "y": 51,
-        "width": 32,
-        "height": 17
+        "x": 406,
+        "y": 50,
+        "width": 31,
+        "height": 19
       }
     },
     {
@@ -417,15 +417,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 84.765625,
+      "width": 81.75,
       "height": 30,
       "labelBounds": {
-        "x": 509.09375,
-        "y": 51.5,
-        "width": 47.765625,
-        "height": 16
+        "x": 507,
+        "y": 50.5,
+        "width": 44.75,
+        "height": 18
       },
-      "labelWidth": 47.765625,
+      "labelWidth": 44.75,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -495,13 +495,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.994,
-      "pixelInkCount": 239,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 192,
       "pixelBounds": {
-        "x": 509,
-        "y": 51,
-        "width": 48,
-        "height": 17
+        "x": 507,
+        "y": 50,
+        "width": 45,
+        "height": 19
       }
     },
     {
@@ -517,10 +517,10 @@
       "width": 96,
       "height": 30,
       "labelBounds": {
-        "x": 626.859375,
-        "y": 51.5,
+        "x": 621.75,
+        "y": 50.5,
         "width": 59,
-        "height": 16
+        "height": 18
       },
       "labelWidth": 59,
       "iconWidth": 16,
@@ -592,13 +592,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 13.232,
-      "pixelInkCount": 296,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 246,
       "pixelBounds": {
-        "x": 626,
-        "y": 51,
+        "x": 621,
+        "y": 50,
         "width": 60,
-        "height": 17
+        "height": 19
       }
     },
     {
@@ -611,15 +611,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 87,
+      "width": 86,
       "height": 30,
       "labelBounds": {
-        "x": 723.859375,
-        "y": 51.5,
-        "width": 50,
-        "height": 16
+        "x": 718.75,
+        "y": 50.5,
+        "width": 49,
+        "height": 18
       },
-      "labelWidth": 50,
+      "labelWidth": 49,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -689,13 +689,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.758,
-      "pixelInkCount": 244,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 204,
       "pixelBounds": {
-        "x": 723,
-        "y": 51,
-        "width": 51,
-        "height": 17
+        "x": 718,
+        "y": 50,
+        "width": 50,
+        "height": 19
       }
     },
     {
@@ -708,15 +708,15 @@
       "capabilityState": "unsupported",
       "enabled": false,
       "disabledReason": "Measure needs a full CAD geometry engine.",
-      "width": 91.921875,
+      "width": 88.75,
       "height": 30,
       "labelBounds": {
-        "x": 843.859375,
-        "y": 51.5,
-        "width": 54.921875,
-        "height": 16
+        "x": 837.75,
+        "y": 50.5,
+        "width": 51.75,
+        "height": 18
       },
-      "labelWidth": 54.921875,
+      "labelWidth": 51.75,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -786,14 +786,88 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 7.601,
-      "pixelInkCount": 322,
+      "pixelContrast": 7.417,
+      "pixelInkCount": 246,
       "pixelBounds": {
-        "x": 843,
-        "y": 51,
-        "width": 56,
-        "height": 17
+        "x": 837,
+        "y": 50,
+        "width": 53,
+        "height": 19
       }
     }
-  ]
+  ],
+  "statusBar": {
+    "segmentCount": 3,
+    "segments": [
+      {
+        "id": "",
+        "label": "DXF drawing",
+        "bounds": {
+          "x": 12,
+          "y": 777.5,
+          "width": 72.3125,
+          "height": 17
+        },
+        "foreground": "rgb(201, 203, 200)",
+        "background": "rgb(20, 22, 23)",
+        "contrast": 11.116014789048625,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.122,
+        "pixelInkCount": 313,
+        "pixelBounds": {
+          "x": 12,
+          "y": 777,
+          "width": 73,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "538%",
+        "bounds": {
+          "x": 1172.40625,
+          "y": 777.5,
+          "width": 28,
+          "height": 17
+        },
+        "foreground": "rgb(201, 203, 200)",
+        "background": "rgb(20, 22, 23)",
+        "contrast": 11.116014789048625,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.723,
+        "pixelInkCount": 153,
+        "pixelBounds": {
+          "x": 1172,
+          "y": 777,
+          "width": 29,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-ai-visibility",
+        "label": "AI",
+        "bounds": {
+          "x": 1212.40625,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
+        },
+        "foreground": "rgb(156, 199, 217)",
+        "background": "rgb(20, 22, 23)",
+        "contrast": 10.013915192855217,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.917,
+        "pixelInkCount": 64,
+        "pixelBounds": {
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
+        }
+      }
+    ]
+  }
 }

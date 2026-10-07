@@ -405,75 +405,29 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 3,
+    "segmentCount": 1,
     "segments": [
       {
         "id": "status-ai-visibility",
-        "label": "AI: hidden",
+        "label": "AI",
         "bounds": {
-          "x": 487.6875,
-          "y": 777.5,
-          "width": 52,
-          "height": 17
+          "x": 1212.40625,
+          "y": 775.203125,
+          "width": 22,
+          "height": 21.59375
         },
-        "foreground": "rgb(33, 79, 101)",
+        "foreground": "rgb(48, 56, 60)",
         "background": "rgb(231, 229, 223)",
-        "contrast": 7.031301929954518,
+        "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 4.773,
-        "pixelInkCount": 233,
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
         "pixelBounds": {
-          "x": 487,
-          "y": 777,
-          "width": 53,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-path",
-        "label": "/home/ubuntu",
-        "bounds": {
-          "x": 563.6875,
-          "y": 777.5,
-          "width": 463.6875,
-          "height": 17
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 7.906,
-        "pixelInkCount": 341,
-        "pixelBounds": {
-          "x": 563,
-          "y": 777,
-          "width": 465,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-context",
-        "label": "Commands: Start (auto)",
-        "bounds": {
-          "x": 1039.375,
-          "y": 777,
-          "width": 126.25,
-          "height": 18
-        },
-        "foreground": "rgb(32, 34, 35)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 12.68246640479958,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.814,
-        "pixelInkCount": 621,
-        "pixelBounds": {
-          "x": 1039,
-          "y": 777,
-          "width": 127,
-          "height": 18
+          "x": 1212,
+          "y": 775,
+          "width": 23,
+          "height": 22
         }
       }
     ]
