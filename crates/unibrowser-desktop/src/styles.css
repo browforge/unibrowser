@@ -427,13 +427,13 @@ button.proving-disabled,
 .settings-toggle-input::after {
   content: "";
   position: absolute;
-  top: 50%;
+  top: 2px;
   left: 2px;
   width: 14px;
   height: 14px;
   border-radius: 3px;
   background: var(--ub-text-1, #e9edef);
-  transform: translateY(-50%);
+  transform: none;
   transition: transform 120ms ease-out;
 }
 
@@ -445,7 +445,7 @@ button.proving-disabled,
 
 .ub-switch:checked::after,
 .settings-toggle-input:checked::after {
-  transform: translate(14px, -50%);
+  transform: translateX(14px);
   background: var(--ub-accent-on, #f4f7f8);
 }
 
