@@ -672,7 +672,7 @@ body[data-cm-density="large"] .cm-overflow.visible {
   position: fixed;
   z-index: 15000;
   min-width: 200px;
-  max-height: 360px;
+  max-height: min(640px, calc(100vh - 78px));
   overflow-y: auto;
   padding: 6px;
   background: var(--ub-panel);

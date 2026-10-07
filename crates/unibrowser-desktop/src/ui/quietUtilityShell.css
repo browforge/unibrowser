@@ -92,7 +92,7 @@ body {
 
 .palette-item-row:disabled,
 .palette-item-row.disabled {
-  opacity: 0.55;
+  opacity: 0.75;
   cursor: not-allowed;
 }
 
