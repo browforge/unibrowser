@@ -51,6 +51,18 @@ capture_scene "markdown" "" "$DEMO/sample.md"
 capture_scene "pdf" "" "$DEMO/sample.pdf"
 capture_scene "image" "" "$DEMO/sample.png"
 capture_scene "workshop" "" "$DEMO/sample.unibrow"
+capture_workshop_hc() {
+  for theme in light dark; do
+    capture_vqa \
+      "$OUT" \
+      "workshop-${theme}-hc-1280" \
+      "capture-ready,cm-compact,rail-collapsed,theme-${theme},high-contrast,scale-100" \
+      "$DEMO/sample.unibrow" \
+      "1280x800"
+    [[ "$(identify -format '%wx%h' "$OUT/workshop-${theme}-hc-1280.png")" == "1280x800" ]]
+  done
+}
+capture_workshop_hc
 capture_scene "settings" "" "unibrowser://settings"
 capture_scene "mod-portal" "ui17-mod-portal" "$DEMO/unknown.ubunknown"
 
