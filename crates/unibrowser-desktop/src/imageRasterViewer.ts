@@ -101,7 +101,6 @@ export async function mountRasterImageViewer(
   img.className = "image-view";
   img.alt = path;
   img.draggable = false;
-  img.src = convertFileSrc(path);
   const cropHost = document.createElement("div");
   cropHost.className = "image-crop-host";
   const cropLayer = document.createElement("div");
@@ -340,8 +339,9 @@ export async function mountRasterImageViewer(
     applyFit();
   };
   img.addEventListener("load", onImageReady);
+  img.src = convertFileSrc(path);
   if (img.complete) {
-    void img.decode().then(onImageReady).catch(() => undefined);
+    requestAnimationFrame(onImageReady);
   }
 
   const resizeObserver = new ResizeObserver(() => {
