@@ -25,6 +25,8 @@ impl BrowserLocation {
             BrowserLocation::Internal { page } => {
                 if page == "home" {
                     "New tab".into()
+                } else if page.starts_with("mods") {
+                    "Mod portal".into()
                 } else {
                     page.clone()
                 }
@@ -64,5 +66,13 @@ mod tests {
             path: PathBuf::from("/home/bear/notes.txt"),
         };
         assert_eq!(loc.display_label(), "notes.txt");
+    }
+
+    #[test]
+    fn mod_portal_internal_label() {
+        let loc = BrowserLocation::Internal {
+            page: "mods?ext=ubunknown".into(),
+        };
+        assert_eq!(loc.display_label(), "Mod portal");
     }
 }

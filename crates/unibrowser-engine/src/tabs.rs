@@ -64,6 +64,22 @@ impl TabManager {
         self.insert_tab(self.tabs.len(), location)
     }
 
+    /// Focus an existing internal tab whose page starts with `prefix`, or open `location`.
+    pub fn focus_or_open_internal(&mut self, prefix: &str, location: BrowserLocation) -> TabId {
+        if let Some(index) = self.tabs.iter().position(|t| {
+            matches!(&t.location, BrowserLocation::Internal { page } if page.starts_with(prefix))
+        }) {
+            self.active = index;
+            let tab = &mut self.tabs[index];
+            tab.location = location.clone();
+            if let Some(entry) = tab.history.get_mut(tab.history_index) {
+                *entry = location;
+            }
+            return tab.id;
+        }
+        self.open_tab(location)
+    }
+
     pub fn insert_tab(&mut self, index: usize, location: BrowserLocation) -> TabId {
         let id = TabId(self.next_id);
         self.next_id += 1;
@@ -382,6 +398,36 @@ mod tests {
         mgr.set_active(2);
         assert!(mgr.move_tab(0, 2));
         assert_eq!(mgr.active_index(), 1);
+    }
+
+    #[test]
+    fn focus_or_open_internal_reuses_mod_tab() {
+        let home = BrowserLocation::File {
+            path: PathBuf::from("/tmp"),
+        };
+        let mut mgr = TabManager::new_with_home(home);
+        let first = mgr.focus_or_open_internal(
+            "mods",
+            BrowserLocation::Internal {
+                page: "mods?ext=txt".into(),
+            },
+        );
+        mgr.open_tab(BrowserLocation::File {
+            path: PathBuf::from("/other"),
+        });
+        let second = mgr.focus_or_open_internal(
+            "mods",
+            BrowserLocation::Internal {
+                page: "mods?ext=ubunknown".into(),
+            },
+        );
+        assert_eq!(first, second);
+        assert_eq!(mgr.tab_count(), 3);
+        assert_eq!(mgr.active_index(), 1);
+        assert_eq!(
+            mgr.active_tab().unwrap().location.display_label(),
+            "Mod portal"
+        );
     }
 
     #[test]

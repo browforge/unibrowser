@@ -7703,7 +7703,7 @@ pub fn open_mod_portal(window: tauri::Window,
     let _sess_tabs = ws(&state, &window)?;
     {
         let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        tabs.open_tab(loc.clone());
+        tabs.focus_or_open_internal("mods", loc.clone());
         if let Some(tab) = tabs.active_tab_mut() {
             tab.is_directory = is_dir;
             tab.document = doc;
