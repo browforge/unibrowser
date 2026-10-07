@@ -122,6 +122,14 @@ export function bindThemedSelect(select: HTMLSelectElement) {
       return;
     }
     const listOpen = openSelect === select && openList;
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      if (!listOpen) {
+        openThemedList(select);
+      }
+      setHighlight(event.key === "Home" ? 0 : select.options.length - 1);
+      return;
+    }
     if (
       event.key === " " ||
       event.key === "Enter" ||

@@ -1234,6 +1234,7 @@ function renderModPortal(portal: ModPortalDto | null) {
         if (nativeHost && vsixHost) {
           await refreshInstalledExtensions(nativeHost, vsixHost);
         }
+        setModPortalTab(0);
       } catch {
         showModCardInstallStatus(
           card,

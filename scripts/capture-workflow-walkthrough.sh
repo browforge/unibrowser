@@ -8,9 +8,11 @@ PREFS="$ROOT/scripts/fixtures/walkthrough-preferences.json"
 PACK="$ROOT/examples/demo-pack"
 
 cd "$ROOT"
-(cd "$ROOT/crates/unibrowser-desktop" && npm run build)
-# shellcheck source=ensure-release-desktop.sh
-source "$ROOT/scripts/ensure-release-desktop.sh"
+if [[ "${SKIP_WALK_BUILD:-}" != "1" ]]; then
+  (cd "$ROOT/crates/unibrowser-desktop" && npm run build)
+  # shellcheck source=ensure-release-desktop.sh
+  source "$ROOT/scripts/ensure-release-desktop.sh"
+fi
 mkdir -p "$OUT"
 rm -f "$OUT"/*.png
 
@@ -207,8 +209,8 @@ shot "05-portal-open"
 xdotool mousemove 200 70 click 1
 xdotool sleep 1.2
 shot "05-portal-install"
-# Installed tab is the first portal section tab.
-xdotool mousemove 80 168 click 1
+# Installed is the first portal section tab, left of Discover.
+xdotool mousemove 55 148 click 1
 xdotool sleep 0.6
 python3 - "$XDG_CONFIG_HOME/unibrowser/mods/unibrowser.base-cad/info.json" <<'PY'
 import json, sys
@@ -229,10 +231,11 @@ start_app "settings" --open "$PACK/sample.txt"
 xdotool sleep 1.4
 assert_no_floating_toolbar
 shot "06-settings-open"
-# Open the interval list, then choose Every 1 min below the trigger.
+# Open the interval list and take the first option (Every 1 min).
 xdotool mousemove 1180 518 click 1
-xdotool sleep 0.3
-xdotool mousemove 1180 575 click 1
+xdotool sleep 0.2
+xdotool key Home
+xdotool key Return
 xdotool sleep 0.8
 shot "06-settings-autosave"
 interval="$(read_pref auto_save_interval_secs)"
