@@ -444,7 +444,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     movePlayhead(playheadSec);
   };
 
-  const setMode = async (next: WorkshopMode) => {
+  const applyModeUi = (next: WorkshopMode) => {
     desiredWorkshopMode = next;
     mode = next;
     state.dataset.state = next;
@@ -452,6 +452,10 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     root.dataset.mode = next;
     renderStage();
     renderInspector();
+  };
+
+  const setMode = async (next: WorkshopMode) => {
+    applyModeUi(next);
     if (next === "preview") {
       await invoke("set_unibrow_live_mode", { enabled: false }).catch(() => undefined);
     } else {
@@ -460,6 +464,10 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
         await invoke("start_unibrow_live_recording").catch(() => undefined);
       }
     }
+  };
+
+  const visualMode = (event: Event) => {
+    applyModeUi((event as CustomEvent<WorkshopMode>).detail);
   };
 
   const renderExportSheet = () => {
@@ -546,6 +554,9 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   };
 
   window.addEventListener("unibrow-project-command", projectCommand, { signal: workshopAbort.signal });
+  window.addEventListener("unibrow-workshop-visual-mode", visualMode, {
+    signal: workshopAbort.signal,
+  });
   renderSources();
   renderTimeline();
   renderInspector();

@@ -225,23 +225,23 @@ export async function applyDemoState(raw: string) {
       }
       case "ui16-live-preview":
         window.dispatchEvent(
-          new CustomEvent("unibrow-project-command", {
-            detail: "unibrowser.project.preview",
+          new CustomEvent("unibrow-workshop-visual-mode", {
+            detail: "preview",
           }),
         );
         break;
       case "ui16-live-on": {
         window.dispatchEvent(
-          new CustomEvent("unibrow-project-command", {
-            detail: "unibrowser.project.live",
+          new CustomEvent("unibrow-workshop-visual-mode", {
+            detail: "live",
           }),
         );
         break;
       }
       case "ui16-live-recording": {
         window.dispatchEvent(
-          new CustomEvent("unibrow-project-command", {
-            detail: "unibrowser.project.record",
+          new CustomEvent("unibrow-workshop-visual-mode", {
+            detail: "recording",
           }),
         );
         break;
