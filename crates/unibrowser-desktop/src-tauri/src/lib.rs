@@ -353,6 +353,8 @@ pub fn run() {
             commands::save_workspace_layout_preset,
             commands::load_workspace_layout_preset,
             commands::delete_workspace_layout_preset,
+            commands::export_workspace_layouts_file,
+            commands::import_workspace_layouts_file,
             commands::write_document_bytes,
             commands::pick_save_image_path,
             commands::pick_save_html_path,

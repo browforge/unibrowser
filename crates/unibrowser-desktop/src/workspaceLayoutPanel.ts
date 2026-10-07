@@ -116,6 +116,40 @@ export async function appendWorkspaceLayoutPanel(root: HTMLElement) {
     }
   };
 
+  const transferRow = document.createElement("div");
+  transferRow.className = "workspace-layout-actions workspace-layout-transfer";
+  const importBtn = document.createElement("button");
+  importBtn.type = "button";
+  importBtn.textContent = "Import layouts";
+  importBtn.onclick = async () => {
+    try {
+      const count = await invoke<number>("import_workspace_layouts_file");
+      status.textContent = `Imported ${count} saved layout${count === 1 ? "" : "s"}.`;
+      status.hidden = false;
+      await refresh();
+    } catch (err) {
+      status.textContent = err instanceof Error ? err.message : String(err);
+      status.hidden = false;
+    }
+  };
+  const exportBtn = document.createElement("button");
+  exportBtn.type = "button";
+  exportBtn.textContent = "Export layouts";
+  exportBtn.onclick = async () => {
+    try {
+      const path = await invoke<string | null>("export_workspace_layouts_file");
+      if (!path) {
+        return;
+      }
+      status.textContent = `Exported saved layouts to ${path}.`;
+      status.hidden = false;
+    } catch (err) {
+      status.textContent = err instanceof Error ? err.message : String(err);
+      status.hidden = false;
+    }
+  };
+  transferRow.append(importBtn, exportBtn);
+
   const personaSection = document.createElement("div");
   personaSection.className = "workspace-personas";
   const personaHeading = document.createElement("h4");
@@ -133,7 +167,7 @@ export async function appendWorkspaceLayoutPanel(root: HTMLElement) {
   for (const p of personas) {
     const li = document.createElement("li");
     const label = document.createElement("span");
-    label.textContent = `${p.name} — ${p.description}`;
+    label.textContent = `${p.name} - ${p.description}`;
     const applyBtn = document.createElement("button");
     applyBtn.type = "button";
     applyBtn.textContent = t("workspacePersona.apply");
@@ -160,6 +194,7 @@ export async function appendWorkspaceLayoutPanel(root: HTMLElement) {
 
   root.appendChild(personaSection);
   root.appendChild(saveRow);
+  root.appendChild(transferRow);
   root.appendChild(status);
   root.appendChild(empty);
   root.appendChild(list);

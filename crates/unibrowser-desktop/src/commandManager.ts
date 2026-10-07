@@ -15,6 +15,10 @@ import { announceCm } from "./ui/cmA11y";
 import { bindCmRovingFocus } from "./ui/cmRovingFocus";
 import { commandGroupBudgetFromViewport } from "./ui/commandOverflow";
 
+function layoutEditModeActive(): boolean {
+  return document.body.classList.contains("layout-edit-mode");
+}
+
 const PDF_PAGE_CONTROL = "unibrowser.control.pdf.page";
 const PDF_ZOOM_CONTROL = "unibrowser.control.pdf.viewZoom";
 
@@ -570,7 +574,7 @@ export const commandManager = {
       if (visible.length > 0) {
         renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
       } else {
-        renderCommandButtons(groupsEl, active.commands, onRun, true);
+        renderCommandButtons(groupsEl, active.commands, onRun, layoutEditModeActive());
       }
       if (!cmRovingBound) {
         cmRovingBound = true;
@@ -633,11 +637,14 @@ export const commandManager = {
     floatingEl.innerHTML = "";
     floatingEl.classList.add("floating-toolbar-drop-host");
     floatingEl.ondragover = (e) => {
-      if (dragCommandId) {
+      if (layoutEditModeActive() && dragCommandId) {
         e.preventDefault();
       }
     };
     floatingEl.ondrop = (e) => {
+      if (!layoutEditModeActive()) {
+        return;
+      }
       e.preventDefault();
       const id =
         dragCommandId ?? e.dataTransfer?.getData("text/plain") ?? "";
@@ -657,7 +664,7 @@ export const commandManager = {
       const wrap = document.createElement("div");
       wrap.className =
         "floating-bar" + (bar.anchor === "floating" ? " floating" : " docked");
-      if (bar.anchor === "floating") {
+      if (bar.anchor === "floating" && layoutEditModeActive()) {
         const pos = floatingBarViewportPosition(bar);
         wrap.style.left = `${pos.left}px`;
         wrap.style.top = `${pos.top}px`;

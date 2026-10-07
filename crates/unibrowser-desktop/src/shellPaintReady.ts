@@ -180,6 +180,12 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           );
         });
         break;
+      case "ui18-layout-edit":
+        checks.push(() => {
+          const overlay = document.querySelector(".layout-edit-overlay");
+          return Boolean(overlay && document.body.classList.contains("layout-edit-mode"));
+        });
+        break;
       default:
         break;
     }

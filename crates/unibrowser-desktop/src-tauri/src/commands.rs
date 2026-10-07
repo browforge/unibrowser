@@ -3393,6 +3393,39 @@ pub fn delete_workspace_layout_preset(window: tauri::Window, id: String) -> Resu
 }
 
 #[tauri::command]
+pub async fn export_workspace_layouts_file(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let json = crate::workspace_layouts::export_json()?;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export workspace layouts")
+        .add_filter("JSON", &["json"])
+        .set_file_name("unibrowser-workspaces.json")
+        .blocking_save_file();
+    let Some(path) = picked else {
+        return Ok(None);
+    };
+    let dest = PathBuf::from(path.to_string());
+    std::fs::write(&dest, json).map_err(|e| e.to_string())?;
+    Ok(Some(dest.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+pub async fn import_workspace_layouts_file(app: AppHandle) -> Result<usize, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Import workspace layouts")
+        .add_filter("JSON", &["json"])
+        .blocking_pick_file();
+    let path = picked.ok_or_else(|| "import cancelled".to_string())?;
+    let data = std::fs::read_to_string(path.to_string()).map_err(|e| e.to_string())?;
+    crate::workspace_layouts::import_json(&data)
+}
+
+#[tauri::command]
 pub fn select_command_manager_tab(window: tauri::Window, tab_id: String, state: State<AppState>) -> Result<(), String> {
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     cm.select_tab_manual(&tab_id);

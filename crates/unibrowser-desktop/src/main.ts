@@ -202,6 +202,7 @@ import {
 import { applyImageCompare, type ImageCompareViewDto } from "./imageCompare";
 import { runCaptureVisibleTab } from "./tabCapture";
 import { initToolbarOnlyShell } from "./toolbarOnly";
+import { toggleLayoutEditMode } from "./layoutEditMode";
 
 interface TabDto {
   id: number;
@@ -1692,6 +1693,9 @@ async function refreshCommandManager() {
 window.addEventListener("unibrowser-demo-cm-refresh", () => {
   void refreshCommandManager();
 });
+window.addEventListener("unibrowser-layout-edit-changed", () => {
+  void refreshCommandManager();
+});
 
 function escapeHtml(s: string): string {
   return s
@@ -2316,6 +2320,10 @@ function chordFromKeyboardEvent(e: KeyboardEvent) {
 }
 
 async function runKeybindingCommand(commandId: string) {
+  if (commandId === "unibrowser.workspace.editLayout") {
+    toggleLayoutEditMode();
+    return;
+  }
   if (commandId === "ai-assistant.toggle") {
     const prefs = await invoke<{ panel_visible: boolean }>("get_ai_assistant_prefs");
     await setAiPanelVisible(!prefs.panel_visible);

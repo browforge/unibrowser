@@ -255,6 +255,11 @@ export async function applyDemoState(raw: string) {
         }
         break;
       }
+      case "ui18-layout-edit": {
+        const { setLayoutEditMode } = await import("./layoutEditMode");
+        setLayoutEditMode(true);
+        break;
+      }
       case "rail-expanded": {
         const { setRailMode } = await import("./ui/activityRail");
         setRailMode("expanded");

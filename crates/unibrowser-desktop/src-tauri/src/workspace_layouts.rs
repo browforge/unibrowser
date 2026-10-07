@@ -72,6 +72,22 @@ fn save_file(file: &WorkspaceLayoutsFile) -> Result<(), String> {
     Ok(())
 }
 
+pub fn export_json() -> Result<String, String> {
+    serde_json::to_string_pretty(&load_file()).map_err(|e| e.to_string())
+}
+
+pub fn import_json(data: &str) -> Result<usize, String> {
+    let file: WorkspaceLayoutsFile = serde_json::from_str(data).map_err(|e| e.to_string())?;
+    for preset in &file.presets {
+        if preset.id.trim().is_empty() || preset.name.trim().is_empty() {
+            return Err("layout preset id and name are required".into());
+        }
+    }
+    let count = file.presets.len();
+    save_file(&file)?;
+    Ok(count)
+}
+
 fn now_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
