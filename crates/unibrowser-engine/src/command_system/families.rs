@@ -19,6 +19,9 @@ pub fn core_tab_layout(
     if ctx.work == WorkContext::Settings {
         return vec![settings_family(ctx, resolver)];
     }
+    if ctx.work == WorkContext::Mods {
+        return vec![mods_family(ctx, resolver)];
+    }
     if ctx.work == WorkContext::Cad3d {
         return vec![cad_family(ctx, resolver)];
     }
@@ -322,6 +325,78 @@ fn settings_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Re
             overflow_priority: OverflowPriority::Primary,
             controls,
         }],
+    }
+}
+
+fn mods_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let make = |control_id, command_id, label, icon, group_id| {
+        control_spec(
+            control_id,
+            ControlType::Button,
+            command_id,
+            label,
+            icon,
+            group_id,
+            family_ids::MODS,
+            ctx,
+            resolver,
+        )
+    };
+    ResolvedFamily {
+        family_id: family_ids::MODS.into(),
+        label: "Mods".into(),
+        overflow_priority: OverflowPriority::Primary,
+        groups: vec![
+            ResolvedGroup {
+                group_id: "unibrowser.group.mods.discover".into(),
+                label: "Discover".into(),
+                overflow_priority: OverflowPriority::Primary,
+                controls: vec![
+                    make(
+                        control_ids::MODS_SEARCH,
+                        commands::MODS_SEARCH,
+                        "Search",
+                        "search",
+                        "unibrowser.group.mods.discover",
+                    ),
+                    make(
+                        control_ids::MODS_INSTALL,
+                        commands::MODS_INSTALL,
+                        "Install",
+                        "download",
+                        "unibrowser.group.mods.discover",
+                    ),
+                ],
+            },
+            ResolvedGroup {
+                group_id: "unibrowser.group.mods.manage".into(),
+                label: "Manage".into(),
+                overflow_priority: OverflowPriority::Normal,
+                controls: vec![
+                    make(
+                        control_ids::MODS_UPDATES,
+                        commands::MODS_UPDATES,
+                        "Updates",
+                        "refresh-cw",
+                        "unibrowser.group.mods.manage",
+                    ),
+                    make(
+                        control_ids::MODS_PERMISSIONS,
+                        commands::MODS_PERMISSIONS,
+                        "Permissions",
+                        "shield",
+                        "unibrowser.group.mods.manage",
+                    ),
+                    make(
+                        control_ids::MODS_OPEN_VSX,
+                        commands::MODS_OPEN_VSX,
+                        "Open VSX network",
+                        "globe",
+                        "unibrowser.group.mods.manage",
+                    ),
+                ],
+            },
+        ],
     }
 }
 

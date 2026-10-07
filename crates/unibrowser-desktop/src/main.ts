@@ -883,6 +883,68 @@ function renderUnknownFileBanner(banner: UnknownFileBannerDto | null) {
   el.appendChild(actions);
 }
 
+function setModPortalTab(index: number) {
+  modPortalPanel.querySelectorAll<HTMLButtonElement>(".mod-portal-tab").forEach((tab, i) => {
+    tab.setAttribute("aria-current", i === index ? "page" : "false");
+  });
+}
+
+async function runModPortalOpenVsxSearch() {
+  const searchBtn = modPortalPanel.querySelector<HTMLButtonElement>(
+    ".mod-portal-search button:last-of-type",
+  );
+  searchBtn?.click();
+}
+
+function runModsCommand(commandId: string): boolean {
+  if (!commandId.startsWith("unibrowser.mods.")) {
+    return false;
+  }
+  if (modPortalPanel.classList.contains("hidden")) {
+    showToast(t("menu.mods"), "info");
+    return true;
+  }
+  switch (commandId) {
+    case "unibrowser.mods.search":
+      modPortalPanel.querySelector<HTMLInputElement>(".mod-portal-query")?.focus();
+      void runModPortalOpenVsxSearch();
+      return true;
+    case "unibrowser.mods.install": {
+      const first = modPortalPanel.querySelector<HTMLButtonElement>(
+        ".mod-portal-catalog button, .mod-suggestion",
+      );
+      if (first) {
+        first.focus();
+        showToast(t("mods.installStub", { modId: first.textContent?.trim() ?? "mod" }), "info");
+      } else {
+        showToast(t("mods.noResults"), "info");
+      }
+      return true;
+    }
+    case "unibrowser.mods.updates":
+      setModPortalTab(2);
+      showToast("Updates checks built-in and VSIX extensions.", "info");
+      return true;
+    case "unibrowser.mods.permissions":
+      showToast("Review licence and permission reminders on each card before installing.", "info");
+      return true;
+    case "unibrowser.mods.openVsx": {
+      const optIn = modPortalPanel.querySelector<HTMLInputElement>("#open-vsx-opt-in");
+      if (optIn) {
+        optIn.checked = !optIn.checked;
+        optIn.dispatchEvent(new Event("change", { bubbles: true }));
+        showToast(
+          optIn.checked ? t("mods.catalogOpenVsx") : t("mods.networkOptInRequired"),
+          "info",
+        );
+      }
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+
 function renderModPortal(portal: ModPortalDto | null) {
   modPortalPanel.innerHTML = "";
   if (!portal) {
@@ -902,6 +964,7 @@ function renderModPortal(portal: ModPortalDto | null) {
     button.className = "mod-portal-tab";
     button.textContent = label;
     button.setAttribute("aria-current", index === 1 ? "page" : "false");
+    button.onclick = () => setModPortalTab(index);
     tabs.appendChild(button);
   });
   modPortalPanel.appendChild(tabs);
@@ -1633,6 +1696,9 @@ async function runUiCommand(commandId: string) {
     return;
   }
   if (runViewerContextCommand(commandId)) {
+    return;
+  }
+  if (runModsCommand(commandId)) {
     return;
   }
   if (commandId === "unibrowser.settings.search") {

@@ -441,11 +441,11 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   const startContext =
     cm.autoContext === "start" || cm.contextLabel?.toLowerCase() === "start";
   const settingsContext = cm.contextLabel?.toLowerCase() === "settings";
-  const sparseContextLimit = settingsContext ? 3 : 4;
-  const requiredVisible =
-    startContext || settingsContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
-  const requiredContrast =
-    startContext || settingsContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
+  const modsContext = cm.contextLabel?.toLowerCase() === "mods";
+  const sparseContextLimit = settingsContext ? 3 : modsContext ? 5 : 4;
+  const sparseContext = startContext || settingsContext || modsContext;
+  const requiredVisible = sparseContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
+  const requiredContrast = sparseContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
   const overflowEl = document.getElementById("command-manager-overflow");
   const resolvedTotal =
     typeof cm.pipeline?.ipcControlCount === "number"

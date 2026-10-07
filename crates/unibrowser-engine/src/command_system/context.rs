@@ -46,6 +46,7 @@ pub fn command_context_display_label(
         WorkContext::RichDocument => "Office",
         WorkContext::Browse => "Browse",
         WorkContext::Settings => "Settings",
+        WorkContext::Mods => "Mods",
         WorkContext::Web => "Web",
     }
 }
@@ -58,6 +59,9 @@ pub fn infer_work_context(
     let path = path.unwrap_or("");
     if path.eq_ignore_ascii_case("unibrowser://settings") {
         return WorkContext::Settings;
+    }
+    if path.eq_ignore_ascii_case("unibrowser://mods") {
+        return WorkContext::Mods;
     }
     let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     if ext == "unibrow" {

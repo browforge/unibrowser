@@ -113,6 +113,11 @@ pub mod control_ids {
     pub const BROWSE_SHOW_HIDDEN: &str = "unibrowser.control.browse.showHidden";
     pub const BROWSE_SET_WORKSPACE: &str = "unibrowser.control.browse.setWorkspace";
     pub const BROWSE_CLEAR_WORKSPACE: &str = "unibrowser.control.browse.clearWorkspace";
+    pub const MODS_SEARCH: &str = "unibrowser.control.mods.search";
+    pub const MODS_INSTALL: &str = "unibrowser.control.mods.install";
+    pub const MODS_UPDATES: &str = "unibrowser.control.mods.updates";
+    pub const MODS_PERMISSIONS: &str = "unibrowser.control.mods.permissions";
+    pub const MODS_OPEN_VSX: &str = "unibrowser.control.mods.openVsx";
     pub const SETTINGS_SEARCH: &str = "unibrowser.control.settings.search";
     pub const SETTINGS_KEYBINDINGS: &str = "unibrowser.control.settings.keybindings";
     pub const SETTINGS_DIAGNOSTICS: &str = "unibrowser.control.settings.diagnostics";
@@ -131,6 +136,7 @@ pub mod family_ids {
     pub const BROWSE: &str = "unibrowser.family.browse";
     pub const SETTINGS: &str = "unibrowser.family.settings";
     pub const PROJECT: &str = "unibrowser.family.project";
+    pub const MODS: &str = "unibrowser.family.mods";
 }
 
 pub mod group_ids {
@@ -154,6 +160,7 @@ pub enum WorkContext {
     Project,
     Browse,
     Settings,
+    Mods,
     Web,
 }
 

@@ -116,6 +116,7 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         WorkContext::Start => start_capability(control_id),
         WorkContext::Browse => browse_capability(control_id),
         WorkContext::Settings => settings_capability(control_id),
+        WorkContext::Mods => mods_capability(control_id),
         WorkContext::Web => CapabilityState::Unsupported {
             reason: "Open a document to use formatting commands.".into(),
         },
@@ -146,6 +147,15 @@ fn browse_capability(control_id: &str) -> CapabilityState {
     }
     CapabilityState::Unsupported {
         reason: "This command is not available in the file browser.".into(),
+    }
+}
+
+fn mods_capability(control_id: &str) -> CapabilityState {
+    if control_id.starts_with("unibrowser.control.mods.") {
+        return CapabilityState::Supported;
+    }
+    CapabilityState::Unsupported {
+        reason: "This command is not available in the Mod portal.".into(),
     }
 }
 

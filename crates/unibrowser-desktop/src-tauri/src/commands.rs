@@ -3010,6 +3010,9 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
     let label_path_buf = doc_ref.map(|d| d.path.clone()).or_else(|| {
         active.and_then(|t| match &t.location {
             BrowserLocation::File { path } => Some(path.to_string_lossy().into_owned()),
+            BrowserLocation::Internal { page } if page.starts_with("mods") => {
+                Some("unibrowser://mods".into())
+            }
             _ => None,
         })
     });

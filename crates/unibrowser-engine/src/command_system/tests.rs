@@ -94,6 +94,30 @@ mod resolver_tests {
     }
 
     #[test]
+    fn mods_portal_uses_mods_context() {
+        assert_eq!(
+            infer_work_context(CommandContext::Browse, Mode::Text, Some("unibrowser://mods")),
+            WorkContext::Mods,
+        );
+        let context = ctx(WorkContext::Mods, Some("unibrowser://mods"));
+        let families =
+            super::super::families::core_tab_layout(&context, &CapabilityResolver::default());
+        let control_ids: Vec<&str> = families
+            .iter()
+            .flat_map(|family| family.groups.iter())
+            .flat_map(|group| group.controls.iter())
+            .map(|control| control.control_id.as_str())
+            .collect();
+        assert!(!control_ids.is_empty());
+        assert!(control_ids
+            .iter()
+            .all(|id| id.starts_with("unibrowser.control.mods.")));
+        assert!(!control_ids
+            .iter()
+            .any(|id| id.starts_with("unibrowser.control.browse.")));
+    }
+
+    #[test]
     fn settings_system_page_uses_settings_context() {
         assert_eq!(
             infer_work_context(
