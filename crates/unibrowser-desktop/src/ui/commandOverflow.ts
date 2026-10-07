@@ -10,7 +10,7 @@ export interface OverflowGroup {
 const GROUP_PADDING = 8;
 const DIVIDER_WIDTH = 10;
 /** Slack so estimated widths never underestimate real CM buttons (never-clip rule). */
-const WIDTH_SAFETY_MARGIN = 8;
+const WIDTH_SAFETY_MARGIN = 48;
 
 export function estimateCommandWidth(label: string): number {
   return Math.max(46, 26 + label.length * 6.8);

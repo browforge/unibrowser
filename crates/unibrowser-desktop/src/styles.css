@@ -3464,6 +3464,12 @@ body.content-fullscreen::after {
   gap: 0.15rem;
 }
 
+.svg-inspector input:disabled,
+.svg-inspector button:disabled {
+  color: var(--ub-text-2);
+  opacity: 1;
+}
+
 
 .pdf-text-layer {
   position: absolute;

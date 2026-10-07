@@ -547,12 +547,19 @@ function refreshStatusBar(
       : path
         ? t("status.copyPath")
         : undefined;
+  const displayStatus =
+    path?.toLowerCase().endsWith(".unibrow")
+      ? data.status
+          .replace(path, "")
+          .replace(new RegExp("\\s*\\u00b7\\s*$"), "")
+          .trim()
+      : data.status;
   const statusHint =
-    data.status.includes("command palette")
+    displayStatus.includes("command palette")
       ? paletteChordHint
       : showViewer && viewerKind === "dxf"
         ? ""
-        : data.status;
+        : displayStatus;
   updateStatusBar({
     path: statusPath,
     pathHint,

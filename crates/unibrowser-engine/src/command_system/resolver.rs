@@ -89,6 +89,13 @@ impl CapabilityResolver {
             return cap;
         }
         if let Some(reason) = en.disabled_reason() {
+            // A missing Rust backend registration is not a runtime disabled
+            // state for structured controls. Many are intentionally executed
+            // by the webview command router. Preserve the declared capability;
+            // concrete backend enablement reasons may still disable controls.
+            if reason == "No handler for this document type" {
+                return cap;
+            }
             return CapabilityState::Unsupported {
                 reason: reason.to_string(),
             };
@@ -224,11 +231,11 @@ fn markdown_capability(control_id: &str, inline_html: bool) -> CapabilityState {
         }
         control_ids::TEXT_SUBSCRIPT => CapabilityState::Emulated {
             provider_id: "unibrowser.markdown.sub".into(),
-            note: "Approximated with <sub> or a font-scaling fallback.".into(),
+            note: "Approximated with inline formatting or reduced text size.".into(),
         },
         control_ids::TEXT_SUPERSCRIPT => CapabilityState::Emulated {
             provider_id: "unibrowser.markdown.sup".into(),
-            note: "Approximated with <sup> or a font-scaling fallback.".into(),
+            note: "Approximated with inline formatting or raised text size.".into(),
         },
         control_ids::TEXT_COLOUR => {
             if inline_html {
