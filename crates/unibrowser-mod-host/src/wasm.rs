@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{OnceLock, RwLock};
 
 use unibrowser_engine::{CommandRegistry, HandlerRegistration};
-use unibrowser_mod_api::{CommandMeta, ControlRuntimeSnapshot, Enablement, ModManifest};
+use unibrowser_mod_api::{
+    CommandMeta, ControlRuntimeSnapshot, Enablement, FamilyRuntimeSnapshot, ModManifest,
+};
 
 use crate::api_registry::ModApiRegistry;
 use crate::ModHostError;
@@ -110,6 +112,7 @@ mod runtime {
         pub commands: Vec<(String, String)>,
         pub extensions: Vec<String>,
         pub capability_snapshots: Vec<ControlRuntimeSnapshot>,
+        pub family_snapshots: Vec<FamilyRuntimeSnapshot>,
         pub mod_name: String,
     }
 
@@ -204,12 +207,31 @@ mod runtime {
         0
     }
 
+    fn host_register_family_snapshot(
+        mut caller: Caller<'_, HostState>,
+        json_ptr: i32,
+        json_len: i32,
+    ) -> i32 {
+        let json = match read_guest_utf8(&mut caller, json_ptr, json_len) {
+            Ok(s) => s,
+            Err(_) => return -1,
+        };
+        let snapshot = match serde_json::from_str::<FamilyRuntimeSnapshot>(&json) {
+            Ok(snapshot) if snapshot.api_version == unibrowser_mod_api::MOD_RUNTIME_API_V1 => {
+                snapshot
+            }
+            _ => return -2,
+        };
+        caller.data_mut().pending.family_snapshots.push(snapshot);
+        0
+    }
+
     pub fn load_wasm_bytes(
         wasm_bytes: &[u8],
         mod_name: &str,
         registry: &mut CommandRegistry,
         api_registry: &std::sync::Arc<ModApiRegistry>,
-    ) -> Result<Vec<ControlRuntimeSnapshot>, ModHostError> {
+    ) -> Result<(Vec<ControlRuntimeSnapshot>, Vec<FamilyRuntimeSnapshot>), ModHostError> {
         let mut config = Config::default();
         config.consume_fuel(true);
         let engine = Engine::new(&config);
@@ -220,6 +242,7 @@ mod runtime {
             commands: Vec::new(),
             extensions: Vec::new(),
             capability_snapshots: Vec::new(),
+            family_snapshots: Vec::new(),
             mod_name: mod_name.to_string(),
         };
         let mut store = Store::new(
@@ -238,6 +261,13 @@ mod runtime {
                 "ub_host",
                 "ub_host_register_command",
                 host_register_command,
+            )
+            .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
+        linker
+            .func_wrap(
+                "ub_host",
+                "ub_host_register_family_snapshot",
+                host_register_family_snapshot,
             )
             .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
         linker
@@ -311,7 +341,10 @@ mod runtime {
                 map.insert(ext.to_ascii_lowercase(), pending.mod_name.clone());
             }
         }
-        Ok(pending.capability_snapshots.clone())
+        Ok((
+            pending.capability_snapshots.clone(),
+            pending.family_snapshots.clone(),
+        ))
     }
 }
 
@@ -347,6 +380,7 @@ pub fn load_wasm_mod(
 pub struct LoadedWasmRuntime {
     pub name: String,
     pub capability_snapshots: Vec<ControlRuntimeSnapshot>,
+    pub family_snapshots: Vec<FamilyRuntimeSnapshot>,
 }
 
 pub fn load_wasm_mod_runtime(
@@ -367,11 +401,12 @@ pub fn load_wasm_mod_runtime(
     #[cfg(feature = "wasm-mods")]
     {
         let apis = std::sync::Arc::new(ModApiRegistry::new());
-        let capability_snapshots =
+        let (capability_snapshots, family_snapshots) =
             load_wasm_bytes(&bytes, &manifest.name, registry, &apis)?;
         return Ok(LoadedWasmRuntime {
             name: manifest.name,
             capability_snapshots,
+            family_snapshots,
         });
     }
     #[cfg(not(feature = "wasm-mods"))]
@@ -424,9 +459,6 @@ mod tests {
 
     fn ensure_example_wasm_built() -> Option<PathBuf> {
         let path = example_ub_mod_wasm_path();
-        if path.is_file() {
-            return Some(path);
-        }
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../examples/ub-mod-wasm");
         let status = Command::new("cargo")
@@ -447,12 +479,13 @@ mod tests {
         let bytes = std::fs::read(wasm_path).expect("read wasm");
         let mut registry = CommandRegistry::with_builtins();
         let apis = std::sync::Arc::new(ModApiRegistry::new());
-        let snapshots =
+        let (snapshots, families) =
             load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry, &apis).expect("load wasm");
         assert!(registry.command_meta("mod.wasm.demo").is_some());
         let exts = wasm_file_extensions();
         assert_eq!(exts.get("ubwasm").as_deref(), Some(&"ub-mod-wasm".to_string()));
         assert_eq!(snapshots.len(), 1);
+        assert_eq!(families.len(), 1);
     }
 
     #[test]
@@ -461,8 +494,11 @@ mod tests {
         let bytes = std::fs::read(wasm_path).expect("read wasm");
         let mut registry = CommandRegistry::with_builtins();
         let apis = std::sync::Arc::new(ModApiRegistry::new());
-        let wasm = load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry, &apis)
+        let (control_snapshots, family_snapshots) =
+            load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry, &apis)
             .expect("load wasm")
+            ;
+        let wasm = control_snapshots
             .into_iter()
             .find(|s| s.control_id == unibrowser_mod_api::control_ids::TEXT_SUBSCRIPT)
             .expect("wasm subscript snapshot");
@@ -477,6 +513,14 @@ mod tests {
             .expect("native callback")
             .expect("native subscript snapshot");
         assert_eq!(wasm, native);
+        let native_family = runtimes
+            .family_snapshot_for(
+                cmd_proving::PROVIDER_ID,
+                unibrowser_mod_api::family_ids::TEXT_FORMATTING,
+            )
+            .expect("native family callback")
+            .expect("native family snapshot");
+        assert_eq!(family_snapshots[0], native_family);
     }
 
     #[test]
@@ -493,6 +537,10 @@ mod tests {
         assert_eq!(
             loaded.capability_snapshots[0].control_id,
             unibrowser_mod_api::control_ids::TEXT_SUBSCRIPT
+        );
+        assert_eq!(
+            loaded.family_snapshots[0].family_id,
+            unibrowser_mod_api::family_ids::TEXT_FORMATTING
         );
     }
 

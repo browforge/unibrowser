@@ -51,6 +51,15 @@ pub struct ControlRuntimeSnapshot {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FamilyRuntimeSnapshot {
+    pub api_version: u32,
+    pub family_id: String,
+    pub capability: RuntimeCapabilityKind,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModRuntimeDescriptor {
     pub mod_name: String,
     pub provider_id: String,

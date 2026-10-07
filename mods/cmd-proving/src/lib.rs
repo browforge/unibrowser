@@ -5,7 +5,7 @@ use unibrowser_engine::{
     document::DocumentSession,
 };
 use unibrowser_mod_api::{
-    CommandMeta, ControlRuntimeSnapshot, Enablement, HostEditRequest, ModPermissions,
+    CommandMeta, ControlRuntimeSnapshot, Enablement, FamilyRuntimeSnapshot, HostEditRequest, ModPermissions,
     ModRuntimeDescriptor, RuntimeCallbackError, RuntimeCapabilityKind, commands, control_ids,
     MOD_RUNTIME_API_V1,
 };
@@ -68,6 +68,20 @@ fn runtime_snapshot(
     Ok(None)
 }
 
+fn runtime_family_snapshot(
+    family_id: &str,
+) -> Result<Option<FamilyRuntimeSnapshot>, RuntimeCallbackError> {
+    if family_id != unibrowser_mod_api::family_ids::TEXT_FORMATTING {
+        return Ok(None);
+    }
+    Ok(Some(FamilyRuntimeSnapshot {
+        api_version: MOD_RUNTIME_API_V1,
+        family_id: family_id.into(),
+        capability: RuntimeCapabilityKind::Supported,
+        reason: None,
+    }))
+}
+
 fn runtime_execute(command_id: &str) -> Result<HostEditRequest, RuntimeCallbackError> {
     if command_id == commands::TEXT_SUBSCRIPT || command_id == SUBSCRIPT_APPLY {
         return Ok(HostEditRequest::WrapSelection {
@@ -97,6 +111,7 @@ pub fn register_runtime(registry: &mut ModRuntimeRegistry) {
             ),
         },
         snapshot: runtime_snapshot,
+        family_snapshot: Some(runtime_family_snapshot),
         execute: Some(runtime_execute),
     });
 }

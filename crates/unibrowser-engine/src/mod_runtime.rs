@@ -5,13 +5,15 @@ use std::sync::mpsc;
 use std::thread;
 
 use unibrowser_mod_api::{
-    CapabilityState, ControlRuntimeSnapshot, HostEditRequest, ModPermissions,
+    CapabilityState, ControlRuntimeSnapshot, FamilyRuntimeSnapshot, HostEditRequest, ModPermissions,
     ModRuntimeDescriptor, ResolvedControl, RuntimeCallbackError, RuntimeCapabilityKind,
     SelectionState, MOD_CAPABILITY_TIMEOUT, MOD_EXECUTION_TIMEOUT, MOD_RUNTIME_API_V1,
 };
 
 pub type NativeSnapshotFn =
     fn(control_id: &str) -> Result<Option<ControlRuntimeSnapshot>, RuntimeCallbackError>;
+pub type NativeFamilySnapshotFn =
+    fn(family_id: &str) -> Result<Option<FamilyRuntimeSnapshot>, RuntimeCallbackError>;
 pub type NativeExecuteFn =
     fn(command_id: &str) -> Result<HostEditRequest, RuntimeCallbackError>;
 
@@ -19,6 +21,7 @@ pub type NativeExecuteFn =
 pub struct NativeModRuntime {
     pub descriptor: ModRuntimeDescriptor,
     pub snapshot: NativeSnapshotFn,
+    pub family_snapshot: Option<NativeFamilySnapshotFn>,
     pub execute: Option<NativeExecuteFn>,
 }
 
@@ -70,6 +73,38 @@ impl ModRuntimeRegistry {
             .map_err(|_| RuntimeCallbackError::TimedOut)??;
         if let Some(snapshot) = &snapshot {
             validate_snapshot(snapshot, control_id)?;
+        }
+        Ok(snapshot)
+    }
+
+    pub fn family_snapshot_for(
+        &self,
+        provider_id: &str,
+        family_id: &str,
+    ) -> Result<Option<FamilyRuntimeSnapshot>, RuntimeCallbackError> {
+        let runtime = self
+            .natives
+            .get(provider_id)
+            .ok_or_else(|| RuntimeCallbackError::UnknownProvider(provider_id.into()))?;
+        let Some(callback) = runtime.family_snapshot else {
+            return Ok(None);
+        };
+        let requested = family_id.to_string();
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let _ = tx.send(callback(&requested));
+        });
+        let snapshot = rx
+            .recv_timeout(MOD_CAPABILITY_TIMEOUT)
+            .map_err(|_| RuntimeCallbackError::TimedOut)??;
+        if let Some(snapshot) = &snapshot {
+            if snapshot.api_version != MOD_RUNTIME_API_V1
+                || snapshot.family_id != family_id
+            {
+                return Err(RuntimeCallbackError::InvalidResponse(
+                    "family snapshot identity/version mismatch".into(),
+                ));
+            }
         }
         Ok(snapshot)
     }
@@ -245,6 +280,7 @@ mod tests {
                 permissions: ModPermissions(ModPermissions::PROVIDE_CAPABILITY),
             },
             snapshot: stub_snapshot,
+            family_snapshot: None,
             execute: None,
         });
         assert!(reg.snapshot_for("test-mod::native", "x").unwrap().is_some());
@@ -261,6 +297,7 @@ mod tests {
                 permissions: ModPermissions(ModPermissions::PROVIDE_CAPABILITY),
             },
             snapshot: stub_snapshot,
+            family_snapshot: None,
             execute: None,
         });
         let mut control = ResolvedControl {

@@ -14,6 +14,11 @@ extern "C" {
     ) -> i32;
     fn ub_host_register_extension(ext_ptr: i32, ext_len: i32) -> i32;
     fn ub_host_register_capability_snapshot(json_ptr: i32, json_len: i32) -> i32;
+    fn ub_host_register_family_snapshot(json_ptr: i32, json_len: i32) -> i32;
+}
+
+pub fn register_family_snapshot(json: &str) -> i32 {
+    unsafe { ub_host_register_family_snapshot(json.as_ptr() as i32, json.len() as i32) }
 }
 
 /// Register one immutable capability snapshot as JSON during guest initialisation.
