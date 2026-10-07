@@ -91,7 +91,7 @@ function docViewerReady(): boolean {
     return false;
   }
   if (host.querySelector(".image-viewer-layout")) {
-    return host.dataset.imageFitReady === "1";
+    return host.querySelector("[data-image-fit-ready='1']") !== null;
   }
   if (
     host.querySelector(
