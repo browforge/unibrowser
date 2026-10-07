@@ -340,9 +340,18 @@ export async function mountRasterImageViewer(
   };
   img.addEventListener("load", onImageReady);
   img.src = convertFileSrc(path);
-  if (img.complete) {
-    requestAnimationFrame(onImageReady);
-  }
+  let fitAttempts = 0;
+  const fitWhenReady = () => {
+    if (img.naturalWidth > 0) {
+      onImageReady();
+      return;
+    }
+    fitAttempts += 1;
+    if (fitAttempts < 120) {
+      requestAnimationFrame(fitWhenReady);
+    }
+  };
+  requestAnimationFrame(fitWhenReady);
 
   const resizeObserver = new ResizeObserver(() => {
     if (fitMode === "fit") {
