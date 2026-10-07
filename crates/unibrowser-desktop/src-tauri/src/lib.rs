@@ -472,6 +472,7 @@ pub fn run() {
             commands::search_open_vsx_catalog,
             rhai_host::describe_rhai_script,
             launch_args::take_launch_open_paths,
+            launch_args::resolve_capture_path,
             launch_args::get_demo_state,
             launch_args::take_doc_capture_path,
             launch_args::write_doc_capture_cm_json,

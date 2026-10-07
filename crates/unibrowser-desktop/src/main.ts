@@ -15,6 +15,17 @@ import { initCommandPalette } from "./ui/commandPalette";
 import { initDockPanel } from "./ui/dockPanel";
 
 /** WebDriver waits on this; set once shell chrome from index.html is in the DOM. */
+async function resolveCaptureOpenPath(path: string): Promise<string> {
+  if (path.includes("://") || path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path)) {
+    return path;
+  }
+  try {
+    return await invoke<string>("resolve_capture_path", { path });
+  } catch {
+    return path;
+  }
+}
+
 function expectedCaptureContextLabel(launchPaths: string[]): string | null {
   const joined = launchPaths.join("|").toLowerCase();
   if (joined.includes(".pdf")) {
@@ -182,6 +193,7 @@ import {
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
 import {
   editorReadyForCapture,
+  launchPathsNeedDocumentViewer,
   launchPathsNeedEditor,
   waitForShellPaintReady,
 } from "./shellPaintReady";
@@ -2771,7 +2783,11 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       }
       for (const p of launchPaths) {
         try {
-          const opened = await invoke<TabContentDto>("open_path", { path: p, line: null });
+          const resolved = await resolveCaptureOpenPath(p);
+          const opened = await invoke<TabContentDto>("open_path", {
+            path: resolved,
+            line: null,
+          });
           if (opened) {
             await applyState(opened);
           }
@@ -2826,6 +2842,25 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           }
         }
         try {
+          if (launchPathsNeedDocumentViewer(launchPaths)) {
+            const docPath =
+              launchPaths.find((p) => launchPathsNeedDocumentViewer([p])) ??
+              launchPaths[launchPaths.length - 1];
+            try {
+              const resolved = await resolveCaptureOpenPath(docPath);
+              const opened = await invoke<TabContentDto>("open_path", {
+                path: resolved,
+                line: null,
+              });
+              if (opened) {
+                await applyState(opened);
+              }
+              await refreshState();
+              await new Promise((resolve) => window.setTimeout(resolve, 300));
+            } catch {
+              /* open_path errors surface on next interaction */
+            }
+          }
           const painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
           if (!painted) {
             const timeoutDiag = formatDiagnosticsForLog(collectDocCaptureDiagnostics());

@@ -745,6 +745,9 @@ Fail rule:
 
 ### UI-22: Restore the Image workbench regions
 
+Status: done 2026-10-07. History and Adjust docks flank the fitted raster canvas; empty
+states are truthful; doc-capture resolves repo-relative `--open` paths.
+
 Work:
 
 - Provide stable History and Adjust docks around the raster canvas.

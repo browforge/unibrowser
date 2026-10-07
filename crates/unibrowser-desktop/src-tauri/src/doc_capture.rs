@@ -135,9 +135,10 @@ pub fn run_capture_on_main(app: &AppHandle) -> Result<PathBuf, String> {
     let state = app.state::<crate::state::AppState>();
 
     for open in launch_args::launch_open_paths_snapshot() {
+        let resolved = launch_args::resolve_capture_path_str(&open).unwrap_or(open);
         let _ = crate::commands::open_path(
             window.clone(),
-            open,
+            resolved,
             None,
             app.clone(),
             state.clone(),

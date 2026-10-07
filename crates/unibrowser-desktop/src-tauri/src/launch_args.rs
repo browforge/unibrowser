@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use serde::Deserialize;
@@ -140,6 +140,26 @@ pub fn doc_capture_output_path() -> Option<PathBuf> {
         .lock()
         .ok()
         .and_then(|d| d.as_ref().cloned())
+}
+
+pub fn resolve_capture_path_str(path: &str) -> Result<String, String> {
+    if path.contains("://") {
+        return Ok(path.to_string());
+    }
+    let raw = Path::new(path);
+    if raw.is_absolute() {
+        return Ok(path.to_string());
+    }
+    let root = std::env::var("UNIBROWSER_REPO_ROOT")
+        .map(|r| PathBuf::from(r.trim_end_matches('/')))
+        .or_else(|_| std::env::current_dir().map_err(|e| e.to_string()))?;
+    Ok(root.join(raw).to_string_lossy().into_owned())
+}
+
+/// Resolve repo-relative `--open` paths for doc-capture (UNIBROWSER_REPO_ROOT or cwd).
+#[tauri::command]
+pub fn resolve_capture_path(path: String) -> Result<String, String> {
+    resolve_capture_path_str(&path)
 }
 
 #[tauri::command]

@@ -92,7 +92,7 @@ function docViewerReady(): boolean {
   }
   if (
     host.querySelector(
-      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .image-viewport, .image-viewer-layout, .viewer-note, section",
+      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .image-viewport, .image-viewer-layout, .image-dock, .viewer-note, section",
     )
   ) {
     return true;
@@ -321,7 +321,25 @@ export function launchPathsNeedEditor(launchPaths: string[]): boolean {
   );
 }
 
-function launchPathsNeedDocumentViewer(launchPaths: string[]): boolean {
+function launchPathBasenames(launchPaths: string[]): string[] {
+  return launchPaths
+    .map((p) => p.split(/[/\\]/).pop()?.toLowerCase() ?? "")
+    .filter((name) => name.length > 0);
+}
+
+async function syncBrowserStateForCapture(): Promise<void> {
+  const apply = (
+    window as unknown as { __selfTestApplyState?: (data: unknown) => Promise<void> }
+  ).__selfTestApplyState;
+  if (!apply) {
+    return;
+  }
+  const { invoke } = await import("@tauri-apps/api/core");
+  const data = await invoke("get_browser_state");
+  await apply(data);
+}
+
+export function launchPathsNeedDocumentViewer(launchPaths: string[]): boolean {
   const joined = launchPaths.join("|").toLowerCase();
   return (
     joined.includes(".pdf") ||
@@ -334,21 +352,11 @@ function launchPathsNeedDocumentViewer(launchPaths: string[]): boolean {
   );
 }
 
-let documentTabCaptureNudged = false;
-
-export function resetDocumentTabCaptureNudge(): void {
-  documentTabCaptureNudged = false;
-}
-
 /** Select the tab that matches argv `--open` paths so the viewer host is shown. */
 export async function ensureDocumentTabActiveForCapture(launchPaths: string[]): Promise<void> {
   if (!launchPathsNeedDocumentViewer(launchPaths)) {
     return;
   }
-  if (documentTabCaptureNudged) {
-    return;
-  }
-  documentTabCaptureNudged = true;
   const host = document.getElementById("document-viewer-host");
   if (host && !host.classList.contains("hidden")) {
     return;
@@ -357,12 +365,17 @@ export async function ensureDocumentTabActiveForCapture(launchPaths: string[]): 
   const ext =
     [".pdf", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".docx"].find((e) => joined.includes(e)) ??
     "";
+  const basenames = launchPathBasenames(launchPaths);
   const tabs = document.querySelectorAll<HTMLElement>(".title-tabs .tab");
   for (const tab of tabs) {
     const label = (tab.textContent ?? "").toLowerCase();
-    if (ext && label.includes(ext.replace(".", ""))) {
+    const matches =
+      basenames.some((name) => label === name || label.endsWith(name)) ||
+      (ext ? label.includes(ext.replace(".", "")) : false);
+    if (matches) {
       tab.click();
-      await sleep(250);
+      await sleep(300);
+      await syncBrowserStateForCapture();
       return;
     }
   }
@@ -370,14 +383,18 @@ export async function ensureDocumentTabActiveForCapture(launchPaths: string[]): 
   const state = await invoke<{ active_index: number; tabs: { label: string }[] }>("get_browser_state");
   const idx = state.tabs.findIndex((t) => {
     const label = t.label.toLowerCase();
-    return ext ? label.includes(ext.replace(".", "")) : false;
+    return (
+      basenames.some((name) => label === name || label.endsWith(name)) ||
+      (ext ? label.includes(ext.replace(".", "")) : false)
+    );
   });
-  if (idx >= 0) {
-    await invoke("select_tab", { index: idx }).catch(() => undefined);
-    await sleep(250);
-  } else if (state.tabs.length > 0) {
-    await invoke("select_tab", { index: state.tabs.length - 1 }).catch(() => undefined);
-    await sleep(250);
+  const pick = idx >= 0 ? idx : state.tabs.length > 0 ? state.tabs.length - 1 : -1;
+  if (pick >= 0 && pick !== state.active_index) {
+    await invoke("select_tab", { index: pick }).catch(() => undefined);
+    await sleep(300);
+    await syncBrowserStateForCapture();
+  } else if (pick >= 0) {
+    await syncBrowserStateForCapture();
   }
 }
 
@@ -396,6 +413,7 @@ export async function ensureTextTabActiveForCapture(launchPaths: string[]): Prom
   const pick = textIndex >= 0 ? textIndex : 0;
   await invoke("select_tab", { index: pick }).catch(() => undefined);
   await sleep(300);
+  await syncBrowserStateForCapture();
   const hostAfter = document.getElementById("text-editor-host");
   if (hostAfter && !hostAfter.classList.contains("hidden")) {
     return;
@@ -426,12 +444,14 @@ export async function waitForShellPaintReady(
   launchPaths: string[],
   timeoutMs = 18_000,
 ): Promise<boolean> {
-  resetDocumentTabCaptureNudge();
   const checks = checksForDemo(demoRaw, launchPaths);
   const deadline = Date.now() + timeoutMs;
+  const preferDocumentViewer = launchPathsNeedDocumentViewer(launchPaths);
   while (Date.now() < deadline) {
     await ensureDocumentTabActiveForCapture(launchPaths);
-    await ensureTextTabActiveForCapture(launchPaths);
+    if (!preferDocumentViewer) {
+      await ensureTextTabActiveForCapture(launchPaths);
+    }
     await nudgeEditorLayout();
     if (checks.every((fn) => fn())) {
       await nudgeEditorLayout();

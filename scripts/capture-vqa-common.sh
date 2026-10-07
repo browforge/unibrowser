@@ -25,6 +25,9 @@ capture_vqa() {
   local demo="$3"
   local open_path="$4"
   local geometry="${5:-1280x800}"
+  if [[ -n "${UNIBROWSER_REPO_ROOT:-}" && -n "$open_path" && "$open_path" != /* && "$open_path" != *://* ]]; then
+    open_path="${UNIBROWSER_REPO_ROOT%/}/$open_path"
+  fi
   mkdir -p "$outdir"
   local tmp="$outdir/.${name}.png"
   rm -f "$tmp"

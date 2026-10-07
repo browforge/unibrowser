@@ -80,7 +80,16 @@ export async function mountRasterImageViewer(
   setStatusHint(t("image.toolbarNote"));
 
   const layout = document.createElement("div");
-  layout.className = "image-viewer-layout";
+  layout.className = "image-viewer-layout image-workbench";
+  const historyDock = document.createElement("aside");
+  historyDock.className = "image-dock image-dock--history";
+  const historyHead = document.createElement("header");
+  historyHead.className = "image-dock-header";
+  historyHead.textContent = t("image.historyDock");
+  const historyEmpty = document.createElement("p");
+  historyEmpty.className = "image-dock-empty";
+  historyEmpty.textContent = t("image.historyEmpty");
+  historyDock.append(historyHead, historyEmpty);
   const mainCol = document.createElement("div");
   mainCol.className = "image-viewer-main";
 
@@ -107,7 +116,16 @@ export async function mountRasterImageViewer(
   viewport.appendChild(stage);
   mainCol.appendChild(viewport);
 
-  const histAside = document.createElement("aside");
+  const adjustDock = document.createElement("aside");
+  adjustDock.className = "image-dock image-dock--adjust";
+  const adjustHead = document.createElement("header");
+  adjustHead.className = "image-dock-header";
+  adjustHead.textContent = t("image.adjustDock");
+  const adjustEmpty = document.createElement("p");
+  adjustEmpty.className = "image-dock-empty image-dock-empty--default";
+  adjustEmpty.textContent = t("image.adjustEmpty");
+  adjustDock.append(adjustHead, adjustEmpty);
+  const histAside = document.createElement("div");
   histAside.className = "image-histogram-panel hidden";
   const histTitle = document.createElement("h3");
   histTitle.textContent = t("image.histogram");
@@ -131,8 +149,8 @@ export async function mountRasterImageViewer(
     row.appendChild(c);
     histAside.appendChild(row);
   }
-  layout.appendChild(mainCol);
-  layout.appendChild(histAside);
+  adjustDock.appendChild(histAside);
+  layout.append(historyDock, mainCol, adjustDock);
   root.appendChild(layout);
 
   const sampleCanvas = document.createElement("canvas");

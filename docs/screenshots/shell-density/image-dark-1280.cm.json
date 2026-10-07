@@ -1018,7 +1018,7 @@
       },
       {
         "id": "status-zoom-label",
-        "label": "Image 67%",
+        "label": "Image 52%",
         "bounds": {
           "x": 443.15625,
           "y": 777.5,
@@ -1030,8 +1030,8 @@
         "contrast": 11.116014789048625,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 7.47,
-        "pixelInkCount": 272,
+        "pixelContrast": 7.853,
+        "pixelInkCount": 267,
         "pixelBounds": {
           "x": 443,
           "y": 777,
