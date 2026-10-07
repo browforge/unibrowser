@@ -179,6 +179,18 @@ capture_states "04-mod-tab" "Portal tab" 158 167 35 130
 capture_states "05-input" "Input" 235 260 80 220
 capture_states "06-button" "Button" 525 240 390 200
 capture_states "07-install" "Install" 1135 350 900 310
+
+# Rail destinations activate a workspace view on click. Capture focus after the
+# other portal cells so the real activation cannot disturb their evidence.
+xdotool mousemove 20 166 click 1
+xdotool key Escape
+xdotool mousemove 1180 780
+shot "03-rail-focus" 0 120 300 90
+convert "$tmp/cells/03-rail-focus.png" \
+  -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
+  -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
+  -splice 0x24 -pointsize 13 -annotate +0+4 "Activity rail / focus" \
+  "$tmp/cells/03-rail-focus.png"
 stop_surface
 
 # The existing UI-19 path uses real keyboard focus on Find and is also covered
