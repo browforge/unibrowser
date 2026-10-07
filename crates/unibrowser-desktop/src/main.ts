@@ -805,7 +805,7 @@ function renderTabs(data: TabContentDto) {
   });
   const plus = document.createElement("button");
   plus.type = "button";
-  plus.className = "tab new-tab title-icon";
+  plus.className = "new-tab title-icon";
   plus.innerHTML = "";
   plus.appendChild(createLucideIcon("plus", 16, "ub-icon svg-icon"));
   plus.setAttribute("aria-label", "New tab");

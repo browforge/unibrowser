@@ -1,4 +1,5 @@
 import { t } from "./i18n";
+import { fileTypeVisualForPath } from "./fileTypeIcons";
 import { isOpenVsxNetworkEnabled, setOpenVsxNetworkEnabled } from "./modsOpenVsx";
 import { showToast } from "./toast";
 
@@ -122,13 +123,17 @@ export function appendModSuggestionCard(
 ): void {
   const card = document.createElement("article");
   card.className = "mod-result-card mod-result-card--suggestion";
-  if (options?.featured) {
+  const featured = Boolean(options?.featured);
+  if (featured) {
     card.classList.add("mod-result-card--featured");
   }
   const badge = document.createElement("span");
   badge.className = "mod-card-badge mod-card-badge--installable";
   badge.textContent = "Suggested";
   const title = document.createElement("strong");
+  if (featured) {
+    title.className = "mod-suggestion-card-title";
+  }
   title.textContent = suggestion.title;
   const reason = document.createElement("span");
   reason.className = "mod-result-reason";
@@ -143,8 +148,8 @@ export function appendModSuggestionCard(
   meta.textContent = `Licence: ${licence.replace(/^Licence:\s*/i, "")} · ${permissions}`;
   const action = document.createElement("button");
   action.type = "button";
-  action.className = options?.featured
-    ? "mod-card-install mod-card-install--featured"
+  action.className = featured
+    ? "ntp-primary mod-card-install"
     : "mod-card-action mod-card-action--primary";
   action.textContent = "Install";
   action.onclick = () => onPrimary(suggestion);
@@ -164,8 +169,23 @@ export function appendModSuggestionCard(
   }
   detailBody.textContent = parts.join(" · ");
   details.append(summary, detailBody);
-  footer.append(action);
-  card.append(badge, title, reason, meta, details, footer);
+  if (featured) {
+    const thumb = document.createElement("div");
+    thumb.className = "mod-card-thumb";
+    thumb.setAttribute("aria-hidden", "true");
+    const visual = fileTypeVisualForPath("sample.step");
+    const ft = document.createElement("span");
+    ft.className = `ft-icon ${visual.className}`;
+    ft.textContent = visual.label;
+    thumb.appendChild(ft);
+    const installSlot = document.createElement("div");
+    installSlot.className = "mod-card-install-slot";
+    installSlot.appendChild(action);
+    card.append(thumb, title, reason, meta, details, installSlot);
+  } else {
+    footer.append(action);
+    card.append(badge, title, reason, meta, details, footer);
+  }
   parent.appendChild(card);
 }
 

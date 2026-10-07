@@ -38,6 +38,8 @@ const EXT_MAP: Record<string, FileTypeVisual> = {
   csv: { label: "CSV", className: "ft-sheet" },
   tsv: { label: "CSV", className: "ft-sheet" },
   dxf: { label: "DXF", className: "ft-cad" },
+  step: { label: "CAD", className: "ft-cad" },
+  stp: { label: "CAD", className: "ft-cad" },
 };
 
 /** Badge labels for Start page and file list (IMG, TXT, MD, TS, …). */

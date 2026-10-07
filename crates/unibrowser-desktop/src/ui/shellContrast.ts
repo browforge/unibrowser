@@ -95,6 +95,31 @@ export const SHELL_DENSITY_CONTRAST_TARGETS: Array<{
   { id: "title-breadcrumb", selector: ".title-breadcrumb:not(.hidden)", minRatio: 4.5, when: "always" },
   { id: "files-meta", selector: ".files-meta", minRatio: 4.5, when: "files" },
   { id: "settings-form-label", selector: ".settings-content label", minRatio: 4.5, when: "settings" },
+  {
+    id: "mod-suggestion-title",
+    selector: ".mod-result-card--featured .mod-suggestion-card-title",
+    minRatio: 4.5,
+    when: "mod-portal",
+  },
+  {
+    id: "mod-suggestion-reason",
+    selector: ".mod-result-card--featured .mod-result-reason",
+    minRatio: 4.5,
+    when: "mod-portal",
+  },
+  {
+    id: "mod-suggestion-meta",
+    selector: ".mod-result-card--featured .mod-result-meta",
+    minRatio: 4.5,
+    when: "mod-portal",
+  },
+  {
+    id: "mod-catalog-badge",
+    selector: ".mod-portal-catalog .mod-card-badge",
+    minRatio: 4.5,
+    when: "mod-portal",
+    required: false,
+  },
 ];
 
 export function sampleContrastForSelector(
@@ -119,7 +144,7 @@ export function rectsOverlap(a: DOMRect, b: DOMRect, minPx = 2): boolean {
 }
 
 const MOD_CARD_TEXT_SELECTORS =
-  "strong, .mod-result-id, .mod-result-reason, .mod-result-meta, .mod-card-badge";
+  "strong, .mod-suggestion-card-title, .mod-result-id, .mod-result-reason, .mod-result-meta, .mod-card-badge, .mod-card-thumb .ft-icon";
 
 export function validateModCardTextOverlap(): string | null {
   const cards = document.querySelectorAll(".mod-result-card");
@@ -217,15 +242,6 @@ export function validateShellDensityContrastForCapture(minRatio = 4.5): string |
     if (overlapErr) {
       return overlapErr;
     }
-    const meta = document.querySelector(".mod-result-meta") as HTMLElement | null;
-    if (meta) {
-      const style = getComputedStyle(meta);
-      const bg = resolveOpaqueBackground(meta);
-      const ratio = contrastRatioForColors(style.color, bg);
-      if (ratio === null || ratio < minRatio) {
-        return `shell contrast: mod-result-meta ratio ${ratio?.toFixed(2) ?? "null"} < ${minRatio}`;
-      }
-    }
   }
   return null;
 }
@@ -271,6 +287,27 @@ export const SHELL_DENSITY_TOKEN_PAIRS: Array<{
     id: "form-label",
     foreground: "rgb(69, 75, 78)",
     background: "rgb(241, 240, 236)",
+    minRatio: 4.5,
+  },
+  {
+    theme: "light",
+    id: "mod-card-meta",
+    foreground: "rgb(69, 75, 78)",
+    background: "rgb(247, 246, 242)",
+    minRatio: 4.5,
+  },
+  {
+    theme: "light",
+    id: "mod-card-title",
+    foreground: "rgb(37, 42, 48)",
+    background: "rgb(247, 246, 242)",
+    minRatio: 4.5,
+  },
+  {
+    theme: "light",
+    id: "mod-catalog-badge",
+    foreground: "rgb(105, 95, 74)",
+    background: "rgb(247, 246, 242)",
     minRatio: 4.5,
   },
   {
