@@ -5674,11 +5674,21 @@ mark.docx-search-hit--current {
 }
 
 [data-high-contrast="true"] .settings-content button,
-[data-high-contrast="true"] .settings-content select,
 [data-high-contrast="true"] .settings-content input:not(.ub-switch):not(.settings-toggle-input):not([type="checkbox"]):not([type="radio"]) {
   border-color: currentColor;
   background: var(--ub-panel, #fff);
   color: var(--ub-text-1, #000);
+}
+
+[data-high-contrast="true"] .settings-content select {
+  border-color: currentColor;
+  background-color: var(--ub-panel, #fff);
+  color: var(--ub-text-1, #000);
+  padding-right: 1.75rem;
+  background-image: var(--ub-select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 0.65rem 0.65rem;
 }
 
 .settings-developer > summary,
