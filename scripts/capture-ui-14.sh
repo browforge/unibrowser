@@ -15,6 +15,7 @@ mkdir -p "$OUT"
 capture() {
   local name="$1"
   local open_path="$2"
+  local extra_state="${3:-}"
   local tmp="$OUT/.${name}.png"
   rm -f "$tmp"
   xvfb-run -a -s "-screen 0 1280x800x24" env \
@@ -23,7 +24,7 @@ capture() {
     UNIBROWSER_REPO_ROOT="$ROOT" \
     UNIBROWSER_SAFE_MODE=1 \
     UNIBROWSER_DOC_CAPTURE_SIZE="1280x800" \
-    UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-light,standard-contrast,scale-100" \
+    UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-light,standard-contrast,scale-100${extra_state:+,$extra_state}" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
   mv "$tmp" "$OUT/${name}.png"
   local actual
@@ -36,7 +37,7 @@ capture() {
 
 capture "pdf-annotation-light-1280" "$PACK/sample.pdf"
 capture "image-light-1280" "$PACK/sample.svg"
-capture "dxf-proving-light-1280" "$PACK/sample.dxf"
+capture "dxf-proving-light-1280" "$PACK/sample.dxf" "ui14-dxf-measure-reason"
 
 declare -A seen_hashes=()
 for png in "$OUT"/*.png; do

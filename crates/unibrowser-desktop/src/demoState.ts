@@ -207,6 +207,15 @@ export async function applyDemoState(raw: string) {
         control?.focus();
         break;
       }
+      case "ui14-dxf-measure-reason": {
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+        document
+          .querySelector<HTMLElement>(
+            '[data-control-id="unibrowser.control.cad.measure"]',
+          )
+          ?.focus();
+        break;
+      }
       case "rail-expanded": {
         const { setRailMode } = await import("./ui/activityRail");
         setRailMode("expanded");
