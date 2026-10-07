@@ -85,3 +85,20 @@ test("focus ring guard requires two pixels and three-to-one contrast", () => {
     false,
   );
 });
+
+test("focus tokens meet three-to-one contrast in every captured theme", () => {
+  const pairs = [
+    ["dark", "#83c7e6", "#232526"],
+    ["light", "#176b94", "#ffffff"],
+    ["dark high contrast", "#ffe566", "#000000"],
+    ["light high contrast", "#7a5200", "#ffffff"],
+    ["shared chrome", "#83c7e6", "#172532"],
+  ];
+  for (const [theme, ring, surrounding] of pairs) {
+    assert.equal(
+      focusRingMeetsRequirements(2, ring, surrounding),
+      true,
+      `${theme} focus ring must meet 2px / 3:1`,
+    );
+  }
+});
