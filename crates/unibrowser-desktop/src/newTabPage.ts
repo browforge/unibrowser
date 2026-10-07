@@ -23,6 +23,7 @@ export interface DownloadHistoryEntryDto {
   status: string;
   error?: string | null;
   destination?: string | null;
+  progress_percent?: number | null;
   at_ms: number;
 }
 
@@ -176,7 +177,7 @@ function appendRecentSection(host: HTMLElement, deps: NewTabDeps) {
 
   const list = document.createElement("div");
   list.className = "ntp-recent-list";
-  deps.recent.slice(0, 8).forEach((entry) => {
+  deps.recent.slice(0, 4).forEach((entry) => {
     list.appendChild(recentRow(entry, deps.onOpenPath));
   });
   recentSec.appendChild(list);
@@ -239,6 +240,7 @@ function downloadRow(
   title.textContent = entry.label;
   const sub = document.createElement("div");
   sub.className = "ntp-recent-path";
+  const progressPct = entry.progress_percent ?? 64;
   if (entry.status === "in_progress") {
     sub.textContent = t("ntp.downloadProgress", { received: "82.4 MB", total: "128 MB" });
   } else {
@@ -251,11 +253,11 @@ function downloadRow(
     const progress = document.createElement("div");
     progress.className = "ntp-download-progress";
     const bar = document.createElement("span");
-    bar.style.width = "64%";
+    bar.style.width = `${progressPct}%`;
     progress.appendChild(bar);
     const pct = document.createElement("span");
     pct.className = "ntp-download-pct";
-    pct.textContent = "64%";
+    pct.textContent = `${progressPct}%`;
     row.append(progress, pct);
   } else {
     const time = document.createElement("span");

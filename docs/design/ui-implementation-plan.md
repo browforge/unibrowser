@@ -762,6 +762,9 @@ Fail rule:
 
 ### UI-23: Match New tab action and download hierarchy
 
+Status: done 2026-10-07. Warm 784 px work column, four recent rows, compact download
+rows with truthful in-progress percent, primary Open actions strengthened.
+
 Work:
 
 - Strengthen Open file, Open folder, and New project as the primary action set.

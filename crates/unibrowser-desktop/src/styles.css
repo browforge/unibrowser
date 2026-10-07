@@ -1091,9 +1091,9 @@ body.toolbar-window-mode .floating-bar.docked {
 }
 
 .new-tab-page-host .ntp-inner {
-  max-width: 52rem;
+  max-width: 49rem;
   margin: 0 auto;
-  padding: 1.25rem 1.25rem 5rem;
+  padding: 1.5rem 1.25rem 5rem;
   box-sizing: border-box;
 }
 
@@ -1127,28 +1127,35 @@ body.toolbar-window-mode .floating-bar.docked {
 .ntp-download-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .ntp-recent-row {
   display: grid;
-  grid-template-columns: 2.75rem 1fr auto;
+  grid-template-columns: 2.5rem 1fr auto;
   gap: 0.25rem 0.55rem;
   align-items: center;
   width: 100%;
-  min-height: 32px;
+  min-height: 36px;
   text-align: left;
-  padding: 0.2rem 0.45rem;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
   background: transparent;
   color: inherit;
   cursor: pointer;
 }
 
+.ntp-recent-row:last-child {
+  border-bottom: 0;
+}
+
 .ntp-recent-row:hover {
   background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .ntp-recent-icon,
@@ -1195,14 +1202,19 @@ body.toolbar-window-mode .floating-bar.docked {
 
 .ntp-download-row {
   display: grid;
-  grid-template-columns: 2.75rem 1fr auto auto;
+  grid-template-columns: 2.5rem 1fr auto auto;
   gap: 0.25rem 0.55rem;
   align-items: center;
-  min-height: 32px;
-  padding: 0.2rem 0.45rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.12);
+  min-height: 36px;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+}
+
+.ntp-download-row:last-child {
+  border-bottom: 0;
 }
 
 .ntp-download-progress {
@@ -1233,15 +1245,32 @@ body.toolbar-window-mode .floating-bar.docked {
 }
 
 [data-theme="light"] .new-tab-page-host {
-  background: #fff;
+  background: #f3f0ea;
   border-color: #ccc;
-  color: #111;
+  color: #1f2326;
+}
+
+[data-theme="light"] .new-tab-page-host .ntp-inner {
+  background: #f7f4ee;
+  border: 1px solid #e3ddd2;
+  border-radius: 6px;
+  padding: 1.5rem 1.35rem 2rem;
+}
+
+[data-theme="light"] .ntp-recent-row,
+[data-theme="light"] .ntp-download-row {
+  border-bottom-color: #e3ddd2;
+}
+
+[data-theme="light"] .ntp-recent-row:hover {
+  background: rgba(31, 35, 38, 0.04);
 }
 
 .ntp-hero h1 {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   margin: 0 0 0.35rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .ntp-lead {
@@ -1258,11 +1287,18 @@ body.toolbar-window-mode .floating-bar.docked {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .ntp-primary {
   font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+}
+
+.ntp-actions .ntp-secondary {
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
 }
 
 .ntp-section h2 {
@@ -2728,11 +2764,62 @@ body.content-fullscreen::after {
 
 .image-viewer-layout {
   display: flex;
-  gap: 0.75rem;
+  gap: 0;
   align-items: stretch;
   min-height: 0;
   flex: 1 1 auto;
   height: 100%;
+}
+
+.image-workbench .image-dock {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 10.5rem;
+  min-width: 9rem;
+  max-width: 11rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--ub-border, #c9cfd7);
+  background: var(--ub-surface-subtle, #eef1f3);
+  color: var(--ub-text-1, #252a30);
+  overflow: auto;
+}
+
+.image-dock--history {
+  border-right: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+.image-dock--adjust {
+  border-left: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.image-dock-header {
+  margin: 0 0 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.image-dock-empty {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ub-label, #5c6670);
+}
+
+.image-workbench .image-histogram-panel {
+  width: auto;
+  flex: 1 1 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+[data-theme="dark"] .image-workbench .image-dock {
+  background: var(--ub-surface-subtle, #232628);
+  border-color: var(--ub-border, #3a3f42);
+  color: var(--ub-text-1, #e9edef);
 }
 
 .image-viewer-main {

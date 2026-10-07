@@ -10,6 +10,7 @@ export interface DownloadHistoryEntryDto {
   status: string;
   error?: string | null;
   destination?: string | null;
+  progress_percent?: number | null;
   at_ms: number;
 }
 
