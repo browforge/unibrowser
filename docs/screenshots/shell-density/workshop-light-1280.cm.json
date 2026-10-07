@@ -7,7 +7,7 @@
   "contextLabel": "Project",
   "autoContext": "browse",
   "pipeline": {
-    "activeTabId": "text",
+    "activeTabId": "image",
     "rustFamilyCount": 1,
     "rustControlCount": 11,
     "ipcFamilyCount": 1,

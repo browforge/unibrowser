@@ -1,120 +1,24 @@
 {
   "viewportWidth": 1280,
   "viewportHeight": 800,
-  "controlCount": 3,
-  "visibleCount": 3,
-  "contrastOkCount": 3,
+  "controlCount": 2,
+  "visibleCount": 2,
+  "contrastOkCount": 2,
   "contextLabel": "Settings",
   "autoContext": "browse",
   "pipeline": {
     "activeTabId": "text",
     "rustFamilyCount": 1,
-    "rustControlCount": 3,
+    "rustControlCount": 2,
     "ipcFamilyCount": 1,
-    "ipcControlCount": 3,
+    "ipcControlCount": 2,
     "frontendGroupCount": 1,
-    "frontendResolvedControlCount": 3,
-    "frontendVisibleModelCount": 3,
+    "frontendResolvedControlCount": 2,
+    "frontendVisibleModelCount": 2,
     "frontendOverflowModelCount": 0,
-    "groupsWidth": 645
+    "groupsWidth": 578
   },
   "controls": [
-    {
-      "controlId": "unibrowser.control.settings.search",
-      "label": "Search settings",
-      "classes": [
-        "ui-command",
-        "cm-cap-supported"
-      ],
-      "capabilityState": "supported",
-      "enabled": true,
-      "disabledReason": null,
-      "width": 132.921875,
-      "height": 30,
-      "labelBounds": {
-        "x": 129.921875,
-        "y": 51.5,
-        "width": 95.921875,
-        "height": 16
-      },
-      "labelWidth": 95.921875,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(233, 237, 239)",
-      "labelForeground": "rgb(233, 237, 239)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 13.231816864242587,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 12.386,
-      "pixelInkCount": 545,
-      "pixelBounds": {
-        "x": 129,
-        "y": 51,
-        "width": 97,
-        "height": 17
-      }
-    },
     {
       "controlId": "unibrowser.control.settings.keybindings",
       "label": "Keybindings",
@@ -128,7 +32,7 @@
       "width": 113.296875,
       "height": 30,
       "labelBounds": {
-        "x": 263.84375,
+        "x": 129.921875,
         "y": 51.5,
         "width": 76.296875,
         "height": 16
@@ -202,10 +106,10 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.271,
-      "pixelInkCount": 458,
+      "pixelContrast": 11.82,
+      "pixelInkCount": 448,
       "pixelBounds": {
-        "x": 263,
+        "x": 129,
         "y": 51,
         "width": 78,
         "height": 17
@@ -224,7 +128,7 @@
       "width": 108,
       "height": 30,
       "labelBounds": {
-        "x": 378.140625,
+        "x": 244.21875,
         "y": 51.5,
         "width": 71,
         "height": 16
@@ -301,7 +205,7 @@
       "pixelContrast": 11.955,
       "pixelInkCount": 417,
       "pixelBounds": {
-        "x": 378,
+        "x": 244,
         "y": 51,
         "width": 72,
         "height": 17

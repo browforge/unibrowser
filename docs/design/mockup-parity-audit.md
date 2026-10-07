@@ -5,6 +5,27 @@ light-theme application capture on the right. The labelled composites are in
 `docs/screenshots/parity/`. A context-matrix crop is used where the approved
 set defines only layout hierarchy rather than detailed visual styling.
 
+## Final fresh acceptance grading
+
+These grades use the final 1280x800 captures regenerated on 2026-10-07. Each
+capture passed the contrast, pixel CM, text-overlap, icon, duplicate-control,
+and tooltip-clearing capture guards. The descriptions below were written from
+the opened parity composites before assigning grades.
+
+| Ticket | Capture SHA-256 | Literal description | Grade |
+| --- | --- | --- | --- |
+| UI-21 Settings | `9bca09bbbc3c91f2de51f3ffe405ac897d0991480002fa0aca2d6460db6c3b61` | General shows, in order, On startup, Downloads, Workspace, and Auto-save as ruled label-left/control-right rows with helper copy. The Developer callout follows. Search appears once in the category rail; the CM contains Keybindings and Diagnostics, not another search. AI and onboarding controls are absent from General. | Pass |
+| UI-22 Image | `3fa17365ce85d3a056ebe24be57d8536ebbbfc4ec91b46fc9db827855bbc41f6` | History is a stable left dock, the fitted raster occupies the centre canvas, and Adjust is a stable right dock. Both docks show quiet truthful empty text. No local image toolbar duplicates the Image CM. | Pass |
+| UI-23 New tab | `1fadbc6bd72f0a5300300aa0c6a3b8612c30a39f63c5d0ee451f8eb562913a56` | Open file is the filled accent action beside two neutral actions. Four known recent files use quiet text type marks. Downloads are unfilled ruled rows; the first has a real 64% progress bar and percentage, and the second is complete. No unknown fixture appears. | Pass |
+| UI-24 Workshop | `fc6e5e43495812f33e3cbda2708683df60750f400678334313d74a2218d11348` | The programme frame contains a selected lower third. The Inspector exposes Heading, Subtitle, Duration, and Position. A timecode transport sits below the stage. Video/Image, Title, and Audio/MIDI tracks are all fully visible without scrolling; light theme uses pale lanes and clips. | Pass |
+| UI-25 PDF | `284aa736ea53c00370c24c2ed1a79aced6b073f95fc312039aab1512456df843` | Pages is on the left, the white page is centred, and Annotations is on the right. The yellow annotation has the selected outline and a populated Opening summary inspector; the other area annotation is visibly subdued and indexed separately. | Pass |
+| UI-26 File browser | `02c3fb3541167ee30ab877474dd895e0234d3b3eb11d6e5c6ec9250bd7997d91` | Places, the file list, and Preview remain simultaneously visible at 1280. `sample.svg` is selected and its thumbnail, type, size, modified date, extension, path, and Open action appear in Preview. | Pass |
+| UI-27 Document workbench | `505f9bb90e548f9b92e6950648a84a8cb28230174859a4389c2f300600ecd9ff` | The editor occupies the main region, AI Assistant is docked at right with document context and composer, and Problems is docked below with three readable rows. Region boundaries are joined and no third local document toolbar appears. | Pass |
+| UI-28 Mod Portal | `78098361f8ca8f8b03dd8f25e9d4dc0d4b2e96d511005fe49b8c64b2164b1ad1` | Discover shows one search row, network guidance, one suggested result with its action, and a closed Browse full catalogue disclosure. The six-card catalogue and Installed content no longer compete in the initial viewport. | Pass |
+
+The detailed sections below record the pre-ticket baseline at `dc46d54`; they
+are retained as the discrepancy history that produced UI-21 through UI-28.
+
 ## New tab
 
 Sources: `mockups/quiet-utility/new-tab.png` and
