@@ -49,22 +49,22 @@ capture "files-browser-preview-light-150" \
 
 capture "settings-developer-collapsed-light-800" \
   "${base},theme-light,standard-contrast,scale-100,settings,ui13-settings-developer-collapsed" \
-  "$PACK/sample.md" "800x800"
+  "unibrowser://settings" "800x800"
 capture "settings-developer-expanded-light-800" \
   "${base},theme-light,standard-contrast,scale-100,settings,ui13-settings-developer-expanded" \
-  "$PACK/sample.md" "800x800"
+  "unibrowser://settings" "800x800"
 capture "settings-developer-expanded-light-1600" \
   "${base},theme-light,standard-contrast,scale-100,settings,ui13-settings-developer-expanded" \
-  "$PACK/sample.md" "1600x1000"
+  "unibrowser://settings" "1600x1000"
 capture "settings-developer-expanded-dark-1600" \
   "${base},theme-dark,standard-contrast,scale-100,settings,ui13-settings-developer-expanded" \
-  "$PACK/sample.md" "1600x1000"
+  "unibrowser://settings" "1600x1000"
 capture "settings-developer-expanded-hc-1600" \
   "${base},theme-light,high-contrast,scale-100,settings,ui13-settings-developer-expanded" \
-  "$PACK/sample.md" "1600x1000"
+  "unibrowser://settings" "1600x1000"
 capture "settings-developer-expanded-light-150" \
   "${base},theme-light,standard-contrast,scale-150,settings,ui13-settings-developer-expanded" \
-  "$PACK/sample.md" "1600x1000"
+  "unibrowser://settings" "1600x1000"
 
 declare -A seen_hashes=()
 for png in "$OUT"/*.png; do
