@@ -650,3 +650,25 @@ pub fn list_dir(path: &Path) -> Result<Vec<base_files::DirEntry>, String> {
     Ok(crate::files_listing::apply_files_view(entries, &prefs.files_view))
 }
 
+#[cfg(test)]
+mod cmd_proving_tests {
+    use super::*;
+
+    #[test]
+    fn proving_toolbar_is_loaded_with_detach_permission() {
+        let built = build_command_registry(&Mutex::new(HashSet::new())).expect("registry");
+        let contributions = permitted_mod_contributions(&built.mod_host);
+        let proving = contributions
+            .iter()
+            .find(|loaded| loaded.mod_name == "cmd-proving")
+            .expect("cmd-proving contribution");
+        assert!(proving.contributes.toolbars[0].detachable);
+        assert!(
+            built
+                .registry
+                .command_meta(cmd_proving::SUBSCRIPT_APPLY)
+                .is_some()
+        );
+    }
+}
+
