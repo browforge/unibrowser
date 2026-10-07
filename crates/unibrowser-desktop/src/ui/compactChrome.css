@@ -2,7 +2,7 @@
 
 .ub-region--chrome {
   background: var(--ub-concept-chrome-bg);
-  border-bottom-color: var(--ub-concept-chrome-border);
+  border-bottom: 0;
   color: var(--ub-concept-chrome-text);
 }
 
