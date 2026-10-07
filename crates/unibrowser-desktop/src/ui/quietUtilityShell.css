@@ -532,6 +532,11 @@ body {
   color: color-mix(in srgb, var(--ub-concept-chrome-text, #e9edef) 78%, transparent);
 }
 
+.title-breadcrumb .crumb-separator {
+  margin-inline: 6px;
+  color: color-mix(in srgb, var(--ub-concept-chrome-text, #e9edef) 62%, transparent);
+}
+
 body.ub-status-compact .status-verbose-only {
   display: none !important;
 }

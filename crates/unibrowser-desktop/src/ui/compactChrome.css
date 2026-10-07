@@ -77,10 +77,12 @@
   background: color-mix(in srgb, var(--ub-accent) 12%, var(--ub-concept-chrome-bg));
 }
 
-[data-theme="light"] #btn-save.title-save-btn {
+#btn-save.title-save-btn {
   background: var(--ub-accent);
   color: var(--ub-accent-on);
-  border-color: var(--ub-accent);
+  border: 1px solid var(--ub-accent);
+  border-radius: var(--ub-radius-4);
+  box-shadow: none;
 }
 
 .title-tabs {

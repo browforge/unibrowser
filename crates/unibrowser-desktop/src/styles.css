@@ -3250,7 +3250,7 @@ body.content-fullscreen::after {
 .pdf-annotation-inspector .pdf-annotation-field input {
   font-size: 12px;
   font-weight: 600;
-  color: #252a30;
+  color: var(--ub-text-1, #252a30);
 }
 
 .pdf-annotations-index-title {
@@ -3449,14 +3449,14 @@ body.content-fullscreen::after {
 [data-theme="light"] .pdf-annotations-dock select,
 [data-theme="light"] .pdf-annotations-dock input,
 [data-theme="light"] .pdf-annotations-dock textarea {
-  background: #eef1f3;
-  border-color: #aeb6bf;
-  color: #252a30;
+  background: var(--ub-control, #eef1f3);
+  border-color: var(--ub-border-strong, #aeb6bf);
+  color: var(--ub-text-1, #252a30);
 }
 
 .pdf-annotations-dock input::placeholder,
 .pdf-annotations-dock textarea::placeholder {
-  color: #4b5052;
+  color: var(--ub-text-2, #4b5052);
   opacity: 1;
 }
 
@@ -4370,7 +4370,7 @@ select:focus-visible,
   min-width: calc(100% * var(--timeline-zoom, 1));
   min-height: 100%;
   height: auto;
-  padding-top: 25px;
+  padding-top: 37px;
   box-sizing: border-box;
 }
 
@@ -4379,7 +4379,7 @@ select:focus-visible,
   top: 0;
   right: 0;
   left: 100px;
-  height: 24px;
+  height: 36px;
   border-bottom: 1px solid var(--ub-border, #444);
 }
 
@@ -4395,12 +4395,20 @@ select:focus-visible,
   cursor: pointer;
 }
 
+.workshop-ruler-tick:first-of-type {
+  transform: translateX(0);
+}
+
+.workshop-ruler-tick:last-of-type {
+  transform: translateX(-100%);
+}
+
 .workshop-marker {
   position: absolute;
   top: 0;
   z-index: 2;
   width: 2px;
-  height: 24px;
+  height: 36px;
   background: #d1a04c;
   transform: translateX(-50%);
 }
@@ -5328,8 +5336,8 @@ mark.docx-search-hit--current {
   height: 1.25rem;
   margin: 0 0 0 auto;
   border: 1px solid var(--ub-border-strong, #89939d);
-  border-radius: 999px;
-  background: var(--ub-surface-muted, #dde1e5);
+  border-radius: var(--ub-radius-6, 6px);
+  background: var(--ub-control, #2d3031);
   cursor: pointer;
 }
 
@@ -5339,8 +5347,8 @@ mark.docx-search-hit--current {
   width: 0.875rem;
   height: 0.875rem;
   margin: 0.125rem;
-  border-radius: 50%;
-  background: var(--ub-surface, #fff);
+  border-radius: 4px;
+  background: var(--ub-text-2, #c9cbc8);
 }
 
 .settings-field-control .settings-toggle-input:checked {
@@ -5350,6 +5358,7 @@ mark.docx-search-hit--current {
 
 .settings-field-control .settings-toggle-input:checked::before {
   transform: translateX(1rem);
+  background: var(--ub-accent-on, #142027);
 }
 
 .settings-category-hidden {

@@ -189,6 +189,8 @@ import {
   validateEditorForCapture,
   validateImageViewerChrome,
   validateCommandManagerMutedForCapture,
+  validateDarkSurfaceBackgroundsForCapture,
+  validateWorkshopTimelineForCapture,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
@@ -3082,6 +3084,20 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (shellContrastErr) {
             await invoke("abort_doc_capture", {
               reason: `${shellContrastErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const darkSurfaceErr = validateDarkSurfaceBackgroundsForCapture();
+          if (darkSurfaceErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${darkSurfaceErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const timelineErr = validateWorkshopTimelineForCapture();
+          if (timelineErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${timelineErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

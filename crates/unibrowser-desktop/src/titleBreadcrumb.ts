@@ -29,15 +29,17 @@ export function renderTitleBreadcrumb(filePath: string | null, useBreadcrumb: bo
   crumbEl.replaceChildren();
   const segments = pathToBreadcrumbSegments(filePath!);
   segments.forEach((part, idx) => {
-    if (idx < segments.length - 1) {
-      const muted = document.createElement("span");
-      muted.className = "crumb-muted";
-      muted.textContent = `${part} / `;
-      crumbEl.appendChild(muted);
-    } else {
-      const strong = document.createElement("strong");
-      strong.textContent = part;
-      crumbEl.appendChild(strong);
+    const segment = document.createElement(idx < segments.length - 1 ? "span" : "strong");
+    segment.className = idx < segments.length - 1 ? "crumb-muted" : "crumb-current";
+    segment.textContent = part;
+    crumbEl.appendChild(segment);
+    if (idx >= segments.length - 1) {
+      return;
     }
+    const separator = document.createElement("span");
+    separator.className = "crumb-separator";
+    separator.setAttribute("aria-hidden", "true");
+    separator.textContent = "/";
+    crumbEl.appendChild(separator);
   });
 }

@@ -271,6 +271,159 @@ function contrastRatio(l1: number, l2: number): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+export interface CaptureRect {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+export function rectWithinBounds(
+  inner: CaptureRect,
+  outer: CaptureRect,
+  tolerance = 1,
+): boolean {
+  return (
+    inner.left >= outer.left - tolerance &&
+    inner.right <= outer.right + tolerance &&
+    inner.top >= outer.top - tolerance &&
+    inner.bottom <= outer.bottom + tolerance
+  );
+}
+
+export function captureRectsOverlap(a: CaptureRect, b: CaptureRect): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+export function backgroundExceedsRaisedSurface(
+  candidateLuminance: number,
+  raisedSurfaceLuminance: number,
+  tolerance = 0.06,
+): boolean {
+  return candidateLuminance > raisedSurfaceLuminance + tolerance;
+}
+
+function effectiveOpaqueBackground(el: HTMLElement): string | null {
+  let node: HTMLElement | null = el;
+  while (node) {
+    const background = getComputedStyle(node).backgroundColor;
+    const parsed = parseRgb(background);
+    if (parsed && parsed.a >= 0.99) {
+      return background;
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
+export function validateDarkSurfaceBackgroundsForCapture(
+  tolerance = 0.06,
+): string | null {
+  const root = document.documentElement;
+  if (root.dataset.theme !== "dark") {
+    return null;
+  }
+  const probe = document.createElement("span");
+  probe.style.cssText =
+    "position:fixed;left:-10000px;top:-10000px;background:var(--ub-surface-2);";
+  document.body.appendChild(probe);
+  const raisedBackground = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  const raisedLuminance = parseRgbLuminance(raisedBackground);
+  if (raisedLuminance === null) {
+    return `could not resolve dark raised-surface token (${raisedBackground})`;
+  }
+  const scopes = [
+    "#chrome",
+    ".files-places",
+    ".files-side-panel",
+    ".pdf-thumbs-panel",
+    ".pdf-annotations-dock",
+    ".image-dock",
+    ".svg-inspector-rail",
+    ".dxf-layer-panel",
+    ".dxf-geom-panel",
+    ".workshop-sources",
+    ".workshop-inspector",
+    ".ai-assistant-panel",
+    ".settings-category-rail",
+  ];
+  const candidates = new Set<HTMLElement>();
+  for (const scopeSelector of scopes) {
+    const scope = document.querySelector(scopeSelector);
+    if (!scope) {
+      continue;
+    }
+    scope
+      .querySelectorAll<HTMLElement>(
+        'input:not([type="hidden"]), textarea, select, [class*="chip"], [class*="card"]',
+      )
+      .forEach((candidate) => candidates.add(candidate));
+  }
+  for (const candidate of candidates) {
+    const rect = candidate.getBoundingClientRect();
+    const style = getComputedStyle(candidate);
+    if (
+      rect.width <= 0 ||
+      rect.height <= 0 ||
+      style.display === "none" ||
+      style.visibility === "hidden"
+    ) {
+      continue;
+    }
+    const background = effectiveOpaqueBackground(candidate);
+    const luminance = background ? parseRgbLuminance(background) : null;
+    if (
+      luminance !== null &&
+      backgroundExceedsRaisedSurface(luminance, raisedLuminance, tolerance)
+    ) {
+      const identity =
+        candidate.id ||
+        Array.from(candidate.classList).join(".") ||
+        candidate.tagName.toLowerCase();
+      return `dark surface ${identity} is brighter than --ub-surface-2 (background ${background}, raised ${raisedBackground})`;
+    }
+  }
+  return null;
+}
+
+export function validateWorkshopTimelineForCapture(): string | null {
+  const viewport = document.querySelector<HTMLElement>(".workshop-timeline-viewport");
+  const ruler = document.querySelector<HTMLElement>(".workshop-ruler");
+  if (!viewport || !ruler) {
+    return null;
+  }
+  const viewportRect = viewport.getBoundingClientRect();
+  const rulerRect = ruler.getBoundingClientRect();
+  if (!rectWithinBounds(rulerRect, viewportRect)) {
+    return "workshop ruler escapes the timeline viewport";
+  }
+  const ticks = Array.from(
+    ruler.querySelectorAll<HTMLElement>(".workshop-ruler-tick"),
+  );
+  for (const tick of ticks) {
+    if (!rectWithinBounds(tick.getBoundingClientRect(), viewportRect)) {
+      return `workshop ruler tick "${tick.textContent?.trim() ?? ""}" escapes the timeline viewport`;
+    }
+  }
+  const markerTags = Array.from(
+    ruler.querySelectorAll<HTMLElement>(".workshop-marker-tag"),
+  );
+  for (const tag of markerTags) {
+    const tagRect = tag.getBoundingClientRect();
+    if (!rectWithinBounds(tagRect, viewportRect)) {
+      return `workshop marker "${tag.textContent?.trim() ?? ""}" escapes the timeline viewport`;
+    }
+    const overlappingTick = ticks.find((tick) =>
+      captureRectsOverlap(tagRect, tick.getBoundingClientRect()),
+    );
+    if (overlappingTick) {
+      return `workshop marker "${tag.textContent?.trim() ?? ""}" overlaps ruler tick "${overlappingTick.textContent?.trim() ?? ""}"`;
+    }
+  }
+  return null;
+}
+
 export function collectMonacoThemeDiagnostics(): MonacoThemeCaptureDiagnostics | null {
   const host = document.getElementById("text-editor-host");
   if (!host || host.classList.contains("hidden")) {

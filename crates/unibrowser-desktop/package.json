@@ -8,7 +8,7 @@
     "build": "tsc && vite build && node scripts/write-frontend-stamp.mjs",
     "test:overflow": "node --experimental-strip-types --test tests/commandOverflow.test.mjs tests/pdfCmOverflow.test.mjs tests/markdownCmOverflow.test.mjs",
     "test:icons": "node --experimental-strip-types --test tests/commandIcons.test.mjs",
-    "test:contrast": "node --experimental-strip-types --test tests/shellDensityContrast.test.mjs",
+    "test:contrast": "node --experimental-strip-types --test tests/shellDensityContrast.test.mjs tests/captureLayoutGuards.test.mjs",
     "test:image-chrome": "node --experimental-strip-types --test tests/imageViewerChrome.test.mjs",
     "test:cm-chrome": "node --experimental-strip-types --test tests/cmCapabilityChrome.test.mjs",
     "test:ui19": "node --experimental-strip-types --test tests/ui19Multiscale.test.mjs",
