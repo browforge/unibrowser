@@ -61,17 +61,19 @@ docks and status bar. Grade: Pass.
 
 ### `image-light-1280.png`
 
-The Image CM shows Crop, Rotate, Resize, Exposure, Contrast, Colour, Curves, and
-Export, with Fit and zoom available in overflow. The local row contains only
-quiet secondary utilities: Flip horizontal, Flip vertical, OCR, Copy image,
-Histogram, and Eyedropper. The cyan fixture sits at the upper left of the black
-canvas. No target control is duplicated locally. Grade: Pass.
+The Image CM shows Fit, 100%, zoom, Crop, Rotate, Resize, and Export, with
+Exposure, Contrast, Colour, Curves, Flip, OCR, Copy image, Histogram, and
+Eyedropper in overflow. There is no second command row under the CM. The
+1600×1000 procedural fixture is centred on a checkerboard viewport that fills the
+region between the CM and status bar. The status readout reports the true fit
+zoom (for example Image 67%), not a false 100%. Pan/crop guidance sits in the
+status hint with padding, not flush on the canvas. Grade: Pass.
 
 ### `image-dark-1280.png`
 
-The same CM and quiet utility row appear on dark surfaces. Disabled OCR is
-distinct from active utilities without becoming illegible. The canvas and
-status readout fit without clipping. Grade: Pass.
+The same single CM and centred fit viewport appear on dark chrome. Utilities
+remain in overflow only; the checkerboard well fills the viewer column. Status
+zoom and hints stay legible. Grade: Pass.
 
 ### `settings-light-1280.png`
 

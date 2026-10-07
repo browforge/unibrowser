@@ -2,12 +2,11 @@
 
 Build and capture:
 
-- `scripts/capture-ui-19.sh`
-- The script ran `npm run build` before capture.
-- Both PNG files are 1280x800 at the application's 150% UI scale.
-- The two PNG files have distinct SHA-256 hashes.
-- Capture diagnostics reported nine visible Command Manager controls and nine
-  controls meeting the automated contrast threshold in each scene.
+- `scripts/capture-ui-19.sh` (150% high-contrast keyboard-focus baseline)
+- `scripts/capture-ui-19-multiscale.sh` (100%, 125%, 150%, 200% × light/dark)
+- Both scripts run `npm run build` and `ensure-release-desktop` before capture.
+- PNG outputs are 1280×800 window composites at the requested UI scale tokens.
+- Doc-capture aborts when Command Manager contrast or shell-density guards fail.
 
 ## Literal descriptions
 
@@ -27,18 +26,32 @@ surfaces. Find retains the complete green focus rectangle and labelled tooltip.
 The editor contains six visible lines. No title-bar, Command Manager, editor, or
 status text overlaps another region.
 
+### Multi-scale matrix (`high-contrast-{light,dark}-{100,125,150,200}-1280.png`)
+
+At each scale token the text workspace keeps a single CM row, visible Find focus
+ring, and non-overlapping status segments. Automated capture diagnostics report
+at least six contrasting visible CM controls in every scene (nine at 150% on
+the text fixture).
+
 ## Automated checks (this environment)
 
-- `scripts/capture-ui-19.sh` after `npm run build`: 150% scale, high-contrast theme,
-  Find control focused, green focus ring, contrast diagnostic on nine visible CM controls.
+- `crates/unibrowser-desktop/tests/ui19Multiscale.test.mjs` guards the
+  multi-scale capture script and optional PNG matrix presence.
+- `scripts/capture-ui-19-multiscale.sh` after `npm run build`: four UI scales,
+  both themes, doc-capture contrast guards on each run.
 - Keyboard path: demo token `ui19-focus-visible` focuses Find via `data-control-id`.
-- Not run here: Windows 100/125/200%, Linux 2x scaling, axe-core, screen reader.
+- Not run here: Windows display scaling, Linux 2x HiDPI, axe-core, screen reader.
+
+## Workshop HC parity (shell-density)
+
+`scripts/capture-shell-density.sh` also writes `workshop-{light,dark}-hc-1280.png`
+with `high-contrast` demo tokens. Those captures pass the same shell contrast and
+mod-card overlap guards as the standard matrix.
 
 ## Grade
 
 UI-19 grade: Drift.
 
-The captured high-contrast 150% keyboard-focus path has no clipping and passes
-the command contrast diagnostic. Windows 100%, 125%, and 200%, Linux 2x, axe,
-and a manual screen-reader pass were not run in this Linux 1x virtual display.
-Those missing platform and assistive-technology checks prevent Pass.
+Linux 1x automated multi-scale and high-contrast captures pass clipping and CM
+contrast guards. Windows 100/125/200% display scaling, Linux 2x, axe, and a
+manual screen-reader pass were not run in this environment. Those gaps prevent Pass.

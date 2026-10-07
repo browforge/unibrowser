@@ -10,7 +10,7 @@ Use this folder for a **~10 minute** walkthrough. Open `examples/demo-pack` in U
 | 4 | Open `sample.md` | Click in Files |
 | 5 | Increase font size (cross-format demo) | Palette: **Increase font size** or bound chord |
 | 6 | Pin Command Manager tab | **Pin commands tab** on the CM strip |
-| 7 | Open `sample.png` | Eyedropper stub in image toolbar |
+| 7 | Open `sample.png` | Image CM (Fit, 100%, utilities in overflow); eyedropper when enabled |
 | 8 | Open `sample.unibrow/` | Timeline shows **title**, **SVG**, **PDF page**, and **MIDI** proxies; try **Add PDF page…** / **Add title card**; **Export MP4 (H.264)** when ffmpeg (+ pdftoppm for PDF) are on PATH |
 | 9 | Go to any tab quickly | **Ctrl+Shift+A** (**Go to tab**) |
 | 10 | Settings + diagnostics | Omnibox: `unibrowser://settings` then `unibrowser://diagnostics` |
@@ -22,7 +22,7 @@ Use this folder for a **~10 minute** walkthrough. Open `examples/demo-pack` in U
 | `sample.md` | Markdown preview, font-size commands |
 | `sample.txt` | Monaco text editor, **Ctrl+S** save |
 | `sample.svg` | SVG viewer |
-| `sample.png` | Image viewer |
+| `sample.png` | Raster image viewer (1600×1000 procedural fixture; regen via `scripts/gen-sample-image.py`) |
 | `sample.pdf` | PDF text layer (select + Copy) |
 | `sample.unibrow/` | Board/timeline project (`project.json` format v2) |
 | `unknown.ubunknown` | Unknown-file support dock and handler suggestions |

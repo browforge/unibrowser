@@ -1351,9 +1351,12 @@ async function renderDxf(path: string, root: HTMLElement) {
   root.innerHTML = "";
   dxfViewCommand = null;
   const { setStatusHint } = await import("./statusBar");
-  setStatusHint(
-    "CAD proving mod: wireframe preview only. Measure and STEP export need a full geometry engine.",
-  );
+  const setDxfStatusHint = (entityCount: number) => {
+    setStatusHint(
+      `CAD proving mod: wireframe preview. ${entityCount} entities — toggle layers, drag pan, wheel zoom.`,
+    );
+  };
+  setDxfStatusHint(0);
 
   const DxfParser = (await import("dxf-parser")).default;
   const text = new TextDecoder().decode(await readBytes(path));
@@ -1654,6 +1657,7 @@ async function renderDxf(path: string, root: HTMLElement) {
     rebuild();
   };
 
+  setDxfStatusHint(entities.length);
   rebuild();
   dxfViewCommand = (commandId) => {
     if (commandId === "unibrowser.cad.fitView") {
@@ -1670,10 +1674,6 @@ async function renderDxf(path: string, root: HTMLElement) {
     rebuild();
     return true;
   };
-  const meta = document.createElement("p");
-  meta.className = "viewer-note";
-  meta.textContent = `DXF: ${entities.length} entities · toggle layers · drag pan · wheel zoom`;
-  canvasCol.appendChild(meta);
   registerDxfLocator(() => {
     zoom = Math.min(20, zoom * 1.35);
     rebuild();

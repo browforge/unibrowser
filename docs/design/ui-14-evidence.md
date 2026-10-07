@@ -44,18 +44,20 @@ reasons. The Preview and Source switch sits above the full vector fixture. The
 Selection inspector occupies the right dock. No legacy image toolbar duplicates
 the CM.
 
-The raster evidence in `../shell-density/image-light-1280.png` shows only
-secondary local utilities (Flip horizontal, Flip vertical, OCR, Copy image,
-Histogram, Eyedropper). Fit, Crop, Rotate, zoom, and Export have one home in the
-CM. No row overlaps or clips.
+Raster PNG evidence (`image-raster-light-1280.png`, `image-raster-dark-1280.png`,
+`image-raster-hc-1280.png`, and `../shell-density/image-{light,dark}-1280.png`)
+shows Fit and 100% in the CM, utilities in overflow only, a centred 1600×1000
+procedural fixture on a checkerboard viewport, and a status zoom that matches fit
+(for example Image 67%). No duplicate image toolbar row appears.
 
 ### `dxf-proving-light-1280.png`
 
 The CAD / 3D row shows Select, Orientation, Pan, Orbit, Fit view, Zoom out,
 Zoom in, and Measure. Section, Appearance, and Export STEP remain in overflow.
 Measure is focused and its tooltip says that a full CAD geometry engine is
-required. The Layers dock, dark wireframe canvas, and Geometry dock fit between
-the chrome and status bar. No control or canvas edge clips.
+required. The Layers dock, wireframe canvas well, and Geometry dock fill the
+viewer column; layer/pan guidance lives in the status hint, not a flush-left
+canvas note. No control or canvas edge clips.
 
 ## Grade
 
