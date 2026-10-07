@@ -221,10 +221,13 @@ export function getStatusContextMode(): { tab: string; pinned: boolean } | null 
     return null;
   }
   const tab = snapshot.tabs.find((t) => t.id === snapshot.selected_tab);
-  if (!tab) {
+  const label = snapshot.context_pinned
+    ? tab?.label
+    : snapshot.context_display_label || tab?.label;
+  if (!label) {
     return null;
   }
-  return { tab: tab.label, pinned: snapshot.context_pinned };
+  return { tab: label, pinned: snapshot.context_pinned };
 }
 let dragCommandId: string | null = null;
 type RenderGroup = ReturnType<typeof familiesToRenderGroups>[number];
@@ -467,7 +470,8 @@ function updatePinControl(
   snapshot: CommandManagerDto,
 ) {
   const pinnedTab = contextLabel(snapshot.selected_tab, snapshot.tabs);
-  const autoTab = contextLabel(snapshot.auto_context, snapshot.tabs);
+  const autoTab =
+    snapshot.context_display_label || contextLabel(snapshot.auto_context, snapshot.tabs);
   pinEl.classList.toggle("pinned", snapshot.context_pinned);
   pinEl.classList.toggle("auto-follow", !snapshot.context_pinned);
   if (snapshot.context_pinned) {
