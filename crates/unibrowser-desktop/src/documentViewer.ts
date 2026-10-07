@@ -25,7 +25,10 @@ import {
   applySpellcheckToEditable,
   isExperimentalSpellcheckEnabled,
 } from "./experimentalSpellcheck";
-import { normalisedPdfRectToCss } from "./pdfAnnotationGeometry";
+import {
+  normalisedPdfRectToCss,
+  pdfHighlightOverlayPointerEvents,
+} from "./pdfAnnotationGeometry";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
 let imageViewCommand: ((commandId: string) => boolean) | null = null;
@@ -603,11 +606,22 @@ function rebuildPdfAnnotationsDock(
 
 let pdfHighlightArmed = false;
 
+export function applyPdfHighlightArmedToOverlays(
+  root: ParentNode = document,
+  armed = true,
+): void {
+  const events = pdfHighlightOverlayPointerEvents(armed);
+  root.querySelectorAll<HTMLElement>(".pdf-page-overlay").forEach((el) => {
+    el.style.pointerEvents = events;
+  });
+}
+
 export function armPdfHighlightMode() {
   pdfHighlightArmed = true;
   document.querySelectorAll(".pdf-workspace").forEach((el) => {
     el.classList.add("pdf-highlight-armed");
   });
+  applyPdfHighlightArmedToOverlays(document, true);
 }
 
 async function renderPdf(
@@ -764,7 +778,7 @@ async function renderPdf(
       transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
     }).promise;
     wrap.appendChild(overlay);
-    overlay.style.pointerEvents = pdfHighlightArmed ? "auto" : "none";
+    overlay.style.pointerEvents = pdfHighlightOverlayPointerEvents(pdfHighlightArmed);
     paintHighlights(pageNum, overlay, viewport.width, viewport.height);
 
     let dragStart: { x: number; y: number } | null = null;
@@ -826,7 +840,7 @@ async function renderPdf(
         });
         pdfHighlightArmed = false;
         workspace.classList.remove("pdf-highlight-armed");
-        overlay.style.pointerEvents = "none";
+        overlay.style.pointerEvents = pdfHighlightOverlayPointerEvents(false);
         paintHighlights(pageNum, overlay, viewport.width, viewport.height);
         syncAnnotationDock();
       } catch {

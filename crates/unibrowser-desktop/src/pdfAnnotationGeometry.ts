@@ -13,6 +13,10 @@ export interface CssPdfRect {
 }
 
 /** Map sidecar 0–1 page coordinates to CSS pixels, independent of canvas HiDPI backing size. */
+export function pdfHighlightOverlayPointerEvents(armed: boolean): "auto" | "none" {
+  return armed ? "auto" : "none";
+}
+
 export function normalisedPdfRectToCss(
   rect: NormalisedPdfRect,
   cssWidth: number,

@@ -3819,6 +3819,11 @@ body.content-fullscreen::after {
 
 .pdf-workspace.pdf-highlight-armed .pdf-page-overlay {
   cursor: crosshair;
+  pointer-events: auto;
+}
+
+.pdf-workspace.pdf-highlight-armed .pdf-text-layer {
+  pointer-events: none;
 }
 
 .pdf-page-overlay {
@@ -6513,6 +6518,15 @@ body.content-fullscreen #unknown-file-banner {
   max-width: 36rem;
   font-size: 12px;
   line-height: 1.4;
+}
+
+.mod-card-enable-network {
+  align-self: start;
+  padding: 4px 8px;
+  border: 1px solid var(--ub-border, #505960);
+  background: var(--ub-control, transparent);
+  color: inherit;
+  cursor: pointer;
 }
 
 .mod-result-details {

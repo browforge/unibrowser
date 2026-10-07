@@ -4,6 +4,11 @@ import { textEditor } from "./textEditor";
 const INTERVAL_SECS = [60, 120, 300, 600, 900, 1800];
 
 let timer: ReturnType<typeof setInterval> | null = null;
+let currentIntervalSecs = 300;
+
+export function currentAutoSaveIntervalSecs(): number {
+  return currentIntervalSecs;
+}
 
 export function autosaveIntervalOptions(): number[] {
   return INTERVAL_SECS;
@@ -18,10 +23,11 @@ export function stopAutoSaveTimer() {
 
 export function configureAutoSave(enabled: boolean, intervalSecs: number) {
   stopAutoSaveTimer();
+  const secs = INTERVAL_SECS.includes(intervalSecs) ? intervalSecs : 300;
+  currentIntervalSecs = enabled ? secs : 0;
   if (!enabled) {
     return;
   }
-  const secs = INTERVAL_SECS.includes(intervalSecs) ? intervalSecs : 300;
   const ms = secs * 1000;
   timer = setInterval(() => {
     void textEditor.flush();
