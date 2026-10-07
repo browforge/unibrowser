@@ -91,7 +91,13 @@ function docViewerReady(): boolean {
     return false;
   }
   if (host.querySelector(".image-viewer-layout")) {
-    return host.querySelector("[data-image-fit-ready='1']") !== null;
+    const image = host.querySelector<HTMLImageElement>(".image-view");
+    const stage = host.querySelector<HTMLElement>(".image-stage");
+    return Boolean(
+      image?.complete &&
+      image.naturalWidth > 0 &&
+      stage?.style.transform.includes("scale("),
+    );
   }
   if (
     host.querySelector(
