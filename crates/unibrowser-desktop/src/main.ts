@@ -354,6 +354,7 @@ interface RecentFileDto {
   path: string;
   label: string;
   pinned: boolean;
+  opened_at_ms?: number;
 }
 
 const omnibox = document.getElementById("omnibox") as HTMLInputElement;
@@ -2557,6 +2558,9 @@ setViewerZoomListener((_scale, label) => {
     zoomEl.textContent = lastViewerZoomLabel;
     zoomEl.classList.remove("hidden");
   }
+  if (lastViewerZoomLabel.endsWith("%") && !lastViewerZoomLabel.includes("Image")) {
+    void refreshCommandManager();
+  }
 });
 setViewerPdfPageListener((page, total, annotationCount) => {
   lastPdfPageLabel = total > 0 ? `Page ${page} of ${total}` : "";
@@ -2566,6 +2570,7 @@ setViewerPdfPageListener((page, total, annotationCount) => {
     readingEl.textContent = lastPdfPageLabel;
     readingEl.classList.remove("hidden");
   }
+  void refreshCommandManager();
 });
 
 function deferNonCriticalInit(fn: () => void) {

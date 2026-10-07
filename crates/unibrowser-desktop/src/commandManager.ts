@@ -10,6 +10,35 @@ import {
   type ResolvedFamilyDto,
 } from "./ui/commandControls";
 import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
+import { getPdfCommandManagerLabels } from "./viewerZoom";
+
+const PDF_PAGE_CONTROL = "unibrowser.control.pdf.page";
+const PDF_ZOOM_CONTROL = "unibrowser.control.pdf.viewZoom";
+
+function patchPdfCommandFamilies(families: ResolvedFamilyDto[]): ResolvedFamilyDto[] {
+  const { page, zoomPct } = getPdfCommandManagerLabels();
+  if (!page && zoomPct == null) {
+    return families;
+  }
+  return families.map((family) => ({
+    ...family,
+    groups: family.groups.map((group) => ({
+      ...group,
+      controls: group.controls.map((control) => {
+        if (page && control.control_id === PDF_PAGE_CONTROL) {
+          return {
+            ...control,
+            label: `${page.current} / ${page.total}`,
+          };
+        }
+        if (zoomPct != null && control.control_id === PDF_ZOOM_CONTROL) {
+          return { ...control, label: `${zoomPct}%` };
+        }
+        return control;
+      }),
+    })),
+  }));
+}
 
 let chordByCommand = new Map<string, string>();
 
@@ -505,10 +534,10 @@ export const commandManager = {
       });
     }
     if (active) {
+      const patchedFamilies =
+        active.families?.length > 0 ? patchPdfCommandFamilies(active.families) : [];
       const allGroups =
-        active.families?.length > 0
-          ? familiesToRenderGroups(active.families)
-          : [];
+        patchedFamilies.length > 0 ? familiesToRenderGroups(patchedFamilies) : [];
       const widthBudget = groupsEl.clientWidth || window.innerWidth - 420;
       const { visible, overflow } = partitionGroupsByAvailableWidth(allGroups, widthBudget);
       overflowGroupsCache = overflow;

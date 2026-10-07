@@ -36,6 +36,8 @@
   height: var(--ub-shell-title-bar) !important;
   min-height: var(--ub-shell-title-bar) !important;
   max-height: var(--ub-shell-title-bar) !important;
+  padding-inline: 10px !important;
+  gap: 10px !important;
   padding-left: 4px;
   -webkit-app-region: drag;
 }
@@ -278,15 +280,17 @@ body.cm-collapsed #chrome #command-manager.command-manager {
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
-  gap: 0;
+  gap: 8px;
+  padding-inline: 6px;
 }
 
 .cm-group {
   display: flex;
   align-items: center;
   min-width: 0;
-  gap: 6px;
+  gap: 10px;
   flex: 0 0 auto;
+  padding-inline: 4px;
 }
 
 .cm-group-tools {

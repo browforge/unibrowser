@@ -4,6 +4,7 @@ mod self_test;
 mod launch_args;
 mod doc_capture;
 mod document_mockup;
+mod demo_ntp;
 mod proofing;
 mod toolbar_windows;
 mod workspace_personas;
@@ -442,6 +443,7 @@ pub fn run() {
             launch_args::abort_doc_capture,
             launch_args::finish_doc_capture_and_exit,
             document_mockup::seed_document_mockup_problems_cmd,
+            demo_ntp::seed_demo_ntp_fixture_cmd,
             self_test::self_test_submit_shell_chrome_audit,
             self_test::self_test_ping,
             self_test::get_self_test_plan,

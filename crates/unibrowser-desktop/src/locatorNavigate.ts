@@ -56,7 +56,7 @@ export async function navigateToTarget(target: NavigationTarget): Promise<void> 
       );
       break;
     case "pdf_region":
-      await invoke("sync_pdf_page", { page: target.page }).catch(() => undefined);
+      await invoke("sync_pdf_page", { page: target.page, pageCount: null }).catch(() => undefined);
       window.dispatchEvent(
         new CustomEvent("unibrowser-navigate-pdf", {
           detail: target,

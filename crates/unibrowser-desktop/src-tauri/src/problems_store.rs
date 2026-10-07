@@ -1,20 +1,35 @@
 //! Aggregated problems for the dockable Problems panel (proofing, LSP, project checkers).
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 use serde::Serialize;
 use unibrowser_diagnostics::{Locator, NavigationTarget, Problem, Severity, navigation_target};
 
 static PROBLEMS: OnceLock<Mutex<Vec<Problem>>> = OnceLock::new();
+static MOCK_PROBLEMS_LOCKED: AtomicBool = AtomicBool::new(false);
 
 fn store() -> &'static Mutex<Vec<Problem>> {
     PROBLEMS.get_or_init(|| Mutex::new(Vec::new()))
 }
 
 pub fn set_problems(items: Vec<Problem>) {
+    let mock = items.iter().any(|p| p.id.starts_with("mockup-"));
     if let Ok(mut g) = store().lock() {
         *g = items;
+        MOCK_PROBLEMS_LOCKED.store(mock, Ordering::SeqCst);
     }
+}
+
+pub fn clear_mock_problems_lock() {
+    MOCK_PROBLEMS_LOCKED.store(false, Ordering::SeqCst);
+}
+
+pub fn set_problems_from_proofing(items: Vec<Problem>) {
+    if MOCK_PROBLEMS_LOCKED.load(Ordering::SeqCst) {
+        return;
+    }
+    set_problems(items);
 }
 
 pub fn append_problems(items: Vec<Problem>) {

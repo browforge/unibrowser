@@ -156,7 +156,7 @@ pub fn proofing_check(
     ) {
         problems.extend(lsp_problems);
     }
-    crate::problems_store::set_problems(problems.clone());
+    crate::problems_store::set_problems_from_proofing(problems.clone());
     Ok(problems.iter().filter_map(dto).collect())
 }
 
@@ -189,7 +189,7 @@ pub fn proofing_check_unibrow_project(
     let mut h = h.lock().map_err(|e| e.to_string())?;
     h.set_dictionary(reload_dictionary_snapshot(&state.cwd));
     let problems = h.check_unibrow(&project_json);
-    crate::problems_store::set_problems(problems.clone());
+    crate::problems_store::set_problems_from_proofing(problems.clone());
     Ok(problems.iter().filter_map(dto).collect())
 }
 

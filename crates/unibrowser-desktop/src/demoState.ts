@@ -163,6 +163,7 @@ export async function applyDemoState(raw: string) {
         document.body.classList.add("cm-collapsed");
         break;
       case "capture-ready":
+        await invoke("seed_demo_ntp_fixture_cmd").catch(() => undefined);
         await invoke("clear_command_manager_context_pin").catch(() => undefined);
         for (const ctx of ["ntp", "pdf", "image"] as const) {
           try {

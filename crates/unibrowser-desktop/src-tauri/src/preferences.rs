@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
 use crate::config::preferences_file_path;
 
 pub const EPUB_POSITIONS_MAX: usize = 128;
@@ -46,6 +47,8 @@ pub struct RecentFileEntry {
     pub label: String,
     #[serde(default)]
     pub pinned: bool,
+    #[serde(default)]
+    pub opened_at_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -548,12 +551,17 @@ pub fn push_recent_file(prefs: &mut Preferences, path: String, label: String) {
         .map(|e| e.pinned)
         .unwrap_or(false);
     prefs.recent_files.retain(|e| e.path != path);
+    let opened_at_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
     prefs.recent_files.insert(
         0,
         RecentFileEntry {
             path,
             label,
             pinned,
+            opened_at_ms,
         },
     );
     if prefs.recent_files.len() > RECENT_FILES_MAX {

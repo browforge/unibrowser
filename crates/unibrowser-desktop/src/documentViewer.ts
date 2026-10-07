@@ -1071,7 +1071,7 @@ async function renderPdf(
   const goToPage = async (n: number) => {
     const clamped = Math.min(Math.max(Math.floor(n), 1), doc.numPages);
     currentPage = clamped;
-    await invoke("sync_pdf_page", { page: currentPage });
+    await invoke("sync_pdf_page", { page: currentPage, pageCount: doc.numPages });
     await drawPage(currentPage);
     updateThumbActive();
   };
@@ -1159,6 +1159,7 @@ async function renderPdf(
   syncAnnotationDock();
   await drawPage(currentPage);
   updateThumbActive();
+  await invoke("sync_pdf_page", { page: currentPage, pageCount: doc.numPages }).catch(() => undefined);
   setViewerLocatorBridge({
     pdfRegion: (page, x, y, w, h) => {
       void goToPage(page).then(() => {

@@ -492,6 +492,8 @@ pub struct RecentFileDto {
     pub path: String,
     pub label: String,
     pub pinned: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opened_at_ms: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -1109,6 +1111,7 @@ fn recent_files_dto(prefs: &crate::preferences::Preferences) -> Vec<RecentFileDt
             path: e.path.clone(),
             label: e.label.clone(),
             pinned: e.pinned,
+            opened_at_ms: (e.opened_at_ms > 0).then_some(e.opened_at_ms),
         })
         .collect();
     entries.sort_by(|a, b| b.pinned.cmp(&a.pinned));
@@ -2072,6 +2075,7 @@ pub fn open_path(
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<TabContentDto, String> {
+    crate::problems_store::clear_mock_problems_lock();
     let file_path = resolve_open_path(&path, &state.cwd)?;
     if unibrowser_project::is_unibrow_path(&file_path) {
         allow_asset_protocol_file(&app, &file_path);
@@ -4622,13 +4626,23 @@ pub fn sync_pdf_viewer_state(window: tauri::Window,
 }
 
 #[tauri::command]
-pub fn sync_pdf_page(window: tauri::Window, page: u32, state: State<AppState>) -> Result<(), String> {
+pub fn sync_pdf_page(
+    window: tauri::Window,
+    page: u32,
+    page_count: Option<u32>,
+    state: State<AppState>,
+) -> Result<(), String> {
     let _sess_tabs = ws(&state, &window)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
     let tab = tabs.active_tab_mut().ok_or("no tab")?;
     let doc = tab.document.as_mut().ok_or("no document")?;
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
     pdf.set_page_index(page);
+    if let Some(total) = page_count {
+        pdf.set_page_count(total);
+    }
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    cm.bump_context_revision();
     Ok(())
 }
 
@@ -4653,6 +4667,8 @@ pub fn sync_pdf_scale(window: tauri::Window, scale: f32, state: State<AppState>)
     let doc = tab.document.as_mut().ok_or("no document")?;
     let pdf = base_pdf::try_pdf_backend(&mut *doc.backend).ok_or("not a PDF")?;
     pdf.set_render_scale(scale);
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    cm.bump_context_revision();
     Ok(())
 }
 

@@ -120,7 +120,9 @@ pub fn apply_demo_state_rust(
             "live" | "live-preview" => {
                 let _ = crate::live_host::set_unibrow_live_mode(window.clone(), true, state.clone());
             }
-            "capture-ready" => {}
+            "capture-ready" => {
+                let _ = crate::demo_ntp::seed_demo_ntp_fixture();
+            }
             _ => {}
         }
     }

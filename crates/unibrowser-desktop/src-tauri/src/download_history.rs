@@ -90,6 +90,16 @@ pub fn clear_entries() -> Result<(), String> {
     save_store(&Store::default())
 }
 
+/// Fills demo download rows when history is empty (New tab screenshots).
+pub fn seed_demo_entries_if_empty(entries: Vec<DownloadHistoryEntry>) -> Result<(), String> {
+    let mut store = load_store();
+    if !store.entries.is_empty() {
+        return Ok(());
+    }
+    store.entries = entries;
+    save_store(&store)
+}
+
 pub fn record_success(url: &str, status: DownloadHistoryStatus, destination: Option<&str>) {
     let label = crate::downloads::suggested_download_filename(url);
     let mut store = load_store();

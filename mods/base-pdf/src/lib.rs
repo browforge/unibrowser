@@ -26,6 +26,7 @@ pub struct PdfBackend {
     pub render_scale: f32,
     pub text_selected: bool,
     pub page_index: u32,
+    pub page_count: u32,
 }
 
 impl PdfBackend {
@@ -37,6 +38,7 @@ impl PdfBackend {
             render_scale: 1.25,
             text_selected: false,
             page_index: 1,
+            page_count: 1,
         })
     }
 
@@ -46,6 +48,10 @@ impl PdfBackend {
 
     pub fn set_page_index(&mut self, page: u32) {
         self.page_index = page.max(1);
+    }
+
+    pub fn set_page_count(&mut self, count: u32) {
+        self.page_count = count.max(1);
     }
 
     pub fn set_render_scale(&mut self, scale: f32) {
