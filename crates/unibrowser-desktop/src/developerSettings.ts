@@ -94,4 +94,5 @@ export async function appendDeveloperSettingsSection(root: HTMLElement) {
   row.appendChild(captureBtn);
   section.appendChild(row);
   root.appendChild(section);
+  return section;
 }

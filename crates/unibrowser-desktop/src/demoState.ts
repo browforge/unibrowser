@@ -12,6 +12,16 @@ export async function applyDemoState(raw: string) {
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
   const demoRaw = raw.toLowerCase();
+  const waitForElement = async <T extends Element>(selector: string): Promise<T | null> => {
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const element = document.querySelector<T>(selector);
+      if (element) {
+        return element;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    }
+    return null;
+  };
 
   for (const token of tokens) {
     switch (token) {
@@ -145,6 +155,32 @@ export async function applyDemoState(raw: string) {
       case "files":
         await invoke("open_path", { path: "~", line: null }).catch(() => undefined);
         break;
+      case "ui13-files-preview": {
+        const links = await waitForElement<HTMLButtonElement>(".files-table .file-link");
+        if (!links) {
+          break;
+        }
+        const preferred = [...document.querySelectorAll<HTMLButtonElement>(".files-table .file-link")]
+          .find((link) => link.textContent?.toLowerCase().endsWith(".svg"));
+        const row = (preferred ?? links).closest("tr");
+        row?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await waitForElement(".files-side-panel:not(.hidden) .files-props-dl");
+        break;
+      }
+      case "ui13-settings-developer-collapsed":
+      case "ui13-settings-developer-expanded": {
+        const details = await waitForElement<HTMLDetailsElement>(".settings-developer");
+        if (!details) {
+          break;
+        }
+        details.open = token.endsWith("expanded");
+        const category = document.querySelector<HTMLButtonElement>(
+          '[data-settings-category-target="mods"]',
+        );
+        category?.click();
+        details.scrollIntoView({ block: "start" });
+        break;
+      }
       case "cm-large": {
         const { applyCommandManagerDensity } = await import("./accessibility");
         applyCommandManagerDensity(false);

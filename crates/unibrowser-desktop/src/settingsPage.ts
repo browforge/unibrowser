@@ -80,8 +80,9 @@ interface PrefsDto {
 
 export async function renderSettings(root: HTMLElement) {
   root.innerHTML = "";
+  root.classList.add("settings-page");
   const intro = document.createElement("p");
-  intro.className = "viewer-note";
+  intro.className = "viewer-note settings-lead";
   intro.textContent = t("settings.lead");
   root.appendChild(intro);
 
@@ -94,6 +95,16 @@ export async function renderSettings(root: HTMLElement) {
   searchInput.setAttribute("aria-label", t("settings.searchPlaceholder"));
   searchWrap.appendChild(searchInput);
   root.appendChild(searchWrap);
+
+  const layout = document.createElement("div");
+  layout.className = "settings-layout";
+  const categoryRail = document.createElement("nav");
+  categoryRail.className = "settings-category-rail";
+  categoryRail.setAttribute("aria-label", "Settings categories");
+  const content = document.createElement("div");
+  content.className = "settings-content";
+  layout.append(categoryRail, content);
+  root.appendChild(layout);
 
   const filterSettings = () => {
     const q = searchInput.value.trim().toLowerCase();
@@ -902,7 +913,7 @@ export async function renderSettings(root: HTMLElement) {
   resetSection.appendChild(resetRow);
   root.appendChild(resetSection);
 
-  await appendDeveloperSettingsSection(root);
+  const developerSection = await appendDeveloperSettingsSection(root);
 
   const advancedSection = document.createElement("details");
   advancedSection.className = "settings-section settings-advanced";
@@ -1292,4 +1303,66 @@ export async function renderSettings(root: HTMLElement) {
   };
   diagLink.appendChild(diagBtn);
   root.appendChild(diagLink);
+
+  const categories = [
+    {
+      id: "general",
+      label: "General",
+      sections: [langSection, bookmarkSection, sessionSection, ntpSection, windowSection, updatesSection],
+    },
+    {
+      id: "appearance",
+      label: "Appearance",
+      sections: [themeSection, appearanceSection, cmSection],
+    },
+    {
+      id: "files",
+      label: "Files and downloads",
+      sections: [dlSection, autoSection, recoverySection, workspaceSection, backupSection],
+    },
+    { id: "editing", label: "Editing", sections: [boardSection, mediaSection] },
+    { id: "accessibility", label: "Accessibility", sections: [a11ySection] },
+    { id: "privacy", label: "Privacy and AI", sections: [networkSection] },
+    { id: "mods", label: "Mods", sections: [developerSection] },
+    {
+      id: "developer",
+      label: "Developer",
+      sections: [resetSection, advancedSection],
+    },
+  ] as const;
+
+  categories.forEach(({ id, sections }) => {
+    sections.forEach((section) => {
+      section.dataset.settingsCategory = id;
+    });
+  });
+  keysLink.dataset.settingsCategory = "developer";
+  aboutLink.dataset.settingsCategory = "general";
+  diagLink.dataset.settingsCategory = "developer";
+
+  [...root.children].forEach((child) => {
+    if (child === intro || child === searchWrap || child === layout) {
+      return;
+    }
+    content.appendChild(child);
+  });
+
+  categories.forEach(({ id, label, sections }, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "settings-category";
+    button.textContent = label;
+    button.dataset.settingsCategoryTarget = id;
+    button.setAttribute("aria-current", index === 0 ? "true" : "false");
+    button.onclick = () => {
+      categoryRail.querySelectorAll(".settings-category").forEach((item) => {
+        item.setAttribute("aria-current", item === button ? "true" : "false");
+      });
+      sections[0]?.scrollIntoView({ block: "start" });
+      (sections[0]?.querySelector("h3, summary, button, input, select") as HTMLElement | null)?.focus({
+        preventScroll: true,
+      });
+    };
+    categoryRail.appendChild(button);
+  });
 }

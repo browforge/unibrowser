@@ -14,6 +14,7 @@ import type { DirEntry, FilesViewDto } from "./filesPanelTypes";
 export type { DirEntry, FilesViewDto } from "./filesPanelTypes";
 
 const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp"]);
+const IMAGE_PREVIEW_EXT = new Set([...IMAGE_EXT, "svg"]);
 
 function pathIsConvertibleImage(path: string): boolean {
   const dot = path.lastIndexOf(".");
@@ -376,8 +377,16 @@ async function showPropertiesPanel(path: string, deps: FilesPanelDeps) {
     panel.innerHTML = "";
     const title = document.createElement("h3");
     title.className = "files-side-title";
-    title.textContent = t("files.propertiesTitle");
+    title.textContent = "Preview";
     panel.appendChild(title);
+
+    if (!props.is_dir && props.extension && IMAGE_PREVIEW_EXT.has(props.extension.toLowerCase())) {
+      const preview = document.createElement("img");
+      preview.className = "files-preview-image";
+      preview.src = convertFileSrc(props.path);
+      preview.alt = props.name;
+      panel.appendChild(preview);
+    }
 
     const dl = document.createElement("dl");
     dl.className = "files-props-dl";
@@ -901,6 +910,13 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   host.innerHTML = "";
   thumbLoadCount = 0;
 
+  const navigationRail = document.createElement("aside");
+  navigationRail.className = "files-layout-nav";
+  navigationRail.setAttribute("aria-label", t("files.placesHeading"));
+  const content = document.createElement("section");
+  content.className = "files-layout-content";
+  host.append(navigationRail, content);
+
   if (deps.browsePath !== lastBrowsePath) {
     selectedPaths.clear();
     selectionAnchorIndex = -1;
@@ -966,7 +982,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     };
     nav.appendChild(clearWs);
   }
-  host.appendChild(nav);
+  content.appendChild(nav);
 
   if (deps.workspaceRoot) {
     const wsSec = document.createElement("section");
@@ -983,7 +999,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     treeList.className = "files-workspace-list";
     treeList.innerHTML = `<li class="viewer-note">${t("files.peekLoading")}</li>`;
     wsSec.appendChild(treeList);
-    host.appendChild(wsSec);
+    navigationRail.appendChild(wsSec);
     void (async () => {
       try {
         const tree = await invoke<WorkspaceTreeEntry[]>("list_workspace_tree", {
@@ -1036,7 +1052,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       btn.onclick = () => void openPath(p, deps);
       favRow.appendChild(btn);
     });
-    host.appendChild(favRow);
+    navigationRail.appendChild(favRow);
   }
 
   const recent = deps.recentFiles ?? [];
@@ -1091,7 +1107,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       places.appendChild(list);
     }
 
-    host.appendChild(places);
+    navigationRail.appendChild(places);
   }
 
   const toolbar = document.createElement("div");
@@ -1169,7 +1185,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   createActions.appendChild(compressToolbar);
   toolbar.appendChild(createActions);
 
-  host.appendChild(toolbar);
+  content.appendChild(toolbar);
 
   const searchRow = document.createElement("div");
   searchRow.className = "files-search-row";
@@ -1191,7 +1207,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   };
   searchLabel.appendChild(searchInput);
   searchRow.appendChild(searchLabel);
-  host.appendChild(searchRow);
+  content.appendChild(searchRow);
 
   const bulkBar = document.createElement("div");
   bulkBar.className = "files-bulk-bar" + (selectedPaths.size ? "" : " hidden");
@@ -1240,6 +1256,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   if (selectedPaths.size === 1) {
     const propsBtn = document.createElement("button");
     propsBtn.type = "button";
+    propsBtn.className = "files-properties-action";
     propsBtn.textContent = t("files.properties");
     propsBtn.onclick = () => {
       void showPropertiesPanel([...selectedPaths][0], deps);
@@ -1291,7 +1308,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       formatRow.appendChild(pngBtn);
       formatRow.appendChild(jpegBtn);
       panel.appendChild(formatRow);
-      host.appendChild(panel);
+      content.appendChild(panel);
     };
     bulkBar.appendChild(convertBtn);
   }
@@ -1306,11 +1323,11 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     });
   };
   bulkBar.appendChild(delSel);
-  host.appendChild(bulkBar);
+  content.appendChild(bulkBar);
 
   const peekHost = document.createElement("div");
   peekHost.className = "files-archive-peek hidden";
-  host.appendChild(peekHost);
+  content.appendChild(peekHost);
 
   const table = document.createElement("table");
   table.className = "files-table";
@@ -1566,11 +1583,15 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     };
     scroll.addEventListener("scroll", update, { passive: true });
     scroll.appendChild(table);
-    host.appendChild(scroll);
+    content.appendChild(scroll);
     update();
   } else {
     paintRows(0, visibleEntries.length);
-    host.appendChild(table);
+    content.appendChild(table);
+  }
+
+  if (selectedPaths.size === 1) {
+    void showPropertiesPanel([...selectedPaths][0], deps);
   }
 
   panelContext = { host, deps };
