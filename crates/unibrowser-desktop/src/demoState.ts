@@ -98,7 +98,10 @@ export async function applyDemoState(raw: string) {
         }
         break;
       case "settings":
-        await invoke("open_path", { path: "unibrowser://settings", line: null });
+        window.dispatchEvent(
+          new CustomEvent("unibrowser-navigate", { detail: "unibrowser://settings" }),
+        );
+        await waitForElement(".settings-page");
         break;
       case "mods":
         await invoke("open_path", { path: "unibrowser://mods", line: null });
