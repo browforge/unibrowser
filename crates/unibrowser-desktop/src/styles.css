@@ -1797,6 +1797,19 @@ body.toolbar-window-mode .floating-bar.docked {
   color: #ddd;
 }
 
+[data-high-contrast="true"] .files-places h3,
+[data-high-contrast="true"] .files-places-section,
+[data-high-contrast="true"] .files-search-label,
+[data-high-contrast="true"] .files-toolbar label,
+[data-high-contrast="true"] .files-table th,
+[data-high-contrast="true"] .files-sort-btn,
+[data-high-contrast="true"] .files-meta,
+[data-high-contrast="true"] .files-side-note,
+[data-high-contrast="true"] .files-props-dl dt,
+[data-high-contrast="true"] .files-props-dl dd {
+  color: var(--ub-text-1);
+}
+
 [data-theme="light"] .files-props-dl dd {
   color: #333;
 }
@@ -3441,6 +3454,12 @@ body.content-fullscreen::after {
   color: #252a30;
 }
 
+.pdf-annotations-dock input::placeholder,
+.pdf-annotations-dock textarea::placeholder {
+  color: #4b5052;
+  opacity: 1;
+}
+
 .docx-reader {
   display: flex;
   justify-content: center;
@@ -3747,6 +3766,13 @@ body.content-fullscreen::after {
 
 .svg-inspector input:disabled,
 .svg-inspector button:disabled {
+  color: var(--ub-text-2);
+  opacity: 1;
+}
+
+.svg-inspector .muted,
+.svg-inspector-status,
+.svg-inspector input::placeholder {
   color: var(--ub-text-2);
   opacity: 1;
 }
@@ -5331,20 +5357,26 @@ mark.docx-search-hit--current {
 }
 
 .settings-developer-callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 1rem;
   margin-top: 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: 6px;
-  background: var(--ub-surface-subtle, #eceff3);
-  border: 1px solid var(--ub-border, #c9cfd7);
+  padding: 0.85rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--ub-text-1, #e9edef);
 }
 
 .settings-developer-callout h3 {
+  grid-column: 1;
   margin: 0 0 0.35rem;
   font-size: 0.95rem;
 }
 
 .settings-developer-callout p {
+  grid-column: 1;
   margin: 0 0 0.65rem;
   font-size: 0.8125rem;
   line-height: 1.45;
@@ -5353,7 +5385,7 @@ mark.docx-search-hit--current {
 
 [data-theme="light"] .settings-developer-callout {
   color: #252a30;
-  background: #eceff3;
+  background: transparent;
 }
 
 [data-theme="light"] .settings-developer-callout p {
@@ -5361,8 +5393,8 @@ mark.docx-search-hit--current {
 }
 
 [data-high-contrast="true"] .settings-developer-callout {
-  border-color: var(--ub-text-1);
-  background: var(--ub-panel);
+  border: 0;
+  background: transparent;
   color: var(--ub-text-1);
 }
 
@@ -5371,6 +5403,8 @@ mark.docx-search-hit--current {
 }
 
 .settings-developer-callout-link {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   border: 0;
   background: transparent;
   padding: 0;

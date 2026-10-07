@@ -39,7 +39,7 @@ def main() -> None:
     draw.rectangle((120, 120, WIDTH - 120, HEIGHT - 120), outline=(20, 20, 28), width=2)
     for i in range(12):
         x0 = 160 + i * 110
-        draw.line((x0, 200, x0 + 40, HEIGHT - 200), fill=(255, 240, 200), width=3)
+        draw.line((x0, 320, x0 + 40, HEIGHT - 200), fill=(255, 240, 200), width=3)
     draw.ellipse((WIDTH // 2 - 180, HEIGHT // 2 - 120, WIDTH // 2 + 180, HEIGHT // 2 + 120), outline=(255, 255, 255), width=5)
     title_font = _font(56)
     sub_font = _font(28)

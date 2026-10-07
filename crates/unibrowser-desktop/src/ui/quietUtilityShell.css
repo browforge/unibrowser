@@ -496,10 +496,10 @@ body {
   color: var(--ub-text-1);
 }
 
-[data-high-contrast="true"] .ai-assistant-composer-send:disabled {
+[data-high-contrast="true"] .ai-assistant-composer .ai-assistant-composer-send:disabled {
   border-color: var(--ub-text-1);
-  background: var(--ub-control);
-  color: var(--ub-text-1);
+  background: var(--ub-control) !important;
+  color: var(--ub-text-1) !important;
   opacity: 1;
 }
 
