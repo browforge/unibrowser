@@ -129,11 +129,11 @@ def main() -> int:
 
     args.json.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     if failures:
-        print(f"CM pixel contrast failed for {args.png}:", file=sys.stderr)
+        print(f"Capture pixel contrast failed for {args.png}:", file=sys.stderr)
         for failure in failures:
             print(f"  {failure}", file=sys.stderr)
         return 1
-    print(f"CM pixel contrast OK: {args.png}")
+    print(f"Capture pixel contrast OK: {args.png}")
     return 0
 
 
