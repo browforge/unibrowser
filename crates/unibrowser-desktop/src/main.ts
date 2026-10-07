@@ -1155,7 +1155,7 @@ function renderModPortal(portal: ModPortalDto | null) {
   const searchInput = document.createElement("input");
   searchInput.type = "search";
   searchInput.placeholder = t("mods.searchPlaceholder");
-  searchInput.className = "mod-portal-query";
+  searchInput.className = "ub-form-control mod-portal-query";
   const searchBtn = document.createElement("button");
   searchBtn.type = "button";
   searchBtn.textContent = t("mods.search");

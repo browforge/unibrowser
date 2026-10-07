@@ -63,4 +63,6 @@ for viewport in "1024:1024x700" "1920:1920x1080"; do
   capture_surface "video" "" "$PACK/derived/live-record.mp4" "$suffix" "$geometry"
 done
 
+"$ROOT/scripts/check-cm-responsive-prefix.py" "$OUT"
+
 echo "Responsive shell captures in $OUT"

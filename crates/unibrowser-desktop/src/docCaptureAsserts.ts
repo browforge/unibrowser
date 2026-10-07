@@ -330,6 +330,14 @@ export function captureRectsOverlap(a: CaptureRect, b: CaptureRect): boolean {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
+export function timelineEndpointClearsScrollbar(
+  endpointRight: number,
+  viewportRight: number,
+  safeInset = 12,
+): boolean {
+  return endpointRight <= viewportRight - safeInset;
+}
+
 export function backgroundExceedsRaisedSurface(
   candidateLuminance: number,
   raisedSurfaceLuminance: number,
@@ -681,6 +689,13 @@ export function validateWorkshopTimelineForCapture(): string | null {
     if (!rectWithinBounds(tick.getBoundingClientRect(), viewportRect)) {
       return `workshop ruler tick "${tick.textContent?.trim() ?? ""}" escapes the timeline viewport`;
     }
+  }
+  const lastTick = ticks.at(-1);
+  if (
+    lastTick &&
+    !timelineEndpointClearsScrollbar(lastTick.getBoundingClientRect().right, viewportRect.right)
+  ) {
+    return `workshop ruler endpoint "${lastTick.textContent?.trim() ?? ""}" does not clear the scrollbar safe inset`;
   }
   const markerTags = Array.from(
     ruler.querySelectorAll<HTMLElement>(".workshop-marker-tag"),

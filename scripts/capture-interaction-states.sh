@@ -149,6 +149,8 @@ capture_states() {
   xdotool mousedown 1
   xdotool mousemove 1180 780
   xdotool mouseup 1
+  xdotool key shift+Tab
+  xdotool key Tab
   xdotool key Escape
   shot "${order}-focus" "$crop_x" "$crop_y" "$width" "$height"
 
@@ -236,6 +238,9 @@ convert "$tmp/cells/00-disabled-reason.png" \
   -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
   -splice 0x24 -pointsize 13 -annotate +0+4 "CM unsupported / reason tooltip" \
   "$tmp/cells/00-disabled-reason.png"
+
+"$ROOT/scripts/check-state-focus-rings.py" \
+  "$theme" "$contrast" "$tmp/cells/"*-focus.png
 
 mapfile -t state_cells < <(
   for row in {01..10}; do

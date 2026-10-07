@@ -3959,7 +3959,9 @@ body.content-fullscreen::after {
 
 button:focus-visible,
 input:focus-visible,
+textarea:focus-visible,
 select:focus-visible,
+.ub-form-control:focus-visible,
 .cm-tab:focus-visible,
 .ui-command:focus-visible,
 .palette-item:focus-visible,
@@ -4551,7 +4553,7 @@ select:disabled {
 .workshop-ruler {
   position: absolute;
   top: 0;
-  right: 0;
+  right: 14px;
   left: 100px;
   height: 36px;
   border-bottom: 1px solid var(--ub-border, #444);

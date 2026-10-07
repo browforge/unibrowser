@@ -10,6 +10,7 @@ import {
   knobVerticalOffsetCentered,
   rectWithinBounds,
   switchTrackSizeWithinTolerance,
+  timelineEndpointClearsScrollbar,
 } from "../src/docCaptureAsserts.ts";
 
 test("timeline ruler and endpoint labels must stay inside the viewport", () => {
@@ -35,6 +36,13 @@ test("timeline marker flags must not overlap tick labels", () => {
     captureRectsOverlap({ ...marker, top: 20, bottom: 35 }, tick),
     true,
   );
+});
+
+test("timeline endpoint label clears the scrollbar safe inset at every width", () => {
+  for (const viewportRight of [1024, 1280, 1920]) {
+    assert.equal(timelineEndpointClearsScrollbar(viewportRight - 14, viewportRight), true);
+    assert.equal(timelineEndpointClearsScrollbar(viewportRight - 8, viewportRight), false);
+  }
 });
 
 test("dark capture surface guard rejects backgrounds above its tolerance", () => {

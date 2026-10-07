@@ -3,7 +3,7 @@ export interface OverflowControl {
 }
 
 export interface OverflowGroup {
-  priority: "normal" | "low";
+  priority: "critical" | "primary" | "normal" | "low" | "custom";
   resolved: { controls: OverflowControl[] };
 }
 
@@ -33,17 +33,23 @@ function subsetWidth(groups: OverflowGroup[]): number {
   );
 }
 
-function subsetScore(groups: OverflowGroup[], source: OverflowGroup[]): number {
-  const controls = groups.reduce(
-    (count, group) => count + group.resolved.controls.length,
-    0,
-  );
-  const normalGroups = groups.filter((group) => group.priority === "normal").length;
-  const stableOrder = groups.reduce(
-    (score, group) => score + (source.length - source.indexOf(group)),
-    0,
-  );
-  return normalGroups * 100_000 + controls * 10_000 + stableOrder;
+const PRIORITY_ORDER: Record<OverflowGroup["priority"], number> = {
+  critical: 0,
+  primary: 1,
+  normal: 2,
+  low: 3,
+  custom: 4,
+};
+
+export function groupsInDeclaredPriorityOrder<T extends OverflowGroup>(groups: T[]): T[] {
+  return groups
+    .map((group, sourceIndex) => ({ group, sourceIndex }))
+    .sort(
+      (a, b) =>
+        PRIORITY_ORDER[a.group.priority] - PRIORITY_ORDER[b.group.priority] ||
+        a.sourceIndex - b.sourceIndex,
+    )
+    .map(({ group }) => group);
 }
 
 export function partitionGroupsByAvailableWidth<T extends OverflowGroup>(
@@ -54,30 +60,27 @@ export function partitionGroupsByAvailableWidth<T extends OverflowGroup>(
   if (!groups.length || availableWidth <= 0) {
     return { visible: groups, overflow: [] };
   }
-  if (subsetWidth(groups) <= availableWidth) {
-    return { visible: groups, overflow: [] };
+  const ordered = groupsInDeclaredPriorityOrder(groups);
+  if (subsetWidth(ordered) <= availableWidth) {
+    return { visible: ordered, overflow: [] };
   }
 
   const budget = Math.max(0, availableWidth - reserveOverflow - WIDTH_SAFETY_MARGIN);
-  let best: T[] = [];
-  let bestScore = -1;
-  const combinations = 1 << groups.length;
-  for (let mask = 1; mask < combinations; mask += 1) {
-    const candidate = groups.filter((_, index) => (mask & (1 << index)) !== 0);
+  const visible: T[] = [];
+  for (const group of ordered) {
+    const candidate = visible.concat(group);
     if (subsetWidth(candidate) > budget) {
-      continue;
+      break;
     }
-    const score = subsetScore(candidate, groups);
-    if (score > bestScore) {
-      best = candidate;
-      bestScore = score;
-    }
+    visible.push(group);
   }
 
-  const visible = best.length > 0 ? best : [groups[0]];
+  if (visible.length === 0) {
+    visible.push(ordered[0]);
+  }
   return {
     visible,
-    overflow: groups.filter((group) => !visible.includes(group)),
+    overflow: ordered.slice(visible.length),
   };
 }
 

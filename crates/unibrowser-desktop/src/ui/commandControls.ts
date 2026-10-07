@@ -45,18 +45,37 @@ export interface ResolvedFamilyDto {
   groups: ResolvedGroupDto[];
 }
 
+export type OverflowPriorityDto =
+  | "critical"
+  | "primary"
+  | "normal"
+  | "low"
+  | "custom";
+
+function overflowPriority(value: string): OverflowPriorityDto {
+  if (
+    value === "critical" ||
+    value === "primary" ||
+    value === "low" ||
+    value === "custom"
+  ) {
+    return value;
+  }
+  return "normal";
+}
+
 export function familiesToRenderGroups(
   families: ResolvedFamilyDto[],
-): { name: string; priority: "normal" | "low"; commands: UiCommandDto[]; resolved: ResolvedGroupDto }[] {
+): { name: string; priority: OverflowPriorityDto; commands: UiCommandDto[]; resolved: ResolvedGroupDto }[] {
   const out: {
     name: string;
-    priority: "normal" | "low";
+    priority: OverflowPriorityDto;
     commands: UiCommandDto[];
     resolved: ResolvedGroupDto;
   }[] = [];
   for (const family of families) {
     for (const group of family.groups) {
-      const priority = group.overflow_priority === "low" ? "low" : "normal";
+      const priority = overflowPriority(group.overflow_priority);
       const commands = group.controls.map(controlToLegacyCommand);
       out.push({ name: group.label, priority, commands, resolved: group });
     }
@@ -306,9 +325,22 @@ export function partitionFamiliesForOverflow(
   if (groups.length <= maxVisible) {
     return { visible: groups, overflow: [] };
   }
-  const low = groups.filter((g) => g.priority === "low");
-  const normal = groups.filter((g) => g.priority !== "low");
-  const visible = normal.concat(low.slice(0, Math.max(0, maxVisible - normal.length)));
-  const overflow = groups.filter((g) => !visible.includes(g));
+  const priorityOrder: Record<OverflowPriorityDto, number> = {
+    critical: 0,
+    primary: 1,
+    normal: 2,
+    low: 3,
+    custom: 4,
+  };
+  const ordered = groups
+    .map((group, sourceIndex) => ({ group, sourceIndex }))
+    .sort(
+      (a, b) =>
+        priorityOrder[a.group.priority] - priorityOrder[b.group.priority] ||
+        a.sourceIndex - b.sourceIndex,
+    )
+    .map(({ group }) => group);
+  const visible = ordered.slice(0, maxVisible);
+  const overflow = ordered.slice(maxVisible);
   return { visible, overflow };
 }

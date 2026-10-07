@@ -83,6 +83,54 @@ test("normal groups overflow after wider low-priority groups", () => {
   assert.deepEqual(result.overflow, [low]);
 });
 
+test("narrower visible controls are a prefix of every wider layout", () => {
+  const declared = [
+    ["primary", ["Add asset", "Add title"]],
+    ["primary", ["Split", "Delete clip"]],
+    ["primary", ["Snap", "Marker", "Timeline zoom"]],
+    ["primary", ["Preview", "LIVE", "Record"]],
+    ["low", ["Export"]],
+  ].map(([priority, labels], index) => ({
+    priority,
+    resolved: { controls: labels.map((label) => ({ label })) },
+    id: `project-${index}`,
+  }));
+  const widths = [420, 620, 860, 1200];
+  const layouts = widths.map((width) =>
+    partitionGroupsByAvailableWidth(declared, width).visible.flatMap((group) =>
+      group.resolved.controls.map((control) => control.label),
+    ),
+  );
+  for (let narrow = 0; narrow < layouts.length; narrow += 1) {
+    for (let wide = narrow + 1; wide < layouts.length; wide += 1) {
+      assert.deepEqual(
+        layouts[narrow],
+        layouts[wide].slice(0, layouts[narrow].length),
+        `${widths[narrow]}px controls must prefix ${widths[wide]}px controls`,
+      );
+    }
+  }
+});
+
+test("declared priority order keeps core PDF markup ahead of history and export", () => {
+  const declared = [
+    { priority: "low", resolved: { controls: [{ label: "Undo" }, { label: "Redo" }] } },
+    {
+      priority: "critical",
+      resolved: {
+        controls: [{ label: "Highlight" }, { label: "Underline" }, { label: "Strike" }],
+      },
+    },
+    { priority: "normal", resolved: { controls: [{ label: "Page" }, { label: "Zoom" }] } },
+    { priority: "low", resolved: { controls: [{ label: "Export PDF" }] } },
+  ];
+  const result = partitionGroupsByAvailableWidth(declared, 360);
+  assert.deepEqual(
+    result.visible.flatMap((group) => group.resolved.controls.map((control) => control.label)),
+    ["Highlight", "Underline", "Strike"],
+  );
+});
+
 const browseGroups = [
   ["normal", ["New folder", "New text file"]],
   ["normal", ["Open", "Copy paths"]],

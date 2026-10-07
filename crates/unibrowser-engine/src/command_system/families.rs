@@ -30,8 +30,8 @@ pub fn core_tab_layout(
     }
     if ctx.work == WorkContext::Pdf {
         return vec![
-            history_family(ctx, resolver),
             pdf_annotation_family(ctx, resolver),
+            history_family(ctx, resolver),
         ];
     }
     if ctx.work == WorkContext::Image {
@@ -177,7 +177,7 @@ fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
             group(
                 "unibrowser.group.project.timeline",
                 "Timeline",
-                OverflowPriority::Normal,
+                OverflowPriority::Primary,
                 vec![
                     control(
                         "unibrowser.control.project.snap",
@@ -233,7 +233,7 @@ fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
             group(
                 "unibrowser.group.project.output",
                 "Output",
-                OverflowPriority::Primary,
+                OverflowPriority::Low,
                 vec![control(
                     "unibrowser.control.project.export",
                     "unibrowser.project.export",
@@ -741,6 +741,11 @@ fn start_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Resol
 }
 
 fn history_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let priority = if ctx.work == WorkContext::Pdf {
+        OverflowPriority::Low
+    } else {
+        OverflowPriority::Primary
+    };
     let controls = vec![
         control_spec(
             "unibrowser.control.history.undo",
@@ -768,11 +773,11 @@ fn history_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
     ResolvedFamily {
         family_id: family_ids::HISTORY.into(),
         label: "History".into(),
-        overflow_priority: OverflowPriority::Primary,
+        overflow_priority: priority,
         groups: vec![ResolvedGroup {
             group_id: "unibrowser.group.history".into(),
             label: "History".into(),
-            overflow_priority: OverflowPriority::Primary,
+            overflow_priority: priority,
             controls,
         }],
     }
@@ -1057,7 +1062,7 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let tools = ResolvedGroup {
         group_id: "unibrowser.group.pdf.tools".into(),
         label: "Tools".into(),
-        overflow_priority: OverflowPriority::Low,
+        overflow_priority: OverflowPriority::Primary,
         controls: vec![
             control_spec(
                 control_ids::PDF_SELECT,
@@ -1181,19 +1186,19 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let markup = ResolvedGroup {
         group_id: "unibrowser.group.pdf.markup".into(),
         label: "Markup".into(),
-        overflow_priority: OverflowPriority::Primary,
+        overflow_priority: OverflowPriority::Critical,
         controls: annotate.controls[..3].to_vec(),
     };
     let add_annotation = ResolvedGroup {
         group_id: "unibrowser.group.pdf.add-annotation".into(),
         label: "Add".into(),
-        overflow_priority: OverflowPriority::Low,
+        overflow_priority: OverflowPriority::Primary,
         controls: annotate.controls[3..].to_vec(),
     };
     let annotation_nav = ResolvedGroup {
         group_id: "unibrowser.group.pdf.annotation-nav".into(),
         label: "Annotations".into(),
-        overflow_priority: OverflowPriority::Low,
+        overflow_priority: OverflowPriority::Normal,
         controls: vec![
             control_spec(
                 control_ids::PDF_ANNOTATION_PREVIOUS,
@@ -1222,7 +1227,7 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let appearance = ResolvedGroup {
         group_id: "unibrowser.group.pdf.appearance".into(),
         label: "Appearance".into(),
-        overflow_priority: OverflowPriority::Low,
+        overflow_priority: OverflowPriority::Normal,
         controls: vec![
             control_spec(
                 control_ids::PDF_STROKE_COLOUR,
@@ -1294,13 +1299,13 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let navigation = ResolvedGroup {
         group_id: "unibrowser.group.pdf.navigation".into(),
         label: "View".into(),
-        overflow_priority: OverflowPriority::Primary,
+        overflow_priority: OverflowPriority::Normal,
         controls: vec![page.controls[0].clone(), view.controls[0].clone()],
     };
     let export = ResolvedGroup {
         group_id: "unibrowser.group.pdf.export".into(),
         label: "Export".into(),
-        overflow_priority: OverflowPriority::Primary,
+        overflow_priority: OverflowPriority::Low,
         controls: vec![control_spec(
             control_ids::PDF_EXPORT,
             ControlType::Button,
