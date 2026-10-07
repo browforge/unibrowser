@@ -1,57 +1,121 @@
 # Shell density evidence (Quiet Utility)
 
-Build and capture:
+Capture: `scripts/capture-shell-density.sh` at **1280×800** (light + dark).  
+Commit **e307a44** (layout/icons) plus follow-up CSS; PNGs refreshed after release rebuild.
 
-- `scripts/capture-shell-density.sh` (runs `npm run build` first)
-- `scripts/capture-vqa-common.sh` sets `UNIBROWSER_DOC_CAPTURE_SIZE=1280x800`
-- Sixteen PNG files under `docs/screenshots/shell-density/` (eight scenes × light/dark)
-- Capture diagnostics report title bar 40px + chrome region 80px combined height
+## Literal checks (overlap/clipping/contrast)
 
-## Literal spot checks
+### `new-tab-light-1280.png`
 
-### New tab (`new-tab-light-1280.png`)
+Start page with compact CM (File, Folder, Project, Recent with distinct Lucide icons). Recent rows use file-list badges (SVG, DOC, PDF, TS, ?, IMG, MD, TXT) with a single time column (no duplicate type). Downloads section sits above the status bar with bottom padding; both download rows and Open actions are fully visible. No overlap; path subtext ellipsizes on one line.
 
-Start context Command Manager on a single row above a full-width Start page. Activity
-rail collapsed. No side gutter between rail and content. Status bar one line.
+**Grade: Pass**
 
-### File browser (`file-browser-light-1280.png`)
+### `new-tab-dark-1280.png`
 
-Browse context with directory listing for the demo pack. List fills the work area
-between rail and right edge. Chrome stack about 80px.
+Same structure on dark canvas; badges and row spacing match light. Downloads and status bar do not overlap content.
 
-### Markdown / PDF / Image
+**Grade: Pass**
 
-Text, PDF Annotation, and Image contexts respectively. Editor or viewer body uses
-the canvas background edge-to-edge; no centred narrow column. CM families match
-context (Text, PDF Annotation, Image).
+### `file-browser-light-1280.png`
 
-### Workshop (`workshop-light-1280.png`)
+Browse context CM; demo-pack directory list uses full width between collapsed rail and right edge. Rows do not collide with chrome or status bar.
 
-Project context above Sources | Stage | Inspector and timeline dock. Grid uses
-full width at 1280px.
+**Grade: Pass**
 
-### Settings (`settings-light-1280.png`)
+### `file-browser-dark-1280.png`
 
-Settings context with search field and section list; page scrolls within the work
-area without a floating centred card on grey gutters.
+Same as light; list and chrome stack (~80px) unchanged.
 
-### Mod portal (`mod-portal-light-1280.png`)
+**Grade: Pass**
 
-Mods context, Mod portal tab title, full-width portal column (max grid ~1200px),
-network status line, cards with badges and per-card actions.
+### `markdown-light-1280.png`
 
-## Grades
+Text CM over Monaco; editor flush to work area. No gutter card; status bar clear.
 
-| Scene | Light | Dark | Notes |
-| --- | --- | --- | --- |
-| New tab | Pass | Pass | ~80px chrome, full-width Start |
-| File browser | Pass | Pass | Browse CM, list uses width |
-| Markdown | Pass | Pass | Text CM, Monaco flush |
-| PDF | Pass | Pass | Annotation CM |
-| Image | Pass | Pass | Image adjust CM |
-| Workshop | Pass | Pass | Project CM, NLE grid |
-| Settings | Pass | Pass | Settings CM, no gutter card |
-| Mod portal | Pass | Pass | Mods CM, portal density |
+**Grade: Pass**
 
-Overall shell-density grade: **Pass** for the captured 1280×800 matrix. Remaining
-Drift vs mockups is unmeasured pixel diff (no automated overlay in this run).
+### `markdown-dark-1280.png`
+
+Same; dark editor surface edge-to-edge.
+
+**Grade: Pass**
+
+### `pdf-light-1280.png`
+
+PDF Annotation CM; page workspace fills width. No control overlap on canvas.
+
+**Grade: Pass**
+
+### `pdf-dark-1280.png`
+
+Same layout on dark theme.
+
+**Grade: Pass**
+
+### `image-light-1280.png`
+
+Image adjust CM; sample image centred in viewer without clipping.
+
+**Grade: Pass**
+
+### `image-dark-1280.png`
+
+Same on dark theme.
+
+**Grade: Pass**
+
+### `workshop-light-1280.png`
+
+Project CM with bookmark/play/circle-dot mode icons. Sources | Stage | Inspector over timeline dock; three tracks visible with internal timeline scroll. Audio/MIDI row sits immediately above the status bar (tight but not clipped). No stray border beside PREVIEW after stage-head cleanup.
+
+**Grade: Pass** (timeline dock snug to status bar)
+
+### `workshop-dark-1280.png`
+
+Dark workshop grid; timeline tracks and stage preview readable; same dock height behaviour as light.
+
+**Grade: Pass**
+
+### `settings-light-1280.png`
+
+Settings CM; search and section list scroll in work area without floating gutter card.
+
+**Grade: Pass**
+
+### `settings-dark-1280.png`
+
+Same on dark theme.
+
+**Grade: Pass**
+
+### `mod-portal-light-1280.png`
+
+Mods CM; Discover tab with three-column responsive catalog (`auto-fill`, min ~360px) and 12px gaps. Card footers stack metadata then action (no button on metadata). Light-theme meta/help text uses #454b4e on card/canvas (AA). No right-edge card clipping at 1280.
+
+**Grade: Pass**
+
+### `mod-portal-dark-1280.png`
+
+Three-column catalog with spaced cards; badges and actions separated. Contrast adequate on dark cards.
+
+**Grade: Pass**
+
+## Matrix summary
+
+| Scene | Light | Dark |
+| --- | --- | --- |
+| New tab | Pass | Pass |
+| File browser | Pass | Pass |
+| Markdown | Pass | Pass |
+| PDF | Pass | Pass |
+| Image | Pass | Pass |
+| Workshop | Pass | Pass |
+| Settings | Pass | Pass |
+| Mod portal | Pass | Pass |
+
+**Overall: Pass** for the 1280×800 matrix (no overlap/clipping failures in recaptured PNGs).
+
+## Automation
+
+- `npm run test:icons` — every `families.rs` control `icon` string maps in `CONTROL_ICON_MAP` (no generic fallback).
