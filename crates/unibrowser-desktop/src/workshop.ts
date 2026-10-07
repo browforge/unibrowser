@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { showPickList, type PickListItem } from "./inlineUi";
 import { showToast } from "./toast";
 
 interface WorkshopNode {
@@ -17,6 +18,7 @@ interface WorkshopClip {
   label: string;
   asset?: string | null;
   title_text?: string | null;
+  pdf_page?: number | null;
 }
 
 interface WorkshopMarker {
@@ -135,8 +137,9 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   timelineTitle.textContent = "Timeline";
   const timelineStatus = document.createElement("span");
   timelineStatus.className = "workshop-timeline-status";
-  timelineStatus.textContent = "00:00.0";
-  timelineHead.append(timelineTitle, timelineStatus);
+  const timelineTools = document.createElement("span");
+  timelineTools.className = "workshop-timeline-tools";
+  timelineHead.append(timelineTitle, timelineTools, timelineStatus);
   const timelineViewport = document.createElement("div");
   timelineViewport.className = "workshop-timeline-viewport";
   const timelineCanvas = document.createElement("div");
@@ -145,6 +148,15 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   timeline.append(timelineHead, timelineViewport);
 
   root.append(sources, stageRegion, inspector, timeline);
+
+  let playheadSec = 0;
+  const syncTimelineChrome = () => {
+    root.dataset.snap = snap ? "on" : "off";
+    root.dataset.timelineZoom = String(timelineZoom);
+    timelineTools.textContent = `Snap ${snap ? "on" : "off"} · Zoom ${Math.round(timelineZoom * 100)}%`;
+    timelineStatus.textContent = `00:${playheadSec.toFixed(1).padStart(4, "0")}`;
+    timelineCanvas.classList.toggle("workshop-timeline-canvas--snap", snap);
+  };
 
   const renderStage = () => {
     stageContent.replaceChildren();
@@ -222,18 +234,18 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       return;
     }
 
-    const heading = document.createElement("h3");
-    heading.className = "workshop-selection-title";
-    heading.textContent = selectedClip.label;
+    const clipLabel = field("Clip label", selectedClip.label, "text");
+    const typeRow = field("Type", selectedClip.node_type, "text");
+    typeRow.input.readOnly = true;
+    typeRow.input.classList.add("workshop-field-readonly");
     const meta = document.createElement("p");
     meta.className = "workshop-selection-meta";
-    meta.textContent = `${typeAbbrev(selectedClip.node_type)} · ${
+    meta.textContent =
       trackForClip(selectedClip) === "visual"
-        ? "Video / Image"
+        ? "Video / Image track"
         : trackForClip(selectedClip) === "title"
-          ? "Title"
-          : "Audio / MIDI"
-    }`;
+          ? "Title track"
+          : "Audio / MIDI track";
     const start = field("Start (seconds)", selectedClip.start_sec.toFixed(1), "number");
     const duration = field("Duration (seconds)", selectedClip.duration_sec.toFixed(1), "number");
     start.input.min = "0";
@@ -253,7 +265,56 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       });
       refreshProject(data);
     };
-    inspectorBody.append(heading, meta, start.row, duration.row, apply);
+    const fields: HTMLElement[] = [clipLabel.row, typeRow.row, meta, start.row, duration.row];
+    const isTitle =
+      selectedClip.node_type.toLowerCase().includes("title") ||
+      trackForClip(selectedClip) === "title" ||
+      Boolean(selectedClip.title_text);
+    if (isTitle) {
+      const titleText = field(
+        "Title text",
+        selectedClip.title_text ?? selectedClip.label,
+        "text",
+      );
+      titleText.input.addEventListener("change", () => {
+        void invoke("set_unibrow_timeline_clip_title_text", {
+          projectPath: viewer.path,
+          clipId: selectedClip!.id,
+          titleText: titleText.input.value,
+        }).then((data) => refreshProject(data));
+      });
+      fields.push(titleText.row);
+    }
+    if (
+      selectedClip.node_type.toLowerCase().includes("pdf") ||
+      (selectedClip.asset && selectedClip.asset.toLowerCase().endsWith(".pdf"))
+    ) {
+      const pdfPage = field("PDF page", String(selectedClip.pdf_page ?? 1), "number");
+      pdfPage.input.min = "1";
+      pdfPage.input.step = "1";
+      pdfPage.input.addEventListener("change", () => {
+        const page = Math.max(1, Number.parseInt(pdfPage.input.value, 10) || 1);
+        void invoke("set_unibrow_timeline_clip_pdf_page", {
+          projectPath: viewer.path,
+          clipId: selectedClip!.id,
+          page,
+        }).then((data) => refreshProject(data));
+      });
+      fields.push(pdfPage.row);
+    }
+    clipLabel.input.addEventListener("change", () => {
+      const next = clipLabel.input.value.trim();
+      if (!next) {
+        return;
+      }
+      void invoke("rename_unibrow_timeline_clip", {
+        projectPath: viewer.path,
+        clipId: selectedClip!.id,
+        label: next,
+      }).then((data) => refreshProject(data));
+    });
+    fields.push(apply);
+    inspectorBody.append(...fields);
   };
 
   const selectClip = (clip: WorkshopClip) => {
@@ -301,7 +362,6 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     });
   };
 
-  let playheadSec = 0;
   const playhead = document.createElement("div");
   playhead.className = "workshop-playhead";
   const playheadCap = document.createElement("span");
@@ -316,7 +376,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   const movePlayhead = (sec: number) => {
     playheadSec = Math.max(0, Math.min(totalSec, sec));
     playhead.style.left = `${(playheadSec / totalSec) * 100 * timelineZoom}%`;
-    timelineStatus.textContent = `00:${playheadSec.toFixed(1).padStart(4, "0")}`;
+    syncTimelineChrome();
   };
 
   const renderTimeline = () => {
@@ -336,8 +396,12 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     markers.forEach((marker) => {
       const pin = document.createElement("span");
       pin.className = "workshop-marker";
-      pin.style.left = `${(marker.time_sec / totalSec) * 100}%`;
-      pin.title = marker.title;
+      pin.style.left = `${(marker.time_sec / totalSec) * 100 * timelineZoom}%`;
+      pin.title = `${marker.title} @ ${marker.time_sec.toFixed(1)}s`;
+      const tag = document.createElement("span");
+      tag.className = "workshop-marker-tag";
+      tag.textContent = marker.title;
+      pin.appendChild(tag);
       ruler.appendChild(pin);
     });
     timelineCanvas.appendChild(ruler);
@@ -442,6 +506,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     });
     timelineCanvas.appendChild(playhead);
     movePlayhead(playheadSec);
+    syncTimelineChrome();
   };
 
   const applyModeUi = (next: WorkshopMode) => {
@@ -470,38 +535,18 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     applyModeUi((event as CustomEvent<WorkshopMode>).detail);
   };
 
-  const renderExportSheet = () => {
-    inspectorHeading.textContent = "Export";
-    inspectorBody.replaceChildren();
-    const intro = document.createElement("p");
-    intro.className = "workshop-selection-meta";
-    intro.textContent = "Choose an output. Save remains the project edit action.";
-    const formats = [
-      ["Project package", "Portable .unibrow archive"],
-      ["Share package", "Project without derived output"],
-      ["Preview MP4", "Quick local preview"],
-      ["H.264 MP4", "Production video"],
+  const openExportDialog = async () => {
+    const formats: PickListItem[] = [
+      { id: "project", label: "Project package", detail: "Portable .unibrow archive" },
+      { id: "share", label: "Share package", detail: "Project without derived output" },
+      { id: "preview", label: "Preview MP4", detail: "Quick local preview" },
+      { id: "h264", label: "H.264 MP4", detail: "Production video" },
     ];
-    formats.forEach(([name, detail]) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "workshop-export-option";
-      const strong = document.createElement("strong");
-      strong.textContent = name;
-      const span = document.createElement("span");
-      span.textContent = detail;
-      button.append(strong, span);
-      inspectorBody.appendChild(button);
-    });
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "workshop-quiet-button";
-    close.textContent = "Back to Inspector";
-    close.onclick = () => {
-      inspectorHeading.textContent = "Inspector";
-      renderInspector();
-    };
-    inspectorBody.append(intro, close);
+    const picked = await showPickList("Export programme", formats);
+    if (!picked) {
+      return;
+    }
+    showToast(`${picked.label} export is not wired in this build.`, "info");
   };
 
   const projectCommand = async (event: Event) => {
@@ -513,12 +558,14 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     }
     if (command === "unibrowser.project.snap") {
       snap = !snap;
+      syncTimelineChrome();
       showToast(`Timeline snap ${snap ? "on" : "off"}`, "info");
       return;
     }
     if (command === "unibrowser.project.zoomTimeline") {
       timelineZoom = timelineZoom >= 2 ? 1 : timelineZoom + 0.5;
       renderTimeline();
+      showToast(`Timeline zoom ${Math.round(timelineZoom * 100)}%`, "info");
       return;
     }
     if (command === "unibrowser.project.deleteClip" && selectedClip) {
@@ -538,7 +585,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       return;
     }
     if (command === "unibrowser.project.export") {
-      renderExportSheet();
+      await openExportDialog();
       return;
     }
     if (command === "unibrowser.project.marker") {
@@ -548,6 +595,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
         title: `Marker ${markers.length + 1}`,
       });
       refreshProject(data);
+      showToast(`Marker at ${playheadSec.toFixed(1)}s`, "info");
       return;
     }
     showToast("Select a source or clip to use this project command.", "info");
