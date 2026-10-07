@@ -12,6 +12,7 @@ pub const HISTORY_MAX: usize = 32;
 #[serde(rename_all = "snake_case")]
 pub enum DownloadHistoryStatus {
     OpenedTab,
+    InProgress,
     Saved,
     Failed,
 }
@@ -26,6 +27,8 @@ pub struct DownloadHistoryEntry {
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub destination: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress_percent: Option<u8>,
     pub at_ms: u64,
 }
 
@@ -114,6 +117,7 @@ pub fn record_success(url: &str, status: DownloadHistoryStatus, destination: Opt
             status,
             error: None,
             destination: destination.map(String::from),
+            progress_percent: None,
             at_ms: now_ms(),
         },
     );
@@ -137,6 +141,7 @@ pub fn record_failure(url: &str, error: &str) {
             status: DownloadHistoryStatus::Failed,
             error: Some(error.chars().take(240).collect()),
             destination: None,
+            progress_percent: None,
             at_ms: now_ms(),
         },
     );
@@ -159,6 +164,7 @@ mod tests {
             status: DownloadHistoryStatus::OpenedTab,
             error: None,
             destination: None,
+            progress_percent: None,
             at_ms: 1,
         };
         let json = serde_json::to_string(&e).expect("json");

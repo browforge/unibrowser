@@ -399,6 +399,8 @@ pub struct DownloadHistoryEntryDto {
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub destination: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress_percent: Option<u8>,
     pub at_ms: u64,
 }
 
@@ -411,11 +413,13 @@ fn download_history_dto() -> Vec<DownloadHistoryEntryDto> {
             label: e.label,
             status: match e.status {
                 crate::download_history::DownloadHistoryStatus::OpenedTab => "opened_tab".into(),
+                crate::download_history::DownloadHistoryStatus::InProgress => "in_progress".into(),
                 crate::download_history::DownloadHistoryStatus::Saved => "saved".into(),
                 crate::download_history::DownloadHistoryStatus::Failed => "failed".into(),
             },
             error: e.error,
             destination: e.destination,
+            progress_percent: e.progress_percent,
             at_ms: e.at_ms,
         })
         .collect()

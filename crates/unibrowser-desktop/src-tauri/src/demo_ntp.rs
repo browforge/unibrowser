@@ -39,9 +39,10 @@ pub fn seed_demo_ntp_fixture() -> Result<(), String> {
         id: "demo-dl-progress".into(),
         url: "https://releases.example/unibrowser-demo-pack.zip".into(),
         label: "unibrowser-demo-pack.zip".into(),
-        status: DownloadHistoryStatus::Saved,
+        status: DownloadHistoryStatus::InProgress,
         error: None,
         destination: None,
+        progress_percent: Some(64),
         at_ms: now - 4 * 60_000,
     };
     let completed = DownloadHistoryEntry {
@@ -51,6 +52,7 @@ pub fn seed_demo_ntp_fixture() -> Result<(), String> {
         status: DownloadHistoryStatus::Saved,
         error: None,
         destination: Some(format!("{}/sample.md", root)),
+        progress_percent: None,
         at_ms: now - 2 * 3600_000,
     };
     crate::download_history::seed_demo_entries_if_empty(vec![in_progress, completed])?;
