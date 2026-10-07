@@ -139,6 +139,60 @@ export function rectsOverlap(a: DOMRect, b: DOMRect, minPx = 2): boolean {
 const MOD_CARD_TEXT_SELECTORS =
   "strong, .mod-suggestion-card-title, .mod-result-id, .mod-result-reason, .mod-result-meta, .mod-card-badge, .mod-card-thumb .ft-icon";
 
+const MOD_FEATURED_TEXT_IN_CARD =
+  ".mod-suggestion-card-title, .mod-result-reason, .mod-result-meta, .mod-result-details";
+
+export function validateModFeaturedCardLayout(maxTextGapPx = 24): string | null {
+  const card = document.querySelector(
+    ".mod-result-card--featured",
+  ) as HTMLElement | null;
+  if (!card) {
+    return null;
+  }
+  const thumb = card.querySelector(".mod-card-thumb") as HTMLElement | null;
+  const body = card.querySelector(".mod-card-body") as HTMLElement | null;
+  const install = card.querySelector(".mod-card-install") as HTMLElement | null;
+  if (!thumb || !body || !install) {
+    return "mod featured card layout: missing thumb, body, or install";
+  }
+  const thumbRect = thumb.getBoundingClientRect();
+  const textEls = Array.from(card.querySelectorAll(MOD_FEATURED_TEXT_IN_CARD)).filter(
+    (el): el is HTMLElement => el instanceof HTMLElement,
+  );
+  if (textEls.length === 0) {
+    return "mod featured card layout: no text blocks";
+  }
+  let textLeft = Infinity;
+  for (const el of textEls) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 1 && rect.height > 1) {
+      textLeft = Math.min(textLeft, rect.left);
+    }
+  }
+  if (!Number.isFinite(textLeft)) {
+    return "mod featured card layout: text blocks not visible";
+  }
+  const gap = textLeft - thumbRect.right;
+  if (gap > maxTextGapPx) {
+    return `mod featured card layout: text starts ${gap.toFixed(1)}px after tile (max ${maxTextGapPx}px)`;
+  }
+  if (gap < -2) {
+    return `mod featured card layout: text overlaps tile (${gap.toFixed(1)}px)`;
+  }
+  const bodyRect = body.getBoundingClientRect();
+  const installRect = install.getBoundingClientRect();
+  const deadMid = installRect.left - bodyRect.right;
+  const cardRect = card.getBoundingClientRect();
+  if (cardRect.width > 480 && deadMid > cardRect.width * 0.35) {
+    return `mod featured card layout: empty gap between text column and Install (${deadMid.toFixed(0)}px)`;
+  }
+  const shadow = getComputedStyle(install).boxShadow;
+  if (shadow && shadow !== "none") {
+    return `mod featured card layout: Install box-shadow must be none (got ${shadow})`;
+  }
+  return null;
+}
+
 export function validateModCardTextOverlap(): string | null {
   const cards = document.querySelectorAll(".mod-result-card");
   for (const card of cards) {
@@ -234,6 +288,10 @@ export function validateShellDensityContrastForCapture(minRatio = 4.5): string |
     const overlapErr = validateModCardTextOverlap();
     if (overlapErr) {
       return overlapErr;
+    }
+    const layoutErr = validateModFeaturedCardLayout();
+    if (layoutErr) {
+      return layoutErr;
     }
   }
   return null;

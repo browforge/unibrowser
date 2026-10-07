@@ -149,7 +149,7 @@ export function appendModSuggestionCard(
   const action = document.createElement("button");
   action.type = "button";
   action.className = featured
-    ? "ntp-primary mod-card-install"
+    ? "mod-card-install mod-card-install--flat"
     : "mod-card-action mod-card-action--primary";
   action.textContent = "Install";
   action.onclick = () => onPrimary(suggestion);
@@ -178,10 +178,13 @@ export function appendModSuggestionCard(
     ft.className = `ft-icon ${visual.className}`;
     ft.textContent = visual.label;
     thumb.appendChild(ft);
+    const body = document.createElement("div");
+    body.className = "mod-card-body";
+    body.append(title, reason, meta, details);
     const installSlot = document.createElement("div");
     installSlot.className = "mod-card-install-slot";
     installSlot.appendChild(action);
-    card.append(thumb, title, reason, meta, details, installSlot);
+    card.append(thumb, body, installSlot);
   } else {
     footer.append(action);
     card.append(badge, title, reason, meta, details, footer);
