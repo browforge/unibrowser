@@ -271,6 +271,25 @@ function contrastRatio(l1: number, l2: number): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+export function colourContrastRatio(foreground: string, background: string): number | null {
+  const foregroundLuminance = parseRgbLuminance(foreground);
+  const backgroundLuminance = parseRgbLuminance(background);
+  if (foregroundLuminance === null || backgroundLuminance === null) {
+    return null;
+  }
+  return contrastRatio(foregroundLuminance, backgroundLuminance);
+}
+
+export function focusRingMeetsRequirements(
+  width: number,
+  ringColour: string,
+  surroundingColour: string,
+  minContrast = 3,
+): boolean {
+  const contrast = colourContrastRatio(ringColour, surroundingColour);
+  return width >= 2 && contrast !== null && contrast >= minContrast;
+}
+
 export interface CaptureRect {
   left: number;
   right: number;
@@ -433,6 +452,102 @@ export function validateSelectChevronForCapture(): string | null {
         return `select ${identity} in ${scopeSelector} is missing themed chevron background`;
       }
     }
+  }
+  return null;
+}
+
+function visibleElement(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect();
+  const style = getComputedStyle(el);
+  return (
+    rect.width > 0 &&
+    rect.height > 0 &&
+    style.display !== "none" &&
+    style.visibility !== "hidden"
+  );
+}
+
+export function validateResponsiveShellForCapture(): string | null {
+  const chrome = document.getElementById("chrome");
+  const manager = document.getElementById("command-manager");
+  const groups = document.getElementById("command-manager-groups");
+  if (!chrome || !manager || !groups) {
+    return "responsive shell guard is missing chrome or Command Manager";
+  }
+  const chromeHeight = chrome.getBoundingClientRect().height;
+  if (!document.body.classList.contains("cm-collapsed") && Math.abs(chromeHeight - 80) > 2) {
+    return `top chrome is ${chromeHeight.toFixed(1)}px; expected 80px (+/-2px)`;
+  }
+  if (document.body.dataset.cmDensity === "compact") {
+    const managerHeight = manager.getBoundingClientRect().height;
+    if (Math.abs(managerHeight - 40) > 1) {
+      return `compact Command Manager is ${managerHeight.toFixed(1)}px tall; expected 40px (+/-1px)`;
+    }
+  }
+  if (groups.scrollHeight > groups.clientHeight + 1) {
+    return `Command Manager wraps or clips vertically (${groups.scrollHeight}px scroll vs ${groups.clientHeight}px client)`;
+  }
+  const groupsRect = groups.getBoundingClientRect();
+  for (const group of groups.querySelectorAll<HTMLElement>(".cm-group")) {
+    if (!visibleElement(group)) {
+      continue;
+    }
+    if (!rectWithinBounds(group.getBoundingClientRect(), groupsRect, 1)) {
+      return `Command Manager group "${group.dataset.groupId ?? group.textContent?.trim() ?? "unknown"}" is partially clipped`;
+    }
+  }
+  for (const control of groups.querySelectorAll<HTMLElement>(".ui-command")) {
+    if (!visibleElement(control)) {
+      continue;
+    }
+    const label = control.querySelector<HTMLElement>(".cm-cmd-label");
+    if (!label) {
+      continue;
+    }
+    if (
+      label.scrollWidth > label.clientWidth + 1 ||
+      !rectWithinBounds(label.getBoundingClientRect(), control.getBoundingClientRect(), 1)
+    ) {
+      return `Command Manager label "${label.textContent?.trim() ?? ""}" is clipped`;
+    }
+  }
+  const pipeline = document.documentElement.dataset.cmPipeline;
+  if (pipeline) {
+    try {
+      const parsed = JSON.parse(pipeline) as { frontendOverflowModelCount?: number };
+      if ((parsed.frontendOverflowModelCount ?? 0) > 0) {
+        const overflow = document.getElementById("command-manager-overflow");
+        if (!overflow || !visibleElement(overflow)) {
+          return "Command Manager has overflowed groups but no visible chevron";
+        }
+      }
+    } catch {
+      return "Command Manager pipeline diagnostics are invalid JSON";
+    }
+  }
+  return null;
+}
+
+export function validateFocusRingForCapture(): string | null {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || active === document.body) {
+    return null;
+  }
+  if (!active.matches("button, input, select, [role='tab'], .ui-command")) {
+    return null;
+  }
+  const style = getComputedStyle(active);
+  if (style.outlineStyle === "none") {
+    return `focused ${active.id || active.className || active.tagName.toLowerCase()} has no visible outline`;
+  }
+  const width = Number.parseFloat(style.outlineWidth);
+  const surrounding = effectiveOpaqueBackground(active.parentElement ?? active);
+  if (!surrounding) {
+    return "could not resolve focus-ring surrounding colour";
+  }
+  if (!focusRingMeetsRequirements(width, style.outlineColor, surrounding)) {
+    const ratio = colourContrastRatio(style.outlineColor, surrounding);
+    return `focus ring on ${active.id || active.className || active.tagName.toLowerCase()} is ${width}px at ${ratio?.toFixed(2) ?? "unknown"}:1; expected >=2px and >=3:1`;
   }
   return null;
 }

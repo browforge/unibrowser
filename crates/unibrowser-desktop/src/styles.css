@@ -3955,19 +3955,44 @@ select:focus-visible,
 .palette-item:focus-visible,
 .cm-pin:focus-visible,
 .cm-layout-btn:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
+  outline: 2px solid var(--ub-focus, #83c7e6);
   outline-offset: 2px;
+}
+
+#chrome button:focus-visible,
+#chrome input:focus-visible,
+#chrome select:focus-visible,
+#chrome [role="tab"]:focus-visible,
+#chrome .ui-command:focus-visible {
+  outline-color: var(--ub-focus-on-chrome, #83c7e6);
 }
 
 [data-high-contrast="true"] button:focus-visible,
 [data-high-contrast="true"] .cm-tab:focus-visible,
 [data-high-contrast="true"] .ui-command:focus-visible {
   outline-width: 3px;
-  outline-color: #7cfc7c;
+  outline-color: var(--ub-focus);
 }
 
 [data-high-contrast="true"] #command-manager .ui-command:focus-visible {
   outline-offset: -3px;
+}
+
+button:active:not(:disabled):not([aria-disabled="true"]),
+[role="button"]:active:not([aria-disabled="true"]),
+[role="tab"]:active:not([aria-disabled="true"]) {
+  border-color: var(--ub-accent);
+  background-color: color-mix(in srgb, var(--ub-accent) 20%, var(--ub-control));
+}
+
+button:disabled:not(.ui-command),
+input:disabled:not(.ub-switch),
+select:disabled {
+  opacity: 1;
+  color: var(--ub-text-3);
+  border-color: var(--ub-border);
+  background-color: var(--ub-well);
+  cursor: not-allowed;
 }
 
 .new-project-overlay {

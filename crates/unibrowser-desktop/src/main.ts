@@ -193,6 +193,8 @@ import {
   validateUbSwitchGeometryForCapture,
   validateSelectChevronForCapture,
   validateWorkshopTimelineForCapture,
+  validateResponsiveShellForCapture,
+  validateFocusRingForCapture,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
@@ -3107,6 +3109,20 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (selectChevronErr) {
             await invoke("abort_doc_capture", {
               reason: `${selectChevronErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const responsiveShellErr = validateResponsiveShellForCapture();
+          if (responsiveShellErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${responsiveShellErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const focusRingErr = validateFocusRingForCapture();
+          if (focusRingErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${focusRingErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

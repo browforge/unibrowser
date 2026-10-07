@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  commandGroupBudgetFromViewport,
   commandGroupBudgetForViewport,
   partitionGroupsByAvailableWidth,
 } from "../src/ui/commandOverflow.ts";
@@ -42,6 +43,25 @@ for (const viewport of [800, 1024, 1280]) {
     }
   });
 }
+
+test("1024px compact CM keeps one stable row and overflows low priority first", () => {
+  const result = partitionGroupsByAvailableWidth(
+    groups,
+    commandGroupBudgetFromViewport(1024, 724),
+  );
+  assert.deepEqual(
+    result.visible.map((group) => group.id),
+    groups.filter((group) => result.visible.includes(group)).map((group) => group.id),
+    "visible groups must retain source order",
+  );
+  const hiddenNormal = result.overflow.some((group) => group.priority === "normal");
+  const visibleLow = result.visible.some((group) => group.priority === "low");
+  assert.equal(
+    hiddenNormal && visibleLow,
+    false,
+    "a low-priority group must not displace a normal-priority group",
+  );
+});
 
 test("normal groups overflow after wider low-priority groups", () => {
   const important = {

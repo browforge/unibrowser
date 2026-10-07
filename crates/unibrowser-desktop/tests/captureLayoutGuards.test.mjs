@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   backgroundExceedsRaisedSurface,
   captureRectsOverlap,
+  colourContrastRatio,
+  focusRingMeetsRequirements,
   inputBorderEdgesUniform,
   knobVerticalOffsetCentered,
   rectWithinBounds,
@@ -66,4 +68,20 @@ test("form control border guard treats matching edges as uniform", () => {
   };
   assert.equal(inputBorderEdgesUniform(uniform), true);
   assert.equal(inputBorderEdgesUniform(beveled), false);
+});
+
+test("focus ring guard requires two pixels and three-to-one contrast", () => {
+  assert.ok(colourContrastRatio("rgb(23, 107, 148)", "rgb(255, 255, 255)") >= 3);
+  assert.equal(
+    focusRingMeetsRequirements(2, "rgb(23, 107, 148)", "rgb(255, 255, 255)"),
+    true,
+  );
+  assert.equal(
+    focusRingMeetsRequirements(1, "rgb(23, 107, 148)", "rgb(255, 255, 255)"),
+    false,
+  );
+  assert.equal(
+    focusRingMeetsRequirements(2, "rgb(190, 190, 190)", "rgb(255, 255, 255)"),
+    false,
+  );
 });
