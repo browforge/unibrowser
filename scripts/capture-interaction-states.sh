@@ -110,7 +110,6 @@ capture_states() {
   local crop_y="$6"
   local width="${7:-300}"
   local height="${8:-90}"
-  local focus_mode="${9:-click}"
 
   xdotool mousemove 1180 780
   shot "${order}-default" "$crop_x" "$crop_y" "$width" "$height"
@@ -119,28 +118,14 @@ capture_states() {
   xdotool sleep 0.2
   shot "${order}-hover" "$crop_x" "$crop_y" "$width" "$height"
 
-  case "$focus_mode" in
-    install)
-      xdotool mousemove 250 240 click 1
-      xdotool key Tab Tab Tab
-      ;;
-    next-from-select)
-      xdotool mousemove 1080 469 click 1
-      xdotool key Escape
-      xdotool key Tab
-      ;;
-    *)
-      xdotool mousemove "$target_x" "$target_y" click 1
-      xdotool key Escape
-      xdotool key Tab
-      xdotool key shift+Tab
-      ;;
-  esac
+  # A Tab key establishes keyboard modality. Pointer down gives the production
+  # control focus; releasing away avoids activating or changing it.
+  xdotool key Tab
+  xdotool mousemove "$target_x" "$target_y"
+  xdotool mousedown 1
   xdotool mousemove 1180 780
+  xdotool mouseup 1
   shot "${order}-focus" "$crop_x" "$crop_y" "$width" "$height"
-  if [[ "$focus_mode" == "toggle" ]]; then
-    xdotool mousemove "$target_x" "$target_y" click 1
-  fi
 
   xdotool key Escape
   xdotool mousemove "$target_x" "$target_y"
@@ -169,17 +154,17 @@ capture_states "03-rail" "Activity rail" 20 166 0 120
 capture_states "04-mod-tab" "Portal tab" 158 167 35 130
 capture_states "05-input" "Input" 235 260 80 220
 capture_states "06-button" "Button" 525 240 390 200
-capture_states "07-install" "Install" 1135 350 900 310 300 90 install
+capture_states "07-install" "Install" 1135 350 900 310
 stop_surface
 
 cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
 start_surface "settings" "$ROOT/examples/demo-pack/sample.txt"
 xdotool mousemove 70 134 click 1
 xdotool sleep 1
-capture_states "08-switch" "Switch" 980 469 850 429 300 90 toggle
+capture_states "08-switch" "Switch" 980 469 850 429
 capture_states "09-select" "Select" 1080 469 900 429
 capture_states "10-settings-input" "Settings input" 130 140 0 100
-capture_states "11-settings-button" "Settings button" 1090 569 900 529 300 90 next-from-select
+capture_states "11-settings-button" "Settings button" 1090 569 900 529
 
 # Disable the interval select through the real Auto-save switch.
 xdotool mousemove 980 469 click 1
