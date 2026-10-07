@@ -193,18 +193,37 @@ pub struct EditorCaptureRegion {
     theme: String,
 }
 
+fn doc_capture_window_label(app: &tauri::AppHandle) -> Result<String, String> {
+    let demo = get_demo_state()
+        .map(|d| d.to_lowercase())
+        .unwrap_or_default();
+    if demo.contains("cmd-proving-detached") {
+        for label in app.webview_windows().keys() {
+            if label.starts_with("toolbar-") {
+                return Ok(label.clone());
+            }
+        }
+    }
+    Ok("main".into())
+}
+
 fn write_doc_capture_png_inner(
     app: &tauri::AppHandle,
     path: &std::path::Path,
     editor_region: Option<&EditorCaptureRegion>,
 ) -> Result<(), String> {
-    let window = app.get_window("main").ok_or("main window missing")?;
-    let content_label = crate::webview::content_label_for_capture(window.label());
-    eprintln!(
-        "[doc-capture] native content webview present={}",
-        app.get_webview(&content_label).is_some()
-    );
-    let bytes = crate::webview_capture::capture_doc_screenshot_png(app, &window)?;
+    let window_label = doc_capture_window_label(app)?;
+    let bytes = if window_label.starts_with("toolbar-") {
+        crate::webview_capture::capture_shell_webview_png_for_label(app, &window_label)?
+    } else {
+        let window = app.get_window("main").ok_or("main window missing")?;
+        let content_label = crate::webview::content_label_for_capture(window.label());
+        eprintln!(
+            "[doc-capture] native content webview present={}",
+            app.get_webview(&content_label).is_some()
+        );
+        crate::webview_capture::capture_doc_screenshot_png(app, &window)?
+    };
     if let Some(region) = editor_region {
         let stats = crate::webview_capture::validate_editor_text_pixels(
             &bytes,

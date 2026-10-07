@@ -2655,6 +2655,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       const docCapture = await invoke<string | null>("take_doc_capture_path");
       if (docCapture) {
         const demoAgain = await invoke<string | null>("get_demo_state");
+        if (demoAgain?.toLowerCase().includes("cmd-proving-detached")) {
+          return;
+        }
         if (demoAgain) {
           try {
             await applyDemoState(demoAgain);

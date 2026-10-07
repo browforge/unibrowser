@@ -1,16 +1,29 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { t } from "./i18n";
+import {
+  isToolbarWindowLabel,
+  mainShellShouldBeAbsent,
+  mountToolbarOnlyDocument,
+} from "./toolbarOnlyShell";
+
+export { isToolbarWindowLabel, mainShellShouldBeAbsent, mountToolbarOnlyDocument };
 
 export function isToolbarOnlyWindow(label?: string): boolean {
-  const l = label ?? getCurrentWebviewWindow().label;
-  return l.startsWith("toolbar-") || new URLSearchParams(window.location.search).has("toolbar");
+  if (label !== undefined) {
+    return isToolbarWindowLabel(label);
+  }
+  const fromQuery = new URLSearchParams(window.location.search).has("toolbar");
+  if (fromQuery) {
+    return true;
+  }
+  return isToolbarWindowLabel(getCurrentWebviewWindow().label);
 }
 
 export function toolbarBarIdFromWindow(label?: string): string | null {
   const fromQuery = new URLSearchParams(window.location.search).get("toolbar");
   const l = label ?? fromQuery ?? getCurrentWebviewWindow().label;
-  if (!l.startsWith("toolbar-")) {
+  if (!isToolbarWindowLabel(l)) {
     return null;
   }
   return l.slice("toolbar-".length).replace(/__dot__/g, ".");
@@ -23,10 +36,10 @@ export async function initToolbarOnlyShell(
   if (!isToolbarOnlyWindow()) {
     return false;
   }
-  document.body.classList.add("toolbar-window-mode");
+  mountToolbarOnlyDocument();
   const barId = toolbarBarIdFromWindow();
-  const header = document.getElementById("app-header");
-  if (header && barId) {
+  const chrome = document.getElementById("chrome");
+  if (chrome && barId) {
     const dock = document.createElement("button");
     dock.type = "button";
     dock.className = "toolbar-window-dock";
@@ -35,7 +48,7 @@ export async function initToolbarOnlyShell(
       await invoke("dock_floating_toolbar_window", { barId });
       await getCurrentWebviewWindow().close();
     };
-    header.prepend(dock);
+    chrome.prepend(dock);
   }
   await refreshCommandManager();
   return true;

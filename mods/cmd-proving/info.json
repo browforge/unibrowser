@@ -30,6 +30,8 @@
         "id": "cmd-proving.control.chip",
         "type": "button",
         "command": "cmd-proving.subscript.apply",
+        "label": "Proving chip",
+        "icon": "extension",
         "insert": {
           "after": "unibrowser.control.text.subscript"
         }

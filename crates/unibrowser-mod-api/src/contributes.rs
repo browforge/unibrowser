@@ -36,6 +36,10 @@ pub struct ContributedControl {
     pub control_type: String,
     pub command: String,
     #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub icon: Option<String>,
+    #[serde(default)]
     pub insert: Option<InsertPoint>,
 }
 

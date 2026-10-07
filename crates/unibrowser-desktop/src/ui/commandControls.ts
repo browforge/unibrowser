@@ -110,6 +110,7 @@ const ICON_MAP: Record<string, LucideName> = {
   highlighter: "highlighter",
   stamp: "stamp",
   image: "image",
+  extension: "package-open",
 };
 
 export function lucideForControlIcon(icon: string): LucideName {
@@ -140,7 +141,10 @@ export function renderResolvedControl(
   const btn = document.createElement("button");
   btn.type = "button";
   btn.dataset.controlId = control.control_id;
-  btn.appendChild(createLucideIcon(lucideForControlIcon(control.icon), 16, "ub-icon svg-icon"));
+  const iconName = lucideForControlIcon(control.icon);
+  btn.appendChild(createLucideIcon(iconName, 16, "ub-icon svg-icon"));
+  const modControl =
+    control.icon === "extension" || control.control_id.includes("cmd-proving");
   const label = document.createElement("span");
   label.className = "cm-cmd-label";
   label.textContent = patched.title;
@@ -170,6 +174,7 @@ export function renderResolvedControl(
   btn.className = [
     "ui-command",
     control.control_type === "toggle" ? "toggle" : "",
+    modControl ? "cm-mod-control" : "",
     !actionable ? "disabled" : "",
     emulated ? "emulated" : "",
     locked ? "locked" : "",

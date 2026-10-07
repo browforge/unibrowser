@@ -780,38 +780,39 @@ button.proving-disabled,
   margin-bottom: 0.25rem;
 }
 
-body.toolbar-window-mode #tab-strip,
-body.toolbar-window-mode #omnibox-row,
-body.toolbar-window-mode #content-host,
-body.toolbar-window-mode #status-bar,
-body.toolbar-window-mode #command-manager-tabs,
-body.toolbar-window-mode #command-manager-commands,
-body.toolbar-window-mode #command-manager-pin,
-body.toolbar-window-mode #onboarding-banner,
-body.toolbar-window-mode #onboarding-tour,
-body.toolbar-window-mode .bottom-panel {
-  display: none !important;
+body.toolbar-window-mode {
+  background: var(--ub-panel);
+  min-height: 100vh;
 }
 
-body.toolbar-window-mode #app-header {
-  min-height: auto;
+body.toolbar-window-mode #chrome.toolbar-window-chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.35rem 0.5rem;
+  min-height: 3rem;
+  border: none;
+  box-shadow: none;
 }
 
 body.toolbar-window-mode .floating-toolbar-host {
   margin: 0;
-  min-height: 3rem;
+  flex: 1;
+  min-height: 2.5rem;
 }
 
-body.toolbar-window-mode .floating-bar.floating {
+body.toolbar-window-mode .floating-bar.floating,
+body.toolbar-window-mode .floating-bar.docked {
   position: relative;
   left: auto !important;
   top: auto !important;
   box-shadow: none;
+  width: 100%;
 }
 
 .toolbar-window-dock {
-  margin-right: 0.5rem;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
 }
 
 .floating-bar {
@@ -4114,8 +4115,9 @@ body.content-fullscreen #unknown-file-banner {
 
 .onboarding-tour {
   position: fixed;
-  right: 1rem;
-  bottom: 3.5rem;
+  left: auto;
+  right: var(--ub-space-4);
+  bottom: calc(var(--ub-shell-status) + var(--ub-space-3));
   z-index: 850;
   pointer-events: none;
   max-width: min(22rem, 90vw);
@@ -4127,22 +4129,23 @@ body.content-fullscreen #unknown-file-banner {
 
 .onboarding-tour-card {
   pointer-events: auto;
-  background: #2a2a32;
-  border: 1px solid #666;
-  border-radius: 6px;
+  background: var(--ub-panel);
+  border: 1px solid var(--ub-border-strong);
+  border-radius: var(--ub-radius-6);
   padding: 0.75rem 1rem;
-  box-shadow: 0 6px 24px #0008;
+  box-shadow: var(--ub-shadow-palette);
 }
 
 .onboarding-tour-card h2 {
   margin: 0 0 0.35rem;
   font-size: 1rem;
+  color: var(--ub-text-1);
 }
 
 .onboarding-tour-card p {
   margin: 0 0 0.65rem;
   font-size: 0.9rem;
-  color: #ccc;
+  color: var(--ub-text-2);
 }
 
 .onboarding-tour-actions {
@@ -4732,6 +4735,10 @@ html[data-large-targets="true"] .cm-tab {
 
 .cm-icon-extension {
   background: linear-gradient(135deg, #4a6a9a 0%, #2a3a5a 100%);
+}
+
+.ui-command.cm-mod-control .ub-icon {
+  color: var(--ub-accent);
 }
 
 [data-high-contrast="true"] {

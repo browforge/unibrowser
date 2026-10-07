@@ -7,11 +7,13 @@ export interface OverflowGroup {
   resolved: { controls: OverflowControl[] };
 }
 
-const GROUP_PADDING = 6;
-const DIVIDER_WIDTH = 9;
+const GROUP_PADDING = 8;
+const DIVIDER_WIDTH = 10;
+/** Slack so estimated widths never underestimate real CM buttons (never-clip rule). */
+const WIDTH_SAFETY_MARGIN = 8;
 
 export function estimateCommandWidth(label: string): number {
-  return Math.max(44, 24 + label.length * 6.5);
+  return Math.max(46, 26 + label.length * 6.8);
 }
 
 export function estimateGroupWidth(group: OverflowGroup): number {
@@ -56,7 +58,7 @@ export function partitionGroupsByAvailableWidth<T extends OverflowGroup>(
     return { visible: groups, overflow: [] };
   }
 
-  const budget = Math.max(0, availableWidth - reserveOverflow);
+  const budget = Math.max(0, availableWidth - reserveOverflow - WIDTH_SAFETY_MARGIN);
   let best: T[] = [];
   let bestScore = -1;
   const combinations = 1 << groups.length;
@@ -81,4 +83,21 @@ export function partitionGroupsByAvailableWidth<T extends OverflowGroup>(
 
 export function commandGroupBudgetForViewport(viewportWidth: number): number {
   return Math.max(240, viewportWidth - 300);
+}
+
+/** Width reserved for CM context label, pin, overflow, and collapse controls. */
+export function commandManagerChromeReserve(viewportWidth: number): number {
+  return Math.min(520, Math.max(360, viewportWidth * 0.42));
+}
+
+export function commandGroupBudgetFromViewport(
+  viewportWidth: number,
+  groupsClientWidth: number,
+): number {
+  const chromeReserve = commandManagerChromeReserve(viewportWidth);
+  const fromViewport = Math.max(0, viewportWidth - chromeReserve);
+  if (groupsClientWidth > 0) {
+    return Math.min(groupsClientWidth, fromViewport);
+  }
+  return fromViewport;
 }

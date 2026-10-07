@@ -13,6 +13,7 @@ import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 import { getPdfCommandManagerLabels } from "./viewerZoom";
 import { announceCm } from "./ui/cmA11y";
 import { bindCmRovingFocus } from "./ui/cmRovingFocus";
+import { commandGroupBudgetFromViewport } from "./ui/commandOverflow";
 
 const PDF_PAGE_CONTROL = "unibrowser.control.pdf.page";
 const PDF_ZOOM_CONTROL = "unibrowser.control.pdf.viewZoom";
@@ -555,7 +556,10 @@ export const commandManager = {
         active.families?.length > 0 ? patchPdfCommandFamilies(active.families) : [];
       const allGroups =
         patchedFamilies.length > 0 ? familiesToRenderGroups(patchedFamilies) : [];
-      const widthBudget = groupsEl.clientWidth || window.innerWidth - 420;
+      const widthBudget = commandGroupBudgetFromViewport(
+        window.innerWidth,
+        groupsEl.clientWidth,
+      );
       const { visible, overflow } = partitionGroupsByAvailableWidth(allGroups, widthBudget);
       overflowGroupsCache = overflow;
       groupsEl.classList.toggle("cm-overflow-active", overflow.length > 0);

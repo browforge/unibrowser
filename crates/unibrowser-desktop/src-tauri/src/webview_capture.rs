@@ -28,11 +28,14 @@ pub fn web_capture_status() -> WebCaptureStatus {
     }
 }
 
-/// PNG snapshot of the main shell webview (`main` window).
-pub fn capture_shell_webview_png(app: &AppHandle) -> Result<Vec<u8>, String> {
+/// PNG snapshot of a shell webview by window label (`main` or `toolbar-*`).
+pub fn capture_shell_webview_png_for_label(
+    app: &AppHandle,
+    window_label: &str,
+) -> Result<Vec<u8>, String> {
     let wv = app
-        .get_webview("main")
-        .ok_or("main shell webview missing")?;
+        .get_webview(window_label)
+        .ok_or_else(|| format!("shell webview missing: {}", window_label))?;
     #[cfg(target_os = "linux")]
     {
         return capture_linux_webview(&wv);
@@ -42,6 +45,11 @@ pub fn capture_shell_webview_png(app: &AppHandle) -> Result<Vec<u8>, String> {
         let _ = wv;
         Err("shell webview capture only implemented on Linux WebKitGTK".into())
     }
+}
+
+/// PNG snapshot of the main shell webview (`main` window).
+pub fn capture_shell_webview_png(app: &AppHandle) -> Result<Vec<u8>, String> {
+    capture_shell_webview_png_for_label(app, "main")
 }
 
 pub fn capture_content_webview_png(app: &AppHandle, window_label: &str) -> Result<Vec<u8>, String> {

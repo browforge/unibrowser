@@ -268,6 +268,22 @@ fn insert_at_point(
 }
 
 fn contributed_to_resolved(control: &ContributedControl, mod_name: &str) -> ResolvedControl {
+    let fallback_label = control
+        .id
+        .split('.')
+        .next_back()
+        .unwrap_or("Mod")
+        .into();
+    let label = control
+        .label
+        .clone()
+        .filter(|s| !s.is_empty())
+        .unwrap_or(fallback_label);
+    let icon = control
+        .icon
+        .clone()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "extension".into());
     ResolvedControl {
         control_id: control.id.clone(),
         control_type: ControlType::Button,
@@ -275,9 +291,9 @@ fn contributed_to_resolved(control: &ContributedControl, mod_name: &str) -> Reso
         capability: CapabilityState::Supported,
         selection: SelectionState::Off,
         value: None,
-        label: control.id.split('.').next_back().unwrap_or("Mod").into(),
+        label,
         short_label: None,
-        icon: "extension".into(),
+        icon,
         shortcut: None,
         density_variant: DensityVariant::Compact,
         provider_id: Some(format!("{}::native", mod_name)),
@@ -388,6 +404,8 @@ mod tests {
                         id: "cmd-proving.control.chip".into(),
                         control_type: "button".into(),
                         command: "cmd-proving.subscript.apply".into(),
+                        label: Some("Proving chip".into()),
+                        icon: Some("extension".into()),
                         insert: Some(InsertPoint {
                             after: Some("unibrowser.control.text.subscript".into()),
                             before: None,
