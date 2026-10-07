@@ -44,9 +44,9 @@ the 1920 list.
 
 | Evidence | Literal description | Grade |
 | --- | --- | --- |
-| `states-light.png` | Ten rows, four columns: default, hover, keyboard focus, pointer-down. Command Manager default/hover/pressed are Mods Search/Install on the portal surface. The focus cell is the Text Undo control with a 2px light-blue inset ring and an Undo tooltip over Demo markdown. Document tab focus is the selected Mod portal title tab with a 2px chrome-blue ring. Activity rail focus is the files destination with a 2px blue ring. Portal tab focus is Updates with a 2px blue box. Open VSX search focus is a 2px blue ring on the field (the same token as Settings search). Search focus is a 2px blue ring around the Search button. Install focus is a 2px blue ring around the flat Install control. Switch, interval select, and Settings search each show the same 2px blue ring. Hover changes border or fill without lift. Pressed uses the selected surface or a darker Install fill. | Pass |
-| `states-dark.png` | The same ten controls on dark surfaces. Hover and press lighten the selected fill or border. Keyboard focus is a 2px cyan-blue ring on chrome and panel backgrounds: Undo, Mod portal tab, rail icon, Updates, Open VSX search, Search, Install, switch, select, and Settings search. Install stays flat in every state. | Pass |
-| `states-dark-hc.png` | Black surfaces and white boundaries. Keyboard focus is a 2px-minimum yellow ring on Undo, Mod portal tab, rail, Updates, Open VSX search, Search, Install, switch, select, and Settings search. The yellow ring stays separate from the white selected border. | Pass |
+| `states-light.png` | Ten rows, four columns: default, hover, keyboard focus, pointer-down. Command Manager default/hover/pressed are Mods Search/Install on the portal surface. The focus cell is the Text Undo control with a 2px light-blue inset ring and an Undo tooltip over Demo markdown. Document tab focus is the selected Mod portal title tab with a 2px chrome-blue ring. Activity rail focus shows the Project destination with a 2px blue ring and the Files/Project panel copy ("Workspace roots and tasks. Switch between project folders.") beside the icon column; the portal remains visible under the panel. Portal tab focus is Updates with a 2px blue box. Open VSX search focus is the full field with a 2px blue ring on all four sides, Installed/Discover/Updates above it, and Suggested result below. Search, Install, switch, and Settings search each show the same 2px blue ring. Select focus opens an in-page list (Every 1 minute, Every 2 minutes) on the light control surface under the Every 5 minutes trigger. Hover changes border or fill without lift. Pressed uses the selected surface or a darker Install fill. | Pass |
+| `states-dark.png` | The same ten controls on dark surfaces. Hover and press lighten the selected fill or border. Keyboard focus is a 2px cyan-blue ring on chrome and panel backgrounds. The Open VSX field is fully inside the crop with the ring on all four sides. The rail focus cell shows the Project panel copy beside the focused icon, not a blank overlay. Select focus opens a dark option list (Every 1 minute, Every 2 minutes) using the control and selected tokens; it is not a white native menu. Install stays flat in every state. | Pass |
+| `states-dark-hc.png` | Black surfaces and white boundaries. Keyboard focus is a 2px-minimum yellow ring on Undo, Mod portal tab, rail, Updates, Open VSX search, Search, Install, switch, select, and Settings search. The yellow ring stays separate from the white selected border. The Open VSX field is fully framed. The rail panel copy is present beside the focused icon. The open interval list is a dark surface with readable labels, not a light popup. | Pass |
 | `states-light-disabled.png` | SVG Image CM: Fit stays in place. Hovering it shows the tooltip "Pixel zoom needs an SVG view provider." Turning Auto-save off leaves the switch off and the Every 5 minutes select present but disabled. | Pass |
 | `states-dark-disabled.png` | The same Fit tooltip and disabled interval select on dark surfaces. Labels stay readable. No grey-on-grey stack. | Pass |
 | `states-dark-hc-disabled.png` | Fit tooltip and disabled interval select keep white boundaries and readable labels on black. | Pass |
@@ -58,9 +58,11 @@ is in overflow at this width, so the focus target is the first visible
 command, not an overflowed Find control.
 
 Inputs do not claim a separate pressed mode: pointer down retains the hover
-border and places the caret. Select pointer down may expose the native option
-list (Every 1 minute is visible under the focused select). These are literal
-platform interactions, not decorative pressed animation.
+border and places the caret. Select focus opens the in-page themed option
+list (Every 1 minute and Every 2 minutes under Every 5 minutes). The list
+uses `--ub-control`, `--ub-text-1`, and `--ub-selected`, plus `color-scheme`
+on themed roots. These are literal product interactions, not decorative
+pressed animation.
 
 ## Automatic guards
 
@@ -90,6 +92,10 @@ platform interactions, not decorative pressed animation.
   `#text-editor-host`, not a height ratio and not an overflowed Find control.
 - Existing guards also reject dark bevels, missing select chevrons, malformed
   switches, timeline escape/overlap, blank editors, and duplicate image chrome.
+- Dark theme roots must declare `color-scheme: dark`. Open select popups
+  (native `option` and `.ub-select-option` / `.ub-select-list`) are measured
+  even when closed options have empty geometry. A list brighter than
+  `--ub-surface-2` fails the capture.
 
 ## Reviewed Fails
 
@@ -99,6 +105,9 @@ platform interactions, not decorative pressed animation.
 | PDF 1024 hid Highlight/Underline/Strike while Undo/Redo/Export stayed. | Fixed. Markup is Critical. History and Export are Low on PDF. 1024 keeps Highlight, Underline, Strike, Select, Hand. |
 | Workshop 1024 "10s" clipped by the scrollbar; the ruler guard only ran at 1280. | Fixed. Ruler inset is 14px. The endpoint guard runs at every captured width. 10s is inside the ruler at 1024 and 1920. |
 | Open VSX search had no 2px >=3:1 focus ring, while Settings search did. | Fixed on the shared input / `.ub-form-control` / `.mod-portal-query` `:focus-visible` rule. The Input/focus cell now shows the same 2px ring as Settings search in light, dark, and dark-hc. |
+| Select/focus opened a white native "Every 1 min" popup on dark. | Fixed. Native WebKitGTK menus ignore option CSS. An in-page listbox now uses the control/text/selected tokens. Dark and dark-hc lists are dark surfaces. Guard: `selectOptionListMeetsDarkSurface` plus `.ub-select-option` in `validateDarkSurfaceBackgroundsForCapture`. Commit `1dd84a4`. |
+| Activity rail/focus left a blank panel with a dark blob. | Fixed. Focusing a rail destination mounts the side panel beside the icon. Files no longer covers the current document with an empty overlay when there is no listing. The focus cell shows Project panel copy. Commit `060da54`. |
+| Input/focus cropped the Open VSX field to a bottom line. | Fixed. The cell is reframed (`40,155 420x170`) so the 2px ring is visible on all four sides. Commit `a41a21c`. |
 
 ## Verification
 
