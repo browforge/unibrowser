@@ -74,6 +74,7 @@ import { textReadingStats } from "./textStats";
 import {
   armPdfHighlightMode,
   documentViewer,
+  runViewerContextCommand,
   type DocumentViewerDto,
 } from "./documentViewer";
 import { bindRovingTablist, setTabA11y } from "./rovingTabs";
@@ -1573,6 +1574,9 @@ async function processCommandResult(msg: string, commandId?: string) {
 
 async function runUiCommand(commandId: string) {
   if (await runFilesCommand(commandId)) {
+    return;
+  }
+  if (runViewerContextCommand(commandId)) {
     return;
   }
   if (commandId === "unibrowser.settings.search") {

@@ -36,6 +36,7 @@ import {
 } from "./experimentalSpellcheck";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
+let dxfViewCommand: ((commandId: string) => boolean) | null = null;
 
 type FindRunner = (query: string, next: boolean) => void;
 let viewerFindRunner: FindRunner | null = null;
@@ -114,6 +115,18 @@ async function openUnibrowAsset(projectPath: string, asset: string) {
 
 export function adjustViewerZoom(delta: number) {
   viewerZoomAdjust?.(delta);
+}
+
+export function runViewerContextCommand(commandId: string): boolean {
+  if (commandId === "unibrowser.image.zoomOut") {
+    adjustViewerZoom(-1);
+    return true;
+  }
+  if (commandId === "unibrowser.image.zoomIn") {
+    adjustViewerZoom(1);
+    return true;
+  }
+  return dxfViewCommand?.(commandId) ?? false;
 }
 
 export interface ProjectNodeDto {
@@ -2112,6 +2125,7 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
 
 async function renderDxf(path: string, root: HTMLElement) {
   root.innerHTML = "";
+  dxfViewCommand = null;
   const proving = document.createElement("p");
   proving.className = "viewer-note dxf-proving-banner";
   proving.textContent =
@@ -2177,7 +2191,6 @@ async function renderDxf(path: string, root: HTMLElement) {
   }
   const layout = document.createElement("div");
   layout.className = "dxf-layout";
-  layout.appendChild(geomPanel);
   const layerPanel = document.createElement("aside");
   layerPanel.className = "dxf-layer-panel";
   const panelTitle = document.createElement("h3");
@@ -2214,12 +2227,13 @@ async function renderDxf(path: string, root: HTMLElement) {
   const canvasCol = document.createElement("div");
   canvasCol.className = "dxf-canvas-col";
   layout.appendChild(canvasCol);
+  layout.appendChild(geomPanel);
   root.appendChild(layout);
   const wrap = document.createElement("div");
   wrap.className = "dxf-canvas-wrap";
   canvasCol.appendChild(wrap);
   const width = wrap.clientWidth || 800;
-  const height = 400;
+  const height = Math.max(400, wrap.clientHeight || 600);
 
   if (parseError) {
     showDxfWireframeError(
@@ -2310,6 +2324,21 @@ async function renderDxf(path: string, root: HTMLElement) {
       );
     }
     wrap.appendChild(svg);
+    let fallbackZoom = 1;
+    dxfViewCommand = (commandId) => {
+      if (commandId === "unibrowser.cad.fitView") {
+        fallbackZoom = 1;
+      } else if (commandId === "unibrowser.cad.zoomOut") {
+        fallbackZoom = Math.max(0.2, fallbackZoom / 1.25);
+      } else if (commandId === "unibrowser.cad.zoomIn") {
+        fallbackZoom = Math.min(20, fallbackZoom * 1.25);
+      } else {
+        return false;
+      }
+      svg.style.transform = `scale(${fallbackZoom})`;
+      svg.style.transformOrigin = "center";
+      return true;
+    };
     registerDxfLocator();
     return;
   }
@@ -2403,6 +2432,21 @@ async function renderDxf(path: string, root: HTMLElement) {
   };
 
   rebuild();
+  dxfViewCommand = (commandId) => {
+    if (commandId === "unibrowser.cad.fitView") {
+      panX = 0;
+      panY = 0;
+      zoom = 1;
+    } else if (commandId === "unibrowser.cad.zoomOut") {
+      zoom = Math.max(0.2, zoom / 1.25);
+    } else if (commandId === "unibrowser.cad.zoomIn") {
+      zoom = Math.min(20, zoom * 1.25);
+    } else {
+      return false;
+    }
+    rebuild();
+    return true;
+  };
   const meta = document.createElement("p");
   meta.className = "viewer-note";
   meta.textContent = `DXF: ${entities.length} entities · toggle layers · drag pan · wheel zoom`;
@@ -4352,6 +4396,17 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
   layout.append(main, inspector);
   root.appendChild(layout);
   mountSvgInspector(preview, ta, syncRust, inspector);
+  let previewZoom = 1;
+  viewerZoomAdjust = (delta) => {
+    previewZoom = Math.min(8, Math.max(0.2, previewZoom * (delta > 0 ? 1.15 : 1 / 1.15)));
+    const svg = preview.querySelector<SVGSVGElement>("svg");
+    if (svg) {
+      svg.style.transform = `scale(${previewZoom})`;
+      svg.style.transformOrigin = "center";
+    }
+    reportViewerZoom(previewZoom, "image");
+  };
+  reportViewerZoom(previewZoom, "image");
   setViewerLocatorBridge({
     svgTextOffset: (startByte, endByte) => {
       setMode("source");
@@ -4592,6 +4647,7 @@ export const documentViewer = {
   },
   hide(el: HTMLElement) {
     viewerZoomAdjust = null;
+    dxfViewCommand = null;
     setViewerFindRunner(null);
     clearViewerLocatorBridge();
     el.classList.add("hidden");
