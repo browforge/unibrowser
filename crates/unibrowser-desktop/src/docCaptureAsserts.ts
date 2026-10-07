@@ -371,6 +371,9 @@ export function validateDarkSurfaceBackgroundsForCapture(
     ) {
       continue;
     }
+    if (candidate instanceof HTMLInputElement && candidate.checked) {
+      continue;
+    }
     const background = effectiveOpaqueBackground(candidate);
     const luminance = background ? parseRgbLuminance(background) : null;
     if (
