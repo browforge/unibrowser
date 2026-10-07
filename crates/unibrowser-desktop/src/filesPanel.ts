@@ -28,6 +28,37 @@ let searchFilter = "";
 let selectionAnchorIndex = -1;
 let renamingPath: string | null = null;
 
+function makeFilesSortHeader(
+  label: string,
+  field: "name" | "size" | "date",
+  view: FilesViewDto,
+  deps: FilesPanelDeps,
+  align: "left" | "right",
+): HTMLTableCellElement {
+  const th = document.createElement("th");
+  th.className = `files-sort-th files-sort-th--${align}`;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "files-sort-btn";
+  btn.textContent = label;
+  const active = view.sort === field;
+  btn.setAttribute("aria-sort", active ? (view.sort_ascending ? "ascending" : "descending") : "none");
+  btn.onclick = () => {
+    const nextAscending = active
+      ? !view.sort_ascending
+      : field === "date"
+        ? false
+        : true;
+    void deps.persistFilesView({
+      ...view,
+      sort: field,
+      sort_ascending: nextAscending,
+    });
+  };
+  th.appendChild(btn);
+  return th;
+}
+
 interface PathPropertiesDto {
   path: string;
   name: string;
@@ -1108,11 +1139,15 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   };
   selectAllTh.appendChild(selectAll);
   headRow.appendChild(selectAllTh);
-  [t("files.sortName"), ""].forEach((label) => {
-    const th = document.createElement("th");
-    th.textContent = label;
-    headRow.appendChild(th);
-  });
+  headRow.appendChild(
+    makeFilesSortHeader(t("files.sortName"), "name", deps.filesView, deps, "left"),
+  );
+  headRow.appendChild(
+    makeFilesSortHeader(t("files.sortSize"), "size", deps.filesView, deps, "right"),
+  );
+  headRow.appendChild(
+    makeFilesSortHeader(t("files.sortDate"), "date", deps.filesView, deps, "right"),
+  );
   thead.appendChild(headRow);
   table.appendChild(thead);
 
@@ -1268,22 +1303,23 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       renderFilesPanel(host, deps);
     };
 
-    const metaCell = document.createElement("td");
-    metaCell.className = "files-meta";
-    if (entry.is_dir) {
-      metaCell.textContent = "—";
+    const sizeCell = document.createElement("td");
+    sizeCell.className = "files-meta files-meta-size";
+    if (entry.is_dir || entry.size_bytes == null) {
+      sizeCell.textContent = "—";
     } else {
-      const parts: string[] = [];
-      if (entry.size_bytes != null) {
-        parts.push(formatFileSize(entry.size_bytes));
-      }
-      if (entry.modified_unix) {
-        parts.push(new Date(entry.modified_unix * 1000).toLocaleDateString());
-      }
-      metaCell.textContent = parts.join(" · ") || "";
+      sizeCell.textContent = formatFileSize(entry.size_bytes);
+    }
+    const modifiedCell = document.createElement("td");
+    modifiedCell.className = "files-meta files-meta-modified";
+    if (entry.is_dir || !entry.modified_unix) {
+      modifiedCell.textContent = "—";
+    } else {
+      modifiedCell.textContent = new Date(entry.modified_unix * 1000).toLocaleDateString();
     }
     row.appendChild(nameCell);
-    row.appendChild(metaCell);
+    row.appendChild(sizeCell);
+    row.appendChild(modifiedCell);
     return row;
   };
 
@@ -1293,7 +1329,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       const pad = document.createElement("tr");
       pad.className = "files-virtual-pad";
       const cell = document.createElement("td");
-      cell.colSpan = 3;
+      cell.colSpan = 4;
       cell.style.height = `${start * FILE_ROW_HEIGHT_PX}px`;
       cell.style.padding = "0";
       cell.style.border = "0";
@@ -1307,7 +1343,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       const pad = document.createElement("tr");
       pad.className = "files-virtual-pad";
       const cell = document.createElement("td");
-      cell.colSpan = 3;
+      cell.colSpan = 4;
       cell.style.height = `${(visibleEntries.length - end) * FILE_ROW_HEIGHT_PX}px`;
       cell.style.padding = "0";
       cell.style.border = "0";

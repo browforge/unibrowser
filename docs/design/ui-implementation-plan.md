@@ -448,12 +448,12 @@ Screenshot:
 
 **Visual-language impact:** Revised. Rails, lists, and settings groups use spacing and surface roles; cards are reserved for independent objects.
 
-Status: done 2026-10-07. Browse has a file-only Command Manager, joined
-tree/list/preview docks, quiet breadcrumbs and actions, and full-height work
-surfaces. Settings has its own command family, category rail, scroll surface,
-and Quiet Utility controls. The Markdown action strip matches Command Manager
-controls. All 11 light, dark, high-contrast, 800 px, 1600 px, and 150% evidence
-images pass in `docs/design/ui-13-evidence.md`.
+Status: done 2026-10-07 (drift pass same day). Browse CM owns sort, hidden
+files, and set/clear workspace; content pane has no duplicate controls; file
+names sit beside type badges with uniform row height; Places recent list is one
+line with ellipsis; filter uses theme field tokens. Settings and Markdown
+evidence unchanged. All 11 captures re-run with integrity checks; grades in
+`docs/design/ui-13-evidence.md`.
 
 Likely files:
 
@@ -482,12 +482,10 @@ Screenshot:
 
 **Visual-language impact:** Revised. Canvas surrounds are recessed wells, property panels are docked workbench surfaces, and annotations use semantic colour sparingly.
 
-Status: done 2026-10-07. PDF, image, and DXF use the standard optional left
-structure, recessed centre canvas, and right properties or comments shell.
-Find, zoom, and export remain reachable through stable Command Manager groups.
-The DXF proving family keeps unavailable Find, Measure, and STEP export controls
-in place with reasons. All three 1280x800 comparisons pass in
-`docs/design/ui-14-evidence.md`.
+Status: done 2026-10-07 (drift pass same day). Image paths infer Image work
+context; Find, Check, and Curves grey out on SVG with reasons; zoom uses
+magnifier icons; Preview/Source is a flat segmented control. PDF and DXF shells
+unchanged. Three 1280x800 captures re-run; grades in `docs/design/ui-14-evidence.md`.
 
 Likely files:
 
@@ -514,6 +512,12 @@ Screenshot:
 
 **Visual-language impact:** Revised. Timeline tracks are recessed wells; source, preview, inspector, and timeline are joined workbench regions without floating cards.
 
+Status: done 2026-10-07. Joined sources / board preview / inspector grid with
+bottom timeline dock; title card selects into Inspector; Live controls collapse
+into a disclosure until UI-16. Evidence `unibrow-create-light-1600.png` graded
+Drift (Browse CM on project path, export stack below timeline) in
+`docs/design/ui-15-evidence.md`.
+
 Likely files:
 
 - `src/documentViewer.ts`
@@ -539,6 +543,10 @@ Screenshot:
 ### UI-16: Live workspace
 
 **Visual-language impact:** Revised. Red is reserved for LIVE/recording/error and all broadcast states remain clear without colour.
+
+Status: in progress 2026-10-07. Studio header states Preview / LIVE / Recording
+with restrained red semantics; capture script `scripts/capture-ui-16.sh` added.
+Evidence pending in `docs/design/ui-16-evidence.md`.
 
 Likely files:
 

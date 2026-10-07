@@ -216,6 +216,59 @@ export async function applyDemoState(raw: string) {
           ?.focus();
         break;
       }
+      case "ui15-unibrow-title": {
+        const card = await waitForElement<HTMLElement>(
+          '.unibrow-board-card[data-node-id="node-1"]',
+        );
+        card?.scrollIntoView({ block: "center", inline: "center" });
+        card?.focus();
+        break;
+      }
+      case "ui16-live-preview":
+        break;
+      case "ui16-live-on": {
+        const details = document.querySelector<HTMLDetailsElement>(".unibrow-live-details");
+        if (details) {
+          details.open = true;
+        }
+        await invoke("set_unibrow_live_mode", { enabled: true }).catch(() => undefined);
+        const header = document.querySelector<HTMLElement>(".unibrow-studio-header");
+        const badge = document.querySelector<HTMLElement>(".unibrow-live-indicator");
+        const toggle = document.querySelector<HTMLInputElement>("#unibrow-live-mode");
+        if (toggle) {
+          toggle.checked = true;
+        }
+        badge?.classList.remove("hidden");
+        if (header) {
+          header.dataset.state = "live";
+          header.textContent = "LIVE";
+        }
+        break;
+      }
+      case "ui16-live-recording": {
+        const details = document.querySelector<HTMLDetailsElement>(".unibrow-live-details");
+        if (details) {
+          details.open = true;
+        }
+        await invoke("set_unibrow_live_mode", { enabled: true }).catch(() => undefined);
+        await invoke("start_unibrow_live_recording").catch(() => undefined);
+        const header = document.querySelector<HTMLElement>(".unibrow-studio-header");
+        const badge = document.querySelector<HTMLElement>(".unibrow-live-indicator");
+        const toggle = document.querySelector<HTMLInputElement>("#unibrow-live-mode");
+        const recordBtn = document.querySelector<HTMLButtonElement>(
+          ".unibrow-live-panel button",
+        );
+        if (toggle) {
+          toggle.checked = true;
+        }
+        badge?.classList.remove("hidden");
+        if (header) {
+          header.dataset.state = "recording";
+          header.textContent = "Recording";
+        }
+        recordBtn?.setAttribute("disabled", "true");
+        break;
+      }
       case "rail-expanded": {
         const { setRailMode } = await import("./ui/activityRail");
         setRailMode("expanded");

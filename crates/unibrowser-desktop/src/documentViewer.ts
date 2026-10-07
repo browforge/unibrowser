@@ -2534,13 +2534,58 @@ function renderMidi(viewer: DocumentViewerDto, root: HTMLElement) {
   }
 }
 
+function mountUnibrowInspector(
+  host: HTMLElement,
+  viewer: DocumentViewerDto,
+  node: ProjectNodeDto | null,
+) {
+  host.innerHTML = "";
+  host.setAttribute("aria-label", "Inspector");
+  const heading = document.createElement("h3");
+  heading.className = "unibrow-rail-heading";
+  heading.textContent = "Inspector";
+  host.appendChild(heading);
+  if (!node) {
+    const note = document.createElement("p");
+    note.className = "viewer-note";
+    note.textContent = "Select a board card or timeline clip.";
+    host.appendChild(note);
+    return;
+  }
+  const dl = document.createElement("dl");
+  dl.className = "unibrow-inspector-dl";
+  const addRow = (label: string, value: string) => {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  };
+  addRow("Label", node.label);
+  addRow("Type", node.node_type);
+  addRow("Asset", node.asset ?? "—");
+  addRow("Position", `${Math.round(node.x)} × ${Math.round(node.y)}`);
+  if (node.node_type === "title") {
+    const clip = (viewer.project_clips ?? []).find((c) => c.node_id === node.id);
+    if (clip?.title_text) {
+      addRow("Title text", clip.title_text);
+    }
+  }
+  host.appendChild(dl);
+}
+
 async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
+  root.className = "unibrow-create-root";
+  const liveDetails = document.createElement("details");
+  liveDetails.className = "unibrow-live-details";
+  const liveSummary = document.createElement("summary");
+  liveSummary.className = "unibrow-live-summary";
+  liveSummary.textContent = t("unibrow.liveHeading");
+  liveDetails.appendChild(liveSummary);
   const liveSection = document.createElement("section");
   liveSection.className = "unibrow-live-panel";
-  const liveHeading = document.createElement("h3");
-  liveHeading.textContent = t("unibrow.liveHeading");
-  liveSection.appendChild(liveHeading);
   const liveRow = document.createElement("div");
   liveRow.className = "unibrow-live-controls";
   const liveToggle = document.createElement("input");
@@ -2566,6 +2611,13 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   stopBtn.disabled = true;
   liveRow.appendChild(recordBtn);
   liveRow.appendChild(stopBtn);
+  const studioHeader = document.createElement("div");
+  studioHeader.className = "unibrow-studio-header";
+  studioHeader.dataset.state = "preview";
+  studioHeader.setAttribute("role", "status");
+  studioHeader.setAttribute("aria-live", "polite");
+  studioHeader.textContent = "Preview";
+  liveSection.appendChild(studioHeader);
   liveSection.appendChild(liveRow);
   const liveNote = document.createElement("p");
   liveNote.className = "viewer-note";
@@ -2575,7 +2627,34 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   previewImg.className = "unibrow-live-preview hidden";
   previewImg.alt = t("unibrow.livePreviewAlt");
   liveSection.appendChild(previewImg);
-  root.appendChild(liveSection);
+  liveDetails.appendChild(liveSection);
+  root.appendChild(liveDetails);
+
+  const workbench = document.createElement("div");
+  workbench.className = "unibrow-create-workspace";
+  const sourcesRail = document.createElement("aside");
+  sourcesRail.className = "unibrow-sources-rail";
+  sourcesRail.setAttribute("aria-label", "Sources");
+  const sourcesHeading = document.createElement("h3");
+  sourcesHeading.className = "unibrow-rail-heading";
+  sourcesHeading.textContent = "Sources";
+  sourcesRail.appendChild(sourcesHeading);
+  const mainCol = document.createElement("div");
+  mainCol.className = "unibrow-create-main";
+  const inspectorRail = document.createElement("aside");
+  inspectorRail.className = "unibrow-inspector-rail";
+  let selectedNodeId: string | null = null;
+  const selectBoardNode = (node: ProjectNodeDto) => {
+    selectedNodeId = node.id;
+    canvas
+      .querySelectorAll<HTMLElement>(".unibrow-board-card--selected")
+      .forEach((el) => el.classList.remove("unibrow-board-card--selected"));
+    const card = canvas.querySelector<HTMLElement>(
+      `.unibrow-board-card[data-node-id="${node.id}"]`,
+    );
+    card?.classList.add("unibrow-board-card--selected");
+    mountUnibrowInspector(inspectorRail, viewer, node);
+  };
 
   let livePoll: number | undefined;
   const stopLivePoll = () => {
@@ -2597,6 +2676,16 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       liveBadge.classList.toggle("hidden", !status.live_mode);
       recordBtn.disabled = !status.live_mode || status.recording;
       stopBtn.disabled = !status.recording;
+      if (status.recording) {
+        studioHeader.dataset.state = "recording";
+        studioHeader.textContent = "Recording";
+      } else if (status.live_mode) {
+        studioHeader.dataset.state = "live";
+        studioHeader.textContent = "LIVE";
+      } else {
+        studioHeader.dataset.state = "preview";
+        studioHeader.textContent = "Preview";
+      }
       if (status.png_base64 && status.live_mode) {
         previewImg.src = `data:image/png;base64,${status.png_base64}`;
         previewImg.classList.remove("hidden");
@@ -2655,7 +2744,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   hint.className = "viewer-note unibrow-board-hint";
   hint.textContent =
     "Alt+drag pan · Ctrl+wheel zoom · Double-click card to open · Drag to move";
-  root.appendChild(hint);
+  mainCol.appendChild(hint);
 
   const viewport = document.createElement("div");
   viewport.className = "unibrow-board-viewport";
@@ -2721,6 +2810,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "unibrow-board-card";
+    card.dataset.nodeId = node.id;
     card.style.left = `${node.x}px`;
     card.style.top = `${node.y}px`;
     applyLabelColor(card, node.color);
@@ -2784,6 +2874,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       }
       card.releasePointerCapture(e.pointerId);
       if (!moved) {
+        selectBoardNode(node);
         return;
       }
       const dx = (e.clientX - startMX) / scale;
@@ -2835,7 +2926,10 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   });
 
   viewport.appendChild(canvas);
-  root.appendChild(viewport);
+  mainCol.appendChild(viewport);
+  workbench.append(sourcesRail, mainCol, inspectorRail);
+  root.appendChild(workbench);
+  mountUnibrowInspector(inspectorRail, viewer, null);
 
   const clips = viewer.project_clips ?? [];
   const timelineTotalSec = (list: typeof clips) => {
@@ -2850,7 +2944,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   const markers = viewer.project_markers ?? [];
 
   const timeline = document.createElement("section");
-  timeline.className = "unibrow-timeline";
+  timeline.className = "unibrow-timeline unibrow-timeline-dock";
   const tlTitle = document.createElement("h3");
   tlTitle.id = "unibrow-timeline-heading";
   tlTitle.textContent = "Timeline";
@@ -3778,7 +3872,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   timeline.appendChild(ol);
   root.appendChild(timeline);
   const list = document.createElement("ul");
-  list.className = "unibrow-nodes";
+  list.className = "unibrow-nodes unibrow-sources-list";
   const nodes = viewer.project_nodes ?? [];
   if (nodes.length === 0) {
     const empty = document.createElement("li");
@@ -3833,7 +3927,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       list.appendChild(li);
     }
   }
-  root.appendChild(list);
+  sourcesRail.appendChild(list);
 
   const orphans = viewer.orphan_assets ?? [];
   if (orphans.length) {
@@ -3873,7 +3967,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       orphanList.appendChild(li);
     }
     orphanSection.appendChild(orphanList);
-    root.appendChild(orphanSection);
+    sourcesRail.appendChild(orphanSection);
   }
 
   const drop = document.createElement("div");
@@ -3903,7 +3997,7 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
       window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
     }
   };
-  root.appendChild(drop);
+  sourcesRail.appendChild(drop);
   const assetAddRow = document.createElement("div");
   assetAddRow.className = "unibrow-add-row";
   const select = document.createElement("select");
@@ -3950,11 +4044,16 @@ async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
   assetAddRow.appendChild(select);
   assetAddRow.appendChild(btn);
   assetAddRow.appendChild(pickBtn);
-  root.appendChild(assetAddRow);
+  sourcesRail.appendChild(assetAddRow);
   const note = document.createElement("p");
   note.className = "viewer-note";
   note.textContent = "Copies the file into project assets/ and updates project.json.";
-  root.appendChild(note);
+  sourcesRail.appendChild(note);
+
+  const defaultTitle = nodesOnBoard.find((n) => n.id === "node-1") ?? nodesOnBoard[0];
+  if (defaultTitle && !selectedNodeId) {
+    selectBoardNode(defaultTitle);
+  }
 
   const exportBtn = document.createElement("button");
   exportBtn.type = "button";
