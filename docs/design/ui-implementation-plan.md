@@ -1318,3 +1318,63 @@ Status: complete 2026-10-06.
 - Re-run the visual QA against every applicable drift-checklist item.
 - Likely files: capture scripts, `docs/screenshots/`, visual QA report.
 - Acceptance: no undocumented S0/S1 defects.
+
+## Workflow walkthrough QA tickets
+
+From [workflow-walkthrough-qa.md](workflow-walkthrough-qa.md) at 1280 light.
+
+### QA-01: Make PDF Highlight create a visible mark
+
+Status: open.
+
+- Arming Highlight and dragging across body text did not add a rect or
+  change the annotation count.
+- If Highlight needs a text selection, the armed tool must say so. If it
+  accepts a drag, the mark must appear and the tab must go dirty.
+- Save must stay available.
+- Likely files: `documentViewer.ts`, PDF annotation commands.
+- Evidence: `docs/screenshots/workflow-walkthrough/02-pdf-annotated.png`.
+
+### QA-02: Open workshop Export without hunting overflow
+
+Status: open.
+
+- At 1280 the Project prefix is Add asset, Add title, Split, Delete clip.
+  Export is overflow-only. This walk did not reach a delivery panel.
+- Keep a reachable Export that opens the non-modal delivery panel from
+  US-10. Do not cover the timeline.
+- Likely files: workshop command families, export panel.
+- Evidence: `docs/screenshots/workflow-walkthrough/04-workshop-export.png`.
+
+### QA-03: Finish catalogue Install through to Open with
+
+Status: open. In-card stub copy shipped in `d4dbb9f`.
+
+- CAD file support Install does not install a handler. sample.step never
+  offers Open with [mod].
+- Install must stay on the card, show progress there, and leave the file
+  tab in place (US-13).
+- Likely files: `modPortalUi.ts`, `main.ts` portal handlers.
+- Evidence: `docs/screenshots/workflow-walkthrough/05-portal-install.png`.
+
+### QA-04: Make the Auto-save interval select reliable to change
+
+Status: open.
+
+- General shows Auto-save on and Every 5 minutes. A pointer open of the
+  themed list did not keep a new interval in the walkthrough.
+- Changing the interval must persist and stay visible. The switch must
+  not steal the select hit target.
+- Likely files: `settingsPage.ts`, `themedSelect.ts`.
+- Evidence: `docs/screenshots/workflow-walkthrough/06-settings-autosave.png`.
+
+### QA-05: Keep the floating command window off the Settings rail
+
+Status: open.
+
+- Unibrowser commands (Dock in main window, Markdown proving) can cover
+  Appearance and block Theme.
+- Theme stays under Appearance. Switching Light to Dark must remain
+  possible without dismissing a stray toolbar first.
+- Likely files: `toolbar_windows.rs`, settings page, command pin.
+- Evidence: `docs/screenshots/workflow-walkthrough/07-theme-appearance.png`.

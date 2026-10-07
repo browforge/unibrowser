@@ -126,7 +126,8 @@ stop_app
 
 # --- 3. Edit markdown (US-03, US-06) ---
 reset_prefs
-start_app "" --open "$PACK/sample.md"
+cp "$PACK/sample.md" "$tmp/walk.md"
+start_app "" --open "$tmp/walk.md"
 xdotool sleep 1
 shot "03-md-open"
 xdotool mousemove 400 280 click 1
@@ -185,7 +186,8 @@ reset_prefs
 start_app "settings" --open "$PACK/sample.txt"
 xdotool sleep 1.4
 shot "07-theme-light"
-# Theme lives under Appearance, not General.
+# Theme lives under Appearance, not General. Close any floating CM first.
+close_floating_toolbar
 xdotool mousemove 95 215 click 1
 xdotool sleep 0.5
 xdotool mousemove 1180 200 click 1
