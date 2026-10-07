@@ -119,6 +119,7 @@ capture_states() {
   local width="${7:-300}"
   local height="${8:-90}"
 
+  xdotool mousemove 700 650 click 1
   xdotool mousemove 1180 780
   shot "${order}-default" "$crop_x" "$crop_y" "$width" "$height"
 
@@ -126,6 +127,7 @@ capture_states() {
   xdotool sleep 0.2
   shot "${order}-hover" "$crop_x" "$crop_y" "$width" "$height"
 
+  xdotool mousemove 700 650 click 1
   # A Tab key establishes keyboard modality. Pointer down gives the production
   # control focus; releasing away avoids activating or changing it.
   xdotool key Tab
@@ -136,6 +138,7 @@ capture_states() {
   xdotool key Escape
   shot "${order}-focus" "$crop_x" "$crop_y" "$width" "$height"
 
+  xdotool mousemove 700 650 click 1
   xdotool mousemove "$target_x" "$target_y"
   xdotool mousedown 1
   shot "${order}-pressed" "$crop_x" "$crop_y" "$width" "$height"
