@@ -922,7 +922,8 @@ function renderModPortal(portal: ModPortalDto | null) {
     reason.textContent = s.reason;
     const meta = document.createElement("span");
     meta.className = "mod-result-meta";
-    meta.textContent = "Source: catalogue · Permissions shown before install";
+    meta.textContent =
+      "Source: built-in catalogue | Licence: check before install | Permissions: review before install";
     btn.append(title, id, reason, meta);
     btn.title = s.reason;
     btn.onclick = () => {
@@ -947,11 +948,6 @@ function renderModPortal(portal: ModPortalDto | null) {
     };
     modPortalPanel.appendChild(btn);
   });
-  const side = document.createElement("p");
-  side.className = "sideload";
-  side.textContent = portal.sideload_hint;
-  modPortalPanel.appendChild(side);
-
   const searchRow = document.createElement("div");
   searchRow.className = "mod-portal-search";
   const optIn = document.createElement("input");
@@ -1021,9 +1017,16 @@ function renderModPortal(portal: ModPortalDto | null) {
   installedList.className = "mod-portal-installed mod-portal-vsix";
   modPortalPanel.appendChild(installedList);
 
+  const developer = document.createElement("details");
+  developer.className = "mod-portal-developer";
+  const developerSummary = document.createElement("summary");
+  developerSummary.textContent = "Developer";
+  const side = document.createElement("p");
+  side.className = "sideload";
+  side.textContent = portal.sideload_hint;
   const sideloadBtn = document.createElement("button");
   sideloadBtn.type = "button";
-  sideloadBtn.className = "mod-suggestion";
+  sideloadBtn.className = "mod-sideload-button";
   sideloadBtn.textContent = t("mods.sideloadButton");
   sideloadBtn.onclick = async () => {
     try {
@@ -1043,7 +1046,8 @@ function renderModPortal(portal: ModPortalDto | null) {
       showToast(String(err), "error");
     }
   };
-  modPortalPanel.appendChild(sideloadBtn);
+  developer.append(developerSummary, side, sideloadBtn);
+  modPortalPanel.appendChild(developer);
 
   void refreshInstalledExtensions(nativeList, installedList);
 
@@ -1079,8 +1083,20 @@ function renderModPortal(portal: ModPortalDto | null) {
     entries.forEach((entry) => {
       const row = document.createElement("button");
       row.type = "button";
-      row.className = "mod-suggestion mod-catalog-row";
-      row.textContent = `${entry.title} (${entry.kind})`;
+      row.className = "mod-result-card mod-catalog-row";
+      const title = document.createElement("strong");
+      title.textContent = entry.title;
+      const id = document.createElement("span");
+      id.className = "mod-result-id";
+      id.textContent = entry.id;
+      const reason = document.createElement("span");
+      reason.className = "mod-result-reason";
+      reason.textContent = entry.blurb;
+      const meta = document.createElement("span");
+      meta.className = "mod-result-meta";
+      const source = entry.open_vsx_id ? "Open VSX" : "Built-in catalogue";
+      meta.textContent = `Source: ${source} | Licence: check before install | Permissions: review before install`;
+      row.append(title, id, reason, meta);
       row.title = entry.blurb;
       row.onclick = () => {
         if (entry.open_vsx_id) {

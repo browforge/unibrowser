@@ -160,6 +160,26 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
       case "live-preview":
         checks.push(unibrowBoardReady, liveBadgeReady);
         break;
+      case "ui17-unknown-support":
+        checks.push(() => {
+          const panel = document.getElementById("unknown-file-banner");
+          return Boolean(
+            panel &&
+              !panel.classList.contains("hidden") &&
+              panel.classList.contains("unknown-support-panel"),
+          );
+        });
+        break;
+      case "ui17-mod-portal":
+        checks.push(() => {
+          const portal = document.getElementById("mod-portal-panel");
+          return Boolean(
+            portal &&
+              !portal.classList.contains("hidden") &&
+              portal.querySelector(".mod-result-card"),
+          );
+        });
+        break;
       default:
         break;
     }

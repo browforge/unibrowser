@@ -5483,9 +5483,9 @@ body.content-fullscreen #unknown-file-banner {
 }
 
 .mod-portal .sideload {
-  font-size: 0.8rem;
-  color: #999;
-  margin-top: 0.5rem;
+  margin: 8px 0;
+  color: var(--ub-text-2, #c9cbc8);
+  font-size: 12px;
 }
 
 .mod-portal-tabs {
@@ -5508,6 +5508,12 @@ body.content-fullscreen #unknown-file-banner {
   color: var(--ub-text, #eee);
 }
 
+.mod-portal-tab:focus-visible,
+.mod-portal-tab:hover {
+  color: var(--ub-text-1, #f0efeb);
+  background: var(--ub-selected, #253e4c);
+}
+
 .mod-suggestion {
   display: block;
   width: 100%;
@@ -5526,6 +5532,11 @@ body.content-fullscreen #unknown-file-banner {
   gap: 3px 12px;
   margin: 8px 0;
   padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  color: var(--ub-text-1, #f0efeb);
+  cursor: pointer;
+  border: 1px solid var(--ub-border, #4d5151);
   border-radius: 6px;
   background: var(--ub-surface, #2b3035);
 }
@@ -5557,6 +5568,50 @@ body.content-fullscreen #unknown-file-banner {
   background: #f7f6f2;
 }
 
+[data-theme="light"] .mod-portal-tab {
+  color: #4b5052;
+}
+
+[data-theme="light"] .mod-portal-tab[aria-current="page"],
+[data-theme="light"] .mod-portal-tab:hover,
+[data-theme="light"] .mod-portal-tab:focus-visible {
+  color: #202223;
+}
+
+.mod-portal-catalog {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.mod-catalog-row {
+  margin: 0;
+  min-width: 0;
+}
+
+.mod-portal-developer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ub-border, #4d5151);
+}
+
+.mod-portal-developer summary {
+  width: max-content;
+  color: var(--ub-text-2, #c9cbc8);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mod-sideload-button {
+  padding: 6px 10px;
+  color: var(--ub-text-1, #f0efeb);
+  background: var(--ub-control, #2d3031);
+  border: 1px solid var(--ub-border, #4d5151);
+  border-radius: 4px;
+}
+
 .mod-portal-search {
   display: flex;
   flex-wrap: wrap;
@@ -5568,7 +5623,11 @@ body.content-fullscreen #unknown-file-banner {
 .mod-portal-query {
   flex: 1 1 12rem;
   min-width: 8rem;
-  padding: 0.25rem 0.4rem;
+  padding: 6px 8px;
+  color: var(--ub-text-1, #f0efeb);
+  background: var(--ub-control, #2d3031);
+  border: 1px solid var(--ub-border-strong, #777);
+  border-radius: 4px;
 }
 
 .mod-portal-search-status {

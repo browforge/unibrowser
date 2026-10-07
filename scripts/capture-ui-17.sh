@@ -11,6 +11,7 @@ mkdir -p "$OUT"
 rm -f "$OUT"/*.png
 BIN="$ROOT/target/release/unibrowser-desktop"
 FIXTURE="$ROOT/examples/demo-pack/unknown.ubunknown"
+[[ -f "$FIXTURE" ]]
 
 capture() {
   local name="$1"
@@ -28,7 +29,7 @@ capture() {
   [[ "$(identify -format '%wx%h' "$OUT/${name}.png")" == "1280x800" ]]
 }
 
-capture "unknown-file-support-light-1280" ""
+capture "unknown-file-support-light-1280" "ui17-unknown-support"
 capture "mod-portal-discover-light-1280" "ui17-mod-portal"
 
 if [[ "$(sha256sum "$OUT"/*.png | cut -d' ' -f1 | sort | uniq -d | wc -l)" != "0" ]]; then
