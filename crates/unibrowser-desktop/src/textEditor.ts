@@ -1,10 +1,8 @@
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import { applyMarkdownPreview } from "./markdownPreview";
-import { exportMarkdownToHtmlFile } from "./markdownExport";
 import { textReadingStats } from "./textStats";
 import { t } from "./i18n";
-import { openPrintPreviewDocument, plainTextPrintBody } from "./printExport";
 import {
   attachSpellcheckPane,
   detachSpellcheckPane,
@@ -46,7 +44,6 @@ let previewTocEl: HTMLElement | null = null;
 let previewEl: HTMLElement | null = null;
 let toolbarEl: HTMLElement | null = null;
 let plainToolbarEl: HTMLDivElement | null = null;
-let plainToolbarPath: string | null = null;
 let findBound = false;
 
 async function getMonaco(): Promise<Monaco> {
@@ -222,7 +219,11 @@ function scheduleSync() {
   }, 250);
 }
 
-function ensurePlainTextPrintToolbar(host: HTMLElement, path: string) {
+function ensurePlainTextPrintToolbar(_host: HTMLElement, path: string) {
+  if (plainToolbarEl) {
+    plainToolbarEl.remove();
+    plainToolbarEl = null;
+  }
   if (isMarkdownPath(path)) {
     return;
   }
@@ -232,27 +233,6 @@ function ensurePlainTextPrintToolbar(host: HTMLElement, path: string) {
   }
   markdownPreview = false;
   tearDownPreviewShell();
-  if (plainToolbarEl && plainToolbarPath === path) {
-    return;
-  }
-  if (plainToolbarEl) {
-    plainToolbarEl.remove();
-    plainToolbarEl = null;
-  }
-  plainToolbarPath = path;
-  plainToolbarEl = document.createElement("div");
-  plainToolbarEl.className = "md-editor-toolbar text-print-toolbar";
-  const printBtn = document.createElement("button");
-  printBtn.type = "button";
-  printBtn.textContent = t("print.preview");
-  printBtn.onclick = () => {
-    if (!editor) {
-      return;
-    }
-    openPrintPreviewDocument(path, plainTextPrintBody(editor.getValue()));
-  };
-  plainToolbarEl.appendChild(printBtn);
-  host.parentElement?.insertBefore(plainToolbarEl, host);
 }
 
 function tearDownPreviewShell() {
@@ -264,86 +244,22 @@ function tearDownPreviewShell() {
   }
 }
 
-function ensurePreviewShell(host: HTMLElement) {
-  if (previewShellEl) {
-    return;
-  }
-  const parent = host.parentElement;
-  if (!parent) {
-    return;
-  }
-  previewShellEl = document.createElement("div");
-  previewShellEl.className = "md-preview-shell hidden";
-  previewTocEl = document.createElement("nav");
-  previewTocEl.className = "md-toc hidden";
-  previewTocEl.setAttribute("aria-label", t("markdown.tocAria"));
-  previewEl = document.createElement("article");
-  previewEl.className = "md-preview-body";
-  previewShellEl.appendChild(previewTocEl);
-  previewShellEl.appendChild(previewEl);
-  parent.insertBefore(previewShellEl, host.nextSibling);
-}
-
 function ensureMarkdownToolbar(host: HTMLElement, path: string) {
+  if (toolbarEl) {
+    toolbarEl.remove();
+    toolbarEl = null;
+  }
   if (!isMarkdownPath(path)) {
-    if (plainToolbarEl) {
-      plainToolbarEl.remove();
-      plainToolbarEl = null;
-      plainToolbarPath = null;
-    }
     ensurePlainTextPrintToolbar(host, path);
     return;
   }
   if (plainToolbarEl) {
     plainToolbarEl.remove();
     plainToolbarEl = null;
-    plainToolbarPath = null;
   }
-  if (toolbarEl) {
-    return;
-  }
-  toolbarEl = document.createElement("div");
-  toolbarEl.className = "md-editor-toolbar";
-  const toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.textContent = "Preview";
-  toggle.onclick = () => {
-    markdownPreview = !markdownPreview;
-    toggle.textContent = markdownPreview ? "Edit only" : "Preview";
-    ensurePreviewShell(host);
-    if (previewShellEl) {
-      previewShellEl.classList.toggle("hidden", !markdownPreview);
-    }
-    if (markdownPreview && editor && previewEl) {
-      void applyMarkdownPreview(previewEl, editor.getValue(), path, previewTocEl);
-    }
-    host.classList.toggle("md-split", markdownPreview);
-  };
-  toolbarEl.appendChild(toggle);
-  const exportHtmlBtn = document.createElement("button");
-  exportHtmlBtn.type = "button";
-  exportHtmlBtn.textContent = t("markdown.exportHtml");
-  exportHtmlBtn.onclick = () => {
-    if (!editor) {
-      return;
-    }
-    void exportMarkdownToHtmlFile(path, editor.getValue());
-  };
-  toolbarEl.appendChild(exportHtmlBtn);
-  const printBtn = document.createElement("button");
-  printBtn.type = "button";
-  printBtn.textContent = t("print.preview");
-  printBtn.onclick = () => {
-    if (!editor) {
-      return;
-    }
-    const html = markdownPreview && previewEl
-      ? previewEl.innerHTML
-      : `<pre>${editor.getValue()}</pre>`;
-    openPrintPreviewDocument(path, html);
-  };
-  toolbarEl.appendChild(printBtn);
-  host.parentElement?.insertBefore(toolbarEl, host);
+  markdownPreview = false;
+  tearDownPreviewShell();
+  host.classList.remove("md-split");
 }
 
 function bindFindShortcut(api: Monaco) {

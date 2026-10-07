@@ -1428,14 +1428,27 @@ body.toolbar-window-mode .floating-bar.docked {
 }
 
 .files-side-panel {
-  flex: 0 0 16rem;
-  max-width: 40%;
+  flex: 0 0 15rem;
+  min-width: 12rem;
+  max-width: 34%;
   border-left: 1px solid #444;
   padding: 0.75rem;
   overflow: auto;
   background: #1e1e24;
   height: 100%;
   box-sizing: border-box;
+}
+
+.files-name-cell .ft-icon {
+  min-width: 1.75rem;
+  height: 1.15rem;
+  margin-right: 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 600;
+  border-radius: 3px;
+  border: 1px solid var(--ub-border, #555);
+  background: transparent;
+  color: var(--ub-text-3, #8a939c);
 }
 
 .files-preview-image {
@@ -2322,6 +2335,10 @@ body.content-fullscreen::after {
   border-radius: 0;
   overflow: hidden;
   background: var(--ub-canvas, #1b1d1e);
+}
+
+.md-editor-toolbar {
+  display: none !important;
 }
 
 [data-theme="light"] .text-editor-host {
@@ -5595,6 +5612,59 @@ body.content-fullscreen #unknown-file-banner {
 .mod-portal h2 {
   margin: 0 0 0.35rem;
   font-size: 1.05rem;
+}
+
+.mod-portal-task-header {
+  margin-bottom: 0.75rem;
+}
+
+.mod-portal-task-lead {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--ub-text-2, #c9cbc8);
+  max-width: 42rem;
+}
+
+.mod-portal-search--task {
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--ub-border, #4d5151);
+}
+
+.mod-portal-search--task .mod-portal-network-status {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 12rem;
+  font-size: 12px;
+}
+
+.mod-portal-featured {
+  margin-bottom: 0.85rem;
+}
+
+.mod-portal-featured-title {
+  margin: 0 0 0.35rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ub-text-3, #8a939c);
+}
+
+.mod-result-card--featured {
+  border-color: var(--ub-accent, #3d9fd4);
+  background: color-mix(in srgb, var(--ub-panel, #252a30) 88%, var(--ub-accent, #3d9fd4) 12%);
+}
+
+.mod-portal-catalog--restrained .mod-result-card {
+  padding: 8px 10px;
+  opacity: 0.92;
+}
+
+.mod-portal-catalog-note {
+  margin-top: 0.25rem;
 }
 
 .mod-portal .sideload {
