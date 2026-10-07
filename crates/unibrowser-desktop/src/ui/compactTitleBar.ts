@@ -30,8 +30,6 @@ export function initCompactTitleBar(deps: CompactTitleBarDeps) {
   fillIconButton("btn-back", "arrow-left", "Back");
   fillIconButton("btn-forward", "arrow-right", "Forward");
   fillIconButton("btn-reload", "rotate-cw", "Reload");
-  fillIconButton("btn-undo", "undo-2", "Undo");
-  fillIconButton("btn-redo", "redo-2", "Redo");
   const saveBtn = document.getElementById("btn-save");
   if (saveBtn) {
     saveBtn.title = "Save";
@@ -88,12 +86,6 @@ export function initCompactTitleBar(deps: CompactTitleBarDeps) {
   document.getElementById("btn-forward")!.onclick = () => deps.onForward();
   document.getElementById("btn-reload")!.onclick = () => deps.onReload();
 
-  document.getElementById("btn-undo")!.onclick = () => {
-    void deps.runCommand("unibrowser.document.undo");
-  };
-  document.getElementById("btn-redo")!.onclick = () => {
-    void deps.runCommand("unibrowser.document.redo");
-  };
   document.getElementById("btn-save")!.onclick = () => {
     void deps.runCommand("unibrowser.text.save");
   };

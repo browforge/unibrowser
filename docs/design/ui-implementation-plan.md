@@ -112,7 +112,8 @@ Work:
 - Keep File/Edit/View/Go/Tools/Help as the canonical taxonomy.
 - Add a compact menu button for the future unified title bar while retaining
   full Alt-key menu access and arrow-key traversal.
-- Define title-bar global commands: Undo, Redo, Save, layout overflow.
+- Define title-bar global commands: Save and layout overflow. Undo and Redo
+  remain in the context Command Manager to avoid duplicate controls.
 - Keep Back, Forward, Reload/Stop conditional to web and folder tabs.
 - Move Home/Settings/Mods/Layout actions into menus and palette.
 - Put saved layouts under View > Workspaces and the palette; do not add a

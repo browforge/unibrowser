@@ -1787,7 +1787,7 @@ body.toolbar-window-mode .floating-bar.docked {
 }
 
 .files-props-dl dt {
-  color: #888;
+  color: var(--ub-text-2, #c9cbc8);
   margin-top: 0.35rem;
 }
 
@@ -2243,7 +2243,7 @@ body.toolbar-window-mode .floating-bar.docked {
 .files-table th {
   padding: 0.35rem 0.45rem;
   border-bottom: 1px solid var(--ub-border, #c8c4bc);
-  color: var(--ub-text-muted, #666);
+  color: var(--ub-text-2, #c9cbc8);
   font-size: 0.75rem;
   font-weight: 600;
   text-align: left;
@@ -2303,7 +2303,7 @@ body.toolbar-window-mode .floating-bar.docked {
   margin: 0;
   font: inherit;
   font-weight: 600;
-  color: var(--ub-text-muted, #666);
+  color: var(--ub-text-2, #c9cbc8);
   cursor: pointer;
   text-align: inherit;
 }
