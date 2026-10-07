@@ -166,6 +166,8 @@ pub mod commands {
     pub const BROWSE_SORT: &str = "unibrowser.browse.sort";
     pub const BROWSE_SORT_DIRECTION: &str = "unibrowser.browse.sortDirection";
     pub const BROWSE_SHOW_HIDDEN: &str = "unibrowser.browse.showHidden";
+    pub const BROWSE_SET_WORKSPACE: &str = "unibrowser.browse.setWorkspace";
+    pub const BROWSE_CLEAR_WORKSPACE: &str = "unibrowser.browse.clearWorkspace";
     pub const SETTINGS_SEARCH: &str = "unibrowser.settings.search";
     pub const SETTINGS_KEYBINDINGS: &str = "unibrowser.settings.keybindings";
     pub const SETTINGS_DIAGNOSTICS: &str = "unibrowser.settings.diagnostics";

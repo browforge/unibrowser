@@ -16,14 +16,11 @@ export type { DirEntry, FilesViewDto } from "./filesPanelTypes";
 const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp"]);
 const IMAGE_PREVIEW_EXT = new Set([...IMAGE_EXT, "svg"]);
 
-const THUMB_MAX_BYTES = 8_000_000;
-const THUMB_MAX_ACTIVE = 24;
 const SEARCH_DEBOUNCE_MS = 250;
 /** Beyond this, rows are windowed while scrolling (10k+ listings stay usable). */
 const VIRTUALIZE_THRESHOLD = 500;
 const FILE_ROW_HEIGHT_PX = 40;
 const VIRTUAL_VIEWPORT_PX = 520;
-let thumbLoadCount = 0;
 
 const selectedPaths = new Set<string>();
 let lastBrowsePath = "";
@@ -863,42 +860,8 @@ function showContextMenu(
   setTimeout(() => document.addEventListener("mousedown", onDoc), 0);
 }
 
-function attachLazyThumb(img: HTMLImageElement, path: string, sizeBytes: number) {
-  const load = async () => {
-    if (thumbLoadCount >= THUMB_MAX_ACTIVE) {
-      return;
-    }
-    if (sizeBytes > THUMB_MAX_BYTES) {
-      return;
-    }
-    thumbLoadCount += 1;
-    try {
-      await invoke("allow_asset_path", { path });
-      img.src = convertFileSrc(path);
-      img.classList.add("loaded");
-    } catch {
-      img.remove();
-    }
-  };
-  if (typeof IntersectionObserver === "undefined") {
-    void load();
-    return;
-  }
-  const obs = new IntersectionObserver(
-    (entries) => {
-      if (entries.some((e) => e.isIntersecting)) {
-        obs.disconnect();
-        void load();
-      }
-    },
-    { rootMargin: "80px" },
-  );
-  obs.observe(img);
-}
-
 export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   host.innerHTML = "";
-  thumbLoadCount = 0;
 
   const navigationRail = document.createElement("aside");
   navigationRail.className = "files-layout-nav";
@@ -951,16 +914,6 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     await deps.onRefresh?.();
   };
   nav.appendChild(favCurrent);
-  const workspaceBtn = document.createElement("button");
-  workspaceBtn.type = "button";
-  workspaceBtn.className = "files-workspace-btn";
-  workspaceBtn.textContent = t("files.setWorkspace");
-  workspaceBtn.title = t("files.setWorkspaceHint");
-  workspaceBtn.onclick = async () => {
-    await invoke("set_workspace_root", { path: deps.browsePath });
-    await deps.onRefresh?.();
-  };
-  nav.appendChild(workspaceBtn);
   if (deps.workspaceRoot) {
     const clearWs = document.createElement("button");
     clearWs.type = "button";
@@ -1100,57 +1053,6 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     navigationRail.appendChild(places);
   }
 
-  const toolbar = document.createElement("div");
-  toolbar.className = "files-toolbar";
-  const sortLabel = document.createElement("label");
-  sortLabel.textContent = t("files.sort");
-  const sortSelect = document.createElement("select");
-  sortSelect.className = "files-sort";
-  [
-    { value: "name", label: t("files.sortName") },
-    { value: "date", label: t("files.sortDate") },
-    { value: "size", label: t("files.sortSize") },
-  ].forEach((opt) => {
-    const o = document.createElement("option");
-    o.value = opt.value;
-    o.textContent = opt.label;
-    sortSelect.appendChild(o);
-  });
-  sortSelect.value = deps.filesView.sort;
-  const orderBtn = document.createElement("button");
-  orderBtn.type = "button";
-  orderBtn.className = "files-order";
-  orderBtn.textContent = deps.filesView.sort_ascending ? "Ascending" : "Descending";
-  orderBtn.title = deps.filesView.sort_ascending
-    ? "Sort ascending. Activate for descending."
-    : "Sort descending. Activate for ascending.";
-  const hiddenCb = document.createElement("input");
-  hiddenCb.type = "checkbox";
-  hiddenCb.id = "files-show-hidden";
-  hiddenCb.checked = deps.filesView.show_hidden;
-  const hiddenLabel = document.createElement("label");
-  hiddenLabel.htmlFor = hiddenCb.id;
-  hiddenLabel.textContent = t("files.showHidden");
-  sortSelect.onchange = () => {
-    void deps.persistFilesView({ ...deps.filesView, sort: sortSelect.value });
-  };
-  orderBtn.onclick = () => {
-    void deps.persistFilesView({
-      ...deps.filesView,
-      sort_ascending: !deps.filesView.sort_ascending,
-    });
-  };
-  hiddenCb.onchange = () => {
-    void deps.persistFilesView({ ...deps.filesView, show_hidden: hiddenCb.checked });
-  };
-  toolbar.appendChild(sortLabel);
-  toolbar.appendChild(sortSelect);
-  toolbar.appendChild(orderBtn);
-  toolbar.appendChild(hiddenCb);
-  toolbar.appendChild(hiddenLabel);
-
-  content.appendChild(toolbar);
-
   const searchRow = document.createElement("div");
   searchRow.className = "files-search-row";
   const searchLabel = document.createElement("label");
@@ -1206,7 +1108,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   };
   selectAllTh.appendChild(selectAll);
   headRow.appendChild(selectAllTh);
-  ["", t("files.sortName"), ""].forEach((label) => {
+  [t("files.sortName"), ""].forEach((label) => {
     const th = document.createElement("th");
     th.textContent = label;
     headRow.appendChild(th);
@@ -1286,19 +1188,9 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     checkCell.appendChild(cb);
     row.appendChild(checkCell);
 
-    const thumbCell = document.createElement("td");
-    thumbCell.className = "files-thumb-cell";
-    appendFileTypeIcon(thumbCell, fileTypeVisual(entry));
-    if (entry.is_image) {
-      const img = document.createElement("img");
-      img.className = "files-thumb";
-      img.alt = "";
-      img.loading = "lazy";
-      attachLazyThumb(img, entry.path, entry.size_bytes ?? 0);
-      thumbCell.appendChild(img);
-    }
-
     const nameCell = document.createElement("td");
+    nameCell.className = "files-name-cell";
+    appendFileTypeIcon(nameCell, fileTypeVisual(entry));
     if (renamingPath === entry.path) {
       const input = document.createElement("input");
       input.type = "text";
@@ -1390,7 +1282,6 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       }
       metaCell.textContent = parts.join(" · ") || "";
     }
-    row.appendChild(thumbCell);
     row.appendChild(nameCell);
     row.appendChild(metaCell);
     return row;
@@ -1402,7 +1293,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       const pad = document.createElement("tr");
       pad.className = "files-virtual-pad";
       const cell = document.createElement("td");
-      cell.colSpan = 4;
+      cell.colSpan = 3;
       cell.style.height = `${start * FILE_ROW_HEIGHT_PX}px`;
       cell.style.padding = "0";
       cell.style.border = "0";
@@ -1416,7 +1307,7 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
       const pad = document.createElement("tr");
       pad.className = "files-virtual-pad";
       const cell = document.createElement("td");
-      cell.colSpan = 4;
+      cell.colSpan = 3;
       cell.style.height = `${(visibleEntries.length - end) * FILE_ROW_HEIGHT_PX}px`;
       cell.style.padding = "0";
       cell.style.border = "0";
@@ -1548,6 +1439,14 @@ export async function runFilesCommand(commandId: string): Promise<boolean> {
         ...deps.filesView,
         show_hidden: !deps.filesView.show_hidden,
       });
+      return true;
+    case "unibrowser.browse.setWorkspace":
+      await invoke("set_workspace_root", { path: deps.browsePath });
+      await deps.onRefresh?.();
+      return true;
+    case "unibrowser.browse.clearWorkspace":
+      await invoke("clear_workspace_root");
+      await deps.onRefresh?.();
       return true;
     default:
       return true;

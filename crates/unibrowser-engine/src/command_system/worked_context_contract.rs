@@ -216,6 +216,34 @@ fn image_context_exposes_adjust_family() {
 }
 
 #[test]
+fn svg_image_context_marks_non_image_commands_unsupported() {
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(WorkContext::Image, "photo.svg");
+    let cases = [
+        (
+            "unibrowser.control.find",
+            commands::FIND_IN_DOCUMENT,
+            "not available for images",
+        ),
+        (
+            "unibrowser.control.proofing",
+            commands::PROOFING_TOGGLE,
+            "not images",
+        ),
+        (
+            "unibrowser.control.image.curves",
+            commands::IMAGE_CURVES,
+            "raster pixels",
+        ),
+    ];
+    for (control_id, command_id, fragment) in cases {
+        let cap = resolver.resolve_control(control_id, command_id, &ctx);
+        let reason = cap.unsupported_reason().unwrap_or("");
+        assert!(reason.contains(fragment), "{control_id}: {reason}");
+    }
+}
+
+#[test]
 fn cad3d_context_exposes_proving_view_family_and_reasons() {
     assert_eq!(
         infer_work_context(CommandContext::Text, Mode::Text, Some("part.dxf")),

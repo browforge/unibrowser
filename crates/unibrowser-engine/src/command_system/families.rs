@@ -320,6 +320,20 @@ fn browse_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Reso
                     "eye",
                     "unibrowser.group.browse.view",
                 ),
+                make(
+                    control_ids::BROWSE_SET_WORKSPACE,
+                    commands::BROWSE_SET_WORKSPACE,
+                    "Set workspace",
+                    "folder",
+                    "unibrowser.group.browse.view",
+                ),
+                make(
+                    control_ids::BROWSE_CLEAR_WORKSPACE,
+                    commands::BROWSE_CLEAR_WORKSPACE,
+                    "Clear workspace",
+                    "x",
+                    "unibrowser.group.browse.view",
+                ),
             ],
         },
     ];

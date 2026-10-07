@@ -111,6 +111,8 @@ pub mod control_ids {
     pub const BROWSE_SORT: &str = "unibrowser.control.browse.sort";
     pub const BROWSE_SORT_DIRECTION: &str = "unibrowser.control.browse.sortDirection";
     pub const BROWSE_SHOW_HIDDEN: &str = "unibrowser.control.browse.showHidden";
+    pub const BROWSE_SET_WORKSPACE: &str = "unibrowser.control.browse.setWorkspace";
+    pub const BROWSE_CLEAR_WORKSPACE: &str = "unibrowser.control.browse.clearWorkspace";
     pub const SETTINGS_SEARCH: &str = "unibrowser.control.settings.search";
     pub const SETTINGS_KEYBINDINGS: &str = "unibrowser.control.settings.keybindings";
     pub const SETTINGS_DIAGNOSTICS: &str = "unibrowser.control.settings.diagnostics";

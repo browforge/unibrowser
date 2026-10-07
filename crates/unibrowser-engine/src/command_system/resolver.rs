@@ -110,7 +110,7 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         WorkContext::RichDocument => CapabilityState::Supported,
         WorkContext::CodeEditor => code_capability(control_id),
         WorkContext::Pdf => pdf_capability(control_id),
-        WorkContext::Image => image_capability(control_id),
+        WorkContext::Image => image_capability(control_id, ctx),
         WorkContext::Cad3d => cad_capability(control_id),
         WorkContext::Start => start_capability(control_id),
         WorkContext::Browse => browse_capability(control_id),
@@ -233,15 +233,27 @@ fn pdf_capability(control_id: &str) -> CapabilityState {
     }
 }
 
-fn image_capability(control_id: &str) -> CapabilityState {
-    if control_id.starts_with("unibrowser.control.image.") {
-        CapabilityState::Supported
-    } else if control_id.starts_with("unibrowser.control.text.") {
-        CapabilityState::Unsupported {
+fn image_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityState {
+    let vector_image = ctx
+        .doc_path
+        .as_deref()
+        .map(|path| path.rsplit('.').next().is_some_and(|ext| ext.eq_ignore_ascii_case("svg")))
+        .unwrap_or(false);
+    match control_id {
+        "unibrowser.control.find" => CapabilityState::Unsupported {
+            reason: "Find is not available for images.".into(),
+        },
+        "unibrowser.control.proofing" => CapabilityState::Unsupported {
+            reason: "Spell check applies to text, not images.".into(),
+        },
+        "unibrowser.control.image.curves" if vector_image => CapabilityState::Unsupported {
+            reason: "Curves adjusts raster pixels, not SVG vector paths.".into(),
+        },
+        id if id.starts_with("unibrowser.control.image.") => CapabilityState::Supported,
+        id if id.starts_with("unibrowser.control.text.") => CapabilityState::Unsupported {
             reason: "Adjust image pixels with the image tools, not text formatting.".into(),
-        }
-    } else {
-        CapabilityState::Supported
+        },
+        _ => CapabilityState::Supported,
     }
 }
 
