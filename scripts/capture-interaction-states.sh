@@ -123,6 +123,28 @@ shot() {
     -border 1 "$tmp/cells/${name}.png"
 }
 
+# WebKit treats a mouse-focused button as mouse modality, so :focus-visible
+# does not paint after click or after Shift+Tab/Tab on the same control.
+# Land keyboard focus by activating the previous tab-order control, then Tab
+# (or Shift+Tab) onto the sampled target. Escape is not sent afterwards.
+focus_from_predecessor() {
+  local pred_x="$1"
+  local pred_y="$2"
+  local hops="$3"
+  local key="$4"
+  local i
+  xdotool mousemove 700 650 click 1
+  xdotool mousemove "$pred_x" "$pred_y"
+  xdotool click 1
+  xdotool mousemove 1180 780
+  xdotool sleep 0.15
+  for ((i = 0; i < hops; i++)); do
+    xdotool key "$key"
+    xdotool sleep 0.08
+  done
+  xdotool sleep 0.15
+}
+
 capture_states() {
   local order="$1"
   local label="$2"
@@ -132,6 +154,10 @@ capture_states() {
   local crop_y="$6"
   local width="${7:-300}"
   local height="${8:-90}"
+  local pred_x="${9:-}"
+  local pred_y="${10:-}"
+  local hops="${11:-}"
+  local key="${12:-Tab}"
 
   xdotool mousemove 700 650 click 1
   xdotool mousemove 1180 780
@@ -141,20 +167,20 @@ capture_states() {
   xdotool sleep 0.2
   shot "${order}-hover" "$crop_x" "$crop_y" "$width" "$height"
 
-  xdotool mousemove 700 650 click 1
-  # Pointer down focuses the production control. Releasing away avoids
-  # activating it. Shift+Tab then Tab returns keyboard modality to that
-  # same control so :focus-visible paints. Escape is not sent; it would
-  # dismiss focus before the shot.
-  xdotool mousemove "$target_x" "$target_y"
-  xdotool mousedown 1
-  xdotool sleep 0.05
-  xdotool mousemove 1180 780
-  xdotool mouseup 1
-  xdotool key shift+Tab
-  xdotool key Tab
-  xdotool mousemove 1180 780
-  xdotool sleep 0.15
+  if [[ -n "$pred_x" ]]; then
+    focus_from_predecessor "$pred_x" "$pred_y" "$hops" "$key"
+  else
+    xdotool mousemove 700 650 click 1
+    xdotool mousemove "$target_x" "$target_y"
+    xdotool mousedown 1
+    xdotool sleep 0.05
+    xdotool mousemove 1180 780
+    xdotool mouseup 1
+    xdotool key shift+Tab
+    xdotool key Tab
+    xdotool mousemove 1180 780
+    xdotool sleep 0.15
+  fi
   shot "${order}-focus" "$crop_x" "$crop_y" "$width" "$height"
 
   xdotool mousemove 700 650 click 1
@@ -178,12 +204,15 @@ start_surface "ui17-mod-portal" "$ROOT/examples/demo-pack/sample.step"
 close_floating_toolbar
 
 capture_states "01-cm" "Command Manager" 115 58 0 28
-capture_states "02-tab" "Document tab" 235 18 80 0
+# Title order: menu button, selected tab, tab close, omnibox. Click the
+# omnibox, then Shift+Tab twice onto the selected document tab.
+capture_states "02-tab" "Document tab" 235 18 80 0 300 90 580 18 2 "shift+Tab"
 capture_states "03-rail" "Activity rail" 20 166 0 120
 capture_states "04-mod-tab" "Portal tab" 158 167 35 130
 capture_states "05-input" "Input" 235 260 80 220
-capture_states "06-button" "Button" 525 240 390 200
-capture_states "07-install" "Install" 1135 350 900 310
+# Portal order: section tabs, Open VSX input, Search, featured Install.
+capture_states "06-button" "Button" 525 240 390 200 300 90 235 260 1 Tab
+capture_states "07-install" "Install" 1135 350 900 310 300 90 235 260 2 Tab
 
 # Rail destinations activate a workspace view on click. Capture focus after the
 # other portal cells so the real activation cannot disturb their evidence.
