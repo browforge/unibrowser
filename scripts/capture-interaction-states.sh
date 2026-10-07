@@ -160,16 +160,6 @@ capture_states() {
 
 start_surface "ui17-mod-portal" "$ROOT/examples/demo-pack/sample.step"
 
-# Capture a genuine unsupported control with its reason tooltip before closing
-# the separately-rendered floating toolbar.
-xdotool mousemove 270 154
-xdotool sleep 1
-shot "00-disabled-reason" 150 105 360 105
-convert "$tmp/cells/00-disabled-reason.png" \
-  -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
-  -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
-  -splice 0x24 -pointsize 13 -annotate +0+4 "CM unsupported / reason tooltip" \
-  "$tmp/cells/00-disabled-reason.png"
 xdotool mousemove 70 134 click 1
 xdotool sleep 0.3
 
@@ -200,6 +190,21 @@ convert "$tmp/cells/12-disabled-form.png" \
   -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
   -splice 0x24 -pointsize 13 -annotate +0+4 "Switch off / disabled interval select" \
   "$tmp/cells/12-disabled-form.png"
+stop_surface
+
+# SVG has genuine unsupported CM controls. Hovering Fit exercises the same
+# production tooltip path that keyboard focus uses for capability reasons.
+cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
+start_surface "" "$ROOT/examples/demo-pack/sample.svg"
+xdotool mousemove 70 134 click 1
+xdotool mousemove 330 70
+xdotool sleep 1
+shot "00-disabled-reason" 180 25 820 180
+convert "$tmp/cells/00-disabled-reason.png" \
+  -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
+  -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
+  -splice 0x24 -pointsize 13 -annotate +0+4 "CM unsupported / reason tooltip" \
+  "$tmp/cells/00-disabled-reason.png"
 
 mapfile -t state_cells < <(
   for row in {01..11}; do
