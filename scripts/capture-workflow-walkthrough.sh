@@ -60,6 +60,15 @@ close_floating_toolbar() {
   xdotool sleep 0.2
 }
 
+assert_no_floating_toolbar() {
+  local leftover
+  leftover="$(xdotool search --onlyvisible --name "Unibrowser commands" 2>/dev/null || true)"
+  if [[ -n "$leftover" ]]; then
+    echo "QA-05: floating Unibrowser commands still visible" >&2
+    return 1
+  fi
+}
+
 start_app() {
   local demo="$1"
   shift
@@ -93,12 +102,30 @@ reset_prefs() {
   cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
 }
 
+read_pref() {
+  python3 - "$XDG_CONFIG_HOME/unibrowser/preferences.json" "$1" <<'PY'
+import json, sys
+path, key = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8") as fh:
+    data = json.load(fh)
+print(data.get(key, ""))
+PY
+}
+
+annotation_count() {
+  python3 - "$1" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as fh:
+    data = json.load(fh)
+print(len(data.get("highlights", [])))
+PY
+}
+
 # --- 1. Open a file from New tab (US-01) ---
 reset_prefs
 start_app "ntp"
 xdotool sleep 0.8
 shot "01-new-tab"
-# sample.md recent row sits under Opened recently.
 xdotool mousemove 380 318 click 1
 xdotool sleep 1.2
 shot "01-opened-recent"
@@ -106,22 +133,37 @@ stop_app
 
 # --- 2. Annotate a PDF and save (US-09, US-05) ---
 reset_prefs
-start_app "" --open "$PACK/sample.pdf"
+cp "$PACK/sample.pdf" "$tmp/walk.pdf"
+cp "$PACK/sample.pdf.ub-annotations.json" "$tmp/walk.pdf.ub-annotations.json"
+start_app "" --open "$tmp/walk.pdf"
 xdotool sleep 1
 shot "02-pdf-open"
-# Highlight follows the PDF Annotation context tab.
+# Highlight is the first PDF Annotation control.
 xdotool mousemove 155 70 click 1
-xdotool sleep 0.3
-# Drag a highlight across the first body paragraph.
+xdotool sleep 0.4
 xdotool mousemove 400 250
 xdotool mousedown 1
 xdotool mousemove 620 270
 xdotool mouseup 1
-xdotool sleep 0.6
+xdotool sleep 0.8
+count="$(annotation_count "$tmp/walk.pdf.ub-annotations.json")"
+if [[ "$count" != "3" ]]; then
+  echo "QA-01: highlight count is $count, expected 3" >&2
+  exit 1
+fi
 shot "02-pdf-annotated"
 xdotool key ctrl+s
 xdotool sleep 0.8
 shot "02-pdf-saved"
+stop_app
+start_app "" --open "$tmp/walk.pdf"
+xdotool sleep 1
+reopen_count="$(annotation_count "$tmp/walk.pdf.ub-annotations.json")"
+if [[ "$reopen_count" != "3" ]]; then
+  echo "QA-01: reopen count is $reopen_count, expected 3" >&2
+  exit 1
+fi
+shot "02-pdf-reopen"
 stop_app
 
 # --- 3. Edit markdown (US-03, US-06) ---
@@ -142,17 +184,16 @@ stop_app
 
 # --- 4. Workshop timeline and export (US-10) ---
 reset_prefs
-start_app "" --open "$PACK/sample.unibrow"
+cp -a "$PACK/sample.unibrow" "$tmp/sample.unibrow"
+start_app "" --open "$tmp/sample.unibrow"
 xdotool sleep 1.4
 shot "04-workshop-open"
-# Add title is the third Project CM control.
+# Add title is the second Project CM control.
 xdotool mousemove 250 70 click 1
 xdotool sleep 0.8
 shot "04-workshop-title"
-# Export is overflowed at 1280. Open the chevron, then the last overflow row.
-xdotool mousemove 500 70 click 1
-xdotool sleep 0.4
-xdotool mousemove 500 280 click 1
+# Export is Primary and stays on the row at 1280.
+xdotool mousemove 430 70 click 1
 xdotool sleep 0.8
 shot "04-workshop-export"
 stop_app
@@ -162,38 +203,65 @@ reset_prefs
 start_app "ui17-mod-portal" --open "$PACK/sample.step"
 xdotool sleep 1.2
 shot "05-portal-open"
-# Featured Install on the CAD file support card.
 xdotool mousemove 1140 340 click 1
-xdotool sleep 0.8
+xdotool sleep 1
 shot "05-portal-install"
+# Installed tab is the first portal section tab.
+xdotool mousemove 80 168 click 1
+xdotool sleep 0.6
+python3 - "$XDG_CONFIG_HOME/unibrowser/mods/unibrowser.base-cad/info.json" <<'PY'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1])
+if not path.is_file():
+    raise SystemExit(f"QA-03: missing installed fixture {path}")
+data = json.loads(path.read_text(encoding="utf-8"))
+if data.get("name") != "unibrowser.base-cad":
+    raise SystemExit(f"QA-03: unexpected fixture {data}")
+PY
+shot "05-portal-installed"
 stop_app
 
 # --- 6. Change autosave in settings (US-05) ---
 reset_prefs
 start_app "settings" --open "$PACK/sample.txt"
 xdotool sleep 1.4
+assert_no_floating_toolbar
 shot "06-settings-open"
-# Auto-save interval select, then Every 1 minute.
+# Open the interval list, then choose Every 1 min below the trigger.
 xdotool mousemove 1180 518 click 1
 xdotool sleep 0.3
-xdotool mousemove 1180 548 click 1
-xdotool sleep 0.6
+xdotool mousemove 1180 575 click 1
+xdotool sleep 0.8
 shot "06-settings-autosave"
+interval="$(read_pref auto_save_interval_secs)"
+if [[ "$interval" != "60" ]]; then
+  echo "QA-04: autosave interval is ${interval}, expected 60" >&2
+  exit 1
+fi
 stop_app
 
 # --- 7. Switch themes ---
 reset_prefs
 start_app "settings" --open "$PACK/sample.txt"
 xdotool sleep 1.4
+assert_no_floating_toolbar
 shot "07-theme-light"
-# Theme lives under Appearance, not General. Close any floating CM first.
-close_floating_toolbar
+# Appearance is the second category. Theme select is on that page.
 xdotool mousemove 95 215 click 1
 xdotool sleep 0.5
+assert_no_floating_toolbar
+shot "07-theme-appearance"
 xdotool mousemove 1180 200 click 1
 xdotool sleep 0.3
-xdotool mousemove 1180 245 click 1
+xdotool key Down
+xdotool key Return
 xdotool sleep 0.8
+theme="$(read_pref theme)"
+if [[ "$theme" != "dark" ]]; then
+  echo "QA-05: theme pref is ${theme}, expected dark" >&2
+  exit 1
+fi
 shot "07-theme-dark"
 stop_app
 
