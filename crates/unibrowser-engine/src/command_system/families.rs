@@ -60,19 +60,25 @@ pub fn core_tab_layout(
 
 fn media_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
     let family_id = "unibrowser.family.media";
-    let controls = vec![
-        control_spec(
-            "unibrowser.control.media.mute",
-            ControlType::Button,
-            commands::TOGGLE_TAB_MUTE,
-            "Mute",
-            "media",
-            "unibrowser.group.media.playback",
-            family_id,
-            ctx,
-            resolver,
-        ),
-        control_spec(
+    let mut controls = vec![control_spec(
+        "unibrowser.control.media.mute",
+        ControlType::Button,
+        commands::TOGGLE_TAB_MUTE,
+        "Mute",
+        "media",
+        "unibrowser.group.media.playback",
+        family_id,
+        ctx,
+        resolver,
+    )];
+    let extension = ctx
+        .doc_path
+        .as_deref()
+        .and_then(|path| path.rsplit('.').next())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if matches!(extension.as_str(), "mkv" | "mov" | "mp4" | "webm") {
+        controls.push(control_spec(
             "unibrowser.control.media.pictureInPicture",
             ControlType::Button,
             commands::PICTURE_IN_PICTURE,
@@ -82,8 +88,8 @@ fn media_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Resol
             family_id,
             ctx,
             resolver,
-        ),
-    ];
+        ));
+    }
     ResolvedFamily {
         family_id: family_id.into(),
         label: "Media".into(),

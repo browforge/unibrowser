@@ -1020,7 +1020,8 @@ function mountMediaControls(host: HTMLElement, media: HTMLMediaElement): void {
     const progress = duration > 0 ? media.currentTime / duration : 0;
     seek.value = String(Math.round(progress * 1000));
     seek.disabled = duration <= 0;
-    time.textContent = `${formatMediaTime(media.currentTime)} / ${formatMediaTime(duration)}`;
+    const durationLabel = duration > 0 ? formatMediaTime(duration) : "--:--";
+    time.textContent = `${formatMediaTime(media.currentTime)} / ${durationLabel}`;
   };
   const syncPlay = () => {
     const playing = !media.paused && !media.ended;

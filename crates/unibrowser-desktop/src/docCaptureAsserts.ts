@@ -608,7 +608,7 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   const settingsContext = cm.contextLabel?.toLowerCase() === "settings";
   const modsContext = cm.contextLabel?.toLowerCase() === "mods";
   const mediaContext = cm.contextLabel?.toLowerCase() === "audio";
-  const sparseContextLimit = settingsContext || mediaContext ? 2 : modsContext ? 5 : 4;
+  const sparseContextLimit = mediaContext ? 1 : settingsContext ? 2 : modsContext ? 5 : 4;
   const sparseContext = startContext || settingsContext || modsContext || mediaContext;
   const requiredVisible = sparseContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
   const requiredContrast = sparseContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
