@@ -5459,6 +5459,10 @@ mark.docx-search-hit--current {
   color: #172532;
 }
 
+[data-theme="dark"][data-high-contrast="true"] .settings-category[aria-current="true"] {
+  color: var(--ub-text-1);
+}
+
 .settings-content {
   min-width: 0;
   overflow: auto;
