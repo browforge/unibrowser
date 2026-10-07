@@ -169,8 +169,8 @@ Sources: `mockups/settings-mods-1280.png` and
 `screenshots/shell-density/settings-light-1280.png`.
 
 - Layout: the mockup is one centred Settings workbench with a 183 px category
-  rail and aligned setting rows. The app spans edge to edge, uses a 153 px rail,
-  and shows an unrelated Print preview row above Settings.
+  rail and aligned setting rows. The app spans edge to edge and uses a 153 px
+  rail. The unrelated Print preview row found during the audit is now removed.
 - Spacing and density: the mockup groups five common decisions with consistent
   64 px rows. The app uses larger section gaps but packs labels, selects,
   checkboxes, and helper text inconsistently within each group.
@@ -181,7 +181,7 @@ Sources: `mockups/settings-mods-1280.png` and
   The app is correctly mostly flat but native selects and fields use mixed border
   and radius treatment.
 - Colour: both use warm neutrals and restrained blue. App selected category and
-  status accent are paler, and the extra local toolbar darkens the hierarchy.
+  status accent are paler.
 - Icons: the mockup category rail is intentionally text-only. The app follows
   that choice; chrome icons remain consistent.
 - Panel headers: the app lacks the mockup's Settings and General headings and
@@ -220,7 +220,7 @@ Sources: the Mod Portal tile in `mockups/context-matrix.png` and
 
 ## Impact ranking
 
-1. Settings: unrelated document chrome and weak page/row hierarchy.
+1. Settings: weak page and row hierarchy after removing leaked document chrome.
 2. Image: missing History and Adjust workbench regions.
 3. New tab: primary action, row, and download hierarchy.
 4. Workshop: stage/timeline proportions and non-representative stage content.

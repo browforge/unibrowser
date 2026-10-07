@@ -7,7 +7,7 @@
   "contextLabel": "Start",
   "autoContext": "start",
   "pipeline": {
-    "activeTabId": "office",
+    "activeTabId": "text",
     "rustFamilyCount": 1,
     "rustControlCount": 4,
     "ipcFamilyCount": 1,

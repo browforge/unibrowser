@@ -722,10 +722,13 @@ comparison in `docs/screenshots/parity/`.
 
 ### UI-21: Restore Settings task hierarchy
 
+Status: in progress 2026-10-07. Document-local toolbars now hide whenever a
+document viewer owns the work area. The page and row hierarchy remains open.
+
 Work:
 
-- Remove document-local actions, including Print preview, while Settings owns
-  the work area.
+- Done: remove document-local actions, including Print preview, while Settings
+  owns the work area.
 - Add the approved Settings page title, section title, subtitle, and aligned
   setting-row hierarchy.
 - Keep the category rail compact and text-led; preserve Developer disclosure.

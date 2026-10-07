@@ -7,7 +7,7 @@
   "contextLabel": "Browse",
   "autoContext": "browse",
   "pipeline": {
-    "activeTabId": "office",
+    "activeTabId": "text",
     "rustFamilyCount": 1,
     "rustControlCount": 15,
     "ipcFamilyCount": 1,
