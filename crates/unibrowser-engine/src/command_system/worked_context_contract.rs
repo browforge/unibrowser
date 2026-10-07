@@ -369,6 +369,24 @@ fn pdf_context_exposes_annotation_family() {
 }
 
 #[test]
+fn pdf_annotation_capabilities_match_available_providers() {
+    let highlight = control_capability(
+        WorkContext::Pdf,
+        "sample.pdf",
+        control_ids::PDF_HIGHLIGHT,
+    );
+    assert!(matches!(highlight, CapabilityState::Supported));
+
+    for control_id in [control_ids::PDF_NOTE, control_ids::PDF_AREA] {
+        let capability = control_capability(WorkContext::Pdf, "sample.pdf", control_id);
+        assert!(
+            capability.unsupported_reason().is_some(),
+            "{control_id} must explain its unavailable provider"
+        );
+    }
+}
+
+#[test]
 fn image_context_exposes_adjust_family() {
     let resolver = CapabilityResolver::default();
     let ctx = resolution_ctx(WorkContext::Image, "photo.svg");
@@ -396,6 +414,22 @@ fn image_context_exposes_adjust_family() {
         "unibrowser.control.image.curves",
     ] {
         assert!(ids.contains(&expected), "missing image target control: {expected}");
+    }
+}
+
+#[test]
+fn raster_image_context_supports_implemented_viewer_tools() {
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(WorkContext::Image, "photo.png");
+    for (control_id, command_id) in [
+        ("unibrowser.control.image.fit", commands::IMAGE_FIT),
+        ("unibrowser.control.image.crop", commands::IMAGE_CROP),
+        ("unibrowser.control.image.rotate", commands::IMAGE_ROTATE),
+    ] {
+        assert!(matches!(
+            resolver.resolve_control(control_id, command_id, &ctx),
+            CapabilityState::Supported
+        ));
     }
 }
 

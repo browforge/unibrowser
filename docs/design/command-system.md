@@ -630,13 +630,19 @@ The family occupies the same position, but document formatting controls are unsu
 
 ### PDF annotation
 
-**Runtime (current build):** History plus PDF family groups Tools (Select), Annotate (Highlight, Note, Area), Page, View (zoom), and Export PDF. Hand, Ink, Stamp, and Appearance stroke/fill groups are planned; contract tests assert page navigation and export are present.
+**Runtime (current build):** The complete target control set is present. Highlight,
+page, zoom, and export have providers. Tools without providers remain visible
+and unsupported with a specific reason. The compact row prioritises Highlight,
+Underline, and Strikethrough; lower-priority annotation, navigation, and
+appearance groups remain available in overflow.
 
 Families (full target):
 
 - History: Undo, Redo.
 - Selection: Select, Hand.
-- Annotation: Highlight, Note, Area, Ink, Stamp.
+- Markup: Highlight, Underline, Strikethrough.
+- Annotation: Note, Area, Ink, Text box, Stamp.
+- Annotation navigation: Previous annotation, Next annotation.
 - Appearance: Stroke colour, fill colour, width.
 - View: Page, zoom.
 - Export: Export PDF.
@@ -645,10 +651,10 @@ If the selected annotation has no fill, Fill Colour is unsupported with "This an
 
 ### Image
 
-**Runtime (current build):** History, Find, Proofing, Export, and Image Adjust
-with Zoom out, Zoom in, and Curves. Crop/transform, extended adjust sliders,
-and conditional Text Formatting are planned; contract tests assert the adjust
-family is present for image work context.
+**Runtime (current build):** History, Image View, Transform, Adjust, and Export
+are present. Raster Fit, Crop, Rotate, and zoom have viewer providers. Resize
+and non-destructive adjustments remain visible and unsupported with a reason.
+SVG uses the same family but reports raster-only operations as unsupported.
 
 Families (full target):
 
@@ -666,12 +672,11 @@ Mod authoring: see [command-system-authoring.md](../mods/command-system-authorin
 ### CAD/3D
 
 **Runtime (UI-14 proving build):** path detection recognises `.dxf`, STEP, and
-IGES as `WorkContext::Cad3d`. The host CAD family exposes supported Fit view,
-Zoom out, and Zoom in controls. Find entity stays greyed in place with the
-reason "Entity search needs a CAD indexing provider." Measure and Export STEP
-stay greyed in place with the reason that they need a full CAD geometry engine.
-The bundled ASCII DXF fixture provides Outline and Detail layers for shell and
-capability evidence.
+IGES as `WorkContext::Cad3d`. The complete target family is present. Fit view,
+Zoom out, and Zoom in have providers. Select, orientation, pan, orbit, Measure,
+Section, Appearance, and Export STEP remain visible and unsupported with
+provider-specific reasons. The bundled ASCII DXF fixture provides Outline and
+Detail layers for shell and capability evidence.
 
 Families (target):
 

@@ -34,6 +34,7 @@ import {
 import { normalisedPdfRectToCss } from "./pdfAnnotationGeometry";
 
 let viewerZoomAdjust: ((delta: number) => void) | null = null;
+let imageViewCommand: ((commandId: string) => boolean) | null = null;
 let dxfViewCommand: ((commandId: string) => boolean) | null = null;
 let pdfViewCommand: ((commandId: string) => boolean) | null = null;
 
@@ -64,6 +65,9 @@ export function runViewerContextCommand(commandId: string): boolean {
   if (commandId === "unibrowser.image.zoomIn") {
     adjustViewerZoom(1);
     return true;
+  }
+  if (commandId.startsWith("unibrowser.image.")) {
+    return imageViewCommand?.(commandId) ?? false;
   }
   if (commandId.startsWith("unibrowser.pdf.")) {
     return pdfViewCommand?.(commandId) ?? false;
@@ -1394,6 +1398,7 @@ function paintHistogramChannel(
 
 async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   await ensureAssetAllowed(path);
+  imageViewCommand = null;
   root.innerHTML = "";
   const layout = document.createElement("div");
   layout.className = "image-viewer-layout";
@@ -1475,15 +1480,10 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
       clearImagePixelSample();
     }
   };
-  toolbar.appendChild(zoomOut);
-  toolbar.appendChild(zoomIn);
-  toolbar.appendChild(resetBtn);
-  toolbar.appendChild(rotateBtn);
   toolbar.appendChild(flipHBtn);
   toolbar.appendChild(flipVBtn);
-  toolbar.appendChild(saveAsBtn);
-  toolbar.appendChild(filtersBtn);
-  toolbar.appendChild(cropBtn);
+  clearCropBtn.hidden = true;
+  saveCropBtn.hidden = true;
   toolbar.appendChild(clearCropBtn);
   toolbar.appendChild(saveCropBtn);
   toolbar.appendChild(ocrBtn);
@@ -1709,6 +1709,8 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
 
   const updateCropActions = () => {
     const hasCrop = Boolean(cropRectNorm && cropRectNorm.w >= 0.5 && cropRectNorm.h >= 0.5);
+    clearCropBtn.hidden = !cropMode;
+    saveCropBtn.hidden = !cropMode;
     saveCropBtn.disabled = !hasCrop || rotation !== 0;
     saveCropBtn.title =
       rotation !== 0 ? "Reset rotation before exporting a crop" : "Write a new PNG; original file is unchanged";
@@ -1750,15 +1752,6 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
     scale = 1;
     panX = 0;
     panY = 0;
-    rotation = 0;
-    flipH = false;
-    flipV = false;
-    cropRectNorm = null;
-    cropMode = false;
-    cropBtn.classList.remove("image-toolbar-active");
-    cropLayer.hidden = true;
-    viewport.classList.remove("image-viewport--crop");
-    applyCropVisual();
     applyTransform();
   };
   rotateBtn.onclick = () => {
@@ -1773,6 +1766,22 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   flipVBtn.onclick = () => {
     flipV = !flipV;
     applyTransform();
+  };
+  imageViewCommand = (commandId: string) => {
+    if (commandId === "unibrowser.image.fit") {
+      resetBtn.click();
+      return true;
+    }
+    if (commandId === "unibrowser.image.crop") {
+      cropBtn.click();
+      updateCropActions();
+      return true;
+    }
+    if (commandId === "unibrowser.image.rotate") {
+      rotateBtn.click();
+      return true;
+    }
+    return false;
   };
 
   async function saveRasterCopy(suffix: string) {
@@ -2877,7 +2886,9 @@ export const documentViewer = {
   },
   hide(el: HTMLElement) {
     viewerZoomAdjust = null;
+    imageViewCommand = null;
     dxfViewCommand = null;
+    pdfViewCommand = null;
     setViewerFindRunner(null);
     clearViewerLocatorBridge();
     el.classList.add("hidden");

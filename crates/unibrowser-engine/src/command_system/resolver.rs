@@ -243,13 +243,13 @@ fn code_capability(control_id: &str) -> CapabilityState {
 
 fn pdf_capability(control_id: &str) -> CapabilityState {
     match control_id {
-        control_ids::PDF_SELECT
-        | control_ids::PDF_HIGHLIGHT
-        | control_ids::PDF_NOTE
-        | control_ids::PDF_AREA
+        control_ids::PDF_HIGHLIGHT
         | control_ids::PDF_PAGE
         | control_ids::PDF_VIEW_ZOOM
         | control_ids::PDF_EXPORT => CapabilityState::Supported,
+        control_ids::PDF_SELECT => CapabilityState::Unsupported {
+            reason: "Annotation selection needs a PDF annotation picking provider.".into(),
+        },
         control_ids::PDF_HAND => CapabilityState::Unsupported {
             reason: "Hand tool needs the PDF pan provider.".into(),
         },
@@ -260,6 +260,12 @@ fn pdf_capability(control_id: &str) -> CapabilityState {
         }
         control_ids::PDF_INK => CapabilityState::Unsupported {
             reason: "Ink needs a PDF stroke annotation provider.".into(),
+        },
+        control_ids::PDF_NOTE => CapabilityState::Unsupported {
+            reason: "Notes need a PDF point annotation provider.".into(),
+        },
+        control_ids::PDF_AREA => CapabilityState::Unsupported {
+            reason: "Area markup needs a PDF shape annotation provider.".into(),
         },
         control_ids::PDF_TEXT_BOX => CapabilityState::Unsupported {
             reason: "Text box needs a PDF free-text annotation provider.".into(),
@@ -310,14 +316,21 @@ fn image_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityStat
         "unibrowser.control.image.zoomOut" | "unibrowser.control.image.zoomIn" => {
             CapabilityState::Supported
         }
+        "unibrowser.control.image.fit"
+        | "unibrowser.control.image.crop"
+        | "unibrowser.control.image.rotate"
+            if !vector_image =>
+        {
+            CapabilityState::Supported
+        }
         "unibrowser.control.image.fit" => CapabilityState::Unsupported {
-            reason: "Fit-to-window needs a viewer fit provider.".into(),
+            reason: "Fit-to-window needs an SVG view provider.".into(),
         },
         "unibrowser.control.image.crop" => CapabilityState::Unsupported {
-            reason: "Crop needs a non-destructive image edit provider.".into(),
+            reason: "Crop needs a raster image edit provider.".into(),
         },
         "unibrowser.control.image.rotate" => CapabilityState::Unsupported {
-            reason: "Rotate needs a non-destructive image transform provider.".into(),
+            reason: "Rotate needs an SVG transform provider.".into(),
         },
         "unibrowser.control.image.resize" => CapabilityState::Unsupported {
             reason: "Resize needs an image resampling provider.".into(),
