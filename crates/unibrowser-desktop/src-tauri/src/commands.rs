@@ -42,6 +42,7 @@ use crate::preferences::{
 use crate::state::{FileCompareState, ImageCompareState};
 use crate::epub_preview::{EpubChapterDto, EpubChapterListItem, EpubSearchHitDto};
 use crate::user_backup::{self, GrandmaBackupV1};
+use crate::launch_args;
 use crate::path_security::{resolve_open_path, resolve_unibrow_asset_file};
 use crate::webview::{
     adjust_page_font_for_url, adjust_page_zoom_for_url, inject_page_zoom_percent,
@@ -2113,10 +2114,28 @@ pub fn open_path(
     let _sess_tabs = ws(&state, &window)?;
     {
         let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        let open_in_new_tab = tabs
-            .active_tab()
-            .map(tab_is_new_tab_home)
-            .unwrap_or(false)
+        let capture_replaces_home = launch_args::is_doc_capture_mode()
+            && !is_dir
+            && tabs
+                .active_tab()
+                .map(tab_is_new_tab_home)
+                .unwrap_or(false)
+            && file_path
+                .extension()
+                .is_some_and(|e| {
+                    e.eq_ignore_ascii_case("pdf")
+                        || e.eq_ignore_ascii_case("svg")
+                        || e.eq_ignore_ascii_case("png")
+                        || e.eq_ignore_ascii_case("jpg")
+                        || e.eq_ignore_ascii_case("jpeg")
+                        || e.eq_ignore_ascii_case("webp")
+                        || e.eq_ignore_ascii_case("docx")
+                });
+        let open_in_new_tab = !capture_replaces_home
+            && tabs
+                .active_tab()
+                .map(tab_is_new_tab_home)
+                .unwrap_or(false)
             && !is_dir;
         if open_in_new_tab {
             tabs.open_tab(loc.clone());

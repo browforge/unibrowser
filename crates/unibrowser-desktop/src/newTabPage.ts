@@ -126,13 +126,15 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
   const sections = deps.sections;
 
   if (sections.show_hero) {
+    const hero = document.createElement("header");
+    hero.className = "ntp-hero";
     const h1 = document.createElement("h1");
     h1.textContent = t("ntp.title");
     const lead = document.createElement("p");
     lead.className = "ntp-lead";
     lead.textContent = t("ntp.lead");
-    inner.appendChild(h1);
-    inner.appendChild(lead);
+    hero.append(h1, lead);
+    inner.appendChild(hero);
   }
 
   if (!sections.show_hero && !sections.show_actions && !sections.show_browse && !sections.show_recent) {

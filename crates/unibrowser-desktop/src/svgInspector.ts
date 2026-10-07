@@ -5,6 +5,7 @@ export function mountSvgInspector(
   previewHost: HTMLElement,
   sourceTextarea: HTMLTextAreaElement,
   onSourceChange: () => void,
+  mountTo?: HTMLElement,
 ): void {
   const panel = document.createElement("aside");
   panel.className = "svg-inspector";
@@ -112,5 +113,6 @@ export function mountSvgInspector(
   };
 
   syncPreview();
-  previewHost.parentElement?.appendChild(panel);
+  const host = mountTo ?? previewHost.parentElement;
+  host?.appendChild(panel);
 }

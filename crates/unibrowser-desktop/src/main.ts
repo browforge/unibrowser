@@ -370,6 +370,8 @@ const commandManagerCollapse = document.getElementById("command-manager-collapse
 const floatingToolbarHost = document.getElementById("floating-toolbar-host")!;
 const statusBarEl = document.getElementById("status-bar")!;
 const newTabPageHost = document.getElementById("new-tab-page-host")!;
+const contentHostEl = document.getElementById("content-host")!;
+const splitPrimaryEl = document.getElementById("split-primary")!;
 let paletteChordHint = "Ctrl+Shift+P for command palette";
 let webZoomPercent = 100;
 let lastAutosaveAtMs = 0;
@@ -1771,6 +1773,8 @@ async function applyState(data: TabContentDto) {
     }
   }
   if (showHome) {
+    contentHostEl.classList.add("content-host--start");
+    splitPrimaryEl.classList.add("hidden");
     filesBrowserWrap.classList.add("hidden");
     renderNewTabPage(newTabPageHost, {
       entries: data.directory_entries,
@@ -1794,6 +1798,8 @@ async function applyState(data: TabContentDto) {
       },
     });
   } else {
+    contentHostEl.classList.remove("content-host--start");
+    splitPrimaryEl.classList.remove("hidden");
     hideNewTabPage(newTabPageHost);
     if (showText || showViewer || active?.is_http) {
       filesBrowserWrap.classList.add("hidden");
@@ -1822,7 +1828,11 @@ async function applyState(data: TabContentDto) {
   if (data.text_document || data.document_viewer) {
     void markChecklistStep("open_file");
   }
-  renderRecentFiles(data.recent_files ?? []);
+  if (!showHome) {
+    renderRecentFiles(data.recent_files ?? []);
+  } else {
+    recentPanel.classList.add("hidden");
+  }
   if (!showDiff) {
     if (showText && data.text_document) {
       await textEditor.apply(data.text_document, textEditorHost);
@@ -2627,6 +2637,8 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       }
       if (launchPaths.length > 0) {
         await refreshState();
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        await refreshState();
       }
       if (demo) {
         try {
@@ -2707,21 +2719,31 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             }
           }
           const editorErr = validateEditorForCapture();
-          if (launchPathsNeedEditor(launchPaths) && editorErr) {
+          if (
+            launchPathsNeedEditor(launchPaths) &&
+            editorErr &&
+            !document.body.classList.contains("cm-collapsed")
+          ) {
             await invoke("abort_doc_capture", {
               reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }
-          if (launchPathsNeedEditor(launchPaths) && !editorReadyForCapture()) {
+          if (
+            launchPathsNeedEditor(launchPaths) &&
+            !document.body.classList.contains("cm-collapsed") &&
+            !editorReadyForCapture()
+          ) {
             await invoke("abort_doc_capture", {
               reason: `Monaco editor is blank after paint wait; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }
-          const editorRect = launchPathsNeedEditor(launchPaths)
-            ? textEditorHost.getBoundingClientRect()
-            : null;
+          const editorRect =
+            launchPathsNeedEditor(launchPaths) &&
+            !document.body.classList.contains("cm-collapsed")
+              ? textEditorHost.getBoundingClientRect()
+              : null;
           await invoke("finish_doc_capture_and_exit", {
             editorRegion: editorRect
               ? {

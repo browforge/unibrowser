@@ -181,6 +181,14 @@ export async function applyDemoState(raw: string) {
         break;
       case "capture-ready":
         await invoke("clear_command_manager_context_pin").catch(() => undefined);
+        for (const ctx of ["ntp", "pdf", "image"] as const) {
+          try {
+            localStorage.setItem(`ub-dock-ai-pref:${ctx}`, "0");
+          } catch {
+            /* ignore */
+          }
+        }
+        await setAiPanelVisible(false);
         document.body.classList.add("doc-capture-mode");
         document.body.classList.add("ub-status-compact");
         document.body.dataset.cmDensity = "compact";
@@ -200,11 +208,6 @@ export async function applyDemoState(raw: string) {
           await invoke("seed_document_mockup_problems_cmd").catch(() => undefined);
           const { showProblemsBottomPanel } = await import("./problemsPanel");
           await showProblemsBottomPanel();
-        }
-        {
-          const { ensureTextTabActiveForCapture } = await import("./shellPaintReady");
-          const paths = await invoke<string[]>("take_launch_open_paths");
-          await ensureTextTabActiveForCapture(paths);
         }
         break;
       default:

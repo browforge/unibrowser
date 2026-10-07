@@ -28,10 +28,14 @@ capture_ticket() {
       -resize 1280x800! -strip "$OUT/${ticket}-${scenario}-${theme}.png"
   done
   convert "$OUT/${ticket}-${scenario}-light.png" -resize 1280x800! \
-    \( "$MOCK/$light_mock" -resize 1280x800! \) \
+    -gravity NorthWest -pointsize 14 -fill '#1f2326' -annotate +12+8 'App' \
+    \( "$MOCK/$light_mock" -resize 1280x800! \
+      -gravity NorthWest -pointsize 14 -fill '#1f2326' -annotate +12+8 'Mockup' \) \
     +append -strip "$OUT/${ticket}-${scenario}-side-by-side-light.png"
   convert "$OUT/${ticket}-${scenario}-dark.png" -resize 1280x800! \
-    \( "$MOCK/$dark_mock" -resize 1280x800! \) \
+    -gravity NorthWest -pointsize 14 -fill '#e8eef2' -annotate +12+8 'App' \
+    \( "$MOCK/$dark_mock" -resize 1280x800! \
+      -gravity NorthWest -pointsize 14 -fill '#e8eef2' -annotate +12+8 'Mockup' \) \
     +append -strip "$OUT/${ticket}-${scenario}-side-by-side-dark.png"
 }
 

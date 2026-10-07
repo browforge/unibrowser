@@ -107,9 +107,9 @@
   min-width: 0;
   flex: 1 1 auto;
   align-self: stretch;
-  max-height: 100%;
+  max-height: calc(var(--ub-shell-title-bar) - 4px);
   padding: 0 10px;
-  margin: 3px 0;
+  margin: 2px 0;
   color: #bdc8ce;
   border: 0;
   border-radius: var(--ub-radius-4) var(--ub-radius-4) 0 0;
@@ -285,7 +285,7 @@ body.cm-collapsed #chrome #command-manager.command-manager {
   display: flex;
   align-items: center;
   min-width: 0;
-  gap: 4px;
+  gap: 6px;
   flex: 0 0 auto;
 }
 
@@ -585,6 +585,47 @@ body[data-cm-density="large"] .cm-overflow.visible {
 
 .workspace-rail.expanded .rail-label {
   display: inline;
+}
+
+.workspace-rail.expanded {
+  align-items: stretch;
+}
+
+.rail-side-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0.35rem 0.5rem 0.5rem;
+  padding: 0.5rem 0.55rem;
+  overflow: auto;
+  border-top: 1px solid var(--ub-concept-chrome-border);
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b8c5cc;
+}
+
+.rail-side-panel.hidden {
+  display: none;
+}
+
+.rail-panel-title {
+  margin: 0 0 0.35rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8eef2;
+}
+
+.rail-panel-list {
+  margin: 0;
+  padding-left: 1rem;
+  color: #9fb0bd;
+}
+
+[data-theme="light"] .rail-side-panel {
+  color: var(--ub-text-2);
+}
+
+[data-theme="light"] .rail-panel-title {
+  color: var(--ub-text-1);
 }
 
 .rail-collapse {

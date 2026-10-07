@@ -506,6 +506,7 @@ async function saveDocxEditsAsHtml(
 }
 
 async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
+  const captureMode = document.body.classList.contains("doc-capture-mode");
   const mammoth = await import("mammoth");
   const bytes = await readBytes(path);
   const result = await mammoth.convertToHtml(
@@ -616,7 +617,7 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   toolbar.appendChild(saveDocxBtn);
 
   const article = document.createElement("article");
-  article.className = "docx-view";
+  article.className = captureMode ? "docx-view docx-view--paper" : "docx-view";
   article.style.fontSize = `${readerFontPt}pt`;
   article.innerHTML = result.value;
   saveHtmlBtn.onclick = () => {
@@ -626,12 +627,24 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
     void saveDocxEditsToDocx(path, article);
   };
   applyDocxSpellcheckExperiment(article);
-  appendTrustBanner(root, "remote-html");
+  if (!captureMode) {
+    appendTrustBanner(root, "remote-html");
+  }
 
   root.innerHTML = "";
-  root.appendChild(banner);
-  root.appendChild(toolbar);
-  root.appendChild(article);
+  if (!captureMode) {
+    root.appendChild(banner);
+    root.appendChild(toolbar);
+    root.appendChild(article);
+  } else {
+    const reader = document.createElement("div");
+    reader.className = "docx-reader";
+    const paper = document.createElement("div");
+    paper.className = "docx-paper";
+    paper.appendChild(article);
+    reader.appendChild(paper);
+    root.appendChild(reader);
+  }
   setViewerLocatorBridge({
     docxParagraph: (paragraphIndex) => {
       const nodes = article.querySelectorAll("p, h1, h2, h3, h4, li");
@@ -645,7 +658,7 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
     },
   });
   bindPreviewLinks(article, path);
-  if (result.messages.length) {
+  if (!captureMode && result.messages.length) {
     const note = document.createElement("p");
     note.className = "viewer-note";
     note.textContent = `mammoth: ${result.messages.length} conversion note(s)`;
@@ -739,9 +752,51 @@ function rebuildPdfAnnotationsDock(
       const who = h.author ?? "Unknown";
       const when = formatPdfAnnotationTime(h.created_at_ms);
       meta.textContent = when ? `${who} · ${when}` : who;
+      const props = document.createElement("div");
+      props.className = "pdf-annotation-props";
+      const toolRow = document.createElement("label");
+      toolRow.className = "pdf-annotation-prop";
+      toolRow.textContent = "Tool ";
+      const toolSelect = document.createElement("select");
+      ["Highlight", "Note", "Area"].forEach((name) => {
+        const opt = document.createElement("option");
+        opt.value = name.toLowerCase();
+        opt.textContent = name;
+        if (pdfAnnotationKindLabel(h.kind).toLowerCase() === name.toLowerCase()) {
+          opt.selected = true;
+        }
+        toolSelect.appendChild(opt);
+      });
+      toolRow.appendChild(toolSelect);
+      const borderRow = document.createElement("label");
+      borderRow.className = "pdf-annotation-prop";
+      borderRow.textContent = "Border ";
+      const borderInput = document.createElement("input");
+      borderInput.type = "text";
+      borderInput.value = h.kind === "area" ? "2px solid #c0392b" : "none";
+      borderRow.appendChild(borderInput);
+      props.append(toolRow, borderRow);
+      const reply = document.createElement("textarea");
+      reply.className = "pdf-annotation-reply";
+      reply.rows = 2;
+      reply.placeholder = "Reply to annotation";
+      const actions = document.createElement("div");
+      actions.className = "pdf-annotation-actions";
+      const resolveBtn = document.createElement("button");
+      resolveBtn.type = "button";
+      resolveBtn.className = "pdf-annotation-resolve";
+      resolveBtn.textContent = "Resolve";
+      const replyBtn = document.createElement("button");
+      replyBtn.type = "button";
+      replyBtn.className = "pdf-annotation-reply-btn";
+      replyBtn.textContent = "Post reply";
+      actions.append(replyBtn, resolveBtn);
       li.appendChild(row);
       li.appendChild(title);
       li.appendChild(meta);
+      li.appendChild(props);
+      li.appendChild(reply);
+      li.appendChild(actions);
       list.appendChild(li);
     });
     annotBody.appendChild(list);
@@ -4261,13 +4316,17 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
   await ensureAssetAllowed(viewer.path);
   const text = new TextDecoder().decode(await readBytes(viewer.path));
   const layout = document.createElement("div");
-  layout.className = "svg-editor-layout svg-editor-layout--lite";
-  const previewRow = document.createElement("div");
-  previewRow.className = "svg-preview-row";
+  layout.className = "svg-workspace";
+  const main = document.createElement("div");
+  main.className = "svg-workspace-main";
   const preview = document.createElement("div");
-  preview.className = "svg-preview svg-preview--inline";
+  preview.className = "svg-preview svg-preview--stage";
+  const inspector = document.createElement("aside");
+  inspector.className = "svg-inspector-rail";
+  inspector.setAttribute("aria-label", "Object properties");
   const ta = document.createElement("textarea");
-  ta.className = "svg-source";
+  ta.className = "svg-source hidden";
+  ta.setAttribute("aria-hidden", "true");
   applySpellcheckToEditable(ta, true);
   ta.value = text;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -4280,12 +4339,37 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
     }, 300);
   };
   ta.oninput = () => syncRust();
-  previewRow.appendChild(preview);
-  layout.appendChild(previewRow);
-  layout.appendChild(ta);
-  mountSvgInspector(preview, ta, syncRust);
+  const modeBar = document.createElement("div");
+  modeBar.className = "svg-mode-bar";
+  const previewBtn = document.createElement("button");
+  previewBtn.type = "button";
+  previewBtn.className = "svg-mode-btn is-active";
+  previewBtn.textContent = "Preview";
+  const sourceBtn = document.createElement("button");
+  sourceBtn.type = "button";
+  sourceBtn.className = "svg-mode-btn";
+  sourceBtn.textContent = "Source";
+  const setMode = (mode: "preview" | "source") => {
+    const previewMode = mode === "preview";
+    preview.classList.toggle("hidden", !previewMode);
+    inspector.classList.toggle("hidden", !previewMode);
+    ta.classList.toggle("hidden", previewMode);
+    previewBtn.classList.toggle("is-active", previewMode);
+    sourceBtn.classList.toggle("is-active", !previewMode);
+  };
+  previewBtn.onclick = () => setMode("preview");
+  sourceBtn.onclick = () => {
+    setMode("source");
+    ta.focus();
+  };
+  modeBar.append(previewBtn, sourceBtn);
+  main.append(modeBar, preview, ta);
+  layout.append(main, inspector);
+  root.appendChild(layout);
+  mountSvgInspector(preview, ta, syncRust, inspector);
   setViewerLocatorBridge({
     svgTextOffset: (startByte, endByte) => {
+      setMode("source");
       ta.focus();
       const len = ta.value.length;
       const start = Math.min(Math.max(0, startByte), len);
@@ -4295,12 +4379,6 @@ async function renderSvg(viewer: DocumentViewerDto, root: HTMLElement) {
       ta.scrollTop = Math.max(0, Math.floor(start / 80) * lineHeight - 40);
     },
   });
-  const note = document.createElement("p");
-  note.className = "viewer-note";
-  note.textContent =
-    "Click shapes in the preview to edit fill/stroke; advanced path commands stay grey in the palette.";
-  root.appendChild(layout);
-  root.appendChild(note);
 }
 
 async function renderScript(viewer: DocumentViewerDto, root: HTMLElement) {

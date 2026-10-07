@@ -21,6 +21,29 @@ const ITEMS: RailItem[] = [
   { id: "settings", label: "Settings", icon: "settings", settings: true },
 ];
 
+const PANEL_COPY: Record<RailDestination, { title: string; lines: string[] }> = {
+  files: {
+    title: "Files",
+    lines: ["Browse the workspace tree.", "Open folders from pinned places."],
+  },
+  search: {
+    title: "Search",
+    lines: ["Search across open files.", "Filter by name or symbol."],
+  },
+  project: {
+    title: "Project",
+    lines: ["Workspace roots and tasks.", "Switch between project folders."],
+  },
+  assets: {
+    title: "Assets",
+    lines: ["Images, fonts, and bundled resources.", "Drag assets into documents."],
+  },
+  settings: {
+    title: "Settings",
+    lines: ["Preferences and appearance.", "Keyboard shortcuts and proofing."],
+  },
+};
+
 let activeDestination: RailDestination | null = null;
 let mode: RailMode = "collapsed";
 let edgeHitEl: HTMLElement | null = null;
@@ -67,11 +90,39 @@ function applyModeClasses(rail: HTMLElement) {
   }
 }
 
+function renderRailPanel(rail: HTMLElement, id: RailDestination | null) {
+  const panel = rail.querySelector<HTMLElement>(".rail-side-panel");
+  if (!panel) {
+    return;
+  }
+  if (!id || mode !== "expanded") {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    return;
+  }
+  const copy = PANEL_COPY[id];
+  panel.classList.remove("hidden");
+  panel.innerHTML = "";
+  const title = document.createElement("h2");
+  title.className = "rail-panel-title";
+  title.textContent = copy.title;
+  panel.appendChild(title);
+  const list = document.createElement("ul");
+  list.className = "rail-panel-list";
+  copy.lines.forEach((line) => {
+    const li = document.createElement("li");
+    li.textContent = line;
+    list.appendChild(li);
+  });
+  panel.appendChild(list);
+}
+
 function setActiveButton(rail: HTMLElement, id: RailDestination | null) {
   activeDestination = id;
   rail.querySelectorAll(".rail-destination").forEach((el) => {
     el.classList.toggle("active", el.getAttribute("data-rail-id") === id);
   });
+  renderRailPanel(rail, id);
 }
 
 export function initActivityRail(deps: {
@@ -85,6 +136,10 @@ export function initActivityRail(deps: {
   mode = readMode();
   applyModeClasses(rail);
   rail.innerHTML = "";
+
+  const sidePanel = document.createElement("div");
+  sidePanel.className = "rail-side-panel hidden";
+  sidePanel.setAttribute("aria-label", "Navigation panel");
 
   const makeBtn = (item: { label: string; icon: LucideName; className?: string; onClick: () => void }) => {
     const btn = document.createElement("button");
@@ -132,6 +187,7 @@ export function initActivityRail(deps: {
           writeMode("collapsed");
         }
         applyModeClasses(rail);
+        renderRailPanel(rail, activeDestination);
       },
     }),
   );
@@ -147,7 +203,11 @@ export function initActivityRail(deps: {
     },
   });
   settingsBtn.dataset.railId = settingsItem.id;
+  rail.insertBefore(sidePanel, settingsBtn);
   rail.appendChild(settingsBtn);
+  if (mode === "expanded") {
+    setActiveButton(rail, "files");
+  }
 
   if (mode === "auto-hide") {
     edgeHitEl = document.createElement("div");
@@ -187,4 +247,5 @@ export function setRailMode(next: RailMode) {
   }
   writeMode(next);
   applyModeClasses(rail);
+  renderRailPanel(rail, activeDestination);
 }

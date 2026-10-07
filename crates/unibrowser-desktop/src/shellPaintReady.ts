@@ -72,7 +72,10 @@ function ntpReady(): boolean {
   if (!host || host.classList.contains("hidden")) {
     return false;
   }
-  return hasVisibleText(".ntp-hero h1", 2);
+  if (!hasVisibleText(".ntp-hero h1, #new-tab-page-host h1", 2)) {
+    return false;
+  }
+  return host.querySelector(".ntp-actions, .ntp-recent-list") !== null;
 }
 
 function browseFolderReady(): boolean {
@@ -90,7 +93,7 @@ function docViewerReady(): boolean {
   }
   if (
     host.querySelector(
-      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .viewer-note, section",
+      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .viewer-note, section",
     )
   ) {
     return true;
@@ -188,6 +191,10 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     checks.push(browseFolderReady);
   }
 
+  if (tokens.includes("capture-ready") && launchPaths.length === 0) {
+    checks.push(ntpReady);
+  }
+
   if (checks.length === 0) {
     checks.push(() => document.querySelector("#shell-root, #app-shell, body") !== null);
   }
@@ -217,6 +224,33 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
       docViewerReady,
     ];
   }
+  if (joined.includes(".docx")) {
+    return [
+      () => {
+        const host = document.getElementById("document-viewer-host");
+        return Boolean(host && !host.classList.contains("hidden"));
+      },
+      () => {
+        const host = document.getElementById("document-viewer-host");
+        return Boolean(host?.querySelector(".docx-reader, .docx-view"));
+      },
+    ];
+  }
+  if (
+    joined.includes(".svg") ||
+    joined.includes(".png") ||
+    joined.includes(".jpg") ||
+    joined.includes(".jpeg") ||
+    joined.includes(".webp")
+  ) {
+    return [
+      () => {
+        const host = document.getElementById("document-viewer-host");
+        return Boolean(host && !host.classList.contains("hidden"));
+      },
+      docViewerReady,
+    ];
+  }
   return checks;
 }
 
@@ -231,6 +265,66 @@ export function launchPathsNeedEditor(launchPaths: string[]): boolean {
     joined.includes("spell-test") ||
     joined.includes("sync-notes")
   );
+}
+
+function launchPathsNeedDocumentViewer(launchPaths: string[]): boolean {
+  const joined = launchPaths.join("|").toLowerCase();
+  return (
+    joined.includes(".pdf") ||
+    joined.includes(".svg") ||
+    joined.includes(".png") ||
+    joined.includes(".jpg") ||
+    joined.includes(".jpeg") ||
+    joined.includes(".webp") ||
+    joined.includes(".docx")
+  );
+}
+
+let documentTabCaptureNudged = false;
+
+export function resetDocumentTabCaptureNudge(): void {
+  documentTabCaptureNudged = false;
+}
+
+/** Select the tab that matches argv `--open` paths so the viewer host is shown. */
+export async function ensureDocumentTabActiveForCapture(launchPaths: string[]): Promise<void> {
+  if (!launchPathsNeedDocumentViewer(launchPaths)) {
+    return;
+  }
+  if (documentTabCaptureNudged) {
+    return;
+  }
+  documentTabCaptureNudged = true;
+  const host = document.getElementById("document-viewer-host");
+  if (host && !host.classList.contains("hidden")) {
+    return;
+  }
+  const joined = launchPaths.join("|").toLowerCase();
+  const ext =
+    [".pdf", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".docx"].find((e) => joined.includes(e)) ??
+    "";
+  const tabs = document.querySelectorAll<HTMLElement>(".title-tabs .tab");
+  for (const tab of tabs) {
+    const label = (tab.textContent ?? "").toLowerCase();
+    if (ext && label.includes(ext.replace(".", ""))) {
+      tab.click();
+      await sleep(250);
+      return;
+    }
+  }
+  const { invoke } = await import("@tauri-apps/api/core");
+  const state = await invoke<{ active_index: number; tabs: { label: string }[] }>("get_browser_state");
+  const idx = state.tabs.findIndex((t) => {
+    const label = t.label.toLowerCase();
+    return ext ? label.includes(ext.replace(".", "")) : false;
+  });
+  if (idx >= 0) {
+    await invoke("select_tab", { index: idx }).catch(() => undefined);
+    await sleep(250);
+  } else if (state.tabs.length > 0) {
+    await invoke("select_tab", { index: state.tabs.length - 1 }).catch(() => undefined);
+    await sleep(250);
+  }
 }
 
 export async function ensureTextTabActiveForCapture(launchPaths: string[]): Promise<void> {
@@ -278,9 +372,11 @@ export async function waitForShellPaintReady(
   launchPaths: string[],
   timeoutMs = 18_000,
 ): Promise<boolean> {
+  resetDocumentTabCaptureNudge();
   const checks = checksForDemo(demoRaw, launchPaths);
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    await ensureDocumentTabActiveForCapture(launchPaths);
     await ensureTextTabActiveForCapture(launchPaths);
     await nudgeEditorLayout();
     if (checks.every((fn) => fn())) {
