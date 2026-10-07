@@ -74,12 +74,27 @@ export interface CommandManagerCaptureDiagnostics {
   }>;
 }
 
+export interface StatusBarCaptureDiagnostics {
+  segmentCount: number;
+  segments: Array<{
+    id: string;
+    label: string;
+    bounds: { x: number; y: number; width: number; height: number };
+    foreground: string;
+    background: string;
+    contrast: number | null;
+    opacity: string;
+    filter: string;
+  }>;
+}
+
 export interface DocCaptureDiagnostics {
   theme: ThemeCaptureDiagnostics;
   monaco: MonacoCaptureDiagnostics | null;
   canvas: EditorCanvasDiagnostics | null;
   monacoTheme: MonacoThemeCaptureDiagnostics | null;
   commandManager: CommandManagerCaptureDiagnostics | null;
+  statusBar: StatusBarCaptureDiagnostics;
   problems: {
     tabText: string;
     rowCount: number;
@@ -369,6 +384,62 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
   };
 }
 
+export function collectStatusBarDiagnostics(): StatusBarCaptureDiagnostics {
+  const host = document.getElementById("status-bar");
+  if (!host) {
+    return { segmentCount: 0, segments: [] };
+  }
+  const segments = Array.from(host.querySelectorAll(".status-segment"))
+    .map((node) => {
+      const el = node as HTMLElement;
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const label = el.textContent?.trim() ?? "";
+      if (
+        !label ||
+        rect.width <= 0 ||
+        rect.height <= 0 ||
+        style.display === "none" ||
+        style.visibility === "hidden"
+      ) {
+        return null;
+      }
+      let backgroundNode: HTMLElement | null = el;
+      let background = style.backgroundColor;
+      while (backgroundNode) {
+        const candidate = getComputedStyle(backgroundNode).backgroundColor;
+        const parsed = parseRgb(candidate);
+        if (parsed && parsed.a >= 0.99) {
+          background = candidate;
+          break;
+        }
+        backgroundNode = backgroundNode.parentElement;
+      }
+      const foregroundLuminance = parseRgbLuminance(style.color);
+      const backgroundLuminance = parseRgbLuminance(background);
+      return {
+        id: el.id,
+        label,
+        bounds: {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        },
+        foreground: style.color,
+        background,
+        contrast:
+          foregroundLuminance !== null && backgroundLuminance !== null
+            ? contrastRatio(foregroundLuminance, backgroundLuminance)
+            : null,
+        opacity: style.opacity,
+        filter: style.filter,
+      };
+    })
+    .filter((segment): segment is NonNullable<typeof segment> => segment !== null);
+  return { segmentCount: segments.length, segments };
+}
+
 function collectCommandAncestors(el: HTMLElement) {
   const ancestors: CommandManagerCaptureDiagnostics["controls"][number]["ancestors"] = [];
   let node: HTMLElement | null = el.parentElement;
@@ -473,6 +544,7 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
     canvas: sampleMonacoCanvasVariance(),
     monacoTheme: collectMonacoThemeDiagnostics(),
     commandManager: collectCommandManagerDiagnostics(),
+    statusBar: collectStatusBarDiagnostics(),
     problems: {
       tabText:
         document.getElementById("bottom-panel-tab-problems")?.textContent?.trim() ?? "",

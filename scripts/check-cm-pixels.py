@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate rendered Command Manager label contrast from a capture PNG."""
+"""Validate rendered Command Manager and status-bar label contrast."""
 
 from __future__ import annotations
 
@@ -52,6 +52,36 @@ def percentile(values: list[float], fraction: float) -> float:
     return ordered[index]
 
 
+def sample_bounds(
+    image: Image.Image,
+    bounds: dict[str, object],
+    background: tuple[int, int, int],
+    scale_x: float,
+    scale_y: float,
+) -> tuple[float, int, dict[str, int]]:
+    x = float(bounds.get("x", 0))
+    y = float(bounds.get("y", 0))
+    width = float(bounds.get("width", 0))
+    height = float(bounds.get("height", 0))
+    x0 = max(0, math.floor(x * scale_x))
+    y0 = max(0, math.floor(y * scale_y))
+    x1 = min(image.width, math.ceil((x + width) * scale_x))
+    y1 = min(image.height, math.ceil((y + height) * scale_y))
+    ratios: list[float] = []
+    for red, green, blue in image.crop((x0, y0, x1, y1)).get_flattened_data():
+        pixel = (red, green, blue)
+        delta = sum(abs(pixel[index] - background[index]) for index in range(3))
+        if delta >= 18:
+            ratios.append(contrast(pixel, background))
+    sampled = percentile(ratios, 0.90)
+    return sampled, len(ratios), {
+        "x": x0,
+        "y": y0,
+        "width": x1 - x0,
+        "height": y1 - y0,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("png", type=Path)
@@ -68,30 +98,13 @@ def main() -> int:
 
     for control in data.get("controls", []):
         bounds = control.get("labelBounds", {})
-        x0 = max(0, math.floor(float(bounds.get("x", 0)) * scale_x))
-        y0 = max(0, math.floor(float(bounds.get("y", 0)) * scale_y))
-        x1 = min(
-            image.width,
-            math.ceil((float(bounds.get("x", 0)) + float(bounds.get("width", 0))) * scale_x),
-        )
-        y1 = min(
-            image.height,
-            math.ceil((float(bounds.get("y", 0)) + float(bounds.get("height", 0))) * scale_y),
-        )
         background = parse_rgb(control.get("background", "")) or (23, 37, 50)
-        ratios: list[float] = []
-        label_pixels = image.crop((x0, y0, x1, y1)).get_flattened_data()
-        for red, green, blue in label_pixels:
-            pixel = (red, green, blue)
-            delta = sum(abs(pixel[index] - background[index]) for index in range(3))
-            if delta >= 18:
-                ratios.append(contrast(pixel, background))
-
-        # The 90th percentile samples glyph interiors and ignores anti-aliased edges.
-        sampled = percentile(ratios, 0.90)
+        sampled, ink_count, pixel_bounds = sample_bounds(
+            image, bounds, background, scale_x, scale_y
+        )
         control["pixelContrast"] = round(sampled, 3)
-        control["pixelInkCount"] = len(ratios)
-        control["pixelBounds"] = {"x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0}
+        control["pixelInkCount"] = ink_count
+        control["pixelBounds"] = pixel_bounds
         supported_enabled = (
             control.get("capabilityState") in ("supported", "emulated")
             and bool(control.get("enabled"))
@@ -99,6 +112,19 @@ def main() -> int:
         if supported_enabled and sampled < 4.5:
             failures.append(
                 f"{control.get('controlId', '?')}: label contrast {sampled:.2f}:1 < 4.5:1"
+            )
+
+    for segment in data.get("statusBar", {}).get("segments", []):
+        background = parse_rgb(segment.get("background", "")) or (231, 229, 223)
+        sampled, ink_count, pixel_bounds = sample_bounds(
+            image, segment.get("bounds", {}), background, scale_x, scale_y
+        )
+        segment["pixelContrast"] = round(sampled, 3)
+        segment["pixelInkCount"] = ink_count
+        segment["pixelBounds"] = pixel_bounds
+        if sampled < 4.5:
+            failures.append(
+                f"status {segment.get('id', '?')}: label contrast {sampled:.2f}:1 < 4.5:1"
             )
 
     args.json.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

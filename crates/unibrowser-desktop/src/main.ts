@@ -2808,11 +2808,14 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           const diag = collectDocCaptureDiagnostics();
           const diagJson = formatDiagnosticsForLog(diag);
           await invoke("write_doc_capture_cm_json", {
-            json: JSON.stringify(diag.commandManager ?? {
-              controlCount: 0,
-              visibleCount: 0,
-              contextLabel: "",
-              controls: [],
+            json: JSON.stringify({
+              ...(diag.commandManager ?? {
+                controlCount: 0,
+                visibleCount: 0,
+                contextLabel: "",
+                controls: [],
+              }),
+              statusBar: diag.statusBar,
             }),
           });
           console.error(`[doc-capture] diagnostics ${diagJson}`);
