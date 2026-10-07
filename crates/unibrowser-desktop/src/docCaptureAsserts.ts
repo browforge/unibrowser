@@ -232,6 +232,22 @@ export function sampleMonacoCanvasVariance(): EditorCanvasDiagnostics | null {
 }
 
 function parseRgb(rgb: string): { r: number; g: number; b: number; a: number } | null {
+  const hex = rgb.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const value =
+      hex[1].length === 3
+        ? hex[1]
+            .split("")
+            .map((channel) => `${channel}${channel}`)
+            .join("")
+        : hex[1];
+    return {
+      r: Number.parseInt(value.slice(0, 2), 16),
+      g: Number.parseInt(value.slice(2, 4), 16),
+      b: Number.parseInt(value.slice(4, 6), 16),
+      a: 1,
+    };
+  }
   const m = rgb.match(
     /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?/,
   );
