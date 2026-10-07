@@ -171,8 +171,12 @@ import { applyDemoState } from "./demoState";
 import {
   appendModCatalogCard,
   appendModSuggestionCard,
-  renderModNetworkStatus,
+  catalogInstallPath,
   enableOpenVsxForSearch,
+  markModCardInstalled,
+  renderModNetworkStatus,
+  showModCardInstallStatus,
+  showModCardNetworkOffReason,
   type ModCatalogEntry,
 } from "./modPortalUi";
 import {
@@ -1180,19 +1184,68 @@ function renderModPortal(portal: ModPortalDto | null) {
   featuredTitle.className = "mod-portal-featured-title";
   featuredTitle.textContent = "Suggested result";
   featured.appendChild(featuredTitle);
-  const suggestionHandler = (suggestion: (typeof portal.suggestions)[number]) => {
-    if (suggestion.open_vsx_id) {
-      searchInput.value = suggestion.open_vsx_id;
+  const suggestionHandler = (
+    suggestion: (typeof portal.suggestions)[number],
+    card: HTMLElement,
+  ) => {
+    void runCatalogInstall(suggestion, card);
+  };
+
+  const runCatalogInstall = async (
+    entry: {
+      title: string;
+      mod_id?: string;
+      id?: string;
+      open_vsx_id?: string | null;
+      ubmod_id?: string | null;
+    },
+    card: HTMLElement,
+  ) => {
+    const path = catalogInstallPath(entry, isOpenVsxNetworkEnabled());
+    if (path === "network-off") {
+      showModCardNetworkOffReason(card, () => {
+        setOpenVsxNetworkEnabled(true);
+        showModCardInstallStatus(
+          card,
+          "Open VSX network is on. Search can reach the public catalogue.",
+        );
+        void refreshCommandManager();
+      });
+      return;
+    }
+    if (path === "local" && entry.ubmod_id) {
+      showModCardInstallStatus(
+        card,
+        t("mods.installLocalProgress", { title: entry.title }),
+      );
+      try {
+        const rec = await invoke<{ title: string; name: string }>("install_offline_ubmod", {
+          ubmodId: entry.ubmod_id,
+        });
+        showModCardInstallStatus(
+          card,
+          t("mods.installLocalDone", { title: rec.title || entry.title }),
+        );
+        markModCardInstalled(card);
+        const nativeHost = modPortalPanel.querySelector<HTMLElement>(".mod-portal-native");
+        const vsixHost = modPortalPanel.querySelector<HTMLElement>(".mod-portal-vsix");
+        if (nativeHost && vsixHost) {
+          await refreshInstalledExtensions(nativeHost, vsixHost);
+        }
+      } catch {
+        showModCardInstallStatus(
+          card,
+          t("mods.installLocalFailed", { title: entry.title }),
+        );
+      }
+      return;
+    }
+    if (entry.open_vsx_id) {
+      searchInput.value = entry.open_vsx_id;
       enableOpenVsxForSearch();
       searchInput.focus();
-      showToast(t("mods.installStub", { modId: suggestion.mod_id }), "info");
-      return;
+      void runModPortalOpenVsxSearch();
     }
-    if (suggestion.ubmod_id) {
-      showToast(t("mods.ubmodStub", { modId: suggestion.ubmod_id }), "info");
-      return;
-    }
-    showToast(t("mods.installStub", { modId: suggestion.mod_id }), "info");
   };
   const primarySuggestion = portal.suggestions[0];
   if (primarySuggestion) {
@@ -1337,18 +1390,16 @@ function renderModPortal(portal: ModPortalDto | null) {
     const { native, vsix } = await installedSets();
     catalogResults.innerHTML = "";
     entries.forEach((entry) => {
-      appendModCatalogCard(catalogResults, entry, native, vsix, (picked) => {
-        if (picked.open_vsx_id) {
-          searchInput.value = picked.open_vsx_id;
-          enableOpenVsxForSearch();
-          void runModPortalOpenVsxSearch();
-          return;
-        }
-        if (picked.ubmod_id) {
-          showToast(t("mods.ubmodStub", { modId: picked.ubmod_id }), "info");
-          return;
-        }
-        showToast(t("mods.installStub", { modId: picked.id }), "info");
+      appendModCatalogCard(catalogResults, entry, native, vsix, (picked, card) => {
+        void runCatalogInstall(
+          {
+            title: picked.title,
+            id: picked.id,
+            open_vsx_id: picked.open_vsx_id,
+            ubmod_id: picked.ubmod_id,
+          },
+          card,
+        );
       });
     });
   }
@@ -2163,6 +2214,9 @@ async function applyState(data: TabContentDto) {
       textEditor.hide(textEditorHost);
     }
     if (showViewer && data.document_viewer) {
+      if (data.document_viewer.viewer === "settings") {
+        void invoke("dock_all_detached_toolbars").catch(() => undefined);
+      }
       await documentViewer.apply(data.document_viewer, documentViewerHost, {
         downloadHistory: data.download_history ?? [],
         onRefreshState: refreshState,

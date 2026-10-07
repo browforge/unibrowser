@@ -18,7 +18,7 @@ import {
   setUiScale,
   type ReduceMotionPref,
 } from "./accessibility";
-import { applyThemeToDocument, loadThemePreference } from "./theme";
+import { applyThemeToDocument, applyUserThemePreference, loadThemePreference } from "./theme";
 import { listEditorThemeOptions } from "./monacoEditorTheme";
 import { setEditorThemePreference } from "./textEditor";
 import { markChecklistStep } from "./onboardingChecklist";
@@ -171,11 +171,16 @@ export async function renderSettings(root: HTMLElement) {
     opt.textContent = themeLabels[value] ?? value;
     themeSelect.appendChild(opt);
   });
+  themeSelect.id = "settings-theme";
+  themeSelect.setAttribute("aria-label", t("settings.theme"));
   themeSelect.value = prefs.theme.toLowerCase();
   themeSelect.onchange = async () => {
-    await invoke("set_ui_theme", { theme: themeSelect.value });
-    await loadThemePreference();
-    applyThemeToDocument();
+    const next = themeSelect.value;
+    if (next !== "light" && next !== "dark" && next !== "system") {
+      return;
+    }
+    await invoke("set_ui_theme", { theme: next });
+    applyUserThemePreference(next);
   };
   themeSection.appendChild(
     createSettingsFieldRow(t("settings.theme"), t("settings.themeLead"), themeSelect),
@@ -545,6 +550,8 @@ export async function renderSettings(root: HTMLElement) {
     opt.textContent = t("autosave.intervalMinutes", { minutes: String(mins) });
     intervalSelect.appendChild(opt);
   });
+  intervalSelect.id = "settings-autosave-interval";
+  intervalSelect.setAttribute("aria-label", t("settings.autosave"));
   intervalSelect.value = String(prefs.auto_save_interval_secs);
   intervalSelect.disabled = !prefs.auto_save_enabled;
   const slotInput = document.createElement("input");

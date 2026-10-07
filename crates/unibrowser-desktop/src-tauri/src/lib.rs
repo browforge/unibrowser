@@ -155,7 +155,17 @@ pub fn run() {
                 if !e2e && !self_test && !doc_capture {
                     commands::restore_session_on_launch(state.inner(), app.handle())?;
                 }
-                if let Err(error) =
+                let demo = std::env::var("UNIBROWSER_DEMO_STATE").unwrap_or_default();
+                let settings_surface = demo.split([',', ';']).any(|token| {
+                    token.trim().eq_ignore_ascii_case("settings")
+                });
+                if settings_surface {
+                    if let Err(error) =
+                        toolbar_windows::dock_all_detached_toolbars(app.handle(), state.inner())
+                    {
+                        eprintln!("dock detached toolbars for settings: {}", error);
+                    }
+                } else if let Err(error) =
                     toolbar_windows::restore_detached_toolbars(app.handle(), state.inner())
                 {
                     eprintln!("detached toolbar restore: {}", error);
@@ -238,6 +248,7 @@ pub fn run() {
             commands::save_command_manager_layout,
             commands::detach_floating_toolbar_window,
             commands::dock_floating_toolbar_window,
+            commands::dock_all_detached_toolbars,
             commands::open_active_file_as_text,
             commands::open_active_file_as_hex,
             commands::list_workspace_personas,
@@ -457,6 +468,7 @@ pub fn run() {
             commands::set_vsix_extension_enabled,
             commands::trust_vsix_extension,
             commands::set_offline_mode,
+            commands::install_offline_ubmod,
             commands::list_installed_native_mods,
             commands::set_native_mod_enabled,
             commands::uninstall_vsix_extension,

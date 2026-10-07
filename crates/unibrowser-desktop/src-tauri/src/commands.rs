@@ -3348,6 +3348,14 @@ pub fn dock_floating_toolbar_window(
 }
 
 #[tauri::command]
+pub fn dock_all_detached_toolbars(
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    crate::toolbar_windows::dock_all_detached_toolbars(&app, state.inner())
+}
+
+#[tauri::command]
 pub fn list_workspace_layout_presets(window: tauri::Window) -> Vec<crate::workspace_layouts::WorkspaceLayoutPresetSummaryDto> {
     crate::workspace_layouts::list_presets()
 }
@@ -7843,6 +7851,11 @@ pub struct InstalledNativeModDto {
     pub library_present: bool,
     pub signature_ok: bool,
     pub load_block_reason: Option<String>,
+}
+
+#[tauri::command]
+pub fn install_offline_ubmod(ubmod_id: String) -> Result<crate::mod_portal::OfflineUbmodInstallDto, String> {
+    crate::mod_portal::install_offline_ubmod(&ubmod_id)
 }
 
 #[tauri::command]

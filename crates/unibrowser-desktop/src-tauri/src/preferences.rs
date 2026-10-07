@@ -485,6 +485,27 @@ mod tests {
     }
 
     #[test]
+    fn theme_change_reads_back() {
+        let mut prefs = Preferences::default();
+        assert_eq!(prefs.theme, UiTheme::System);
+        prefs.theme = UiTheme::Dark;
+        let json = serde_json::to_string(&prefs).expect("serialize");
+        let loaded: Preferences = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(loaded.theme, UiTheme::Dark);
+    }
+
+    #[test]
+    fn autosave_interval_change_reads_back() {
+        let mut prefs = Preferences::default();
+        assert_eq!(prefs.auto_save_interval_secs, 300);
+        prefs.auto_save_interval_secs = normalize_auto_save_interval_secs(60);
+        let json = serde_json::to_string(&prefs).expect("serialize");
+        let loaded: Preferences = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(loaded.auto_save_interval_secs, 60);
+        assert_eq!(normalize_auto_save_interval_secs(45), 300);
+    }
+
+    #[test]
     fn export_epub_notes_writes_sibling_txt() {
         let dir = std::env::temp_dir().join(format!("ub-epub-notes-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("dir");
