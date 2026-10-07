@@ -928,7 +928,7 @@ async function renderPdf(
     const maxWidth = Math.max(320, scrollSurface.clientWidth - 48);
     return Math.min(4, Math.max(0.5, maxWidth / base.width));
   };
-  if (Math.abs(currentScale - scale) < 0.001 || scale === 1.25) {
+  if (scale === 1.25) {
     currentScale = await fitWidthScale();
     void invoke("sync_pdf_scale", { scale: currentScale }).catch(() => {});
   }

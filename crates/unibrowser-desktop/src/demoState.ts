@@ -224,6 +224,9 @@ export async function applyDemoState(raw: string) {
         await waitForElement(".cm-overflow-menu");
         break;
       }
+      case "ui14-pdf-100":
+        await invoke("sync_pdf_scale", { scale: 1 }).catch(() => undefined);
+        break;
       case "ui15-unibrow-title": {
         const clip = await waitForElement<HTMLElement>(
           '.workshop-clip[data-clip-id="clip-1"]',
