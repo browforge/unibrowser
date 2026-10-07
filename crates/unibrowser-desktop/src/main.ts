@@ -190,6 +190,8 @@ import {
   validateImageViewerChrome,
   validateCommandManagerMutedForCapture,
   validateDarkSurfaceBackgroundsForCapture,
+  validateUbSwitchGeometryForCapture,
+  validateSelectChevronForCapture,
   validateWorkshopTimelineForCapture,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
@@ -3091,6 +3093,20 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (darkSurfaceErr) {
             await invoke("abort_doc_capture", {
               reason: `${darkSurfaceErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const switchGeomErr = validateUbSwitchGeometryForCapture();
+          if (switchGeomErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${switchGeomErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const selectChevronErr = validateSelectChevronForCapture();
+          if (selectChevronErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${selectChevronErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

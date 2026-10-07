@@ -58,6 +58,22 @@ body[data-ub-ready="1"] .shell-fallback {
   color-scheme: light;
 }
 
+:root {
+  --ub-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c9cbc8' d='M2.25 4.5 6 8.25 9.75 4.5'/%3E%3C/svg%3E");
+}
+
+[data-theme="light"] {
+  --ub-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234b5052' d='M2.25 4.5 6 8.25 9.75 4.5'/%3E%3C/svg%3E");
+}
+
+[data-high-contrast="true"] {
+  --ub-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M2.25 4.5 6 8.25 9.75 4.5'/%3E%3C/svg%3E");
+}
+
+[data-theme="light"][data-high-contrast="true"] {
+  --ub-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23000000' d='M2.25 4.5 6 8.25 9.75 4.5'/%3E%3C/svg%3E");
+}
+
 [data-theme="light"] #chrome {
   border-bottom-color: #ccc;
 }
@@ -354,8 +370,24 @@ button.proving-disabled,
   box-shadow: none;
   border: 1px solid var(--ub-border-strong, #89939d);
   border-radius: var(--ub-radius-6, 6px);
-  background: var(--ub-control, #2d3031);
+  background-color: var(--ub-control, #2d3031);
   color: var(--ub-text-1, #e9edef);
+}
+
+#chrome select,
+.settings-content select,
+.pdf-annotations-dock select,
+.svg-inspector select,
+.files-panel select,
+.epub-chapter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 1.75rem;
+  background-color: var(--ub-control, #2d3031);
+  background-image: var(--ub-select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 0.65rem 0.65rem;
 }
 
 #chrome input[type="color"],
@@ -372,9 +404,15 @@ button.proving-disabled,
   -webkit-appearance: none;
   position: relative;
   display: inline-block;
-  flex: 0 0 auto;
+  flex: 0 0 32px;
+  align-self: center;
+  box-sizing: border-box;
   width: 32px;
+  min-width: 32px;
+  max-width: 32px;
   height: 18px;
+  min-height: 18px;
+  max-height: 18px;
   margin: 0;
   padding: 0;
   border: 1px solid var(--ub-border-strong, #89939d);
@@ -389,12 +427,13 @@ button.proving-disabled,
 .settings-toggle-input::after {
   content: "";
   position: absolute;
-  top: 2px;
+  top: 50%;
   left: 2px;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 3px;
   background: var(--ub-text-1, #e9edef);
+  transform: translateY(-50%);
   transition: transform 120ms ease-out;
 }
 
@@ -406,7 +445,7 @@ button.proving-disabled,
 
 .ub-switch:checked::after,
 .settings-toggle-input:checked::after {
-  transform: translateX(14px);
+  transform: translate(14px, -50%);
   background: var(--ub-accent-on, #f4f7f8);
 }
 
@@ -5569,14 +5608,29 @@ mark.docx-search-hit--current {
 
 .settings-content button,
 .settings-content select,
-.settings-content input {
+.settings-content input:not(.ub-switch):not(.settings-toggle-input):not([type="checkbox"]):not([type="radio"]) {
   min-height: 1.75rem;
   padding: 0.25rem 0.55rem;
   border: 1px solid var(--ub-border, #4a4f52);
   border-radius: 4px;
-  background: var(--ub-surface-subtle, #25282a);
+  background-color: var(--ub-surface-subtle, #25282a);
   color: var(--ub-text-1, #e9edef);
   font: inherit;
+}
+
+.settings-content select {
+  padding-right: 1.75rem;
+  background-image: var(--ub-select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 0.65rem 0.65rem;
+}
+
+.settings-content .ub-switch,
+.settings-content .settings-toggle-input {
+  min-height: 18px;
+  max-height: 18px;
+  padding: 0;
 }
 
 .settings-content button {
@@ -5597,10 +5651,14 @@ mark.docx-search-hit--current {
 
 [data-theme="light"] .settings-content button,
 [data-theme="light"] .settings-content select,
-[data-theme="light"] .settings-content input {
+[data-theme="light"] .settings-content input:not(.ub-switch):not(.settings-toggle-input):not([type="checkbox"]):not([type="radio"]) {
   border-color: #aeb6bf;
-  background: #eef1f3;
+  background-color: #eef1f3;
   color: #252a30;
+}
+
+[data-theme="light"] .settings-content select {
+  background-image: var(--ub-select-chevron);
 }
 
 [data-theme="light"] .settings-content button:hover:not(:disabled) {

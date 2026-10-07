@@ -5,7 +5,9 @@ import {
   backgroundExceedsRaisedSurface,
   captureRectsOverlap,
   inputBorderEdgesUniform,
+  knobVerticalOffsetCentered,
   rectWithinBounds,
+  switchTrackSizeWithinTolerance,
 } from "../src/docCaptureAsserts.ts";
 
 test("timeline ruler and endpoint labels must stay inside the viewport", () => {
@@ -36,6 +38,17 @@ test("timeline marker flags must not overlap tick labels", () => {
 test("dark capture surface guard rejects backgrounds above its tolerance", () => {
   assert.equal(backgroundExceedsRaisedSurface(0.04, 0.03), false);
   assert.equal(backgroundExceedsRaisedSurface(0.95, 0.03), true);
+});
+
+test("ub-switch track size tolerance is 32x18", () => {
+  assert.equal(switchTrackSizeWithinTolerance(32, 18), true);
+  assert.equal(switchTrackSizeWithinTolerance(33, 18), true);
+  assert.equal(switchTrackSizeWithinTolerance(32, 28), false);
+});
+
+test("ub-switch knob vertical centre helper", () => {
+  assert.equal(knobVerticalOffsetCentered(18, 2, 14), true);
+  assert.equal(knobVerticalOffsetCentered(28, 2, 12), false);
 });
 
 test("form control border guard treats matching edges as uniform", () => {

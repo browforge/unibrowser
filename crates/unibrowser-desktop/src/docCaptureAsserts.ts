@@ -338,6 +338,105 @@ function effectiveOpaqueBackground(el: HTMLElement): string | null {
   return null;
 }
 
+export function switchTrackSizeWithinTolerance(
+  width: number,
+  height: number,
+  tolerance = 1,
+): boolean {
+  return Math.abs(width - 32) <= tolerance && Math.abs(height - 18) <= tolerance;
+}
+
+export function knobVerticalOffsetCentered(
+  trackHeight: number,
+  knobTop: number,
+  knobHeight: number,
+  tolerance = 1.5,
+): boolean {
+  const trackCenter = trackHeight / 2;
+  const knobCenter = knobTop + knobHeight / 2;
+  return Math.abs(knobCenter - trackCenter) <= tolerance;
+}
+
+function selectHasChevronBackground(style: CSSStyleDeclaration): boolean {
+  const image = style.backgroundImage;
+  return Boolean(image && image !== "none" && image.includes("url("));
+}
+
+export function validateUbSwitchGeometryForCapture(): string | null {
+  const switches = document.querySelectorAll<HTMLInputElement>(
+    ".ub-switch, .settings-toggle-input",
+  );
+  for (const switchEl of switches) {
+    const rect = switchEl.getBoundingClientRect();
+    const style = getComputedStyle(switchEl);
+    if (
+      rect.width <= 0 ||
+      rect.height <= 0 ||
+      style.display === "none" ||
+      style.visibility === "hidden"
+    ) {
+      continue;
+    }
+    if (!switchTrackSizeWithinTolerance(rect.width, rect.height)) {
+      const identity = switchEl.id || switchEl.className || "switch";
+      return `switch ${identity} is ${rect.width.toFixed(1)}x${rect.height.toFixed(1)}; expected 32x18 (+/-1px)`;
+    }
+    const knobStyle = getComputedStyle(switchEl, "::after");
+    const knobTop = Number.parseFloat(knobStyle.top);
+    const knobHeight = Number.parseFloat(knobStyle.height);
+    if (!Number.isFinite(knobTop) || !Number.isFinite(knobHeight)) {
+      continue;
+    }
+    if (!knobVerticalOffsetCentered(rect.height, knobTop, knobHeight)) {
+      const identity = switchEl.id || switchEl.className || "switch";
+      return `switch ${identity} knob is not vertically centred (top ${knobTop}px, height ${knobHeight}px, track ${rect.height}px)`;
+    }
+  }
+  return null;
+}
+
+const CAPTURE_SELECT_SCOPES = [
+  "#chrome",
+  ".settings-content",
+  ".pdf-annotations-dock",
+  ".files-panel",
+  ".svg-inspector",
+  ".workshop-inspector",
+  ".ai-assistant-panel",
+  ".settings-category-rail",
+];
+
+export function validateSelectChevronForCapture(): string | null {
+  for (const scopeSelector of CAPTURE_SELECT_SCOPES) {
+    const scope = document.querySelector(scopeSelector);
+    if (!scope) {
+      continue;
+    }
+    const selects = scope.querySelectorAll<HTMLSelectElement>("select");
+    for (const select of selects) {
+      const rect = select.getBoundingClientRect();
+      const style = getComputedStyle(select);
+      if (
+        rect.width <= 0 ||
+        rect.height <= 0 ||
+        style.display === "none" ||
+        style.visibility === "hidden"
+      ) {
+        continue;
+      }
+      if (!selectHasChevronBackground(style)) {
+        const identity =
+          select.id ||
+          select.getAttribute("aria-label") ||
+          Array.from(select.classList).join(".") ||
+          "select";
+        return `select ${identity} in ${scopeSelector} is missing themed chevron background`;
+      }
+    }
+  }
+  return null;
+}
+
 export function validateDarkSurfaceBackgroundsForCapture(
   tolerance = 0.06,
 ): string | null {
