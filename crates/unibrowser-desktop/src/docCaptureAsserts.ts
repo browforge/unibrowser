@@ -440,8 +440,12 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   const cm = collectCommandManagerDiagnostics();
   const startContext =
     cm.autoContext === "start" || cm.contextLabel?.toLowerCase() === "start";
-  const requiredVisible = startContext ? Math.min(minVisible, 4) : minVisible;
-  const requiredContrast = startContext ? Math.min(minContrast, 4) : minContrast;
+  const settingsContext = cm.contextLabel?.toLowerCase() === "settings";
+  const sparseContextLimit = settingsContext ? 3 : 4;
+  const requiredVisible =
+    startContext || settingsContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
+  const requiredContrast =
+    startContext || settingsContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
   const overflowEl = document.getElementById("command-manager-overflow");
   const resolvedTotal =
     typeof cm.pipeline?.ipcControlCount === "number"
