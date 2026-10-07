@@ -582,14 +582,36 @@ export const commandManager = {
         window.innerWidth,
         groupsEl.clientWidth,
       );
-      const { visible, overflow } = partitionGroupsByAvailableWidth(allGroups, widthBudget);
-      overflowGroupsCache = overflow;
-      groupsEl.classList.toggle("cm-overflow-active", overflow.length > 0);
+      let { visible, overflow } = partitionGroupsByAvailableWidth(allGroups, widthBudget);
+      const setOverflowState = () => {
+        const hasOverflow = overflow.length > 0;
+        groupsEl.classList.toggle("cm-overflow-active", hasOverflow);
+        if (overflowEl) {
+          overflowEl.classList.toggle("visible", hasOverflow);
+          overflowEl.classList.toggle("hidden", !hasOverflow);
+        }
+      };
+      setOverflowState();
       if (visible.length > 0) {
         renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
+        let correctedBudget = widthBudget;
+        for (let attempt = 0; attempt <= allGroups.length; attempt += 1) {
+          const clippedWidth = Math.ceil(groupsEl.scrollWidth - groupsEl.clientWidth);
+          if (clippedWidth <= 0) {
+            break;
+          }
+          correctedBudget = Math.max(0, correctedBudget - clippedWidth - 8);
+          ({ visible, overflow } = partitionGroupsByAvailableWidth(
+            allGroups,
+            correctedBudget,
+          ));
+          setOverflowState();
+          renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
+        }
       } else {
         renderCommandButtons(groupsEl, active.commands, onRun, layoutEditModeActive());
       }
+      overflowGroupsCache = overflow;
       if (!cmRovingBound) {
         cmRovingBound = true;
         bindCmRovingFocus({
@@ -633,8 +655,6 @@ export const commandManager = {
       });
       if (overflowEl) {
         const hasOverflow = overflow.length > 0;
-        overflowEl.classList.toggle("visible", hasOverflow);
-        overflowEl.classList.toggle("hidden", !hasOverflow);
         if (!overflowEl.dataset.bound) {
           overflowEl.dataset.bound = "1";
           overflowEl.innerHTML = "";
