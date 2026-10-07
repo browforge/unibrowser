@@ -448,6 +448,11 @@ Screenshot:
 
 **Visual-language impact:** Revised. Rails, lists, and settings groups use spacing and surface roles; cards are reserved for independent objects.
 
+Status: done 2026-10-07. File tree/list/preview docking and the searchable
+settings category rail are implemented. Light, dark, high-contrast, 800 px,
+1600 px, and 150% evidence passes in
+`docs/design/ui-13-evidence.md`.
+
 Likely files:
 
 - `src/filesPanel.ts`
