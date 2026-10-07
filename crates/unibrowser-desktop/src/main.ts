@@ -1095,7 +1095,9 @@ function runModsCommand(commandId: string): boolean {
       void runModPortalOpenVsxSearch();
       return true;
     case "unibrowser.mods.install": {
-      const first = modPortalPanel.querySelector<HTMLButtonElement>(".mod-card-action");
+      const first = modPortalPanel.querySelector<HTMLButtonElement>(
+        ".mod-card-install, .mod-card-action",
+      );
       if (first) {
         first.focus();
         first.click();
@@ -2215,7 +2217,10 @@ async function applyState(data: TabContentDto) {
     }
     if (showViewer && data.document_viewer) {
       if (data.document_viewer.viewer === "settings") {
+        floatingToolbarHost.classList.add("hidden");
         void invoke("dock_all_detached_toolbars").catch(() => undefined);
+      } else {
+        floatingToolbarHost.classList.remove("hidden");
       }
       await documentViewer.apply(data.document_viewer, documentViewerHost, {
         downloadHistory: data.download_history ?? [],

@@ -192,8 +192,8 @@ shot "04-workshop-open"
 xdotool mousemove 250 70 click 1
 xdotool sleep 0.8
 shot "04-workshop-title"
-# Export is Primary and stays on the row at 1280.
-xdotool mousemove 430 70 click 1
+# Export is the fifth Project control at 1280.
+xdotool mousemove 520 70 click 1
 xdotool sleep 0.8
 shot "04-workshop-export"
 stop_app
@@ -203,8 +203,9 @@ reset_prefs
 start_app "ui17-mod-portal" --open "$PACK/sample.step"
 xdotool sleep 1.2
 shot "05-portal-open"
-xdotool mousemove 1140 340 click 1
-xdotool sleep 1
+# Mods Install on the Command Manager runs the featured card action.
+xdotool mousemove 200 70 click 1
+xdotool sleep 1.2
 shot "05-portal-install"
 # Installed tab is the first portal section tab.
 xdotool mousemove 80 168 click 1
