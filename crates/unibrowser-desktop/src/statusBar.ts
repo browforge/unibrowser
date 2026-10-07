@@ -33,7 +33,7 @@ let languageEl: HTMLElement | null = null;
 let problemsCountEl: HTMLElement | null = null;
 let zoomOutBtn: HTMLButtonElement | null = null;
 let zoomInBtn: HTMLButtonElement | null = null;
-let zoomMode: "hidden" | "viewer" | "web" = "hidden";
+let zoomMode: "hidden" | "readout" | "viewer" | "web" = "hidden";
 let onZoomDelta: ((delta: number) => void) | null = null;
 let onZoomReset: (() => void) | null = null;
 let onFontReset: (() => void) | null = null;
@@ -85,18 +85,18 @@ export function setPathCopyHandler(handler: ((path: string) => void) | null) {
 }
 
 export function setZoomHandler(
-  mode: "hidden" | "viewer" | "web",
+  mode: "hidden" | "readout" | "viewer" | "web",
   handler: ((delta: number) => void) | null,
   resetHandler?: (() => void) | null,
 ) {
   zoomMode = mode;
   onZoomDelta = handler;
   onZoomReset = resetHandler ?? null;
-  const show = mode !== "hidden" && handler !== null;
-  zoomOutBtn?.classList.toggle("hidden", !show);
-  zoomInBtn?.classList.toggle("hidden", !show);
-  zoomEl?.classList.toggle("status-reset-target", show && onZoomReset !== null);
-  if (zoomEl && !show) {
+  const showControls = mode !== "hidden" && mode !== "readout" && handler !== null;
+  zoomOutBtn?.classList.toggle("hidden", !showControls);
+  zoomInBtn?.classList.toggle("hidden", !showControls);
+  zoomEl?.classList.toggle("status-reset-target", showControls && onZoomReset !== null);
+  if (zoomEl && mode === "hidden") {
     zoomEl.textContent = "";
   }
 }

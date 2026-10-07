@@ -1958,7 +1958,9 @@ async function applyState(data: TabContentDto) {
     );
   } else if (showViewer && data.document_viewer) {
     const kind = data.document_viewer.viewer;
-    if (kind === "pdf" || kind === "image") {
+    if (kind === "pdf") {
+      setZoomHandler("readout", null, null);
+    } else if (kind === "image") {
       setZoomHandler(
         "viewer",
         (delta) => {

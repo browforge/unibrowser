@@ -682,7 +682,7 @@ fn start_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Resol
     let recent = ResolvedGroup {
         group_id: "unibrowser.group.start.recent".into(),
         label: "Recent".into(),
-        overflow_priority: OverflowPriority::Low,
+        overflow_priority: OverflowPriority::Primary,
         controls: vec![control_spec(
             control_ids::START_RECENT,
             ControlType::Button,
@@ -1141,6 +1141,18 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
             ),
         ],
     };
+    let markup = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.markup".into(),
+        label: "Markup".into(),
+        overflow_priority: OverflowPriority::Primary,
+        controls: annotate.controls[..3].to_vec(),
+    };
+    let add_annotation = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.add-annotation".into(),
+        label: "Add".into(),
+        overflow_priority: OverflowPriority::Primary,
+        controls: annotate.controls[3..].to_vec(),
+    };
     let annotation_nav = ResolvedGroup {
         group_id: "unibrowser.group.pdf.annotation-nav".into(),
         label: "Annotations".into(),
@@ -1242,6 +1254,12 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
             resolver,
         )],
     };
+    let navigation = ResolvedGroup {
+        group_id: "unibrowser.group.pdf.navigation".into(),
+        label: "View".into(),
+        overflow_priority: OverflowPriority::Primary,
+        controls: vec![page.controls[0].clone(), view.controls[0].clone()],
+    };
     let export = ResolvedGroup {
         group_id: "unibrowser.group.pdf.export".into(),
         label: "Export".into(),
@@ -1262,7 +1280,15 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
         family_id: family_ids::PDF_ANNOTATION.into(),
         label: "PDF".into(),
         overflow_priority: OverflowPriority::Normal,
-        groups: vec![tools, annotate, annotation_nav, appearance, page, view, export],
+        groups: vec![
+            tools,
+            markup,
+            add_annotation,
+            navigation,
+            annotation_nav,
+            appearance,
+            export,
+        ],
     }
 }
 
