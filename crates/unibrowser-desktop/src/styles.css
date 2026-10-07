@@ -5338,6 +5338,16 @@ mark.docx-search-hit--current {
   color: #4b555e;
 }
 
+[data-high-contrast="true"] .settings-developer-callout {
+  border-color: var(--ub-text-1);
+  background: var(--ub-panel);
+  color: var(--ub-text-1);
+}
+
+[data-high-contrast="true"] .settings-developer-callout p {
+  color: var(--ub-text-1);
+}
+
 .settings-developer-callout-link {
   border: 0;
   background: transparent;

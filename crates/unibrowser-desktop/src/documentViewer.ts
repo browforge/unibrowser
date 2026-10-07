@@ -180,17 +180,17 @@ function drawAudioPeaks(
   g.fillStyle = "#1a1a22";
   g.fillRect(0, 0, width, height);
   const mid = height * 0.5;
-  const buckets = width;
+  const buckets = Math.ceil(width / 3);
   const block = Math.max(1, Math.floor(channel.length / buckets));
   g.fillStyle = "#66ccff";
-  for (let x = 0; x < buckets; x += 1) {
+  for (let bucket = 0; bucket < buckets; bucket += 1) {
     let peak = 0;
-    const start = x * block;
+    const start = bucket * block;
     for (let i = 0; i < block && start + i < channel.length; i += 1) {
       peak = Math.max(peak, Math.abs(channel[start + i]));
     }
     const bar = Math.max(1, peak * height * 0.9);
-    g.fillRect(x, mid - bar * 0.5, 1, bar);
+    g.fillRect(bucket * 3, mid - bar * 0.5, 2, bar);
   }
 }
 
@@ -987,6 +987,9 @@ function formatMediaTime(value: number): string {
   if (!Number.isFinite(value) || value < 0) {
     return "0:00";
   }
+  if (value > 0 && value < 1) {
+    return `${value.toFixed(1)}s`;
+  }
   const minutes = Math.floor(value / 60);
   const seconds = Math.floor(value % 60);
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
@@ -1068,6 +1071,9 @@ async function renderVideo(
   video.preload = "metadata";
   video.muted = tabMuted;
   video.src = convertFileSrc(path);
+  video.addEventListener("loadeddata", () => {
+    root.dataset.mediaReady = "1";
+  });
   stage.appendChild(video);
   root.appendChild(stage);
   mountMediaControls(root, video);
@@ -1083,11 +1089,12 @@ function drawAudioPeakArray(
   g.clearRect(0, 0, width, height);
   g.fillStyle = "#3d5a80";
   const mid = height / 2;
-  const step = peaks.length / width;
-  for (let x = 0; x < width; x++) {
-    const i = Math.min(peaks.length - 1, Math.floor(x * step));
+  const buckets = Math.ceil(width / 3);
+  const step = peaks.length / buckets;
+  for (let bucket = 0; bucket < buckets; bucket += 1) {
+    const i = Math.min(peaks.length - 1, Math.floor(bucket * step));
     const h = Math.max(2, peaks[i] * (height * 0.9));
-    g.fillRect(x, mid - h / 2, 1, h);
+    g.fillRect(bucket * 3, mid - h / 2, 2, h);
   }
 }
 
@@ -1142,6 +1149,7 @@ async function renderAudio(
       }
     }
   }
+  root.dataset.mediaReady = "1";
 }
 
 type DxfVertex = { x: number; y: number; z?: number };

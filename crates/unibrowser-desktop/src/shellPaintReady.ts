@@ -99,6 +99,10 @@ function docViewerReady(): boolean {
       stage?.style.transform.includes("scale("),
     );
   }
+  const mediaViewer = host.querySelector<HTMLElement>(".media-viewer");
+  if (mediaViewer) {
+    return mediaViewer.dataset.mediaReady === "1";
+  }
   if (
     host.querySelector(
       ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .viewer-note, section",
