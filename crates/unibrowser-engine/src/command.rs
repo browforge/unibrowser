@@ -345,6 +345,32 @@ impl CommandRegistry {
             (commands::IMAGE_EXPOSURE, "Exposure", "image", &["image exposure"][..]),
             (commands::IMAGE_CONTRAST, "Contrast", "circle-dot", &["image contrast"][..]),
             (commands::IMAGE_COLOUR, "Colour", "palette", &["image colour"][..]),
+            (commands::IMAGE_ACTUAL_SIZE, "100%", "scan", &["actual size", "pixel size"][..]),
+            (
+                commands::IMAGE_FLIP_HORIZONTAL,
+                "Flip horizontal",
+                "flip-horizontal",
+                &["flip h", "mirror horizontal"][..],
+            ),
+            (
+                commands::IMAGE_FLIP_VERTICAL,
+                "Flip vertical",
+                "flip-vertical",
+                &["flip v", "mirror vertical"][..],
+            ),
+            (
+                commands::IMAGE_HISTOGRAM,
+                "Histogram",
+                "bar-chart-2",
+                &["rgb histogram"][..],
+            ),
+            (
+                commands::IMAGE_EYEDROPPER,
+                "Eyedropper",
+                "pipette",
+                &["colour picker", "sample pixel"][..],
+            ),
+            (commands::IMAGE_COPY, "Copy image", "copy", &["copy image file"][..]),
         ] {
             reg.register_command(CommandMeta {
                 id,

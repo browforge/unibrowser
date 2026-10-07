@@ -160,6 +160,12 @@ pub mod commands {
     pub const IMAGE_EXPOSURE: &str = "unibrowser.image.exposure";
     pub const IMAGE_CONTRAST: &str = "unibrowser.image.contrast";
     pub const IMAGE_COLOUR: &str = "unibrowser.image.colour";
+    pub const IMAGE_ACTUAL_SIZE: &str = "unibrowser.image.actualSize";
+    pub const IMAGE_FLIP_HORIZONTAL: &str = "unibrowser.image.flipHorizontal";
+    pub const IMAGE_FLIP_VERTICAL: &str = "unibrowser.image.flipVertical";
+    pub const IMAGE_HISTOGRAM: &str = "unibrowser.image.histogram";
+    pub const IMAGE_EYEDROPPER: &str = "unibrowser.image.eyedropper";
+    pub const IMAGE_COPY: &str = "unibrowser.image.copy";
     pub const START_OPEN_FILE: &str = "unibrowser.start.openFile";
     pub const START_OPEN_FOLDER: &str = "unibrowser.start.openFolder";
     pub const START_NEW_PROJECT: &str = "unibrowser.start.newProject";

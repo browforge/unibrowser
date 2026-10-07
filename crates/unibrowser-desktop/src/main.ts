@@ -175,6 +175,7 @@ import {
   validateProblemsForCapture,
   formatDiagnosticsForLog,
   validateEditorForCapture,
+  validateImageViewerChrome,
 } from "./docCaptureAsserts";
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
 import {
@@ -2835,6 +2836,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (captureUsesEditor && editorErr) {
             await invoke("abort_doc_capture", {
               reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const imageChromeErr = validateImageViewerChrome(launchPaths);
+          if (imageChromeErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${imageChromeErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

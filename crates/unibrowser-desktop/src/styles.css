@@ -1008,8 +1008,11 @@ body.toolbar-window-mode .floating-bar.docked {
 
 .status-hint {
   margin-left: auto;
+  padding: 0 0.75rem 0 0.5rem;
+  max-width: min(42rem, 55vw);
   color: #777;
   font-size: 0.7rem;
+  text-align: right;
 }
 
 .status-zoom-controls {
@@ -2621,7 +2624,7 @@ body.content-fullscreen::after {
 
 .dxf-canvas-wrap {
   flex: 1 1 auto;
-  min-height: 28rem;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--ub-border, #444);
   background: #1a1a22;
@@ -2651,19 +2654,13 @@ body.content-fullscreen::after {
   color: var(--ub-text-2, #4f5963);
 }
 
-.image-toolbar {
-  display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.35rem;
-  flex-wrap: wrap;
-}
-
 .image-viewer-layout {
   display: flex;
   gap: 0.75rem;
   align-items: stretch;
   min-height: 0;
-  flex: 1;
+  flex: 1 1 auto;
+  height: 100%;
 }
 
 .image-viewer-main {
@@ -2712,17 +2709,52 @@ body.content-fullscreen::after {
 }
 
 .image-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
-  height: 24rem;
-  border: 1px solid #444;
-  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background-color: #2a2a30;
+  background-image:
+    linear-gradient(45deg, #34343c 25%, transparent 25%),
+    linear-gradient(-45deg, #34343c 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #34343c 75%),
+    linear-gradient(-45deg, transparent 75%, #34343c 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
   cursor: grab;
   touch-action: none;
+}
+
+[data-theme="light"] .image-viewport {
+  background-color: #d8d8dc;
+  background-image:
+    linear-gradient(45deg, #c8c8cc 25%, transparent 25%),
+    linear-gradient(-45deg, #c8c8cc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #c8c8cc 75%),
+    linear-gradient(-45deg, transparent 75%, #c8c8cc 75%);
+}
+
+.image-viewport--eyedrop {
+  cursor: crosshair;
 }
 
 .image-stage {
   display: inline-block;
   transform-origin: center center;
+  will-change: transform;
+}
+
+.image-crop-host {
+  display: inline-block;
+  line-height: 0;
 }
 
 .image-view {

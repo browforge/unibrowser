@@ -317,14 +317,27 @@ fn image_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityStat
             CapabilityState::Supported
         }
         "unibrowser.control.image.fit"
+        | "unibrowser.control.image.actualSize"
         | "unibrowser.control.image.crop"
         | "unibrowser.control.image.rotate"
+        | "unibrowser.control.image.flipHorizontal"
+        | "unibrowser.control.image.flipVertical"
+        | "unibrowser.control.image.histogram"
+        | "unibrowser.control.image.eyedropper"
+        | "unibrowser.control.image.copy"
+        | "unibrowser.control.image.ocr"
             if !vector_image =>
         {
             CapabilityState::Supported
         }
+        "unibrowser.control.image.ocr" => CapabilityState::Unsupported {
+            reason: "OCR applies to raster images, not SVG.".into(),
+        },
         "unibrowser.control.image.fit" => CapabilityState::Unsupported {
             reason: "Fit-to-window needs an SVG view provider.".into(),
+        },
+        "unibrowser.control.image.actualSize" => CapabilityState::Unsupported {
+            reason: "Pixel zoom needs an SVG view provider.".into(),
         },
         "unibrowser.control.image.crop" => CapabilityState::Unsupported {
             reason: "Crop needs a raster image edit provider.".into(),

@@ -92,7 +92,7 @@ function docViewerReady(): boolean {
   }
   if (
     host.querySelector(
-      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .viewer-note, section",
+      ".docx-reader, .pdf-page, .pdf-workspace, .pdf-page-wrap, .svg-workspace, .svg-preview--stage, .image-viewport, .image-viewer-layout, .viewer-note, section",
     )
   ) {
     return true;

@@ -529,3 +529,31 @@ export function validateEditorForCapture(minLines = 6, minVariance = 12): string
 export function formatDiagnosticsForLog(d: DocCaptureDiagnostics): string {
   return JSON.stringify(d, null, 0);
 }
+
+/** Returns abort reason when raster image viewer chrome violates one-home rules. */
+export function validateImageViewerChrome(launchPaths: string[]): string | null {
+  const joined = launchPaths.join("|").toLowerCase();
+  if (!/\.(png|jpe?g|webp|gif|bmp)$/i.test(joined)) {
+    return null;
+  }
+  const host = document.querySelector("#document-viewer-host");
+  if (!host || host.classList.contains("hidden")) {
+    return "image capture missing visible document-viewer-host";
+  }
+  if (host.querySelector(".image-toolbar")) {
+    return "image viewer must not render a duplicate .image-toolbar row";
+  }
+  const strayNote = host.querySelector(":scope > .viewer-note");
+  if (strayNote) {
+    return "image viewer must not render a root-level .viewer-note hint";
+  }
+  const viewport = host.querySelector(".image-viewport") as HTMLElement | null;
+  if (!viewport) {
+    return "image viewer missing .image-viewport";
+  }
+  const height = viewport.getBoundingClientRect().height;
+  if (height < 280) {
+    return `image viewport height ${height.toFixed(0)}px is too short (expected fill)`;
+  }
+  return null;
+}

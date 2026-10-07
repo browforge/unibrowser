@@ -403,6 +403,7 @@ fn image_context_exposes_adjust_family() {
         .collect();
     for expected in [
         "unibrowser.control.image.fit",
+        "unibrowser.control.image.actualSize",
         "unibrowser.control.image.zoomOut",
         "unibrowser.control.image.zoomIn",
         "unibrowser.control.image.crop",
@@ -412,6 +413,12 @@ fn image_context_exposes_adjust_family() {
         "unibrowser.control.image.contrast",
         "unibrowser.control.image.colour",
         "unibrowser.control.image.curves",
+        "unibrowser.control.image.flipHorizontal",
+        "unibrowser.control.image.flipVertical",
+        "unibrowser.control.image.ocr",
+        "unibrowser.control.image.copy",
+        "unibrowser.control.image.histogram",
+        "unibrowser.control.image.eyedropper",
     ] {
         assert!(ids.contains(&expected), "missing image target control: {expected}");
     }
@@ -423,8 +430,14 @@ fn raster_image_context_supports_implemented_viewer_tools() {
     let ctx = resolution_ctx(WorkContext::Image, "photo.png");
     for (control_id, command_id) in [
         ("unibrowser.control.image.fit", commands::IMAGE_FIT),
+        ("unibrowser.control.image.actualSize", commands::IMAGE_ACTUAL_SIZE),
         ("unibrowser.control.image.crop", commands::IMAGE_CROP),
         ("unibrowser.control.image.rotate", commands::IMAGE_ROTATE),
+        ("unibrowser.control.image.flipHorizontal", commands::IMAGE_FLIP_HORIZONTAL),
+        ("unibrowser.control.image.flipVertical", commands::IMAGE_FLIP_VERTICAL),
+        ("unibrowser.control.image.copy", commands::IMAGE_COPY),
+        ("unibrowser.control.image.histogram", commands::IMAGE_HISTOGRAM),
+        ("unibrowser.control.image.eyedropper", commands::IMAGE_EYEDROPPER),
     ] {
         assert!(matches!(
             resolver.resolve_control(control_id, command_id, &ctx),

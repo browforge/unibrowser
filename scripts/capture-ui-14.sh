@@ -16,6 +16,11 @@ capture() {
   local name="$1"
   local open_path="$2"
   local extra_state="${3:-}"
+  local theme="${4:-light}"
+  local contrast="standard-contrast"
+  if [[ ",${extra_state}," == *",high-contrast,"* ]] || [[ "$extra_state" == "high-contrast" ]]; then
+    contrast="high-contrast"
+  fi
   local tmp="$OUT/.${name}.png"
   rm -f "$tmp"
   xvfb-run -a -s "-screen 0 1280x800x24" env \
@@ -24,7 +29,7 @@ capture() {
     UNIBROWSER_REPO_ROOT="$ROOT" \
     UNIBROWSER_SAFE_MODE=1 \
     UNIBROWSER_DOC_CAPTURE_SIZE="1280x800" \
-    UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-light,standard-contrast,scale-100${extra_state:+,$extra_state}" \
+    UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},${contrast},scale-100${extra_state:+,$extra_state}" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
   mv "$tmp" "$OUT/${name}.png"
   local actual
@@ -39,6 +44,9 @@ capture "pdf-annotation-light-1280" "$PACK/sample.pdf"
 capture "pdf-annotation-100-light-1280" "$PACK/sample.pdf" "ui14-pdf-100"
 capture "pdf-annotation-overflow-light-1280" "$PACK/sample.pdf" "ui14-open-command-overflow"
 capture "image-light-1280" "$PACK/sample.svg"
+capture "image-raster-light-1280" "$PACK/sample.png"
+capture "image-raster-dark-1280" "$PACK/sample.png" "" "dark"
+capture "image-raster-hc-1280" "$PACK/sample.png" "high-contrast" "light"
 capture "dxf-proving-light-1280" "$PACK/sample.dxf" "ui14-dxf-measure-reason"
 
 declare -A seen_hashes=()
