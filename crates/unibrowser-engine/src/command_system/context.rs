@@ -62,6 +62,12 @@ pub fn infer_work_context(
     if ext == "pdf" {
         return WorkContext::Pdf;
     }
+    if matches!(
+        ext.as_str(),
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" | "bmp" | "ico" | "avif"
+    ) {
+        return WorkContext::Image;
+    }
     if ext == "md" || ext == "markdown" {
         return WorkContext::Markdown;
     }

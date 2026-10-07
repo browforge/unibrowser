@@ -216,6 +216,14 @@ fn image_context_exposes_adjust_family() {
 }
 
 #[test]
+fn svg_path_infers_image_work_context() {
+    assert_eq!(
+        infer_work_context(CommandContext::Text, Mode::Text, Some("photo.svg")),
+        WorkContext::Image
+    );
+}
+
+#[test]
 fn svg_image_context_marks_non_image_commands_unsupported() {
     let resolver = CapabilityResolver::default();
     let ctx = resolution_ctx(WorkContext::Image, "photo.svg");
