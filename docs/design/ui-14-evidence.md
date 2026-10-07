@@ -46,26 +46,45 @@ the CM.
 
 Raster PNG evidence (`image-raster-light-1280.png`, `image-raster-dark-1280.png`,
 `image-raster-hc-1280.png`, and `../shell-density/image-{light,dark}-1280.png`)
-shows Fit and 100% in the CM, utilities in overflow only, a centred 1600×1000
+shows Fit and 100% in the CM, utilities in overflow only, a centred 1600x1000
 procedural fixture on a checkerboard viewport, and a status zoom that matches fit
 (for example Image 67%). No duplicate image toolbar row appears.
 
 ### `dxf-proving-light-1280.png`
 
 The CAD / 3D row shows Select, Orientation, Pan, Orbit, Fit view, Zoom out,
-Zoom in, and Measure. Fit view and both zoom controls use bright chrome labels
-(`cm-cap-supported`); Select, Orientation, Pan, Orbit, and Measure use the
-unsupported muted treatment only. No tooltip or focus ring covers the Geometry
-header at capture time. The wireframe is fit-centred in the canvas well with
+Zoom in, and Measure. Select, Orientation, Pan, Orbit, Fit view, and both zoom
+controls use bright chrome labels. Measure alone uses the unsupported muted
+treatment. No tooltip or focus ring covers the Geometry header at capture time.
+The wireframe is fit-centred in the canvas well with
 margin. Layers use tokenised shell checkboxes; Geometry is an Entity/Count table.
 The status bar shows the fitted zoom percentage (not a fixed 100% placeholder),
 once, with CAD path detail in the breadcrumb tooltip only. Grade: Pass.
 
 ### `dxf-proving-dark-1280.png` / `dxf-proving-hc-1280.png`
 
-Same layout on dark and high-contrast shells: fit-centred wireframe, bright
-Fit/Zoom labels versus muted unsupported tools, styled layer checkboxes, geometry
+Same layout on dark and high-contrast shells: fit-centred wireframe, seven
+bright supported labels versus muted Measure, styled layer checkboxes, geometry
 table, fitted zoom in the status bar, and no capture-time tooltips. Grade: Pass.
+
+## Root cause of the false pass at `0b86822`
+
+The capability registry refinement replaced a command's declared `Supported`
+state with `Unsupported: No handler for this document type`. That assumption was
+wrong for controls dispatched by frontend webview routers, including the CAD and
+Project families. The resulting `.unsupported .cm-cmd-label` rule resolved to
+`#62686a` against the `#172532` chrome band, only 2.75:1. There was no stale
+frontend bundle, ancestor opacity or filter, inactive-window rule, or chrome-band
+variable override.
+
+The earlier class test constructed capability states directly and therefore
+never exercised registry refinement. The earlier capture guard also inspected
+DOM states rather than the rendered label pixels, so both checks repeated the
+same incorrect assumption. Each capture now writes a sibling `.cm.json` file
+with declared state, enabled state, disable reason, computed colour, ancestor
+opacity and filter, and label bounds. `check-cm-pixels.py` samples those bounds
+in the PNG and rejects any supported-and-enabled label below 4.5:1 against its
+rendered bar background.
 
 ## Grade
 
@@ -85,5 +104,7 @@ Totals: 3 Pass, 0 Drift, 0 Fail.
   present, raster Fit/Crop/Rotate are supported, and unavailable providers have
   reasons.
 - Overflow controls stay keyboard-focusable and announce unavailable reasons.
-- `tests/cmCapabilityChrome.test.mjs` checks supported vs unsupported CM classes.
-- `validateCommandManagerMutedForCapture()` guards doc-capture against muted styling leaks.
+- `tests/cmCapabilityChrome.test.mjs` covers frontend-owned CAD and Project
+  capabilities as well as supported vs unsupported chrome classes.
+- `validateCommandManagerMutedForCapture()` writes the rendered-state sidecar.
+- `check-cm-pixels.py` applies the 4.5:1 PNG label-pixel guard to every capture.

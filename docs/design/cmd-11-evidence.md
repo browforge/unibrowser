@@ -25,8 +25,8 @@ current-runtime gap against the target family list. **Fail** blocks Done.
 
 ## Region-by-region grid
 
-Every row was opened and inspected. “Chrome” includes the complete title bar
-and Save. “CM” includes the context, complete visible controls, overflow, and
+Every row was opened and inspected. "Chrome" includes the complete title bar
+and Save. "CM" includes the context, complete visible controls, overflow, and
 right-side Follow/Pin controls.
 
 | PNG | Chrome | Command Manager | Content top / status | Verdict |
@@ -35,7 +35,7 @@ right-side Follow/Pin controls.
 | `plain-text-dark-100` | Full dark title bar; Save visible | Same stable positions; disabled contrast remains readable | Dark Monaco; reason tooltip; status visible | Pass |
 | `plain-text-hc-100` | Yellow focus + strong borders; Save visible | Same controls, high-contrast focus on Strikethrough | White canvas; reason tooltip; status visible | Pass |
 | `plain-text-light-150` | Full width at persisted 150%; Save visible | No clipped labels; overflow and Follow/Pin visible | Larger tooltip/status; Monaco top visible | Pass |
-| `markdown-light-100` | Full light title bar; Save visible | Text; Subscript focused with subtle dotted marker | Approximation tooltip (`<sub>`/font scaling); Monaco visible | Pass |
+| `markdown-light-100` | Full light title bar; Save visible | Text; Subscript focused with subtle dotted marker | Approximation tooltip uses end-user wording; Monaco visible | Pass |
 | `markdown-dark-100` | Full dark title bar; Save visible | Same family geometry and emulation marker | Dark Monaco; approximation tooltip | Pass |
 | `markdown-hc-100` | Yellow focus + strong borders; Save visible | Subscript focus and marker remain distinguishable | White canvas; approximation tooltip | Pass |
 | `markdown-light-150` | Full width at 150%; Save visible | Labels, overflow, Follow/Pin fit | Larger approximation tooltip/status; distinct from plain text | Pass |
@@ -78,10 +78,10 @@ implemented. CAD/3D has context detection only.
 4. **High contrast:** previous mode changed little beyond a flag/border. It now
    has distinct persisted tokens and measured pixel differences above.
 5. **Runtime/doc disagreement:** built-in Markdown emulation providers were
-   incorrectly sent through the mod runtime and became “provider unavailable”.
-   Built-in `unibrowser.*` semantic providers now retain the resolver’s
+   incorrectly sent through the mod runtime and became "provider unavailable".
+   Built-in `unibrowser.*` semantic providers now retain the resolver's
    Emulated state and approximation note. Plain/Markdown size is labelled
-   “Editor text size”. PDF, Image, and CAD target/current differences remain
+   "Editor text size". PDF, Image, and CAD target/current differences remain
    documented as Drift.
 
 ## Tests
