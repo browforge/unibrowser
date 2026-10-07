@@ -5295,6 +5295,10 @@ mark.docx-search-hit--current {
   background: #f1f0ec;
 }
 
+[data-theme="light"] .unknown-support-panel p {
+  color: #4b5052;
+}
+
 .unknown-file-banner.hidden {
   display: none;
 }
@@ -5566,6 +5570,12 @@ body.content-fullscreen #unknown-file-banner {
 [data-theme="light"] .mod-result-card {
   color: #252a30;
   background: #f7f6f2;
+}
+
+[data-theme="light"] .mod-result-id,
+[data-theme="light"] .mod-result-reason,
+[data-theme="light"] .mod-result-meta {
+  color: #62686a;
 }
 
 [data-theme="light"] .mod-portal-tab {
