@@ -197,8 +197,8 @@ export async function mountRasterImageViewer(
   const orientedSize = () => {
     const quarter = ((rotation % 360) + 360) % 360;
     const swap = quarter === 90 || quarter === 270;
-    const nw = img.naturalWidth;
-    const nh = img.naturalHeight;
+    const nw = img.naturalWidth || img.width;
+    const nh = img.naturalHeight || img.height;
     if (!nw || !nh) {
       return { w: 0, h: 0 };
     }
@@ -342,7 +342,7 @@ export async function mountRasterImageViewer(
   img.src = convertFileSrc(path);
   let fitAttempts = 0;
   const fitWhenReady = () => {
-    if (img.naturalWidth > 0) {
+    if (img.naturalWidth > 0 || img.width > 0) {
       onImageReady();
       return;
     }

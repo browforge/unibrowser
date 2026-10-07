@@ -94,8 +94,8 @@ function docViewerReady(): boolean {
     const image = host.querySelector<HTMLImageElement>(".image-view");
     const stage = host.querySelector<HTMLElement>(".image-stage");
     return Boolean(
-      image?.complete &&
-      image.naturalWidth > 0 &&
+      image &&
+      image.getBoundingClientRect().width > 0 &&
       stage?.style.transform.includes("scale("),
     );
   }
