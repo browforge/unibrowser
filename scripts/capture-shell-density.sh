@@ -47,8 +47,8 @@ capture_new_tab() {
 }
 
 capture_new_tab
-capture_scene "file-browser" "" "$DEMO"
-capture_scene "markdown" "" "$DEMO/sample.md"
+capture_scene "file-browser" "ui26-file-preview" "$DEMO"
+capture_scene "markdown" "document-mockup-problems,ai" "$DEMO/sample.md"
 capture_scene "pdf" "" "$DEMO/sample.pdf"
 capture_scene "image" "" "$DEMO/sample.png"
 capture_scene "workshop" "" "$DEMO/sample.unibrow"
