@@ -941,6 +941,9 @@ function setModPortalTab(index: number) {
   modPortalPanel.querySelectorAll<HTMLButtonElement>(".mod-portal-tab").forEach((tab, i) => {
     tab.setAttribute("aria-current", i === index ? "page" : "false");
   });
+  modPortalPanel.querySelectorAll<HTMLElement>("[data-mod-portal-section]").forEach((section) => {
+    section.classList.toggle("hidden", section.dataset.modPortalSection !== String(index));
+  });
 }
 
 async function runModPortalOpenVsxSearch() {
@@ -1039,9 +1042,12 @@ function renderModPortal(portal: ModPortalDto | null) {
   catalogResults.className = "mod-portal-catalog mod-portal-catalog--restrained";
   const results = document.createElement("div");
   results.className = "mod-portal-results";
+  const discoverSection = document.createElement("section");
+  discoverSection.className = "mod-portal-discover";
+  discoverSection.dataset.modPortalSection = "1";
   searchRow.append(searchInput, searchBtn);
   renderModNetworkStatus(searchRow);
-  modPortalPanel.appendChild(searchRow);
+  discoverSection.appendChild(searchRow);
 
   const featured = document.createElement("section");
   featured.className = "mod-portal-featured";
@@ -1068,12 +1074,16 @@ function renderModPortal(portal: ModPortalDto | null) {
   if (primarySuggestion) {
     appendModSuggestionCard(featured, primarySuggestion, suggestionHandler, { featured: true });
   }
-  modPortalPanel.appendChild(featured);
+  discoverSection.appendChild(featured);
 
+  const catalogDisclosure = document.createElement("details");
+  catalogDisclosure.className = "mod-portal-catalog-disclosure";
+  const catalogSummary = document.createElement("summary");
+  catalogSummary.textContent = "Browse full catalogue";
   const catalogNote = document.createElement("p");
   catalogNote.className = "viewer-note mod-portal-catalog-note";
   catalogNote.textContent = t("mods.catalogNote");
-  modPortalPanel.appendChild(catalogNote);
+  catalogDisclosure.append(catalogSummary, catalogNote, catalogResults);
   void invoke<{ offline_mode: boolean }>("get_preferences").then((netPrefs) => {
     if (!netPrefs.offline_mode) {
       return;
@@ -1083,34 +1093,36 @@ function renderModPortal(portal: ModPortalDto | null) {
     const offlineNote = document.createElement("p");
     offlineNote.className = "viewer-note";
     offlineNote.textContent = t("mods.offlineModeActive");
-    modPortalPanel.insertBefore(offlineNote, catalogNote);
+    catalogDisclosure.insertBefore(offlineNote, catalogNote);
   });
-  modPortalPanel.appendChild(catalogResults);
-  modPortalPanel.appendChild(searchStatus);
-  modPortalPanel.appendChild(results);
+  discoverSection.append(catalogDisclosure, searchStatus, results);
+  modPortalPanel.appendChild(discoverSection);
 
+  const installedSection = document.createElement("section");
+  installedSection.className = "mod-portal-installed-section";
+  installedSection.dataset.modPortalSection = "0";
   const installedHeading = document.createElement("h3");
   installedHeading.textContent = t("mods.installedHeading");
-  modPortalPanel.appendChild(installedHeading);
+  installedSection.appendChild(installedHeading);
 
   const nativeHeading = document.createElement("h4");
   nativeHeading.textContent = t("mods.nativeHeading");
-  modPortalPanel.appendChild(nativeHeading);
+  installedSection.appendChild(nativeHeading);
   const userModNote = document.createElement("p");
   userModNote.className = "viewer-note";
   userModNote.textContent = t("mods.perModToggleNote");
-  modPortalPanel.appendChild(userModNote);
+  installedSection.appendChild(userModNote);
 
   const nativeList = document.createElement("div");
   nativeList.className = "mod-portal-installed mod-portal-native";
-  modPortalPanel.appendChild(nativeList);
+  installedSection.appendChild(nativeList);
 
   const vsixHeading = document.createElement("h4");
   vsixHeading.textContent = t("mods.vsixHeading");
-  modPortalPanel.appendChild(vsixHeading);
+  installedSection.appendChild(vsixHeading);
   const installedList = document.createElement("div");
   installedList.className = "mod-portal-installed mod-portal-vsix";
-  modPortalPanel.appendChild(installedList);
+  installedSection.appendChild(installedList);
 
   const developer = document.createElement("details");
   developer.className = "mod-portal-developer";
@@ -1142,7 +1154,20 @@ function renderModPortal(portal: ModPortalDto | null) {
     }
   };
   developer.append(developerSummary, side, sideloadBtn);
-  modPortalPanel.appendChild(developer);
+  installedSection.appendChild(developer);
+  modPortalPanel.appendChild(installedSection);
+
+  const updatesSection = document.createElement("section");
+  updatesSection.className = "mod-portal-updates-section";
+  updatesSection.dataset.modPortalSection = "2";
+  const updatesHeading = document.createElement("h3");
+  updatesHeading.textContent = "Updates";
+  const updatesEmpty = document.createElement("p");
+  updatesEmpty.className = "viewer-note";
+  updatesEmpty.textContent = "Installed mods are up to date.";
+  updatesSection.append(updatesHeading, updatesEmpty);
+  modPortalPanel.appendChild(updatesSection);
+  setModPortalTab(1);
 
   void refreshInstalledExtensions(nativeList, installedList);
 
