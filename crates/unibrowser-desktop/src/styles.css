@@ -4184,7 +4184,57 @@ mark.docx-search-hit--current {
 .settings-content button,
 .settings-content select,
 .settings-content input {
+  min-height: 1.75rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--ub-border, #4a4f52);
   border-radius: 4px;
+  background: var(--ub-surface-subtle, #25282a);
+  color: var(--ub-text-1, #e9edef);
+  font: inherit;
+}
+
+.settings-content button {
+  cursor: pointer;
+}
+
+.settings-content button:hover:not(:disabled) {
+  border-color: var(--ub-accent, #73a8c2);
+  background: var(--ub-hover, #303538);
+}
+
+.settings-content button:focus-visible,
+.settings-content select:focus-visible,
+.settings-content input:focus-visible {
+  outline: 2px solid var(--ub-focus, #73a8c2);
+  outline-offset: 1px;
+}
+
+[data-theme="light"] .settings-content button,
+[data-theme="light"] .settings-content select,
+[data-theme="light"] .settings-content input {
+  border-color: #aeb6bf;
+  background: #eef1f3;
+  color: #252a30;
+}
+
+[data-theme="light"] .settings-content button:hover:not(:disabled) {
+  border-color: #1769aa;
+  background: #e2e8ed;
+}
+
+[data-theme="light"] .settings-content .viewer-note,
+[data-theme="light"] .files-bulk-bar,
+[data-theme="light"] .files-side-note,
+[data-theme="light"] .files-props-dl dt {
+  color: #5c6570;
+}
+
+[data-high-contrast="true"] .settings-content button,
+[data-high-contrast="true"] .settings-content select,
+[data-high-contrast="true"] .settings-content input {
+  border-color: currentColor;
+  background: var(--ub-panel, #fff);
+  color: var(--ub-text-1, #000);
 }
 
 .settings-developer > summary,
