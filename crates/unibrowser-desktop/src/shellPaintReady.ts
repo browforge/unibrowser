@@ -43,7 +43,7 @@ function unibrowBoardReady(): boolean {
     return false;
   }
   const board = host.querySelector(
-    ".workshop-stage-frame, .unibrow-board-canvas, .unibrow-board-hint, .unibrow-live-panel",
+    ".workshop-stage-frame, .workshop-programme-card--live, .workshop-timeline-canvas",
   );
   return Boolean(board);
 }
@@ -54,7 +54,7 @@ function liveBadgeReady(): boolean {
     return state.getAttribute("data-state") === "live" ||
       state.getAttribute("data-state") === "recording";
   }
-  const badge = document.querySelector(".unibrow-live-indicator");
+  const badge = document.querySelector(".workshop-programme-card--live");
   return Boolean(badge && !badge.classList.contains("hidden"));
 }
 
