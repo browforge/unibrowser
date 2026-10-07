@@ -1071,13 +1071,48 @@ async function renderVideo(
   video.preload = "metadata";
   video.muted = tabMuted;
   video.src = convertFileSrc(path);
-  video.addEventListener("loadeddata", () => {
-    root.dataset.mediaReady = "1";
-  });
   stage.appendChild(video);
   root.appendChild(stage);
   mountMediaControls(root, video);
   bindMediaViewerKeys(video);
+
+  let posterReady = false;
+  try {
+    const frame = await invoke<{ path: string; mime: string }>("video_scrub_thumbnail", {
+      path,
+      timeSec: 0,
+    });
+    await ensureAssetAllowed(frame.path);
+    const poster = document.createElement("img");
+    poster.className = "media-poster";
+    poster.alt = "";
+    poster.src = convertFileSrc(frame.path);
+    stage.appendChild(poster);
+    posterReady = await new Promise<boolean>((resolve) => {
+      if (poster.complete && poster.naturalWidth > 0) {
+        resolve(true);
+        return;
+      }
+      poster.addEventListener("load", () => resolve(true), { once: true });
+      poster.addEventListener("error", () => resolve(false), { once: true });
+      window.setTimeout(() => resolve(false), 3000);
+    });
+    video.addEventListener("play", () => poster.classList.add("hidden"));
+    video.addEventListener("ended", () => poster.classList.remove("hidden"));
+  } catch {
+    posterReady = false;
+  }
+  if (!posterReady) {
+    await new Promise<void>((resolve) => {
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        resolve();
+        return;
+      }
+      video.addEventListener("loadeddata", () => resolve(), { once: true });
+      window.setTimeout(resolve, 3000);
+    });
+  }
+  root.dataset.mediaReady = "1";
 }
 
 function drawAudioPeakArray(

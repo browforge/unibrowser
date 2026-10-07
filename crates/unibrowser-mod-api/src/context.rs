@@ -56,6 +56,7 @@ impl CommandContext {
 
     pub fn from_mode_and_path(mode: Mode, path: &str) -> Self {
         match mode {
+            Mode::Browse if is_media_path(path) => CommandContext::Audio,
             Mode::Browse => CommandContext::Browse,
             Mode::Web => CommandContext::Web,
             Mode::Image | Mode::Vector => CommandContext::Image,
@@ -108,4 +109,38 @@ fn is_office_path(path: &str) -> bool {
         ext.as_str(),
         "doc" | "docx" | "odt" | "xls" | "xlsx" | "ods" | "ppt" | "pptx" | "odp"
     )
+}
+
+fn is_media_path(path: &str) -> bool {
+    let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    matches!(
+        ext.as_str(),
+        "aac"
+            | "flac"
+            | "m4a"
+            | "mkv"
+            | "mov"
+            | "mp3"
+            | "mp4"
+            | "ogg"
+            | "wav"
+            | "webm"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browse_mode_uses_audio_context_for_media_files() {
+        assert_eq!(
+            CommandContext::from_mode_and_path(Mode::Browse, "clip.mp4"),
+            CommandContext::Audio,
+        );
+        assert_eq!(
+            CommandContext::from_mode_and_path(Mode::Browse, "sample.wav"),
+            CommandContext::Audio,
+        );
+    }
 }
