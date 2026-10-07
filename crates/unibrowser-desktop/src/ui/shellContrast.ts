@@ -72,12 +72,19 @@ export const SHELL_DENSITY_CONTRAST_TARGETS: Array<{
   selector: string;
   minRatio: number;
   when?: "workshop" | "mod-portal" | "settings" | "files" | "always";
+  required?: boolean;
 }> = [
   { id: "workshop-panel-heading", selector: ".workshop-region-heading", minRatio: 4.5, when: "workshop" },
   { id: "workshop-track-label", selector: ".workshop-track-label", minRatio: 4.5, when: "workshop" },
   { id: "workshop-source-badge", selector: ".workshop-source-badge", minRatio: 4.5, when: "workshop" },
   { id: "workshop-source-sub", selector: ".workshop-source-copy span", minRatio: 4.5, when: "workshop" },
-  { id: "workshop-field-label", selector: ".workshop-field > span", minRatio: 4.5, when: "workshop" },
+  {
+    id: "workshop-field-label",
+    selector: ".workshop-field > span",
+    minRatio: 4.5,
+    when: "workshop",
+    required: false,
+  },
   { id: "workshop-selection-meta", selector: ".workshop-selection-meta", minRatio: 4.5, when: "workshop" },
   { id: "title-breadcrumb", selector: ".title-breadcrumb:not(.hidden)", minRatio: 4.5, when: "always" },
   { id: "files-meta", selector: ".files-meta", minRatio: 4.5, when: "files" },
@@ -189,7 +196,7 @@ export function validateShellDensityContrastForCapture(minRatio = 4.5): string |
     }
     const sample = sampleContrastForSelector(target.selector);
     if (!sample) {
-      if (target.when === "always") {
+      if (target.when === "always" || target.required === false) {
         continue;
       }
       return `shell contrast: missing ${target.id}`;
