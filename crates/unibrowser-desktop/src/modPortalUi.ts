@@ -2,6 +2,9 @@ import { t } from "./i18n";
 import { fileTypeVisualForPath } from "./fileTypeIcons";
 import { isOpenVsxNetworkEnabled, setOpenVsxNetworkEnabled } from "./modsOpenVsx";
 import { showToast } from "./toast";
+import { catalogInstallPath, type CatalogInstallPath } from "./catalogInstall";
+
+export { catalogInstallPath, type CatalogInstallPath };
 
 export type ModCatalogEntry = {
   id: string;
@@ -23,6 +26,47 @@ export type ModSuggestion = {
 };
 
 type ModCardState = "builtin" | "installed" | "installable";
+
+export function showModCardInstallStatus(card: HTMLElement, message: string): HTMLElement {
+  let note = card.querySelector<HTMLElement>(".mod-card-install-status");
+  if (!note) {
+    note = document.createElement("p");
+    note.className = "mod-card-install-status viewer-note";
+    const host =
+      card.querySelector(".mod-card-install-slot") ??
+      card.querySelector(".mod-card-footer") ??
+      card;
+    host.appendChild(note);
+  }
+  note.textContent = message;
+  return note;
+}
+
+export function showModCardNetworkOffReason(card: HTMLElement, onEnable: () => void): void {
+  const note = showModCardInstallStatus(card, t("mods.installNetworkOff"));
+  let enable = card.querySelector<HTMLButtonElement>(".mod-card-enable-network");
+  if (!enable) {
+    enable = document.createElement("button");
+    enable.type = "button";
+    enable.className = "mod-card-enable-network";
+    enable.textContent = t("mods.installNetworkEnable");
+    note.insertAdjacentElement("afterend", enable);
+  }
+  enable.onclick = onEnable;
+}
+
+export function markModCardInstalled(card: HTMLElement): void {
+  const badge = card.querySelector(".mod-card-badge");
+  if (badge) {
+    badge.textContent = "Installed";
+    badge.classList.remove("mod-card-badge--installable");
+    badge.classList.add("mod-card-badge--installed");
+  }
+  const action = card.querySelector<HTMLButtonElement>(".mod-card-install, .mod-card-action");
+  if (action) {
+    action.textContent = "Open";
+  }
+}
 
 function cardState(
   entry: { id: string; kind: string; ubmod_id?: string | null; open_vsx_id?: string | null },
@@ -83,7 +127,7 @@ export function appendModCatalogCard(
   entry: ModCatalogEntry,
   nativeNames: Set<string>,
   vsixIds: Set<string>,
-  onPrimary: (entry: ModCatalogEntry) => void,
+  onPrimary: (entry: ModCatalogEntry, card: HTMLElement) => void,
 ): void {
   const state = cardState(entry, nativeNames, vsixIds);
   const card = document.createElement("article");
@@ -109,7 +153,7 @@ export function appendModCatalogCard(
   action.type = "button";
   action.className = "mod-card-action";
   action.textContent = actionLabel(state, Boolean(entry.open_vsx_id));
-  action.onclick = () => onPrimary(entry);
+  action.onclick = () => onPrimary(entry, card);
   footer.append(meta, action);
   card.append(badge, title, id, reason, footer);
   parent.appendChild(card);
@@ -118,7 +162,7 @@ export function appendModCatalogCard(
 export function appendModSuggestionCard(
   parent: HTMLElement,
   suggestion: ModSuggestion,
-  onPrimary: (suggestion: ModSuggestion) => void,
+  onPrimary: (suggestion: ModSuggestion, card: HTMLElement) => void,
   options?: { featured?: boolean },
 ): void {
   const card = document.createElement("article");
@@ -153,16 +197,7 @@ export function appendModSuggestionCard(
     : "mod-card-action mod-card-action--primary";
   action.textContent = "Install";
   action.onclick = () => {
-    onPrimary(suggestion);
-    let note = card.querySelector<HTMLElement>(".mod-card-install-status");
-    if (!note) {
-      note = document.createElement("p");
-      note.className = "mod-card-install-status viewer-note";
-      footer.appendChild(note);
-    }
-    note.textContent = suggestion.open_vsx_id
-      ? "Install copied the Open VSX id into Search. Turn the network on to fetch the package."
-      : "This card cannot finish install yet. Sideload a .vsix from Installed.";
+    onPrimary(suggestion, card);
   };
   const details = document.createElement("details");
   details.className = "mod-result-details";

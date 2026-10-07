@@ -1,0 +1,7 @@
+{
+  "name": "unibrowser.base-cad",
+  "version": "0.1.0",
+  "title": "CAD file support",
+  "unibrowser_api": "0.1.0",
+  "description": "Offline fixture installed from the catalogue."
+}

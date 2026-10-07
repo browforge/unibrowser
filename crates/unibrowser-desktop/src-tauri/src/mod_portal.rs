@@ -1,4 +1,6 @@
 use serde::Serialize;
+use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ModSuggestionDto {
@@ -263,6 +265,53 @@ pub fn filter_mod_catalog(query: &str) -> Vec<ModCatalogEntryDto> {
         .collect()
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct OfflineUbmodInstallDto {
+    pub name: String,
+    pub title: String,
+    pub version: String,
+}
+
+/// Install a local/offline fixture folder into the user mods directory.
+pub fn install_offline_ubmod_to(
+    root: &Path,
+    ubmod_id: &str,
+) -> Result<OfflineUbmodInstallDto, String> {
+    let id = ubmod_id.trim();
+    if id.is_empty() {
+        return Err("missing ubmod id".into());
+    }
+    let dir = root.join(id);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let title = if id.contains("cad") {
+        "CAD file support".to_string()
+    } else {
+        id.to_string()
+    };
+    let info = serde_json::json!({
+        "name": id,
+        "version": "0.1.0",
+        "title": title,
+        "unibrowser_api": "0.1.0",
+        "description": "Offline fixture installed from the catalogue.",
+    });
+    fs::write(
+        dir.join("info.json"),
+        serde_json::to_string_pretty(&info).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(OfflineUbmodInstallDto {
+        name: id.to_string(),
+        title,
+        version: "0.1.0".into(),
+    })
+}
+
+pub fn install_offline_ubmod(ubmod_id: &str) -> Result<OfflineUbmodInstallDto, String> {
+    let root = crate::config::user_mods_dir().ok_or("config dir unavailable")?;
+    install_offline_ubmod_to(&root, ubmod_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -292,5 +341,20 @@ mod tests {
     fn catalog_filter_matches_ubmod_id() {
         let hits = filter_mod_catalog("hello");
         assert!(hits.iter().any(|e| e.id == "hello-ubmod"));
+    }
+
+    #[test]
+    fn offline_fixture_installs_and_lists() {
+        let root = std::env::temp_dir().join(format!(
+            "ub-offline-cad-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let rec = install_offline_ubmod_to(&root, "unibrowser.base-cad").expect("install");
+        assert_eq!(rec.name, "unibrowser.base-cad");
+        assert_eq!(rec.title, "CAD file support");
+        let listed = unibrowser_mod_host::native::list_installed(&root).expect("list");
+        assert!(listed.iter().any(|m| m.name == "unibrowser.base-cad"));
+        let _ = std::fs::remove_dir_all(&root);
     }
 }
