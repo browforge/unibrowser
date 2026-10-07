@@ -504,13 +504,13 @@ export function validateProblemsForCapture(minRows = 3): string | null {
     1,
     Number.parseFloat(getComputedStyle(tableWrap ?? panel).borderBottomWidth) || 0,
   );
-  if (
-    visibleRows.some((row) => {
+  const escapedRow = visibleRows.find((row) => {
       const rect = row.getBoundingClientRect();
       return rect.top < tableRect.top || rect.bottom > tableRect.bottom + borderTolerance;
-    })
-  ) {
-    return "problem row escapes the problems panel";
+    });
+  if (escapedRow) {
+    const rect = escapedRow.getBoundingClientRect();
+    return `problem row escapes the problems panel (row ${rect.top.toFixed(1)}..${rect.bottom.toFixed(1)}, panel ${tableRect.top.toFixed(1)}..${tableRect.bottom.toFixed(1)}, tolerance ${borderTolerance})`;
   }
   return null;
 }
