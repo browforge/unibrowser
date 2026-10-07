@@ -13,7 +13,7 @@ export function toolbarBarIdFromWindow(label?: string): string | null {
   if (!l.startsWith("toolbar-")) {
     return null;
   }
-  return l.slice("toolbar-".length).replaceAll("__dot__", ".");
+  return l.slice("toolbar-".length).replace(/__dot__/g, ".");
 }
 
 /** Minimal shell for detached toolbar windows. Returns true when this window is toolbar-only. */
