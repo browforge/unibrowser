@@ -649,6 +649,13 @@ Screenshot:
 
 **Visual-language impact:** Revised. Enforce Source Sans 3 minimum sizes, WCAG AA contrast, system-colour high contrast, and non-colour state redundancy.
 
+Status: Drift 2026-10-07. Light and dark high-contrast captures at 150% show
+a complete keyboard focus ring, labelled tooltip, readable editor, and no
+region clipping. Automated capture diagnostics report all nine visible Command
+Manager controls above the contrast threshold. Windows scale, Linux 2x, axe,
+and screen-reader checks remain outstanding; see
+`docs/design/ui-19-evidence.md`.
+
 Likely files:
 
 - all shell components
