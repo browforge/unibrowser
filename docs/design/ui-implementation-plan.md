@@ -805,6 +805,9 @@ Fail rule:
 
 ### UI-25: Clarify PDF annotation selection
 
+Status: done 2026-10-07. Right dock shows one selected-annotation inspector with
+editable fields; canvas selection outline; other annotations listed quietly.
+
 Work:
 
 - Make one annotation visibly selected and use the right dock as its inspector.
