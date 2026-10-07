@@ -21,7 +21,7 @@ import {
 import { applyThemeToDocument, loadThemePreference } from "./theme";
 import { listEditorThemeOptions } from "./monacoEditorTheme";
 import { setEditorThemePreference } from "./textEditor";
-import { appendOnboardingChecklistSection, markChecklistStep } from "./onboardingChecklist";
+import { markChecklistStep } from "./onboardingChecklist";
 import { configureAutoSave } from "./autoSave";
 import { configureProjectAutoSave } from "./projectAutoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
@@ -478,7 +478,7 @@ export async function renderSettings(root: HTMLElement) {
   root.appendChild(networkSection);
 
   const { renderAiAssistantSettings } = await import("./settingsAiAssistant");
-  renderAiAssistantSettings(root);
+  const aiSection = renderAiAssistantSettings(root);
 
   const cmSection = document.createElement("section");
   cmSection.className = "settings-section";
@@ -507,16 +507,10 @@ export async function renderSettings(root: HTMLElement) {
   cmSection.appendChild(cmTip);
   root.appendChild(cmSection);
 
-  appendOnboardingChecklistSection(root, {
-    onboarding_checklist_skip_forever: prefs.onboarding_checklist_skip_forever,
-    onboarding_checklist_completed: prefs.onboarding_checklist_completed,
-  });
   void markChecklistStep("settings_tour");
 
   const dlSection = document.createElement("section");
   dlSection.className = "settings-section";
-  const dlHeading = document.createElement("h3");
-  dlHeading.textContent = t("download.preferenceLabel");
   const dlSelect = document.createElement("select");
   const openOpt = document.createElement("option");
   openOpt.value = "open_in_new_tab";
@@ -530,23 +524,23 @@ export async function renderSettings(root: HTMLElement) {
   dlSelect.onchange = async () => {
     await invoke("set_download_preference", { preference: dlSelect.value });
   };
-  dlSection.appendChild(dlHeading);
-  dlSection.appendChild(dlSelect);
+  dlSection.classList.add("settings-section--fields");
+  dlSection.appendChild(
+    createSettingsFieldRow(
+      t("settings.downloadsRow"),
+      t("settings.downloadsRowLead"),
+      dlSelect,
+    ),
+  );
   root.appendChild(dlSection);
 
   const autoSection = document.createElement("section");
   autoSection.className = "settings-section";
-  const autoHeading = document.createElement("h3");
-  autoHeading.textContent = t("settings.autosave");
-  const autoRow = document.createElement("div");
-  autoRow.className = "settings-row";
   const autoCb = document.createElement("input");
   autoCb.type = "checkbox";
   autoCb.id = "settings-autosave";
+  autoCb.className = "settings-toggle-input";
   autoCb.checked = prefs.auto_save_enabled;
-  const autoLabel = document.createElement("label");
-  autoLabel.htmlFor = autoCb.id;
-  autoLabel.textContent = t("autosave.label");
   const intervalSelect = document.createElement("select");
   [60, 120, 300, 600, 900, 1800].forEach((secs) => {
     const opt = document.createElement("option");
@@ -576,45 +570,36 @@ export async function renderSettings(root: HTMLElement) {
   };
   autoCb.onchange = () => void persistAuto();
   intervalSelect.onchange = () => void persistAuto();
-  autoRow.appendChild(autoCb);
-  autoRow.appendChild(autoLabel);
-  autoRow.appendChild(intervalSelect);
-  const slotLabel = document.createElement("label");
-  slotLabel.textContent = t("autosave.keepSlots");
-  autoRow.appendChild(slotLabel);
-  autoRow.appendChild(slotInput);
   slotInput.onchange = () => void persistAuto();
-  const autoNote = document.createElement("p");
-  autoNote.className = "viewer-note";
-  autoNote.textContent = t("autosave.powerHint");
-  const restoreAutosaveBtn = document.createElement("button");
-  restoreAutosaveBtn.type = "button";
-  restoreAutosaveBtn.textContent = t("autosave.restoreLatest");
-  restoreAutosaveBtn.onclick = async () => {
-    try {
-      await invoke("restore_latest_autosave_for_active_tab");
-      showToast(t("autosave.restoreDone"), "info");
-    } catch (e) {
-      showErrorToast(e);
-    }
-  };
-  autoSection.appendChild(autoHeading);
-  autoSection.appendChild(autoRow);
-  autoSection.appendChild(autoNote);
-  autoSection.appendChild(restoreAutosaveBtn);
+  autoSection.classList.add("settings-section--fields");
+  const autoControls = document.createElement("div");
+  autoControls.className = "settings-inline-controls";
+  autoControls.append(autoCb, intervalSelect);
+  autoSection.appendChild(
+    createSettingsFieldRow(t("settings.autosave"), t("settings.autosaveRowLead"), autoControls),
+  );
   root.appendChild(autoSection);
 
   const sessionSection = document.createElement("section");
   sessionSection.className = "settings-section settings-section--fields";
-  const sessionCb = createSettingsToggle(
-    "settings-restore-session",
-    prefs.restore_session_on_launch,
-    async () => {
-      await invoke("set_restore_session_on_launch", { enabled: sessionCb.checked });
-    },
-  );
+  const sessionSelect = document.createElement("select");
+  [
+    ["restore", t("settings.restorePreviousTabs")],
+    ["new", t("settings.openNewTab")],
+  ].forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    sessionSelect.appendChild(option);
+  });
+  sessionSelect.value = prefs.restore_session_on_launch ? "restore" : "new";
+  sessionSelect.onchange = async () => {
+    await invoke("set_restore_session_on_launch", {
+      enabled: sessionSelect.value === "restore",
+    });
+  };
   sessionSection.appendChild(
-    createSettingsFieldRow(t("settings.onStartup"), t("settings.onStartupLead"), sessionCb),
+    createSettingsFieldRow(t("settings.onStartup"), t("settings.onStartupLead"), sessionSelect),
   );
   root.appendChild(sessionSection);
 
@@ -757,6 +742,20 @@ export async function renderSettings(root: HTMLElement) {
   workspaceSection.appendChild(workspaceBody);
   void appendWorkspaceLayoutPanel(workspaceBody);
   root.appendChild(workspaceSection);
+
+  const workspaceSummarySection = document.createElement("section");
+  workspaceSummarySection.className = "settings-section settings-section--fields";
+  const workspaceMode = document.createElement("output");
+  workspaceMode.className = "settings-readonly-value";
+  workspaceMode.textContent = t("settings.workspaceFollowCurrent");
+  workspaceSummarySection.appendChild(
+    createSettingsFieldRow(
+      t("settings.workspaceRow"),
+      t("settings.workspaceRowLead"),
+      workspaceMode,
+    ),
+  );
+  root.appendChild(workspaceSummarySection);
 
   const backupSection = document.createElement("section");
   backupSection.className = "settings-section";
@@ -1338,7 +1337,7 @@ export async function renderSettings(root: HTMLElement) {
     {
       id: "general",
       label: "General",
-      sections: [langSection, sessionSection, ntpSection, windowSection, updatesSection],
+      sections: [sessionSection, dlSection, workspaceSummarySection, autoSection],
     },
     {
       id: "appearance",
@@ -1348,17 +1347,17 @@ export async function renderSettings(root: HTMLElement) {
     {
       id: "files",
       label: "Files and downloads",
-      sections: [dlSection, autoSection, recoverySection, workspaceSection, backupSection],
+      sections: [langSection, recoverySection, backupSection, ntpSection, windowSection, updatesSection],
     },
     { id: "editing", label: "Editing", sections: [boardSection, mediaSection] },
     { id: "accessibility", label: "Accessibility", sections: [a11ySection] },
-    { id: "privacy", label: "Privacy and AI", sections: [networkSection] },
+    { id: "privacy", label: "Privacy and AI", sections: [networkSection, aiSection] },
     { id: "mods", label: "Mods", sections: [developerSection] },
     { id: "keybindings", label: "Keybindings", sections: [keysLink] },
     {
       id: "developer",
       label: "Developer",
-      sections: [bookmarkSection, developerSection, resetSection, advancedSection],
+      sections: [bookmarkSection, workspaceSection, developerSection, resetSection, advancedSection],
     },
   ] as const;
 
@@ -1367,8 +1366,11 @@ export async function renderSettings(root: HTMLElement) {
       section.dataset.settingsCategory = id;
     });
   });
+  [sessionSection, dlSection, workspaceSummarySection, autoSection].forEach((section) => {
+    root.appendChild(section);
+  });
   keysLink.dataset.settingsCategory = "keybindings";
-  aboutLink.dataset.settingsCategory = "general";
+  aboutLink.dataset.settingsCategory = "developer";
   diagLink.dataset.settingsCategory = "developer";
 
   [...root.children].forEach((child) => {

@@ -5021,9 +5021,47 @@ mark.docx-search-hit--current {
   max-width: 13rem;
 }
 
+.settings-inline-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .settings-field-control select,
 .settings-field-control .settings-toggle-input {
   width: 100%;
+}
+
+.settings-field-control .settings-toggle-input {
+  appearance: none;
+  display: block;
+  width: 2.25rem;
+  height: 1.25rem;
+  margin: 0 0 0 auto;
+  border: 1px solid var(--ub-border-strong, #89939d);
+  border-radius: 999px;
+  background: var(--ub-surface-muted, #dde1e5);
+  cursor: pointer;
+}
+
+.settings-field-control .settings-toggle-input::before {
+  content: "";
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin: 0.125rem;
+  border-radius: 50%;
+  background: var(--ub-surface, #fff);
+}
+
+.settings-field-control .settings-toggle-input:checked {
+  border-color: var(--ub-accent, #196f93);
+  background: var(--ub-accent, #196f93);
+}
+
+.settings-field-control .settings-toggle-input:checked::before {
+  transform: translateX(1rem);
 }
 
 .settings-category-hidden {

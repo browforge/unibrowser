@@ -351,17 +351,6 @@ fn settings_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Re
     let group_id = "unibrowser.group.settings";
     let controls = vec![
         control_spec(
-            control_ids::SETTINGS_SEARCH,
-            ControlType::Button,
-            commands::SETTINGS_SEARCH,
-            "Search settings",
-            "search",
-            group_id,
-            family_ids::SETTINGS,
-            ctx,
-            resolver,
-        ),
-        control_spec(
             control_ids::SETTINGS_KEYBINDINGS,
             ControlType::Button,
             commands::SETTINGS_KEYBINDINGS,

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { showErrorToast } from "./toast";
 import { t } from "./i18n";
+import { createSettingsFieldRow } from "./settingsLayout";
 
 interface AiPrefs {
   base_url?: string | null;
@@ -18,52 +19,50 @@ type GrantRow = AiPrefs["grants"][number];
 const PERMISSIONS = ["read", "write", "ask"] as const;
 const SCOPES = ["global", "workspace", "file_type", "site"] as const;
 
-export function renderAiAssistantSettings(root: HTMLElement) {
+export function renderAiAssistantSettings(root: HTMLElement): HTMLElement {
   const section = document.createElement("section");
-  section.className = "settings-section";
+  section.className = "settings-section settings-section--fields";
   section.dataset.settingsSection = "ai-assistant";
   const heading = document.createElement("h3");
   heading.textContent = t("settings.aiAssistantHeading");
   section.appendChild(heading);
 
   void invoke<AiPrefs>("get_ai_assistant_prefs").then((prefs) => {
-    const urlRow = document.createElement("label");
-    urlRow.textContent = t("settings.aiBaseUrl");
     const urlInput = document.createElement("input");
     urlInput.type = "url";
     urlInput.placeholder = "http://127.0.0.1:11434/v1";
     urlInput.value = prefs.base_url ?? "";
-    section.appendChild(urlRow);
-    section.appendChild(urlInput);
+    section.appendChild(
+      createSettingsFieldRow(
+        t("settings.aiBaseUrl"),
+        t("settings.aiBaseUrlLead"),
+        urlInput,
+      ),
+    );
 
-    const modelRow = document.createElement("label");
-    modelRow.textContent = t("settings.aiModel");
     const modelInput = document.createElement("input");
     modelInput.type = "text";
     modelInput.value = prefs.model ?? "";
-    section.appendChild(modelRow);
-    section.appendChild(modelInput);
+    section.appendChild(
+      createSettingsFieldRow(t("settings.aiModel"), t("settings.aiModelLead"), modelInput),
+    );
 
-    const keyRow = document.createElement("label");
-    keyRow.textContent = t("settings.aiApiKey");
     const keyInput = document.createElement("input");
     keyInput.type = "password";
     keyInput.autocomplete = "off";
     keyInput.value = prefs.api_key ?? "";
-    section.appendChild(keyRow);
-    section.appendChild(keyInput);
+    section.appendChild(
+      createSettingsFieldRow(t("settings.aiApiKey"), t("settings.aiApiKeyLead"), keyInput),
+    );
 
-    const grantsHead = document.createElement("h4");
-    grantsHead.textContent = t("settings.aiGrants");
-    section.appendChild(grantsHead);
     const grantsNote = document.createElement("p");
     grantsNote.className = "viewer-note";
     grantsNote.textContent = t("settings.aiGrantsNote");
-    section.appendChild(grantsNote);
-
     const grantsTable = document.createElement("div");
     grantsTable.className = "ai-grants-table";
-    section.appendChild(grantsTable);
+    const grantsControl = document.createElement("div");
+    grantsControl.className = "settings-ai-grants-control";
+    grantsControl.appendChild(grantsTable);
 
     const renderGrants = () => {
       grantsTable.innerHTML = "";
@@ -142,7 +141,10 @@ export function renderAiAssistantSettings(root: HTMLElement) {
       };
       addRow.appendChild(btn);
     }
-    section.appendChild(addRow);
+    grantsControl.appendChild(addRow);
+    section.appendChild(
+      createSettingsFieldRow(t("settings.aiGrants"), grantsNote.textContent, grantsControl),
+    );
 
     const saveBtn = document.createElement("button");
     saveBtn.type = "button";
@@ -157,8 +159,6 @@ export function renderAiAssistantSettings(root: HTMLElement) {
         showErrorToast(e);
       }
     };
-    section.appendChild(saveBtn);
-
     const testBtn = document.createElement("button");
     testBtn.type = "button";
     testBtn.textContent = t("settings.aiTestConnection");
@@ -174,8 +174,14 @@ export function renderAiAssistantSettings(root: HTMLElement) {
         showErrorToast(e);
       }
     };
-    section.appendChild(testBtn);
+    const actions = document.createElement("div");
+    actions.className = "settings-inline-controls";
+    actions.append(saveBtn, testBtn);
+    section.appendChild(
+      createSettingsFieldRow(t("settings.aiConnection"), t("settings.aiConnectionLead"), actions),
+    );
   });
 
   root.appendChild(section);
+  return section;
 }
