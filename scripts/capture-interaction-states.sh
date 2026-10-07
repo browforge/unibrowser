@@ -123,6 +123,11 @@ shot() {
     -border 1 "$tmp/cells/${name}.png"
 }
 
+clear_pointer_chrome() {
+  xdotool mousemove 1180 780
+  xdotool sleep 0.25
+}
+
 # WebKit treats a mouse-focused button as mouse modality, so :focus-visible
 # does not paint after click or after Shift+Tab/Tab on the same control.
 # A mouse-focused search field also swallows Tab. Keyboard-focus the
@@ -165,9 +170,10 @@ capture_states() {
   local key="${12:-Tab}"
 
   xdotool mousemove 700 650 click 1
-  xdotool mousemove 1180 780
+  clear_pointer_chrome
   shot "${order}-default" "$crop_x" "$crop_y" "$width" "$height"
 
+  clear_pointer_chrome
   xdotool mousemove "$target_x" "$target_y"
   xdotool sleep 0.2
   shot "${order}-hover" "$crop_x" "$crop_y" "$width" "$height"
@@ -183,12 +189,13 @@ capture_states() {
     xdotool mouseup 1
     xdotool key shift+Tab
     xdotool key Tab
-    xdotool mousemove 1180 780
+    clear_pointer_chrome
     xdotool sleep 0.15
   fi
   shot "${order}-focus" "$crop_x" "$crop_y" "$width" "$height"
 
   xdotool mousemove 700 650 click 1
+  clear_pointer_chrome
   xdotool mousemove "$target_x" "$target_y"
   xdotool mousedown 1
   shot "${order}-pressed" "$crop_x" "$crop_y" "$width" "$height"
@@ -212,7 +219,10 @@ capture_states "01-cm" "Command Manager" 115 58 0 28
 # Title order: menu button, selected tab, tab close, omnibox. Click the
 # omnibox, then Shift+Tab twice onto the selected document tab.
 capture_states "02-tab" "Document tab" 235 18 80 0 300 90 580 18 2 "shift+Tab"
-capture_states "03-rail" "Activity rail" 20 166 0 80 320 180
+# Files is the first destination (work area y~80-120). Approach from the
+# icon itself so the flyout matches the focused control. Clear chrome
+# before each cell so a stale Search title cannot linger.
+capture_states "03-rail" "Activity rail" 20 100 0 80 320 180 20 140 1 "shift+Tab"
 capture_states "04-mod-tab" "Portal tab" 158 167 35 130
 # Pad the Open VSX field so the 2px ring is visible on all four sides.
 capture_states "05-input" "Input" 235 230 40 155 420 170
@@ -221,17 +231,11 @@ capture_states "05-input" "Input" 235 230 40 155 420 170
 capture_states "06-button" "Button" 525 240 470 200 300 90 235 260 1 Tab
 capture_states "07-install" "Install" 1135 350 900 310 300 90 235 260 3 Tab
 
-# Keyboard-focus Files without activating the overlay. The rail panel now
-# mounts beside the icon on focus so the cell shows real panel copy.
+# Keyboard-focus Files from Search so the ring and flyout stay on Files.
 xdotool mousemove 700 650 click 1
-xdotool mousemove 20 166
-xdotool mousedown 1
-xdotool sleep 0.05
-xdotool mousemove 1180 780
-xdotool mouseup 1
-xdotool key shift+Tab
-xdotool key Tab
-xdotool mousemove 1180 780
+clear_pointer_chrome
+focus_from_predecessor 20 140 1 "shift+Tab"
+clear_pointer_chrome
 xdotool sleep 0.2
 shot "03-rail-focus" 0 80 320 180
 convert "$tmp/cells/03-rail-focus.png" \

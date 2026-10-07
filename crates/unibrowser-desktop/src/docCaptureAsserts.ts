@@ -1274,6 +1274,9 @@ export function validateCommandManagerMutedForCapture(): string | null {
 /** Hide hover chrome and optionally preserve intentional keyboard-focus evidence. */
 export function clearCaptureHoverAndTooltips(preserveFocus = false): void {
   document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
+  document.querySelectorAll<HTMLElement>(".rail-destination, .rail-edge-hit").forEach((el) => {
+    el.removeAttribute("title");
+  });
   if (!preserveFocus) {
     const active = document.activeElement;
     if (active instanceof HTMLElement) {

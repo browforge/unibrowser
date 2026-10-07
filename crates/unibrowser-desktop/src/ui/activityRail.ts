@@ -157,7 +157,7 @@ export function initActivityRail(deps: {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "rail-destination" + (item.className ? ` ${item.className}` : "");
-    btn.title = item.label;
+    btn.removeAttribute("title");
     btn.setAttribute("aria-label", item.label);
     btn.appendChild(createLucideIcon(item.icon, 16, "ub-icon svg-icon"));
     const label = document.createElement("span");
@@ -170,6 +170,9 @@ export function initActivityRail(deps: {
 
   const bindPanelPreview = (btn: HTMLButtonElement, id: RailDestination) => {
     btn.addEventListener("focus", () => {
+      renderRailPanel(rail, id);
+    });
+    btn.addEventListener("pointerenter", () => {
       renderRailPanel(rail, id);
     });
     btn.addEventListener("blur", () => {
