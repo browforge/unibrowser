@@ -2840,15 +2840,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               return;
             }
           }
+          const captureUsesEditor =
+            launchPathsNeedEditor(launchPaths) &&
+            !demoAgain?.toLowerCase().includes("settings");
           const editorErr = validateEditorForCapture();
-          if (launchPathsNeedEditor(launchPaths) && editorErr) {
+          if (captureUsesEditor && editorErr) {
             await invoke("abort_doc_capture", {
               reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }
           if (
-            launchPathsNeedEditor(launchPaths) &&
+            captureUsesEditor &&
             !editorReadyForCapture()
           ) {
             await invoke("abort_doc_capture", {
@@ -2865,7 +2868,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             viewportHeight: number;
             theme: string;
           } | null = null;
-          if (launchPathsNeedEditor(launchPaths)) {
+          if (captureUsesEditor) {
             const monacoRoot = textEditorHost.querySelector(".monaco-editor") as HTMLElement | null;
             const editorRect = (monacoRoot ?? textEditorHost).getBoundingClientRect();
             if (editorRect.width >= 80 && editorRect.height >= 40) {
