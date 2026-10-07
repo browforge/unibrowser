@@ -723,7 +723,12 @@ Acceptance:
 
 ### CMD-04: Keyboard, palette, and accessibility integration
 
-Status: partial 2026-10-07. CM roving focus (`cmRovingFocus.ts`), palette merges resolved controls (`merge_resolved_command_palette`), ARIA on host controls and live region announcer. Remaining: automated SR matrix, mixed-value palette copy, user S-binding regression tests.
+Status: done 2026-10-07. CM roving focus (`cmRovingFocus.ts`), palette
+merges resolved controls (`merge_resolved_command_palette`), unsupported
+controls remain focusable with `aria-disabled`, and live announcements cover
+emulated, unsupported, and mixed states. Evidence:
+`tests/controlA11y.test.mjs`, `keybinding::tests::user_can_bind_palette_to_plain_s`,
+`npm run build`, and `npm run test:overflow`.
 
 Work:
 
@@ -789,7 +794,14 @@ Acceptance:
 
 ### CMD-08: Runtime mod capability and emulation API
 
-Status: partial 2026-10-07. `ModRuntimeRegistry`, `ControlRuntimeSnapshot`, `cmd-proving` native registration, subscript undo via Monaco + `sync_text_document`. Remaining: WASM proving mod parity in host load path, host transaction API for non-text backends.
+Status: done 2026-10-07. `ModRuntimeRegistry`, versioned family/control
+snapshots, typed errors/deadlines, declared permission checks, wasmi fuel, and
+typed host edit requests are live. Markdown Subscript uses one host text
+transaction and undo step. Evidence:
+`real_wasm_snapshot_matches_native_proving_runtime`,
+`real_wasm_proving_mod_loads_through_manifest_host_path`,
+`runtime_cannot_override_save_control`, and
+`host_wrap_transaction_is_one_undo_step`.
 
 Work:
 
@@ -807,7 +819,15 @@ Acceptance:
 
 ### CMD-09: Mod groups, families, and toolbars
 
-Status: partial 2026-10-07. `contribution_merge`, mod floating toolbars on boot, detached window clamp (`clamp_toolbar_screen_position`). Remaining: monitor identity persistence, order-cycle diagnostics, keybinding conflict surfacing in UI.
+Status: done 2026-10-07. Contributions merge in stable mod/ID order;
+duplicates, order cycles, and keybinding displacement produce sorted advisory
+diagnostics exposed non-modally on the Command Manager context control.
+Detached bars persist monitor name/optional EDID and recover to the nearest
+visible monitor with screen clamping. Evidence:
+`order_cycle_has_sorted_diagnostic`,
+`conflict_diagnostic_is_deterministic_and_displaces_old_binding`,
+`missing_monitor_recovers_to_nearest_visible_monitor_and_clamps`, and
+`docs/screenshots/cmd/cmd-proving-detached-light.png`.
 
 Work:
 

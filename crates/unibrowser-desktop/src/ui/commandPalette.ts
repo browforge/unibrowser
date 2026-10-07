@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { paletteEntryHint } from "./commandTooltip";
+import { announceCm } from "./cmA11y";
 
 export interface PaletteEntryDto {
   command_id: string;
@@ -87,7 +88,7 @@ export function initCommandPalette(bind: CommandPaletteBindings) {
         row.className = "palette-item-row";
         if (!entry.enabled) {
           row.classList.add("disabled");
-          row.disabled = true;
+          row.setAttribute("aria-disabled", "true");
         }
         const title = document.createElement("span");
         title.className = "palette-item-title";
@@ -109,6 +110,11 @@ export function initCommandPalette(bind: CommandPaletteBindings) {
         row.title = entry.enabled ? "" : (entry.reason ?? "");
         row.onclick = () => {
           if (!entry.enabled) {
+            announceCm(
+              entry.reason
+                ? `${entry.title}, unavailable, ${entry.reason}`
+                : `${entry.title}, unavailable`,
+            );
             return;
           }
           onExecute(entry);
@@ -151,7 +157,7 @@ export function initCommandPalette(bind: CommandPaletteBindings) {
     if (e.key === "Enter") {
       e.preventDefault();
       const row = flatRows[activeIndex];
-      if (row && !row.disabled) {
+      if (row) {
         row.click();
       }
       return;

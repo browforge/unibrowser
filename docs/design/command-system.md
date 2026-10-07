@@ -460,6 +460,21 @@ Review target: `6c49cf9`.
 - **Native/WASM parity:** the former “mirror” test was hollow because it copied a native snapshot through a helper. It was removed. `real_wasm_snapshot_matches_native_proving_runtime` now builds a real `wasm32-unknown-unknown` guest, loads it through wasmi host imports, captures the guest-produced JSON snapshot, and compares it with the native proving provider.
 - **Keyboard and ARIA:** `6c49cf9` checked ordinary ArrowDown before Alt+Down, making Alt+Down unreachable. Unsupported native-disabled buttons were also absent from roving focus and could not announce reasons. Unsupported controls now use `aria-disabled` while remaining focusable; activation announces the reason without invoking the command. Emulated controls retain the subtle `.cm-emulation-mark` and described approximation. Automated checks cover emulated, unsupported, and mixed states.
 
+Review evidence: [`cmd-proving-detached-light.png`](../screenshots/cmd/cmd-proving-detached-light.png).
+Region check:
+
+1. The upper shell is the real light-theme Markdown tab. Its Command Manager
+   shows Strikethrough as a normal Markdown action and Subscript with the subtle
+   emulation marker; the proving `Chip` follows at the declared extension point.
+2. The editor region remains below reserved chrome and retains Monaco gutter,
+   source text, and overview markers. The small lower-right onboarding card is
+   existing non-modal shell guidance, not mod content or toolbar geometry.
+3. The separate lower-right OS window is host-owned. It renders the
+   `Markdown proving` toolbar and `Apply subscript (proving)` command without
+   arbitrary mod HTML.
+4. Black desktop space separates the detached window from document content,
+   making the non-covering geometry visible in the same real desktop capture.
+
 ### Contributions
 
 Mods may:
