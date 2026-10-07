@@ -544,10 +544,10 @@ body.ub-status-compact .status-verbose-only {
   background: var(--ub-well);
   border-top: var(--ub-border-width) solid var(--ub-border);
   font-size: 12px;
-  color: var(--ub-text-2);
+  color: var(--ub-status-text);
 }
 
 .status-bar .muted,
 .status-hint {
-  color: var(--ub-text-2);
+  color: var(--ub-status-text);
 }
