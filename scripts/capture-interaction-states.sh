@@ -173,7 +173,7 @@ cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
 start_surface "ui19-focus-visible" "$ROOT/examples/demo-pack/sample.md"
 close_floating_toolbar
 xdotool mousemove 1180 780
-shot "01-cm-focus" 0 28 300 90
+shot "01-cm-focus" 500 28 300 90
 convert "$tmp/cells/01-cm-focus.png" \
   -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
   -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
