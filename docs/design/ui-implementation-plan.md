@@ -482,6 +482,13 @@ Screenshot:
 
 **Visual-language impact:** Revised. Canvas surrounds are recessed wells, property panels are docked workbench surfaces, and annotations use semantic colour sparingly.
 
+Status: done 2026-10-07. PDF, image, and DXF use the standard optional left
+structure, recessed centre canvas, and right properties or comments shell.
+Find, zoom, and export remain reachable through stable Command Manager groups.
+The DXF proving family keeps unavailable Find, Measure, and STEP export controls
+in place with reasons. All three 1280x800 comparisons pass in
+`docs/design/ui-14-evidence.md`.
+
 Likely files:
 
 - `src/documentViewer.ts`
