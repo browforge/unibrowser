@@ -448,10 +448,12 @@ Screenshot:
 
 **Visual-language impact:** Revised. Rails, lists, and settings groups use spacing and surface roles; cards are reserved for independent objects.
 
-Status: done 2026-10-07. File tree/list/preview docking and the searchable
-settings category rail are implemented. Light, dark, high-contrast, 800 px,
-1600 px, and 150% evidence passes in
-`docs/design/ui-13-evidence.md`.
+Status: done 2026-10-07. Browse has a file-only Command Manager, joined
+tree/list/preview docks, quiet breadcrumbs and actions, and full-height work
+surfaces. Settings has its own command family, category rail, scroll surface,
+and Quiet Utility controls. The Markdown action strip matches Command Manager
+controls. All 11 light, dark, high-contrast, 800 px, 1600 px, and 150% evidence
+images pass in `docs/design/ui-13-evidence.md`.
 
 Likely files:
 
