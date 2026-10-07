@@ -9,6 +9,7 @@ import {
   inputBorderEdgesUniform,
   knobVerticalOffsetCentered,
   rectWithinBounds,
+  selectOptionListMeetsDarkSurface,
   switchTrackSizeWithinTolerance,
   timelineEndpointClearsScrollbar,
 } from "../src/docCaptureAsserts.ts";
@@ -48,6 +49,11 @@ test("timeline endpoint label clears the scrollbar safe inset at every width", (
 test("dark capture surface guard rejects backgrounds above its tolerance", () => {
   assert.equal(backgroundExceedsRaisedSurface(0.04, 0.03), false);
   assert.equal(backgroundExceedsRaisedSurface(0.95, 0.03), true);
+});
+
+test("dark select option lists must not leak a light surface", () => {
+  assert.equal(selectOptionListMeetsDarkSurface(0.03, 0.03), true);
+  assert.equal(selectOptionListMeetsDarkSurface(0.95, 0.03), false);
 });
 
 test("ub-switch track size tolerance is 32x18", () => {

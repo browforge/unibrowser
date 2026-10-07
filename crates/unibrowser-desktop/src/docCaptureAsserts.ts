@@ -346,6 +346,18 @@ export function backgroundExceedsRaisedSurface(
   return candidateLuminance > raisedSurfaceLuminance + tolerance;
 }
 
+export function selectOptionListMeetsDarkSurface(
+  optionBackgroundLuminance: number,
+  raisedSurfaceLuminance: number,
+  tolerance = 0.06,
+): boolean {
+  return !backgroundExceedsRaisedSurface(
+    optionBackgroundLuminance,
+    raisedSurfaceLuminance,
+    tolerance,
+  );
+}
+
 export function inputBorderEdgesUniform(style: CSSStyleDeclaration): boolean {
   const top = style.borderTopColor;
   return (
@@ -593,6 +605,10 @@ export function validateDarkSurfaceBackgroundsForCapture(
   if (raisedLuminance === null) {
     return `could not resolve dark raised-surface token (${raisedBackground})`;
   }
+  const rootScheme = getComputedStyle(root).colorScheme;
+  if (!rootScheme.split(/\s+/).includes("dark")) {
+    return `dark theme root is missing color-scheme: dark (got ${rootScheme || "empty"})`;
+  }
   const scopes = [
     "#chrome",
     ".files-places",
@@ -616,16 +632,19 @@ export function validateDarkSurfaceBackgroundsForCapture(
     }
     scope
       .querySelectorAll<HTMLElement>(
-        'input:not([type="hidden"]), textarea, select, [class*="chip"], [class*="card"]',
+        'input:not([type="hidden"]), textarea, select, select option, [class*="chip"], [class*="card"]',
       )
       .forEach((candidate) => candidates.add(candidate));
   }
+  document.querySelectorAll<HTMLOptionElement>("select option").forEach((option) => {
+    candidates.add(option);
+  });
   for (const candidate of candidates) {
     const rect = candidate.getBoundingClientRect();
     const style = getComputedStyle(candidate);
+    const isOption = candidate instanceof HTMLOptionElement;
     if (
-      rect.width <= 0 ||
-      rect.height <= 0 ||
+      (!isOption && (rect.width <= 0 || rect.height <= 0)) ||
       style.display === "none" ||
       style.visibility === "hidden"
     ) {

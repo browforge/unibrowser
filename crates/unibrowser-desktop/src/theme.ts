@@ -19,6 +19,7 @@ export function resolveTheme(): ResolvedTheme {
 export function applyThemeToDocument() {
   const resolved = resolveTheme();
   document.documentElement.dataset.theme = resolved;
+  document.documentElement.style.colorScheme = resolved;
   window.dispatchEvent(new CustomEvent("unibrowser-theme", { detail: resolved }));
 }
 

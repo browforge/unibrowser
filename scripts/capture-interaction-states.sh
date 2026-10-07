@@ -214,18 +214,28 @@ capture_states "01-cm" "Command Manager" 115 58 0 28
 capture_states "02-tab" "Document tab" 235 18 80 0 300 90 580 18 2 "shift+Tab"
 capture_states "03-rail" "Activity rail" 20 166 0 120
 capture_states "04-mod-tab" "Portal tab" 158 167 35 130
-capture_states "05-input" "Input" 235 260 80 220
+# Pad the Open VSX field so the 2px ring is visible on all four sides.
+capture_states "05-input" "Input" 235 260 70 200 340 130
 # Portal order: section tabs, Open VSX input, Search, Contribution
 # details, featured Install.
 capture_states "06-button" "Button" 525 240 470 200 300 90 235 260 1 Tab
 capture_states "07-install" "Install" 1135 350 900 310 300 90 235 260 3 Tab
 
-# Rail destinations activate a workspace view on click. Capture focus after the
-# other portal cells so the real activation cannot disturb their evidence.
-xdotool mousemove 20 166 click 1
-xdotool key Escape
+# Clicking Files toggles the files browser over the portal and leaves a blank
+# work area. Expand the rail so the Files panel copy is present, then give the
+# Files destination keyboard focus without activating that toggle.
+xdotool mousemove 20 326 click 1
+xdotool sleep 0.25
+xdotool mousemove 20 166
+xdotool mousedown 1
+xdotool sleep 0.05
 xdotool mousemove 1180 780
-shot "03-rail-focus" 0 120 300 90
+xdotool mouseup 1
+xdotool key shift+Tab
+xdotool key Tab
+xdotool mousemove 1180 780
+xdotool sleep 0.15
+shot "03-rail-focus" 0 80 300 160
 convert "$tmp/cells/03-rail-focus.png" \
   -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
   -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \

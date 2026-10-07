@@ -1,18 +1,22 @@
 /* Quiet Utility — Batch 2 shared surfaces (not top chrome / CM frame; see UI-07 deferral). */
 
-:root {
+:root,
+:root[data-theme="dark"],
+html[data-theme="dark"] {
   color-scheme: dark;
   font-family: var(--font-ui);
   background: var(--ub-canvas);
   color: var(--ub-text-1);
 }
 
-[data-theme="light"] {
+[data-theme="light"],
+:root[data-theme="light"],
+html[data-theme="light"] {
   color-scheme: light;
 }
 
-:root[data-theme="light"] {
-  color-scheme: light;
+[data-high-contrast="true"]:not([data-theme="light"]) {
+  color-scheme: dark;
 }
 
 body {

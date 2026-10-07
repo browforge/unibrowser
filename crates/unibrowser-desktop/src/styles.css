@@ -45,17 +45,25 @@ body[data-ub-ready="1"] .shell-fallback {
   display: none;
 }
 
-:root {
+:root,
+:root[data-theme="dark"],
+html[data-theme="dark"] {
   font-family: system-ui, sans-serif;
   color: #e8e8e8;
   background: #1a1a1f;
   color-scheme: dark;
 }
 
-[data-theme="light"] {
+[data-theme="light"],
+:root[data-theme="light"],
+html[data-theme="light"] {
   color: #1a1a1f;
   background: #f4f4f6;
   color-scheme: light;
+}
+
+[data-high-contrast="true"]:not([data-theme="light"]) {
+  color-scheme: dark;
 }
 
 :root {
@@ -382,12 +390,26 @@ button.proving-disabled,
 .epub-chapter-select {
   appearance: none;
   -webkit-appearance: none;
+  color-scheme: inherit;
   padding-right: 1.75rem;
   background-color: var(--ub-control, #2d3031);
   background-image: var(--ub-select-chevron);
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
   background-size: 0.65rem 0.65rem;
+}
+
+select,
+select option {
+  color-scheme: inherit;
+  background-color: var(--ub-control, #2d3031);
+  color: var(--ub-text-1, #f0efeb);
+}
+
+select option:checked,
+select option:hover {
+  background-color: var(--ub-selected, #253e4c);
+  color: var(--ub-text-1, #f0efeb);
 }
 
 #chrome input[type="color"],
