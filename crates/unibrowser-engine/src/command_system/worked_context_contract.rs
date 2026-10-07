@@ -216,17 +216,46 @@ fn image_context_exposes_adjust_family() {
 }
 
 #[test]
-fn cad3d_context_is_explicit_pending_in_runtime() {
-    let cap = control_capability(
-        WorkContext::Cad3d,
-        "part.dxf",
-        control_ids::TEXT_BOLD,
-    );
-    assert!(matches!(cap, CapabilityState::Unsupported { .. }));
+fn cad3d_context_exposes_proving_view_family_and_reasons() {
     assert_eq!(
         infer_work_context(CommandContext::Text, Mode::Text, Some("part.dxf")),
         WorkContext::Cad3d
     );
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(WorkContext::Cad3d, "part.dxf");
+    let families = core_tab_layout(&ctx, &resolver);
+    let cad = families
+        .iter()
+        .find(|family| family.family_id == "unibrowser.family.cad")
+        .expect("CAD family");
+    let controls: Vec<_> = cad
+        .groups
+        .iter()
+        .flat_map(|group| group.controls.iter())
+        .collect();
+    for id in [
+        "unibrowser.control.cad.fitView",
+        "unibrowser.control.cad.zoomOut",
+        "unibrowser.control.cad.zoomIn",
+    ] {
+        let control = controls
+            .iter()
+            .find(|control| control.control_id == id)
+            .expect("supported CAD view control");
+        assert!(matches!(&control.capability, CapabilityState::Supported));
+    }
+    for (id, reason_fragment) in [
+        ("unibrowser.control.cad.find", "indexing provider"),
+        ("unibrowser.control.cad.measure", "geometry engine"),
+        ("unibrowser.control.cad.exportStep", "geometry engine"),
+    ] {
+        let control = controls
+            .iter()
+            .find(|control| control.control_id == id)
+            .expect("unsupported CAD proving control");
+        let reason = control.capability.unsupported_reason().unwrap_or("");
+        assert!(reason.contains(reason_fragment), "reason: {reason}");
+    }
 }
 
 #[test]

@@ -645,7 +645,10 @@ If the selected annotation has no fill, Fill Colour is unsupported with "This an
 
 ### Image
 
-**Runtime (current build):** History plus Image Adjust (Curves). Crop/transform, extended adjust sliders, conditional Text Formatting, and Export groups are planned; contract tests assert the adjust family is present for image work context.
+**Runtime (current build):** History, Find, Proofing, Export, and Image Adjust
+with Zoom out, Zoom in, and Curves. Crop/transform, extended adjust sliders,
+and conditional Text Formatting are planned; contract tests assert the adjust
+family is present for image work context.
 
 Families (full target):
 
@@ -662,7 +665,13 @@ Mod authoring: see [command-system-authoring.md](../mods/command-system-authorin
 
 ### CAD/3D
 
-**Status (CMD-11):** path detection recognises `.dxf`, STEP, and IGES as `WorkContext::Cad3d`, but the host does not yet ship the Select / View / Measure families below. Contract tests treat CAD as **pending**; evidence is not captured until a demo fixture and family layout land.
+**Runtime (UI-14 proving build):** path detection recognises `.dxf`, STEP, and
+IGES as `WorkContext::Cad3d`. The host CAD family exposes supported Fit view,
+Zoom out, and Zoom in controls. Find entity stays greyed in place with the
+reason "Entity search needs a CAD indexing provider." Measure and Export STEP
+stay greyed in place with the reason that they need a full CAD geometry engine.
+The bundled ASCII DXF fixture provides Outline and Detail layers for shell and
+capability evidence.
 
 Families (target):
 

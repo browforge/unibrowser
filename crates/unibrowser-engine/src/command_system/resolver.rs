@@ -111,9 +111,7 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         WorkContext::CodeEditor => code_capability(control_id),
         WorkContext::Pdf => pdf_capability(control_id),
         WorkContext::Image => image_capability(control_id),
-        WorkContext::Cad3d => CapabilityState::Unsupported {
-            reason: "CAD tools are not available in this build.".into(),
-        },
+        WorkContext::Cad3d => cad_capability(control_id),
         WorkContext::Start => start_capability(control_id),
         WorkContext::Browse => browse_capability(control_id),
         WorkContext::Settings => settings_capability(control_id),
@@ -244,5 +242,25 @@ fn image_capability(control_id: &str) -> CapabilityState {
         }
     } else {
         CapabilityState::Supported
+    }
+}
+
+fn cad_capability(control_id: &str) -> CapabilityState {
+    match control_id {
+        "unibrowser.control.cad.fitView"
+        | "unibrowser.control.cad.zoomOut"
+        | "unibrowser.control.cad.zoomIn" => CapabilityState::Supported,
+        "unibrowser.control.cad.find" => CapabilityState::Unsupported {
+            reason: "Entity search needs a CAD indexing provider.".into(),
+        },
+        "unibrowser.control.cad.measure" => CapabilityState::Unsupported {
+            reason: "Measure needs a full CAD geometry engine.".into(),
+        },
+        "unibrowser.control.cad.exportStep" => CapabilityState::Unsupported {
+            reason: "STEP export needs a full CAD geometry engine.".into(),
+        },
+        _ => CapabilityState::Unsupported {
+            reason: "This command is not available for CAD documents.".into(),
+        },
     }
 }

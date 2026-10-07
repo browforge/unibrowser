@@ -19,6 +19,9 @@ pub fn core_tab_layout(
     if ctx.work == WorkContext::Settings {
         return vec![settings_family(ctx, resolver)];
     }
+    if ctx.work == WorkContext::Cad3d {
+        return vec![cad_family(ctx, resolver)];
+    }
     vec![
         history_family(ctx, resolver),
         text_or_editor_family(ctx, resolver),
@@ -31,6 +34,94 @@ pub fn core_tab_layout(
     .into_iter()
     .filter(|f| !f.groups.is_empty())
     .collect()
+}
+
+fn cad_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let family_id = "unibrowser.family.cad";
+    let make = |control_id, command_id, label, icon, group_id, priority| ResolvedGroup {
+        group_id: group_id.into(),
+        label: label.into(),
+        overflow_priority: priority,
+        controls: vec![control_spec(
+            control_id,
+            ControlType::Button,
+            command_id,
+            label,
+            icon,
+            group_id,
+            family_id,
+            ctx,
+            resolver,
+        )],
+    };
+    ResolvedFamily {
+        family_id: family_id.into(),
+        label: "CAD / 3D".into(),
+        overflow_priority: OverflowPriority::Primary,
+        groups: vec![
+            make(
+                "unibrowser.control.cad.find",
+                "unibrowser.cad.find",
+                "Find entity",
+                "search",
+                "unibrowser.group.cad.find",
+                OverflowPriority::Primary,
+            ),
+            make(
+                "unibrowser.control.cad.fitView",
+                "unibrowser.cad.fitView",
+                "Fit view",
+                "maximize",
+                "unibrowser.group.cad.view",
+                OverflowPriority::Primary,
+            ),
+            ResolvedGroup {
+                group_id: "unibrowser.group.cad.zoom".into(),
+                label: "Zoom".into(),
+                overflow_priority: OverflowPriority::Primary,
+                controls: vec![
+                    control_spec(
+                        "unibrowser.control.cad.zoomOut",
+                        ControlType::Button,
+                        "unibrowser.cad.zoomOut",
+                        "Zoom out",
+                        "zoom-out",
+                        "unibrowser.group.cad.zoom",
+                        family_id,
+                        ctx,
+                        resolver,
+                    ),
+                    control_spec(
+                        "unibrowser.control.cad.zoomIn",
+                        ControlType::Button,
+                        "unibrowser.cad.zoomIn",
+                        "Zoom in",
+                        "zoom-in",
+                        "unibrowser.group.cad.zoom",
+                        family_id,
+                        ctx,
+                        resolver,
+                    ),
+                ],
+            },
+            make(
+                "unibrowser.control.cad.measure",
+                "unibrowser.cad.measure",
+                "Measure",
+                "ruler",
+                "unibrowser.group.cad.measure",
+                OverflowPriority::Normal,
+            ),
+            make(
+                "unibrowser.control.cad.exportStep",
+                "unibrowser.cad.exportStep",
+                "Export STEP",
+                "download",
+                "unibrowser.group.cad.export",
+                OverflowPriority::Low,
+            ),
+        ],
+    }
 }
 
 fn settings_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
@@ -742,22 +833,53 @@ fn image_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Resol
         family_id: family_ids::IMAGE_ADJUST.into(),
         label: "Adjust".into(),
         overflow_priority: OverflowPriority::Normal,
-        groups: vec![ResolvedGroup {
-            group_id: "unibrowser.group.image".into(),
-            label: "Adjust".into(),
-            overflow_priority: OverflowPriority::Normal,
-            controls: vec![control_spec(
-                "unibrowser.control.image.curves",
-                ControlType::Button,
-                commands::IMAGE_CURVES,
-                "Curves",
-                "image",
-                "unibrowser.group.image",
-                family_ids::IMAGE_ADJUST,
-                ctx,
-                resolver,
-            )],
-        }],
+        groups: vec![
+            ResolvedGroup {
+                group_id: "unibrowser.group.image.view".into(),
+                label: "View".into(),
+                overflow_priority: OverflowPriority::Primary,
+                controls: vec![
+                    control_spec(
+                        "unibrowser.control.image.zoomOut",
+                        ControlType::Button,
+                        "unibrowser.image.zoomOut",
+                        "Zoom out",
+                        "zoom-out",
+                        "unibrowser.group.image.view",
+                        family_ids::IMAGE_ADJUST,
+                        ctx,
+                        resolver,
+                    ),
+                    control_spec(
+                        "unibrowser.control.image.zoomIn",
+                        ControlType::Button,
+                        "unibrowser.image.zoomIn",
+                        "Zoom in",
+                        "zoom-in",
+                        "unibrowser.group.image.view",
+                        family_ids::IMAGE_ADJUST,
+                        ctx,
+                        resolver,
+                    ),
+                ],
+            },
+            ResolvedGroup {
+                group_id: "unibrowser.group.image".into(),
+                label: "Adjust".into(),
+                overflow_priority: OverflowPriority::Normal,
+                controls: vec![control_spec(
+                    "unibrowser.control.image.curves",
+                    ControlType::Button,
+                    commands::IMAGE_CURVES,
+                    "Curves",
+                    "image",
+                    "unibrowser.group.image",
+                    family_ids::IMAGE_ADJUST,
+                    ctx,
+                    resolver,
+                )],
+            },
+        ],
     }
 }
 
