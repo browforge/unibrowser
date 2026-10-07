@@ -29,12 +29,13 @@ dead gap inside a card.
 | `new-tab-dark-1280.png` | Dark Start shell with primary Open file, secondary start actions, recent files, and two download rows. Actions are flat and the content forms one compact column. | Pass |
 | `new-tab-light-hc-1280.png` | Cream high-contrast Start shell with a bounded recent-work area. Primary, secondary, recent, and download actions are distinct and do not overlap. | Pass |
 | `new-tab-dark-hc-1280.png` | Black high-contrast Start shell with bright copy, recent rows, download progress, and a compact Open action. No control is clipped. | Pass |
-| `pdf-dark-1280.png` | Dark PDF Annotation shell around a white document page. The Page 1 chip, Label input, Colour control, Reply textarea, and other-annotation card all use dark panel surfaces. Breadcrumbs are evenly spaced and Save is a flat accent button. | Pass |
+| `pdf-dark-1280.png` | Dark PDF Annotation shell around a white document page. The Page 1 chip, Label input, Colour swatch, Reply textarea, and other-annotation card use dark panel surfaces with flat 1px borders and no inset bevel. Breadcrumbs are evenly spaced and Save is a flat accent button. | Pass |
 | `pdf-light-hc-1280.png` | White high-contrast PDF Annotation shell with outlined thumbnails and annotation card. Page content, reply placeholder, and status values remain readable. | Pass |
 | `pdf-dark-hc-1280.png` | Black high-contrast PDF Annotation shell around a white document page. The selected thumbnail, highlight, dark annotation fields, reply placeholder, and actions are distinct. | Pass |
-| `settings-dark-1280.png` | Dark Settings shell with category rail and General rows. The Auto-save switch has a dark off track and contrasting knob. Advanced settings is an inline row rather than a mostly empty card. | Pass |
-| `settings-light-hc-1280.png` | White high-contrast Settings shell with ruled General rows, flat controls, and an inline Advanced settings action. Changes save immediately appears at the lower left. | Pass |
-| `settings-dark-hc-1280.png` | Black high-contrast Settings shell with bright row rules and a clearly highlighted General category. The Auto-save state, labels, controls, and Advanced settings action remain readable. | Pass |
+| `settings-dark-1280.png` | Dark Settings shell with category rail and General rows. Auto-save is a 32x18 flat switch with accent on track and the knob at the right beside the interval select. Advanced settings is an inline row rather than a mostly empty card. | Pass |
+| `settings-light-1280.png` | Light Settings shell with ruled General rows. Auto-save shows the same flat switch in the on state with an accent track and the knob at the right beside the interval select. Changes save immediately appears at the lower left. | Pass |
+| `settings-light-hc-1280.png` | White high-contrast Settings shell with ruled General rows, flat controls, and an inline Advanced settings action. Auto-save uses the accent on switch beside the interval select. | Pass |
+| `settings-dark-hc-1280.png` | Black high-contrast Settings shell with bright row rules and a clearly highlighted General category. Auto-save reads as an accent on switch with the knob at the right. | Pass |
 | `workshop-dark-1280.png` | Dark Project shell with source rail, preview stage, lower-third inspector, and three timeline tracks. The 10s label is complete at the right edge and the Intro flag occupies a row above the 0s label. | Pass |
 | `workshop-light-hc-1280.png` | Light high-contrast Project shell with outlined stage, inspector fields, and timeline rows. The selected title clip, endpoint labels, and lower-third controls remain distinct. | Pass |
 | `workshop-dark-hc-1280.png` | Black high-contrast Project shell with bright region boundaries and a full timeline. Both endpoint labels are inside the ruler and the marker does not cover 0s. | Pass |
@@ -86,9 +87,13 @@ Fixed:
   surface and text tokens. The dark-surface capture guard checks chrome and
   side-panel inputs, textareas, selects, chips, and cards against the raised
   surface token.
-- Settings Auto-save state: undefined fallback colours produced a near-white
-  track and knob. The flat, 6px-radius switch now has explicit themed off,
-  knob, and accent-on states.
+- Settings Auto-save state: replaced the stretched pseudo-checkbox with a shared
+  `ub-switch` (32x18, 5px radius, role=switch, aria-checked). On uses an accent
+  track with the knob at the right; off uses a neutral bordered track with the
+  knob at the left. Auto-save defaults on for fresh isolated config.
+- PDF and chrome form bevels: shared `ub-form-control` styles strip native
+  appearance, box-shadow, and uneven borders on inputs, textareas, and colour
+  swatches. The dark capture guard rejects uneven border colours on form fields.
 - Workshop ruler clipping and collision: endpoint transforms keep 0s and 10s
   within the viewport, while marker flags and tick labels use separate rows.
   The capture guard asserts ruler bounds and marker separation.
@@ -128,8 +133,9 @@ Reviewed with a specific non-failure reason:
 
 ## Verification
 
-- `npm run test:contrast`: 5 tests passed, including status contrast, dark
-  surface luminance, timeline bounds, and marker separation.
+- `npm run test:contrast`: 6 tests passed, including status contrast, dark
+  surface luminance, form border uniformity, timeline bounds, and marker
+  separation.
 - `npm run test:image-chrome`: 1 test passed.
 - `npm run build`: passed.
 - Final isolated capture chain: exited 0 for shell density, UI-14, UI-16, and
