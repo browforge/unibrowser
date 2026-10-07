@@ -42,11 +42,18 @@ function unibrowBoardReady(): boolean {
   if (!host || host.classList.contains("hidden")) {
     return false;
   }
-  const board = host.querySelector(".unibrow-board-canvas, .unibrow-board-hint, .unibrow-live-panel");
+  const board = host.querySelector(
+    ".workshop-stage-frame, .unibrow-board-canvas, .unibrow-board-hint, .unibrow-live-panel",
+  );
   return Boolean(board);
 }
 
 function liveBadgeReady(): boolean {
+  const state = document.querySelector(".workshop-state");
+  if (state) {
+    return state.getAttribute("data-state") === "live" ||
+      state.getAttribute("data-state") === "recording";
+  }
   const badge = document.querySelector(".unibrow-live-indicator");
   return Boolean(badge && !badge.classList.contains("hidden"));
 }
