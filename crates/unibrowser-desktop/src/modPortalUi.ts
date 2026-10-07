@@ -151,7 +151,7 @@ export function appendModSuggestionCard(
   const summary = document.createElement("summary");
   summary.textContent = "Contribution details";
   const detailBody = document.createElement("span");
-  detailBody.className = "mod-result-id";
+  detailBody.className = "mod-contribution-ids";
   const parts = [`mod ${suggestion.mod_id}`];
   if (suggestion.ubmod_id) {
     parts.push(`ubmod ${suggestion.ubmod_id}`);

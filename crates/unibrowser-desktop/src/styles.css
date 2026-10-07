@@ -5895,11 +5895,25 @@ body.content-fullscreen #unknown-file-banner {
   display: none;
 }
 
-.mod-result-details .mod-result-id {
+.mod-result-details {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.mod-contribution-ids {
   display: block;
   margin-top: 4px;
   font-size: 10px;
   word-break: break-all;
+  color: var(--ub-text-muted, #a4adb3);
+}
+
+.mod-result-card--suggestion .mod-result-reason {
+  grid-row: 2;
+}
+
+.mod-result-card--suggestion .mod-card-footer {
+  grid-row: 4;
 }
 
 .mod-card-action {
