@@ -197,8 +197,21 @@ function renderValueStepper(
 ): HTMLElement {
   const split = document.createElement("button");
   split.type = "button";
-  split.className = `ui-command split-button value-stepper${emulated ? " emulated" : ""}`;
+  split.className = [
+    ...uiCommandChromeClassList({
+      controlType: control.control_type,
+      capabilityState: control.capability.state,
+      actionable,
+      emulated,
+      locked: control.capability.state === "locked",
+      mixed: false,
+      modControl: false,
+    }),
+    "split-button",
+    "value-stepper",
+  ].join(" ");
   split.dataset.controlId = control.control_id;
+  split.dataset.capabilityState = control.capability.state;
   split.appendChild(createLucideIcon(lucideForControlIcon(control.icon), 16, "ub-icon svg-icon"));
   const label = document.createElement("span");
   label.className = "cm-cmd-label";
