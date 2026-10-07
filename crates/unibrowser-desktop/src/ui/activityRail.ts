@@ -95,7 +95,7 @@ function renderRailPanel(rail: HTMLElement, id: RailDestination | null) {
   if (!panel) {
     return;
   }
-  if (!id || mode !== "expanded") {
+  if (!id || mode === "hidden") {
     panel.classList.add("hidden");
     panel.innerHTML = "";
     return;
@@ -115,6 +115,18 @@ function renderRailPanel(rail: HTMLElement, id: RailDestination | null) {
     list.appendChild(li);
   });
   panel.appendChild(list);
+}
+
+function hidePanelIfIdle(rail: HTMLElement) {
+  const focused = rail.querySelector(".rail-destination:focus");
+  if (focused instanceof HTMLElement) {
+    const focusedId = focused.dataset.railId as RailDestination | undefined;
+    if (focusedId && focusedId in PANEL_COPY) {
+      renderRailPanel(rail, focusedId);
+      return;
+    }
+  }
+  renderRailPanel(rail, activeDestination);
 }
 
 function setActiveButton(rail: HTMLElement, id: RailDestination | null) {
@@ -156,6 +168,15 @@ export function initActivityRail(deps: {
     return btn;
   };
 
+  const bindPanelPreview = (btn: HTMLButtonElement, id: RailDestination) => {
+    btn.addEventListener("focus", () => {
+      renderRailPanel(rail, id);
+    });
+    btn.addEventListener("blur", () => {
+      window.setTimeout(() => hidePanelIfIdle(rail), 0);
+    });
+  };
+
   for (const item of ITEMS.filter((i) => !i.settings)) {
     const btn = makeBtn({
       label: item.label,
@@ -170,6 +191,7 @@ export function initActivityRail(deps: {
       },
     });
     btn.dataset.railId = item.id;
+    bindPanelPreview(btn, item.id);
     rail.appendChild(btn);
   }
 
@@ -207,6 +229,7 @@ export function initActivityRail(deps: {
     },
   });
   settingsBtn.dataset.railId = settingsItem.id;
+  bindPanelPreview(settingsBtn, settingsItem.id);
   const collapseButton = rail.querySelector(".rail-collapse");
   rail.insertBefore(sidePanel, collapseButton ?? settingsBtn);
   rail.appendChild(settingsBtn);

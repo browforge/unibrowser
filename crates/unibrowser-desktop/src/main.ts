@@ -147,6 +147,7 @@ import {
   updateTitleBarNavVisibility,
 } from "./ui/compactTitleBar";
 import { initActivityRail } from "./ui/activityRail";
+import { initThemedSelects } from "./ui/themedSelect";
 import { exposeChromeMetrics } from "./ui/chromeMetrics";
 import { createLucideIcon, tabIconForKind } from "./ui/lucideIcon";
 import { diffEditorView, type DiffViewDto } from "./diffEditor";
@@ -2918,6 +2919,7 @@ initHttpLoadingListeners(contentHost);
 applyChromeI18n();
 void loadUiLocale().then(() => applyChromeI18n());
 void loadThemePreference();
+initThemedSelects();
 void invoke<{ editor_theme_id: string }>("get_preferences").then((prefs) => {
   setEditorThemePreference(prefs.editor_theme_id);
   void initMonacoEditorThemes(prefs.editor_theme_id);
@@ -3237,6 +3239,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     workAreaRow,
     onDestination: (id) => {
       if (id === "files") {
+        if (filesPanel.childElementCount === 0) {
+          return;
+        }
         filesBrowserWrap.classList.toggle("hidden");
         if (!filesBrowserWrap.classList.contains("hidden")) {
           void refreshState();
