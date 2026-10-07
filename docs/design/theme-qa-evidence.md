@@ -32,10 +32,10 @@ dead gap inside a card.
 | `pdf-dark-1280.png` | Dark PDF Annotation shell around a white document page. The Page 1 chip, Label input, Colour swatch, Reply textarea, and other-annotation card use dark panel surfaces with flat 1px borders and no inset bevel. Breadcrumbs are evenly spaced and Save is a flat accent button. | Pass |
 | `pdf-light-hc-1280.png` | White high-contrast PDF Annotation shell with outlined thumbnails and annotation card. Page content, reply placeholder, and status values remain readable. | Pass |
 | `pdf-dark-hc-1280.png` | Black high-contrast PDF Annotation shell around a white document page. The selected thumbnail, highlight, dark annotation fields, reply placeholder, and actions are distinct. | Pass |
-| `settings-dark-1280.png` | Dark Settings shell with category rail and General rows. Auto-save is a 32x18 flat switch with accent on track and the knob at the right beside the interval select. Advanced settings is an inline row rather than a mostly empty card. | Pass |
-| `settings-light-1280.png` | Light Settings shell with ruled General rows. Auto-save shows the same flat switch in the on state with an accent track and the knob at the right beside the interval select. Changes save immediately appears at the lower left. | Pass |
-| `settings-light-hc-1280.png` | White high-contrast Settings shell with ruled General rows, flat controls, and an inline Advanced settings action. Auto-save uses the accent on switch beside the interval select. | Pass |
-| `settings-dark-hc-1280.png` | Black high-contrast Settings shell with bright row rules and a clearly highlighted General category. Auto-save reads as an accent on switch with the knob at the right. | Pass |
+| `settings-dark-1280.png` | Dark Settings shell with category rail and General rows. Auto-save is a 32x18 accent on switch with a centred 14px knob at the right; On startup, Downloads, and Every 5 min selects show a themed chevron. Advanced settings is an inline row. | Pass |
+| `settings-light-1280.png` | Light Settings shell with ruled General rows. Auto-save matches the same 32x18 switch beside chevroned selects. Changes save immediately appears at the lower left. | Pass |
+| `settings-light-hc-1280.png` | White high-contrast Settings shell with ruled General rows and an inline Advanced settings action. The switch and all selects keep chevron affordances on outlined controls. | Pass |
+| `settings-dark-hc-1280.png` | Black high-contrast Settings shell with bright row rules and a highlighted General category. Auto-save is a compact accent on switch with chevroned interval select. | Pass |
 | `workshop-dark-1280.png` | Dark Project shell with source rail, preview stage, lower-third inspector, and three timeline tracks. The 10s label is complete at the right edge and the Intro flag occupies a row above the 0s label. | Pass |
 | `workshop-light-hc-1280.png` | Light high-contrast Project shell with outlined stage, inspector fields, and timeline rows. The selected title clip, endpoint labels, and lower-third controls remain distinct. | Pass |
 | `workshop-dark-hc-1280.png` | Black high-contrast Project shell with bright region boundaries and a full timeline. Both endpoint labels are inside the ruler and the marker does not cover 0s. | Pass |
@@ -88,9 +88,13 @@ Fixed:
   side-panel inputs, textareas, selects, chips, and cards against the raised
   surface token.
 - Settings Auto-save state: replaced the stretched pseudo-checkbox with a shared
-  `ub-switch` (32x18, 5px radius, role=switch, aria-checked). On uses an accent
-  track with the knob at the right; off uses a neutral bordered track with the
-  knob at the left. Auto-save defaults on for fresh isolated config.
+  `ub-switch` (32x18, 5px radius, role=switch, aria-checked). Settings row
+  min-height no longer stretches the switch; the 14px knob uses a 2px inset.
+  Capture guards assert 32x18 track size and knob centring. Auto-save defaults
+  on for fresh isolated config (was off before commit `332f9f2`).
+- Select chevrons: `appearance: none` selects now use `--ub-select-chevron`
+  with right padding. High-contrast settings keeps the chevron when panel fills
+  override background colour.
 - PDF and chrome form bevels: shared `ub-form-control` styles strip native
   appearance, box-shadow, and uneven borders on inputs, textareas, and colour
   swatches. The dark capture guard rejects uneven border colours on form fields.
@@ -133,9 +137,10 @@ Reviewed with a specific non-failure reason:
 
 ## Verification
 
-- `npm run test:contrast`: 6 tests passed, including status contrast, dark
-  surface luminance, form border uniformity, timeline bounds, and marker
-  separation.
+- `npm run test:contrast`: 8 tests passed, including switch geometry helpers,
+  form border uniformity, status contrast, dark surface luminance, timeline
+  bounds, and marker separation. Capture also asserts switch bounds and select
+  chevrons on visible surfaces.
 - `npm run test:image-chrome`: 1 test passed.
 - `npm run build`: passed.
 - Final isolated capture chain: exited 0 for shell density, UI-14, UI-16, and
