@@ -2702,6 +2702,7 @@ body.content-fullscreen::after {
 }
 
 .pdf-footer-btn {
+  appearance: none;
   padding: 2px 8px;
   font-size: 12px;
   border: 1px solid var(--ub-border, #c8c4bc);
@@ -2890,6 +2891,29 @@ body.content-fullscreen::after {
   margin-top: 0.35rem;
 }
 
+.pdf-annotations-dock button,
+.pdf-annotations-dock select,
+.pdf-annotations-dock input,
+.pdf-annotations-dock textarea,
+.pdf-viewer-footer input {
+  appearance: none;
+  border: 1px solid var(--ub-border, #c8c4bc);
+  border-radius: 4px;
+  background: var(--ub-surface-subtle, #25282a);
+  color: inherit;
+  font: inherit;
+}
+
+[data-theme="light"] .pdf-annotations-dock button,
+[data-theme="light"] .pdf-annotations-dock select,
+[data-theme="light"] .pdf-annotations-dock input,
+[data-theme="light"] .pdf-annotations-dock textarea,
+[data-theme="light"] .pdf-viewer-footer input {
+  background: #eef1f3;
+  border-color: #aeb6bf;
+  color: #252a30;
+}
+
 .docx-reader {
   display: flex;
   justify-content: center;
@@ -2949,6 +2973,7 @@ body.content-fullscreen::after {
 }
 
 .svg-mode-btn {
+  appearance: none;
   font-size: 12px;
   padding: 0.25rem 0.65rem;
   border-radius: 4px;
