@@ -176,6 +176,7 @@ import {
   formatDiagnosticsForLog,
   validateEditorForCapture,
   validateImageViewerChrome,
+  validateCommandManagerMutedForCapture,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
@@ -2816,6 +2817,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (cmErr) {
             await invoke("abort_doc_capture", {
               reason: `${cmErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const cmMutedErr = validateCommandManagerMutedForCapture();
+          if (cmMutedErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${cmMutedErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

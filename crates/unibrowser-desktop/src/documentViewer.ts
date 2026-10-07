@@ -1608,7 +1608,18 @@ async function renderDxf(path: string, root: HTMLElement) {
   let baseBbox: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
 
   const reportDxfZoom = () => {
-    reportViewerZoom(zoom, "cad");
+    if (!baseBbox) {
+      reportViewerZoom(zoom, "cad");
+      return;
+    }
+    const worldW = Math.max(baseBbox.maxX - baseBbox.minX, 1);
+    const worldH = Math.max(baseBbox.maxY - baseBbox.minY, 1);
+    const pad = 1.12;
+    const displayScale = Math.min(viewW / (worldW * pad), viewH / (worldH * pad)) * zoom;
+    const clamped = Math.min(8, Math.max(0.02, displayScale));
+    document.documentElement.dataset.dxfFitZoomReady = "1";
+    document.documentElement.dataset.dxfFitZoomPct = String(Math.round(clamped * 100));
+    reportViewerZoom(clamped, "cad");
   };
 
   const applyFitView = () => {

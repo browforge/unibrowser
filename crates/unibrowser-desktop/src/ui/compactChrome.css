@@ -698,17 +698,21 @@ body[data-cm-density="large"] .cm-overflow.visible {
   background: #20313e;
 }
 
-[data-theme="light"] #chrome .cm-group .ui-command.disabled,
+#chrome .cm-group .ui-command.cm-cap-supported,
+#chrome .cm-group .ui-command.cm-cap-supported .cm-cmd-label,
+#chrome .cm-group .ui-command.cm-cap-supported .ub-icon {
+  color: var(--ub-concept-chrome-text, #e9edef) !important;
+  opacity: 1 !important;
+}
+
 [data-theme="light"] #chrome .cm-group .ui-command.unsupported {
   color: #aebac0 !important;
   opacity: 1;
 }
 
-#chrome .cm-group .ui-command.disabled {
-  color: var(--ub-text-3, #929caa) !important;
-  border-color: transparent;
-  background: transparent;
+#chrome .cm-group .ui-command.disabled:not(.unsupported) {
   cursor: not-allowed;
+  color: var(--ub-concept-chrome-text, #e9edef) !important;
 }
 
 #chrome .cm-group .ui-command.unsupported {

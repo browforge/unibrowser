@@ -532,6 +532,112 @@ export function formatDiagnosticsForLog(d: DocCaptureDiagnostics): string {
 }
 
 /** Returns abort reason when raster image viewer chrome violates one-home rules. */
+/** Fail when muted CM chrome does not match declared capability states (CSS leak). */
+export function validateCommandManagerMutedForCapture(): string | null {
+  if (document.body.classList.contains("cm-collapsed")) {
+    return null;
+  }
+  const controls = Array.from(
+    document.querySelectorAll("#command-manager-groups .ui-command"),
+  ) as HTMLElement[];
+  const visible = controls.filter((el) => {
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    return (
+      rect.width >= 24 &&
+      rect.height >= 20 &&
+      style.display !== "none" &&
+      style.visibility !== "hidden"
+    );
+  });
+  if (visible.length < 4) {
+    return null;
+  }
+  let declaredSupported = 0;
+  let declaredUnsupported = 0;
+  let visuallyUnsupported = 0;
+  for (const el of visible) {
+    const state = el.dataset.capabilityState ?? "";
+    if (state === "supported" || state === "emulated") {
+      declaredSupported += 1;
+    } else if (state === "unsupported" || state === "locked") {
+      declaredUnsupported += 1;
+    }
+    if (el.classList.contains("unsupported")) {
+      visuallyUnsupported += 1;
+    }
+  }
+  if (declaredSupported < 2) {
+    return null;
+  }
+  if (visuallyUnsupported > declaredUnsupported) {
+    return `CM muted styling leak: ${visuallyUnsupported} visually unsupported vs ${declaredUnsupported} declared (supported ${declaredSupported})`;
+  }
+  if (visuallyUnsupported > visible.length / 2 && visuallyUnsupported > declaredUnsupported) {
+    return `CM more than half of visible controls look unsupported (${visuallyUnsupported}/${visible.length}) while only ${declaredUnsupported} are declared unsupported`;
+  }
+  const brightLum =
+    parseRgbLuminance("rgb(233, 237, 239)") ?? parseRgbLuminance("#e9edef");
+  const mutedLightLum = parseRgbLuminance("rgb(174, 186, 192)") ?? parseRgbLuminance("#aebac0");
+  const mutedDarkLum = parseRgbLuminance("rgb(146, 156, 170)") ?? parseRgbLuminance("#929caa");
+  let supportedBright = 0;
+  let supportedMuted = 0;
+  for (const el of visible) {
+    const state = el.dataset.capabilityState ?? "";
+    if (state === "supported" || state === "emulated") {
+      if (el.classList.contains("unsupported")) {
+        return `supported control ${el.dataset.controlId ?? "?"} has unsupported CM styling`;
+      }
+      if (!el.classList.contains("cm-cap-supported")) {
+        return `supported control ${el.dataset.controlId ?? "?"} missing cm-cap-supported chrome class`;
+      }
+      const labelEl = el.querySelector(".cm-cmd-label") as HTMLElement | null;
+      const fg = parseRgbLuminance(getComputedStyle(labelEl ?? el).color);
+      if (fg !== null && brightLum !== null && Math.abs(fg - brightLum) < 0.025) {
+        supportedBright += 1;
+      } else if (
+        fg !== null &&
+        ((mutedLightLum !== null && Math.abs(fg - mutedLightLum) < 0.025) ||
+          (mutedDarkLum !== null && Math.abs(fg - mutedDarkLum) < 0.025))
+      ) {
+        supportedMuted += 1;
+        return `supported control ${el.dataset.controlId ?? "?"} uses muted foreground (${getComputedStyle(el).color})`;
+      }
+    }
+  }
+  if (declaredSupported >= 2 && supportedBright < 1 && supportedMuted > 0) {
+    return `no supported CM control uses bright chrome text (${supportedMuted} look muted)`;
+  }
+  let capSupported = 0;
+  let capSupportedMuted = 0;
+  for (const el of visible) {
+    if (!el.classList.contains("cm-cap-supported")) {
+      continue;
+    }
+    capSupported += 1;
+    const labelEl = el.querySelector(".cm-cmd-label") as HTMLElement | null;
+    const fg = parseRgbLuminance(getComputedStyle(labelEl ?? el).color);
+    if (
+      fg !== null &&
+      brightLum !== null &&
+      Math.abs(fg - brightLum) < 0.03
+    ) {
+      continue;
+    }
+    if (
+      fg !== null &&
+      ((mutedLightLum !== null && Math.abs(fg - mutedLightLum) < 0.03) ||
+        (mutedDarkLum !== null && Math.abs(fg - mutedDarkLum) < 0.03))
+    ) {
+      capSupportedMuted += 1;
+    }
+  }
+  if (capSupported >= 2 && capSupportedMuted > capSupported / 2) {
+    return `more than half of cm-cap-supported controls look muted (${capSupportedMuted}/${capSupported})`;
+  }
+  return null;
+}
+
 /** Blur focus and hide CM tooltips so captures do not show hover chrome. */
 export function clearCaptureHoverAndTooltips(): void {
   document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");

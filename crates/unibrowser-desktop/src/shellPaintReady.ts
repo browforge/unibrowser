@@ -219,8 +219,27 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   ) {
     checks.push(monacoReady);
   }
-  if (joined.includes(".docx") || joined.includes(".pdf") || joined.includes(".svg")) {
+  if (
+    joined.includes(".docx") ||
+    joined.includes(".pdf") ||
+    joined.includes(".svg") ||
+    joined.includes(".png") ||
+    joined.includes(".dxf")
+  ) {
     checks.push(docViewerReady);
+  }
+  if (joined.includes(".dxf")) {
+    checks.push(() => {
+      const host = document.querySelector("#document-viewer-host");
+      if (!host || host.classList.contains("hidden")) {
+        return false;
+      }
+      const canvas = host.querySelector("canvas");
+      if (!canvas) {
+        return false;
+      }
+      return document.documentElement.dataset.dxfFitZoomReady === "1";
+    });
   }
   if (tokens.includes("files")) {
     checks.push(browseFolderReady);

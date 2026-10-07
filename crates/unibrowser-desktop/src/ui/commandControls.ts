@@ -6,6 +6,7 @@ import { getEditorFontSizePt } from "../textEditor";
 import type { UiCommandDto } from "../commandManager";
 import { announceCm } from "./cmA11y";
 import { controlA11yState } from "./controlA11y";
+import { uiCommandChromeClassList } from "./cmControlClasses";
 export { partitionGroupsByAvailableWidth } from "./commandOverflow";
 
 export type CapabilityDto =
@@ -108,7 +109,6 @@ export function renderResolvedControl(
   const actionable = a11y.actionable;
   const emulated = control.capability.state === "emulated";
   const locked = control.capability.state === "locked";
-  const unsupported = control.capability.state === "unsupported";
   const mixed = a11y.mixed;
   const a11yReason = a11y.reason;
 
@@ -119,6 +119,7 @@ export function renderResolvedControl(
   const btn = document.createElement("button");
   btn.type = "button";
   btn.dataset.controlId = control.control_id;
+  btn.dataset.capabilityState = control.capability.state;
   const iconName = lucideForControlIcon(control.icon);
   btn.appendChild(createLucideIcon(iconName, 16, "ub-icon svg-icon"));
   const modControl =
@@ -149,18 +150,15 @@ export function renderResolvedControl(
   if (chord) {
     btn.setAttribute("aria-keyshortcuts", chord);
   }
-  btn.className = [
-    "ui-command",
-    control.control_type === "toggle" ? "toggle" : "",
-    modControl ? "cm-mod-control" : "",
-    !actionable ? "disabled" : "",
-    unsupported ? "unsupported" : "",
-    emulated ? "emulated" : "",
-    locked ? "locked" : "",
-    mixed ? "mixed" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  btn.className = uiCommandChromeClassList({
+    controlType: control.control_type,
+    capabilityState: control.capability.state,
+    actionable,
+    emulated,
+    locked,
+    mixed,
+    modControl,
+  }).join(" ");
   bindCommandTooltip(btn, {
     title: patched.title,
     reason: a11yReason,
