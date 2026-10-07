@@ -849,6 +849,9 @@ Fail rule:
 
 ### UI-27: Align document workbench regions
 
+Status: done 2026-10-07. Removed the permanent Preview/Export/Print row; editor,
+AI, and Problems share one capture with joined regions.
+
 Work:
 
 - Remove or merge the third Preview/Export/Print row into the contextual command
@@ -866,6 +869,9 @@ Fail rule:
   provider text, clipped editor content, or unreadable diagnostics.
 
 ### UI-28: Reduce Mod Portal card-grid density
+
+Status: done 2026-10-07. Task header merges search and network state; one featured
+suggested result sits above a restrained catalogue.
 
 Work:
 

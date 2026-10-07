@@ -116,9 +116,13 @@ export function appendModSuggestionCard(
   parent: HTMLElement,
   suggestion: ModSuggestion,
   onPrimary: (suggestion: ModSuggestion) => void,
+  options?: { featured?: boolean },
 ): void {
   const card = document.createElement("article");
   card.className = "mod-result-card mod-result-card--suggestion";
+  if (options?.featured) {
+    card.classList.add("mod-result-card--featured");
+  }
   const badge = document.createElement("span");
   badge.className = "mod-card-badge mod-card-badge--installable";
   badge.textContent = "Suggested";
