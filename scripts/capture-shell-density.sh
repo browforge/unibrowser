@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 (cd "$ROOT/crates/unibrowser-desktop" && npm run build)
+(cd "$ROOT/crates/unibrowser-desktop" && npm run test:contrast)
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
 # shellcheck source=capture-vqa-common.sh

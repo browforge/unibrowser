@@ -176,6 +176,7 @@ import {
   formatDiagnosticsForLog,
   validateEditorForCapture,
 } from "./docCaptureAsserts";
+import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
 import {
   editorReadyForCapture,
   launchPathsNeedEditor,
@@ -2805,6 +2806,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (cmErr) {
             await invoke("abort_doc_capture", {
               reason: `${cmErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          const shellContrastErr = validateShellDensityContrastForCapture();
+          if (shellContrastErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${shellContrastErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

@@ -3453,7 +3453,7 @@ select:focus-visible,
   min-height: 0;
   overflow: hidden;
   box-sizing: border-box;
-  color: var(--ub-text, #e9edef);
+  color: var(--ub-text-1, #e9edef);
   background: var(--ub-panel, #1d2124);
 }
 
@@ -3502,7 +3502,7 @@ select:focus-visible,
   font-size: 12px;
   font-weight: 650;
   line-height: 32px;
-  color: var(--ub-text, #e9edef);
+  color: var(--ub-text-1, #e9edef);
 }
 
 .workshop-sources > .workshop-region-heading,
@@ -3545,7 +3545,7 @@ select:focus-visible,
   height: 24px;
   border: 1px solid var(--ub-border, #58616a);
   border-radius: 2px;
-  color: var(--ub-text-muted, #aeb7bd);
+  color: var(--ub-text-2, #c9d0d4);
   font-size: 10px;
   font-weight: 700;
 }
@@ -3891,7 +3891,7 @@ select:focus-visible,
   align-items: center;
   padding: 0 10px;
   border-right: 1px solid var(--ub-border, #444);
-  color: var(--ub-text-muted, #a4adb3);
+  color: var(--ub-text-2, #c9d0d4);
   font-size: 10px;
   font-weight: 650;
   background: var(--ub-panel, #22272b);
@@ -3988,8 +3988,12 @@ select:focus-visible,
 }
 
 [data-theme="light"] .workshop {
-  color: var(--ub-text, #252a30);
+  color: var(--ub-text-1, #202223);
   background: #f3f2ee;
+}
+
+[data-theme="light"] .workshop-region-heading {
+  color: #202223;
 }
 
 [data-theme="light"] .workshop-sources,
@@ -3998,6 +4002,36 @@ select:focus-visible,
 [data-theme="light"] .workshop-timeline-head,
 [data-theme="light"] .workshop-track-label {
   background: #f1f0ec;
+  border-color: #c8c5bc;
+}
+
+[data-theme="light"] .workshop-track-label {
+  color: #3d4448;
+}
+
+[data-theme="light"] .workshop-source-badge {
+  color: #3d4448;
+  border-color: #8a9196;
+  background: #f7f6f2;
+}
+
+[data-theme="light"] .workshop-source-copy strong {
+  color: #202223;
+}
+
+[data-theme="light"] .workshop-source-copy span {
+  color: #454b4e;
+}
+
+[data-theme="light"] .workshop-state {
+  color: #454b4e;
+}
+
+[data-high-contrast="true"] .workshop-region-heading,
+[data-high-contrast="true"] .workshop-track-label,
+[data-high-contrast="true"] .workshop-source-badge,
+[data-high-contrast="true"] .workshop-source-copy span {
+  color: var(--ub-text-1);
 }
 
 [data-theme="light"] .workshop-field input {
@@ -5413,7 +5447,7 @@ body.content-fullscreen #unknown-file-banner {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 12px 14px 20px;
+  padding: 12px 16px 20px;
   box-sizing: border-box;
   overflow: auto;
   border: 0;
@@ -5424,7 +5458,7 @@ body.content-fullscreen #unknown-file-banner {
 .mod-portal {
   width: 100%;
   margin: 0;
-  padding: 12px 14px 20px;
+  padding: 12px 16px 20px;
   box-sizing: border-box;
   background: var(--ub-canvas, #1b1d1e);
   border-radius: 0;
@@ -5485,9 +5519,10 @@ body.content-fullscreen #unknown-file-banner {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto auto auto;
   gap: 4px 10px;
-  margin: 8px 0;
+  margin: 0;
   padding: 10px 12px;
   width: 100%;
+  box-sizing: border-box;
   text-align: left;
   color: var(--ub-text-1, #f0efeb);
   border: 1px solid var(--ub-border, #4d5151);
@@ -5630,9 +5665,35 @@ body.content-fullscreen #unknown-file-banner {
 .mod-portal-catalog {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
-  gap: 12px 14px;
+  gap: 16px;
   width: 100%;
   max-width: 1200px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.mod-portal-catalog > .mod-result-card {
+  margin: 0;
+}
+
+.mod-result-card--suggestion {
+  grid-template-rows: auto auto auto;
+  max-width: 1200px;
+}
+
+.mod-result-card--suggestion .mod-result-reason {
+  grid-row: 2;
+}
+
+.mod-result-card--suggestion .mod-card-footer {
+  grid-row: 3;
+  margin-top: 0;
+  gap: 6px;
+}
+
+.mod-result-card--suggestion .mod-card-action {
+  margin-top: 0;
 }
 
 .mod-portal-catalog--legacy {
