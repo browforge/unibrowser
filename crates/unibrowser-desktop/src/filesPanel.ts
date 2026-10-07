@@ -393,7 +393,7 @@ async function showPropertiesPanel(path: string, deps: FilesPanelDeps) {
     panel.innerHTML = "";
     const title = document.createElement("h3");
     title.className = "files-side-title";
-    title.textContent = "Preview";
+    title.textContent = t("files.previewHeading");
     panel.appendChild(title);
 
     if (!props.is_dir && props.extension && IMAGE_PREVIEW_EXT.has(props.extension.toLowerCase())) {
@@ -403,6 +403,11 @@ async function showPropertiesPanel(path: string, deps: FilesPanelDeps) {
       preview.src = convertFileSrc(props.path);
       preview.alt = props.name;
       panel.appendChild(preview);
+    } else if (!props.is_dir) {
+      const note = document.createElement("p");
+      note.className = "files-side-note";
+      note.textContent = t("files.previewUnsupported");
+      panel.appendChild(note);
     }
 
     const dl = document.createElement("dl");

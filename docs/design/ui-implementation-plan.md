@@ -826,6 +826,9 @@ Fail rule:
 
 ### UI-26: Keep File browser preview present at 1280
 
+Status: done 2026-10-07. Preview pane stays visible at 1280 with selection capture,
+lighter type badges, and useful unsupported-preview copy.
+
 Work:
 
 - Preserve Places, file list, and Preview as joined regions at 1280.
