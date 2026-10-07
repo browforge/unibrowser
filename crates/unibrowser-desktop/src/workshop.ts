@@ -39,6 +39,17 @@ type WorkshopMode = "preview" | "live" | "recording";
 type TrackKind = "visual" | "title" | "audio";
 let desiredWorkshopMode: WorkshopMode = "preview";
 
+function trackIndexForClip(clip: WorkshopClip): number {
+  const kind = trackForClip(clip);
+  if (kind === "visual") {
+    return 1;
+  }
+  if (kind === "title") {
+    return 2;
+  }
+  return 3;
+}
+
 function trackForClip(clip: WorkshopClip): TrackKind {
   const type = clip.node_type.toLowerCase();
   if (type.includes("title") || type.includes("text")) {
@@ -280,18 +291,20 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       selectedClip.node_type.toLowerCase().includes("title") ||
       trackForClip(selectedClip) === "title" ||
       Boolean(selectedClip.title_text);
+    const selectionHeader = document.createElement("div");
+    selectionHeader.className = "workshop-selection-header";
+    const selectionTitle = document.createElement("p");
+    selectionTitle.className = "workshop-selection-title";
+    selectionTitle.textContent = isTitleClip ? "Lower third" : selectedClip.label;
+    const selectionSubtitle = document.createElement("p");
+    selectionSubtitle.className = "workshop-selection-meta";
+    const trackLabel = isTitleClip ? "Title" : trackForClip(selectedClip) === "visual" ? "Video / Image" : "Audio / MIDI";
+    selectionSubtitle.textContent = `${isTitleClip ? "Title" : trackLabel} clip, track ${trackIndexForClip(selectedClip)}`;
+    selectionHeader.append(selectionTitle, selectionSubtitle);
     const clipLabel = field(isTitleClip ? "Heading" : "Clip label", selectedClip.label, "text");
     const typeRow = field("Type", selectedClip.node_type, "text");
     typeRow.input.readOnly = true;
     typeRow.input.classList.add("workshop-field-readonly");
-    const meta = document.createElement("p");
-    meta.className = "workshop-selection-meta";
-    meta.textContent =
-      trackForClip(selectedClip) === "visual"
-        ? "Video / Image track"
-        : trackForClip(selectedClip) === "title"
-          ? "Title track"
-          : "Audio / MIDI track";
     const start = field("Start (seconds)", selectedClip.start_sec.toFixed(1), "number");
     const duration = field(
       isTitleClip ? "Duration" : "Duration (seconds)",
@@ -315,7 +328,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       });
       refreshProject(data);
     };
-    const fields: HTMLElement[] = [meta];
+    const fields: HTMLElement[] = [selectionHeader];
     if (isTitleClip) {
       const heading = field("Heading", selectedClip.title_text ?? selectedClip.label, "text");
       const subtitle = field("Subtitle", selectedClip.label, "text");

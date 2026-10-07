@@ -1302,6 +1302,21 @@ body.toolbar-window-mode .floating-bar.docked {
 .ntp-actions .ntp-secondary {
   padding: 0.45rem 0.85rem;
   border-radius: 6px;
+  border: 1px solid var(--ub-border, #c5c9cc);
+  background: var(--ub-surface-elevated, #f7f4ee);
+  box-shadow: none;
+  color: inherit;
+  font-weight: 500;
+}
+
+[data-theme="light"] .ntp-actions .ntp-secondary {
+  background: #f7f4ee;
+  border-color: #c8cdd2;
+}
+
+.ntp-actions .ntp-secondary:hover,
+.ntp-actions .ntp-secondary:focus-visible {
+  background: var(--ub-surface-hover, rgba(31, 35, 38, 0.04));
 }
 
 .ntp-recent-icon .ft-icon,
@@ -1836,10 +1851,13 @@ body.toolbar-window-mode .floating-bar.docked {
   color: #aaa;
 }
 
-.files-places-sub {
-  margin: 0.35rem 0 0.15rem;
-  font-size: 0.75rem;
-  color: #888;
+.files-places-section {
+  margin: 0.5rem 0 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ub-label, #5c6670);
 }
 
 .files-places-list {
@@ -4065,9 +4083,16 @@ select:focus-visible,
   padding: 10px 12px 16px;
 }
 
+.workshop-selection-header {
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ub-border, #505960);
+}
+
 .workshop-selection-title {
   margin: 0 0 3px;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .workshop-selection-meta {
@@ -5855,6 +5880,28 @@ body.content-fullscreen #unknown-file-banner {
   margin-top: 2px;
 }
 
+.mod-result-details {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--ub-label, var(--ub-text-2, #9aa5ac));
+}
+
+.mod-result-details summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.mod-result-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.mod-result-details .mod-result-id {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  word-break: break-all;
+}
+
 .mod-card-action {
   align-self: flex-end;
   padding: 4px 10px;
@@ -5869,6 +5916,19 @@ body.content-fullscreen #unknown-file-banner {
 .mod-card-action:hover,
 .mod-card-action:focus-visible {
   border-color: var(--ub-accent, #3d9fd4);
+}
+
+.mod-card-action--primary {
+  border-color: var(--ub-accent, #196f93);
+  background: var(--ub-accent, #196f93);
+  color: #fff;
+  font-weight: 600;
+}
+
+.mod-card-action--primary:hover,
+.mod-card-action--primary:focus-visible {
+  border-color: var(--ub-accent-hover, #145a75);
+  background: var(--ub-accent-hover, #145a75);
 }
 
 .mod-portal-network-status[data-state="on"] {
