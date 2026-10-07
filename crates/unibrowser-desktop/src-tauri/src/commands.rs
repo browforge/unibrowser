@@ -373,6 +373,8 @@ pub struct TabContentDto {
     pub git_dirty_paths: Vec<String>,
     pub download_history: Vec<DownloadHistoryEntryDto>,
     pub bookmark_bar_enabled: bool,
+    /// User-pinned places for the optional bookmark bar (not default Places pins).
+    pub bookmark_bar_pins: Vec<PinnedLocationDto>,
     pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
 }
 
@@ -1382,6 +1384,7 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
         git_dirty_paths: git_dirty_paths.into_iter().collect(),
         download_history: download_history_dto(),
         bookmark_bar_enabled: prefs.bookmark_bar_enabled,
+        bookmark_bar_pins: bookmark_bar_pins_dto(&prefs),
         bookmark_quick_links: prefs
             .bookmark_quick_links
             .iter()
@@ -1441,6 +1444,17 @@ fn build_diff_view(state: &AppState, window_label: &str) -> Result<Option<DiffVi
     }))
 }
 
+fn map_pinned_locations(pins: &[crate::preferences::PinnedLocation]) -> Vec<PinnedLocationDto> {
+    pins
+        .iter()
+        .map(|p| PinnedLocationDto {
+            id: p.id.clone(),
+            label: p.label.clone(),
+            location: p.location.clone(),
+        })
+        .collect()
+}
+
 fn pinned_locations_dto(prefs: &crate::preferences::Preferences) -> Vec<PinnedLocationDto> {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
     let pins = if prefs.pinned_locations.is_empty() {
@@ -1448,13 +1462,11 @@ fn pinned_locations_dto(prefs: &crate::preferences::Preferences) -> Vec<PinnedLo
     } else {
         prefs.pinned_locations.clone()
     };
-    pins.into_iter()
-        .map(|p| PinnedLocationDto {
-            id: p.id,
-            label: p.label,
-            location: p.location,
-        })
-        .collect()
+    map_pinned_locations(&pins)
+}
+
+fn bookmark_bar_pins_dto(prefs: &crate::preferences::Preferences) -> Vec<PinnedLocationDto> {
+    map_pinned_locations(&prefs.pinned_locations)
 }
 
 fn active_document_path(state: &AppState, window: &tauri::Window) -> Result<String, String> {
@@ -4637,6 +4649,8 @@ pub struct PreferencesDto {
     pub open_downloads_in_system_browser: bool,
     pub files_view: FilesViewDto,
     pub bookmark_bar_enabled: bool,
+    /// User-pinned places for the optional bookmark bar (not default Places pins).
+    pub bookmark_bar_pins: Vec<PinnedLocationDto>,
     pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
     pub workspace_root: Option<String>,
     pub disable_user_mods: bool,
@@ -5980,6 +5994,7 @@ fn preferences_dto() -> PreferencesDto {
         open_downloads_in_system_browser: p.open_downloads_in_system_browser,
         files_view: files_view_dto(&p),
         bookmark_bar_enabled: p.bookmark_bar_enabled,
+        bookmark_bar_pins: bookmark_bar_pins_dto(&p),
         bookmark_quick_links: p
             .bookmark_quick_links
             .iter()

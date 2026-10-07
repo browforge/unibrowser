@@ -25,6 +25,6 @@ Use this folder for a **~10 minute** walkthrough. Open `examples/demo-pack` in U
 | `sample.png` | Raster image viewer (1600×1000 procedural fixture; regen via `scripts/gen-sample-image.py`) |
 | `sample.pdf` | PDF text layer (select + Copy) |
 | `sample.unibrow/` | Board/timeline project (`project.json` format v2) |
-| `unknown.ubunknown` | Unknown-file support dock and handler suggestions |
+| `sample.step` | STEP fixture for mod portal CAD support suggestions |
 
 Narrative and gap list: [docs/blitz-status.md](../docs/blitz-status.md) (demo script section).

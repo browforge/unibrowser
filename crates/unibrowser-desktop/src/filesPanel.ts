@@ -23,6 +23,15 @@ const FILE_ROW_HEIGHT_PX = 40;
 const VIRTUAL_VIEWPORT_PX = 520;
 
 const selectedPaths = new Set<string>();
+
+export function filesSelectionStatusHint(): string {
+  if (selectedPaths.size === 0) {
+    return "";
+  }
+  return `${t("files.selectedCount", {
+    count: String(selectedPaths.size),
+  })}. ${t("files.selectionActionsHint")}`;
+}
 let lastBrowsePath = "";
 let searchFilter = "";
 let selectionAnchorIndex = -1;
@@ -1045,8 +1054,8 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     places.appendChild(heading);
 
     if (recent.length) {
-      const sub = document.createElement("p");
-      sub.className = "files-places-sub";
+      const sub = document.createElement("h4");
+      sub.className = "files-places-section";
       sub.textContent = t("files.placesRecent");
       places.appendChild(sub);
       const list = document.createElement("ul");
@@ -1066,8 +1075,8 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
     }
 
     if (pins.length) {
-      const sub = document.createElement("p");
-      sub.className = "files-places-sub";
+      const sub = document.createElement("h4");
+      sub.className = "files-places-section";
       sub.textContent = t("files.placesFolders");
       places.appendChild(sub);
       const list = document.createElement("ul");
@@ -1110,15 +1119,6 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   searchLabel.appendChild(searchInput);
   searchRow.appendChild(searchLabel);
   content.appendChild(searchRow);
-
-  const bulkBar = document.createElement("div");
-  bulkBar.className = "files-bulk-bar" + (selectedPaths.size ? "" : " hidden");
-  const bulkLabel = document.createElement("span");
-  bulkLabel.textContent = `${t("files.selectedCount", {
-    count: String(selectedPaths.size),
-  })}. Use Browse commands or the context menu for actions.`;
-  bulkBar.appendChild(bulkLabel);
-  content.appendChild(bulkBar);
 
   const peekHost = document.createElement("div");
   peekHost.className = "files-archive-peek hidden";

@@ -204,6 +204,7 @@ import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
 import {
   clearFilesPanelContext,
+  filesSelectionStatusHint,
   handleFilesKeyDown,
   renderFilesPanel,
   runFilesCommand,
@@ -260,6 +261,8 @@ interface ModSuggestionDto {
   mod_id: string;
   title: string;
   reason: string;
+  licence?: string | null;
+  permission_summary?: string | null;
   open_vsx_id?: string | null;
   ubmod_id?: string | null;
 }
@@ -366,6 +369,7 @@ interface TabContentDto {
   git_dirty_paths?: string[];
   download_history?: DownloadHistoryEntryDto[];
   bookmark_bar_enabled?: boolean;
+  bookmark_bar_pins?: PinnedLocationDto[];
   bookmark_quick_links?: BookmarkQuickLinkDto[];
   recovery_bar?: RecoveryBarItem[];
 }
@@ -566,12 +570,17 @@ function refreshStatusBar(
           .replace(new RegExp("\\s*\\u00b7\\s*$"), "")
           .trim()
       : data.status;
+  const filesHint =
+    active?.is_directory && data.directory_entries?.length
+      ? filesSelectionStatusHint()
+      : "";
   const statusHint =
-    displayStatus.includes("command palette")
+    filesHint ||
+    (displayStatus.includes("command palette")
       ? paletteChordHint
       : showViewer && viewerKind === "dxf"
         ? ""
-        : displayStatus;
+        : displayStatus);
   updateStatusBar({
     path: statusPath,
     pathHint,
@@ -1950,7 +1959,7 @@ async function applyState(data: TabContentDto) {
     Boolean(active?.is_directory);
   renderBookmarkBar(
     showBookmarkBar,
-    data.pinned_locations ?? [],
+    data.bookmark_bar_pins ?? [],
     data.bookmark_quick_links ?? [],
   );
   const showDiff = Boolean(data.diff_view);

@@ -602,14 +602,23 @@ pub fn reset_onboarding_prefs(prefs: &mut Preferences) {
 
 pub fn load_preferences() -> Preferences {
     let path = preferences_file_path();
-    if let Some(path) = path {
+    let mut prefs = if let Some(path) = path {
         if let Ok(data) = fs::read_to_string(&path) {
             if let Ok(p) = serde_json::from_str(&data) {
-                return p;
+                p
+            } else {
+                Preferences::default()
             }
+        } else {
+            Preferences::default()
         }
+    } else {
+        Preferences::default()
+    };
+    if std::env::var("UNIBROWSER_DOC_CAPTURE").as_deref() == Ok("1") {
+        prefs.bookmark_bar_enabled = false;
     }
-    Preferences::default()
+    prefs
 }
 
 pub fn save_preferences(prefs: &Preferences) -> Result<(), String> {

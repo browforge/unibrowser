@@ -39,6 +39,7 @@ capture_vqa() {
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
     UNIBROWSER_REPO_ROOT="$ROOT" \
     UNIBROWSER_SAFE_MODE=1 \
+    UNIBROWSER_DOC_CAPTURE=1 \
     UNIBROWSER_DOC_CAPTURE_SIZE="${geometry}" \
     UNIBROWSER_DEMO_STATE="$demo" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
