@@ -578,6 +578,12 @@ Screenshot:
 
 **Visual-language impact:** Revised. Mod results may use independent 6 px cards; permission and risk states use restrained semantic colour and explicit labels.
 
+Status: done 2026-10-07. Unknown files retain their file surface beside a
+joined support dock with text, hex, suggested-handler, and Mod Portal paths.
+Discover uses labelled result cards with source, licence, and permission
+language; sideloading is contained in Developer details. Both 1280x800
+captures pass in `docs/design/ui-17-evidence.md`.
+
 Likely files:
 
 - mod portal renderer
