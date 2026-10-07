@@ -6289,11 +6289,15 @@ body.content-fullscreen #unknown-file-banner {
   white-space: nowrap;
 }
 
-.mod-card-install--flat:hover,
-.mod-card-install--flat:focus-visible {
+.mod-card-install--flat:hover {
   border-color: var(--ub-accent-hover, #145a75);
   background: var(--ub-accent-hover, #145a75);
   box-shadow: none;
+}
+
+.mod-card-install--flat:focus-visible {
+  outline: 2px solid var(--ub-focus, #83c7e6);
+  outline-offset: 2px;
 }
 
 [data-theme="light"] .mod-card-thumb {

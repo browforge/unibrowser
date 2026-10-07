@@ -142,16 +142,19 @@ capture_states() {
   shot "${order}-hover" "$crop_x" "$crop_y" "$width" "$height"
 
   xdotool mousemove 700 650 click 1
-  # A Tab key establishes keyboard modality. Pointer down gives the production
-  # control focus; releasing away avoids activating or changing it.
-  xdotool key Tab
+  # Pointer down focuses the production control. Releasing away avoids
+  # activating it. Shift+Tab then Tab returns keyboard modality to that
+  # same control so :focus-visible paints. Escape is not sent; it would
+  # dismiss focus before the shot.
   xdotool mousemove "$target_x" "$target_y"
   xdotool mousedown 1
+  xdotool sleep 0.05
   xdotool mousemove 1180 780
   xdotool mouseup 1
   xdotool key shift+Tab
   xdotool key Tab
-  xdotool key Escape
+  xdotool mousemove 1180 780
+  xdotool sleep 0.15
   shot "${order}-focus" "$crop_x" "$crop_y" "$width" "$height"
 
   xdotool mousemove 700 650 click 1
@@ -198,7 +201,7 @@ stop_surface
 # The existing UI-19 path uses real keyboard focus on a visible CM control and
 # is also covered by the focus-ring capture guard. It is captured separately at
 # 1280x800 so responsive overflow cannot remove the sampled target.
-convert "$OUT/cm-focus-${suffix}.png" -crop 300x90+560+28 +repage \
+convert "$OUT/cm-focus-${suffix}.png" -crop 300x90+90+28 +repage \
   "$tmp/cells/01-cm-focus.png"
 convert "$tmp/cells/01-cm-focus.png" \
   -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \

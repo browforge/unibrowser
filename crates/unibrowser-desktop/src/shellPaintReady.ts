@@ -17,15 +17,10 @@ export function editorReadyForCapture(minChars = 80): boolean {
     return false;
   }
   const monacoRoot = host.querySelector(".monaco-editor") as HTMLElement | null;
-  if (!monacoRoot) {
+  if (!monacoRoot || monacoRoot.getBoundingClientRect().width <= 0) {
     return false;
   }
-  const hostH = host.clientHeight;
-  const editorH = monacoRoot.clientHeight;
-  if (hostH > 80 && editorH < hostH * 0.35) {
-    return false;
-  }
-  const lines = document.querySelector(".monaco-editor .view-lines");
+  const lines = host.querySelector(".view-lines");
   if (!lines) {
     return false;
   }

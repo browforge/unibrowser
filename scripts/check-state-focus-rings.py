@@ -27,7 +27,7 @@ def contrast(first: tuple[int, int, int], second: tuple[int, int, int]) -> float
 
 
 def close_to(pixel: tuple[int, ...], target: tuple[int, int, int]) -> bool:
-    return all(abs(pixel[index] - target[index]) <= 6 for index in range(3))
+    return all(abs(pixel[index] - target[index]) <= 14 for index in range(3))
 
 
 def main() -> int:

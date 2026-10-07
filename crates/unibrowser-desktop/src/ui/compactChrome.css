@@ -137,6 +137,11 @@
   background: #20313e;
 }
 
+.title-tabs .tab:focus-visible {
+  outline: 2px solid var(--ub-focus-on-chrome, #83c7e6);
+  outline-offset: -2px;
+}
+
 .title-tabs .tab .tab-label {
   min-width: 0;
   overflow: hidden;
