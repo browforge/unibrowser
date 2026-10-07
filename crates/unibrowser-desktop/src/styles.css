@@ -6109,6 +6109,11 @@ body.content-fullscreen #unknown-file-banner {
   color: #454b4e;
 }
 
+[data-theme="light"] .mod-result-card--featured .mod-result-reason,
+[data-theme="light"] .mod-result-card--featured .mod-result-meta {
+  color: #454b4e;
+}
+
 [data-theme="light"] .mod-portal-network-status[data-state="off"],
 [data-theme="light"] .mod-portal-search-status {
   color: #454b4e;

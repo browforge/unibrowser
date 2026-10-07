@@ -113,13 +113,6 @@ export const SHELL_DENSITY_CONTRAST_TARGETS: Array<{
     minRatio: 4.5,
     when: "mod-portal",
   },
-  {
-    id: "mod-catalog-badge",
-    selector: ".mod-portal-catalog .mod-card-badge",
-    minRatio: 4.5,
-    when: "mod-portal",
-    required: false,
-  },
 ];
 
 export function sampleContrastForSelector(
@@ -305,8 +298,8 @@ export const SHELL_DENSITY_TOKEN_PAIRS: Array<{
   },
   {
     theme: "light",
-    id: "mod-catalog-badge",
-    foreground: "rgb(105, 95, 74)",
+    id: "mod-suggestion-reason",
+    foreground: "rgb(69, 75, 78)",
     background: "rgb(247, 246, 242)",
     minRatio: 4.5,
   },
