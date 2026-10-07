@@ -5661,6 +5661,10 @@ body.content-fullscreen #unknown-file-banner {
   color: var(--ub-concept-chrome-text, #e9edef);
 }
 
+.md-editor-toolbar.hidden {
+  display: none;
+}
+
 .md-editor-toolbar button {
   min-height: 26px;
   padding: 0 0.55rem;
