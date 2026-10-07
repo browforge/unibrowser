@@ -63,7 +63,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -159,7 +159,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",

@@ -335,7 +335,11 @@ Priority is deterministic:
 - `low`: proofing, export, specialist galleries.
 - `custom`: user or mod groups unless promoted by the user.
 
-Within one priority, later groups overflow first. The overflow menu preserves the same family and group order.
+The row is rendered in that declared priority order, retaining family and group
+source order within each priority. At every narrower width, the visible groups
+must be a prefix of the wider row. A width change can only move trailing
+complete groups into overflow; it cannot substitute a smaller later group.
+The overflow menu preserves the remaining declared order.
 
 ### Persistence
 
@@ -633,8 +637,10 @@ The family occupies the same position, but document formatting controls are unsu
 **Runtime (current build):** The complete target control set is present. Highlight,
 page, zoom, and export have providers. Tools without providers remain visible
 and unsupported with a specific reason. The compact row prioritises Highlight,
-Underline, and Strikethrough; lower-priority annotation, navigation, and
-appearance groups remain available in overflow.
+Underline, and Strikethrough as the critical markup group. Selection and
+additional annotation tools are primary. Navigation and appearance are normal.
+History and export are low priority. Narrow rows therefore retain core
+annotation tools before Undo, Redo, or Export PDF.
 
 Families (full target):
 

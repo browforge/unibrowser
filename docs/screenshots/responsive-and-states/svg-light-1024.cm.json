@@ -1,9 +1,9 @@
 {
   "viewportWidth": 1024,
   "viewportHeight": 700,
-  "controlCount": 7,
-  "visibleCount": 7,
-  "contrastOkCount": 7,
+  "controlCount": 6,
+  "visibleCount": 6,
+  "contrastOkCount": 6,
   "contextLabel": "Image",
   "autoContext": "image",
   "pipeline": {
@@ -14,9 +14,9 @@
     "ipcControlCount": 20,
     "frontendGroupCount": 6,
     "frontendResolvedControlCount": 20,
-    "frontendVisibleModelCount": 7,
-    "frontendOverflowModelCount": 13,
-    "groupsWidth": 629
+    "frontendVisibleModelCount": 6,
+    "frontendOverflowModelCount": 14,
+    "groupsWidth": 574
   },
   "controls": [
     {
@@ -63,7 +63,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -160,7 +160,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -257,7 +257,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -354,7 +354,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -451,7 +451,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -548,7 +548,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -598,103 +598,6 @@
         "x": 513,
         "y": 50,
         "width": 49,
-        "height": 19
-      }
-    },
-    {
-      "controlId": "unibrowser.control.export",
-      "label": "Export",
-      "classes": [
-        "ui-command",
-        "unsupported"
-      ],
-      "capabilityState": "unsupported",
-      "enabled": false,
-      "disabledReason": "Export PDF uses printable HTML (text, Markdown, or DOCX preview)",
-      "width": 77,
-      "height": 30,
-      "labelBounds": {
-        "x": 632,
-        "y": 50.5,
-        "width": 40,
-        "height": 18
-      },
-      "labelWidth": 40,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(174, 186, 192)",
-      "labelForeground": "rgb(174, 186, 192)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 7.857114891654249,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-low"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 7.269,
-      "pixelInkCount": 181,
-      "pixelBounds": {
-        "x": 632,
-        "y": 50,
-        "width": 40,
         "height": 19
       }
     }

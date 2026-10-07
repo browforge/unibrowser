@@ -1,9 +1,9 @@
 {
   "viewportWidth": 1024,
   "viewportHeight": 700,
-  "controlCount": 6,
-  "visibleCount": 6,
-  "contrastOkCount": 6,
+  "controlCount": 5,
+  "visibleCount": 5,
+  "contrastOkCount": 5,
   "contextLabel": "CAD / 3D",
   "autoContext": "image",
   "pipeline": {
@@ -14,9 +14,9 @@
     "ipcControlCount": 11,
     "frontendGroupCount": 8,
     "frontendResolvedControlCount": 11,
-    "frontendVisibleModelCount": 6,
-    "frontendOverflowModelCount": 5,
-    "groupsWidth": 611
+    "frontendVisibleModelCount": 5,
+    "frontendOverflowModelCount": 6,
+    "groupsWidth": 550
   },
   "controls": [
     {
@@ -63,7 +63,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -160,7 +160,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -257,7 +257,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -354,7 +354,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -451,7 +451,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -501,103 +501,6 @@
         "x": 507,
         "y": 50,
         "width": 45,
-        "height": 19
-      }
-    },
-    {
-      "controlId": "unibrowser.control.cad.measure",
-      "label": "Measure",
-      "classes": [
-        "ui-command",
-        "unsupported"
-      ],
-      "capabilityState": "unsupported",
-      "enabled": false,
-      "disabledReason": "Measure needs a full CAD geometry engine.",
-      "width": 88.75,
-      "height": 30,
-      "labelBounds": {
-        "x": 621.75,
-        "y": 50.5,
-        "width": 51.75,
-        "height": 18
-      },
-      "labelWidth": 51.75,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(174, 186, 192)",
-      "labelForeground": "rgb(174, 186, 192)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 7.857114891654249,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 7.417,
-      "pixelInkCount": 246,
-      "pixelBounds": {
-        "x": 621,
-        "y": 50,
-        "width": 53,
         "height": 19
       }
     }

@@ -1,9 +1,9 @@
 {
   "viewportWidth": 1024,
   "viewportHeight": 700,
-  "controlCount": 6,
-  "visibleCount": 6,
-  "contrastOkCount": 6,
+  "controlCount": 4,
+  "visibleCount": 4,
+  "contrastOkCount": 4,
   "contextLabel": "Project",
   "autoContext": "browse",
   "pipeline": {
@@ -14,9 +14,9 @@
     "ipcControlCount": 11,
     "frontendGroupCount": 5,
     "frontendResolvedControlCount": 11,
-    "frontendVisibleModelCount": 6,
-    "frontendOverflowModelCount": 5,
-    "groupsWidth": 629
+    "frontendVisibleModelCount": 4,
+    "frontendOverflowModelCount": 7,
+    "groupsWidth": 519
   },
   "controls": [
     {
@@ -63,7 +63,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -160,7 +160,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -214,8 +214,8 @@
       }
     },
     {
-      "controlId": "unibrowser.control.project.snap",
-      "label": "Snap",
+      "controlId": "unibrowser.control.project.split",
+      "label": "Split",
       "classes": [
         "ui-command",
         "cm-cap-supported"
@@ -223,15 +223,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 67,
+      "width": 63,
       "height": 30,
       "labelBounds": {
         "x": 340.75,
         "y": 50.5,
-        "width": 30,
+        "width": 26,
         "height": 18
       },
-      "labelWidth": 30,
+      "labelWidth": 26,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -257,201 +257,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 12.876,
-      "pixelInkCount": 155,
-      "pixelBounds": {
-        "x": 340,
-        "y": 50,
-        "width": 31,
-        "height": 19
-      }
-    },
-    {
-      "controlId": "unibrowser.control.project.marker",
-      "label": "Marker",
-      "classes": [
-        "ui-command",
-        "cm-cap-supported"
-      ],
-      "capabilityState": "supported",
-      "enabled": true,
-      "disabledReason": null,
-      "width": 80,
-      "height": 30,
-      "labelBounds": {
-        "x": 408.75,
-        "y": 50.5,
-        "width": 43,
-        "height": 18
-      },
-      "labelWidth": 43,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(233, 237, 239)",
-      "labelForeground": "rgb(233, 237, 239)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 13.231816864242587,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 12.876,
-      "pixelInkCount": 215,
-      "pixelBounds": {
-        "x": 408,
-        "y": 50,
-        "width": 44,
-        "height": 19
-      }
-    },
-    {
-      "controlId": "unibrowser.control.project.zoomTimeline",
-      "label": "Timeline zoom",
-      "classes": [
-        "ui-command",
-        "cm-cap-supported"
-      ],
-      "capabilityState": "supported",
-      "enabled": true,
-      "disabledReason": null,
-      "width": 124,
-      "height": 30,
-      "labelBounds": {
-        "x": 489.75,
-        "y": 50.5,
-        "width": 87,
-        "height": 18
-      },
-      "labelWidth": 87,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(233, 237, 239)",
-      "labelForeground": "rgb(233, 237, 239)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 13.231816864242587,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -496,17 +302,17 @@
         }
       ],
       "pixelContrast": 13.232,
-      "pixelInkCount": 377,
+      "pixelInkCount": 149,
       "pixelBounds": {
-        "x": 489,
+        "x": 340,
         "y": 50,
-        "width": 88,
+        "width": 27,
         "height": 19
       }
     },
     {
-      "controlId": "unibrowser.control.project.export",
-      "label": "Export",
+      "controlId": "unibrowser.control.project.deleteClip",
+      "label": "Delete clip",
       "classes": [
         "ui-command",
         "cm-cap-supported"
@@ -514,15 +320,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 77,
+      "width": 98,
       "height": 30,
       "labelBounds": {
-        "x": 646.75,
+        "x": 404.75,
         "y": 50.5,
-        "width": 40,
+        "width": 61,
         "height": 18
       },
-      "labelWidth": 40,
+      "labelWidth": 61,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -548,7 +354,7 @@
           "id": "",
           "classes": [
             "cm-group",
-            "priority-normal"
+            "priority-primary"
           ],
           "opacity": "1",
           "filter": "none",
@@ -592,12 +398,12 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.876,
-      "pixelInkCount": 190,
+      "pixelContrast": 13.232,
+      "pixelInkCount": 308,
       "pixelBounds": {
-        "x": 646,
+        "x": 404,
         "y": 50,
-        "width": 41,
+        "width": 62,
         "height": 19
       }
     }
