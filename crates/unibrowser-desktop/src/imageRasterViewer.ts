@@ -172,11 +172,15 @@ export async function mountRasterImageViewer(
     if (!sampleCtx || !img.naturalWidth) {
       return;
     }
-    sampleCanvas.width = img.naturalWidth;
-    sampleCanvas.height = img.naturalHeight;
-    sampleCtx.drawImage(img, 0, 0);
-    sampleReady = true;
-    refreshHistogram();
+    try {
+      sampleCanvas.width = img.naturalWidth;
+      sampleCanvas.height = img.naturalHeight;
+      sampleCtx.drawImage(img, 0, 0);
+      sampleReady = true;
+      refreshHistogram();
+    } catch {
+      sampleReady = false;
+    }
   };
 
   let scale = 1;
@@ -335,8 +339,8 @@ export async function mountRasterImageViewer(
   });
 
   const onImageReady = () => {
-    refreshSampleSurface();
     applyFit();
+    refreshSampleSurface();
   };
   img.addEventListener("load", onImageReady);
   img.src = convertFileSrc(path);
