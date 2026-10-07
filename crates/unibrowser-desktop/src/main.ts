@@ -2714,6 +2714,14 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
                 .querySelector<HTMLElement>(`[data-control-id="${proofControl}"]`)
                 ?.focus();
             }
+            if (demoTokens.includes("ui19-focus-visible")) {
+              await new Promise((resolve) => window.setTimeout(resolve, 50));
+              document
+                .querySelector<HTMLElement>(
+                  '[data-control-id="unibrowser.control.find"]',
+                )
+                ?.focus();
+            }
           } catch (err) {
             reportSubsystemError("demo-state", err);
           }
