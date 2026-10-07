@@ -684,6 +684,13 @@ Screenshot:
 
 **Visual-language impact:** Revised. Remove legacy styling that exceeds the radius scale, introduces card nesting, duplicates dividers, or uses non-semantic colour.
 
+Status: Drift 2026-10-07. The active shell passes 11 self-test scenarios on
+three consecutive runs, `npm run build` passes, and `cargo test --workspace`
+passes in normal parallel mode. Superseded workshop shell CSS was removed and
+the final 1280/1600 workshop matrix passes visible integrity checks. The
+inactive legacy project renderer and some old timeline rules remain in source,
+so cleanup is not complete; see `docs/design/ui-20-evidence.md`.
+
 Likely files:
 
 - `src/styles.css`
