@@ -2750,7 +2750,7 @@ body.content-fullscreen::after {
 
 .viewer-note {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--ub-label, var(--ub-text-2, #c9cbc8));
   margin-top: 0.5rem;
 }
 
