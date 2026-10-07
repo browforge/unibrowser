@@ -1,14 +1,19 @@
 //! Native and WASM mod runtime registration (CMD-08).
 
 use std::collections::HashMap;
+use std::sync::mpsc;
+use std::thread;
 
 use unibrowser_mod_api::{
-    CapabilityState, ControlRuntimeSnapshot, ModPermissions, ModRuntimeDescriptor,
-    ResolvedControl, RuntimeCapabilityKind, SelectionState, MOD_RUNTIME_API_V1,
+    CapabilityState, ControlRuntimeSnapshot, HostEditRequest, ModPermissions,
+    ModRuntimeDescriptor, ResolvedControl, RuntimeCallbackError, RuntimeCapabilityKind,
+    SelectionState, MOD_CAPABILITY_TIMEOUT, MOD_EXECUTION_TIMEOUT, MOD_RUNTIME_API_V1,
 };
 
-pub type NativeSnapshotFn = fn(control_id: &str) -> Option<ControlRuntimeSnapshot>;
-pub type NativeExecuteFn = fn(command_id: &str) -> Result<String, String>;
+pub type NativeSnapshotFn =
+    fn(control_id: &str) -> Result<Option<ControlRuntimeSnapshot>, RuntimeCallbackError>;
+pub type NativeExecuteFn =
+    fn(command_id: &str) -> Result<HostEditRequest, RuntimeCallbackError>;
 
 #[derive(Clone)]
 pub struct NativeModRuntime {
@@ -45,13 +50,41 @@ impl ModRuntimeRegistry {
             .insert(runtime.descriptor.provider_id.clone(), runtime);
     }
 
-    pub fn snapshot_for(&self, provider_id: &str, control_id: &str) -> Option<ControlRuntimeSnapshot> {
-        self.natives
+    pub fn snapshot_for(
+        &self,
+        provider_id: &str,
+        control_id: &str,
+    ) -> Result<Option<ControlRuntimeSnapshot>, RuntimeCallbackError> {
+        let runtime = self
+            .natives
             .get(provider_id)
-            .and_then(|n| (n.snapshot)(control_id))
+            .ok_or_else(|| RuntimeCallbackError::UnknownProvider(provider_id.into()))?;
+        let callback = runtime.snapshot;
+        let control_id_owned = control_id.to_string();
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let _ = tx.send(callback(&control_id_owned));
+        });
+        let snapshot = rx
+            .recv_timeout(MOD_CAPABILITY_TIMEOUT)
+            .map_err(|_| RuntimeCallbackError::TimedOut)??;
+        if let Some(snapshot) = &snapshot {
+            validate_snapshot(snapshot, control_id)?;
+        }
+        Ok(snapshot)
     }
 
-    pub fn apply_to_control(&self, control: &mut ResolvedControl) {
+    pub fn apply_to_control(
+        &self,
+        control: &mut ResolvedControl,
+    ) -> Result<(), RuntimeCallbackError> {
+        if control
+            .command_ids
+            .iter()
+            .any(|id| crate::command_system::save_commands_always_supported(id))
+        {
+            return Ok(());
+        }
         let provider_id = control
             .provider_id
             .as_deref()
@@ -60,51 +93,55 @@ impl ModRuntimeRegistry {
                 _ => None,
             });
         let Some(provider_id) = provider_id else {
-            return;
+            return Ok(());
         };
-        let Some(snap) = self.snapshot_for(provider_id, &control.control_id) else {
-            return;
+        let runtime = self
+            .natives
+            .get(provider_id)
+            .ok_or_else(|| RuntimeCallbackError::UnknownProvider(provider_id.into()))?;
+        let Some(snap) = self.snapshot_for(provider_id, &control.control_id)? else {
+            return Ok(());
         };
         control.capability = runtime_kind_to_capability(provider_id, &snap);
-        control.selection = parse_runtime_selection(&snap.selection, snap.mixed);
-        if snap.value.is_some() {
-            control.value = snap.value.clone();
+        if runtime
+            .descriptor
+            .permissions
+            .has(ModPermissions::READ_SELECTION)
+        {
+            control.selection = parse_runtime_selection(&snap.selection, snap.mixed);
+            if snap.value.is_some() {
+                control.value = snap.value.clone();
+            }
         }
+        Ok(())
     }
 
-    pub fn execute(&self, provider_id: &str, command_id: &str) -> Result<String, String> {
+    pub fn execute(
+        &self,
+        provider_id: &str,
+        command_id: &str,
+    ) -> Result<HostEditRequest, RuntimeCallbackError> {
         let native = self
             .natives
             .get(provider_id)
-            .ok_or_else(|| format!("unknown runtime provider {}", provider_id))?;
+            .ok_or_else(|| RuntimeCallbackError::UnknownProvider(provider_id.into()))?;
         if !native.descriptor.permissions.has(ModPermissions::EDIT_DOCUMENT) {
-            return Err("mod lacks EDIT_DOCUMENT permission".into());
+            return Err(RuntimeCallbackError::PermissionDenied(
+                "mod lacks EDIT_DOCUMENT permission".into(),
+            ));
         }
         let run = native
             .execute
-            .ok_or_else(|| "mod runtime has no execute callback".to_string())?;
-        run(command_id)
-    }
-
-    pub fn wasm_mirror_snapshot(
-        mod_name: &str,
-        native: &NativeModRuntime,
-        control_id: &str,
-    ) -> Option<ControlRuntimeSnapshot> {
-        let mirror_id = format!("{}::wasm-mirror", mod_name);
-        if native.descriptor.provider_id == mirror_id {
-            return None;
-        }
-        (native.snapshot)(control_id).map(|snap| ControlRuntimeSnapshot {
-            api_version: snap.api_version,
-            control_id: snap.control_id,
-            capability: snap.capability,
-            reason: snap.reason,
-            emulation_note: snap.emulation_note,
-            selection: snap.selection,
-            value: snap.value,
-            mixed: snap.mixed,
-        })
+            .ok_or_else(|| RuntimeCallbackError::ProviderFailed(
+                "mod runtime has no execute callback".into(),
+            ))?;
+        let command = command_id.to_string();
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let _ = tx.send(run(&command));
+        });
+        rx.recv_timeout(MOD_EXECUTION_TIMEOUT)
+            .map_err(|_| RuntimeCallbackError::TimedOut)?
     }
 
     pub fn wasm_mirror_descriptor(mod_name: &str) -> ModRuntimeDescriptor {
@@ -115,6 +152,25 @@ impl ModRuntimeRegistry {
             permissions: ModPermissions(ModPermissions::PROVIDE_CAPABILITY),
         }
     }
+}
+
+fn validate_snapshot(
+    snapshot: &ControlRuntimeSnapshot,
+    requested_control_id: &str,
+) -> Result<(), RuntimeCallbackError> {
+    if snapshot.api_version != MOD_RUNTIME_API_V1 {
+        return Err(RuntimeCallbackError::InvalidResponse(format!(
+            "snapshot api {} != host {}",
+            snapshot.api_version, MOD_RUNTIME_API_V1
+        )));
+    }
+    if snapshot.control_id != requested_control_id {
+        return Err(RuntimeCallbackError::InvalidResponse(format!(
+            "snapshot control {} != requested {}",
+            snapshot.control_id, requested_control_id
+        )));
+    }
+    Ok(())
 }
 
 fn runtime_kind_to_capability(
@@ -163,8 +219,10 @@ fn parse_runtime_selection(raw: &str, mixed: bool) -> SelectionState {
 mod tests {
     use super::*;
 
-    fn stub_snapshot(control_id: &str) -> Option<ControlRuntimeSnapshot> {
-        Some(ControlRuntimeSnapshot {
+    fn stub_snapshot(
+        control_id: &str,
+    ) -> Result<Option<ControlRuntimeSnapshot>, RuntimeCallbackError> {
+        Ok(Some(ControlRuntimeSnapshot {
             api_version: MOD_RUNTIME_API_V1,
             control_id: control_id.into(),
             capability: RuntimeCapabilityKind::Emulated,
@@ -173,26 +231,7 @@ mod tests {
             selection: "off".into(),
             value: None,
             mixed: false,
-        })
-    }
-
-    #[test]
-    fn wasm_mirror_matches_native_snapshot() {
-        let mut reg = ModRuntimeRegistry::default();
-        let native = NativeModRuntime {
-            descriptor: ModRuntimeDescriptor {
-                mod_name: "cmd-proving".into(),
-                provider_id: "cmd-proving::native".into(),
-                api_version: MOD_RUNTIME_API_V1,
-                permissions: ModPermissions(ModPermissions::PROVIDE_CAPABILITY),
-            },
-            snapshot: stub_snapshot,
-            execute: None,
-        };
-        reg.register_native(native.clone());
-        let a = reg.snapshot_for("cmd-proving::native", "x").expect("snap");
-        let b = ModRuntimeRegistry::wasm_mirror_snapshot("cmd-proving", &native, "x").expect("mirror");
-        assert_eq!(a, b);
+        }))
     }
 
     #[test]
@@ -208,6 +247,40 @@ mod tests {
             snapshot: stub_snapshot,
             execute: None,
         });
-        assert!(reg.snapshot_for("test-mod::native", "x").is_some());
+        assert!(reg.snapshot_for("test-mod::native", "x").unwrap().is_some());
+    }
+
+    #[test]
+    fn runtime_cannot_override_save_control() {
+        let mut reg = ModRuntimeRegistry::default();
+        reg.register_native(NativeModRuntime {
+            descriptor: ModRuntimeDescriptor {
+                mod_name: "test-mod".into(),
+                provider_id: "test-mod::native".into(),
+                api_version: MOD_RUNTIME_API_V1,
+                permissions: ModPermissions(ModPermissions::PROVIDE_CAPABILITY),
+            },
+            snapshot: stub_snapshot,
+            execute: None,
+        });
+        let mut control = ResolvedControl {
+            control_id: "test.save".into(),
+            control_type: unibrowser_mod_api::ControlType::Button,
+            command_ids: vec![unibrowser_mod_api::commands::TEXT_SAVE.into()],
+            capability: CapabilityState::Supported,
+            selection: SelectionState::Off,
+            value: None,
+            label: "Save".into(),
+            short_label: None,
+            icon: "save".into(),
+            shortcut: None,
+            density_variant: unibrowser_mod_api::DensityVariant::Compact,
+            provider_id: Some("test-mod::native".into()),
+            context_revision: 1,
+            group_id: "test".into(),
+            family_id: "test".into(),
+        };
+        reg.apply_to_control(&mut control).expect("save bypass");
+        assert_eq!(control.capability, CapabilityState::Supported);
     }
 }

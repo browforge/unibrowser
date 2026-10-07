@@ -81,6 +81,30 @@ impl UndoStacks {
     }
 }
 
+pub fn apply_wrap_transaction(
+    stacks: &mut UndoStacks,
+    path: &str,
+    content: &str,
+    start: usize,
+    end: usize,
+    before: &str,
+    after: &str,
+) -> Result<(String, usize, usize), String> {
+    let start = start.min(content.len());
+    let end = end.min(content.len()).max(start);
+    if !content.is_char_boundary(start) || !content.is_char_boundary(end) {
+        return Err("Selection is not on a text boundary".into());
+    }
+    let mut next = String::with_capacity(content.len() + before.len() + after.len());
+    next.push_str(&content[..start]);
+    next.push_str(before);
+    next.push_str(&content[start..end]);
+    next.push_str(after);
+    next.push_str(&content[end..]);
+    stacks.record_change(path, content.to_string(), &next);
+    Ok((next, start + before.len(), end + before.len()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,5 +130,17 @@ mod tests {
         assert!(stacks.can_redo("/a"));
         let r = stacks.redo("/a", "two").expect("redo");
         assert_eq!(r, "three");
+    }
+
+    #[test]
+    fn host_wrap_transaction_is_one_undo_step() {
+        let mut stacks = UndoStacks::default();
+        let (next, start, end) =
+            apply_wrap_transaction(&mut stacks, "/note.md", "H2O", 1, 2, "<sub>", "</sub>")
+                .expect("wrap");
+        assert_eq!(next, "H<sub>2</sub>O");
+        assert_eq!((start, end), (6, 7));
+        assert_eq!(stacks.undo("/note.md", &next).as_deref(), Some("H2O"));
+        assert!(!stacks.can_undo("/note.md"));
     }
 }

@@ -9,6 +9,14 @@
     "toy-markdown": ">=0.1.0"
   },
   "description": "Command system proving mod (CMD-08/09)",
+  "capabilities": [
+    "commands.capability.provide",
+    "document.read.selection",
+    "document.edit",
+    "ui.command_manager.contribute",
+    "ui.toolbar.contribute",
+    "ui.toolbar.detach"
+  ],
   "contributes": {
     "commands": [
       {

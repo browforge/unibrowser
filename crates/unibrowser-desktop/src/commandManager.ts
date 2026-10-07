@@ -80,6 +80,8 @@ export interface FloatingBarDto {
   y: number;
   coord_space?: string;
   presentation?: string;
+  monitor_name?: string | null;
+  monitor_edid?: string | null;
   commands: UiCommandDto[];
 }
 
@@ -90,6 +92,7 @@ export interface CommandManagerDto {
   context_pinned: boolean;
   tabs: ManagerTabDto[];
   floating_bars: FloatingBarDto[];
+  diagnostics: string[];
 }
 
 export interface CommandManagerFile {
@@ -109,6 +112,8 @@ export interface CommandManagerFile {
     y: number;
     coord_space?: string;
     presentation?: string;
+    monitor_name?: string | null;
+    monitor_edid?: string | null;
     commands: { command_id: string }[];
   }[];
 }
@@ -369,6 +374,8 @@ function snapshotToFile(snapshot: CommandManagerDto, activeTabCommandIds?: strin
       y: bar.y,
       coord_space: bar.coord_space ?? "viewport",
       presentation: bar.presentation ?? "in_window",
+      monitor_name: bar.monitor_name ?? null,
+      monitor_edid: bar.monitor_edid ?? null,
       commands: bar.commands.map((c) => ({ command_id: c.command_id })),
     })),
   };
@@ -516,6 +523,13 @@ export const commandManager = {
     contextEl.textContent = contextText;
     document.body.dataset.cmAutoContext = snapshot.auto_context;
     contextEl.setAttribute("aria-label", `${contextText} commands`);
+    const diagnosticText = snapshot.diagnostics.join("\n");
+    contextEl.title = diagnosticText || `${contextText} commands`;
+    if (diagnosticText) {
+      contextEl.setAttribute("aria-description", diagnosticText);
+    } else {
+      contextEl.removeAttribute("aria-description");
+    }
     if (!contextEl.dataset.bound) {
       contextEl.dataset.bound = "1";
       contextEl.addEventListener("click", (e) => {

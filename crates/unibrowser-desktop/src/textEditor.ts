@@ -459,34 +459,10 @@ export function runTextFind(query: string, forward: boolean) {
   editor.revealRangeInCenter(match.range);
 }
 
-export async function applyMarkdownSubscriptEmulation(): Promise<boolean> {
-  if (!editor) {
-    return false;
-  }
-  const model = editor.getModel();
-  const sel = editor.getSelection();
-  if (!model || !sel) {
-    return false;
-  }
-  const text = model.getValueInRange(sel);
-  const wrapped = text.length > 0 ? `<sub>${text}</sub>` : "<sub></sub>";
-  editor.executeEdits("markdown-subscript-emulate", [
-    {
-      range: sel,
-      text: wrapped,
-      forceMoveMarkers: true,
-    },
-  ]);
-  await pushToHost();
-  return true;
-}
-
 export const textEditor = {
   isActive(): boolean {
     return editor !== null && loadedPath !== null;
   },
-
-  applyMarkdownSubscriptEmulation,
 
   async flush(): Promise<void> {
     if (syncTimer) {

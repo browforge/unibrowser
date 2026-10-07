@@ -4,6 +4,7 @@ import { createLucideIcon, type LucideName } from "./lucideIcon";
 import { getEditorFontSizePt } from "../textEditor";
 import type { UiCommandDto } from "../commandManager";
 import { announceCm } from "./cmA11y";
+import { controlA11yState } from "./controlA11y";
 export { partitionGroupsByAvailableWidth } from "./commandOverflow";
 
 export type CapabilityDto =
@@ -125,12 +126,12 @@ export function renderResolvedControl(
 ): HTMLElement {
   const legacy = controlToLegacyCommand(control);
   const patched = patchPictureInPictureCommand(legacy);
-  const actionable = capabilityActionable(control.capability);
+  const a11y = controlA11yState(control);
+  const actionable = a11y.actionable;
   const emulated = control.capability.state === "emulated";
   const locked = control.capability.state === "locked";
-  const mixed =
-    control.selection === "mixed" || control.selection === "mixed_value";
-  const a11yReason = capabilityReason(control.capability);
+  const mixed = a11y.mixed;
+  const a11yReason = a11y.reason;
 
   if (control.control_type === "value_stepper") {
     return renderValueStepper(control, patched, onRun, chordByCommand, actionable, emulated);
@@ -151,19 +152,16 @@ export function renderResolvedControl(
     mark.title = capabilityReason(control.capability) ?? "";
     btn.appendChild(mark);
   }
-  btn.disabled = !actionable;
   btn.setAttribute("role", control.control_type === "toggle" ? "switch" : "button");
   btn.setAttribute("aria-label", patched.title);
+  if (a11y.ariaDisabled) {
+    btn.setAttribute("aria-disabled", a11y.ariaDisabled);
+  }
   if (a11yReason) {
     btn.setAttribute("aria-description", a11yReason);
   }
-  if (mixed) {
-    btn.setAttribute("aria-checked", "mixed");
-  } else if (control.control_type === "toggle") {
-    btn.setAttribute(
-      "aria-checked",
-      control.selection === "on" ? "true" : "false",
-    );
+  if (a11y.ariaChecked) {
+    btn.setAttribute("aria-checked", a11y.ariaChecked);
   }
   const chord = chordByCommand.get(patched.command_id) ?? null;
   if (chord) {
@@ -197,7 +195,7 @@ export function renderResolvedControl(
   } else if (a11yReason) {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
-      announceCm(`${patched.title}, unavailable, ${a11yReason}`);
+      announceCm(a11y.announcement);
     });
   }
   if (draggable) {
@@ -244,9 +242,17 @@ function renderValueStepper(
     chord: chordByCommand.get(patched.command_id) ?? null,
     enabled: actionable,
   });
-  split.disabled = !actionable;
   if (!actionable) {
     split.classList.add("disabled");
+    split.setAttribute("aria-disabled", "true");
+    const reason = capabilityReason(control.capability);
+    if (reason) {
+      split.setAttribute("aria-description", reason);
+      split.addEventListener("click", (e) => {
+        e.preventDefault();
+        announceCm(`${control.label}, unavailable, ${reason}`);
+      });
+    }
   } else {
     split.addEventListener("click", (e) => {
       if ((e.target as HTMLElement).classList.contains("split-caret")) {

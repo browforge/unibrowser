@@ -23,7 +23,8 @@ pub use manifest::ModManifest;
 pub use projections::{RasterProjection, RasterProjectionSource, TextProjection};
 pub use navigation::{BrowserLocation, DownloadDisposition, TabId};
 pub use runtime::{
-    ControlRuntimeSnapshot, ModPermissions, ModRuntimeDescriptor, RuntimeCapabilityKind,
+    ControlRuntimeSnapshot, HostEditRequest, ModPermissions, ModRuntimeDescriptor,
+    RuntimeCallbackError, RuntimeCapabilityKind, MOD_CAPABILITY_TIMEOUT, MOD_EXECUTION_TIMEOUT,
     MOD_RUNTIME_API_V1,
 };
 pub use types::*;

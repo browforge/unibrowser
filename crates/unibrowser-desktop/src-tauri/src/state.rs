@@ -106,16 +106,7 @@ fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
 
 impl AppState {
     pub fn mod_contributions(&self) -> Vec<LoadedModContribution> {
-        self._mod_host
-            .mods
-            .iter()
-            .filter_map(|loaded| {
-                loaded.manifest.contributes.clone().map(|contributes| LoadedModContribution {
-                    mod_name: loaded.manifest.name.clone(),
-                    contributes,
-                })
-            })
-            .collect()
+        permitted_mod_contributions(&self._mod_host)
     }
 
     fn merge_mod_floating_toolbars(cm: &mut CommandManagerState, contributions: &[LoadedModContribution]) {
@@ -128,6 +119,37 @@ impl AppState {
             cm.floating_bars.push(bar);
         }
     }
+}
+
+fn permitted_mod_contributions(host: &ModHost) -> Vec<LoadedModContribution> {
+    host.mods
+        .iter()
+            .filter_map(|loaded| {
+                loaded.manifest.contributes.clone().map(|mut contributes| {
+                    let grants = &loaded.manifest.capabilities;
+                    if !grants.iter().any(|g| g == "ui.command_manager.contribute") {
+                        contributes.controls.clear();
+                        contributes.groups.clear();
+                        contributes.families.clear();
+                        contributes.tabs.clear();
+                    }
+                    if !grants.iter().any(|g| g == "commands.capability.provide") {
+                        contributes.capability_providers.clear();
+                    }
+                    if !grants.iter().any(|g| g == "ui.toolbar.contribute") {
+                        contributes.toolbars.clear();
+                    } else if !grants.iter().any(|g| g == "ui.toolbar.detach") {
+                        for toolbar in &mut contributes.toolbars {
+                            toolbar.detachable = false;
+                        }
+                    }
+                    LoadedModContribution {
+                        mod_name: loaded.manifest.name.clone(),
+                        contributes,
+                    }
+                })
+            })
+        .collect()
 }
 
 pub fn vsix_keybinding_pairs() -> Vec<(String, String)> {
@@ -260,12 +282,10 @@ impl AppState {
             unibrowser_mod_api::CommandContext::Start,
             toolbars_file_path().as_deref(),
         );
-        AppState::merge_mod_floating_toolbars(&mut cm_state, &built.mod_host.mods.iter().filter_map(|loaded| {
-            loaded.manifest.contributes.clone().map(|contributes| LoadedModContribution {
-                mod_name: loaded.manifest.name.clone(),
-                contributes,
-            })
-        }).collect::<Vec<_>>());
+        AppState::merge_mod_floating_toolbars(
+            &mut cm_state,
+            &permitted_mod_contributions(&built.mod_host),
+        );
         let command_manager = Mutex::new(cm_state);
 
         Self {

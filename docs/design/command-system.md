@@ -448,6 +448,18 @@ Permissions align with the table above: `PROVIDE_CAPABILITY`, `READ_SELECTION`, 
 
 The proving mod `cmd-proving` registers `cmd-proving::native`, contributes `cmd-proving.control.chip` after core Subscript, and ships detached toolbar `cmd-proving.detached-markdown`.
 
+### Review 2026-10-07
+
+Review target: `6c49cf9`.
+
+- **Read-only capability path:** the v1 callback receives only a control ID and returns data. It has no document, DOM, window, or Save handle. Native T1 code is trusted process code, so Rust types cannot prevent unrelated global side effects; the host now bounds its response to 50 ms, validates API version and control identity, ignores selection/value without `READ_SELECTION`, and degrades callback failure to Unsupported. Save controls bypass runtime overlays.
+- **Execution permission and edits:** `EDIT_DOCUMENT` is checked before callback execution. The callback returns a typed `HostEditRequest`, not executable UI code or an arbitrary action string. Markdown Subscript is applied to the host text backend through one `UndoStacks` transaction, then the frontend reloads the document. The direct Monaco mutation from `6c49cf9` was removed.
+- **Content and Save safety:** capability callbacks cannot request surfaces. Command Manager and toolbar contributions are filtered by manifest grants. Detached windows are host-created and screen-clamped. Capability or contribution diagnostics are advisory and never gate Save.
+- **Timeout and error model:** v1 has typed `RuntimeCallbackError`, a 50 ms capability deadline, a 250 ms execution deadline, and WASM fuel metering. A timed-out native T1 thread cannot be safely killed in-process; it is abandoned and the provider degrades. A future out-of-process native host can enforce cancellation.
+- **Version shape:** callback snapshots and edit requests carry stable, serialisable names under `MOD_RUNTIME_API_V1`. Unknown API versions and mismatched control IDs are rejected. V2 should replace the permission bitfield with a forward-compatible named set and add cancellation/context revision to execution requests.
+- **Native/WASM parity:** the former “mirror” test was hollow because it copied a native snapshot through a helper. It was removed. `real_wasm_snapshot_matches_native_proving_runtime` now builds a real `wasm32-unknown-unknown` guest, loads it through wasmi host imports, captures the guest-produced JSON snapshot, and compares it with the native proving provider.
+- **Keyboard and ARIA:** `6c49cf9` checked ordinary ArrowDown before Alt+Down, making Alt+Down unreachable. Unsupported native-disabled buttons were also absent from roving focus and could not announce reasons. Unsupported controls now use `aria-disabled` while remaining focusable; activation announces the reason without invoking the command. Emulated controls retain the subtle `.cm-emulation-mark` and described approximation. Automated checks cover emulated, unsupported, and mixed states.
+
 ### Contributions
 
 Mods may:

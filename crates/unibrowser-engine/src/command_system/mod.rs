@@ -11,8 +11,8 @@ mod tests;
 
 pub use context::{ResolutionContext, command_context_display_label, infer_work_context};
 pub use contribution_merge::{
-    ContributionMergeDiagnostics, LoadedModContribution, merge_mod_contributions,
-    merge_toolbar_layouts,
+    ContributionMergeDiagnostics, LoadedModContribution, diagnose_contributions,
+    merge_mod_contributions, merge_toolbar_layouts,
 };
 pub use families::core_tab_layout;
 pub use layout::{LayoutStore, migrate_toolbars_json};

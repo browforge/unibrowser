@@ -3,6 +3,7 @@ import { setAiDemoComposerSeed, setAiPanelVisible } from "./aiAssistantPanel";
 import { applyThemeFromDemoState, applyThemeOverride } from "./theme";
 import { t } from "./i18n";
 import { showActionToast } from "./toast";
+import { isToolbarOnlyWindow } from "./toolbarOnly";
 
 /** Hidden preset for docs screenshots (`UNIBROWSER_DEMO_STATE`, comma-separated). */
 export async function applyDemoState(raw: string) {
@@ -25,6 +26,14 @@ export async function applyDemoState(raw: string) {
         await invoke("select_command_manager_tab", { tabId: "text" });
         await invoke("pin_command_manager_context");
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
+      }
+      case "cmd-proving-detached": {
+        if (!isToolbarOnlyWindow()) {
+          await invoke("detach_floating_toolbar_window", {
+            barId: "cmd-proving.detached-markdown",
+          });
+        }
         break;
       }
       case "problems":

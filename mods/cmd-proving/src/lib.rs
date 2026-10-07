@@ -5,8 +5,9 @@ use unibrowser_engine::{
     document::DocumentSession,
 };
 use unibrowser_mod_api::{
-    CommandMeta, ControlRuntimeSnapshot, Enablement, ModPermissions, ModRuntimeDescriptor,
-    RuntimeCapabilityKind, commands, control_ids, MOD_RUNTIME_API_V1,
+    CommandMeta, ControlRuntimeSnapshot, Enablement, HostEditRequest, ModPermissions,
+    ModRuntimeDescriptor, RuntimeCallbackError, RuntimeCapabilityKind, commands, control_ids,
+    MOD_RUNTIME_API_V1,
 };
 
 pub const BACKEND_ID: &str = "cmd-proving";
@@ -35,9 +36,11 @@ fn exec_chip(_doc: &mut DocumentSession) -> Result<String, String> {
     Ok("markdown-subscript-emulate".into())
 }
 
-fn runtime_snapshot(control_id: &str) -> Option<ControlRuntimeSnapshot> {
+fn runtime_snapshot(
+    control_id: &str,
+) -> Result<Option<ControlRuntimeSnapshot>, RuntimeCallbackError> {
     if control_id == control_ids::TEXT_SUBSCRIPT {
-        return Some(ControlRuntimeSnapshot {
+        return Ok(Some(ControlRuntimeSnapshot {
             api_version: MOD_RUNTIME_API_V1,
             control_id: control_id.into(),
             capability: RuntimeCapabilityKind::Emulated,
@@ -48,10 +51,10 @@ fn runtime_snapshot(control_id: &str) -> Option<ControlRuntimeSnapshot> {
             selection: "off".into(),
             value: None,
             mixed: false,
-        });
+        }));
     }
     if control_id == "cmd-proving.control.chip" {
-        return Some(ControlRuntimeSnapshot {
+        return Ok(Some(ControlRuntimeSnapshot {
             api_version: MOD_RUNTIME_API_V1,
             control_id: control_id.into(),
             capability: RuntimeCapabilityKind::Supported,
@@ -60,16 +63,22 @@ fn runtime_snapshot(control_id: &str) -> Option<ControlRuntimeSnapshot> {
             selection: "off".into(),
             value: None,
             mixed: false,
-        });
+        }));
     }
-    None
+    Ok(None)
 }
 
-fn runtime_execute(command_id: &str) -> Result<String, String> {
+fn runtime_execute(command_id: &str) -> Result<HostEditRequest, RuntimeCallbackError> {
     if command_id == commands::TEXT_SUBSCRIPT || command_id == SUBSCRIPT_APPLY {
-        return Ok("markdown-subscript-emulate".into());
+        return Ok(HostEditRequest::WrapSelection {
+            before: "<sub>".into(),
+            after: "</sub>".into(),
+        });
     }
-    Err(format!("cmd-proving runtime cannot execute {}", command_id))
+    Err(RuntimeCallbackError::ProviderFailed(format!(
+        "cmd-proving runtime cannot execute {}",
+        command_id
+    )))
 }
 
 pub fn register_runtime(registry: &mut ModRuntimeRegistry) {

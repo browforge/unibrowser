@@ -138,6 +138,8 @@ pub struct FloatingBarDto {
     pub y: f64,
     pub coord_space: String,
     pub presentation: String,
+    pub monitor_name: Option<String>,
+    pub monitor_edid: Option<String>,
     pub commands: Vec<UiCommandDto>,
 }
 
@@ -149,6 +151,7 @@ pub struct CommandManagerDto {
     pub context_pinned: bool,
     pub tabs: Vec<ManagerTabDto>,
     pub floating_bars: Vec<FloatingBarDto>,
+    pub diagnostics: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -3099,6 +3102,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
                     ToolbarPresentation::DetachedWindow => "detached_window",
                 }
                 .into(),
+                monitor_name: bar.monitor_name.clone(),
+                monitor_edid: bar.monitor_edid.clone(),
                 commands,
             }
         })
@@ -3138,6 +3143,20 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         label_path_ref,
     )
     .to_string();
+    let mut diagnostics =
+        unibrowser_engine::diagnose_contributions(&mod_contributions).messages;
+    diagnostics.extend(state._mod_host.resolve_notes.iter().cloned());
+    diagnostics.extend(
+        state
+            .keybindings
+            .lock()
+            .map_err(|e| e.to_string())?
+            .diagnostics()
+            .iter()
+            .cloned(),
+    );
+    diagnostics.sort();
+    diagnostics.dedup();
     Ok(CommandManagerDto {
         auto_context,
         selected_tab: selected,
@@ -3145,6 +3164,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         context_pinned: cm.is_context_pinned(),
         tabs: tab_dtos,
         floating_bars,
+        diagnostics,
     })
 }
 
@@ -3256,6 +3276,17 @@ pub fn detach_floating_toolbar_window(
                 bar.y = 96.0;
             }
         }
+        let (monitor_name, monitor_edid, x, y) = crate::toolbar_windows::recover_bar_geometry(
+            &app,
+            bar.monitor_name.as_deref(),
+            bar.monitor_edid.as_deref(),
+            bar.x,
+            bar.y,
+        );
+        bar.monitor_name = Some(monitor_name);
+        bar.monitor_edid = monitor_edid;
+        bar.x = x;
+        bar.y = y;
         (bar.x, bar.y)
     };
     let file = {
@@ -3827,6 +3858,37 @@ fn execute_command_impl(
         return Err("command needs an open document".into());
     }
     let doc = tab.document.as_mut().unwrap();
+    if command_id == unibrowser_mod_api::commands::TEXT_SUBSCRIPT
+        || command_id == cmd_proving::SUBSCRIPT_APPLY
+    {
+        let request = state
+            .mod_runtime
+            .lock()
+            .map_err(|e| e.to_string())?
+            .execute(cmd_proving::PROVIDER_ID, &command_id)
+            .map_err(|e| e.to_string())?;
+        let unibrowser_mod_api::HostEditRequest::WrapSelection { before, after } = request;
+        let backend = base_text::try_text_backend(&mut *doc.backend)
+            .ok_or("Subscript emulation needs a host text transaction")?;
+        let old = backend.content.clone();
+        let path = backend.path.clone();
+        let mut stacks = _sess_tabs
+            .undo_stacks
+            .lock()
+            .map_err(|e| e.to_string())?;
+        let (next, selection_start, selection_end) = crate::undo_stack::apply_wrap_transaction(
+            &mut stacks,
+            &path,
+            &old,
+            backend.selection_start,
+            backend.selection_end,
+            &before,
+            &after,
+        )?;
+        backend.set_content(next);
+        backend.set_selection_range(selection_start, selection_end);
+        return Ok("document-edited".into());
+    }
     if doc.backend.backend_id() == base_web::BACKEND_ID
         && (command_id == FONT_INCREASE_ID || command_id == FONT_DECREASE_ID)
     {

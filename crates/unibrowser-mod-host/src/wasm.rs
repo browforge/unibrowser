@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{OnceLock, RwLock};
 
 use unibrowser_engine::{CommandRegistry, HandlerRegistration};
-use unibrowser_mod_api::{CommandMeta, Enablement, ModManifest};
+use unibrowser_mod_api::{CommandMeta, ControlRuntimeSnapshot, Enablement, ModManifest};
 
 use crate::api_registry::ModApiRegistry;
 use crate::ModHostError;
@@ -102,11 +102,14 @@ pub fn register_proving_hello_stub(registry: &mut CommandRegistry) -> Option<Str
 #[cfg(feature = "wasm-mods")]
 mod runtime {
     use super::*;
-    use wasmi::{Caller, Engine, Linker, Module, Store};
+    use wasmi::{Caller, Config, Engine, Linker, Module, Store};
+
+    const WASM_CALLBACK_FUEL: u64 = 1_000_000;
 
     pub struct PendingWasmRegistrations {
         pub commands: Vec<(String, String)>,
         pub extensions: Vec<String>,
+        pub capability_snapshots: Vec<ControlRuntimeSnapshot>,
         pub mod_name: String,
     }
 
@@ -182,19 +185,41 @@ mod runtime {
         0
     }
 
+    fn host_register_capability_snapshot(
+        mut caller: Caller<'_, HostState>,
+        json_ptr: i32,
+        json_len: i32,
+    ) -> i32 {
+        let json = match read_guest_utf8(&mut caller, json_ptr, json_len) {
+            Ok(s) => s,
+            Err(_) => return -1,
+        };
+        let snapshot = match serde_json::from_str::<ControlRuntimeSnapshot>(&json) {
+            Ok(snapshot) if snapshot.api_version == unibrowser_mod_api::MOD_RUNTIME_API_V1 => {
+                snapshot
+            }
+            _ => return -2,
+        };
+        caller.data_mut().pending.capability_snapshots.push(snapshot);
+        0
+    }
+
     pub fn load_wasm_bytes(
         wasm_bytes: &[u8],
         mod_name: &str,
         registry: &mut CommandRegistry,
         api_registry: &std::sync::Arc<ModApiRegistry>,
-    ) -> Result<(), ModHostError> {
-        let engine = Engine::default();
+    ) -> Result<Vec<ControlRuntimeSnapshot>, ModHostError> {
+        let mut config = Config::default();
+        config.consume_fuel(true);
+        let engine = Engine::new(&config);
         let module = Module::new(&engine, wasm_bytes)
             .map_err(|e| ModHostError::Dynamic(format!("wasm parse: {}", e)))?;
 
         let pending = PendingWasmRegistrations {
             commands: Vec::new(),
             extensions: Vec::new(),
+            capability_snapshots: Vec::new(),
             mod_name: mod_name.to_string(),
         };
         let mut store = Store::new(
@@ -204,6 +229,9 @@ mod runtime {
                 api_registry: std::sync::Arc::clone(api_registry),
             },
         );
+        store
+            .set_fuel(WASM_CALLBACK_FUEL)
+            .map_err(|e| ModHostError::Dynamic(format!("wasm fuel: {}", e)))?;
         let mut linker = Linker::new(&engine);
         linker
             .func_wrap(
@@ -214,6 +242,13 @@ mod runtime {
             .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
         linker
             .func_wrap("ub_host", "ub_host_register_extension", host_register_extension)
+            .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
+        linker
+            .func_wrap(
+                "ub_host",
+                "ub_host_register_capability_snapshot",
+                host_register_capability_snapshot,
+            )
             .map_err(|e| ModHostError::Dynamic(e.to_string()))?;
         linker
             .func_wrap(
@@ -276,7 +311,7 @@ mod runtime {
                 map.insert(ext.to_ascii_lowercase(), pending.mod_name.clone());
             }
         }
-        Ok(())
+        Ok(pending.capability_snapshots.clone())
     }
 }
 
@@ -305,6 +340,19 @@ pub fn load_wasm_mod(
     mod_dir: &Path,
     registry: &mut CommandRegistry,
 ) -> Result<String, ModHostError> {
+    Ok(load_wasm_mod_runtime(mod_dir, registry)?.name)
+}
+
+#[derive(Debug, Clone)]
+pub struct LoadedWasmRuntime {
+    pub name: String,
+    pub capability_snapshots: Vec<ControlRuntimeSnapshot>,
+}
+
+pub fn load_wasm_mod_runtime(
+    mod_dir: &Path,
+    registry: &mut CommandRegistry,
+) -> Result<LoadedWasmRuntime, ModHostError> {
     let info = mod_dir.join("info.json");
     if !info.is_file() {
         return Err(ModHostError::MissingManifest(mod_dir.to_path_buf()));
@@ -319,8 +367,12 @@ pub fn load_wasm_mod(
     #[cfg(feature = "wasm-mods")]
     {
         let apis = std::sync::Arc::new(ModApiRegistry::new());
-        load_wasm_bytes(&bytes, &manifest.name, registry, &apis)?;
-        return Ok(manifest.name);
+        let capability_snapshots =
+            load_wasm_bytes(&bytes, &manifest.name, registry, &apis)?;
+        return Ok(LoadedWasmRuntime {
+            name: manifest.name,
+            capability_snapshots,
+        });
     }
     #[cfg(not(feature = "wasm-mods"))]
     {
@@ -358,7 +410,7 @@ pub fn load_user_wasm_mods(
 
 pub fn example_ub_mod_wasm_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/ub-mod-wasm/target/wasm32-unknown-unknown/debug/ub_mod_wasm.wasm")
+        .join("../../target/wasm32-unknown-unknown/debug/ub_mod_wasm.wasm")
 }
 
 #[cfg(all(test, feature = "wasm-mods"))]
@@ -366,6 +418,9 @@ mod tests {
     use super::*;
     use std::process::Command;
     use unibrowser_engine::CommandRegistry;
+    use std::sync::Mutex;
+
+    static WASM_DIR_LOCK: Mutex<()> = Mutex::new(());
 
     fn ensure_example_wasm_built() -> Option<PathBuf> {
         let path = example_ub_mod_wasm_path();
@@ -388,22 +443,62 @@ mod tests {
 
     #[test]
     fn loads_built_ub_mod_wasm() {
-        let wasm_path = ensure_example_wasm_built();
-        if wasm_path.is_none() {
-            eprintln!("skip loads_built_ub_mod_wasm: wasm32 target or build unavailable");
-            return;
-        }
-        let bytes = std::fs::read(wasm_path.unwrap()).expect("read wasm");
+        let wasm_path = ensure_example_wasm_built().expect("build real wasm proving mod");
+        let bytes = std::fs::read(wasm_path).expect("read wasm");
         let mut registry = CommandRegistry::with_builtins();
         let apis = std::sync::Arc::new(ModApiRegistry::new());
-        load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry, &apis).expect("load wasm");
+        let snapshots =
+            load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry, &apis).expect("load wasm");
         assert!(registry.command_meta("mod.wasm.demo").is_some());
         let exts = wasm_file_extensions();
         assert_eq!(exts.get("ubwasm").as_deref(), Some(&"ub-mod-wasm".to_string()));
+        assert_eq!(snapshots.len(), 1);
+    }
+
+    #[test]
+    fn real_wasm_snapshot_matches_native_proving_runtime() {
+        let wasm_path = ensure_example_wasm_built().expect("build real wasm proving mod");
+        let bytes = std::fs::read(wasm_path).expect("read wasm");
+        let mut registry = CommandRegistry::with_builtins();
+        let apis = std::sync::Arc::new(ModApiRegistry::new());
+        let wasm = load_wasm_bytes(&bytes, "ub-mod-wasm", &mut registry, &apis)
+            .expect("load wasm")
+            .into_iter()
+            .find(|s| s.control_id == unibrowser_mod_api::control_ids::TEXT_SUBSCRIPT)
+            .expect("wasm subscript snapshot");
+
+        let mut runtimes = unibrowser_engine::ModRuntimeRegistry::default();
+        cmd_proving::register_runtime(&mut runtimes);
+        let native = runtimes
+            .snapshot_for(
+                cmd_proving::PROVIDER_ID,
+                unibrowser_mod_api::control_ids::TEXT_SUBSCRIPT,
+            )
+            .expect("native callback")
+            .expect("native subscript snapshot");
+        assert_eq!(wasm, native);
+    }
+
+    #[test]
+    fn real_wasm_proving_mod_loads_through_manifest_host_path() {
+        let _guard = WASM_DIR_LOCK.lock().expect("wasm test lock");
+        let wasm_path = ensure_example_wasm_built().expect("build real wasm proving mod");
+        let mod_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/ub-mod-wasm");
+        std::fs::copy(&wasm_path, mod_dir.join("ub_mod_wasm.wasm"))
+            .expect("copy wasm beside manifest");
+        let mut registry = CommandRegistry::with_builtins();
+        let loaded = load_wasm_mod_runtime(&mod_dir, &mut registry).expect("manifest host load");
+        assert_eq!(loaded.name, "ubmod-example");
+        assert_eq!(
+            loaded.capability_snapshots[0].control_id,
+            unibrowser_mod_api::control_ids::TEXT_SUBSCRIPT
+        );
     }
 
     #[test]
     fn load_wasm_mod_from_example_dir() {
+        let _guard = WASM_DIR_LOCK.lock().expect("wasm test lock");
         let mod_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/ub-mod-wasm");
         let _ = ensure_example_wasm_built();
         if !example_ub_mod_wasm_path().is_file() {
@@ -416,7 +511,7 @@ mod tests {
         .expect("copy wasm beside info.json");
         let mut registry = CommandRegistry::with_builtins();
         let name = load_wasm_mod(&mod_dir, &mut registry).expect("load dir");
-        assert_eq!(name, "ub-mod-wasm");
+        assert_eq!(name, "ubmod-example");
     }
 
     #[test]

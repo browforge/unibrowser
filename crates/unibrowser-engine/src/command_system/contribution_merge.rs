@@ -6,6 +6,7 @@ use unibrowser_mod_api::{
 };
 
 use crate::ui_command::UiCommandSlot;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct LoadedModContribution {
@@ -18,12 +19,44 @@ pub struct ContributionMergeDiagnostics {
     pub messages: Vec<String>,
 }
 
+pub fn diagnose_contributions(
+    contributions: &[LoadedModContribution],
+) -> ContributionMergeDiagnostics {
+    let mut diagnostics = ContributionMergeDiagnostics::default();
+    let _ = insertion_cycle_ids(contributions, &mut diagnostics);
+    let mut controls = BTreeSet::new();
+    let mut toolbars = BTreeSet::new();
+    let mut ordered: Vec<_> = contributions.iter().collect();
+    ordered.sort_by(|a, b| a.mod_name.cmp(&b.mod_name));
+    for loaded in ordered {
+        for control in &loaded.contributes.controls {
+            if !controls.insert(control.id.clone()) {
+                diagnostics.messages.push(format!(
+                    "duplicate control id {} from mod {} (skipped)",
+                    control.id, loaded.mod_name
+                ));
+            }
+        }
+        for toolbar in &loaded.contributes.toolbars {
+            if !toolbars.insert(toolbar.id.clone()) {
+                diagnostics.messages.push(format!(
+                    "duplicate toolbar id {} from mod {} (skipped)",
+                    toolbar.id, loaded.mod_name
+                ));
+            }
+        }
+    }
+    diagnostics.messages.sort();
+    diagnostics.messages.dedup();
+    diagnostics
+}
+
 pub fn merge_mod_contributions(
     families: &mut [ResolvedFamily],
     contributions: &[LoadedModContribution],
     diagnostics: &mut ContributionMergeDiagnostics,
 ) {
-    let mut seen_control_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut seen_control_ids: HashSet<String> = HashSet::new();
     for family in families.iter() {
         for group in &family.groups {
             for control in &group.controls {
@@ -32,9 +65,14 @@ pub fn merge_mod_contributions(
         }
     }
 
-    for loaded in contributions {
+    let cyclic = insertion_cycle_ids(contributions, diagnostics);
+    let mut ordered: Vec<_> = contributions.iter().collect();
+    ordered.sort_by(|a, b| a.mod_name.cmp(&b.mod_name));
+    for loaded in ordered {
         let c = &loaded.contributes;
-        for control in &c.controls {
+        let mut controls: Vec<_> = c.controls.iter().collect();
+        controls.sort_by(|a, b| a.id.cmp(&b.id));
+        for control in controls {
             if seen_control_ids.contains(&control.id) {
                 diagnostics.messages.push(format!(
                     "duplicate control id {} from mod {} (skipped)",
@@ -43,7 +81,15 @@ pub fn merge_mod_contributions(
                 ));
                 continue;
             }
-            insert_control(families, control, &loaded.mod_name, diagnostics);
+            let mut effective = control.clone();
+            if cyclic.contains(&effective.id) {
+                effective.insert = Some(unibrowser_mod_api::InsertPoint {
+                    after: None,
+                    before: None,
+                    end: true,
+                });
+            }
+            insert_control(families, &effective, &loaded.mod_name, diagnostics);
             seen_control_ids.insert(control.id.clone());
         }
         for family in &c.families {
@@ -79,6 +125,70 @@ pub fn merge_mod_contributions(
             }
         }
     }
+}
+
+fn insertion_cycle_ids(
+    contributions: &[LoadedModContribution],
+    diagnostics: &mut ContributionMergeDiagnostics,
+) -> BTreeSet<String> {
+    let controls: BTreeMap<String, ContributedControl> = contributions
+        .iter()
+        .flat_map(|loaded| loaded.contributes.controls.iter().cloned())
+        .map(|control| (control.id.clone(), control))
+        .collect();
+    let mut edges: BTreeMap<String, BTreeSet<String>> = controls
+        .keys()
+        .map(|id| (id.clone(), BTreeSet::new()))
+        .collect();
+    let mut indegree: BTreeMap<String, usize> =
+        controls.keys().map(|id| (id.clone(), 0)).collect();
+    for control in controls.values() {
+        let Some(insert) = &control.insert else {
+            continue;
+        };
+        let edge = if let Some(after) = &insert.after {
+            Some((after, &control.id))
+        } else if let Some(before) = &insert.before {
+            Some((&control.id, before))
+        } else {
+            None
+        };
+        let Some((from, to)) = edge else {
+            continue;
+        };
+        if !controls.contains_key(from) || !controls.contains_key(to) {
+            continue;
+        }
+        if edges.get_mut(from).expect("edge node").insert(to.clone()) {
+            *indegree.get_mut(to).expect("indegree node") += 1;
+        }
+    }
+    let mut ready: BTreeSet<String> = indegree
+        .iter()
+        .filter(|(_, degree)| **degree == 0)
+        .map(|(id, _)| id.clone())
+        .collect();
+    while let Some(id) = ready.pop_first() {
+        for to in edges.get(&id).into_iter().flatten() {
+            let degree = indegree.get_mut(to).expect("indegree edge");
+            *degree -= 1;
+            if *degree == 0 {
+                ready.insert(to.clone());
+            }
+        }
+    }
+    let cyclic: BTreeSet<String> = indegree
+        .into_iter()
+        .filter(|(_, degree)| *degree > 0)
+        .map(|(id, _)| id)
+        .collect();
+    if !cyclic.is_empty() {
+        diagnostics.messages.push(format!(
+            "order cycle [{}] moved to extension-point end",
+            cyclic.iter().cloned().collect::<Vec<_>>().join(", ")
+        ));
+    }
+    cyclic
 }
 
 fn insert_control(
@@ -206,6 +316,8 @@ pub fn merge_toolbar_layouts(
                 } else {
                     ToolbarPresentation::InWindow
                 },
+                monitor_name: None,
+                monitor_edid: None,
                 commands,
             });
         }
@@ -295,5 +407,48 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(all_controls.iter().any(|id| *id == "unibrowser.control.text.subscript"));
         assert!(all_controls.iter().any(|id| *id == "cmd-proving.control.chip"));
+    }
+
+    #[test]
+    fn order_cycle_has_sorted_diagnostic() {
+        let mut families = sample_families();
+        let mut diag = ContributionMergeDiagnostics::default();
+        let controls = vec![
+            ContributedControl {
+                id: "zmod.a".into(),
+                control_type: "button".into(),
+                command: "zmod.a".into(),
+                insert: Some(InsertPoint {
+                    after: Some("zmod.b".into()),
+                    before: None,
+                    end: false,
+                }),
+            },
+            ContributedControl {
+                id: "zmod.b".into(),
+                control_type: "button".into(),
+                command: "zmod.b".into(),
+                insert: Some(InsertPoint {
+                    after: Some("zmod.a".into()),
+                    before: None,
+                    end: false,
+                }),
+            },
+        ];
+        merge_mod_contributions(
+            &mut families,
+            &[LoadedModContribution {
+                mod_name: "zmod".into(),
+                contributes: ModContributes {
+                    controls,
+                    ..Default::default()
+                },
+            }],
+            &mut diag,
+        );
+        assert_eq!(
+            diag.messages,
+            vec!["order cycle [zmod.a, zmod.b] moved to extension-point end"]
+        );
     }
 }

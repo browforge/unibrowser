@@ -6,6 +6,16 @@ use unibrowser_engine::{ToolbarAnchor, ToolbarPresentation, save_command_manager
 use crate::config::toolbars_file_path;
 use crate::state::AppState;
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct MonitorWorkArea {
+    pub name: String,
+    pub edid: Option<String>,
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
 pub fn toolbar_window_label(bar_id: &str) -> String {
     format!("toolbar-{}", bar_id)
 }
@@ -18,25 +28,92 @@ pub fn bar_id_from_toolbar_window(label: &str) -> Option<&str> {
     label.strip_prefix("toolbar-")
 }
 
-pub fn clamp_toolbar_screen_position(app: &AppHandle, x: f64, y: f64) -> (f64, f64) {
+pub fn recover_toolbar_position(
+    monitors: &[MonitorWorkArea],
+    monitor_name: Option<&str>,
+    monitor_edid: Option<&str>,
+    x: f64,
+    y: f64,
+) -> (String, Option<String>, f64, f64) {
     let win_w = 480.0;
     let win_h = 88.0;
-    let monitor = app.primary_monitor().ok().flatten();
-    let (mx, my, mw, mh) = if let Some(m) = monitor {
-        let pos = m.position();
-        let size = m.size();
-        (
-            pos.x as f64,
-            pos.y as f64,
-            size.width as f64,
-            size.height as f64,
-        )
-    } else {
-        (0.0, 0.0, 1920.0, 1080.0)
+    let fallback = MonitorWorkArea {
+        name: "primary".into(),
+        edid: None,
+        x: 0.0,
+        y: 0.0,
+        width: 1920.0,
+        height: 1080.0,
     };
-    let max_x = (mx + mw - win_w).max(mx);
-    let max_y = (my + mh - win_h).max(my);
-    (x.clamp(mx, max_x), y.clamp(my, max_y))
+    let monitor = monitors
+        .iter()
+        .find(|m| {
+            monitor_edid.is_some() && m.edid.as_deref() == monitor_edid
+                || monitor_name.is_some() && Some(m.name.as_str()) == monitor_name
+        })
+        .or_else(|| {
+            monitors.iter().min_by(|a, b| {
+                let distance = |m: &MonitorWorkArea| {
+                    let cx = m.x + m.width / 2.0;
+                    let cy = m.y + m.height / 2.0;
+                    (cx - x).powi(2) + (cy - y).powi(2)
+                };
+                distance(a).total_cmp(&distance(b))
+            })
+        })
+        .unwrap_or(&fallback);
+    let max_x = (monitor.x + monitor.width - win_w).max(monitor.x);
+    let max_y = (monitor.y + monitor.height - win_h).max(monitor.y);
+    (
+        monitor.name.clone(),
+        monitor.edid.clone(),
+        x.clamp(monitor.x, max_x),
+        y.clamp(monitor.y, max_y),
+    )
+}
+
+fn monitor_work_areas(app: &AppHandle) -> Vec<MonitorWorkArea> {
+    app.available_monitors()
+        .unwrap_or_default()
+        .into_iter()
+        .enumerate()
+        .map(|(index, monitor)| {
+            let pos = monitor.position();
+            let size = monitor.size();
+            MonitorWorkArea {
+                name: monitor
+                    .name()
+                    .map(String::from)
+                    .unwrap_or_else(|| format!("monitor-{}", index)),
+                edid: None,
+                x: pos.x as f64,
+                y: pos.y as f64,
+                width: size.width as f64,
+                height: size.height as f64,
+            }
+        })
+        .collect()
+}
+
+pub fn recover_bar_geometry(
+    app: &AppHandle,
+    monitor_name: Option<&str>,
+    monitor_edid: Option<&str>,
+    x: f64,
+    y: f64,
+) -> (String, Option<String>, f64, f64) {
+    recover_toolbar_position(
+        &monitor_work_areas(app),
+        monitor_name,
+        monitor_edid,
+        x,
+        y,
+    )
+}
+
+pub fn clamp_toolbar_screen_position(app: &AppHandle, x: f64, y: f64) -> (f64, f64) {
+    let (_, _, x, y) = recover_toolbar_position(&monitor_work_areas(app), None, None, x, y);
+    (x, y)
 }
 
 pub fn ensure_toolbar_window(app: &AppHandle, bar_id: &str, x: f64, y: f64) -> Result<(), String> {
@@ -102,17 +179,69 @@ pub fn set_bar_presentation(
 }
 
 pub fn restore_detached_toolbars(app: &AppHandle, state: &AppState) -> Result<(), String> {
-    let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
-    for bar in &cm.floating_bars {
-        if bar.presentation != ToolbarPresentation::DetachedWindow {
-            continue;
+    let monitors = monitor_work_areas(app);
+    let mut recovered = Vec::new();
+    {
+        let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+        for bar in &mut cm.floating_bars {
+            if bar.presentation != ToolbarPresentation::DetachedWindow {
+                continue;
+            }
+            if bar.anchor != ToolbarAnchor::Floating {
+                continue;
+            }
+            let (name, edid, x, y) = recover_toolbar_position(
+                &monitors,
+                bar.monitor_name.as_deref(),
+                bar.monitor_edid.as_deref(),
+                bar.x,
+                bar.y,
+            );
+            bar.monitor_name = Some(name);
+            bar.monitor_edid = edid;
+            bar.x = x;
+            bar.y = y;
+            recovered.push((bar.id.clone(), x, y));
         }
-        if bar.anchor != ToolbarAnchor::Floating {
-            continue;
-        }
-        ensure_toolbar_window(app, &bar.id, bar.x, bar.y)?;
+    }
+    persist_layout(state)?;
+    for (bar_id, x, y) in recovered {
+        ensure_toolbar_window(app, &bar_id, x, y)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_monitor_recovers_to_nearest_visible_monitor_and_clamps() {
+        let monitors = vec![
+            MonitorWorkArea {
+                name: "left".into(),
+                edid: Some("A".into()),
+                x: 0.0,
+                y: 0.0,
+                width: 1280.0,
+                height: 720.0,
+            },
+            MonitorWorkArea {
+                name: "right".into(),
+                edid: Some("B".into()),
+                x: 1280.0,
+                y: 0.0,
+                width: 1920.0,
+                height: 1080.0,
+            },
+        ];
+        let (name, edid, x, y) =
+            recover_toolbar_position(&monitors, Some("missing"), Some("gone"), 5000.0, -50.0);
+        assert_eq!(name, "right");
+        assert_eq!(edid.as_deref(), Some("B"));
+        assert_eq!(x, 2720.0);
+        assert_eq!(y, 0.0);
+    }
 }
 
 pub fn dock_bar_on_window_close(app: &AppHandle, state: &AppState, label: &str) -> Result<(), String> {

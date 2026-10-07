@@ -14,8 +14,8 @@ pub mod ui_command;
 pub use command::{CommandRegistry, HandlerRegistration};
 pub use command_system::{
     CapabilityResolver, ContributionMergeDiagnostics, LayoutStore, LoadedModContribution,
-    ResolutionContext, command_context_display_label, core_tab_layout, infer_work_context,
-    merge_mod_contributions, merge_toolbar_layouts, migrate_toolbars_json,
+    ResolutionContext, command_context_display_label, core_tab_layout, diagnose_contributions,
+    infer_work_context, merge_mod_contributions, merge_toolbar_layouts, migrate_toolbars_json,
     save_commands_always_supported,
 };
 pub use document::{DocumentBackend, DocumentSession};

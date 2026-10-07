@@ -79,6 +79,10 @@ pub struct FloatingToolbarLayout {
     pub coord_space: ToolbarCoordSpace,
     #[serde(default)]
     pub presentation: ToolbarPresentation,
+    #[serde(default)]
+    pub monitor_name: Option<String>,
+    #[serde(default)]
+    pub monitor_edid: Option<String>,
     pub commands: Vec<UiCommandSlot>,
 }
 
@@ -325,7 +329,11 @@ impl CommandManagerState {
                         ctx,
                     );
                     if let Some(runtime) = mod_runtime {
-                        runtime.apply_to_control(control);
+                        if let Err(error) = runtime.apply_to_control(control) {
+                            control.capability = CapabilityState::Unsupported {
+                                reason: format!("Mod provider unavailable: {}", error),
+                            };
+                        }
                     }
                 }
                 group.controls.retain(|c| !matches!(c.capability, CapabilityState::HiddenByUser));

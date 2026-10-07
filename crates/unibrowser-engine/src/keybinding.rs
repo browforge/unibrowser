@@ -81,6 +81,7 @@ pub struct KeybindingFile {
 pub struct KeybindingMap {
     by_command: HashMap<String, KeyChord>,
     by_chord: HashMap<KeyChord, String>,
+    diagnostics: Vec<String>,
 }
 
 impl Default for KeybindingMap {
@@ -94,6 +95,7 @@ impl KeybindingMap {
         let mut map = Self {
             by_command: HashMap::new(),
             by_chord: HashMap::new(),
+            diagnostics: Vec::new(),
         };
         #[cfg(target_os = "macos")]
         map.set_binding(COMMAND_PALETTE_TOGGLE, DEFAULT_PALETTE_CHORD_MACOS);
@@ -129,7 +131,9 @@ impl KeybindingMap {
     }
 
     pub fn merge_user_file(&mut self, file: &KeybindingFile) {
-        for (command, chord) in &file.bindings {
+        let mut bindings: Vec<_> = file.bindings.iter().collect();
+        bindings.sort_by(|a, b| a.0.cmp(b.0));
+        for (command, chord) in bindings {
             self.set_binding(command, chord);
         }
     }
@@ -138,6 +142,17 @@ impl KeybindingMap {
         if let Some(chord) = KeyChord::parse(chord_str) {
             if let Some(old) = self.by_command.get(command_id) {
                 self.by_chord.remove(old);
+            }
+            if let Some(displaced) = self.by_chord.get(&chord).cloned() {
+                if displaced != command_id {
+                    self.by_command.remove(&displaced);
+                    self.diagnostics.push(format!(
+                        "keybinding conflict {}: {} replaced by {}",
+                        chord.display(),
+                        displaced,
+                        command_id
+                    ));
+                }
             }
             self.by_command.insert(command_id.to_string(), chord.clone());
             self.by_chord.insert(chord, command_id.to_string());
@@ -197,6 +212,10 @@ impl KeybindingMap {
             .collect();
         out.sort_by(|a, b| a.0.cmp(&b.0));
         out
+    }
+
+    pub fn diagnostics(&self) -> &[String] {
+        &self.diagnostics
     }
 
     pub fn matches_modifiers_and_key(
@@ -280,6 +299,32 @@ mod tests {
         let mut map = KeybindingMap::with_defaults();
         map.set_binding(COMMAND_PALETTE_TOGGLE, "Ctrl+K");
         assert!(map.is_palette_chord(&KeyChord::parse("Ctrl+K").expect("parse")));
+    }
+
+    #[test]
+    fn user_can_bind_palette_to_plain_s() {
+        let file = KeybindingFile {
+            bindings: HashMap::from([(
+                COMMAND_PALETTE_TOGGLE.to_string(),
+                "S".to_string(),
+            )]),
+        };
+        let mut map = KeybindingMap::with_defaults();
+        map.merge_user_file(&file);
+        assert!(map.is_palette_chord(&KeyChord::parse("S").expect("parse")));
+        assert_eq!(map.palette_chord_display(), "s");
+    }
+
+    #[test]
+    fn conflict_diagnostic_is_deterministic_and_displaces_old_binding() {
+        let mut map = KeybindingMap::with_defaults();
+        map.set_binding("z.command", "Alt+Q");
+        map.set_binding("a.command", "Alt+Q");
+        assert_eq!(
+            map.diagnostics().last().map(String::as_str),
+            Some("keybinding conflict Alt+q: z.command replaced by a.command")
+        );
+        assert!(map.chord_for_command("z.command").is_none());
     }
 
     #[test]

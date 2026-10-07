@@ -9,7 +9,7 @@ export type CmRovingBindings = {
 
 function focusableControls(root: HTMLElement): HTMLButtonElement[] {
   return Array.from(
-    root.querySelectorAll<HTMLButtonElement>(".cm-group-tools button.ui-command:not(:disabled)"),
+    root.querySelectorAll<HTMLButtonElement>(".cm-group-tools button.ui-command"),
   );
 }
 
@@ -41,6 +41,14 @@ export function bindCmRovingFocus(bind: CmRovingBindings) {
       index = 0;
     }
 
+    if (e.key === "ArrowDown" && e.altKey) {
+      e.preventDefault();
+      if (overflowButton && !overflowButton.classList.contains("hidden")) {
+        onOpenOverflow();
+        overflowButton.focus();
+      }
+      return;
+    }
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
       const next = (index + 1) % controls.length;
@@ -82,14 +90,6 @@ export function bindCmRovingFocus(bind: CmRovingBindings) {
         e.preventDefault();
         void announceControl(target, onAnnounce);
         target.click();
-      }
-      return;
-    }
-    if (e.key === "ArrowDown" && e.altKey) {
-      e.preventDefault();
-      if (overflowButton && !overflowButton.classList.contains("hidden")) {
-        onOpenOverflow();
-        overflowButton.focus();
       }
       return;
     }
