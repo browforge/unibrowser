@@ -11,11 +11,25 @@ if [[ "${1:-}" != "--worker" ]]; then
   (cd "$ROOT/crates/unibrowser-desktop" && npm run build)
   # shellcheck source=ensure-release-desktop.sh
   source "$ROOT/scripts/ensure-release-desktop.sh"
+  # shellcheck source=capture-vqa-common.sh
+  source "$ROOT/scripts/capture-vqa-common.sh"
   mkdir -p "$OUT"
   rm -f "$OUT"/states-*.png
   for spec in "light:standard" "dark:standard" "dark:high"; do
     theme="${spec%%:*}"
     contrast="${spec#*:}"
+    suffix="$theme"
+    contrast_token="standard-contrast"
+    if [[ "$contrast" == "high" ]]; then
+      suffix="${theme}-hc"
+      contrast_token="high-contrast"
+    fi
+    capture_vqa \
+      "$OUT" \
+      "cm-focus-${suffix}" \
+      "capture-ready,cm-compact,rail-collapsed,theme-${theme},${contrast_token},scale-100,ui19-focus-visible" \
+      "$ROOT/examples/demo-pack/sample.md" \
+      "1280x800"
     xvfb-run -a -s "-screen 0 1200x800x24 -dpi 96" \
       env STATE_THEME="$theme" STATE_CONTRAST="$contrast" \
       "$0" --worker
@@ -167,19 +181,16 @@ capture_states "06-button" "Button" 525 240 390 200
 capture_states "07-install" "Install" 1135 350 900 310
 stop_surface
 
-# The existing UI-19 path uses real keyboard focus on a CM command and is also
-# covered by the focus-ring capture guard.
-cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
-start_surface "ui19-focus-visible" "$ROOT/examples/demo-pack/sample.md"
-close_floating_toolbar
-xdotool mousemove 1180 780
-shot "01-cm-focus" 500 28 300 90
+# The existing UI-19 path uses real keyboard focus on Find and is also covered
+# by the focus-ring capture guard. It is captured separately at 1280x800 so the
+# focused command cannot move into responsive overflow.
+convert "$OUT/cm-focus-${suffix}.png" -crop 300x90+560+28 +repage \
+  "$tmp/cells/01-cm-focus.png"
 convert "$tmp/cells/01-cm-focus.png" \
   -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
   -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
   -splice 0x24 -pointsize 13 -annotate +0+4 "Command Manager / focus" \
   "$tmp/cells/01-cm-focus.png"
-stop_surface
 
 cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
 start_surface "settings" "$ROOT/examples/demo-pack/sample.txt"
