@@ -718,7 +718,7 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let tools = ResolvedGroup {
         group_id: "unibrowser.group.pdf.tools".into(),
         label: "Tools".into(),
-        overflow_priority: OverflowPriority::Normal,
+        overflow_priority: OverflowPriority::Low,
         controls: vec![control_spec(
             control_ids::PDF_SELECT,
             ControlType::SplitButton,
@@ -734,7 +734,7 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let annotate = ResolvedGroup {
         group_id: "unibrowser.group.pdf.annotate".into(),
         label: "Annotate".into(),
-        overflow_priority: OverflowPriority::Normal,
+        overflow_priority: OverflowPriority::Low,
         controls: vec![
             control_spec(
                 "unibrowser.control.pdf.highlight",
@@ -774,7 +774,7 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let page = ResolvedGroup {
         group_id: "unibrowser.group.pdf.page".into(),
         label: "Page".into(),
-        overflow_priority: OverflowPriority::Normal,
+        overflow_priority: OverflowPriority::Primary,
         controls: vec![control_spec(
             control_ids::PDF_PAGE,
             ControlType::SplitButton,
@@ -790,7 +790,7 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let view = ResolvedGroup {
         group_id: "unibrowser.group.pdf.view".into(),
         label: "View".into(),
-        overflow_priority: OverflowPriority::Low,
+        overflow_priority: OverflowPriority::Primary,
         controls: vec![control_spec(
             control_ids::PDF_VIEW_ZOOM,
             ControlType::SplitButton,
@@ -806,7 +806,7 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let export = ResolvedGroup {
         group_id: "unibrowser.group.pdf.export".into(),
         label: "Export".into(),
-        overflow_priority: OverflowPriority::Low,
+        overflow_priority: OverflowPriority::Primary,
         controls: vec![control_spec(
             control_ids::PDF_EXPORT,
             ControlType::Button,
