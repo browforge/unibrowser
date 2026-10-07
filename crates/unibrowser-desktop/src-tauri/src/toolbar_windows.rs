@@ -127,7 +127,8 @@ pub fn ensure_toolbar_window(app: &AppHandle, bar_id: &str, x: f64, y: f64) -> R
         let _ = w.set_focus();
         return Ok(());
     }
-    WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
+    let url = format!("index.html?toolbar={}", label);
+    WebviewWindowBuilder::new(app, &label, WebviewUrl::App(url.into()))
         .title("Unibrowser commands")
         .inner_size(480.0, 88.0)
         .min_inner_size(200.0, 56.0)

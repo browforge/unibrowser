@@ -4,11 +4,12 @@ import { t } from "./i18n";
 
 export function isToolbarOnlyWindow(label?: string): boolean {
   const l = label ?? getCurrentWebviewWindow().label;
-  return l.startsWith("toolbar-");
+  return l.startsWith("toolbar-") || new URLSearchParams(window.location.search).has("toolbar");
 }
 
 export function toolbarBarIdFromWindow(label?: string): string | null {
-  const l = label ?? getCurrentWebviewWindow().label;
+  const fromQuery = new URLSearchParams(window.location.search).get("toolbar");
+  const l = label ?? fromQuery ?? getCurrentWebviewWindow().label;
   if (!l.startsWith("toolbar-")) {
     return null;
   }
