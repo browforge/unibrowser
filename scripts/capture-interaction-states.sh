@@ -212,20 +212,18 @@ capture_states "01-cm" "Command Manager" 115 58 0 28
 # Title order: menu button, selected tab, tab close, omnibox. Click the
 # omnibox, then Shift+Tab twice onto the selected document tab.
 capture_states "02-tab" "Document tab" 235 18 80 0 300 90 580 18 2 "shift+Tab"
-capture_states "03-rail" "Activity rail" 20 166 0 120
+capture_states "03-rail" "Activity rail" 20 166 0 80 320 180
 capture_states "04-mod-tab" "Portal tab" 158 167 35 130
 # Pad the Open VSX field so the 2px ring is visible on all four sides.
-capture_states "05-input" "Input" 235 260 70 200 340 130
+capture_states "05-input" "Input" 235 230 40 155 420 170
 # Portal order: section tabs, Open VSX input, Search, Contribution
 # details, featured Install.
 capture_states "06-button" "Button" 525 240 470 200 300 90 235 260 1 Tab
 capture_states "07-install" "Install" 1135 350 900 310 300 90 235 260 3 Tab
 
-# Clicking Files toggles the files browser over the portal and leaves a blank
-# work area. Expand the rail so the Files panel copy is present, then give the
-# Files destination keyboard focus without activating that toggle.
-xdotool mousemove 20 326 click 1
-xdotool sleep 0.25
+# Keyboard-focus Files without activating the overlay. The rail panel now
+# mounts beside the icon on focus so the cell shows real panel copy.
+xdotool mousemove 700 650 click 1
 xdotool mousemove 20 166
 xdotool mousedown 1
 xdotool sleep 0.05
@@ -234,8 +232,8 @@ xdotool mouseup 1
 xdotool key shift+Tab
 xdotool key Tab
 xdotool mousemove 1180 780
-xdotool sleep 0.15
-shot "03-rail-focus" 0 80 300 160
+xdotool sleep 0.2
+shot "03-rail-focus" 0 80 320 180
 convert "$tmp/cells/03-rail-focus.png" \
   -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
   -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
@@ -259,7 +257,26 @@ start_surface "settings" "$ROOT/examples/demo-pack/sample.txt"
 close_floating_toolbar
 xdotool sleep 1
 capture_states "08-switch" "Switch" 980 469 850 429
-capture_states "09-select" "Select" 1080 469 900 429
+capture_states "09-select" "Select" 1080 469 900 400 300 170
+# After keyboard focus, open the themed option list (Space) so the cell
+# records the in-page popup, not a closed trigger.
+xdotool mousemove 700 650 click 1
+xdotool mousemove 1080 469
+xdotool mousedown 1
+xdotool sleep 0.05
+xdotool mousemove 1180 780
+xdotool mouseup 1
+xdotool key shift+Tab
+xdotool key Tab
+xdotool key space
+xdotool mousemove 1180 780
+xdotool sleep 0.2
+shot "09-select-focus" 900 400 300 170
+convert "$tmp/cells/09-select-focus.png" \
+  -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
+  -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
+  -splice 0x24 -pointsize 13 -annotate +0+4 "Select / focus" \
+  "$tmp/cells/09-select-focus.png"
 capture_states "10-settings-input" "Settings input" 130 140 0 100
 
 # Disable the interval select through the real Auto-save switch.
