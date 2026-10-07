@@ -143,11 +143,14 @@ export function appendModSuggestionCard(
   meta.textContent = `Licence: ${licence.replace(/^Licence:\s*/i, "")} · ${permissions}`;
   const action = document.createElement("button");
   action.type = "button";
-  action.className = "mod-card-action mod-card-action--primary";
+  action.className = options?.featured
+    ? "mod-card-install mod-card-install--featured"
+    : "mod-card-action mod-card-action--primary";
   action.textContent = "Install";
   action.onclick = () => onPrimary(suggestion);
   const details = document.createElement("details");
   details.className = "mod-result-details";
+  details.open = false;
   const summary = document.createElement("summary");
   summary.textContent = "Contribution details";
   const detailBody = document.createElement("span");
@@ -161,8 +164,8 @@ export function appendModSuggestionCard(
   }
   detailBody.textContent = parts.join(" · ");
   details.append(summary, detailBody);
-  footer.append(meta, action);
-  card.append(badge, title, reason, details, footer);
+  footer.append(action);
+  card.append(badge, title, reason, meta, details, footer);
   parent.appendChild(card);
 }
 

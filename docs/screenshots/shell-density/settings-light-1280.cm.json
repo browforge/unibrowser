@@ -16,7 +16,7 @@
     "frontendResolvedControlCount": 2,
     "frontendVisibleModelCount": 2,
     "frontendOverflowModelCount": 0,
-    "groupsWidth": 578
+    "groupsWidth": 576
   },
   "controls": [
     {
@@ -29,15 +29,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 113.296875,
+      "width": 110.75,
       "height": 30,
       "labelBounds": {
-        "x": 129.921875,
-        "y": 51.5,
-        "width": 76.296875,
-        "height": 16
+        "x": 132,
+        "y": 50.5,
+        "width": 73.75,
+        "height": 18
       },
-      "labelWidth": 76.296875,
+      "labelWidth": 73.75,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -106,13 +106,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 11.82,
-      "pixelInkCount": 448,
+      "pixelContrast": 12.386,
+      "pixelInkCount": 384,
       "pixelBounds": {
-        "x": 129,
-        "y": 51,
-        "width": 78,
-        "height": 17
+        "x": 132,
+        "y": 50,
+        "width": 74,
+        "height": 19
       }
     },
     {
@@ -125,15 +125,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 108,
+      "width": 106,
       "height": 30,
       "labelBounds": {
-        "x": 244.21875,
-        "y": 51.5,
-        "width": 71,
-        "height": 16
+        "x": 243.75,
+        "y": 50.5,
+        "width": 69,
+        "height": 18
       },
-      "labelWidth": 71,
+      "labelWidth": 69,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -202,13 +202,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 11.955,
-      "pixelInkCount": 417,
+      "pixelContrast": 12.876,
+      "pixelInkCount": 342,
       "pixelBounds": {
-        "x": 244,
-        "y": 51,
-        "width": 72,
-        "height": 17
+        "x": 243,
+        "y": 50,
+        "width": 70,
+        "height": 19
       }
     }
   ],
@@ -217,11 +217,11 @@
     "segments": [
       {
         "id": "status-ai-visibility",
-        "label": "AI: Read",
+        "label": "AI: hidden",
         "bounds": {
-          "x": 427.625,
+          "x": 423.03125,
           "y": 777.5,
-          "width": 40.71875,
+          "width": 52,
           "height": 17
         },
         "foreground": "rgb(33, 79, 101)",
@@ -229,12 +229,12 @@
         "contrast": 7.031301929954518,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 5.836,
-        "pixelInkCount": 185,
+        "pixelContrast": 6.017,
+        "pixelInkCount": 214,
         "pixelBounds": {
-          "x": 427,
+          "x": 423,
           "y": 777,
-          "width": 42,
+          "width": 53,
           "height": 18
         }
       },
@@ -242,7 +242,7 @@
         "id": "status-context",
         "label": "Commands: Settings (auto)",
         "bounds": {
-          "x": 907.96875,
+          "x": 910.0625,
           "y": 777,
           "width": 143.4375,
           "height": 18
@@ -252,12 +252,12 @@
         "contrast": 12.68246640479958,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 9.914,
-        "pixelInkCount": 725,
+        "pixelContrast": 10.092,
+        "pixelInkCount": 729,
         "pixelBounds": {
-          "x": 907,
+          "x": 910,
           "y": 777,
-          "width": 145,
+          "width": 144,
           "height": 18
         }
       }

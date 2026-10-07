@@ -6,6 +6,8 @@ cd "$ROOT"
 (cd "$ROOT/crates/unibrowser-desktop" && npm run build)
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 OUT="$ROOT/docs/screenshots/ui-17"
 mkdir -p "$OUT"
 rm -f "$OUT"/*.png
@@ -17,6 +19,7 @@ capture() {
   local name="$1"
   local extra="$2"
   local tmp="$OUT/.${name}.png"
+  capture_config_prepare
   xvfb-run -a -s "-screen 0 1280x800x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
@@ -25,6 +28,7 @@ capture() {
     UNIBROWSER_DOC_CAPTURE_SIZE="1280x800" \
     UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-light,standard-contrast,scale-100${extra:+,$extra}" \
     "$BIN" --open "$FIXTURE" --doc-capture "$tmp"
+  capture_config_cleanup
   mv "$tmp" "$OUT/${name}.png"
   [[ "$(identify -format '%wx%h' "$OUT/${name}.png")" == "1280x800" ]]
 }

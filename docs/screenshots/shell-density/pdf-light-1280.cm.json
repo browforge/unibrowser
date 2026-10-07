@@ -16,7 +16,7 @@
     "frontendResolvedControlCount": 20,
     "frontendVisibleModelCount": 8,
     "frontendOverflowModelCount": 12,
-    "groupsWidth": 782
+    "groupsWidth": 775
   },
   "controls": [
     {
@@ -32,12 +32,109 @@
       "width": 71,
       "height": 30,
       "labelBounds": {
-        "x": 175.078125,
-        "y": 51.5,
+        "x": 182,
+        "y": 50.5,
         "width": 34,
-        "height": 16
+        "height": 18
       },
       "labelWidth": 34,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 11.923,
+      "pixelInkCount": 153,
+      "pixelBounds": {
+        "x": 182,
+        "y": 50,
+        "width": 34,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.history.redo",
+      "label": "Redo",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 68,
+      "height": 30,
+      "labelBounds": {
+        "x": 254,
+        "y": 50.5,
+        "width": 31,
+        "height": 18
+      },
+      "labelWidth": 31,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -108,109 +205,12 @@
         }
       ],
       "pixelContrast": 12.076,
-      "pixelInkCount": 175,
+      "pixelInkCount": 161,
       "pixelBounds": {
-        "x": 175,
-        "y": 51,
-        "width": 35,
-        "height": 17
-      }
-    },
-    {
-      "controlId": "unibrowser.control.history.redo",
-      "label": "Redo",
-      "classes": [
-        "ui-command",
-        "cm-cap-supported"
-      ],
-      "capabilityState": "supported",
-      "enabled": true,
-      "disabledReason": null,
-      "width": 68.8125,
-      "height": 30,
-      "labelBounds": {
-        "x": 247.078125,
-        "y": 51.5,
-        "width": 31.8125,
-        "height": 16
-      },
-      "labelWidth": 31.8125,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(233, 237, 239)",
-      "labelForeground": "rgb(233, 237, 239)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 13.231816864242587,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 12.501,
-      "pixelInkCount": 191,
-      "pixelBounds": {
-        "x": 247,
-        "y": 51,
-        "width": 32,
-        "height": 17
+        "x": 254,
+        "y": 50,
+        "width": 31,
+        "height": 19
       }
     },
     {
@@ -223,403 +223,15 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 92,
+      "width": 93,
       "height": 30,
       "labelBounds": {
-        "x": 348.890625,
-        "y": 51.5,
-        "width": 55,
-        "height": 16
-      },
-      "labelWidth": 55,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(233, 237, 239)",
-      "labelForeground": "rgb(233, 237, 239)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 13.231816864242587,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 13.232,
-      "pixelInkCount": 334,
-      "pixelBounds": {
-        "x": 348,
-        "y": 51,
+        "x": 355,
+        "y": 50.5,
         "width": 56,
-        "height": 17
-      }
-    },
-    {
-      "controlId": "unibrowser.control.pdf.underline",
-      "label": "Underline",
-      "classes": [
-        "ui-command",
-        "unsupported"
-      ],
-      "capabilityState": "unsupported",
-      "enabled": false,
-      "disabledReason": "Text markup needs PDF text-range coordinate support.",
-      "width": 98.203125,
-      "height": 30,
-      "labelBounds": {
-        "x": 441.890625,
-        "y": 51.5,
-        "width": 61.203125,
-        "height": 16
+        "height": 18
       },
-      "labelWidth": 61.203125,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(174, 186, 192)",
-      "labelForeground": "rgb(174, 186, 192)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 7.857114891654249,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 7.857,
-      "pixelInkCount": 320,
-      "pixelBounds": {
-        "x": 441,
-        "y": 51,
-        "width": 63,
-        "height": 17
-      }
-    },
-    {
-      "controlId": "unibrowser.control.pdf.strikethrough",
-      "label": "Strike",
-      "classes": [
-        "ui-command",
-        "unsupported"
-      ],
-      "capabilityState": "unsupported",
-      "enabled": false,
-      "disabledReason": "Text markup needs PDF text-range coordinate support.",
-      "width": 71.84375,
-      "height": 30,
-      "labelBounds": {
-        "x": 541.09375,
-        "y": 51.5,
-        "width": 34.84375,
-        "height": 16
-      },
-      "labelWidth": 34.84375,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(174, 186, 192)",
-      "labelForeground": "rgb(174, 186, 192)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 7.857114891654249,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 7.417,
-      "pixelInkCount": 202,
-      "pixelBounds": {
-        "x": 541,
-        "y": 51,
-        "width": 35,
-        "height": 17
-      }
-    },
-    {
-      "controlId": "unibrowser.control.pdf.page",
-      "label": "1 / 3",
-      "classes": [
-        "ui-command",
-        "cm-cap-supported"
-      ],
-      "capabilityState": "supported",
-      "enabled": true,
-      "disabledReason": null,
-      "width": 63,
-      "height": 30,
-      "labelBounds": {
-        "x": 645.9375,
-        "y": 51.5,
-        "width": 26,
-        "height": 16
-      },
-      "labelWidth": 26,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(233, 237, 239)",
-      "labelForeground": "rgb(233, 237, 239)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 13.231816864242587,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-normal"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups",
-            "cm-overflow-active"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 13.112,
-      "pixelInkCount": 113,
-      "pixelBounds": {
-        "x": 645,
-        "y": 51,
-        "width": 27,
-        "height": 17
-      }
-    },
-    {
-      "controlId": "unibrowser.control.pdf.viewZoom",
-      "label": "133%",
-      "classes": [
-        "ui-command",
-        "cm-cap-supported"
-      ],
-      "capabilityState": "supported",
-      "enabled": true,
-      "disabledReason": null,
-      "width": 71,
-      "height": 30,
-      "labelBounds": {
-        "x": 709.9375,
-        "y": 51.5,
-        "width": 34,
-        "height": 16
-      },
-      "labelWidth": 34,
+      "labelWidth": 56,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -690,33 +302,33 @@
         }
       ],
       "pixelContrast": 11.955,
-      "pixelInkCount": 203,
+      "pixelInkCount": 287,
       "pixelBounds": {
-        "x": 709,
-        "y": 51,
-        "width": 35,
-        "height": 17
+        "x": 355,
+        "y": 50,
+        "width": 56,
+        "height": 19
       }
     },
     {
-      "controlId": "unibrowser.control.pdf.export",
-      "label": "Export PDF",
+      "controlId": "unibrowser.control.pdf.underline",
+      "label": "Underline",
       "classes": [
         "ui-command",
         "unsupported"
       ],
       "capabilityState": "unsupported",
       "enabled": false,
-      "disabledReason": "Export PDF uses printable HTML (text, Markdown, or DOCX preview)",
-      "width": 106.203125,
+      "disabledReason": "Text markup needs PDF text-range coordinate support.",
+      "width": 96,
       "height": 30,
       "labelBounds": {
-        "x": 813.9375,
-        "y": 51.5,
-        "width": 69.203125,
-        "height": 16
+        "x": 449,
+        "y": 50.5,
+        "width": 59,
+        "height": 18
       },
-      "labelWidth": 69.203125,
+      "labelWidth": 59,
       "iconWidth": 16,
       "opacity": "1",
       "filter": "none",
@@ -786,13 +398,401 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 7.857,
-      "pixelInkCount": 362,
+      "pixelContrast": 7.269,
+      "pixelInkCount": 267,
       "pixelBounds": {
-        "x": 813,
-        "y": 51,
-        "width": 71,
-        "height": 17
+        "x": 449,
+        "y": 50,
+        "width": 59,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.pdf.strikethrough",
+      "label": "Strike",
+      "classes": [
+        "ui-command",
+        "unsupported"
+      ],
+      "capabilityState": "unsupported",
+      "enabled": false,
+      "disabledReason": "Text markup needs PDF text-range coordinate support.",
+      "width": 71,
+      "height": 30,
+      "labelBounds": {
+        "x": 546,
+        "y": 50.5,
+        "width": 34,
+        "height": 18
+      },
+      "labelWidth": 34,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(174, 186, 192)",
+      "labelForeground": "rgb(174, 186, 192)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 7.857114891654249,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 7.187,
+      "pixelInkCount": 168,
+      "pixelBounds": {
+        "x": 546,
+        "y": 50,
+        "width": 34,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.pdf.page",
+      "label": "1 / 3",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 62,
+      "height": 30,
+      "labelBounds": {
+        "x": 650,
+        "y": 50.5,
+        "width": 25,
+        "height": 18
+      },
+      "labelWidth": 25,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 10.879,
+      "pixelInkCount": 81,
+      "pixelBounds": {
+        "x": 650,
+        "y": 50,
+        "width": 25,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.pdf.viewZoom",
+      "label": "133%",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 69,
+      "height": 30,
+      "labelBounds": {
+        "x": 713,
+        "y": 50.5,
+        "width": 32,
+        "height": 18
+      },
+      "labelWidth": 32,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 10.879,
+      "pixelInkCount": 164,
+      "pixelBounds": {
+        "x": 713,
+        "y": 50,
+        "width": 32,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.pdf.export",
+      "label": "Export PDF",
+      "classes": [
+        "ui-command",
+        "unsupported"
+      ],
+      "capabilityState": "unsupported",
+      "enabled": false,
+      "disabledReason": "Export PDF uses printable HTML (text, Markdown, or DOCX preview)",
+      "width": 104,
+      "height": 30,
+      "labelBounds": {
+        "x": 815,
+        "y": 50.5,
+        "width": 67,
+        "height": 18
+      },
+      "labelWidth": 67,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(174, 186, 192)",
+      "labelForeground": "rgb(174, 186, 192)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 7.857114891654249,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 7.269,
+      "pixelInkCount": 287,
+      "pixelBounds": {
+        "x": 815,
+        "y": 50,
+        "width": 67,
+        "height": 19
       }
     }
   ],
@@ -801,11 +801,11 @@
     "segments": [
       {
         "id": "status-ai-visibility",
-        "label": "AI: Read",
+        "label": "AI: hidden",
         "bounds": {
-          "x": 248.15625,
+          "x": 243.546875,
           "y": 777.5,
-          "width": 40.71875,
+          "width": 52,
           "height": 17
         },
         "foreground": "rgb(33, 79, 101)",
@@ -813,12 +813,12 @@
         "contrast": 7.031301929954518,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 5.088,
-        "pixelInkCount": 188,
+        "pixelContrast": 4.993,
+        "pixelInkCount": 233,
         "pixelBounds": {
-          "x": 248,
+          "x": 243,
           "y": 777,
-          "width": 41,
+          "width": 53,
           "height": 18
         }
       },
@@ -826,7 +826,7 @@
         "id": "status-zoom-label",
         "label": "133%",
         "bounds": {
-          "x": 300.875,
+          "x": 307.546875,
           "y": 777.5,
           "width": 28,
           "height": 17
@@ -836,10 +836,10 @@
         "contrast": 12.68246640479958,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.628,
-        "pixelInkCount": 143,
+        "pixelContrast": 6.329,
+        "pixelInkCount": 139,
         "pixelBounds": {
-          "x": 300,
+          "x": 307,
           "y": 777,
           "width": 29,
           "height": 18
@@ -849,7 +849,7 @@
         "id": "status-context",
         "label": "Commands: PDF Annotation (auto)",
         "bounds": {
-          "x": 577.03125,
+          "x": 579.09375,
           "y": 777,
           "width": 160,
           "height": 18
@@ -859,10 +859,10 @@
         "contrast": 12.68246640479958,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 11.293,
-        "pixelInkCount": 694,
+        "pixelContrast": 10.855,
+        "pixelInkCount": 695,
         "pixelBounds": {
-          "x": 577,
+          "x": 579,
           "y": 777,
           "width": 161,
           "height": 18
@@ -872,7 +872,7 @@
         "id": "status-reading",
         "label": "Page 1 of 3",
         "bounds": {
-          "x": 749.03125,
+          "x": 751.09375,
           "y": 777,
           "width": 56.25,
           "height": 18
@@ -885,7 +885,7 @@
         "pixelContrast": 9.198,
         "pixelInkCount": 273,
         "pixelBounds": {
-          "x": 749,
+          "x": 751,
           "y": 777,
           "width": 57,
           "height": 18

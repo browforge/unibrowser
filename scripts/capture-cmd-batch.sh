@@ -5,6 +5,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 OUT="$ROOT/docs/screenshots/cmd-batch"
 mkdir -p "$OUT"
 BIN="$ROOT/target/release/unibrowser-desktop"
@@ -15,6 +17,7 @@ capture() {
   local open_path="$3"
   local tmp="$OUT/.${name}.png"
   rm -f "$tmp"
+  capture_config_prepare
   xvfb-run -a -s "-screen 0 1600x1000x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \

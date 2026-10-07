@@ -6,6 +6,8 @@ cd "$ROOT"
 (cd "$ROOT/crates/unibrowser-desktop" && npm run build)
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 # shellcheck source=capture-vqa-common.sh
 source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/ui-15"
@@ -20,6 +22,7 @@ capture() {
   local dimensions="$3"
   local tmp="$OUT/.${name}.png"
   rm -f "$tmp"
+  capture_config_prepare
   xvfb-run -a -s "-screen 0 ${dimensions}x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
@@ -28,6 +31,7 @@ capture() {
     UNIBROWSER_DOC_CAPTURE_SIZE="$dimensions" \
     UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},standard-contrast,scale-100,ui15-unibrow-title,ui16-live-preview" \
     "$BIN" --open "$PACK/sample.unibrow" --doc-capture "$tmp"
+  capture_config_cleanup
   mv "$tmp" "$OUT/${name}.png"
   finalise_cm_capture "$OUT" "$name"
   local actual

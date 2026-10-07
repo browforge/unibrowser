@@ -32,15 +32,16 @@ capture_scene() {
 capture_new_tab() {
   for theme in light dark; do
     local tmp="$OUT/.new-tab-${theme}-1280.png"
+    capture_config_prepare
     xvfb-run -a -s "-screen 0 1280x800x24" env \
       WEBKIT_DISABLE_DMABUF_RENDERER=1 \
       WEBKIT_DISABLE_COMPOSITING_MODE=1 \
       UNIBROWSER_REPO_ROOT="$ROOT" \
       UNIBROWSER_SAFE_MODE=1 \
-      UNIBROWSER_DOC_CAPTURE=1 \
       UNIBROWSER_DOC_CAPTURE_SIZE="1280x800" \
       UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},standard-contrast,scale-100" \
       "$BIN" --doc-capture "$tmp"
+    capture_config_cleanup
     mv "$tmp" "$OUT/new-tab-${theme}-1280.png"
     finalise_cm_capture "$OUT" "new-tab-${theme}-1280"
     [[ "$(identify -format '%wx%h' "$OUT/new-tab-${theme}-1280.png")" == "1280x800" ]]

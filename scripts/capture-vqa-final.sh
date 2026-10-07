@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=capture-vqa-common.sh
 source "$ROOT/scripts/capture-vqa-common.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 
 OUT="$ROOT/docs/screenshots/vqa-final"
 MOCK="$ROOT/docs/design/mockups/quiet-utility"
@@ -29,13 +31,15 @@ capture_pair() {
 capture_new_tab_pair() {
   for theme in light dark; do
     local tmp="$OUT/.new-tab-${theme}.png"
-    xvfb-run -a -s "-screen 0 1280x800x24" env \
+    capture_config_prepare
+  xvfb-run -a -s "-screen 0 1280x800x24" env \
       WEBKIT_DISABLE_DMABUF_RENDERER=1 \
       WEBKIT_DISABLE_COMPOSITING_MODE=1 \
       UNIBROWSER_REPO_ROOT="$ROOT" \
       UNIBROWSER_SAFE_MODE=1 \
       UNIBROWSER_DEMO_STATE="theme-${theme},rail-collapsed,capture-ready" \
       "$BIN" --doc-capture "$tmp"
+  capture_config_cleanup
     mv "$tmp" "$OUT/new-tab-${theme}.png"
     convert "$OUT/new-tab-${theme}.png" \
       -resize 1280x800! -strip "$OUT/new-tab-${theme}.png"

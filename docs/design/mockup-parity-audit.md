@@ -19,9 +19,9 @@ the opened parity composites before assigning grades.
 | UI-23 New tab | `f9019a815072c9047b2cf35b45b4dfd5f983eedfb9a34cb5a951a44d4f555df9` | Open file is the filled accent action beside two flat-bordered secondary actions (Open folder, Start a new project). Four known recent files use quiet text type marks. Downloads are unfilled ruled rows; the first has a real 64% progress bar and percentage, and the second is complete. No unknown fixture appears. | Pass |
 | UI-24 Workshop | `f70caf2c6f41599fe41666ef7408eff49ddbb000a257c0442c10928bcbb0d10a` | The programme frame contains a selected lower third. The Inspector header reads Lower third / Title clip, track 2 above Heading, Subtitle, Duration, and Position. A timecode transport sits below the stage. Video/Image, Title, and Audio/MIDI tracks are all fully visible without scrolling; light theme uses pale lanes and clips. | Pass |
 | UI-25 PDF | `284aa736ea53c00370c24c2ed1a79aced6b073f95fc312039aab1512456df843` | Pages is on the left, the white page is centred, and Annotations is on the right. The yellow annotation has the selected outline and a populated Opening summary inspector; the other area annotation is visibly subdued and indexed separately. | Pass |
-| UI-26 File browser | `3fcce168abce122aafb3ec43dc4942356d85c67a25f910a46c87ea5c38793f64` | Two-row chrome only (no bookmark bar under the address field). Places shows RECENT FILES and PINNED section labels; `sample.svg` is selected with the 1 selected hint in the status bar, not a content banner. Places, list, and Preview are visible; `unknown.ubunknown` is absent from the demo-pack listing. | Pass |
+| UI-26 File browser | `cf8ce7fd0ac0c0ba3cbcef539cbb76f8208986d4e653e0cde7eab8a469ac2769` | Two-row chrome only (no bookmark bar under the address field). Places shows RECENT FILES and PINNED section labels; `sample.svg` is selected with the 1 selected hint in the status bar, not a content banner. Places, list, and Preview are visible; `unknown.ubunknown` is absent from the demo-pack listing. Captures use an isolated empty config dir (fresh defaults). | Pass |
 | UI-27 Document workbench | `505f9bb90e548f9b92e6950648a84a8cb28230174859a4389c2f300600ecd9ff` | The editor occupies the main region, AI Assistant is docked at right with document context and composer, and Problems is docked below with three readable rows. Region boundaries are joined and no third local document toolbar appears. | Pass |
-| UI-28 Mod Portal | `74fe353a2645b4e7e13a7723d16f78f7ebad214a93f42dc3933f91cf40bef4c3` | Discover for `ext=step` shows one CAD file support card with human copy, Licence Apache-2.0, Reads local files only, a primary Install control, and contribution IDs tucked in Contribution details. No ubunknown tab label or handler strings appear in the card body. | Pass |
+| UI-28 Mod Portal | `a5b90e8138b7481c629658c15721d62d7f5cc710bbb9bfb3cb9e7d9686e3c05d` | Discover for `ext=step` uses the plain intro sentence about local mods and network consent. The CAD file support card shows Licence Apache-2.0, Reads local files only, a teal primary Install control sized like New tab actions, and a closed Contribution details disclosure (IDs hidden until opened). | Pass |
 
 The detailed sections below record the pre-ticket baseline at `dc46d54`; they
 are retained as the discrepancy history that produced UI-21 through UI-28.
@@ -260,8 +260,9 @@ guard samples every segment against its rendered bar background. All pass
 
 ## GPT-ready drift summary (2026-10-07)
 
-UI-21 through UI-28 and UI-29 acceptance shots now pass on fresh captures at
-`fe3476e` (layout fix `673d270` for mod card overlap). Remaining **Drift** is
+UI-21 through UI-28 and UI-29 acceptance shots now pass on fresh captures with
+isolated per-run `XDG_CONFIG_HOME` (no `UNIBROWSER_DOC_CAPTURE` prefs forks).
+Remaining **Drift** is
 cosmetic or schematic-only; nothing blocks the Quiet Utility parity tickets.
 
 | Surface | Drift (still unlike mockup, acceptable) |

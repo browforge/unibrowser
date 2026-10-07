@@ -6,6 +6,8 @@ cd "$ROOT"
 (cd "$ROOT/crates/unibrowser-desktop" && npm run build)
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 # shellcheck source=capture-vqa-common.sh
 source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/ui-19"
@@ -19,6 +21,7 @@ capture() {
   local theme="$1"
   local name="high-contrast-${theme}-150-1280"
   local tmp="$OUT/.high-contrast-${theme}-150-1280.png"
+  capture_config_prepare
   xvfb-run -a -s "-screen 0 1280x800x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
@@ -27,6 +30,7 @@ capture() {
     UNIBROWSER_DOC_CAPTURE_SIZE="1280x800" \
     UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},high-contrast,scale-150,ui19-focus-visible" \
     "$BIN" --open "$FIXTURE" --doc-capture "$tmp"
+  capture_config_cleanup
   mv "$tmp" "$OUT/high-contrast-${theme}-150-1280.png"
   finalise_cm_capture "$OUT" "$name"
   [[ "$(identify -format '%wx%h' "$OUT/high-contrast-${theme}-150-1280.png")" == "1280x800" ]]

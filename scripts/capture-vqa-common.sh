@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 BIN="$ROOT/target/release/unibrowser-desktop"
 
 finalise_cm_capture() {
@@ -33,16 +35,20 @@ capture_vqa() {
   rm -f "$tmp"
   rm -f "$outdir/.${name}.cm.json"
   echo "=== capture ${name} (${geometry}) ==="
+  capture_config_prepare
   # Webview doc-capture clears CM tooltips and focus before writing the PNG.
-  xvfb-run -a -s "-screen 0 ${geometry}x24" env \
+  if ! xvfb-run -a -s "-screen 0 ${geometry}x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
     UNIBROWSER_REPO_ROOT="$ROOT" \
     UNIBROWSER_SAFE_MODE=1 \
-    UNIBROWSER_DOC_CAPTURE=1 \
     UNIBROWSER_DOC_CAPTURE_SIZE="${geometry}" \
     UNIBROWSER_DEMO_STATE="$demo" \
-    "$BIN" --open "$open_path" --doc-capture "$tmp"
+    "$BIN" --open "$open_path" --doc-capture "$tmp"; then
+    capture_config_cleanup
+    return 1
+  fi
+  capture_config_cleanup
   mv "$tmp" "$outdir/${name}.png"
   finalise_cm_capture "$outdir" "$name"
   echo "wrote $outdir/${name}.png"

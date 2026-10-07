@@ -446,6 +446,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn load_preferences_source_has_no_doc_capture_env_fork() {
+        let src = include_str!("preferences.rs");
+        let body = src
+            .split("pub fn load_preferences()")
+            .nth(1)
+            .and_then(|rest| rest.split("pub fn save_preferences").next())
+            .unwrap_or("");
+        assert!(
+            !body.contains("UNIBROWSER_DOC_CAPTURE"),
+            "load_preferences must not branch on doc-capture env; use isolated XDG config for captures"
+        );
+    }
+
+    #[test]
     fn checklist_step_dedupes() {
         let mut p = Preferences::default();
         complete_checklist_step(&mut p, "palette");
@@ -602,23 +616,14 @@ pub fn reset_onboarding_prefs(prefs: &mut Preferences) {
 
 pub fn load_preferences() -> Preferences {
     let path = preferences_file_path();
-    let mut prefs = if let Some(path) = path {
+    if let Some(path) = path {
         if let Ok(data) = fs::read_to_string(&path) {
             if let Ok(p) = serde_json::from_str(&data) {
-                p
-            } else {
-                Preferences::default()
+                return p;
             }
-        } else {
-            Preferences::default()
         }
-    } else {
-        Preferences::default()
-    };
-    if std::env::var("UNIBROWSER_DOC_CAPTURE").as_deref() == Ok("1") {
-        prefs.bookmark_bar_enabled = false;
     }
-    prefs
+    Preferences::default()
 }
 
 pub fn save_preferences(prefs: &Preferences) -> Result<(), String> {

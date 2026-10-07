@@ -3,6 +3,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=scripts/ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 OUT_DIR="$ROOT/docs/screenshots/ui-batch-3c"
 MOCK_DIR="$ROOT/docs/design/mockups/quiet-utility"
 BIN="$ROOT/target/release/unibrowser-desktop"
@@ -24,14 +26,15 @@ capture() {
     args+=(--open "$open1")
   fi
   echo "Capturing $out demo=$demo"
+  capture_config_prepare
   xvfb-run -a -s "-screen 0 1280x800x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
     UNIBROWSER_SAFE_MODE=1 \
-    UNIBROWSER_DOC_CAPTURE=1 \
     UNIBROWSER_DEMO_STATE="$demo" \
     UNIBROWSER_REPO_ROOT="$ROOT" \
     timeout 180 "$BIN" "${args[@]}"
+  capture_config_cleanup
   convert "$tmp" -resize 1280x800! -strip "$out"
   rm -f "$tmp"
   local bytes

@@ -6,6 +6,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/docs/screenshots"
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 BIN="$ROOT/target/release/unibrowser-desktop"
 DEMO="$ROOT/examples/demo-pack"
 FIX="$ROOT/e2e/fixtures"
@@ -43,14 +45,15 @@ capture_scene() {
     args+=(--open "$open_path")
   fi
 
+  capture_config_prepare
   xvfb-run -a -s "-screen 0 1280x800x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
     UNIBROWSER_SAFE_MODE=1 \
-    UNIBROWSER_DOC_CAPTURE=1 \
     UNIBROWSER_DEMO_STATE="$demo_state" \
     UNIBROWSER_REPO_ROOT="$ROOT" \
     timeout 120 "$BIN" "${args[@]}"
+  capture_config_cleanup
 
   convert "$tmp" -resize 1200x -strip -quality 82 "$out"
   rm -f "$tmp"

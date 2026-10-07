@@ -6,6 +6,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-isolated-config.sh
+source "$ROOT/scripts/capture-isolated-config.sh"
 # shellcheck source=capture-vqa-common.sh
 source "$ROOT/scripts/capture-vqa-common.sh"
 
@@ -25,6 +27,7 @@ capture() {
   fi
   local tmp="$OUT/.${name}.png"
   rm -f "$tmp"
+  capture_config_prepare
   xvfb-run -a -s "-screen 0 1280x800x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
@@ -33,6 +36,7 @@ capture() {
     UNIBROWSER_DOC_CAPTURE_SIZE="1280x800" \
     UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},${contrast},scale-100${extra_state:+,$extra_state}" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
+  capture_config_cleanup
   mv "$tmp" "$OUT/${name}.png"
   finalise_cm_capture "$OUT" "$name"
   local actual

@@ -5881,23 +5881,35 @@ body.content-fullscreen #unknown-file-banner {
 }
 
 .mod-result-details {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-size: 11px;
   color: var(--ub-label, var(--ub-text-2, #9aa5ac));
+  grid-column: 1 / -1;
 }
 
 .mod-result-details summary {
   cursor: pointer;
   list-style: none;
+  display: inline-block;
+  color: var(--ub-accent, #3d9fd4);
+  font-weight: 500;
+}
+
+.mod-result-details summary::before {
+  content: "▸ ";
+  font-size: 10px;
+}
+
+.mod-result-details[open] summary::before {
+  content: "▾ ";
 }
 
 .mod-result-details summary::-webkit-details-marker {
   display: none;
 }
 
-.mod-result-details {
-  grid-column: 1 / -1;
-  grid-row: 3;
+.mod-result-details:not([open]) .mod-contribution-ids {
+  display: none;
 }
 
 .mod-contribution-ids {
@@ -5912,8 +5924,40 @@ body.content-fullscreen #unknown-file-banner {
   grid-row: 2;
 }
 
-.mod-result-card--suggestion .mod-card-footer {
+.mod-result-card--suggestion .mod-result-meta {
+  grid-row: 3;
+}
+
+.mod-result-card--suggestion .mod-result-details {
   grid-row: 4;
+}
+
+.mod-result-card--suggestion .mod-card-footer {
+  grid-row: 5;
+  margin-top: 4px;
+}
+
+.mod-card-install--featured {
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--ub-accent, #196f93);
+  background: var(--ub-accent, #196f93);
+  color: #fff;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.mod-card-install--featured:hover,
+.mod-card-install--featured:focus-visible {
+  border-color: var(--ub-accent-hover, #145a75);
+  background: var(--ub-accent-hover, #145a75);
+}
+
+[data-theme="light"] .mod-card-install--featured {
+  border-color: var(--ub-accent, #196f93);
+  background: var(--ub-accent, #196f93);
+  color: #fff;
 }
 
 .mod-card-action {

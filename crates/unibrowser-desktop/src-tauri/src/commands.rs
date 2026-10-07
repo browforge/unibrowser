@@ -1538,7 +1538,7 @@ fn active_mod_portal(tab: Option<&unibrowser_engine::tabs::Tab>) -> Option<ModPo
             };
             return Some(ModPortalDto {
                 title: "Mod portal".into(),
-                message: "Install support for formats you need. Open VSX search + VSIX install (V1 command metadata; no extension host).".into(),
+                message: "Add support for new file types. Mods run locally and ask before using the network.".into(),
                 suggestions,
                 sideload_hint: "Install from file… (.vsix, .ubmod) — always allowed.".into(),
             });
