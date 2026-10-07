@@ -89,6 +89,14 @@ stop_surface() {
   xdotool sleep 0.3
 }
 
+close_floating_toolbar() {
+  local floating
+  while read -r floating; do
+    [[ -n "$floating" ]] && xdotool windowclose "$floating"
+  done < <(xdotool search --onlyvisible --name "Unibrowser commands" 2>/dev/null || true)
+  xdotool sleep 0.3
+}
+
 shot() {
   local name="$1"
   local x="$2"
@@ -145,8 +153,7 @@ capture_states() {
 
 start_surface "ui17-mod-portal" "$ROOT/examples/demo-pack/sample.step"
 
-xdotool mousemove 70 134 click 1
-xdotool sleep 0.3
+close_floating_toolbar
 
 capture_states "01-cm" "Command Manager" 115 58 0 28
 capture_states "02-tab" "Document tab" 235 18 80 0
@@ -159,7 +166,7 @@ stop_surface
 
 cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
 start_surface "settings" "$ROOT/examples/demo-pack/sample.txt"
-xdotool mousemove 70 134 click 1
+close_floating_toolbar
 xdotool sleep 1
 capture_states "08-switch" "Switch" 980 469 850 429
 capture_states "09-select" "Select" 1080 469 900 429
@@ -181,7 +188,7 @@ stop_surface
 # production tooltip path that keyboard focus uses for capability reasons.
 cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
 start_surface "" "$ROOT/examples/demo-pack/sample.svg"
-xdotool mousemove 70 134 click 1
+close_floating_toolbar
 xdotool mousemove 330 70
 xdotool sleep 1
 shot "00-disabled-reason" 180 25 820 180
