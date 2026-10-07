@@ -172,7 +172,12 @@ import { exposeShellChromeAudit, runShellChromeAudit } from "./shellChromeAudit"
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
-import { clearFilesPanelContext, handleFilesKeyDown, renderFilesPanel } from "./filesPanel";
+import {
+  clearFilesPanelContext,
+  handleFilesKeyDown,
+  renderFilesPanel,
+  runFilesCommand,
+} from "./filesPanel";
 import { pathsFromDataTransfer } from "./filesDrag";
 import { initGlobalFind, toggleGlobalFind } from "./globalFind";
 import {
@@ -1319,61 +1324,12 @@ async function renderSessionOptIn() {
 }
 
 function renderBookmarkBar(
-  enabled: boolean,
-  pins: PinnedLocationDto[],
-  quickLinks: BookmarkQuickLinkDto[] = [],
+  _enabled: boolean,
+  _pins: PinnedLocationDto[],
+  _quickLinks: BookmarkQuickLinkDto[] = [],
 ) {
   bookmarkBar.innerHTML = "";
-  if (!enabled) {
-    bookmarkBar.classList.add("hidden");
-    return;
-  }
-  bookmarkBar.classList.remove("hidden");
-  pins.forEach((pin) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "bookmark-link";
-    if (pin.id === "home") {
-      btn.textContent = t("bookmark.home");
-    } else if (pin.id === "download-manager") {
-      btn.textContent = t("bookmark.downloadManager");
-    } else if (pin.id === "downloads") {
-      btn.textContent = t("bookmark.downloads");
-    } else if (pin.id === "new-project") {
-      btn.textContent = t("bookmark.project");
-    } else if (pin.id === "settings") {
-      btn.textContent = t("bookmark.settings");
-    } else {
-      btn.textContent = pin.label;
-    }
-    btn.title = pin.location;
-    btn.onclick = () => {
-      if (pin.location === "unibrowser://action/new-project") {
-        void openNewProjectFromNav();
-        return;
-      }
-      omnibox.value = pin.location;
-      navigateOmnibox();
-    };
-    bookmarkBar.appendChild(btn);
-  });
-  quickLinks.forEach((link) => {
-    const url = link.url.trim();
-    if (!url) {
-      return;
-    }
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "bookmark-link quick-link";
-    const label = link.label.trim();
-    btn.textContent = label || url;
-    btn.title = url;
-    btn.onclick = () => {
-      omnibox.value = url;
-      navigateOmnibox();
-    };
-    bookmarkBar.appendChild(btn);
-  });
+  bookmarkBar.classList.add("hidden");
 }
 
 function renderRecentFiles(entries: RecentFileDto[]) {
@@ -1616,6 +1572,9 @@ async function processCommandResult(msg: string, commandId?: string) {
 }
 
 async function runUiCommand(commandId: string) {
+  if (await runFilesCommand(commandId)) {
+    return;
+  }
   if (commandId === "ai-assistant.toggle") {
     const prefs = await invoke<{ panel_visible: boolean }>("get_ai_assistant_prefs");
     await setAiPanelVisible(!prefs.panel_visible);

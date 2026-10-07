@@ -16,18 +16,6 @@ export type { DirEntry, FilesViewDto } from "./filesPanelTypes";
 const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp"]);
 const IMAGE_PREVIEW_EXT = new Set([...IMAGE_EXT, "svg"]);
 
-function pathIsConvertibleImage(path: string): boolean {
-  const dot = path.lastIndexOf(".");
-  if (dot < 0) {
-    return false;
-  }
-  return IMAGE_EXT.has(path.slice(dot + 1).toLowerCase());
-}
-
-function selectionAllConvertibleImages(paths: string[]): boolean {
-  return paths.length > 0 && paths.every(pathIsConvertibleImage);
-}
-
 const THUMB_MAX_BYTES = 8_000_000;
 const THUMB_MAX_ACTIVE = 24;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -422,11 +410,12 @@ async function showPropertiesPanel(path: string, deps: FilesPanelDeps) {
     addRow(t("files.propPath"), props.path);
     panel.appendChild(dl);
 
-    const close = document.createElement("button");
-    close.type = "button";
-    close.textContent = t("files.deleteCancel");
-    close.onclick = () => clearSidePanel(panel);
-    panel.appendChild(close);
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "files-side-primary";
+    open.textContent = "Open";
+    open.onclick = () => void openPath(props.path, deps);
+    panel.appendChild(open);
   } catch (err) {
     panel.textContent = String(err);
   }
@@ -1131,7 +1120,10 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   const orderBtn = document.createElement("button");
   orderBtn.type = "button";
   orderBtn.className = "files-order";
-  orderBtn.textContent = deps.filesView.sort_ascending ? t("files.ascending") : t("files.descending");
+  orderBtn.textContent = deps.filesView.sort_ascending ? "Ascending" : "Descending";
+  orderBtn.title = deps.filesView.sort_ascending
+    ? "Sort ascending. Activate for descending."
+    : "Sort descending. Activate for ascending.";
   const hiddenCb = document.createElement("input");
   hiddenCb.type = "checkbox";
   hiddenCb.id = "files-show-hidden";
@@ -1156,35 +1148,6 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   toolbar.appendChild(orderBtn);
   toolbar.appendChild(hiddenCb);
   toolbar.appendChild(hiddenLabel);
-
-  const createActions = document.createElement("div");
-  createActions.className = "files-create-actions";
-  const newFolderBtn = document.createElement("button");
-  newFolderBtn.type = "button";
-  newFolderBtn.textContent = t("files.newFolder");
-  newFolderBtn.onclick = () => {
-    showCreatePanel("folder", deps, () => renderFilesPanel(host, deps));
-  };
-  const newFileBtn = document.createElement("button");
-  newFileBtn.type = "button";
-  newFileBtn.textContent = t("files.newFile");
-  newFileBtn.onclick = () => {
-    showCreatePanel("file", deps, () => renderFilesPanel(host, deps));
-  };
-  createActions.appendChild(newFolderBtn);
-  createActions.appendChild(newFileBtn);
-  const compressToolbar = document.createElement("button");
-  compressToolbar.type = "button";
-  compressToolbar.textContent = t("files.compress");
-  compressToolbar.disabled = selectedPaths.size === 0;
-  compressToolbar.onclick = () => {
-    if (!selectedPaths.size) {
-      return;
-    }
-    showCompressPanel([...selectedPaths], deps, () => renderFilesPanel(host, deps));
-  };
-  createActions.appendChild(compressToolbar);
-  toolbar.appendChild(createActions);
 
   content.appendChild(toolbar);
 
@@ -1213,117 +1176,10 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
   const bulkBar = document.createElement("div");
   bulkBar.className = "files-bulk-bar" + (selectedPaths.size ? "" : " hidden");
   const bulkLabel = document.createElement("span");
-  bulkLabel.textContent = t("files.selectedCount", { count: String(selectedPaths.size) });
+  bulkLabel.textContent = `${t("files.selectedCount", {
+    count: String(selectedPaths.size),
+  })}. Use Browse commands or the context menu for actions.`;
   bulkBar.appendChild(bulkLabel);
-
-  const openSel = document.createElement("button");
-  openSel.type = "button";
-  openSel.textContent = t("files.openSelected");
-  openSel.onclick = () => {
-    void openSelectedPaths([...selectedPaths], deps);
-  };
-  bulkBar.appendChild(openSel);
-
-  const copySel = document.createElement("button");
-  copySel.type = "button";
-  copySel.textContent = t("files.copySelectedPaths");
-  copySel.onclick = () => {
-    void copyText([...selectedPaths].join("\n"), () =>
-      showToast(t("status.pathCopied"), "info"),
-    );
-  };
-  bulkBar.appendChild(copySel);
-
-  const copyTo = document.createElement("button");
-  copyTo.type = "button";
-  copyTo.textContent = t("files.copyTo");
-  copyTo.onclick = () => {
-    showDestinationPicker("copy", [...selectedPaths], deps, () =>
-      renderFilesPanel(host, deps),
-    );
-  };
-  bulkBar.appendChild(copyTo);
-
-  const moveTo = document.createElement("button");
-  moveTo.type = "button";
-  moveTo.textContent = t("files.moveTo");
-  moveTo.onclick = () => {
-    showDestinationPicker("move", [...selectedPaths], deps, () =>
-      renderFilesPanel(host, deps),
-    );
-  };
-  bulkBar.appendChild(moveTo);
-
-  if (selectedPaths.size === 1) {
-    const propsBtn = document.createElement("button");
-    propsBtn.type = "button";
-    propsBtn.className = "files-properties-action";
-    propsBtn.textContent = t("files.properties");
-    propsBtn.onclick = () => {
-      void showPropertiesPanel([...selectedPaths][0], deps);
-    };
-    bulkBar.appendChild(propsBtn);
-  }
-
-  const zipBtn = document.createElement("button");
-  zipBtn.type = "button";
-  zipBtn.textContent = t("files.compress");
-  zipBtn.onclick = () => {
-    showCompressPanel([...selectedPaths], deps, () => renderFilesPanel(host, deps));
-  };
-  bulkBar.appendChild(zipBtn);
-
-  const selectedList = [...selectedPaths];
-  if (selectionAllConvertibleImages(selectedList)) {
-    const convertBtn = document.createElement("button");
-    convertBtn.type = "button";
-    convertBtn.textContent = t("files.convertImages");
-    convertBtn.onclick = () => {
-      const panel = document.createElement("div");
-      panel.className = "files-compress-panel";
-      const title = document.createElement("h3");
-      title.textContent = t("files.convertImagesTitle");
-      panel.appendChild(title);
-      const formatRow = document.createElement("div");
-      formatRow.className = "files-compress-row";
-      const pngBtn = document.createElement("button");
-      pngBtn.type = "button";
-      pngBtn.textContent = t("files.convertFormatPng");
-      const jpegBtn = document.createElement("button");
-      jpegBtn.type = "button";
-      jpegBtn.textContent = t("files.convertFormatJpeg");
-      const run = (format: string) => {
-        void invoke<string[]>("batch_convert_images", {
-          paths: selectedList,
-          format,
-        })
-          .then((out) => {
-            showToast(`Converted ${out.length} file(s)`, "info");
-            panel.remove();
-            renderFilesPanel(host, deps);
-          })
-          .catch((err) => showToast(String(err), "error"));
-      };
-      pngBtn.onclick = () => run("png");
-      jpegBtn.onclick = () => run("jpeg");
-      formatRow.appendChild(pngBtn);
-      formatRow.appendChild(jpegBtn);
-      panel.appendChild(formatRow);
-      content.appendChild(panel);
-    };
-    bulkBar.appendChild(convertBtn);
-  }
-
-  const delSel = document.createElement("button");
-  delSel.type = "button";
-  delSel.className = "files-bulk-delete";
-  delSel.textContent = t("files.deleteSelected");
-  delSel.onclick = () => {
-    showDeleteConfirm([...selectedPaths], deps, () => {
-      renderFilesPanel(host, deps);
-    });
-  };
-  bulkBar.appendChild(delSel);
   content.appendChild(bulkBar);
 
   const peekHost = document.createElement("div");
@@ -1600,4 +1456,100 @@ export function renderFilesPanel(host: HTMLElement, deps: FilesPanelDeps) {
 
 export function clearFilesPanelContext() {
   panelContext = null;
+}
+
+export async function runFilesCommand(commandId: string): Promise<boolean> {
+  if (!commandId.startsWith("unibrowser.browse.")) {
+    return false;
+  }
+  if (!panelContext) {
+    return true;
+  }
+  const { host, deps } = panelContext;
+  const selected = [...selectedPaths];
+  const requireSelection = () => {
+    if (selected.length > 0) {
+      return true;
+    }
+    showToast("Select a file or folder first.", "info");
+    return false;
+  };
+
+  switch (commandId) {
+    case "unibrowser.browse.newFolder":
+      showCreatePanel("folder", deps, () => renderFilesPanel(host, deps));
+      return true;
+    case "unibrowser.browse.newTextFile":
+      showCreatePanel("file", deps, () => renderFilesPanel(host, deps));
+      return true;
+    case "unibrowser.browse.open":
+      if (requireSelection()) {
+        await openSelectedPaths(selected, deps);
+      }
+      return true;
+    case "unibrowser.browse.copyPaths":
+      if (requireSelection()) {
+        await copyText(selected.join("\n"), () => showToast(t("status.pathCopied"), "info"));
+      }
+      return true;
+    case "unibrowser.browse.copyTo":
+    case "unibrowser.browse.moveTo":
+      if (requireSelection()) {
+        showDestinationPicker(
+          commandId.endsWith("copyTo") ? "copy" : "move",
+          selected,
+          deps,
+          () => renderFilesPanel(host, deps),
+        );
+      }
+      return true;
+    case "unibrowser.browse.rename":
+      if (selected.length !== 1) {
+        showToast("Select one item to rename.", "info");
+        return true;
+      }
+      renamingPath = selected[0];
+      renderFilesPanel(host, deps);
+      return true;
+    case "unibrowser.browse.compress":
+      if (requireSelection()) {
+        showCompressPanel(selected, deps, () => renderFilesPanel(host, deps));
+      }
+      return true;
+    case "unibrowser.browse.properties":
+      if (selected.length !== 1) {
+        showToast("Select one item to view properties.", "info");
+        return true;
+      }
+      await showPropertiesPanel(selected[0], deps);
+      return true;
+    case "unibrowser.browse.delete":
+      if (requireSelection()) {
+        showDeleteConfirm(selected, deps, () => renderFilesPanel(host, deps));
+      }
+      return true;
+    case "unibrowser.browse.sort": {
+      const sorts = ["name", "date", "size"];
+      const current = Math.max(0, sorts.indexOf(deps.filesView.sort));
+      await deps.persistFilesView({
+        ...deps.filesView,
+        sort: sorts[(current + 1) % sorts.length],
+      });
+      return true;
+    }
+    case "unibrowser.browse.sortDirection":
+      await deps.persistFilesView({
+        ...deps.filesView,
+        sort_ascending: !deps.filesView.sort_ascending,
+      });
+      return true;
+    case "unibrowser.browse.showHidden":
+      await deps.persistFilesView({
+        ...deps.filesView,
+        show_hidden: !deps.filesView.show_hidden,
+      });
+      return true;
+    default:
+      return true;
+  }
 }

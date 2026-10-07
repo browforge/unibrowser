@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use unibrowser_mod_api::{CapabilityState, WorkContext, control_ids};
+use unibrowser_mod_api::{control_ids, CapabilityState, WorkContext};
 
 use super::context::ResolutionContext;
 use super::provider::ProviderRegistry;
@@ -23,7 +23,12 @@ impl CapabilityResolver {
         command_id: &str,
         ctx: &ResolutionContext,
     ) -> CapabilityState {
-        if self.hidden_controls.get(control_id).copied().unwrap_or(false) {
+        if self
+            .hidden_controls
+            .get(control_id)
+            .copied()
+            .unwrap_or(false)
+        {
             return CapabilityState::HiddenByUser;
         }
         if save_commands_always_supported(command_id) {
@@ -44,7 +49,12 @@ impl CapabilityResolver {
         if matches!(cap, CapabilityState::HiddenByUser) {
             return cap;
         }
-        if self.hidden_controls.get(control_id).copied().unwrap_or(false) {
+        if self
+            .hidden_controls
+            .get(control_id)
+            .copied()
+            .unwrap_or(false)
+        {
             CapabilityState::HiddenByUser
         } else {
             cap
@@ -105,9 +115,19 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
             reason: "CAD tools are not available in this build.".into(),
         },
         WorkContext::Start => start_capability(control_id),
-        WorkContext::Browse | WorkContext::Web => CapabilityState::Unsupported {
+        WorkContext::Browse => browse_capability(control_id),
+        WorkContext::Web => CapabilityState::Unsupported {
             reason: "Open a document to use formatting commands.".into(),
         },
+    }
+}
+
+fn browse_capability(control_id: &str) -> CapabilityState {
+    if control_id.starts_with("unibrowser.control.browse.") {
+        return CapabilityState::Supported;
+    }
+    CapabilityState::Unsupported {
+        reason: "This command is not available in the file browser.".into(),
     }
 }
 

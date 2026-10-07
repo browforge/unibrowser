@@ -7,22 +7,18 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum CapabilityState {
     Supported,
-    Emulated {
-        provider_id: String,
-        note: String,
-    },
-    Unsupported {
-        reason: String,
-    },
+    Emulated { provider_id: String, note: String },
+    Unsupported { reason: String },
     HiddenByUser,
-    Locked {
-        reason: String,
-    },
+    Locked { reason: String },
 }
 
 impl CapabilityState {
     pub fn is_actionable(&self) -> bool {
-        matches!(self, CapabilityState::Supported | CapabilityState::Emulated { .. })
+        matches!(
+            self,
+            CapabilityState::Supported | CapabilityState::Emulated { .. }
+        )
     }
 
     pub fn unsupported_reason(&self) -> Option<&str> {
@@ -102,6 +98,19 @@ pub mod control_ids {
     pub const PDF_PAGE: &str = "unibrowser.control.pdf.page";
     pub const PDF_VIEW_ZOOM: &str = "unibrowser.control.pdf.viewZoom";
     pub const PDF_EXPORT: &str = "unibrowser.control.pdf.export";
+    pub const BROWSE_NEW_FOLDER: &str = "unibrowser.control.browse.newFolder";
+    pub const BROWSE_NEW_TEXT_FILE: &str = "unibrowser.control.browse.newTextFile";
+    pub const BROWSE_OPEN: &str = "unibrowser.control.browse.open";
+    pub const BROWSE_COPY_PATHS: &str = "unibrowser.control.browse.copyPaths";
+    pub const BROWSE_COPY_TO: &str = "unibrowser.control.browse.copyTo";
+    pub const BROWSE_MOVE_TO: &str = "unibrowser.control.browse.moveTo";
+    pub const BROWSE_RENAME: &str = "unibrowser.control.browse.rename";
+    pub const BROWSE_COMPRESS: &str = "unibrowser.control.browse.compress";
+    pub const BROWSE_PROPERTIES: &str = "unibrowser.control.browse.properties";
+    pub const BROWSE_DELETE: &str = "unibrowser.control.browse.delete";
+    pub const BROWSE_SORT: &str = "unibrowser.control.browse.sort";
+    pub const BROWSE_SORT_DIRECTION: &str = "unibrowser.control.browse.sortDirection";
+    pub const BROWSE_SHOW_HIDDEN: &str = "unibrowser.control.browse.showHidden";
 }
 
 pub mod family_ids {
@@ -114,6 +123,7 @@ pub mod family_ids {
     pub const PDF_ANNOTATION: &str = "unibrowser.family.pdf-annotation";
     pub const IMAGE_ADJUST: &str = "unibrowser.family.image-adjust";
     pub const START: &str = "unibrowser.family.start";
+    pub const BROWSE: &str = "unibrowser.family.browse";
 }
 
 pub mod group_ids {

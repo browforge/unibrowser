@@ -1324,6 +1324,7 @@ export async function renderSettings(root: HTMLElement) {
     { id: "accessibility", label: "Accessibility", sections: [a11ySection] },
     { id: "privacy", label: "Privacy and AI", sections: [networkSection] },
     { id: "mods", label: "Mods", sections: [developerSection] },
+    { id: "keybindings", label: "Keybindings", sections: [keysLink] },
     {
       id: "developer",
       label: "Developer",
@@ -1336,7 +1337,7 @@ export async function renderSettings(root: HTMLElement) {
       section.dataset.settingsCategory = id;
     });
   });
-  keysLink.dataset.settingsCategory = "developer";
+  keysLink.dataset.settingsCategory = "keybindings";
   aboutLink.dataset.settingsCategory = "general";
   diagLink.dataset.settingsCategory = "developer";
 

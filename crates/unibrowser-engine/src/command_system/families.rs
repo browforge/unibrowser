@@ -1,20 +1,20 @@
 use unibrowser_mod_api::{
-    CapabilityState, ControlType, DensityVariant, OverflowPriority, SelectionState, WorkContext,
-    commands,
-    control_ids,
-    family_ids,
-    group_ids,
-    ResolvedControl,
-    ResolvedFamily,
-    ResolvedGroup,
+    commands, control_ids, family_ids, group_ids, CapabilityState, ControlType, DensityVariant,
+    OverflowPriority, ResolvedControl, ResolvedFamily, ResolvedGroup, SelectionState, WorkContext,
 };
 
 use super::context::ResolutionContext;
 use super::resolver::CapabilityResolver;
 
-pub fn core_tab_layout(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Vec<ResolvedFamily> {
+pub fn core_tab_layout(
+    ctx: &ResolutionContext,
+    resolver: &CapabilityResolver,
+) -> Vec<ResolvedFamily> {
     if ctx.work == WorkContext::Start {
         return vec![start_family(ctx, resolver)];
+    }
+    if ctx.work == WorkContext::Browse {
+        return vec![browse_family(ctx, resolver)];
     }
     vec![
         history_family(ctx, resolver),
@@ -28,6 +28,156 @@ pub fn core_tab_layout(ctx: &ResolutionContext, resolver: &CapabilityResolver) -
     .into_iter()
     .filter(|f| !f.groups.is_empty())
     .collect()
+}
+
+fn browse_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let make = |control_id, command_id, label, icon, group_id| {
+        control_spec(
+            control_id,
+            ControlType::Button,
+            command_id,
+            label,
+            icon,
+            group_id,
+            family_ids::BROWSE,
+            ctx,
+            resolver,
+        )
+    };
+    let groups = vec![
+        ResolvedGroup {
+            group_id: "unibrowser.group.browse.create".into(),
+            label: "Create".into(),
+            overflow_priority: OverflowPriority::Primary,
+            controls: vec![
+                make(
+                    control_ids::BROWSE_NEW_FOLDER,
+                    commands::BROWSE_NEW_FOLDER,
+                    "New folder",
+                    "folder-plus",
+                    "unibrowser.group.browse.create",
+                ),
+                make(
+                    control_ids::BROWSE_NEW_TEXT_FILE,
+                    commands::BROWSE_NEW_TEXT_FILE,
+                    "New text file",
+                    "file-plus",
+                    "unibrowser.group.browse.create",
+                ),
+            ],
+        },
+        ResolvedGroup {
+            group_id: "unibrowser.group.browse.open".into(),
+            label: "Open".into(),
+            overflow_priority: OverflowPriority::Primary,
+            controls: vec![
+                make(
+                    control_ids::BROWSE_OPEN,
+                    commands::BROWSE_OPEN,
+                    "Open",
+                    "folder-open",
+                    "unibrowser.group.browse.open",
+                ),
+                make(
+                    control_ids::BROWSE_COPY_PATHS,
+                    commands::BROWSE_COPY_PATHS,
+                    "Copy paths",
+                    "copy",
+                    "unibrowser.group.browse.open",
+                ),
+            ],
+        },
+        ResolvedGroup {
+            group_id: "unibrowser.group.browse.transfer".into(),
+            label: "Transfer".into(),
+            overflow_priority: OverflowPriority::Normal,
+            controls: vec![
+                make(
+                    control_ids::BROWSE_COPY_TO,
+                    commands::BROWSE_COPY_TO,
+                    "Copy to",
+                    "copy",
+                    "unibrowser.group.browse.transfer",
+                ),
+                make(
+                    control_ids::BROWSE_MOVE_TO,
+                    commands::BROWSE_MOVE_TO,
+                    "Move to",
+                    "move",
+                    "unibrowser.group.browse.transfer",
+                ),
+            ],
+        },
+        ResolvedGroup {
+            group_id: "unibrowser.group.browse.manage".into(),
+            label: "Manage".into(),
+            overflow_priority: OverflowPriority::Low,
+            controls: vec![
+                make(
+                    control_ids::BROWSE_RENAME,
+                    commands::BROWSE_RENAME,
+                    "Rename",
+                    "pencil",
+                    "unibrowser.group.browse.manage",
+                ),
+                make(
+                    control_ids::BROWSE_COMPRESS,
+                    commands::BROWSE_COMPRESS,
+                    "Compress",
+                    "archive",
+                    "unibrowser.group.browse.manage",
+                ),
+                make(
+                    control_ids::BROWSE_PROPERTIES,
+                    commands::BROWSE_PROPERTIES,
+                    "Properties",
+                    "info",
+                    "unibrowser.group.browse.manage",
+                ),
+                make(
+                    control_ids::BROWSE_DELETE,
+                    commands::BROWSE_DELETE,
+                    "Delete",
+                    "trash",
+                    "unibrowser.group.browse.manage",
+                ),
+            ],
+        },
+        ResolvedGroup {
+            group_id: "unibrowser.group.browse.view".into(),
+            label: "View".into(),
+            overflow_priority: OverflowPriority::Low,
+            controls: vec![
+                make(
+                    control_ids::BROWSE_SORT,
+                    commands::BROWSE_SORT,
+                    "Sort",
+                    "arrow-up-down",
+                    "unibrowser.group.browse.view",
+                ),
+                make(
+                    control_ids::BROWSE_SORT_DIRECTION,
+                    commands::BROWSE_SORT_DIRECTION,
+                    "Direction",
+                    "arrow-down-up",
+                    "unibrowser.group.browse.view",
+                ),
+                make(
+                    control_ids::BROWSE_SHOW_HIDDEN,
+                    commands::BROWSE_SHOW_HIDDEN,
+                    "Hidden files",
+                    "eye",
+                    "unibrowser.group.browse.view",
+                ),
+            ],
+        },
+    ];
+    ResolvedFamily {
+        family_id: family_ids::BROWSE.into(),
+        label: "Browse".into(),
+        overflow_priority: OverflowPriority::Primary,
+        groups,
+    }
 }
 
 fn start_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
@@ -153,7 +303,10 @@ fn text_or_editor_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     text_formatting_family(ctx, resolver)
 }
 
-fn editor_appearance_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+fn editor_appearance_family(
+    ctx: &ResolutionContext,
+    resolver: &CapabilityResolver,
+) -> ResolvedFamily {
     let type_group = ResolvedGroup {
         group_id: group_ids::TEXT_TYPE.into(),
         label: "Type".into(),
@@ -198,7 +351,10 @@ fn text_size_label(ctx: &ResolutionContext) -> &'static str {
     }
 }
 
-fn text_formatting_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+fn text_formatting_family(
+    ctx: &ResolutionContext,
+    resolver: &CapabilityResolver,
+) -> ResolvedFamily {
     let type_group = ResolvedGroup {
         group_id: group_ids::TEXT_TYPE.into(),
         label: "Type".into(),

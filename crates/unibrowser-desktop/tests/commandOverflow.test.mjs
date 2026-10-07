@@ -42,3 +42,38 @@ for (const viewport of [800, 1024, 1280]) {
     }
   });
 }
+
+const browseGroups = [
+  ["normal", ["New folder", "New text file"]],
+  ["normal", ["Open", "Copy paths"]],
+  ["normal", ["Copy to", "Move to"]],
+  ["low", ["Rename", "Compress", "Properties", "Delete"]],
+  ["low", ["Sort", "Direction", "Hidden files"]],
+].map(([priority, labels], index) => ({
+  priority,
+  resolved: {
+    controls: labels.map((label) => ({ label })),
+  },
+  id: `browse-group-${index}`,
+}));
+
+for (const viewport of [800, 1024, 1600]) {
+  test(`Browse moves complete groups to overflow at ${viewport}px`, () => {
+    const result = partitionGroupsByAvailableWidth(
+      browseGroups,
+      commandGroupBudgetForViewport(viewport),
+    );
+    for (const group of browseGroups) {
+      assert.ok(
+        result.visible.includes(group) !== result.overflow.includes(group),
+        `${group.id} must be wholly visible or wholly overflowed`,
+      );
+    }
+    assert.ok(
+      result.visible.every((group) =>
+        group.resolved.controls.every((control) => control.label.length > 1),
+      ),
+      "visible Browse controls must retain complete labels",
+    );
+  });
+}

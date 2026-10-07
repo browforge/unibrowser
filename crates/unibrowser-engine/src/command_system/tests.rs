@@ -1,15 +1,16 @@
 #[cfg(test)]
 mod resolver_tests {
     use unibrowser_mod_api::{
-        CapabilityState, CommandContext, HostContext, Mode, WorkContext, control_ids,
-        commands,
+        commands, control_ids, CapabilityState, CommandContext, HostContext, Mode, WorkContext,
     };
 
     use crate::command_system::context::{
-        ResolutionContext, command_context_display_label, infer_work_context,
+        command_context_display_label, infer_work_context, ResolutionContext,
     };
     use crate::command_system::resolver::CapabilityResolver;
-    use crate::command_system::save_guard::{assert_save_independent, save_commands_always_supported};
+    use crate::command_system::save_guard::{
+        assert_save_independent, save_commands_always_supported,
+    };
 
     fn ctx(work: WorkContext, path: Option<&str>) -> ResolutionContext {
         let command_context = CommandContext::Text;
@@ -63,11 +64,7 @@ mod resolver_tests {
     #[test]
     fn stale_provider_response_rejected() {
         let mut resolver = CapabilityResolver::default();
-        let accepted = resolver.accept_provider_response(
-            2,
-            1,
-            CapabilityState::Supported,
-        );
+        let accepted = resolver.accept_provider_response(2, 1, CapabilityState::Supported);
         assert!(accepted.is_none());
     }
 
@@ -77,6 +74,23 @@ mod resolver_tests {
             infer_work_context(CommandContext::Text, Mode::Text, Some("x.md")),
             WorkContext::Markdown
         );
+    }
+
+    #[test]
+    fn browse_context_uses_only_browse_controls() {
+        let context = ctx(WorkContext::Browse, Some("/workspace"));
+        let families =
+            super::super::families::core_tab_layout(&context, &CapabilityResolver::new());
+        let control_ids: Vec<&str> = families
+            .iter()
+            .flat_map(|family| family.groups.iter())
+            .flat_map(|group| group.controls.iter())
+            .map(|control| control.control_id.as_str())
+            .collect();
+        assert!(!control_ids.is_empty());
+        assert!(control_ids
+            .iter()
+            .all(|id| id.starts_with("unibrowser.control.browse.")));
     }
 
     #[test]
