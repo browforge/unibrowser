@@ -41,6 +41,7 @@ capture_new_tab() {
       UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},standard-contrast,scale-100" \
       "$BIN" --doc-capture "$tmp"
     mv "$tmp" "$OUT/new-tab-${theme}-1280.png"
+    finalise_cm_capture "$OUT" "new-tab-${theme}-1280"
     [[ "$(identify -format '%wx%h' "$OUT/new-tab-${theme}-1280.png")" == "1280x800" ]]
   done
 }

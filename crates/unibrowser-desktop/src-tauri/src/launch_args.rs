@@ -168,6 +168,19 @@ pub fn take_doc_capture_path() -> Option<String> {
 }
 
 #[tauri::command]
+pub fn write_doc_capture_cm_json(json: String) -> Result<String, String> {
+    let png_path = doc_capture_output_path().ok_or("doc capture path not configured")?;
+    let json_path = png_path.with_extension("cm.json");
+    if let Some(parent) = json_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    serde_json::from_str::<serde_json::Value>(&json)
+        .map_err(|e| format!("invalid CM diagnostics JSON: {e}"))?;
+    std::fs::write(&json_path, json).map_err(|e| e.to_string())?;
+    Ok(json_path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
 pub fn abort_doc_capture(reason: String) -> Result<(), String> {
     eprintln!("[doc-capture] aborted: {}", reason);
     std::process::exit(2);

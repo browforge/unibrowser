@@ -5,6 +5,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-vqa-common.sh
+source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/ui-13"
 mkdir -p "$OUT"
 BIN="$ROOT/target/release/unibrowser-desktop"
@@ -26,6 +28,7 @@ capture() {
     UNIBROWSER_DEMO_STATE="$demo" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
   mv "$tmp" "$OUT/${name}.png"
+  finalise_cm_capture "$OUT" "$name"
   local actual
   actual="$(identify -format '%wx%h' "$OUT/${name}.png")"
   if [[ "$actual" != "$dimensions" ]]; then

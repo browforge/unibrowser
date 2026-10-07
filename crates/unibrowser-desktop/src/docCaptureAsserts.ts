@@ -35,6 +35,8 @@ export interface MonacoThemeCaptureDiagnostics {
 }
 
 export interface CommandManagerCaptureDiagnostics {
+  viewportWidth: number;
+  viewportHeight: number;
   controlCount: number;
   visibleCount: number;
   contrastOkCount: number;
@@ -44,14 +46,31 @@ export interface CommandManagerCaptureDiagnostics {
   controls: Array<{
     controlId: string;
     label: string;
+    classes: string[];
+    capabilityState: string;
+    enabled: boolean;
+    disabledReason: string | null;
     width: number;
     height: number;
+    labelBounds: { x: number; y: number; width: number; height: number };
     labelWidth: number;
     iconWidth: number;
     opacity: string;
+    filter: string;
     foreground: string;
+    labelForeground: string;
     background: string;
     contrast: number | null;
+    chromeTextVariable: string;
+    ancestors: Array<{
+      tag: string;
+      id: string;
+      classes: string[];
+      opacity: string;
+      filter: string;
+      color: string;
+      background: string;
+    }>;
   }>;
 }
 
@@ -302,14 +321,32 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
     controlDiagnostics.push({
       controlId: el.dataset.controlId ?? el.dataset.commandId ?? "",
       label: label?.textContent?.trim() ?? "",
+      classes: Array.from(el.classList),
+      capabilityState: el.dataset.capabilityState ?? "",
+      enabled:
+        el.dataset.capabilityState === "supported" ||
+        el.dataset.capabilityState === "emulated",
+      disabledReason: el.getAttribute("aria-description"),
       width: rect.width,
       height: rect.height,
+      labelBounds: {
+        x: labelRect?.x ?? rect.x,
+        y: labelRect?.y ?? rect.y,
+        width: labelRect?.width ?? rect.width,
+        height: labelRect?.height ?? rect.height,
+      },
       labelWidth: labelRect?.width ?? 0,
       iconWidth: iconRect?.width ?? 0,
       opacity: style.opacity,
+      filter: style.filter,
       foreground: style.color,
+      labelForeground: label ? getComputedStyle(label).color : style.color,
       background,
       contrast,
+      chromeTextVariable: getComputedStyle(el)
+        .getPropertyValue("--ub-concept-chrome-text")
+        .trim(),
+      ancestors: collectCommandAncestors(el),
     });
   }
   const contextEl = document.getElementById("command-manager-context");
@@ -320,6 +357,8 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
     pipeline = null;
   }
   return {
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
     controlCount: controls.length,
     visibleCount,
     contrastOkCount,
@@ -328,6 +367,28 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
     pipeline,
     controls: controlDiagnostics,
   };
+}
+
+function collectCommandAncestors(el: HTMLElement) {
+  const ancestors: CommandManagerCaptureDiagnostics["controls"][number]["ancestors"] = [];
+  let node: HTMLElement | null = el.parentElement;
+  while (node) {
+    const style = getComputedStyle(node);
+    ancestors.push({
+      tag: node.tagName.toLowerCase(),
+      id: node.id,
+      classes: Array.from(node.classList),
+      opacity: style.opacity,
+      filter: style.filter,
+      color: style.color,
+      background: style.backgroundColor,
+    });
+    if (node.id === "chrome" || node.tagName === "BODY") {
+      break;
+    }
+    node = node.parentElement;
+  }
+  return ancestors;
 }
 
 export function validateCommandContextLabel(expected: string): string | null {

@@ -6,6 +6,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
+# shellcheck source=capture-vqa-common.sh
+source "$ROOT/scripts/capture-vqa-common.sh"
 
 OUT="$ROOT/docs/screenshots/ui-14"
 BIN="$ROOT/target/release/unibrowser-desktop"
@@ -32,6 +34,7 @@ capture() {
     UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},${contrast},scale-100${extra_state:+,$extra_state}" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
   mv "$tmp" "$OUT/${name}.png"
+  finalise_cm_capture "$OUT" "$name"
   local actual
   actual="$(identify -format '%wx%h' "$OUT/${name}.png")"
   if [[ "$actual" != "1280x800" ]]; then

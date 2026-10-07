@@ -74,6 +74,12 @@ impl CapabilityResolver {
         if !cap.is_actionable() {
             return cap;
         }
+        // These commands are handled by the document/workshop webview rather
+        // than the Rust document backend. Registry absence must not overwrite
+        // their declared capability with "No handler for this document type".
+        if frontend_owned_command(command_id) {
+            return cap;
+        }
         let en = if let Some(doc) = doc {
             registry.enablement(command_id, doc)
         } else {
@@ -101,6 +107,13 @@ impl CapabilityResolver {
         }
         Some(cap)
     }
+}
+
+fn frontend_owned_command(command_id: &str) -> bool {
+    command_id.starts_with("unibrowser.project.")
+        || command_id.starts_with("unibrowser.cad.")
+        || command_id.starts_with("unibrowser.image.")
+        || command_id.starts_with("unibrowser.pdf.")
 }
 
 fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityState {
@@ -366,19 +379,15 @@ fn image_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityStat
 
 fn cad_capability(control_id: &str) -> CapabilityState {
     match control_id {
-        "unibrowser.control.cad.fitView"
+        "unibrowser.control.cad.select"
+        | "unibrowser.control.cad.orientation"
+        | "unibrowser.control.cad.pan"
+        | "unibrowser.control.cad.orbit"
+        | "unibrowser.control.cad.fitView"
         | "unibrowser.control.cad.zoomOut"
         | "unibrowser.control.cad.zoomIn" => CapabilityState::Supported,
         "unibrowser.control.cad.find" => CapabilityState::Unsupported {
             reason: "Entity search needs a CAD indexing provider.".into(),
-        },
-        "unibrowser.control.cad.select" => CapabilityState::Unsupported {
-            reason: "Entity selection needs a CAD picking provider.".into(),
-        },
-        "unibrowser.control.cad.orientation"
-        | "unibrowser.control.cad.pan"
-        | "unibrowser.control.cad.orbit" => CapabilityState::Unsupported {
-            reason: "This view tool needs an interactive CAD camera provider.".into(),
         },
         "unibrowser.control.cad.measure" => CapabilityState::Unsupported {
             reason: "Measure needs a full CAD geometry engine.".into(),

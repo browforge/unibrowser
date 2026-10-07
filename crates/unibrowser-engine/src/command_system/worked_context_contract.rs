@@ -8,6 +8,7 @@ use super::context::{infer_work_context, ResolutionContext};
 use super::families::core_tab_layout;
 use super::resolver::CapabilityResolver;
 use super::save_guard::assert_save_independent;
+use crate::command::CommandRegistry;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ExpectedCap {
@@ -529,6 +530,10 @@ fn cad3d_context_exposes_proving_view_family_and_reasons() {
         .flat_map(|group| group.controls.iter())
         .collect();
     for id in [
+        "unibrowser.control.cad.select",
+        "unibrowser.control.cad.orientation",
+        "unibrowser.control.cad.pan",
+        "unibrowser.control.cad.orbit",
         "unibrowser.control.cad.fitView",
         "unibrowser.control.cad.zoomOut",
         "unibrowser.control.cad.zoomIn",
@@ -540,10 +545,6 @@ fn cad3d_context_exposes_proving_view_family_and_reasons() {
         assert!(matches!(&control.capability, CapabilityState::Supported));
     }
     for (id, reason_fragment) in [
-        ("unibrowser.control.cad.select", "picking provider"),
-        ("unibrowser.control.cad.orientation", "camera provider"),
-        ("unibrowser.control.cad.pan", "camera provider"),
-        ("unibrowser.control.cad.orbit", "camera provider"),
         ("unibrowser.control.cad.measure", "geometry engine"),
         ("unibrowser.control.cad.section", "geometry engine"),
         ("unibrowser.control.cad.appearance", "material provider"),
@@ -555,6 +556,40 @@ fn cad3d_context_exposes_proving_view_family_and_reasons() {
             .expect("unsupported CAD proving control");
         let reason = control.capability.unsupported_reason().unwrap_or("");
         assert!(reason.contains(reason_fragment), "reason: {reason}");
+    }
+}
+
+#[test]
+fn frontend_owned_controls_survive_missing_rust_registry_handlers() {
+    let resolver = CapabilityResolver::default();
+    let registry = CommandRegistry::default();
+    for (work, path, control, command) in [
+        (
+            WorkContext::Cad3d,
+            "part.dxf",
+            "unibrowser.control.cad.fitView",
+            "unibrowser.cad.fitView",
+        ),
+        (
+            WorkContext::Project,
+            "show.unibrow",
+            "unibrowser.control.project.preview",
+            "unibrowser.project.preview",
+        ),
+    ] {
+        let ctx = resolution_ctx(work, path);
+        let resolved = resolver.resolve_with_registry(
+            &registry,
+            None,
+            &ctx.host,
+            control,
+            command,
+            &ctx,
+        );
+        assert!(
+            matches!(resolved, CapabilityState::Supported),
+            "{control} was downgraded to {resolved:?}"
+        );
     }
 }
 

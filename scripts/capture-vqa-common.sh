@@ -6,6 +6,19 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/scripts/ensure-release-desktop.sh"
 BIN="$ROOT/target/release/unibrowser-desktop"
 
+finalise_cm_capture() {
+  local outdir="$1"
+  local name="$2"
+  local tmp_json="$outdir/.${name}.cm.json"
+  local final_json="$outdir/${name}.cm.json"
+  if [[ ! -f "$tmp_json" ]]; then
+    echo "missing CM diagnostics: $tmp_json" >&2
+    return 1
+  fi
+  mv "$tmp_json" "$final_json"
+  python3 "$ROOT/scripts/check-cm-pixels.py" "$outdir/${name}.png" "$final_json"
+}
+
 capture_vqa() {
   local outdir="$1"
   local name="$2"
@@ -15,6 +28,7 @@ capture_vqa() {
   mkdir -p "$outdir"
   local tmp="$outdir/.${name}.png"
   rm -f "$tmp"
+  rm -f "$outdir/.${name}.cm.json"
   echo "=== capture ${name} (${geometry}) ==="
   # Webview doc-capture clears CM tooltips and focus before writing the PNG.
   xvfb-run -a -s "-screen 0 ${geometry}x24" env \
@@ -26,5 +40,6 @@ capture_vqa() {
     UNIBROWSER_DEMO_STATE="$demo" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
   mv "$tmp" "$outdir/${name}.png"
+  finalise_cm_capture "$outdir" "$name"
   echo "wrote $outdir/${name}.png"
 }

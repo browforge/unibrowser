@@ -716,7 +716,7 @@ body[data-cm-density="large"] .cm-overflow.visible {
 }
 
 #chrome .cm-group .ui-command.unsupported {
-  color: var(--ub-text-3, #929caa) !important;
+  color: #aebac0 !important;
   border-color: transparent;
   background: transparent;
   cursor: not-allowed;
@@ -724,8 +724,8 @@ body[data-cm-density="large"] .cm-overflow.visible {
 
 #chrome .cm-group .ui-command.unsupported .ub-icon,
 #chrome .cm-group .ui-command.unsupported .cm-cmd-label {
-  color: var(--ub-text-3, #929caa) !important;
-  opacity: 0.72;
+  color: #aebac0 !important;
+  opacity: 1;
 }
 
 #chrome .cm-group .ui-command.disabled:focus-visible,

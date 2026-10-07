@@ -474,6 +474,7 @@ pub fn run() {
             launch_args::take_launch_open_paths,
             launch_args::get_demo_state,
             launch_args::take_doc_capture_path,
+            launch_args::write_doc_capture_cm_json,
             launch_args::abort_doc_capture,
             launch_args::finish_doc_capture_and_exit,
             document_mockup::seed_document_mockup_problems_cmd,
