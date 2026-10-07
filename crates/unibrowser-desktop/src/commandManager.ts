@@ -654,7 +654,6 @@ export const commandManager = {
         groupsWidth: groupsEl.clientWidth,
       });
       if (overflowEl) {
-        const hasOverflow = overflow.length > 0;
         if (!overflowEl.dataset.bound) {
           overflowEl.dataset.bound = "1";
           overflowEl.innerHTML = "";
