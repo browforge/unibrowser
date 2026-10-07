@@ -71,8 +71,8 @@ pub struct Preferences {
     /// When true, last tab set is saved on exit and restored on launch.
     #[serde(default)]
     pub restore_session_on_launch: bool,
-    /// Opt-in automatic save for text/SVG (off by default).
-    #[serde(default)]
+    /// Automatic save for text/SVG (on by default).
+    #[serde(default = "default_auto_save_enabled")]
     pub auto_save_enabled: bool,
     /// Seconds between auto-save attempts (Factorio-style presets when enabled).
     #[serde(default = "default_auto_save_interval")]
@@ -249,6 +249,10 @@ pub struct PinnedLocation {
     pub location: String,
 }
 
+fn default_auto_save_enabled() -> bool {
+    true
+}
+
 fn default_auto_save_interval() -> u32 {
     300
 }
@@ -341,7 +345,7 @@ impl Default for Preferences {
             editor_theme_id: default_editor_theme_id(),
             recent_files: Vec::new(),
             restore_session_on_launch: true,
-            auto_save_enabled: false,
+            auto_save_enabled: true,
             auto_save_interval_secs: default_auto_save_interval(),
             auto_save_slot_count: default_auto_save_slot_count(),
             pinned_locations: Vec::new(),

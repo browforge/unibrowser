@@ -536,11 +536,6 @@ export async function renderSettings(root: HTMLElement) {
 
   const autoSection = document.createElement("section");
   autoSection.className = "settings-section";
-  const autoCb = document.createElement("input");
-  autoCb.type = "checkbox";
-  autoCb.id = "settings-autosave";
-  autoCb.className = "settings-toggle-input";
-  autoCb.checked = prefs.auto_save_enabled;
   const intervalSelect = document.createElement("select");
   [60, 120, 300, 600, 900, 1800].forEach((secs) => {
     const opt = document.createElement("option");
@@ -558,6 +553,7 @@ export async function renderSettings(root: HTMLElement) {
   slotInput.value = String(prefs.auto_save_slot_count);
   slotInput.disabled = !prefs.auto_save_enabled;
   slotInput.setAttribute("aria-label", t("autosave.keepSlots"));
+  let autoCb: HTMLInputElement;
   const persistAuto = async () => {
     const next = await invoke<PrefsDto>("set_auto_save_settings", {
       enabled: autoCb.checked,
@@ -568,7 +564,9 @@ export async function renderSettings(root: HTMLElement) {
     slotInput.disabled = !next.auto_save_enabled;
     configureAutoSave(next.auto_save_enabled, next.auto_save_interval_secs);
   };
-  autoCb.onchange = () => void persistAuto();
+  autoCb = createSettingsToggle("settings-autosave", prefs.auto_save_enabled, () => {
+    void persistAuto();
+  });
   intervalSelect.onchange = () => void persistAuto();
   slotInput.onchange = () => void persistAuto();
   autoSection.classList.add("settings-section--fields");

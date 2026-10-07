@@ -336,6 +336,97 @@ button.proving-disabled,
   font-size: inherit;
 }
 
+/* Flat chrome form controls (no native inset bevel). */
+.ub-form-control,
+#chrome input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not(.ub-switch):not(.settings-toggle-input):not(.ub-shell-checkbox),
+#chrome textarea,
+#chrome select,
+.pdf-annotations-dock input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.pdf-annotations-dock textarea,
+.settings-content input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not(.ub-switch):not(.settings-toggle-input),
+.settings-content textarea,
+.settings-content select,
+.svg-inspector input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.ai-assistant-composer textarea,
+.ai-assistant-composer input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]) {
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: none;
+  border: 1px solid var(--ub-border-strong, #89939d);
+  border-radius: var(--ub-radius-6, 6px);
+  background: var(--ub-control, #2d3031);
+  color: var(--ub-text-1, #e9edef);
+}
+
+#chrome input[type="color"],
+.pdf-annotations-dock input[type="color"],
+.settings-content input[type="color"] {
+  padding: 2px;
+  min-width: 2rem;
+  min-height: 1.35rem;
+}
+
+.ub-switch,
+.settings-toggle-input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ub-border-strong, #89939d);
+  border-radius: 5px;
+  background: var(--ub-control, #2d3031);
+  box-shadow: none;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.ub-switch::after,
+.settings-toggle-input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--ub-text-1, #e9edef);
+  transition: transform 120ms ease-out;
+}
+
+.ub-switch:checked,
+.settings-toggle-input:checked {
+  border-color: var(--ub-accent, #196f93);
+  background: var(--ub-accent, #196f93);
+}
+
+.ub-switch:checked::after,
+.settings-toggle-input:checked::after {
+  transform: translateX(14px);
+  background: var(--ub-accent-on, #f4f7f8);
+}
+
+.ub-switch:focus-visible,
+.settings-toggle-input:focus-visible {
+  outline: 2px solid var(--ub-accent, #196f93);
+  outline-offset: 2px;
+}
+
+[data-high-contrast="true"] .ub-switch,
+[data-high-contrast="true"] .settings-toggle-input {
+  border-color: currentColor;
+}
+
+[data-high-contrast="true"] .ub-switch:checked,
+[data-high-contrast="true"] .settings-toggle-input:checked {
+  border-color: var(--ub-accent, #196f93);
+  background: var(--ub-accent, #196f93);
+}
+
 .nav-row {
   display: flex;
   gap: var(--ub-space-1, 4px);
@@ -5324,41 +5415,13 @@ mark.docx-search-hit--current {
   gap: 0.5rem;
 }
 
-.settings-field-control select,
-.settings-field-control .settings-toggle-input {
+.settings-field-control select {
   width: 100%;
 }
 
+.settings-field-control .ub-switch,
 .settings-field-control .settings-toggle-input {
-  appearance: none;
-  display: block;
-  width: 2.25rem;
-  height: 1.25rem;
-  margin: 0 0 0 auto;
-  border: 1px solid var(--ub-border-strong, #89939d);
-  border-radius: var(--ub-radius-6, 6px);
-  background: var(--ub-control, #2d3031);
-  cursor: pointer;
-}
-
-.settings-field-control .settings-toggle-input::before {
-  content: "";
-  display: block;
-  width: 0.875rem;
-  height: 0.875rem;
-  margin: 0.125rem;
-  border-radius: 4px;
-  background: var(--ub-text-2, #c9cbc8);
-}
-
-.settings-field-control .settings-toggle-input:checked {
-  border-color: var(--ub-accent, #196f93);
-  background: var(--ub-accent, #196f93);
-}
-
-.settings-field-control .settings-toggle-input:checked::before {
-  transform: translateX(1rem);
-  background: var(--ub-accent-on, #142027);
+  margin-left: auto;
 }
 
 .settings-category-hidden {

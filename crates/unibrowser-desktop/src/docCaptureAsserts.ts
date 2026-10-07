@@ -303,6 +303,28 @@ export function backgroundExceedsRaisedSurface(
   return candidateLuminance > raisedSurfaceLuminance + tolerance;
 }
 
+export function inputBorderEdgesUniform(style: CSSStyleDeclaration): boolean {
+  const top = style.borderTopColor;
+  return (
+    top === style.borderRightColor &&
+    top === style.borderBottomColor &&
+    top === style.borderLeftColor
+  );
+}
+
+function shouldCheckFormControlBorder(candidate: HTMLElement): boolean {
+  if (
+    candidate instanceof HTMLInputElement &&
+    (candidate.type === "hidden" ||
+      candidate.type === "checkbox" ||
+      candidate.type === "radio") &&
+    candidate.getAttribute("role") !== "switch"
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function effectiveOpaqueBackground(el: HTMLElement): string | null {
   let node: HTMLElement | null = el;
   while (node) {
@@ -385,6 +407,23 @@ export function validateDarkSurfaceBackgroundsForCapture(
         Array.from(candidate.classList).join(".") ||
         candidate.tagName.toLowerCase();
       return `dark surface ${identity} is brighter than --ub-surface-2 (background ${background}, raised ${raisedBackground})`;
+    }
+    if (!shouldCheckFormControlBorder(candidate)) {
+      continue;
+    }
+    if (style.boxShadow && style.boxShadow !== "none") {
+      const identity =
+        candidate.id ||
+        Array.from(candidate.classList).join(".") ||
+        candidate.tagName.toLowerCase();
+      return `dark form control ${identity} must not use box-shadow (${style.boxShadow})`;
+    }
+    if (!inputBorderEdgesUniform(style)) {
+      const identity =
+        candidate.id ||
+        Array.from(candidate.classList).join(".") ||
+        candidate.tagName.toLowerCase();
+      return `dark form control ${identity} has uneven border colours (top ${style.borderTopColor}, bottom ${style.borderBottomColor})`;
     }
   }
   return null;

@@ -538,6 +538,7 @@ function rebuildPdfAnnotationsDock(
     titleCaption.textContent = "Label";
     const titleInput = document.createElement("input");
     titleInput.type = "text";
+    titleInput.className = "ub-form-control";
     titleInput.value = selected.label ?? `Annotation ${safeIndex + 1}`;
     titleInput.setAttribute("aria-label", "Annotation label");
     title.append(titleCaption, titleInput);
@@ -552,11 +553,12 @@ function rebuildPdfAnnotationsDock(
     colourCaption.textContent = "Colour";
     const colour = document.createElement("input");
     colour.type = "color";
+    colour.className = "ub-form-control";
     colour.value = selected.kind === "area" ? "#c0392b" : "#ffe600";
     colour.setAttribute("aria-label", "Annotation colour");
     colourField.append(colourCaption, colour);
     const reply = document.createElement("textarea");
-    reply.className = "pdf-annotation-reply";
+    reply.className = "pdf-annotation-reply ub-form-control";
     reply.rows = 3;
     reply.placeholder = "Reply to annotation";
     const actions = document.createElement("div");

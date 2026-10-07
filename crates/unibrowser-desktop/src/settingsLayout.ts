@@ -26,6 +26,10 @@ export function createSettingsFieldRow(
   return row;
 }
 
+function syncSwitchA11y(input: HTMLInputElement): void {
+  input.setAttribute("aria-checked", input.checked ? "true" : "false");
+}
+
 export function createSettingsToggle(
   id: string,
   checked: boolean,
@@ -34,9 +38,14 @@ export function createSettingsToggle(
   const input = document.createElement("input");
   input.type = "checkbox";
   input.id = id;
-  input.className = "settings-toggle-input";
+  input.className = "ub-switch settings-toggle-input";
+  input.setAttribute("role", "switch");
   input.checked = checked;
-  input.onchange = onChange;
+  syncSwitchA11y(input);
+  input.onchange = () => {
+    syncSwitchA11y(input);
+    onChange();
+  };
   return input;
 }
 

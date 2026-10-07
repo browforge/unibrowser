@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   backgroundExceedsRaisedSurface,
   captureRectsOverlap,
+  inputBorderEdgesUniform,
   rectWithinBounds,
 } from "../src/docCaptureAsserts.ts";
 
@@ -35,4 +36,21 @@ test("timeline marker flags must not overlap tick labels", () => {
 test("dark capture surface guard rejects backgrounds above its tolerance", () => {
   assert.equal(backgroundExceedsRaisedSurface(0.04, 0.03), false);
   assert.equal(backgroundExceedsRaisedSurface(0.95, 0.03), true);
+});
+
+test("form control border guard treats matching edges as uniform", () => {
+  const uniform = {
+    borderTopColor: "rgb(100, 100, 100)",
+    borderRightColor: "rgb(100, 100, 100)",
+    borderBottomColor: "rgb(100, 100, 100)",
+    borderLeftColor: "rgb(100, 100, 100)",
+  };
+  const beveled = {
+    borderTopColor: "rgb(120, 120, 120)",
+    borderRightColor: "rgb(120, 120, 120)",
+    borderBottomColor: "rgb(80, 80, 80)",
+    borderLeftColor: "rgb(80, 80, 80)",
+  };
+  assert.equal(inputBorderEdgesUniform(uniform), true);
+  assert.equal(inputBorderEdgesUniform(beveled), false);
 });
