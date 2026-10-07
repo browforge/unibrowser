@@ -217,56 +217,33 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "ui15-unibrow-title": {
-        const card = await waitForElement<HTMLElement>(
-          '.unibrow-board-card[data-node-id="node-1"]',
+        const clip = await waitForElement<HTMLElement>(
+          '.workshop-clip[data-clip-id="clip-1"]',
         );
-        card?.scrollIntoView({ block: "center", inline: "center" });
-        card?.focus();
+        clip?.focus();
         break;
       }
       case "ui16-live-preview":
+        window.dispatchEvent(
+          new CustomEvent("unibrow-project-command", {
+            detail: "unibrowser.project.preview",
+          }),
+        );
         break;
       case "ui16-live-on": {
-        const details = document.querySelector<HTMLDetailsElement>(".unibrow-live-details");
-        if (details) {
-          details.open = true;
-        }
-        await invoke("set_unibrow_live_mode", { enabled: true }).catch(() => undefined);
-        const header = document.querySelector<HTMLElement>(".unibrow-studio-header");
-        const badge = document.querySelector<HTMLElement>(".unibrow-live-indicator");
-        const toggle = document.querySelector<HTMLInputElement>("#unibrow-live-mode");
-        if (toggle) {
-          toggle.checked = true;
-        }
-        badge?.classList.remove("hidden");
-        if (header) {
-          header.dataset.state = "live";
-          header.textContent = "LIVE";
-        }
+        window.dispatchEvent(
+          new CustomEvent("unibrow-project-command", {
+            detail: "unibrowser.project.live",
+          }),
+        );
         break;
       }
       case "ui16-live-recording": {
-        const details = document.querySelector<HTMLDetailsElement>(".unibrow-live-details");
-        if (details) {
-          details.open = true;
-        }
-        await invoke("set_unibrow_live_mode", { enabled: true }).catch(() => undefined);
-        await invoke("start_unibrow_live_recording").catch(() => undefined);
-        const header = document.querySelector<HTMLElement>(".unibrow-studio-header");
-        const badge = document.querySelector<HTMLElement>(".unibrow-live-indicator");
-        const toggle = document.querySelector<HTMLInputElement>("#unibrow-live-mode");
-        const recordBtn = document.querySelector<HTMLButtonElement>(
-          ".unibrow-live-panel button",
+        window.dispatchEvent(
+          new CustomEvent("unibrow-project-command", {
+            detail: "unibrowser.project.record",
+          }),
         );
-        if (toggle) {
-          toggle.checked = true;
-        }
-        badge?.classList.remove("hidden");
-        if (header) {
-          header.dataset.state = "recording";
-          header.textContent = "Recording";
-        }
-        recordBtn?.setAttribute("disabled", "true");
         break;
       }
       case "rail-expanded": {

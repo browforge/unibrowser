@@ -22,6 +22,9 @@ pub fn core_tab_layout(
     if ctx.work == WorkContext::Cad3d {
         return vec![cad_family(ctx, resolver)];
     }
+    if ctx.work == WorkContext::Project {
+        return vec![project_family(ctx, resolver)];
+    }
     vec![
         history_family(ctx, resolver),
         text_or_editor_family(ctx, resolver),
@@ -36,16 +39,157 @@ pub fn core_tab_layout(
     .collect()
 }
 
+fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let family_id = family_ids::PROJECT;
+    let control = |id: &str, command: &str, label: &str, icon: &str, group: &str| {
+        control_spec(
+            id,
+            ControlType::Button,
+            command,
+            label,
+            icon,
+            group,
+            family_id,
+            ctx,
+            resolver,
+        )
+    };
+    let group = |id: &str,
+                 label: &str,
+                 priority: OverflowPriority,
+                 controls: Vec<ResolvedControl>| ResolvedGroup {
+        group_id: id.into(),
+        label: label.into(),
+        overflow_priority: priority,
+        controls,
+    };
+    ResolvedFamily {
+        family_id: family_id.into(),
+        label: "Project".into(),
+        overflow_priority: OverflowPriority::Primary,
+        groups: vec![
+            group(
+                "unibrowser.group.project.add",
+                "Add",
+                OverflowPriority::Primary,
+                vec![
+                    control(
+                        "unibrowser.control.project.addAsset",
+                        "unibrowser.project.addAsset",
+                        "Add asset",
+                        "plus",
+                        "unibrowser.group.project.add",
+                    ),
+                    control(
+                        "unibrowser.control.project.addTitle",
+                        "unibrowser.project.addTitle",
+                        "Add title",
+                        "type",
+                        "unibrowser.group.project.add",
+                    ),
+                ],
+            ),
+            group(
+                "unibrowser.group.project.edit",
+                "Edit",
+                OverflowPriority::Primary,
+                vec![
+                    control(
+                        "unibrowser.control.project.split",
+                        "unibrowser.project.split",
+                        "Split",
+                        "copy",
+                        "unibrowser.group.project.edit",
+                    ),
+                    control(
+                        "unibrowser.control.project.deleteClip",
+                        "unibrowser.project.deleteClip",
+                        "Delete clip",
+                        "trash",
+                        "unibrowser.group.project.edit",
+                    ),
+                ],
+            ),
+            group(
+                "unibrowser.group.project.timeline",
+                "Timeline",
+                OverflowPriority::Normal,
+                vec![
+                    control(
+                        "unibrowser.control.project.snap",
+                        "unibrowser.project.snap",
+                        "Snap",
+                        "pin",
+                        "unibrowser.group.project.timeline",
+                    ),
+                    control(
+                        "unibrowser.control.project.marker",
+                        "unibrowser.project.marker",
+                        "Marker",
+                        "plus",
+                        "unibrowser.group.project.timeline",
+                    ),
+                    control(
+                        "unibrowser.control.project.zoomTimeline",
+                        "unibrowser.project.zoomTimeline",
+                        "Timeline zoom",
+                        "zoom-in",
+                        "unibrowser.group.project.timeline",
+                    ),
+                ],
+            ),
+            group(
+                "unibrowser.group.project.mode",
+                "Mode",
+                OverflowPriority::Primary,
+                vec![
+                    control(
+                        "unibrowser.control.project.preview",
+                        "unibrowser.project.preview",
+                        "Preview",
+                        "image",
+                        "unibrowser.group.project.mode",
+                    ),
+                    control(
+                        "unibrowser.control.project.live",
+                        "unibrowser.project.live",
+                        "LIVE",
+                        "globe",
+                        "unibrowser.group.project.mode",
+                    ),
+                    control(
+                        "unibrowser.control.project.record",
+                        "unibrowser.project.record",
+                        "Record",
+                        "circle-alert",
+                        "unibrowser.group.project.mode",
+                    ),
+                ],
+            ),
+            group(
+                "unibrowser.group.project.output",
+                "Output",
+                OverflowPriority::Primary,
+                vec![control(
+                    "unibrowser.control.project.export",
+                    "unibrowser.project.export",
+                    "Export",
+                    "download",
+                    "unibrowser.group.project.output",
+                )],
+            ),
+        ],
+    }
+}
+
 fn cad_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
     let family_id = "unibrowser.family.cad";
-    let make = |
-        control_id: &str,
-        command_id: &str,
-        label: &str,
-        icon: &str,
-        group_id: &str,
-        priority: OverflowPriority,
-    | ResolvedGroup {
+    let make = |control_id: &str,
+                command_id: &str,
+                label: &str,
+                icon: &str,
+                group_id: &str,
+                priority: OverflowPriority| ResolvedGroup {
         group_id: group_id.into(),
         label: label.into(),
         overflow_priority: priority,

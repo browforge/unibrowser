@@ -3,16 +3,18 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+(cd "$ROOT/crates/unibrowser-desktop" && npm run build)
 # shellcheck source=ensure-release-desktop.sh
 source "$ROOT/scripts/ensure-release-desktop.sh"
 OUT="$ROOT/docs/screenshots/ui-15"
 mkdir -p "$OUT"
+rm -f "$OUT"/*.png
 BIN="$ROOT/target/release/unibrowser-desktop"
 PACK="$ROOT/examples/demo-pack"
 
 capture() {
   local name="$1"
-  local open_path="$2"
+  local theme="$2"
   local dimensions="$3"
   local tmp="$OUT/.${name}.png"
   rm -f "$tmp"
@@ -22,8 +24,8 @@ capture() {
     UNIBROWSER_REPO_ROOT="$ROOT" \
     UNIBROWSER_SAFE_MODE=1 \
     UNIBROWSER_DOC_CAPTURE_SIZE="$dimensions" \
-    UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-light,standard-contrast,scale-100,ui15-unibrow-title" \
-    "$BIN" --open "$open_path" --doc-capture "$tmp"
+    UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},standard-contrast,scale-100,ui15-unibrow-title,ui16-live-preview" \
+    "$BIN" --open "$PACK/sample.unibrow" --doc-capture "$tmp"
   mv "$tmp" "$OUT/${name}.png"
   local actual
   actual="$(identify -format '%wx%h' "$OUT/${name}.png")"
@@ -33,7 +35,10 @@ capture() {
   fi
 }
 
-capture "unibrow-create-light-1600" "$PACK/sample.unibrow" "1600x1000"
+capture "unibrow-create-light-1600" "light" "1600x1000"
+capture "unibrow-create-dark-1600" "dark" "1600x1000"
+capture "unibrow-create-light-1280" "light" "1280x800"
+capture "unibrow-create-dark-1280" "dark" "1280x800"
 
 declare -A seen_hashes=()
 for png in "$OUT"/*.png; do

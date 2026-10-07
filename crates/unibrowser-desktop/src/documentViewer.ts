@@ -23,6 +23,7 @@ import {
   setImagePixelSample,
 } from "./viewerPixelSample";
 import { t } from "./i18n";
+import { renderWorkshop, resetWorkshopListeners } from "./workshop";
 import { clearViewerLocatorBridge, setViewerLocatorBridge } from "./locatorViewerBridge";
 import { showInlineAlert, showInlineConfirm, showInlinePrompt } from "./inlineUi";
 import {
@@ -118,6 +119,10 @@ export function adjustViewerZoom(delta: number) {
 }
 
 export function runViewerContextCommand(commandId: string): boolean {
+  if (commandId.startsWith("unibrowser.project.")) {
+    window.dispatchEvent(new CustomEvent("unibrow-project-command", { detail: commandId }));
+    return true;
+  }
   if (commandId === "unibrowser.image.zoomOut") {
     adjustViewerZoom(-1);
     return true;
@@ -2575,7 +2580,7 @@ function mountUnibrowInspector(
   host.appendChild(dl);
 }
 
-async function renderUnibrow(viewer: DocumentViewerDto, root: HTMLElement) {
+export async function renderUnibrowLegacy(viewer: DocumentViewerDto, root: HTMLElement) {
   root.innerHTML = "";
   root.className = "unibrow-create-root";
   const liveDetails = document.createElement("details");
@@ -4707,7 +4712,8 @@ export const documentViewer = {
           await renderScript(viewer, body);
           break;
         case "unibrow":
-          await renderUnibrow(viewer, body);
+          resetWorkshopListeners();
+          await renderWorkshop(viewer, body);
           break;
         case "midi":
           renderMidi(viewer, body);

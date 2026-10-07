@@ -130,6 +130,7 @@ pub mod family_ids {
     pub const START: &str = "unibrowser.family.start";
     pub const BROWSE: &str = "unibrowser.family.browse";
     pub const SETTINGS: &str = "unibrowser.family.settings";
+    pub const PROJECT: &str = "unibrowser.family.project";
 }
 
 pub mod group_ids {
@@ -150,6 +151,7 @@ pub enum WorkContext {
     Pdf,
     Image,
     Cad3d,
+    Project,
     Browse,
     Settings,
     Web,

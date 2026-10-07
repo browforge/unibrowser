@@ -1,11 +1,10 @@
 //! Contract tests: worked examples in docs/design/command-system.md vs resolved model.
 
 use unibrowser_mod_api::{
-    CapabilityState, CommandContext, HostContext, Mode, WorkContext, control_ids,
-    commands,
+    commands, control_ids, CapabilityState, CommandContext, HostContext, Mode, WorkContext,
 };
 
-use super::context::{ResolutionContext, infer_work_context};
+use super::context::{infer_work_context, ResolutionContext};
 use super::families::core_tab_layout;
 use super::resolver::CapabilityResolver;
 use super::save_guard::assert_save_independent;
@@ -39,6 +38,7 @@ fn resolution_ctx(work: WorkContext, path: &str) -> ResolutionContext {
         WorkContext::Start => CommandContext::Start,
         WorkContext::Browse => CommandContext::Browse,
         WorkContext::Settings => CommandContext::Browse,
+        WorkContext::Project => CommandContext::Browse,
         WorkContext::Web => CommandContext::Web,
         _ => CommandContext::Text,
     };
@@ -61,11 +61,7 @@ fn resolution_ctx(work: WorkContext, path: &str) -> ResolutionContext {
     rc
 }
 
-fn control_capability(
-    work: WorkContext,
-    path: &str,
-    control_id: &str,
-) -> CapabilityState {
+fn control_capability(work: WorkContext, path: &str, control_id: &str) -> CapabilityState {
     let resolver = CapabilityResolver::default();
     let ctx = resolution_ctx(work, path);
     let command = match control_id {
@@ -100,12 +96,7 @@ fn find_control_label(work: WorkContext, path: &str, control_id: &str) -> Option
     None
 }
 
-fn assert_matrix_row(
-    work: WorkContext,
-    path: &str,
-    control_id: &str,
-    expected: ExpectedCap,
-) {
+fn assert_matrix_row(work: WorkContext, path: &str, control_id: &str, expected: ExpectedCap) {
     let cap = control_capability(work, path, control_id);
     assert!(
         expected.matches(&cap),
@@ -125,42 +116,182 @@ fn text_family_matrix_matches_command_system_doc() {
     let docx = "brief.docx";
     let code = "main.ts";
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_FONT, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_FONT, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_FONT, ExpectedCap::Supported);
-    assert_matrix_row(WorkContext::CodeEditor, code, control_ids::TEXT_FONT, ExpectedCap::Unsupported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_FONT,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_FONT,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::RichDocument,
+        docx,
+        control_ids::TEXT_FONT,
+        ExpectedCap::Supported,
+    );
+    assert_matrix_row(
+        WorkContext::CodeEditor,
+        code,
+        control_ids::TEXT_FONT,
+        ExpectedCap::Unsupported,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_SIZE, ExpectedCap::Supported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_SIZE, ExpectedCap::Supported);
-    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_SIZE, ExpectedCap::Supported);
-    assert_matrix_row(WorkContext::CodeEditor, code, control_ids::EDITOR_SIZE, ExpectedCap::Supported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_SIZE,
+        ExpectedCap::Supported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_SIZE,
+        ExpectedCap::Supported,
+    );
+    assert_matrix_row(
+        WorkContext::RichDocument,
+        docx,
+        control_ids::TEXT_SIZE,
+        ExpectedCap::Supported,
+    );
+    assert_matrix_row(
+        WorkContext::CodeEditor,
+        code,
+        control_ids::EDITOR_SIZE,
+        ExpectedCap::Supported,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_BOLD, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_BOLD, ExpectedCap::Supported);
-    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_BOLD, ExpectedCap::Supported);
-    assert_matrix_row(WorkContext::CodeEditor, code, control_ids::TEXT_BOLD, ExpectedCap::Unsupported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_BOLD,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_BOLD,
+        ExpectedCap::Supported,
+    );
+    assert_matrix_row(
+        WorkContext::RichDocument,
+        docx,
+        control_ids::TEXT_BOLD,
+        ExpectedCap::Supported,
+    );
+    assert_matrix_row(
+        WorkContext::CodeEditor,
+        code,
+        control_ids::TEXT_BOLD,
+        ExpectedCap::Unsupported,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_ITALIC, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_ITALIC, ExpectedCap::Supported);
-    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_ITALIC, ExpectedCap::Supported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_ITALIC,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_ITALIC,
+        ExpectedCap::Supported,
+    );
+    assert_matrix_row(
+        WorkContext::RichDocument,
+        docx,
+        control_ids::TEXT_ITALIC,
+        ExpectedCap::Supported,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_UNDERLINE, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_UNDERLINE, ExpectedCap::Emulated);
-    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_UNDERLINE, ExpectedCap::Supported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_UNDERLINE,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_UNDERLINE,
+        ExpectedCap::Emulated,
+    );
+    assert_matrix_row(
+        WorkContext::RichDocument,
+        docx,
+        control_ids::TEXT_UNDERLINE,
+        ExpectedCap::Supported,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_STRIKETHROUGH, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_STRIKETHROUGH, ExpectedCap::Supported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_STRIKETHROUGH,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_STRIKETHROUGH,
+        ExpectedCap::Supported,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_SUBSCRIPT, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_SUBSCRIPT, ExpectedCap::Emulated);
-    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_SUBSCRIPT, ExpectedCap::Supported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_SUBSCRIPT,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_SUBSCRIPT,
+        ExpectedCap::Emulated,
+    );
+    assert_matrix_row(
+        WorkContext::RichDocument,
+        docx,
+        control_ids::TEXT_SUBSCRIPT,
+        ExpectedCap::Supported,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_SUPERSCRIPT, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_SUPERSCRIPT, ExpectedCap::Emulated);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_SUPERSCRIPT,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_SUPERSCRIPT,
+        ExpectedCap::Emulated,
+    );
 
-    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_COLOUR, ExpectedCap::Unsupported);
-    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_COLOUR, ExpectedCap::Emulated);
-    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_COLOUR, ExpectedCap::Supported);
+    assert_matrix_row(
+        WorkContext::PlainText,
+        txt,
+        control_ids::TEXT_COLOUR,
+        ExpectedCap::Unsupported,
+    );
+    assert_matrix_row(
+        WorkContext::Markdown,
+        md,
+        control_ids::TEXT_COLOUR,
+        ExpectedCap::Emulated,
+    );
+    assert_matrix_row(
+        WorkContext::RichDocument,
+        docx,
+        control_ids::TEXT_COLOUR,
+        ExpectedCap::Supported,
+    );
 }
 
 #[test]
@@ -176,7 +307,11 @@ fn plain_text_size_label_is_editor_display() {
 
 #[test]
 fn plain_text_strikethrough_reason_matches_doc() {
-    let cap = control_capability(WorkContext::PlainText, "notes.txt", control_ids::TEXT_STRIKETHROUGH);
+    let cap = control_capability(
+        WorkContext::PlainText,
+        "notes.txt",
+        control_ids::TEXT_STRIKETHROUGH,
+    );
     let reason = cap.unsupported_reason().unwrap_or("");
     assert!(
         reason.to_lowercase().contains("plain text"),
@@ -210,7 +345,9 @@ fn image_context_exposes_adjust_family() {
     let ctx = resolution_ctx(WorkContext::Image, "photo.svg");
     let families = core_tab_layout(&ctx, &resolver);
     assert!(
-        families.iter().any(|f| f.family_id == "unibrowser.family.image-adjust"),
+        families
+            .iter()
+            .any(|f| f.family_id == "unibrowser.family.image-adjust"),
         "image adjust family present"
     );
 }
@@ -221,6 +358,34 @@ fn svg_path_infers_image_work_context() {
         infer_work_context(CommandContext::Text, Mode::Text, Some("photo.svg")),
         WorkContext::Image
     );
+}
+
+#[test]
+fn unibrow_path_resolves_project_family() {
+    assert_eq!(
+        infer_work_context(
+            CommandContext::Browse,
+            Mode::Browse,
+            Some("/projects/show.unibrow"),
+        ),
+        WorkContext::Project
+    );
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(WorkContext::Project, "/projects/show.unibrow");
+    let families = core_tab_layout(&ctx, &resolver);
+    let project = families
+        .iter()
+        .find(|family| family.family_id == "unibrowser.family.project")
+        .expect("project family");
+    let labels: Vec<_> = project
+        .groups
+        .iter()
+        .flat_map(|group| group.controls.iter())
+        .map(|control| control.label.as_str())
+        .collect();
+    assert!(labels.contains(&"Add asset"));
+    assert!(labels.contains(&"Preview"));
+    assert!(labels.contains(&"Export"));
 }
 
 #[test]
@@ -308,11 +473,7 @@ fn save_stays_supported_in_every_worked_context() {
     ];
     for (work, path) in paths {
         let ctx = resolution_ctx(work, path);
-        let cap = resolver.resolve_control(
-            "unibrowser.control.save",
-            commands::TEXT_SAVE,
-            &ctx,
-        );
+        let cap = resolver.resolve_control("unibrowser.control.save", commands::TEXT_SAVE, &ctx);
         assert_save_independent(&cap);
     }
 }

@@ -40,6 +40,7 @@ pub fn command_context_display_label(
         WorkContext::Pdf => "PDF Annotation",
         WorkContext::Image => "Image",
         WorkContext::Cad3d => "CAD / 3D",
+        WorkContext::Project => "Project",
         WorkContext::CodeEditor => "Code",
         WorkContext::Markdown | WorkContext::PlainText => "Text",
         WorkContext::RichDocument => "Office",
@@ -59,6 +60,9 @@ pub fn infer_work_context(
         return WorkContext::Settings;
     }
     let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    if ext == "unibrow" {
+        return WorkContext::Project;
+    }
     if ext == "pdf" {
         return WorkContext::Pdf;
     }

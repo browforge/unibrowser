@@ -112,12 +112,22 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         WorkContext::Pdf => pdf_capability(control_id),
         WorkContext::Image => image_capability(control_id, ctx),
         WorkContext::Cad3d => cad_capability(control_id),
+        WorkContext::Project => project_capability(control_id),
         WorkContext::Start => start_capability(control_id),
         WorkContext::Browse => browse_capability(control_id),
         WorkContext::Settings => settings_capability(control_id),
         WorkContext::Web => CapabilityState::Unsupported {
             reason: "Open a document to use formatting commands.".into(),
         },
+    }
+}
+
+fn project_capability(control_id: &str) -> CapabilityState {
+    if control_id.starts_with("unibrowser.control.project.") {
+        return CapabilityState::Supported;
+    }
+    CapabilityState::Unsupported {
+        reason: "This command is not available in the project workshop.".into(),
     }
 }
 
@@ -237,7 +247,11 @@ fn image_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityStat
     let vector_image = ctx
         .doc_path
         .as_deref()
-        .map(|path| path.rsplit('.').next().is_some_and(|ext| ext.eq_ignore_ascii_case("svg")))
+        .map(|path| {
+            path.rsplit('.')
+                .next()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("svg"))
+        })
         .unwrap_or(false);
     match control_id {
         "unibrowser.control.find" => CapabilityState::Unsupported {
