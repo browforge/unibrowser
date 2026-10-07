@@ -690,7 +690,7 @@ export function validateWorkshopTimelineForCapture(): string | null {
       return `workshop ruler tick "${tick.textContent?.trim() ?? ""}" escapes the timeline viewport`;
     }
   }
-  const lastTick = ticks.at(-1);
+  const lastTick = ticks[ticks.length - 1];
   if (
     lastTick &&
     !timelineEndpointClearsScrollbar(lastTick.getBoundingClientRect().right, viewportRect.right)
