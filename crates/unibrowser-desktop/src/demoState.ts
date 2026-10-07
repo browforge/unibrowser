@@ -155,6 +155,19 @@ export async function applyDemoState(raw: string) {
         applyCommandManagerDensity(true);
         break;
       }
+      case "cmd11-plain-proof":
+      case "cmd11-markdown-proof": {
+        const controlId =
+          token === "cmd11-plain-proof"
+            ? "unibrowser.control.text.strikethrough"
+            : "unibrowser.control.text.subscript";
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+        const control = document.querySelector<HTMLElement>(
+          `[data-control-id="${controlId}"]`,
+        );
+        control?.focus();
+        break;
+      }
       case "rail-expanded": {
         const { setRailMode } = await import("./ui/activityRail");
         setRailMode("expanded");
@@ -165,9 +178,24 @@ export async function applyDemoState(raw: string) {
         setRailMode("collapsed");
         break;
       }
+      case "scale-100":
       case "scale-150":
-        document.documentElement.style.fontSize = "150%";
+        {
+          const { applyUiScaleToDocument } = await import("./accessibility");
+          const percent = token === "scale-150" ? 150 : 100;
+          applyUiScaleToDocument(percent);
+          await invoke("set_ui_scale_percent", { percent }).catch(() => undefined);
+        }
         break;
+      case "standard-contrast": {
+        const { applyHighContrastToDocument } = await import("./accessibility");
+        applyHighContrastToDocument(false);
+        await invoke("set_accessibility_prefs", {
+          high_contrast: false,
+          reduce_motion: null,
+        }).catch(() => undefined);
+        break;
+      }
       case "high-contrast": {
         const { applyHighContrastToDocument } = await import("./accessibility");
         applyHighContrastToDocument(true);

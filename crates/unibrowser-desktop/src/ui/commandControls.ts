@@ -184,9 +184,9 @@ export function renderResolvedControl(
     .join(" ");
   bindCommandTooltip(btn, {
     title: patched.title,
-    reason: patched.enabled ? null : patched.reason,
+    reason: a11yReason,
     chord,
-    enabled: patched.enabled,
+    enabled: actionable,
   });
   if (actionable) {
     btn.onclick = () => {

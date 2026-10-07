@@ -2662,6 +2662,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           try {
             await applyDemoState(demoAgain);
             await refreshState();
+            const demoTokens = demoAgain.toLowerCase();
+            const proofControl = demoTokens.includes("cmd11-plain-proof")
+              ? "unibrowser.control.text.strikethrough"
+              : demoTokens.includes("cmd11-markdown-proof")
+                ? "unibrowser.control.text.subscript"
+                : null;
+            if (proofControl) {
+              await new Promise((resolve) => window.setTimeout(resolve, 50));
+              document
+                .querySelector<HTMLElement>(`[data-control-id="${proofControl}"]`)
+                ?.focus();
+            }
           } catch (err) {
             reportSubsystemError("demo-state", err);
           }

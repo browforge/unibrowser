@@ -4575,6 +4575,7 @@ pub struct PreferencesDto {
     pub command_manager_dense: bool,
     pub cm_pin_tip_seen: bool,
     pub high_contrast: bool,
+    pub ui_scale_percent: u16,
     pub reduce_motion: String,
     pub restore_session_on_launch: bool,
     pub auto_save_enabled: bool,
@@ -5917,6 +5918,7 @@ fn preferences_dto() -> PreferencesDto {
         command_manager_dense: p.command_manager_dense,
         cm_pin_tip_seen: p.cm_pin_tip_seen,
         high_contrast: p.high_contrast,
+        ui_scale_percent: p.ui_scale_percent,
         reduce_motion: reduce_motion_to_str(&p.reduce_motion),
         restore_session_on_launch: p.restore_session_on_launch,
         auto_save_enabled: p.auto_save_enabled,
@@ -7323,6 +7325,17 @@ pub fn set_accessibility_prefs(input: AccessibilityPrefsInput) -> Result<Prefere
     if let Some(rm) = input.reduce_motion {
         p.reduce_motion = parse_reduce_motion(&rm)?;
     }
+    save_preferences(&p)?;
+    Ok(preferences_dto())
+}
+
+#[tauri::command]
+pub fn set_ui_scale_percent(percent: u16) -> Result<PreferencesDto, String> {
+    if !matches!(percent, 100 | 125 | 150) {
+        return Err("UI scale must be 100, 125, or 150 percent".into());
+    }
+    let mut p = load_preferences();
+    p.ui_scale_percent = percent;
     save_preferences(&p)?;
     Ok(preferences_dto())
 }

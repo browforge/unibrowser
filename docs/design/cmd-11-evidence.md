@@ -1,87 +1,93 @@
-# CMD-11 evidence grid
+# CMD-11 evidence
 
-Captures live under `docs/screenshots/cmd-11/`. Regenerate with `./scripts/capture-cmd-11.sh` after `scripts/ensure-release-desktop.sh`.
+All evidence is a 1600 x 1000 full-window capture under
+`docs/screenshots/cmd-11/`. `scripts/capture-cmd-11.sh` rejects images smaller
+than 1200 x 700 and rejects duplicate SHA-256 output hashes.
 
-Legend: **Pass** matches worked-context intent; **Drift** honest gap vs `command-system.md` target; **Fail** blocking defect.
+Legend: **Pass** proves the implemented model. **Drift** records an explicit
+current-runtime gap against the target family list. **Fail** blocks Done.
 
-| Capture | Context | Theme / scale | CM context | Overflow / clip | Contrast / HC | Save | Emulation / unsupported | Verdict |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| plain-text-light-100 | Plain text | light 100% | Text | Chevron; no label clip | Pass | Visible teal Save | Size active; formatting in overflow | Pass |
-| plain-text-dark-100 | Plain text | dark 100% | Text | Same | Pass | Pass | Pass | Pass |
-| plain-text-hc-100 | Plain text | light + HC | Text | Same | HC borders on chrome | Pass | Pass | Pass |
-| plain-text-light-150 | Plain text | light 150% | Text | Same | Pass | Pass | Pass | Pass |
-| markdown-light-100 | Markdown | light 100% | Text | Chevron; 15 controls resolved | Pass | Pass | Subscript emulation in overflow set | Pass |
-| markdown-dark-100 | Markdown | dark 100% | Text | Same | Pass | Pass | Pass | Pass |
-| markdown-hc-100 | Markdown | light + HC | Text | Same | HC chrome | Pass | Pass | Pass |
-| markdown-light-150 | Markdown | light 150% | Text | Same | Pass | Pass | Pass | Pass |
-| rich-document-light-100 | Rich DOCX | light 100% | Office | Chevron | Pass | Pass | Full formatting family resolved | Pass |
-| rich-document-dark-100 | Rich DOCX | dark 100% | Office | Same | Pass | Pass | Pass | Pass |
-| rich-document-hc-100 | Rich DOCX | light + HC | Office | Same | Pass | Pass | Pass | Pass |
-| rich-document-light-150 | Rich DOCX | light 150% | Office | Same | Pass | Pass | Pass | Pass |
-| code-light-100 | Code | light 100% | Code | Editor appearance + overflow | Pass | Pass | Doc formatting unsupported | Pass |
-| code-dark-100 | Code | dark 100% | Code | Same | Pass | Pass | Pass | Pass |
-| code-hc-100 | Code | light + HC | Code | Same | Pass | Pass | Pass | Pass |
-| code-light-150 | Code | light 150% | Code | Same | Pass | Pass | Pass | Pass |
-| pdf-annotation-light-100 | PDF | light 100% | PDF Annotation | PDF groups + overflow | Pass | Pass | Page/zoom in chrome | Drift |
-| pdf-annotation-dark-100 | PDF | dark 100% | PDF Annotation | Same | Pass | Pass | Pass | Drift |
-| pdf-annotation-hc-100 | PDF | light + HC | PDF Annotation | Same | Pass | Pass | Pass | Drift |
-| pdf-annotation-light-150 | PDF | light 150% | PDF Annotation | Same | Pass | Pass | Pass | Drift |
-| image-light-100 | Image | light 100% | Image | Adjust family | Pass | Pass | Text formatting absent | Drift |
-| image-dark-100 | Image | dark 100% | Image | Same | Pass | Pass | Pass | Drift |
-| image-hc-100 | Image | light + HC | Image | Same | Pass | Pass | Pass | Drift |
-| image-light-150 | Image | light 150% | Image | Same | Pass | Pass | Pass | Drift |
-| cad-3d (all variants) | CAD/3D | n/a | n/a | n/a | n/a | n/a | Path detect only; no family layout | Drift |
+## Integrity checks
 
-## Region notes (representative)
+- All 24 PNGs are 1600 x 1000 and have distinct SHA-256 hashes.
+- `plain-text-light-150.png` Git blob:
+  `69093fcb3653909850d88055dabc2e39631daffd`.
+- `markdown-light-150.png` Git blob:
+  `388e06e8d7bd1b854520267af085f698d3b8cbe0`.
+- Rust Monaco pixel validation is fatal again. Text and code captures passed
+  with non-zero ink and row counts after capture geometry was fixed.
+- Light vs high-contrast absolute changed-pixel counts:
+  Plain text 153230; Markdown 149023; rich document 525607; code 129378;
+  PDF 450773; image 543362. High contrast uses persisted accessibility
+  settings, black/white surface tokens, 2 px borders, and yellow focus.
+- 150% uses the persisted **Interface text scale** setting (100/125/150) from
+  Settings, not capture-only CSS.
 
-### Text / Markdown (plain-text-light-100, markdown-light-100)
+## Region-by-region grid
 
-- **Chrome:** Tab `sample.*`, breadcrumb, Undo/Redo, **Save** (supported), overflow menu.
-- **CM:** Context `Text`; visible strip shows **Find** plus **overflow chevron**; pin row `Following: Text`. Resolved model has 15 controls with 14 in overflow (never-clip).
-- **Editor band:** Monaco light surface with gutter and sample copy (pixel gate via frontend diagnostics).
-- **Status:** Line/column, encoding, reading stats, Alerts.
+Every row was opened and inspected. “Chrome” includes the complete title bar
+and Save. “CM” includes the context, complete visible controls, overflow, and
+right-side Follow/Pin controls.
 
-### Code (code-light-100)
+| PNG | Chrome | Command Manager | Content top / status | Verdict |
+| --- | --- | --- | --- | --- |
+| `plain-text-light-100` | Full light title bar; Save visible | Text; formatting greyed in place; Strikethrough focused | Reason tooltip visible; Monaco gutter/text; status visible | Pass |
+| `plain-text-dark-100` | Full dark title bar; Save visible | Same stable positions; disabled contrast remains readable | Dark Monaco; reason tooltip; status visible | Pass |
+| `plain-text-hc-100` | Yellow focus + strong borders; Save visible | Same controls, high-contrast focus on Strikethrough | White canvas; reason tooltip; status visible | Pass |
+| `plain-text-light-150` | Full width at persisted 150%; Save visible | No clipped labels; overflow and Follow/Pin visible | Larger tooltip/status; Monaco top visible | Pass |
+| `markdown-light-100` | Full light title bar; Save visible | Text; Subscript focused with subtle dotted marker | Approximation tooltip (`<sub>`/font scaling); Monaco visible | Pass |
+| `markdown-dark-100` | Full dark title bar; Save visible | Same family geometry and emulation marker | Dark Monaco; approximation tooltip | Pass |
+| `markdown-hc-100` | Yellow focus + strong borders; Save visible | Subscript focus and marker remain distinguishable | White canvas; approximation tooltip | Pass |
+| `markdown-light-150` | Full width at 150%; Save visible | Labels, overflow, Follow/Pin fit | Larger approximation tooltip/status; distinct from plain text | Pass |
+| `rich-document-light-100` | Full light title bar; Save visible | Office; Font/Size/emphasis/baseline visible | DOCX paper and status visible | Pass |
+| `rich-document-dark-100` | Full dark title bar; Save visible | Same supported controls | Dark well around readable paper | Pass |
+| `rich-document-hc-100` | High-contrast focus/borders; Save visible | Stable Office controls | High-contrast outer surfaces; paper readable | Pass |
+| `rich-document-light-150` | Full width at 150%; Save visible | No clipping; Follow/Pin visible | Enlarged paper text/status | Pass |
+| `code-light-100` | Full light title bar; Save visible | Code; editor Font/Size, Find, Check, Export | Monaco syntax top and status visible | Pass |
+| `code-dark-100` | Full dark title bar; Save visible | Same code family | Dark Monaco syntax and status | Pass |
+| `code-hc-100` | High-contrast focus/borders; Save visible | Stable code family | White Monaco with syntax | Pass |
+| `code-light-150` | Full width at 150%; Save visible | No clipping; Follow/Pin visible | Enlarged Monaco/status | Pass |
+| `pdf-annotation-light-100` | Full title bar; Save visible | PDF Annotation; Select/Highlight/Note/Area/Page/zoom/Export PDF | Pages, canvas, annotation panel, status | **Drift** |
+| `pdf-annotation-dark-100` | Full dark title bar; Save visible | Same implemented PDF controls | Dark surrounds; PDF remains readable | **Drift** |
+| `pdf-annotation-hc-100` | Strong borders/focus; Save visible | Same implemented PDF controls | HC pages/annotation boundaries | **Drift** |
+| `pdf-annotation-light-150` | Full width at 150%; Save visible | No clipped PDF labels; Follow/Pin visible | Enlarged viewer sidebars/status | **Drift** |
+| `image-light-100` | Full title bar; Save visible | Image; Undo/Redo/Find/Check/Export/Curves | SVG canvas, selection inspector, status | **Drift** |
+| `image-dark-100` | Full dark title bar; Save visible | Same implemented image controls | Dark canvas/inspector | **Drift** |
+| `image-hc-100` | Strong borders/focus; Save visible | Same implemented image controls | White HC surround; canvas remains distinct | **Drift** |
+| `image-light-150` | Full width at 150%; Save visible | No clipped labels; Follow/Pin visible | Enlarged inspector/status | **Drift** |
+| CAD/3D | No capture: `.dxf` resolves to CAD/3D but no CAD family layout exists | Pending | Pending | **Drift** |
 
-- **CM context:** `Code`; Editor Appearance controls in resolved model; document formatting unsupported with reasons in model (contract tests).
+PDF drift is explicit: Hand, Ink, Stamp, and Appearance controls from the
+target family list are not implemented. Image drift is explicit: Crop,
+Transform, extended Adjust, and conditional Text Formatting are not
+implemented. CAD/3D has context detection only.
 
-### Rich document (rich-document-light-100)
+## Corrections
 
-- **CM context:** `Office`; DOCX reader paper visible; formatting family supported per matrix.
+1. **Identical 150% blobs:** the old 560 x 140 shell-only crops excluded the
+   differing editor and most controls. The source files did switch, but the
+   captured pixels did not include evidence of that switch. Full-window
+   capture plus tooltip focus now proves plain-text unsupported vs Markdown
+   emulated state.
+2. **560 x 140 crop:** doc capture reapplied persisted window geometry after
+   Xvfb launch. Capture mode now bypasses saved geometry and sets the real
+   window to 1600 x 1000.
+3. **Pixel gate warning:** restored to fatal. The previous empty sample was a
+   coordinate mismatch caused by the 560 x 140 PNG paired with a 1600-wide DOM
+   editor rectangle; fixed geometry and proportional sampling now pass.
+4. **High contrast:** previous mode changed little beyond a flag/border. It now
+   has distinct persisted tokens and measured pixel differences above.
+5. **Runtime/doc disagreement:** built-in Markdown emulation providers were
+   incorrectly sent through the mod runtime and became “provider unavailable”.
+   Built-in `unibrowser.*` semantic providers now retain the resolver’s
+   Emulated state and approximation note. Plain/Markdown size is labelled
+   “Editor text size”. PDF, Image, and CAD target/current differences remain
+   documented as Drift.
 
-### PDF (pdf-annotation-light-100)
+## Tests
 
-- **CM:** `PDF Annotation` context chip; Find + overflow; PDF annotate/page/zoom/export groups in resolved model.
-- **Viewer:** Page 1 of 3, zoom 52%; native PDF canvas below CM.
-- **Drift:** Doc lists Hand/Ink/Stamp and Appearance groups not yet in layout (document updated).
-
-### Image (image-light-100)
-
-- **CM:** `Image` context; Adjust/Curves group.
-- **Drift:** Crop/transform and export groups not yet implemented (document updated).
-
-### High contrast (plain-text-hc-100, markdown-hc-100)
-
-- **`data-high-contrast="true"`** via Settings pref + `applyHighContrastToDocument` demo token (real setting, not capture-only CSS).
-- Thicker borders on chrome, CM, and tabs.
-
-### 150% scale (markdown-light-150)
-
-- Root `font-size: 150%` demo token; CM and Save scale with shell.
-
-## Contract / save tests
-
-- `unibrowser-engine::command_system::worked_context_contract::*` — matrix vs `command-system.md`.
-- `save_stays_supported_in_every_worked_context` — Save capability independent of formatting failures.
-
-## Doc vs runtime corrections (this batch)
-
-- **Runtime:** `Editor text size` label for plain text and Markdown size control (`families.rs`).
-- **Doc:** PDF, Image, and CAD sections note current vs target families (`command-system.md`).
-- **Fixture:** Replaced stub `%DOCX%` with minimal OOXML `sample.docx` for rich-document captures.
-
-## Gaps (not Fail)
-
-- **CAD/3D:** `WorkContext::Cad3d` detected; family layout and screenshots pending.
-- **PDF / Image:** Partial CM vs full worked-example family lists (tracked as Drift).
-- **Rust editor pixel gate:** logs warning when composited crop cannot sample Monaco band; frontend Monaco gate remains authoritative for text captures.
+- `command_system::worked_context_contract` verifies worked-context states and
+  reasons.
+- `save_stays_supported_in_every_worked_context` verifies Save remains
+  supported.
+- Capture diagnostics verify CM contrast and Monaco paint before writing PNG.

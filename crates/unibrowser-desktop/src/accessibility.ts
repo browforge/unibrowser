@@ -19,6 +19,12 @@ export function applyHighContrastToDocument(enabled: boolean) {
   document.documentElement.dataset.highContrast = enabled ? "true" : "false";
 }
 
+export function applyUiScaleToDocument(percent: number) {
+  const normalised = [100, 125, 150].includes(percent) ? percent : 100;
+  document.documentElement.dataset.uiScale = String(normalised);
+  document.documentElement.style.fontSize = `${normalised}%`;
+}
+
 export function applyCommandManagerDensity(dense: boolean) {
   const el = document.getElementById("command-manager");
   if (el) {
@@ -39,12 +45,14 @@ export async function loadAccessibilityPreferences() {
   try {
     const prefs = await invoke<{
       high_contrast: boolean;
+      ui_scale_percent: number;
       reduce_motion: string;
       command_manager_dense: boolean;
       chrome_focus_mode: boolean;
       larger_hit_targets: boolean;
     }>("get_preferences");
     applyHighContrastToDocument(prefs.high_contrast);
+    applyUiScaleToDocument(prefs.ui_scale_percent);
     const rm = prefs.reduce_motion?.toLowerCase();
     if (rm === "on" || rm === "off" || rm === "system") {
       reduceMotion = rm;
@@ -70,6 +78,11 @@ export async function loadAccessibilityPreferences() {
 export async function setHighContrast(enabled: boolean) {
   await invoke("set_accessibility_prefs", { high_contrast: enabled, reduce_motion: null });
   applyHighContrastToDocument(enabled);
+}
+
+export async function setUiScale(percent: number) {
+  await invoke("set_ui_scale_percent", { percent });
+  applyUiScaleToDocument(percent);
 }
 
 export async function setReduceMotion(pref: ReduceMotionPref) {

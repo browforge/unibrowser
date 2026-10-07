@@ -9,11 +9,13 @@ import {
   applyHighContrastToDocument,
   applyLargerHitTargets,
   applyReduceMotionToDocument,
+  applyUiScaleToDocument,
   setChromeFocusMode,
   setCommandManagerDense,
   setHighContrast,
   setLargerHitTargets,
   setReduceMotion,
+  setUiScale,
   type ReduceMotionPref,
 } from "./accessibility";
 import { applyThemeToDocument, loadThemePreference } from "./theme";
@@ -45,6 +47,7 @@ interface PrefsDto {
   editor_theme_id: string;
   command_manager_dense: boolean;
   high_contrast: boolean;
+  ui_scale_percent: number;
   reduce_motion: string;
   restore_session_on_launch: boolean;
   auto_save_enabled: boolean;
@@ -331,6 +334,26 @@ export async function renderSettings(root: HTMLElement) {
   hcRow.appendChild(hcCb);
   hcRow.appendChild(hcLabel);
   a11ySection.appendChild(hcRow);
+
+  const scaleLabel = document.createElement("label");
+  scaleLabel.htmlFor = "settings-ui-scale";
+  scaleLabel.textContent = t("settings.uiScale");
+  const scaleSelect = document.createElement("select");
+  scaleSelect.id = "settings-ui-scale";
+  for (const percent of [100, 125, 150]) {
+    const option = document.createElement("option");
+    option.value = String(percent);
+    option.textContent = `${percent}%`;
+    scaleSelect.appendChild(option);
+  }
+  scaleSelect.value = String(prefs.ui_scale_percent ?? 100);
+  scaleSelect.onchange = async () => {
+    const percent = Number(scaleSelect.value);
+    await setUiScale(percent);
+    applyUiScaleToDocument(percent);
+  };
+  a11ySection.appendChild(scaleLabel);
+  a11ySection.appendChild(scaleSelect);
 
   const motionLabel = document.createElement("label");
   motionLabel.textContent = t("settings.reduceMotion");

@@ -113,6 +113,7 @@
   "settings.languageLead": "Chrome strings only (en-NZ or en-US). Format viewers keep their own copy.",
   "settings.accessibility": "Accessibility",
   "settings.highContrast": "High contrast (strong borders and focus)",
+  "settings.uiScale": "Interface text scale",
   "settings.reduceMotion": "Reduce motion",
   "settings.reduceMotion.system": "Follow system",
   "settings.reduceMotion.on": "Always reduce motion",

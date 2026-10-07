@@ -124,7 +124,12 @@ export function assertLightThemeForCapture(): string | null {
     return `expected data-theme=light, got ${t.dataTheme ?? "null"}`;
   }
   const base = normaliseHex(t.ubBase);
-  if (base !== LIGHT_UB_BASE && base !== "rgb(241,240,236)") {
+  const highContrast = document.documentElement.dataset.highContrast === "true";
+  const expectedBase =
+    base === LIGHT_UB_BASE ||
+    base === "rgb(241,240,236)" ||
+    (highContrast && (base === "#fff" || base === "#ffffff" || base === "rgb(255,255,255)"));
+  if (!expectedBase) {
     return `expected --ub-base ${LIGHT_UB_BASE}, got ${t.ubBase}`;
   }
   return null;

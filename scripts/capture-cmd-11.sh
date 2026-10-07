@@ -25,10 +25,17 @@ capture() {
     UNIBROWSER_DEMO_STATE="$demo" \
     "$BIN" --open "$open_path" --doc-capture "$tmp"
   mv "$tmp" "$OUT/${name}.png"
+  local dimensions width height
+  dimensions="$(identify -format '%w %h' "$OUT/${name}.png")"
+  read -r width height <<<"$dimensions"
+  if (( width < 1200 || height < 700 )); then
+    echo "capture too small: ${name} is ${width}x${height}" >&2
+    exit 1
+  fi
   echo "wrote $OUT/${name}.png"
 }
 
-base="capture-ready"
+base="capture-ready,cm-compact"
 declare -a CONTEXTS=(
   "plain-text|${PACK}/sample.txt"
   "markdown|${PACK}/sample.md"
@@ -41,10 +48,27 @@ declare -a CONTEXTS=(
 for row in "${CONTEXTS[@]}"; do
   slug="${row%%|*}"
   path="${row#*|}"
-  capture "${slug}-light-100" "${base},theme-light" "$path"
-  capture "${slug}-dark-100" "${base},theme-dark" "$path"
-  capture "${slug}-hc-100" "${base},theme-light,high-contrast" "$path"
-  capture "${slug}-light-150" "${base},theme-light,scale-150" "$path"
+  proof=""
+  if [[ "$slug" == "plain-text" ]]; then
+    proof=",cmd11-plain-proof"
+  elif [[ "$slug" == "markdown" ]]; then
+    proof=",cmd11-markdown-proof"
+  fi
+  capture "${slug}-light-100" "${base},theme-light,standard-contrast,scale-100${proof}" "$path"
+  capture "${slug}-dark-100" "${base},theme-dark,standard-contrast,scale-100${proof}" "$path"
+  capture "${slug}-hc-100" "${base},theme-light,high-contrast,scale-100${proof}" "$path"
+  capture "${slug}-light-150" "${base},theme-light,standard-contrast,scale-150${proof}" "$path"
+done
+
+declare -A seen_hashes=()
+for png in "$OUT"/*.png; do
+  hash="$(sha256sum "$png" | cut -d' ' -f1)"
+  name="$(basename "$png")"
+  if [[ -n "${seen_hashes[$hash]:-}" ]]; then
+    echo "duplicate capture hash: ${seen_hashes[$hash]} and ${name} (${hash})" >&2
+    exit 1
+  fi
+  seen_hashes[$hash]="$name"
 done
 
 echo "CMD-11 captures in $OUT"

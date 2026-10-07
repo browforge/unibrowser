@@ -137,6 +137,9 @@ pub struct Preferences {
     /// High-contrast chrome (strong borders, Audacity-style accents).
     #[serde(default)]
     pub high_contrast: bool,
+    /// Persistent interface text scale percentage (100, 125, or 150).
+    #[serde(default = "default_ui_scale_percent")]
+    pub ui_scale_percent: u16,
     #[serde(default)]
     pub reduce_motion: ReduceMotionPref,
     /// Hide the scripting mod suggestion bar on JS/TS files opened as plain text.
@@ -227,6 +230,10 @@ fn default_bookmark_bar_enabled() -> bool {
 
 fn default_command_manager_dense() -> bool {
     true
+}
+
+fn default_ui_scale_percent() -> u16 {
+    100
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -358,6 +365,7 @@ impl Default for Preferences {
             command_manager_dense: default_command_manager_dense(),
             cm_pin_tip_seen: false,
             high_contrast: false,
+            ui_scale_percent: default_ui_scale_percent(),
             reduce_motion: ReduceMotionPref::default(),
             onboarding_checklist_skip_forever: false,
             onboarding_checklist_completed: Vec::new(),

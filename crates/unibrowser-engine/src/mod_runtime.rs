@@ -130,10 +130,14 @@ impl ModRuntimeRegistry {
         let Some(provider_id) = provider_id else {
             return Ok(());
         };
-        let runtime = self
-            .natives
-            .get(provider_id)
-            .ok_or_else(|| RuntimeCallbackError::UnknownProvider(provider_id.into()))?;
+        let Some(runtime) = self.natives.get(provider_id) else {
+            // Built-in semantic providers are resolved by CapabilityResolver and
+            // do not require a mod-runtime callback.
+            if provider_id.starts_with("unibrowser.") {
+                return Ok(());
+            }
+            return Err(RuntimeCallbackError::UnknownProvider(provider_id.into()));
+        };
         let Some(snap) = self.snapshot_for(provider_id, &control.control_id)? else {
             return Ok(());
         };

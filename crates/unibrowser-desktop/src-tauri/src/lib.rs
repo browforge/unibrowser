@@ -122,8 +122,13 @@ pub fn run() {
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
-                let saved = preferences::load_window_state();
-                let _ = preferences::apply_window_state(&window, &saved);
+                if doc_capture {
+                    let _ = window.set_size(tauri::LogicalSize::new(1600.0, 1000.0));
+                    let _ = window.set_position(tauri::LogicalPosition::new(0.0, 0.0));
+                } else {
+                    let saved = preferences::load_window_state();
+                    let _ = preferences::apply_window_state(&window, &saved);
+                }
                 if self_test {
                     self_test::schedule_run(app.handle().clone());
                 }
@@ -412,6 +417,7 @@ pub fn run() {
             commands::skip_onboarding_tour_forever,
             commands::set_ui_locale,
             commands::set_accessibility_prefs,
+            commands::set_ui_scale_percent,
             commands::set_command_manager_dense,
             commands::set_chrome_focus_mode,
             commands::set_larger_hit_targets,
