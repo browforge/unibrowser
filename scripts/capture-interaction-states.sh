@@ -217,7 +217,7 @@ capture_states "04-mod-tab" "Portal tab" 158 167 35 130
 capture_states "05-input" "Input" 235 260 80 220
 # Portal order: section tabs, Open VSX input, Search, Contribution
 # details, featured Install.
-capture_states "06-button" "Button" 525 240 390 200 300 90 235 260 1 Tab
+capture_states "06-button" "Button" 525 240 470 200 300 90 235 260 1 Tab
 capture_states "07-install" "Install" 1135 350 900 310 300 90 235 260 3 Tab
 
 # Rail destinations activate a workspace view on click. Capture focus after the
