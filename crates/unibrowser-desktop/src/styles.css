@@ -2102,7 +2102,7 @@ body.toolbar-window-mode .floating-bar.docked {
 .files-meta {
   text-align: right;
   font-size: 0.8rem;
-  color: #888;
+  color: var(--ub-label, #9aa5ac);
   white-space: nowrap;
 }
 
@@ -3698,7 +3698,7 @@ select:focus-visible,
 .workshop-field > span {
   display: block;
   margin-bottom: 4px;
-  color: var(--ub-text-muted, #9aa5ac);
+  color: var(--ub-label, var(--ub-text-2, #c9cbc8));
   font-size: 11px;
 }
 
@@ -4993,6 +4993,10 @@ mark.docx-search-hit--current {
   width: min(100%, 64rem);
 }
 
+.settings-content label {
+  color: var(--ub-label, var(--ub-text-2));
+}
+
 .settings-content button,
 .settings-content select,
 .settings-content input {
@@ -5678,16 +5682,11 @@ body.content-fullscreen #unknown-file-banner {
 }
 
 .mod-result-card--suggestion {
-  grid-template-rows: auto auto auto;
   max-width: 1200px;
-}
-
-.mod-result-card--suggestion .mod-result-reason {
-  grid-row: 2;
+  margin-bottom: 12px;
 }
 
 .mod-result-card--suggestion .mod-card-footer {
-  grid-row: 3;
   margin-top: 0;
   gap: 6px;
 }

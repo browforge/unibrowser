@@ -509,10 +509,11 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--ub-concept-chrome-text, #e9edef);
 }
 
 .title-breadcrumb .crumb-muted {
-  color: var(--ub-text-3);
+  color: color-mix(in srgb, var(--ub-concept-chrome-text, #e9edef) 78%, transparent);
 }
 
 body.ub-status-compact .status-verbose-only {

@@ -71,11 +71,16 @@ export const SHELL_DENSITY_CONTRAST_TARGETS: Array<{
   id: string;
   selector: string;
   minRatio: number;
+  when?: "workshop" | "mod-portal" | "settings" | "files" | "always";
 }> = [
-  { id: "workshop-panel-heading", selector: ".workshop-region-heading", minRatio: 4.5 },
-  { id: "workshop-track-label", selector: ".workshop-track-label", minRatio: 4.5 },
-  { id: "workshop-source-badge", selector: ".workshop-source-badge", minRatio: 4.5 },
-  { id: "workshop-source-sub", selector: ".workshop-source-copy span", minRatio: 4.5 },
+  { id: "workshop-panel-heading", selector: ".workshop-region-heading", minRatio: 4.5, when: "workshop" },
+  { id: "workshop-track-label", selector: ".workshop-track-label", minRatio: 4.5, when: "workshop" },
+  { id: "workshop-source-badge", selector: ".workshop-source-badge", minRatio: 4.5, when: "workshop" },
+  { id: "workshop-source-sub", selector: ".workshop-source-copy span", minRatio: 4.5, when: "workshop" },
+  { id: "workshop-field-label", selector: ".workshop-field > span", minRatio: 4.5, when: "workshop" },
+  { id: "title-breadcrumb", selector: ".title-breadcrumb:not(.hidden)", minRatio: 4.5, when: "always" },
+  { id: "files-meta", selector: ".files-meta", minRatio: 4.5, when: "files" },
+  { id: "settings-form-label", selector: ".settings-content label", minRatio: 4.5, when: "settings" },
 ];
 
 export function sampleContrastForSelector(
@@ -93,27 +98,111 @@ export function sampleContrastForSelector(
   return { id: selector, foreground: fg, background: bg, ratio };
 }
 
-export function validateShellDensityContrastForCapture(minRatio = 4.5): string | null {
-  const workshop = document.querySelector(".workshop");
-  const modPortal = document.getElementById("mod-portal-panel");
-  const workshopVisible = workshop && !workshop.classList.contains("hidden");
-  const portalVisible =
-    modPortal && !modPortal.classList.contains("hidden") && modPortal.classList.contains("mod-portal");
-  if (!workshopVisible && !portalVisible) {
-    return null;
-  }
-  if (workshopVisible) {
-    for (const target of SHELL_DENSITY_CONTRAST_TARGETS) {
-      const sample = sampleContrastForSelector(target.selector);
-      if (!sample) {
-        return `shell contrast: missing ${target.id}`;
-      }
-      if (sample.ratio === null || sample.ratio < minRatio) {
-        return `shell contrast: ${target.id} ratio ${sample.ratio?.toFixed(2) ?? "null"} < ${minRatio} (fg=${sample.foreground}, bg=${sample.background})`;
+export function rectsOverlap(a: DOMRect, b: DOMRect, minPx = 2): boolean {
+  const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+  const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  return w > minPx && h > minPx;
+}
+
+const MOD_CARD_TEXT_SELECTORS =
+  "strong, .mod-result-id, .mod-result-reason, .mod-result-meta, .mod-card-badge";
+
+export function validateModCardTextOverlap(): string | null {
+  const cards = document.querySelectorAll(".mod-result-card");
+  for (const card of cards) {
+    const textEls = Array.from(card.querySelectorAll(MOD_CARD_TEXT_SELECTORS)).filter(
+      (el): el is HTMLElement => {
+        if (!(el instanceof HTMLElement)) {
+          return false;
+        }
+        const style = getComputedStyle(el);
+        if (style.display === "none" || style.visibility === "hidden") {
+          return false;
+        }
+        const rect = el.getBoundingClientRect();
+        return rect.width > 1 && rect.height > 1;
+      },
+    );
+    for (let i = 0; i < textEls.length; i++) {
+      const a = textEls[i].getBoundingClientRect();
+      for (let j = i + 1; j < textEls.length; j++) {
+        const b = textEls[j].getBoundingClientRect();
+        if (textEls[i].contains(textEls[j]) || textEls[j].contains(textEls[i])) {
+          continue;
+        }
+        if (rectsOverlap(a, b)) {
+          return `mod card text overlap: "${textEls[i].textContent?.slice(0, 40)}" intersects "${textEls[j].textContent?.slice(0, 40)}"`;
+        }
       }
     }
   }
-  if (portalVisible) {
+  return null;
+}
+
+function sceneFlags() {
+  const workshop = document.querySelector(".workshop");
+  const modPortal = document.getElementById("mod-portal-panel");
+  const settings = document.querySelector(".settings-page");
+  const filesWrap = document.getElementById("files-browser-wrap");
+  return {
+    workshop: Boolean(workshop && !workshop.classList.contains("hidden")),
+    modPortal: Boolean(
+      modPortal && !modPortal.classList.contains("hidden") && modPortal.classList.contains("mod-portal"),
+    ),
+    settings: Boolean(settings),
+    files: Boolean(filesWrap && !filesWrap.classList.contains("hidden")),
+  };
+}
+
+function targetApplies(
+  when: (typeof SHELL_DENSITY_CONTRAST_TARGETS)[0]["when"],
+  flags: ReturnType<typeof sceneFlags>,
+): boolean {
+  if (!when || when === "always") {
+    return true;
+  }
+  if (when === "workshop") {
+    return flags.workshop;
+  }
+  if (when === "mod-portal") {
+    return flags.modPortal;
+  }
+  if (when === "settings") {
+    return flags.settings;
+  }
+  if (when === "files") {
+    return flags.files;
+  }
+  return true;
+}
+
+export function validateShellDensityContrastForCapture(minRatio = 4.5): string | null {
+  const flags = sceneFlags();
+  if (!flags.workshop && !flags.modPortal && !flags.settings && !flags.files) {
+    return null;
+  }
+
+  for (const target of SHELL_DENSITY_CONTRAST_TARGETS) {
+    if (!targetApplies(target.when, flags)) {
+      continue;
+    }
+    const sample = sampleContrastForSelector(target.selector);
+    if (!sample) {
+      if (target.when === "always") {
+        continue;
+      }
+      return `shell contrast: missing ${target.id}`;
+    }
+    if (sample.ratio === null || sample.ratio < minRatio) {
+      return `shell contrast: ${target.id} ratio ${sample.ratio?.toFixed(2) ?? "null"} < ${minRatio} (fg=${sample.foreground}, bg=${sample.background})`;
+    }
+  }
+
+  if (flags.modPortal) {
+    const overlapErr = validateModCardTextOverlap();
+    if (overlapErr) {
+      return overlapErr;
+    }
     const meta = document.querySelector(".mod-result-meta") as HTMLElement | null;
     if (meta) {
       const style = getComputedStyle(meta);
@@ -154,6 +243,20 @@ export const SHELL_DENSITY_TOKEN_PAIRS: Array<{
     id: "workshop-source-badge",
     foreground: "rgb(61, 68, 72)",
     background: "rgb(243, 242, 238)",
+    minRatio: 4.5,
+  },
+  {
+    theme: "light",
+    id: "workshop-field-label",
+    foreground: "rgb(69, 75, 78)",
+    background: "rgb(241, 240, 236)",
+    minRatio: 4.5,
+  },
+  {
+    theme: "light",
+    id: "form-label",
+    foreground: "rgb(69, 75, 78)",
+    background: "rgb(241, 240, 236)",
     minRatio: 4.5,
   },
   {
