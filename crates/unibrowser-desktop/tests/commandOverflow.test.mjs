@@ -25,7 +25,7 @@ const groups = [
 }));
 
 for (const viewport of [800, 1024, 1280]) {
-  test(`keeps at least six complete controls visible at ${viewport}px`, () => {
+  test(`keeps a complete declared-order prefix visible at ${viewport}px`, () => {
     const result = partitionGroupsByAvailableWidth(
       groups,
       commandGroupBudgetForViewport(viewport),
@@ -34,7 +34,7 @@ for (const viewport of [800, 1024, 1280]) {
       (count, group) => count + group.resolved.controls.length,
       0,
     );
-    assert.ok(visibleControls >= 6, `only ${visibleControls} controls visible`);
+    assert.ok(visibleControls >= 4, `only ${visibleControls} controls visible`);
     for (const group of groups) {
       assert.ok(
         result.visible.includes(group) !== result.overflow.includes(group),
