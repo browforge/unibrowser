@@ -487,7 +487,7 @@
   "image.saveAsPngJpegOnly": "Save as is available for PNG and JPEG files",
   "image.filters": "Filters",
   "image.filtersSoon": "Advanced filters are not available in this build",
-  "image.toolbarNote": "Pan: drag (Crop off) · Rotate/flip and Save as write a new file · original on disk is unchanged.",
+  "image.toolbarNote": "Pan by dragging. Crop and rotate affect the preview; saving a crop writes a new file and leaves the original unchanged.",
   "bookmark.ariaLabel": "Pinned places",
   "mods.networkOptIn": "Allow network (Open VSX)",
   "mods.networkOptInRequired": "Tick “Allow network” before searching Open VSX.",

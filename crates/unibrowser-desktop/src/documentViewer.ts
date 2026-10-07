@@ -1749,10 +1749,23 @@ async function renderImage(path: string, root: HTMLElement, initialZoom = 1) {
   };
 
   resetBtn.onclick = () => {
-    scale = 1;
+    const quarter = ((rotation % 360) + 360) % 360;
+    const swap = quarter === 90 || quarter === 270;
+    const imageWidth = swap ? img.naturalHeight : img.naturalWidth;
+    const imageHeight = swap ? img.naturalWidth : img.naturalHeight;
+    if (!imageWidth || !imageHeight) {
+      return;
+    }
+    const availableWidth = Math.max(1, viewport.clientWidth - 32);
+    const availableHeight = Math.max(1, viewport.clientHeight - 32);
+    scale = Math.min(
+      8,
+      Math.max(0.15, Math.min(availableWidth / imageWidth, availableHeight / imageHeight)),
+    );
     panX = 0;
     panY = 0;
     applyTransform();
+    reportViewerZoom(scale, "image");
   };
   rotateBtn.onclick = () => {
     rotation = (rotation + 90) % 360;

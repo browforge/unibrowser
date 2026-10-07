@@ -1958,20 +1958,8 @@ async function applyState(data: TabContentDto) {
     );
   } else if (showViewer && data.document_viewer) {
     const kind = data.document_viewer.viewer;
-    if (kind === "pdf") {
+    if (kind === "pdf" || kind === "image") {
       setZoomHandler("readout", null, null);
-    } else if (kind === "image") {
-      setZoomHandler(
-        "viewer",
-        (delta) => {
-          const cmd =
-            delta > 0
-              ? "unibrowser.page.zoom.increase"
-              : "unibrowser.page.zoom.decrease";
-          void runPageZoom(cmd);
-        },
-        zoomReset,
-      );
     } else {
       setZoomHandler("hidden", null, null);
     }
