@@ -167,6 +167,20 @@ capture_states "06-button" "Button" 525 240 390 200
 capture_states "07-install" "Install" 1135 350 900 310
 stop_surface
 
+# The existing UI-19 path uses real keyboard focus on a CM command and is also
+# covered by the focus-ring capture guard.
+cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
+start_surface "ui19-focus-visible" "$ROOT/examples/demo-pack/sample.md"
+close_floating_toolbar
+xdotool mousemove 1180 780
+shot "01-cm-focus" 0 28 300 90
+convert "$tmp/cells/01-cm-focus.png" \
+  -gravity north -background "$( [[ "$theme" == "dark" ]] && echo '#17191a' || echo '#ffffff' )" \
+  -fill "$( [[ "$theme" == "dark" ]] && echo '#f0efeb' || echo '#202223' )" \
+  -splice 0x24 -pointsize 13 -annotate +0+4 "Command Manager / focus" \
+  "$tmp/cells/01-cm-focus.png"
+stop_surface
+
 cp "$PREFS" "$XDG_CONFIG_HOME/unibrowser/preferences.json"
 start_surface "settings" "$ROOT/examples/demo-pack/sample.txt"
 close_floating_toolbar
@@ -174,7 +188,6 @@ xdotool sleep 1
 capture_states "08-switch" "Switch" 980 469 850 429
 capture_states "09-select" "Select" 1080 469 900 429
 capture_states "10-settings-input" "Settings input" 130 140 0 100
-capture_states "11-settings-button" "Settings button" 1090 569 900 529
 
 # Disable the interval select through the real Auto-save switch.
 xdotool mousemove 980 469 click 1
@@ -202,14 +215,14 @@ convert "$tmp/cells/00-disabled-reason.png" \
   "$tmp/cells/00-disabled-reason.png"
 
 mapfile -t state_cells < <(
-  for row in {01..11}; do
+  for row in {01..10}; do
     for state in default hover focus pressed; do
       printf '%s\n' "$tmp/cells/${row}-"*"-${state}.png"
     done
   done
 )
 montage "${state_cells[@]}" \
-  -tile 4x11 -geometry +8+8 \
+  -tile 4x10 -geometry +8+8 \
   -background "$( [[ "$theme" == "dark" ]] && echo '#0f1112' || echo '#e7e5df' )" \
   "$OUT/states-${suffix}.png"
 

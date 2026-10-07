@@ -448,6 +448,11 @@ button.proving-disabled,
   border-color: var(--ub-accent-hover, var(--ub-accent));
 }
 
+.ub-switch:active,
+.settings-toggle-input:active {
+  border-color: var(--ub-focus, #83c7e6);
+}
+
 .ub-switch:checked::after,
 .settings-toggle-input:checked::after {
   transform: translateX(14px);
@@ -3993,6 +3998,10 @@ button:active:not(:disabled):not([aria-disabled="true"]),
 input:hover:not(:disabled):not([type="checkbox"]):not([type="radio"]),
 select:hover:not(:disabled) {
   border-color: var(--ub-accent);
+}
+
+select:active:not(:disabled) {
+  border-color: var(--ub-focus);
 }
 
 button:disabled:not(.ui-command),
