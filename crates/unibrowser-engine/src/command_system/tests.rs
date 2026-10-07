@@ -80,7 +80,7 @@ mod resolver_tests {
     fn browse_context_uses_only_browse_controls() {
         let context = ctx(WorkContext::Browse, Some("/workspace"));
         let families =
-            super::super::families::core_tab_layout(&context, &CapabilityResolver::new());
+            super::super::families::core_tab_layout(&context, &CapabilityResolver::default());
         let control_ids: Vec<&str> = families
             .iter()
             .flat_map(|family| family.groups.iter())
