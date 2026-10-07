@@ -23,6 +23,7 @@ import { listEditorThemeOptions } from "./monacoEditorTheme";
 import { setEditorThemePreference } from "./textEditor";
 import { markChecklistStep } from "./onboardingChecklist";
 import { configureAutoSave } from "./autoSave";
+import { enhanceSelectsIn } from "./ui/themedSelect";
 import { configureProjectAutoSave } from "./projectAutoSave";
 import { appendCrashRecoveryPanel } from "./crashRecoveryPanel";
 import { appendWorkspaceLayoutPanel } from "./workspaceLayoutPanel";
@@ -1408,4 +1409,5 @@ export async function renderSettings(root: HTMLElement) {
   });
 
   activateCategory("general");
+  enhanceSelectsIn(root);
 }

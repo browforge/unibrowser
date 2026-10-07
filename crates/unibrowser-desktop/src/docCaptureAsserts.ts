@@ -636,13 +636,18 @@ export function validateDarkSurfaceBackgroundsForCapture(
       )
       .forEach((candidate) => candidates.add(candidate));
   }
-  document.querySelectorAll<HTMLOptionElement>("select option").forEach((option) => {
-    candidates.add(option);
+  document.querySelectorAll<HTMLElement>(
+    "select option, .ub-select-list, .ub-select-option",
+  ).forEach((node) => {
+    candidates.add(node);
   });
   for (const candidate of candidates) {
     const rect = candidate.getBoundingClientRect();
     const style = getComputedStyle(candidate);
-    const isOption = candidate instanceof HTMLOptionElement;
+    const isOption =
+      candidate instanceof HTMLOptionElement ||
+      candidate.classList.contains("ub-select-option") ||
+      candidate.classList.contains("ub-select-list");
     if (
       (!isOption && (rect.width <= 0 || rect.height <= 0)) ||
       style.display === "none" ||

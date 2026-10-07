@@ -412,6 +412,66 @@ select option:hover {
   color: var(--ub-text-1, #f0efeb);
 }
 
+.ub-select-list {
+  position: fixed;
+  z-index: 20000;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  color-scheme: inherit;
+  background-color: var(--ub-control, #2d3031);
+  color: var(--ub-text-1, #f0efeb);
+  border: 1px solid var(--ub-border-strong, #89939d);
+  border-radius: var(--ub-radius-6, 6px);
+  box-shadow: var(--ub-shadow-palette, 0 8px 24px rgba(0, 0, 0, 0.35));
+  max-height: min(16rem, calc(100vh - 2rem));
+  overflow: auto;
+}
+
+.ub-select-option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--ub-radius-4, 4px);
+  background-color: var(--ub-control, #2d3031);
+  color: var(--ub-text-1, #f0efeb);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ub-select-option.is-selected,
+.ub-select-option.is-active,
+.ub-select-option:hover,
+.ub-select-option:focus-visible {
+  background-color: var(--ub-selected, #253e4c);
+  color: var(--ub-text-1, #f0efeb);
+}
+
+[data-theme="dark"] .ub-select-list,
+[data-theme="dark"] .ub-select-option,
+html[data-theme="dark"] .ub-select-list,
+html[data-theme="dark"] .ub-select-option {
+  color-scheme: dark;
+}
+
+[data-theme="light"] .ub-select-list,
+[data-theme="light"] .ub-select-option,
+html[data-theme="light"] .ub-select-list,
+html[data-theme="light"] .ub-select-option {
+  color-scheme: light;
+}
+
+[data-high-contrast="true"]:not([data-theme="light"]) .ub-select-list,
+[data-high-contrast="true"]:not([data-theme="light"]) .ub-select-option {
+  color-scheme: dark;
+  background-color: var(--ub-control);
+  color: var(--ub-text-1);
+  border-color: var(--ub-border-strong);
+}
+
 #chrome input[type="color"],
 .pdf-annotations-dock input[type="color"],
 .settings-content input[type="color"] {
