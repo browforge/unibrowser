@@ -158,6 +158,7 @@ export async function applyDemoState(raw: string) {
       case "files":
         await invoke("open_path", { path: "~", line: null }).catch(() => undefined);
         break;
+      case "ui26-file-preview":
       case "ui13-files-preview": {
         const links = await waitForElement<HTMLButtonElement>(".files-table .file-link");
         if (!links) {
