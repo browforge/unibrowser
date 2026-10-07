@@ -474,10 +474,14 @@ export const textEditor = {
 
   show(host: HTMLElement) {
     host.classList.remove("hidden");
+    toolbarEl?.classList.remove("hidden");
+    plainToolbarEl?.classList.remove("hidden");
   },
 
   hide(host: HTMLElement) {
     host.classList.add("hidden");
+    toolbarEl?.classList.add("hidden");
+    plainToolbarEl?.classList.add("hidden");
     detachSpellcheckPane();
     loadedPath = null;
     markdownPreview = false;
