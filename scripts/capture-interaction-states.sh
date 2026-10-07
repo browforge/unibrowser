@@ -125,7 +125,8 @@ shot() {
 
 # WebKit treats a mouse-focused button as mouse modality, so :focus-visible
 # does not paint after click or after Shift+Tab/Tab on the same control.
-# Land keyboard focus by activating the previous tab-order control, then Tab
+# A mouse-focused search field also swallows Tab. Keyboard-focus the
+# predecessor with the pointer-down / Shift+Tab / Tab dance, then Tab
 # (or Shift+Tab) onto the sampled target. Escape is not sent afterwards.
 focus_from_predecessor() {
   local pred_x="$1"
@@ -135,8 +136,12 @@ focus_from_predecessor() {
   local i
   xdotool mousemove 700 650 click 1
   xdotool mousemove "$pred_x" "$pred_y"
-  xdotool click 1
+  xdotool mousedown 1
+  xdotool sleep 0.05
   xdotool mousemove 1180 780
+  xdotool mouseup 1
+  xdotool key shift+Tab
+  xdotool key Tab
   xdotool sleep 0.15
   for ((i = 0; i < hops; i++)); do
     xdotool key "$key"
@@ -272,8 +277,13 @@ convert "$tmp/cells/00-disabled-reason.png" \
   -splice 0x24 -pointsize 13 -annotate +0+4 "CM unsupported / reason tooltip" \
   "$tmp/cells/00-disabled-reason.png"
 
-"$ROOT/scripts/check-state-focus-rings.py" \
+if ! "$ROOT/scripts/check-state-focus-rings.py" \
   "$theme" "$contrast" "$tmp/cells/"*-focus.png
+then
+  mkdir -p "/tmp/state-focus-cells-${suffix}"
+  cp "$tmp/cells/"*-focus.png "/tmp/state-focus-cells-${suffix}/"
+  exit 1
+fi
 
 mapfile -t state_cells < <(
   for row in {01..10}; do
