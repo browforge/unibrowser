@@ -3205,7 +3205,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               };
             }
           }
-          clearCaptureHoverAndTooltips();
+          clearCaptureHoverAndTooltips(
+            demoAgain?.toLowerCase().includes("ui19-focus-visible") ?? false,
+          );
           await invoke("finish_doc_capture_and_exit", { editorRegion });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);

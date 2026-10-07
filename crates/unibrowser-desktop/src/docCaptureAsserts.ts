@@ -1232,12 +1232,14 @@ export function validateCommandManagerMutedForCapture(): string | null {
   return null;
 }
 
-/** Blur focus and hide CM tooltips so captures do not show hover chrome. */
-export function clearCaptureHoverAndTooltips(): void {
+/** Hide hover chrome and optionally preserve intentional keyboard-focus evidence. */
+export function clearCaptureHoverAndTooltips(preserveFocus = false): void {
   document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
-  const active = document.activeElement;
-  if (active instanceof HTMLElement) {
-    active.blur();
+  if (!preserveFocus) {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) {
+      active.blur();
+    }
   }
   document.body.dispatchEvent(
     new MouseEvent("mousemove", { clientX: 0, clientY: 0, bubbles: true }),
