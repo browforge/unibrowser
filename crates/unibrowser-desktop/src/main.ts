@@ -990,9 +990,13 @@ function renderModPortal(portal: ModPortalDto | null) {
     return;
   }
   modPortalPanel.classList.remove("hidden");
+  const taskHeader = document.createElement("header");
+  taskHeader.className = "mod-portal-task-header";
   const h = document.createElement("h2");
   h.textContent = portal.title;
-  modPortalPanel.appendChild(h);
+  const p = document.createElement("p");
+  p.className = "mod-portal-task-lead";
+  p.textContent = portal.message;
   const tabs = document.createElement("nav");
   tabs.className = "mod-portal-tabs";
   tabs.setAttribute("aria-label", "Mod Portal sections");
@@ -1005,12 +1009,11 @@ function renderModPortal(portal: ModPortalDto | null) {
     button.onclick = () => setModPortalTab(index);
     tabs.appendChild(button);
   });
-  modPortalPanel.appendChild(tabs);
-  const p = document.createElement("p");
-  p.textContent = portal.message;
-  modPortalPanel.appendChild(p);
+  taskHeader.append(h, p, tabs);
+  modPortalPanel.appendChild(taskHeader);
+
   const searchRow = document.createElement("div");
-  searchRow.className = "mod-portal-search";
+  searchRow.className = "mod-portal-search mod-portal-search--task";
   const searchInput = document.createElement("input");
   searchInput.type = "search";
   searchInput.placeholder = t("mods.searchPlaceholder");
@@ -1021,30 +1024,42 @@ function renderModPortal(portal: ModPortalDto | null) {
   const searchStatus = document.createElement("p");
   searchStatus.className = "mod-portal-search-status viewer-note";
   const catalogResults = document.createElement("div");
-  catalogResults.className = "mod-portal-catalog";
+  catalogResults.className = "mod-portal-catalog mod-portal-catalog--restrained";
   const results = document.createElement("div");
   results.className = "mod-portal-results";
   searchRow.append(searchInput, searchBtn);
+  renderModNetworkStatus(searchRow);
   modPortalPanel.appendChild(searchRow);
-  renderModNetworkStatus(modPortalPanel);
-  portal.suggestions.forEach((s) => {
-    appendModSuggestionCard(modPortalPanel, s, (suggestion) => {
-      if (suggestion.open_vsx_id) {
-        searchInput.value = suggestion.open_vsx_id;
-        enableOpenVsxForSearch();
-        searchInput.focus();
-        showToast(t("mods.installStub", { modId: suggestion.mod_id }), "info");
-        return;
-      }
-      if (suggestion.ubmod_id) {
-        showToast(t("mods.ubmodStub", { modId: suggestion.ubmod_id }), "info");
-        return;
-      }
+
+  const featured = document.createElement("section");
+  featured.className = "mod-portal-featured";
+  featured.setAttribute("aria-label", "Suggested result");
+  const featuredTitle = document.createElement("h3");
+  featuredTitle.className = "mod-portal-featured-title";
+  featuredTitle.textContent = "Suggested result";
+  featured.appendChild(featuredTitle);
+  const suggestionHandler = (suggestion: (typeof portal.suggestions)[number]) => {
+    if (suggestion.open_vsx_id) {
+      searchInput.value = suggestion.open_vsx_id;
+      enableOpenVsxForSearch();
+      searchInput.focus();
       showToast(t("mods.installStub", { modId: suggestion.mod_id }), "info");
-    });
-  });
+      return;
+    }
+    if (suggestion.ubmod_id) {
+      showToast(t("mods.ubmodStub", { modId: suggestion.ubmod_id }), "info");
+      return;
+    }
+    showToast(t("mods.installStub", { modId: suggestion.mod_id }), "info");
+  };
+  const primarySuggestion = portal.suggestions[0];
+  if (primarySuggestion) {
+    appendModSuggestionCard(featured, primarySuggestion, suggestionHandler, { featured: true });
+  }
+  modPortalPanel.appendChild(featured);
+
   const catalogNote = document.createElement("p");
-  catalogNote.className = "viewer-note";
+  catalogNote.className = "viewer-note mod-portal-catalog-note";
   catalogNote.textContent = t("mods.catalogNote");
   modPortalPanel.appendChild(catalogNote);
   void invoke<{ offline_mode: boolean }>("get_preferences").then((netPrefs) => {
