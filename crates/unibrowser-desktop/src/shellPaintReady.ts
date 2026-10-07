@@ -199,6 +199,9 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   }
 
   const joined = launchPaths.join("|").toLowerCase();
+  if (tokens.includes("settings")) {
+    return [settingsReady];
+  }
   if (joined.includes(".unibrow")) {
     checks.push(unibrowBoardReady);
     if (tokens.some((t) => t === "live" || t === "live-preview")) {
