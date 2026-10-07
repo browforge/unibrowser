@@ -186,6 +186,13 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           return Boolean(overlay && document.body.classList.contains("layout-edit-mode"));
         });
         break;
+      case "ui19-focus-visible":
+        checks.push(
+          () =>
+            document.activeElement?.getAttribute("data-control-id") ===
+            "unibrowser.control.find",
+        );
+        break;
       default:
         break;
     }

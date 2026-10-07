@@ -260,6 +260,13 @@ export async function applyDemoState(raw: string) {
         setLayoutEditMode(true);
         break;
       }
+      case "ui19-focus-visible": {
+        const command = await waitForElement<HTMLButtonElement>(
+          '[data-control-id="unibrowser.control.find"]',
+        );
+        command?.focus();
+        break;
+      }
       case "rail-expanded": {
         const { setRailMode } = await import("./ui/activityRail");
         setRailMode("expanded");
