@@ -44,6 +44,7 @@ function markUbReadyWhenDomChromePresent() {
   }
 }
 markUbReadyWhenDomChromePresent();
+syncOpenVsxNetworkDataset();
 exposeShellChromeAudit();
 exposeChromeMetrics();
 void invoke<{ scenarios: string[] } | null>("get_self_test_plan").then((plan) => {
@@ -154,6 +155,18 @@ import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
 import { syncContextDockPolicy } from "./contextDock";
 import { applyDemoState } from "./demoState";
+import {
+  appendModCatalogCard,
+  appendModSuggestionCard,
+  renderModNetworkStatus,
+  enableOpenVsxForSearch,
+  type ModCatalogEntry,
+} from "./modPortalUi";
+import {
+  isOpenVsxNetworkEnabled,
+  setOpenVsxNetworkEnabled,
+  syncOpenVsxNetworkDataset,
+} from "./modsOpenVsx";
 import {
   assertLightThemeForCapture,
   collectDocCaptureDiagnostics,
@@ -910,12 +923,10 @@ function runModsCommand(commandId: string): boolean {
       void runModPortalOpenVsxSearch();
       return true;
     case "unibrowser.mods.install": {
-      const first = modPortalPanel.querySelector<HTMLButtonElement>(
-        ".mod-portal-catalog button, .mod-suggestion",
-      );
+      const first = modPortalPanel.querySelector<HTMLButtonElement>(".mod-card-action");
       if (first) {
         first.focus();
-        showToast(t("mods.installStub", { modId: first.textContent?.trim() ?? "mod" }), "info");
+        first.click();
       } else {
         showToast(t("mods.noResults"), "info");
       }
@@ -929,15 +940,13 @@ function runModsCommand(commandId: string): boolean {
       showToast("Review licence and permission reminders on each card before installing.", "info");
       return true;
     case "unibrowser.mods.openVsx": {
-      const optIn = modPortalPanel.querySelector<HTMLInputElement>("#open-vsx-opt-in");
-      if (optIn) {
-        optIn.checked = !optIn.checked;
-        optIn.dispatchEvent(new Event("change", { bubbles: true }));
-        showToast(
-          optIn.checked ? t("mods.catalogOpenVsx") : t("mods.networkOptInRequired"),
-          "info",
-        );
-      }
+      const next = !isOpenVsxNetworkEnabled();
+      setOpenVsxNetworkEnabled(next);
+      showToast(
+        next ? t("mods.catalogOpenVsx") : t("mods.networkOptInRequired"),
+        "info",
+      );
+      void refreshCommandManager();
       return true;
     }
     default:
@@ -971,55 +980,8 @@ function renderModPortal(portal: ModPortalDto | null) {
   const p = document.createElement("p");
   p.textContent = portal.message;
   modPortalPanel.appendChild(p);
-  portal.suggestions.forEach((s) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "mod-suggestion mod-result-card";
-    const ubmod = s.ubmod_id ? ` · .ubmod ${s.ubmod_id}` : "";
-    const title = document.createElement("strong");
-    title.textContent = s.title;
-    const id = document.createElement("span");
-    id.className = "mod-result-id";
-    id.textContent = `${s.mod_id}${ubmod}`;
-    const reason = document.createElement("span");
-    reason.className = "mod-result-reason";
-    reason.textContent = s.reason;
-    const meta = document.createElement("span");
-    meta.className = "mod-result-meta";
-    meta.textContent =
-      "Source: built-in catalogue | Licence: check before install | Permissions: review before install";
-    btn.append(title, id, reason, meta);
-    btn.title = s.reason;
-    btn.onclick = () => {
-      if (s.open_vsx_id) {
-        const searchInput = modPortalPanel.querySelector<HTMLInputElement>(".mod-portal-query");
-        const optIn = modPortalPanel.querySelector<HTMLInputElement>("#open-vsx-opt-in");
-        if (searchInput) {
-          searchInput.value = s.open_vsx_id;
-          searchInput.focus();
-        }
-        if (optIn) {
-          optIn.checked = true;
-        }
-        showToast(t("mods.installStub", { modId: s.mod_id }), "info");
-        return;
-      }
-      if (s.ubmod_id) {
-        showToast(t("mods.ubmodStub", { modId: s.ubmod_id }), "info");
-        return;
-      }
-      showToast(t("mods.installStub", { modId: s.mod_id }), "info");
-    };
-    modPortalPanel.appendChild(btn);
-  });
   const searchRow = document.createElement("div");
   searchRow.className = "mod-portal-search";
-  const optIn = document.createElement("input");
-  optIn.type = "checkbox";
-  optIn.id = "open-vsx-opt-in";
-  const optLabel = document.createElement("label");
-  optLabel.htmlFor = "open-vsx-opt-in";
-  optLabel.textContent = t("mods.networkOptIn");
   const searchInput = document.createElement("input");
   searchInput.type = "search";
   searchInput.placeholder = t("mods.searchPlaceholder");
@@ -1033,11 +995,25 @@ function renderModPortal(portal: ModPortalDto | null) {
   catalogResults.className = "mod-portal-catalog";
   const results = document.createElement("div");
   results.className = "mod-portal-results";
-  searchRow.appendChild(optIn);
-  searchRow.appendChild(optLabel);
-  searchRow.appendChild(searchInput);
-  searchRow.appendChild(searchBtn);
+  searchRow.append(searchInput, searchBtn);
   modPortalPanel.appendChild(searchRow);
+  renderModNetworkStatus(modPortalPanel);
+  portal.suggestions.forEach((s) => {
+    appendModSuggestionCard(modPortalPanel, s, (suggestion) => {
+      if (suggestion.open_vsx_id) {
+        searchInput.value = suggestion.open_vsx_id;
+        enableOpenVsxForSearch();
+        searchInput.focus();
+        showToast(t("mods.installStub", { modId: suggestion.mod_id }), "info");
+        return;
+      }
+      if (suggestion.ubmod_id) {
+        showToast(t("mods.ubmodStub", { modId: suggestion.ubmod_id }), "info");
+        return;
+      }
+      showToast(t("mods.installStub", { modId: suggestion.mod_id }), "info");
+    });
+  });
   const catalogNote = document.createElement("p");
   catalogNote.className = "viewer-note";
   catalogNote.textContent = t("mods.catalogNote");
@@ -1046,8 +1022,7 @@ function renderModPortal(portal: ModPortalDto | null) {
     if (!netPrefs.offline_mode) {
       return;
     }
-    optIn.disabled = true;
-    optIn.checked = false;
+    setOpenVsxNetworkEnabled(false);
     searchBtn.disabled = true;
     const offlineNote = document.createElement("p");
     offlineNote.className = "viewer-note";
@@ -1120,7 +1095,7 @@ function renderModPortal(portal: ModPortalDto | null) {
     try {
       const rec = await invoke<InstalledVsixDto>("download_install_vsix", {
         url: hit.url,
-        networkOptIn: optIn.checked,
+        networkOptIn: isOpenVsxNetworkEnabled(),
         license: hit.license,
       });
       showToast(t("mods.installedPaletteNote", { extensionId: rec.extension_id }), "info");
@@ -1132,46 +1107,44 @@ function renderModPortal(portal: ModPortalDto | null) {
     }
   }
 
+  async function installedSets(): Promise<{ native: Set<string>; vsix: Set<string> }> {
+    const native = new Set<string>();
+    const vsix = new Set<string>();
+    try {
+      const mods = await invoke<InstalledNativeModDto[]>("list_installed_native_mods");
+      mods.forEach((m) => native.add(m.name));
+    } catch {
+      /* ignore */
+    }
+    try {
+      const list = await invoke<InstalledVsixDto[]>("list_installed_vsix");
+      list.forEach((v) => vsix.add(v.extension_id));
+    } catch {
+      /* ignore */
+    }
+    return { native, vsix };
+  }
+
   async function renderCatalog() {
-    const entries = await invoke<
-      {
-        id: string;
-        title: string;
-        kind: string;
-        blurb: string;
-        open_vsx_id?: string | null;
-        ubmod_id?: string | null;
-      }[]
-    >("list_mod_catalog", { query: searchInput.value });
+    const entries = await invoke<ModCatalogEntry[]>("list_mod_catalog", {
+      query: searchInput.value,
+    });
+    const { native, vsix } = await installedSets();
     catalogResults.innerHTML = "";
     entries.forEach((entry) => {
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "mod-result-card mod-catalog-row";
-      const title = document.createElement("strong");
-      title.textContent = entry.title;
-      const id = document.createElement("span");
-      id.className = "mod-result-id";
-      id.textContent = entry.id;
-      const reason = document.createElement("span");
-      reason.className = "mod-result-reason";
-      reason.textContent = entry.blurb;
-      const meta = document.createElement("span");
-      meta.className = "mod-result-meta";
-      const source = entry.open_vsx_id ? "Open VSX" : "Built-in catalogue";
-      meta.textContent = `Source: ${source} | Licence: check before install | Permissions: review before install`;
-      row.append(title, id, reason, meta);
-      row.title = entry.blurb;
-      row.onclick = () => {
-        if (entry.open_vsx_id) {
-          searchInput.value = entry.open_vsx_id;
-          optIn.checked = true;
-          showToast(t("mods.catalogOpenVsx"), "info");
-        } else if (entry.ubmod_id) {
-          showToast(t("mods.ubmodStub", { modId: entry.ubmod_id }), "info");
+      appendModCatalogCard(catalogResults, entry, native, vsix, (picked) => {
+        if (picked.open_vsx_id) {
+          searchInput.value = picked.open_vsx_id;
+          enableOpenVsxForSearch();
+          void runModPortalOpenVsxSearch();
+          return;
         }
-      };
-      catalogResults.appendChild(row);
+        if (picked.ubmod_id) {
+          showToast(t("mods.ubmodStub", { modId: picked.ubmod_id }), "info");
+          return;
+        }
+        showToast(t("mods.installStub", { modId: picked.id }), "info");
+      });
     });
   }
 
@@ -1187,7 +1160,7 @@ function renderModPortal(portal: ModPortalDto | null) {
       searchStatus.textContent = t("mods.offlineModeActive");
       return;
     }
-    if (!optIn.checked) {
+    if (!isOpenVsxNetworkEnabled()) {
       searchStatus.textContent = t("mods.networkOptInRequired");
       return;
     }
@@ -1195,7 +1168,7 @@ function renderModPortal(portal: ModPortalDto | null) {
     try {
       const hits = await invoke<OpenVsxHitDto[]>("search_open_vsx_catalog", {
         query: searchInput.value,
-        networkOptIn: optIn.checked,
+        networkOptIn: isOpenVsxNetworkEnabled(),
       });
       searchStatus.textContent = hits.length
         ? t("mods.resultsCount", { count: hits.length })

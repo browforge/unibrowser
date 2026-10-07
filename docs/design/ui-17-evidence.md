@@ -21,14 +21,14 @@ surface do not overlap. All controls are within the dock boundary.
 ### `mod-portal-discover-light-1280.png`
 
 The light-theme Mod portal shows Installed, Discover, and Updates tabs with
-Discover selected. The Command Manager context label reads Mods and the family
-row shows Search, Install, Updates, Permissions, and Open VSX network. Browse
-file operations are not shown. One recommended handler card appears above an
-opt-in Open VSX search row. Six catalogue results appear as a two-column grid of
-bordered cards. Each card shows a title, identifier, reason, source, licence
-reminder, and permission reminder. Installed extensions begins below the result
-grid. No result, heading, or control overlaps another region. No visible text
-is clipped.
+Discover selected. The active tab title reads Mod portal. The Command Manager
+context label reads Mods with Search, Install, Updates, Permissions, and Open VSX
+network (distinct refresh, shield, and globe icons). Browse file operations are
+not shown. Open VSX network state is shown as status text tied to the toolbar
+toggle; there is no duplicate checkbox. Suggested and catalogue cards show a
+state badge, metadata, and a quiet Install or Open action per card. Six
+catalogue results fill the content width in a responsive grid. Installed
+extensions begins below the grid. No region overlap or clipped control text.
 
 ## Grades
 
