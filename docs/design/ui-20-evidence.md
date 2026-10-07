@@ -36,8 +36,8 @@ move into overflow rather than wrapping. No region overlaps or clips another.
 UI-20 grade: Drift.
 
 The active shell has no legacy duplicate chrome according to 3 of 3 shell
-audits, the superseded workshop shell CSS was removed, and the final matrix
-passes the visible integrity gates. The inactive `renderUnibrowLegacy`
-implementation and additional old `.unibrow-*` timeline rules still remain in
-`documentViewer.ts` and `styles.css`. That incomplete source cleanup prevents
-Pass even though the legacy renderer is not mounted.
+audits, the superseded workshop shell CSS was removed, and the inactive
+`renderUnibrowLegacy` path was deleted from `documentViewer.ts` (see
+`src/legacy/README.md`). Remaining `.unibrow-*` stylesheet rules are inert but
+still present. Full Pass would require pruning those rules and a final shell
+audit after stylesheet cleanup.

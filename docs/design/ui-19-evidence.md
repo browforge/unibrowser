@@ -27,6 +27,13 @@ surfaces. Find retains the complete green focus rectangle and labelled tooltip.
 The editor contains six visible lines. No title-bar, Command Manager, editor, or
 status text overlaps another region.
 
+## Automated checks (this environment)
+
+- `scripts/capture-ui-19.sh` after `npm run build`: 150% scale, high-contrast theme,
+  Find control focused, green focus ring, contrast diagnostic on nine visible CM controls.
+- Keyboard path: demo token `ui19-focus-visible` focuses Find via `data-control-id`.
+- Not run here: Windows 100/125/200%, Linux 2x scaling, axe-core, screen reader.
+
 ## Grade
 
 UI-19 grade: Drift.
