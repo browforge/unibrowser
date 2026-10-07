@@ -181,6 +181,7 @@ body {
 [data-theme="light"] .bookmark-link {
   background: #e8e8ec;
   border-color: #bbb;
+  color: #23272d;
 }
 
 .diff-editor-host {
@@ -1587,6 +1588,14 @@ body.toolbar-window-mode .floating-bar.docked {
   margin: 0.1rem 0 0;
   word-break: break-all;
   color: #ddd;
+}
+
+[data-theme="light"] .files-props-dl dd {
+  color: #333;
+}
+
+[data-theme="light"] .files-side-note {
+  color: #555;
 }
 
 .files-drop-target {
@@ -4027,6 +4036,7 @@ mark.docx-search-hit--current {
   padding: 0.5rem;
   border-right: 1px solid var(--ub-border, #444);
   background: var(--ub-surface-subtle, #1a1a1f);
+  color: #e9edef;
 }
 
 .settings-category {
@@ -4050,6 +4060,11 @@ mark.docx-search-hit--current {
   border-left-color: var(--ub-accent, #73a8c2);
   background: var(--ub-selected, rgba(61, 126, 166, 0.18));
   font-weight: 600;
+}
+
+[data-theme="light"] .settings-category[aria-current="true"],
+[data-high-contrast="true"] .settings-category[aria-current="true"] {
+  color: #172532;
 }
 
 .settings-content {

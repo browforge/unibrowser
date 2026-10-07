@@ -178,7 +178,7 @@ export async function applyDemoState(raw: string) {
         }
         details.open = token.endsWith("expanded");
         const category = document.querySelector<HTMLButtonElement>(
-          '[data-settings-category-target="mods"]',
+          '[data-settings-category-target="developer"]',
         );
         category?.click();
         details.scrollIntoView({ block: "start" });

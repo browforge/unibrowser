@@ -383,6 +383,7 @@ async function showPropertiesPanel(path: string, deps: FilesPanelDeps) {
     if (!props.is_dir && props.extension && IMAGE_PREVIEW_EXT.has(props.extension.toLowerCase())) {
       const preview = document.createElement("img");
       preview.className = "files-preview-image";
+      await invoke("allow_asset_path", { path: props.path });
       preview.src = convertFileSrc(props.path);
       preview.alt = props.name;
       panel.appendChild(preview);

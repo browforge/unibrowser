@@ -1327,7 +1327,7 @@ export async function renderSettings(root: HTMLElement) {
     {
       id: "developer",
       label: "Developer",
-      sections: [resetSection, advancedSection],
+      sections: [developerSection, resetSection, advancedSection],
     },
   ] as const;
 
