@@ -436,6 +436,18 @@ execute(command_id, arguments, context_revision) -> CommandResult
 
 Callbacks return data only. The host renders controls. A mod does not receive DOM access.
 
+### Runtime API (v1)
+
+Host constant: `MOD_RUNTIME_API_V1` (`1`). Native mods register a `ModRuntimeRegistry` entry with:
+
+- `ModRuntimeDescriptor` (`mod_name`, `provider_id`, `api_version`, `ModPermissions` bitfield)
+- `snapshot(control_id) -> ControlRuntimeSnapshot` (read-only capability, selection, value, mixed, emulation note)
+- optional `execute(command_id) -> host action token` when `EDIT_DOCUMENT` is granted
+
+Permissions align with the table above: `PROVIDE_CAPABILITY`, `READ_SELECTION`, `EDIT_DOCUMENT`, `COMMAND_MANAGER`, `TOOLBAR`, `DETACH_TOOLBAR`. Capability snapshots cannot block Save or cover content; document edits must return host action tokens (for example `markdown-subscript-emulate`) that the shell applies through `sync_text_document` and the per-path undo stack.
+
+The proving mod `cmd-proving` registers `cmd-proving::native`, contributes `cmd-proving.control.chip` after core Subscript, and ships detached toolbar `cmd-proving.detached-markdown`.
+
 ### Contributions
 
 Mods may:

@@ -9,7 +9,9 @@ use base_files::list_directory;
 use base_web::{WebBackend, handles as web_handles};
 use unibrowser_engine::{
     CommandManagerState, CommandRegistry, DocumentSession, KeySequenceMatcher, KeybindingMap,
-    TabManager, infer_context, load_command_manager_file, navigation::parse_user_input,
+    LoadedModContribution, ModRuntimeRegistry, TabManager, infer_context, load_command_manager_file,
+    merge_toolbar_layouts, navigation::parse_user_input,
+    ContributionMergeDiagnostics,
 };
 
 use crate::config::{keybindings_file_path, toolbars_file_path};
@@ -49,6 +51,7 @@ pub struct AppState {
     pub listing_control: ListingControl,
     pub filename_search_cancel: AtomicBool,
     pub _mod_host: ModHost,
+    pub mod_runtime: Mutex<ModRuntimeRegistry>,
 }
 
 impl AppState {
@@ -95,9 +98,36 @@ fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
         ("unibrow-checker", unibrow_checker::register as ModRegisterFn),
         ("live-proving", live_proving::register as ModRegisterFn),
         ("ai-assistant", ai_assistant::register as ModRegisterFn),
+        ("cmd-proving", cmd_proving::register as ModRegisterFn),
     ]
     .into_iter()
     .collect()
+}
+
+impl AppState {
+    pub fn mod_contributions(&self) -> Vec<LoadedModContribution> {
+        self._mod_host
+            .mods
+            .iter()
+            .filter_map(|loaded| {
+                loaded.manifest.contributes.clone().map(|contributes| LoadedModContribution {
+                    mod_name: loaded.manifest.name.clone(),
+                    contributes,
+                })
+            })
+            .collect()
+    }
+
+    fn merge_mod_floating_toolbars(cm: &mut CommandManagerState, contributions: &[LoadedModContribution]) {
+        let mut diag = ContributionMergeDiagnostics::default();
+        let bars = merge_toolbar_layouts(contributions, &mut diag);
+        for bar in bars {
+            if cm.floating_bars.iter().any(|existing| existing.id == bar.id) {
+                continue;
+            }
+            cm.floating_bars.push(bar);
+        }
+    }
 }
 
 pub fn vsix_keybinding_pairs() -> Vec<(String, String)> {
@@ -125,6 +155,7 @@ fn append_mod_name(line: &mut String, name: &str) {
 struct BuiltRegistry {
     registry: CommandRegistry,
     mod_host: ModHost,
+    mod_runtime: ModRuntimeRegistry,
     mods_line: String,
     #[cfg(feature = "dynamic-mods")]
     dynamic_libs: Vec<unibrowser_mod_host::dynamic::LoadedCdylibMod>,
@@ -190,9 +221,13 @@ fn build_command_registry(
             }
         }
     }
+    let mut mod_runtime = ModRuntimeRegistry::default();
+    cmd_proving::register_runtime(&mut mod_runtime);
+
     Ok(BuiltRegistry {
         registry,
         mod_host,
+        mod_runtime,
         mods_line,
         #[cfg(feature = "dynamic-mods")]
         dynamic_libs,
@@ -220,11 +255,18 @@ impl AppState {
         let sessions = Mutex::new(HashMap::from([("main".to_string(), main_session)]));
         let keybindings = Mutex::new(load_merged_keybindings());
         let cm_file = load_command_manager_file(toolbars_file_path().as_deref());
-        let command_manager = Mutex::new(CommandManagerState::with_layout_path(
+        let mut cm_state = CommandManagerState::with_layout_path(
             &cm_file,
             unibrowser_mod_api::CommandContext::Start,
             toolbars_file_path().as_deref(),
-        ));
+        );
+        AppState::merge_mod_floating_toolbars(&mut cm_state, &built.mod_host.mods.iter().filter_map(|loaded| {
+            loaded.manifest.contributes.clone().map(|contributes| LoadedModContribution {
+                mod_name: loaded.manifest.name.clone(),
+                contributes,
+            })
+        }).collect::<Vec<_>>());
+        let command_manager = Mutex::new(cm_state);
 
         Self {
             registry: Mutex::new(built.registry),
@@ -238,6 +280,7 @@ impl AppState {
             listing_control: ListingControl::new(),
             filename_search_cancel: AtomicBool::new(false),
             _mod_host: built.mod_host,
+            mod_runtime: Mutex::new(built.mod_runtime),
             #[cfg(feature = "dynamic-mods")]
             dynamic_cdylibs: Mutex::new(built.dynamic_libs),
         }
@@ -247,6 +290,9 @@ impl AppState {
         let built = build_command_registry(&self.vsix_host_commands)?;
         if let Ok(mut guard) = self.registry.lock() {
             *guard = built.registry;
+        }
+        if let Ok(mut runtime) = self.mod_runtime.lock() {
+            *runtime = built.mod_runtime;
         }
         if let Ok(mut line) = self.mods_loaded.write() {
             *line = built.mods_line;

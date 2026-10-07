@@ -3,6 +3,7 @@ import { bindCommandTooltip } from "./commandTooltip";
 import { createLucideIcon, type LucideName } from "./lucideIcon";
 import { getEditorFontSizePt } from "../textEditor";
 import type { UiCommandDto } from "../commandManager";
+import { announceCm } from "./cmA11y";
 export { partitionGroupsByAvailableWidth } from "./commandOverflow";
 
 export type CapabilityDto =
@@ -127,6 +128,9 @@ export function renderResolvedControl(
   const actionable = capabilityActionable(control.capability);
   const emulated = control.capability.state === "emulated";
   const locked = control.capability.state === "locked";
+  const mixed =
+    control.selection === "mixed" || control.selection === "mixed_value";
+  const a11yReason = capabilityReason(control.capability);
 
   if (control.control_type === "value_stepper") {
     return renderValueStepper(control, patched, onRun, chordByCommand, actionable, emulated);
@@ -148,16 +152,33 @@ export function renderResolvedControl(
     btn.appendChild(mark);
   }
   btn.disabled = !actionable;
+  btn.setAttribute("role", control.control_type === "toggle" ? "switch" : "button");
+  btn.setAttribute("aria-label", patched.title);
+  if (a11yReason) {
+    btn.setAttribute("aria-description", a11yReason);
+  }
+  if (mixed) {
+    btn.setAttribute("aria-checked", "mixed");
+  } else if (control.control_type === "toggle") {
+    btn.setAttribute(
+      "aria-checked",
+      control.selection === "on" ? "true" : "false",
+    );
+  }
+  const chord = chordByCommand.get(patched.command_id) ?? null;
+  if (chord) {
+    btn.setAttribute("aria-keyshortcuts", chord);
+  }
   btn.className = [
     "ui-command",
     control.control_type === "toggle" ? "toggle" : "",
     !actionable ? "disabled" : "",
     emulated ? "emulated" : "",
     locked ? "locked" : "",
+    mixed ? "mixed" : "",
   ]
     .filter(Boolean)
     .join(" ");
-  const chord = chordByCommand.get(patched.command_id) ?? null;
   bindCommandTooltip(btn, {
     title: patched.title,
     reason: patched.enabled ? null : patched.reason,
@@ -165,7 +186,19 @@ export function renderResolvedControl(
     enabled: patched.enabled,
   });
   if (actionable) {
-    btn.onclick = () => onRun(patched.command_id);
+    btn.onclick = () => {
+      if (emulated && a11yReason) {
+        announceCm(`${patched.title}, emulated, ${a11yReason}`);
+      } else if (mixed) {
+        announceCm(`${patched.title}, mixed selection`);
+      }
+      void onRun(patched.command_id);
+    };
+  } else if (a11yReason) {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      announceCm(`${patched.title}, unavailable, ${a11yReason}`);
+    });
   }
   if (draggable) {
     btn.draggable = true;

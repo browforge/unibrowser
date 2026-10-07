@@ -11,6 +11,8 @@ import {
 } from "./ui/commandControls";
 import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 import { getPdfCommandManagerLabels } from "./viewerZoom";
+import { announceCm } from "./ui/cmA11y";
+import { bindCmRovingFocus } from "./ui/cmRovingFocus";
 
 const PDF_PAGE_CONTROL = "unibrowser.control.pdf.page";
 const PDF_ZOOM_CONTROL = "unibrowser.control.pdf.viewZoom";
@@ -221,6 +223,7 @@ export function getStatusContextMode(): { tab: string; pinned: boolean } | null 
 let dragCommandId: string | null = null;
 type RenderGroup = ReturnType<typeof familiesToRenderGroups>[number];
 let overflowGroupsCache: RenderGroup[] = [];
+let cmRovingBound = false;
 
 function lucideForRegistryIcon(icon: string): LucideName {
   const map: Record<string, LucideName> = {
@@ -546,6 +549,19 @@ export const commandManager = {
         renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
       } else {
         renderCommandButtons(groupsEl, active.commands, onRun, true);
+      }
+      if (!cmRovingBound) {
+        cmRovingBound = true;
+        bindCmRovingFocus({
+          groupsHost: groupsEl,
+          overflowButton: overflowEl,
+          onOpenOverflow: () => {
+            if (overflowEl) {
+              openOverflowGroupsMenu(overflowEl, overflowGroupsCache, onRun);
+            }
+          },
+          onAnnounce: announceCm,
+        });
       }
       const frontendResolvedControlCount = allGroups.reduce(
         (count, group) => count + group.resolved.controls.length,

@@ -8,6 +8,7 @@ use crate::command::CommandRegistry;
 use crate::command_system::{
     CapabilityResolver, LayoutStore, ResolutionContext, core_tab_layout,
 };
+use crate::ModRuntimeRegistry;
 
 /// Where the same logical command may appear (shared UI building blocks).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -268,6 +269,8 @@ impl CommandManagerState {
         doc: Option<&crate::document::DocumentSession>,
         tab_id: &str,
         fallback_doc_path: Option<&str>,
+        mod_contributions: Option<&[crate::command_system::LoadedModContribution]>,
+        mod_runtime: Option<&ModRuntimeRegistry>,
     ) -> Vec<ResolvedFamily> {
         let structured_tab = matches!(tab_id, "start" | "text" | "code" | "image" | "office")
             || tab_id == self.auto_context.tab_id();
@@ -284,7 +287,12 @@ impl CommandManagerState {
             self.context_revision,
         );
         let mut families = core_tab_layout(&ctx, &self.resolver);
-        self.refine_capabilities(registry, host, doc, &ctx, &mut families);
+        if let Some(contributions) = mod_contributions {
+            let mut diag = crate::command_system::ContributionMergeDiagnostics::default();
+            crate::command_system::merge_mod_contributions(&mut families, contributions, &mut diag);
+            let _ = diag;
+        }
+        self.refine_capabilities(registry, host, doc, &ctx, mod_runtime, &mut families);
         families
     }
 
@@ -294,6 +302,7 @@ impl CommandManagerState {
         host: &HostContext,
         doc: Option<&crate::document::DocumentSession>,
         ctx: &ResolutionContext,
+        mod_runtime: Option<&ModRuntimeRegistry>,
         families: &mut [ResolvedFamily],
     ) {
         for family in families.iter_mut() {
@@ -315,6 +324,9 @@ impl CommandManagerState {
                         primary,
                         ctx,
                     );
+                    if let Some(runtime) = mod_runtime {
+                        runtime.apply_to_control(control);
+                    }
                 }
                 group.controls.retain(|c| !matches!(c.capability, CapabilityState::HiddenByUser));
             }
@@ -399,7 +411,7 @@ impl CommandManagerState {
         doc: Option<&crate::document::DocumentSession>,
         tab_id: &str,
     ) -> Vec<ResolvedUiCommand> {
-        let families = self.resolve_families_for_tab(registry, host, doc, tab_id, None);
+        let families = self.resolve_families_for_tab(registry, host, doc, tab_id, None, None, None);
         if !families.is_empty() {
             return Self::flatten_resolved_controls(&families);
         }

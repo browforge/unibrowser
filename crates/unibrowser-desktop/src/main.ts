@@ -1545,6 +1545,11 @@ async function processCommandResult(msg: string, commandId?: string) {
     appendScriptOutput(String(msg));
     return;
   }
+  if (msg === "markdown-subscript-emulate") {
+    const { applyMarkdownSubscriptEmulation } = await import("./textEditor");
+    await applyMarkdownSubscriptEmulation();
+    return;
+  }
   if (msg === "palette") {
     togglePalette();
     return;

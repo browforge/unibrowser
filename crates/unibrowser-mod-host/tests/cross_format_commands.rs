@@ -33,6 +33,7 @@ fn bundled_registry() -> CommandRegistry {
         ("unibrow-checker", unibrow_checker::register as ModRegisterFn),
         ("live-proving", live_proving::register as ModRegisterFn),
         ("ai-assistant", ai_assistant::register as ModRegisterFn),
+        ("cmd-proving", cmd_proving::register as ModRegisterFn),
     ]
     .into_iter()
     .collect();

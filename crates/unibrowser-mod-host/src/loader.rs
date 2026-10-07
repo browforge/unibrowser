@@ -181,12 +181,13 @@ mod tests {
             ("unibrow-checker", unibrow_checker::register as ModRegisterFn),
             ("live-proving", live_proving::register as ModRegisterFn),
             ("ai-assistant", ai_assistant::register as ModRegisterFn),
+            ("cmd-proving", cmd_proving::register as ModRegisterFn),
         ]
         .into_iter()
         .collect();
         let host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
             .expect("load");
-        assert_eq!(host.load_order.len(), 21);
+        assert_eq!(host.load_order.len(), 22);
         assert!(registry.command_meta("unibrowser.font.size.increase").is_some());
     }
 }

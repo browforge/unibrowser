@@ -18,7 +18,29 @@ pub fn bar_id_from_toolbar_window(label: &str) -> Option<&str> {
     label.strip_prefix("toolbar-")
 }
 
+pub fn clamp_toolbar_screen_position(app: &AppHandle, x: f64, y: f64) -> (f64, f64) {
+    let win_w = 480.0;
+    let win_h = 88.0;
+    let monitor = app.primary_monitor().ok().flatten();
+    let (mx, my, mw, mh) = if let Some(m) = monitor {
+        let pos = m.position();
+        let size = m.size();
+        (
+            pos.x as f64,
+            pos.y as f64,
+            size.width as f64,
+            size.height as f64,
+        )
+    } else {
+        (0.0, 0.0, 1920.0, 1080.0)
+    };
+    let max_x = (mx + mw - win_w).max(mx);
+    let max_y = (my + mh - win_h).max(my);
+    (x.clamp(mx, max_x), y.clamp(my, max_y))
+}
+
 pub fn ensure_toolbar_window(app: &AppHandle, bar_id: &str, x: f64, y: f64) -> Result<(), String> {
+    let (x, y) = clamp_toolbar_screen_position(app, x, y);
     let label = toolbar_window_label(bar_id);
     if let Some(w) = app.get_webview_window(&label) {
         let _ = w.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32));

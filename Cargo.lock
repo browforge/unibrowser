@@ -1468,6 +1468,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmd-proving"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
 name = "cocoa"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9421,6 +9429,7 @@ dependencies = [
  "base-web",
  "base64 0.22.1",
  "cairo-rs",
+ "cmd-proving",
  "dirs 6.0.0",
  "dxf-checker",
  "gio",
@@ -9568,6 +9577,7 @@ dependencies = [
  "base-text",
  "base-video",
  "base-web",
+ "cmd-proving",
  "crc32fast",
  "dxf-checker",
  "grammar-harper",

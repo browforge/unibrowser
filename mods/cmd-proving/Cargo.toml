@@ -1,0 +1,9 @@
+[package]
+name = "cmd-proving"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+unibrowser-engine = { path = "../../crates/unibrowser-engine" }
+unibrowser-mod-api = { path = "../../crates/unibrowser-mod-api" }

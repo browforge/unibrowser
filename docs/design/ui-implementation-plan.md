@@ -723,6 +723,8 @@ Acceptance:
 
 ### CMD-04: Keyboard, palette, and accessibility integration
 
+Status: partial 2026-10-07. CM roving focus (`cmRovingFocus.ts`), palette merges resolved controls (`merge_resolved_command_palette`), ARIA on host controls and live region announcer. Remaining: automated SR matrix, mixed-value palette copy, user S-binding regression tests.
+
 Work:
 
 - Add roving group focus, arrow/Home/End, Enter/Space, Alt+Down, and Escape.
@@ -787,6 +789,8 @@ Acceptance:
 
 ### CMD-08: Runtime mod capability and emulation API
 
+Status: partial 2026-10-07. `ModRuntimeRegistry`, `ControlRuntimeSnapshot`, `cmd-proving` native registration, subscript undo via Monaco + `sync_text_document`. Remaining: WASM proving mod parity in host load path, host transaction API for non-text backends.
+
 Work:
 
 - Add versioned runtime callbacks for family/control capability, selection
@@ -802,6 +806,8 @@ Acceptance:
 - Markdown Subscript proving mod executes one undoable emulation.
 
 ### CMD-09: Mod groups, families, and toolbars
+
+Status: partial 2026-10-07. `contribution_merge`, mod floating toolbars on boot, detached window clamp (`clamp_toolbar_screen_position`). Remaining: monitor identity persistence, order-cycle diagnostics, keybinding conflict surfacing in UI.
 
 Work:
 

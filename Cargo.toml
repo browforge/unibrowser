@@ -42,6 +42,7 @@ members = [
     "mods/unibrow-checker",
     "mods/live-proving",
     "mods/ai-assistant",
+    "mods/cmd-proving",
     "mods/base-web",
     "crates/unibrowser-desktop/src-tauri",
     "examples/ub-mod-cdylib-stub",

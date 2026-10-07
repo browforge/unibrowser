@@ -38,6 +38,7 @@ wasmi = { version = "0.40", optional = true }
 [dev-dependencies]
 crc32fast = "1"
 ai-assistant = { path = "../../mods/ai-assistant" }
+cmd-proving = { path = "../../mods/cmd-proving" }
 
 [features]
 default = ["wasm-mods"]

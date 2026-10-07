@@ -3000,6 +3000,8 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
     };
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let registry = state.registry.lock().map_err(|e| e.to_string())?;
+    let mod_contributions = state.mod_contributions();
+    let mod_runtime = state.mod_runtime.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
     let auto_context = cm.auto_context.tab_id().to_string();
     let label_path_buf = doc_ref.map(|d| d.path.clone()).or_else(|| {
@@ -3013,8 +3015,15 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .tabs
         .iter()
         .map(|tab| {
-            let families =
-                cm.resolve_families_for_tab(&registry, &host, doc_ref, &tab.id, label_path_ref);
+            let families = cm.resolve_families_for_tab(
+                &registry,
+                &host,
+                doc_ref,
+                &tab.id,
+                label_path_ref,
+                Some(&mod_contributions),
+                Some(&mod_runtime),
+            );
             let resolved_family_count = families.len();
             let resolved_control_count = families
                 .iter()
@@ -4048,6 +4057,101 @@ pub fn dispatch_key_chord(window: tauri::Window,
     Ok(seq.on_chord(&key))
 }
 
+fn capability_palette_state(cap: &unibrowser_mod_api::CapabilityState) -> (bool, Option<String>) {
+    match cap {
+        unibrowser_mod_api::CapabilityState::Supported => (true, None),
+        unibrowser_mod_api::CapabilityState::Emulated { note, .. } => (true, Some(note.clone())),
+        unibrowser_mod_api::CapabilityState::Unsupported { reason } => (false, Some(reason.clone())),
+        unibrowser_mod_api::CapabilityState::Locked { reason } => (false, Some(reason.clone())),
+        unibrowser_mod_api::CapabilityState::HiddenByUser => (false, Some("Hidden by user".into())),
+    }
+}
+
+fn merge_resolved_command_palette(
+    state: &AppState,
+    window: &tauri::Window,
+    query: &str,
+    out: &mut Vec<PaletteEntryDto>,
+) -> Result<(), String> {
+    use unibrowser_engine::palette::fuzzy_score;
+    use unibrowser_mod_api::enablement_from_capability;
+
+    let _sess_tabs = ws_state(state, window)?;
+    let tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let active = tabs.active_tab();
+    let host = active
+        .and_then(|t| t.document.as_ref())
+        .map(|d| d.host_context())
+        .unwrap_or_else(host_context_for_browse);
+    let doc_ref = active.and_then(|t| t.document.as_ref());
+    let label_path = doc_ref.map(|d| d.path.as_str());
+    let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    let registry = state.registry.lock().map_err(|e| e.to_string())?;
+    let mod_runtime = state.mod_runtime.lock().map_err(|e| e.to_string())?;
+    let contributions = state.mod_contributions();
+    let tab_id = if cm.context_pin.is_some() {
+        cm.selected_tab.clone()
+    } else {
+        cm.auto_context.tab_id().to_string()
+    };
+    let families = cm.resolve_families_for_tab(
+        &registry,
+        &host,
+        doc_ref,
+        &tab_id,
+        label_path,
+        Some(&contributions),
+        Some(&mod_runtime),
+    );
+    let keybindings = state.keybindings.lock().map_err(|e| e.to_string())?;
+    let existing: std::collections::HashSet<String> =
+        out.iter().map(|e| e.command_id.clone()).collect();
+    let q = query.trim();
+    for family in &families {
+        for group in &family.groups {
+            for control in &group.controls {
+                let command_id = control
+                    .command_ids
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| control.control_id.clone());
+                if existing.contains(&command_id) {
+                    continue;
+                }
+                if !q.is_empty()
+                    && fuzzy_score(q, &control.label) <= 0
+                    && fuzzy_score(q, &command_id) <= 0
+                {
+                    continue;
+                }
+                let (cap_enabled, cap_reason) = capability_palette_state(&control.capability);
+                let en = enablement_from_capability(&control.capability);
+                let mut enabled = cap_enabled && en.is_enabled();
+                let mut reason = cap_reason.or_else(|| en.disabled_reason().map(String::from));
+                if let Some(doc) = doc_ref {
+                    let reg_en = registry.enablement(&command_id, doc);
+                    if !reg_en.is_enabled() {
+                        enabled = false;
+                        reason = reg_en.disabled_reason().map(String::from).or(reason);
+                    }
+                }
+                let chord = keybindings
+                    .chord_for_command(&command_id)
+                    .map(|c| c.display());
+                out.push(PaletteEntryDto {
+                    command_id,
+                    title: control.label.clone(),
+                    chord,
+                    enabled,
+                    reason,
+                    open_path: None,
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn palette_search(window: tauri::Window, query: String, state: State<AppState>) -> Result<Vec<PaletteEntryDto>, String> {
     use unibrowser_engine::palette::fuzzy_score;
@@ -4235,6 +4339,8 @@ pub fn palette_search(window: tauri::Window, query: String, state: State<AppStat
         recent.iter().map(|e| e.command_id.clone()).collect();
     out.retain(|e| !recent_ids.contains(&e.command_id));
     out = recent.into_iter().chain(out).collect();
+
+    merge_resolved_command_palette(state.inner(), &window, &query, &mut out)?;
 
     Ok(out)
 }
