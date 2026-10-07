@@ -1,0 +1,679 @@
+{
+  "viewportWidth": 1024,
+  "viewportHeight": 700,
+  "controlCount": 6,
+  "visibleCount": 6,
+  "contrastOkCount": 6,
+  "contextLabel": "CAD / 3D",
+  "autoContext": "image",
+  "pipeline": {
+    "activeTabId": "image",
+    "rustFamilyCount": 1,
+    "rustControlCount": 11,
+    "ipcFamilyCount": 1,
+    "ipcControlCount": 11,
+    "frontendGroupCount": 8,
+    "frontendResolvedControlCount": 11,
+    "frontendVisibleModelCount": 6,
+    "frontendOverflowModelCount": 5,
+    "groupsWidth": 611
+  },
+  "controls": [
+    {
+      "controlId": "unibrowser.control.cad.select",
+      "label": "Select",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 72,
+      "height": 30,
+      "labelBounds": {
+        "x": 133,
+        "y": 50.5,
+        "width": 35,
+        "height": 18
+      },
+      "labelWidth": 35,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 12.076,
+      "pixelInkCount": 179,
+      "pixelBounds": {
+        "x": 133,
+        "y": 50,
+        "width": 35,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.cad.orientation",
+      "label": "Orientation",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 106,
+      "height": 30,
+      "labelBounds": {
+        "x": 238,
+        "y": 50.5,
+        "width": 69,
+        "height": 18
+      },
+      "labelWidth": 69,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 12.076,
+      "pixelInkCount": 321,
+      "pixelBounds": {
+        "x": 238,
+        "y": 50,
+        "width": 69,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.cad.pan",
+      "label": "Pan",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 60,
+      "height": 30,
+      "labelBounds": {
+        "x": 345,
+        "y": 50.5,
+        "width": 23,
+        "height": 18
+      },
+      "labelWidth": 23,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 12.076,
+      "pixelInkCount": 102,
+      "pixelBounds": {
+        "x": 345,
+        "y": 50,
+        "width": 23,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.cad.orbit",
+      "label": "Orbit",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 68,
+      "height": 30,
+      "labelBounds": {
+        "x": 406,
+        "y": 50.5,
+        "width": 31,
+        "height": 18
+      },
+      "labelWidth": 31,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 11.955,
+      "pixelInkCount": 152,
+      "pixelBounds": {
+        "x": 406,
+        "y": 50,
+        "width": 31,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.cad.fitView",
+      "label": "Fit view",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 81.75,
+      "height": 30,
+      "labelBounds": {
+        "x": 507,
+        "y": 50.5,
+        "width": 44.75,
+        "height": 18
+      },
+      "labelWidth": 44.75,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 12.076,
+      "pixelInkCount": 192,
+      "pixelBounds": {
+        "x": 507,
+        "y": 50,
+        "width": 45,
+        "height": 19
+      }
+    },
+    {
+      "controlId": "unibrowser.control.cad.measure",
+      "label": "Measure",
+      "classes": [
+        "ui-command",
+        "unsupported"
+      ],
+      "capabilityState": "unsupported",
+      "enabled": false,
+      "disabledReason": "Measure needs a full CAD geometry engine.",
+      "width": 88.75,
+      "height": 30,
+      "labelBounds": {
+        "x": 621.75,
+        "y": 50.5,
+        "width": 51.75,
+        "height": 18
+      },
+      "labelWidth": 51.75,
+      "iconWidth": 16,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(174, 186, 192)",
+      "labelForeground": "rgb(174, 186, 192)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 7.857114891654249,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-normal"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups",
+            "cm-overflow-active"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 7.417,
+      "pixelInkCount": 246,
+      "pixelBounds": {
+        "x": 621,
+        "y": 50,
+        "width": 53,
+        "height": 19
+      }
+    }
+  ],
+  "statusBar": {
+    "segmentCount": 3,
+    "segments": [
+      {
+        "id": "",
+        "label": "DXF drawing",
+        "bounds": {
+          "x": 12,
+          "y": 677.5,
+          "width": 72.3125,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.23,
+        "pixelInkCount": 315,
+        "pixelBounds": {
+          "x": 12,
+          "y": 677,
+          "width": 73,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "347%",
+        "bounds": {
+          "x": 916.40625,
+          "y": 677.5,
+          "width": 28,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 5.483,
+        "pixelInkCount": 136,
+        "pixelBounds": {
+          "x": 916,
+          "y": 677,
+          "width": 29,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-ai-visibility",
+        "label": "AI",
+        "bounds": {
+          "x": 956.40625,
+          "y": 675.203125,
+          "width": 22,
+          "height": 21.59375
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.128,
+        "pixelInkCount": 64,
+        "pixelBounds": {
+          "x": 956,
+          "y": 675,
+          "width": 23,
+          "height": 22
+        }
+      }
+    ]
+  }
+}
