@@ -103,6 +103,14 @@ export interface DocCaptureDiagnostics {
     panelHeight: number;
     tableHeight: number;
   };
+  documentViewer: {
+    hidden: boolean;
+    childClasses: string[];
+    imageComplete: boolean | null;
+    imageNaturalWidth: number | null;
+    imageRenderedWidth: number | null;
+    imageStageTransform: string | null;
+  } | null;
   editorPointStack: Array<{
     tag: string;
     id: string;
@@ -544,6 +552,10 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
     problemsPanel?.querySelectorAll(".problems-table tbody tr") ?? [],
   ) as HTMLElement[];
   const empty = problemsPanel?.querySelector(".problems-empty") as HTMLElement | null;
+  const documentViewer = document.getElementById("document-viewer-host");
+  const viewerImage = documentViewer?.querySelector<HTMLImageElement>(".image-view") ?? null;
+  const imageStage =
+    documentViewer?.querySelector<HTMLElement>(".image-stage") ?? null;
   return {
     theme: collectThemeDiagnostics(),
     monaco: collectMonacoDiagnostics(),
@@ -568,6 +580,19 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
       panelHeight: problemsPanel?.getBoundingClientRect().height ?? 0,
       tableHeight: problemsTable?.getBoundingClientRect().height ?? 0,
     },
+    documentViewer: documentViewer
+      ? {
+          hidden: documentViewer.classList.contains("hidden"),
+          childClasses: Array.from(
+            documentViewer.querySelectorAll<HTMLElement>(":scope > *, .viewer-body > *"),
+            (child) => child.className,
+          ),
+          imageComplete: viewerImage?.complete ?? null,
+          imageNaturalWidth: viewerImage?.naturalWidth ?? null,
+          imageRenderedWidth: viewerImage?.getBoundingClientRect().width ?? null,
+          imageStageTransform: imageStage?.style.transform || null,
+        }
+      : null,
     editorPointStack: pointStack,
   };
 }
