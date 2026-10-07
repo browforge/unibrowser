@@ -286,6 +286,23 @@ impl AppState {
             &mut cm_state,
             &permitted_mod_contributions(&built.mod_host),
         );
+        if std::env::var("UNIBROWSER_DEMO_STATE")
+            .unwrap_or_default()
+            .split([',', ';'])
+            .any(|token| token.trim().eq_ignore_ascii_case("cmd-proving-detached"))
+        {
+            if let Some(bar) = cm_state
+                .floating_bars
+                .iter_mut()
+                .find(|bar| bar.id == "cmd-proving.detached-markdown")
+            {
+                bar.presentation = unibrowser_engine::ToolbarPresentation::DetachedWindow;
+                bar.anchor = unibrowser_engine::ToolbarAnchor::Floating;
+                bar.coord_space = unibrowser_engine::ToolbarCoordSpace::Screen;
+                bar.x = 1050.0;
+                bar.y = 120.0;
+            }
+        }
         let command_manager = Mutex::new(cm_state);
 
         Self {
