@@ -47,6 +47,9 @@ capture "files-browser-preview-hc-100" \
 capture "files-browser-preview-light-150" \
   "${base},theme-light,standard-contrast,scale-150,ui13-files-preview" \
   "$PACK" "1600x1000"
+capture "markdown-actions-light-100" \
+  "${base},theme-light,standard-contrast,scale-100" \
+  "$PACK/sample.md" "1600x1000"
 
 capture "settings-developer-collapsed-light-800" \
   "${base},theme-light,standard-contrast,scale-100,settings,ui13-settings-developer-collapsed" \
