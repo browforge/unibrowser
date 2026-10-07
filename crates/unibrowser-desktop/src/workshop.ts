@@ -76,7 +76,9 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     Math.ceil(clips.reduce((end, clip) => Math.max(end, clip.start_sec + clip.duration_sec), 0)),
   );
 
-  let selectedClip: WorkshopClip | null = clips[0] ?? null;
+  const defaultTitleClip =
+    clips.find((clip) => clip.node_type.toLowerCase().includes("title")) ?? clips[0] ?? null;
+  let selectedClip: WorkshopClip | null = defaultTitleClip;
   let selectedNode = selectedClip
     ? nodes.find((node) => node.id === selectedClip?.node_id) ?? null
     : nodes[0] ?? null;
@@ -115,7 +117,18 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   stageContent.className = "workshop-stage-content";
   stageFrame.appendChild(stageContent);
   stageWell.appendChild(stageFrame);
-  stageRegion.append(stageHead, stageWell);
+  const transport = document.createElement("div");
+  transport.className = "workshop-transport";
+  transport.setAttribute("aria-label", "Programme transport");
+  const transportPlay = document.createElement("button");
+  transportPlay.type = "button";
+  transportPlay.className = "workshop-transport-btn";
+  transportPlay.textContent = "Play";
+  transportPlay.setAttribute("aria-label", "Play programme");
+  const transportTime = document.createElement("span");
+  transportTime.className = "workshop-transport-time";
+  transport.append(transportPlay, transportTime);
+  stageRegion.append(stageHead, stageWell, transport);
 
   const inspector = document.createElement("aside");
   inspector.className = "workshop-inspector";
@@ -154,12 +167,27 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
     root.dataset.snap = snap ? "on" : "off";
     root.dataset.timelineZoom = String(timelineZoom);
     timelineTools.textContent = `Snap ${snap ? "on" : "off"} · Zoom ${Math.round(timelineZoom * 100)}%`;
-    timelineStatus.textContent = `00:${playheadSec.toFixed(1).padStart(4, "0")}`;
+    timelineStatus.textContent = formatTimecode(playheadSec);
+    syncTransport();
     timelineCanvas.classList.toggle("workshop-timeline-canvas--snap", snap);
+  };
+
+  const formatTimecode = (sec: number) => {
+    const whole = Math.max(0, Math.floor(sec));
+    const mins = Math.floor(whole / 60);
+    const secs = whole % 60;
+    const frames = Math.floor((sec - whole) * 30);
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(frames).padStart(2, "0")}`;
+  };
+
+  const syncTransport = () => {
+    transportTime.textContent = formatTimecode(playheadSec);
+    transportPlay.textContent = playheadSec > 0.05 ? "Pause" : "Play";
   };
 
   const renderStage = () => {
     stageContent.replaceChildren();
+    syncTransport();
     if (mode !== "preview") {
       const live = document.createElement("div");
       live.className = "workshop-programme-card workshop-programme-card--live";
@@ -172,17 +200,31 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       return;
     }
     const current = selectedClip ?? clips[0];
-    const titleText = current?.title_text || current?.label || viewer.title;
-    const card = document.createElement("div");
-    card.className = "workshop-programme-card";
-    const eyebrow = document.createElement("span");
-    eyebrow.textContent = current ? typeAbbrev(current.node_type) : "PROJECT";
-    const title = document.createElement("strong");
-    title.textContent = titleText;
-    const detail = document.createElement("span");
-    detail.textContent = current?.asset ?? "Multimodal sequence";
-    card.append(eyebrow, title, detail);
-    stageContent.appendChild(card);
+    const frame = document.createElement("div");
+    frame.className = "workshop-programme-frame";
+    const programme = document.createElement("div");
+    programme.className = "workshop-programme-video";
+    const sceneLabel = document.createElement("span");
+    sceneLabel.className = "workshop-programme-scene";
+    sceneLabel.textContent = current?.label ?? viewer.title;
+    programme.appendChild(sceneLabel);
+    frame.appendChild(programme);
+    const isTitle =
+      current &&
+      (current.node_type.toLowerCase().includes("title") ||
+        trackForClip(current) === "title" ||
+        Boolean(current.title_text));
+    if (isTitle) {
+      const lowerThird = document.createElement("div");
+      lowerThird.className = "workshop-lower-third workshop-lower-third--selected";
+      const heading = document.createElement("strong");
+      heading.textContent = current?.title_text || current?.label || viewer.title;
+      const subtitle = document.createElement("span");
+      subtitle.textContent = current?.label ?? "Programme title";
+      lowerThird.append(heading, subtitle);
+      frame.appendChild(lowerThird);
+    }
+    stageContent.appendChild(frame);
   };
 
   const field = (
@@ -234,7 +276,11 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       return;
     }
 
-    const clipLabel = field("Clip label", selectedClip.label, "text");
+    const isTitleClip =
+      selectedClip.node_type.toLowerCase().includes("title") ||
+      trackForClip(selectedClip) === "title" ||
+      Boolean(selectedClip.title_text);
+    const clipLabel = field(isTitleClip ? "Heading" : "Clip label", selectedClip.label, "text");
     const typeRow = field("Type", selectedClip.node_type, "text");
     typeRow.input.readOnly = true;
     typeRow.input.classList.add("workshop-field-readonly");
@@ -247,7 +293,11 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
           ? "Title track"
           : "Audio / MIDI track";
     const start = field("Start (seconds)", selectedClip.start_sec.toFixed(1), "number");
-    const duration = field("Duration (seconds)", selectedClip.duration_sec.toFixed(1), "number");
+    const duration = field(
+      isTitleClip ? "Duration" : "Duration (seconds)",
+      selectedClip.duration_sec.toFixed(1),
+      "number",
+    );
     start.input.min = "0";
     start.input.step = "0.1";
     duration.input.min = "0.1";
@@ -265,29 +315,50 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       });
       refreshProject(data);
     };
-    const fields: HTMLElement[] = [clipLabel.row, typeRow.row, meta, start.row, duration.row];
-    const isTitle =
-      selectedClip.node_type.toLowerCase().includes("title") ||
-      trackForClip(selectedClip) === "title" ||
-      Boolean(selectedClip.title_text);
-    if (isTitle) {
-      const titleText = field(
-        "Title text",
-        selectedClip.title_text ?? selectedClip.label,
-        "text",
-      );
-      titleText.input.addEventListener("change", () => {
+    const fields: HTMLElement[] = [meta];
+    if (isTitleClip) {
+      const heading = field("Heading", selectedClip.title_text ?? selectedClip.label, "text");
+      const subtitle = field("Subtitle", selectedClip.label, "text");
+      const position = field("Position", "Lower third", "text");
+      position.input.readOnly = true;
+      position.input.classList.add("workshop-field-readonly");
+      fields.push(heading.row, subtitle.row, duration.row, position.row);
+      heading.input.addEventListener("change", () => {
         void invoke("set_unibrow_timeline_clip_title_text", {
           projectPath: viewer.path,
           clipId: selectedClip!.id,
-          titleText: titleText.input.value,
+          titleText: heading.input.value,
         }).then((data) => refreshProject(data));
       });
-      fields.push(titleText.row);
+      subtitle.input.addEventListener("change", () => {
+        const next = subtitle.input.value.trim();
+        if (!next) {
+          return;
+        }
+        void invoke("rename_unibrow_timeline_clip", {
+          projectPath: viewer.path,
+          clipId: selectedClip!.id,
+          label: next,
+        }).then((data) => refreshProject(data));
+      });
+    } else {
+      fields.push(clipLabel.row, typeRow.row, start.row, duration.row);
+      clipLabel.input.addEventListener("change", () => {
+        const next = clipLabel.input.value.trim();
+        if (!next) {
+          return;
+        }
+        void invoke("rename_unibrow_timeline_clip", {
+          projectPath: viewer.path,
+          clipId: selectedClip!.id,
+          label: next,
+        }).then((data) => refreshProject(data));
+      });
     }
     if (
-      selectedClip.node_type.toLowerCase().includes("pdf") ||
-      (selectedClip.asset && selectedClip.asset.toLowerCase().endsWith(".pdf"))
+      !isTitleClip &&
+      (selectedClip.node_type.toLowerCase().includes("pdf") ||
+        (selectedClip.asset && selectedClip.asset.toLowerCase().endsWith(".pdf")))
     ) {
       const pdfPage = field("PDF page", String(selectedClip.pdf_page ?? 1), "number");
       pdfPage.input.min = "1";
@@ -302,17 +373,6 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
       });
       fields.push(pdfPage.row);
     }
-    clipLabel.input.addEventListener("change", () => {
-      const next = clipLabel.input.value.trim();
-      if (!next) {
-        return;
-      }
-      void invoke("rename_unibrow_timeline_clip", {
-        projectPath: viewer.path,
-        clipId: selectedClip!.id,
-        label: next,
-      }).then((data) => refreshProject(data));
-    });
     fields.push(apply);
     inspectorBody.append(...fields);
   };
@@ -607,8 +667,12 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   });
   renderSources();
   renderTimeline();
-  renderInspector();
-  renderStage();
+  if (defaultTitleClip) {
+    selectClip(defaultTitleClip);
+  } else {
+    renderInspector();
+    renderStage();
+  }
   root.dataset.mode = mode;
 }
 

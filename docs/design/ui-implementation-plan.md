@@ -784,6 +784,9 @@ Fail rule:
 
 ### UI-24: Match Workshop stage and timeline proportions
 
+Status: done 2026-10-07. Programme frame with selected lower third, Heading/Subtitle/
+Duration/Position inspector, timecode transport under stage, lighter 1280 timeline tracks.
+
 Work:
 
 - Rebalance Sources, Stage, Inspector, and Timeline to the approved 1280

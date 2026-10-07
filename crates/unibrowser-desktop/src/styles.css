@@ -3683,6 +3683,7 @@ select:focus-visible,
   grid-area: stage;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   background: var(--ub-canvas-well, #111416);
 }
 
@@ -3825,8 +3826,96 @@ select:focus-visible,
   flex: 1 1 auto;
   min-height: 0;
   place-items: center;
-  padding: 14px;
+  padding: 10px 12px 8px;
   overflow: hidden;
+}
+
+.workshop-transport {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.75rem 0.45rem;
+  border-top: 1px solid var(--ub-border, #444);
+  background: var(--ub-panel, #22272b);
+  font-size: 12px;
+  color: var(--ub-text-2, #c9cbc8);
+}
+
+.workshop-transport-btn {
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid var(--ub-border, #555);
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.workshop-transport-time {
+  font-family: "Source Code Pro", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.workshop-programme-frame {
+  position: relative;
+  width: min(100%, calc((100vh - 420px) * 16 / 9));
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #2a4a62;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 25%);
+}
+
+.workshop-programme-video {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, #3d6f8f 0%, #6a9f6a 42%, #c4a35a 100%);
+}
+
+.workshop-programme-scene {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f4f7f8;
+  background: rgb(0 0 0 / 35%);
+  border-radius: 4px;
+}
+
+.workshop-lower-third {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 10%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 4px;
+  background: rgb(15 23 32 / 72%);
+  color: #f4f7f8;
+}
+
+.workshop-lower-third strong {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.workshop-lower-third span {
+  font-size: 0.8rem;
+  color: #c5d0d6;
+}
+
+.workshop-lower-third--selected {
+  outline: 2px solid var(--ub-accent, #3d9fd4);
+  outline-offset: 2px;
 }
 
 .workshop-stage-frame {
@@ -4246,7 +4335,27 @@ select:focus-visible,
 }
 
 [data-theme="light"] .workshop-timeline {
-  background: #e8e6e0;
+  background: #ece8e0;
+}
+
+[data-theme="light"] .workshop-track-lane {
+  background: #f5f2ec;
+  border-color: #d8d2c6;
+}
+
+[data-theme="light"] .workshop-track-label {
+  background: #f0ece4;
+  color: #3a4248;
+}
+
+[data-theme="light"] .workshop-clip {
+  border: 1px solid rgb(31 35 38 / 12%);
+}
+
+[data-theme="light"] .workshop-transport {
+  background: #f0ece4;
+  border-top-color: #d8d2c6;
+  color: #4a5560;
 }
 
 [data-theme="light"] .workshop-stage-well {
@@ -4254,7 +4363,7 @@ select:focus-visible,
 }
 
 [data-theme="light"] .workshop-stage-frame {
-  background: #1a2834;
+  background: transparent;
 }
 
 [data-theme="light"] .workshop-programme-card {
@@ -4276,16 +4385,20 @@ select:focus-visible,
 
 @media (max-width: 1350px) {
   .workshop {
-    grid-template-columns: 180px minmax(0, 1fr) 210px;
-    grid-template-rows: minmax(0, 1fr) 230px;
+    grid-template-columns: 196px minmax(0, 1fr) 232px;
+    grid-template-rows: minmax(0, 1fr) 188px;
   }
 
   .workshop-stage-well {
-    padding: 9px;
+    padding: 8px 10px 6px;
   }
 
   .workshop-stage-frame {
     width: min(100%, calc((100vh - 390px) * 16 / 9));
+  }
+
+  .workshop-timeline-viewport {
+    max-height: 150px;
   }
 }
 
