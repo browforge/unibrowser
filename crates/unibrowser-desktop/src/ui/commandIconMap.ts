@@ -28,6 +28,7 @@ export const CONTROL_ICON_MAP: Record<string, LucideName> = {
   pin: "pin",
   copy: "copy",
   file: "file",
+  "file-text": "file-text",
   type: "type",
   save: "save",
   bold: "bold",

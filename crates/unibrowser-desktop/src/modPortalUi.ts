@@ -96,6 +96,8 @@ export function appendModCatalogCard(
   const reason = document.createElement("span");
   reason.className = "mod-result-reason";
   reason.textContent = entry.blurb;
+  const footer = document.createElement("div");
+  footer.className = "mod-card-footer";
   const meta = document.createElement("span");
   meta.className = "mod-result-meta";
   const source = entry.open_vsx_id ? "Open VSX" : "Built-in catalogue";
@@ -105,7 +107,8 @@ export function appendModCatalogCard(
   action.className = "mod-card-action";
   action.textContent = actionLabel(state, Boolean(entry.open_vsx_id));
   action.onclick = () => onPrimary(entry);
-  card.append(badge, title, id, reason, meta, action);
+  footer.append(meta, action);
+  card.append(badge, title, id, reason, footer);
   parent.appendChild(card);
 }
 
@@ -128,6 +131,8 @@ export function appendModSuggestionCard(
   const reason = document.createElement("span");
   reason.className = "mod-result-reason";
   reason.textContent = suggestion.reason;
+  const footer = document.createElement("div");
+  footer.className = "mod-card-footer";
   const meta = document.createElement("span");
   meta.className = "mod-result-meta";
   meta.textContent =
@@ -137,7 +142,8 @@ export function appendModSuggestionCard(
   action.className = "mod-card-action";
   action.textContent = suggestion.open_vsx_id ? "Install" : "Open";
   action.onclick = () => onPrimary(suggestion);
-  card.append(badge, title, id, reason, meta, action);
+  footer.append(meta, action);
+  card.append(badge, title, id, reason, footer);
   parent.appendChild(card);
 }
 

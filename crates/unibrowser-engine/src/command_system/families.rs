@@ -575,7 +575,7 @@ fn start_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Resol
                 ControlType::Button,
                 commands::START_OPEN_FILE,
                 "File",
-                "file",
+                "file-text",
                 "unibrowser.group.start.open",
                 family_ids::START,
                 ctx,

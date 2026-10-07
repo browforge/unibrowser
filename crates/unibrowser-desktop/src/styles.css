@@ -3423,7 +3423,7 @@ select:focus-visible,
 .workshop {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr) 260px;
-  grid-template-rows: minmax(0, 1fr) minmax(148px, 200px);
+  grid-template-rows: minmax(0, 1fr) minmax(200px, 240px);
   grid-template-areas:
     "sources stage inspector"
     "timeline timeline timeline";
@@ -3557,13 +3557,24 @@ select:focus-visible,
   flex: 0 0 32px;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 0 10px;
   border-bottom: 1px solid var(--ub-border, #444);
   background: var(--ub-panel, #22272b);
 }
 
+.workshop-stage-head .workshop-region-heading {
+  flex: 0 1 auto;
+  margin: 0;
+  border: 0;
+}
+
 .workshop-state {
+  flex: 0 0 auto;
+  margin-left: auto;
   padding: 2px 6px;
+  border: 0;
+  background: transparent;
   color: var(--ub-text-muted, #aeb7bd);
   font-size: 11px;
   font-weight: 750;
@@ -3849,7 +3860,7 @@ select:focus-visible,
 .workshop-track-row {
   display: grid;
   grid-template-columns: 100px minmax(700px, 1fr);
-  height: 62px;
+  height: 54px;
   border-bottom: 1px solid var(--ub-border, #353c41);
 }
 
@@ -5450,7 +5461,7 @@ body.content-fullscreen #unknown-file-banner {
 .mod-result-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto auto auto auto;
+  grid-template-rows: auto auto auto auto;
   gap: 4px 10px;
   margin: 8px 0;
   padding: 10px 12px;
@@ -5493,12 +5504,18 @@ body.content-fullscreen #unknown-file-banner {
   border-color: #6a5f4a;
 }
 
-.mod-card-action {
+.mod-card-footer {
   grid-column: 1 / -1;
-  grid-row: 5;
-  align-self: start;
-  justify-self: end;
+  grid-row: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   margin-top: 2px;
+}
+
+.mod-card-action {
+  align-self: flex-end;
   padding: 4px 10px;
   font-size: 11px;
   border-radius: 4px;
@@ -5545,8 +5562,6 @@ body.content-fullscreen #unknown-file-banner {
 }
 
 .mod-result-meta {
-  grid-column: 1 / -1;
-  grid-row: 4;
   overflow-wrap: anywhere;
   line-height: 1.35;
 }
@@ -5592,7 +5607,7 @@ body.content-fullscreen #unknown-file-banner {
 
 .mod-portal-catalog {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
   gap: 12px 14px;
   width: 100%;
   max-width: 1200px;
