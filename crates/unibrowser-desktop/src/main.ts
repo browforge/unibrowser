@@ -2747,22 +2747,31 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
-          const editorRect = launchPathsNeedEditor(launchPaths)
-            ? textEditorHost.getBoundingClientRect()
-            : null;
-          await invoke("finish_doc_capture_and_exit", {
-            editorRegion: editorRect
-              ? {
-                  x: editorRect.x,
-                  y: editorRect.y,
-                  width: editorRect.width,
-                  height: editorRect.height,
-                  viewportWidth: window.innerWidth,
-                  viewportHeight: window.innerHeight,
-                  theme: document.documentElement.dataset.theme ?? "dark",
-                }
-              : null,
-          });
+          let editorRegion: {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            viewportWidth: number;
+            viewportHeight: number;
+            theme: string;
+          } | null = null;
+          if (launchPathsNeedEditor(launchPaths)) {
+            const monacoRoot = textEditorHost.querySelector(".monaco-editor") as HTMLElement | null;
+            const editorRect = (monacoRoot ?? textEditorHost).getBoundingClientRect();
+            if (editorRect.width >= 80 && editorRect.height >= 40) {
+              editorRegion = {
+                x: editorRect.x,
+                y: editorRect.y,
+                width: editorRect.width,
+                height: editorRect.height,
+                viewportWidth: window.innerWidth,
+                viewportHeight: window.innerHeight,
+                theme: document.documentElement.dataset.theme ?? "dark",
+              };
+            }
+          }
+          await invoke("finish_doc_capture_and_exit", { editorRegion });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           await invoke("abort_doc_capture", { reason: msg }).catch(() => undefined);

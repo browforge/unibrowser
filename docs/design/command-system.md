@@ -630,7 +630,9 @@ The family occupies the same position, but document formatting controls are unsu
 
 ### PDF annotation
 
-Families:
+**Runtime (current build):** History plus PDF family groups Tools (Select), Annotate (Highlight, Note, Area), Page, View (zoom), and Export PDF. Hand, Ink, Stamp, and Appearance stroke/fill groups are planned; contract tests assert page navigation and export are present.
+
+Families (full target):
 
 - History: Undo, Redo.
 - Selection: Select, Hand.
@@ -643,7 +645,9 @@ If the selected annotation has no fill, Fill Colour is unsupported with "This an
 
 ### Image
 
-Families:
+**Runtime (current build):** History plus Image Adjust (Curves). Crop/transform, extended adjust sliders, conditional Text Formatting, and Export groups are planned; contract tests assert the adjust family is present for image work context.
+
+Families (full target):
 
 - History.
 - Select.
@@ -654,9 +658,13 @@ Families:
 
 With a bitmap selection, the Text Formatting family stays in its canonical tab position but is unsupported. With a text layer, it resolves according to the layer engine.
 
+Mod authoring: see [command-system-authoring.md](../mods/command-system-authoring.md).
+
 ### CAD/3D
 
-Families:
+**Status (CMD-11):** path detection recognises `.dxf`, STEP, and IGES as `WorkContext::Cad3d`, but the host does not yet ship the Select / View / Measure families below. Contract tests treat CAD as **pending**; evidence is not captured until a demo fixture and family layout land.
+
+Families (target):
 
 - Select.
 - View: orientation gallery, pan, orbit, zoom.

@@ -436,6 +436,8 @@ mod tests {
                 id: "zmod.a".into(),
                 control_type: "button".into(),
                 command: "zmod.a".into(),
+                label: None,
+                icon: None,
                 insert: Some(InsertPoint {
                     after: Some("zmod.b".into()),
                     before: None,
@@ -446,6 +448,8 @@ mod tests {
                 id: "zmod.b".into(),
                 control_type: "button".into(),
                 command: "zmod.b".into(),
+                label: None,
+                icon: None,
                 insert: Some(InsertPoint {
                     after: Some("zmod.a".into()),
                     before: None,

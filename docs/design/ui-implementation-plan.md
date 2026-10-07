@@ -861,6 +861,12 @@ Acceptance:
 
 ### CMD-11: Worked-context integration and evidence
 
+Status: done 2026-10-07. Contract tests in
+`worked_context_contract.rs`, evidence matrix in `docs/screenshots/cmd-11/`,
+grid in `docs/design/cmd-11-evidence.md`, mod authoring in
+`docs/mods/command-system-authoring.md`. CAD/3D screenshots pending (path detect
+only).
+
 Work:
 
 - Integrate plain text, Markdown, rich document, code, PDF annotation, image,

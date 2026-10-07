@@ -281,8 +281,10 @@ pub fn validate_editor_text_pixels(
     let scale_x = png_w as f64 / viewport_w;
     let scale_y = png_h as f64 / viewport_h;
     let (x, y, width, height) = css_rect;
-    let x0 = ((x + 48.0) * scale_x).clamp(0.0, png_w as f64) as u32;
-    let x1 = ((x + width - 16.0) * scale_x).clamp(0.0, png_w as f64) as u32;
+    let inset_x = (width * 0.08).clamp(4.0, 48.0);
+    let inset_right = (width * 0.04).clamp(4.0, 16.0);
+    let x0 = ((x + inset_x) * scale_x).clamp(0.0, png_w as f64) as u32;
+    let x1 = ((x + width - inset_right) * scale_x).clamp(0.0, png_w as f64) as u32;
     let y0 = ((y + 4.0) * scale_y).clamp(0.0, png_h as f64) as u32;
     let y1 = ((y + height.min(320.0)) * scale_y).clamp(0.0, png_h as f64) as u32;
     if x1 <= x0 || y1 <= y0 {

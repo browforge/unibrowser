@@ -1,0 +1,252 @@
+//! Contract tests: worked examples in docs/design/command-system.md vs resolved model.
+
+use unibrowser_mod_api::{
+    CapabilityState, CommandContext, HostContext, Mode, WorkContext, control_ids,
+    commands,
+};
+
+use super::context::{ResolutionContext, infer_work_context};
+use super::families::core_tab_layout;
+use super::resolver::CapabilityResolver;
+use super::save_guard::assert_save_independent;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExpectedCap {
+    Supported,
+    Emulated,
+    Unsupported,
+    Locked,
+}
+
+impl ExpectedCap {
+    fn matches(&self, cap: &CapabilityState) -> bool {
+        match (self, cap) {
+            (ExpectedCap::Supported, CapabilityState::Supported) => true,
+            (ExpectedCap::Emulated, CapabilityState::Emulated { .. }) => true,
+            (ExpectedCap::Unsupported, CapabilityState::Unsupported { .. }) => true,
+            (ExpectedCap::Locked, CapabilityState::Locked { .. }) => true,
+            _ => false,
+        }
+    }
+}
+
+fn resolution_ctx(work: WorkContext, path: &str) -> ResolutionContext {
+    let command_context = match work {
+        WorkContext::Pdf => CommandContext::Office,
+        WorkContext::Image => CommandContext::Image,
+        WorkContext::CodeEditor => CommandContext::Code,
+        WorkContext::RichDocument => CommandContext::Office,
+        WorkContext::Start => CommandContext::Start,
+        WorkContext::Browse => CommandContext::Browse,
+        WorkContext::Web => CommandContext::Web,
+        _ => CommandContext::Text,
+    };
+    let mode = match work {
+        WorkContext::Pdf => Mode::Document,
+        WorkContext::Image => Mode::Vector,
+        WorkContext::CodeEditor => Mode::Text,
+        _ => Mode::Text,
+    };
+    let host = HostContext {
+        mode,
+        doc_type: String::new(),
+        backend_id: String::new(),
+        selection: Default::default(),
+        capabilities: Default::default(),
+    };
+    let mut rc = ResolutionContext::new(command_context, host, Some(path.into()), 1);
+    rc.work = work;
+    rc.markdown_inline_html = true;
+    rc
+}
+
+fn control_capability(
+    work: WorkContext,
+    path: &str,
+    control_id: &str,
+) -> CapabilityState {
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(work, path);
+    let command = match control_id {
+        control_ids::TEXT_FONT => commands::TEXT_FONT_FAMILY,
+        control_ids::TEXT_SIZE => commands::FONT_SIZE_INCREASE,
+        control_ids::TEXT_BOLD => commands::TEXT_BOLD,
+        control_ids::TEXT_ITALIC => commands::TEXT_ITALIC,
+        control_ids::TEXT_UNDERLINE => commands::TEXT_UNDERLINE,
+        control_ids::TEXT_STRIKETHROUGH => commands::TEXT_STRIKETHROUGH,
+        control_ids::TEXT_SUBSCRIPT => commands::TEXT_SUBSCRIPT,
+        control_ids::TEXT_SUPERSCRIPT => commands::TEXT_SUPERSCRIPT,
+        control_ids::TEXT_COLOUR => commands::TEXT_COLOUR,
+        control_ids::EDITOR_FONT => commands::EDITOR_FONT_FAMILY,
+        control_ids::EDITOR_SIZE => commands::EDITOR_FONT_SIZE,
+        _ => commands::TEXT_BOLD,
+    };
+    resolver.resolve_control(control_id, command, &ctx)
+}
+
+fn find_control_label(work: WorkContext, path: &str, control_id: &str) -> Option<String> {
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(work, path);
+    for family in core_tab_layout(&ctx, &resolver) {
+        for group in &family.groups {
+            for control in &group.controls {
+                if control.control_id == control_id {
+                    return Some(control.label.clone());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn assert_matrix_row(
+    work: WorkContext,
+    path: &str,
+    control_id: &str,
+    expected: ExpectedCap,
+) {
+    let cap = control_capability(work, path, control_id);
+    assert!(
+        expected.matches(&cap),
+        "{} in {:?} ({}) expected {:?}, got {:?}",
+        control_id,
+        work,
+        path,
+        expected,
+        cap
+    );
+}
+
+#[test]
+fn text_family_matrix_matches_command_system_doc() {
+    let txt = "notes.txt";
+    let md = "readme.md";
+    let docx = "brief.docx";
+    let code = "main.ts";
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_FONT, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_FONT, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_FONT, ExpectedCap::Supported);
+    assert_matrix_row(WorkContext::CodeEditor, code, control_ids::TEXT_FONT, ExpectedCap::Unsupported);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_SIZE, ExpectedCap::Supported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_SIZE, ExpectedCap::Supported);
+    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_SIZE, ExpectedCap::Supported);
+    assert_matrix_row(WorkContext::CodeEditor, code, control_ids::EDITOR_SIZE, ExpectedCap::Supported);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_BOLD, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_BOLD, ExpectedCap::Supported);
+    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_BOLD, ExpectedCap::Supported);
+    assert_matrix_row(WorkContext::CodeEditor, code, control_ids::TEXT_BOLD, ExpectedCap::Unsupported);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_ITALIC, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_ITALIC, ExpectedCap::Supported);
+    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_ITALIC, ExpectedCap::Supported);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_UNDERLINE, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_UNDERLINE, ExpectedCap::Emulated);
+    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_UNDERLINE, ExpectedCap::Supported);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_STRIKETHROUGH, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_STRIKETHROUGH, ExpectedCap::Supported);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_SUBSCRIPT, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_SUBSCRIPT, ExpectedCap::Emulated);
+    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_SUBSCRIPT, ExpectedCap::Supported);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_SUPERSCRIPT, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_SUPERSCRIPT, ExpectedCap::Emulated);
+
+    assert_matrix_row(WorkContext::PlainText, txt, control_ids::TEXT_COLOUR, ExpectedCap::Unsupported);
+    assert_matrix_row(WorkContext::Markdown, md, control_ids::TEXT_COLOUR, ExpectedCap::Emulated);
+    assert_matrix_row(WorkContext::RichDocument, docx, control_ids::TEXT_COLOUR, ExpectedCap::Supported);
+}
+
+#[test]
+fn plain_text_size_label_is_editor_display() {
+    let label = find_control_label(WorkContext::PlainText, "notes.txt", control_ids::TEXT_SIZE)
+        .expect("size control");
+    assert!(
+        label.contains("Editor text size"),
+        "plain text size label must not imply file formatting: {}",
+        label
+    );
+}
+
+#[test]
+fn plain_text_strikethrough_reason_matches_doc() {
+    let cap = control_capability(WorkContext::PlainText, "notes.txt", control_ids::TEXT_STRIKETHROUGH);
+    let reason = cap.unsupported_reason().unwrap_or("");
+    assert!(
+        reason.to_lowercase().contains("plain text"),
+        "reason: {}",
+        reason
+    );
+}
+
+#[test]
+fn pdf_context_exposes_annotation_family() {
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(WorkContext::Pdf, "sample.pdf");
+    let families = core_tab_layout(&ctx, &resolver);
+    let pdf = families
+        .iter()
+        .find(|f| f.family_id == "unibrowser.family.pdf-annotation")
+        .expect("pdf family");
+    let ids: Vec<_> = pdf
+        .groups
+        .iter()
+        .flat_map(|g| g.controls.iter())
+        .map(|c| c.control_id.as_str())
+        .collect();
+    assert!(ids.iter().any(|id| *id == control_ids::PDF_PAGE));
+    assert!(ids.iter().any(|id| *id == control_ids::PDF_EXPORT));
+}
+
+#[test]
+fn image_context_exposes_adjust_family() {
+    let resolver = CapabilityResolver::default();
+    let ctx = resolution_ctx(WorkContext::Image, "photo.svg");
+    let families = core_tab_layout(&ctx, &resolver);
+    assert!(
+        families.iter().any(|f| f.family_id == "unibrowser.family.image-adjust"),
+        "image adjust family present"
+    );
+}
+
+#[test]
+fn cad3d_context_is_explicit_pending_in_runtime() {
+    let cap = control_capability(
+        WorkContext::Cad3d,
+        "part.dxf",
+        control_ids::TEXT_BOLD,
+    );
+    assert!(matches!(cap, CapabilityState::Unsupported { .. }));
+    assert_eq!(
+        infer_work_context(CommandContext::Text, Mode::Text, Some("part.dxf")),
+        WorkContext::Cad3d
+    );
+}
+
+#[test]
+fn save_stays_supported_in_every_worked_context() {
+    let resolver = CapabilityResolver::default();
+    let paths = [
+        (WorkContext::PlainText, "a.txt"),
+        (WorkContext::Markdown, "a.md"),
+        (WorkContext::RichDocument, "a.docx"),
+        (WorkContext::CodeEditor, "a.ts"),
+        (WorkContext::Pdf, "a.pdf"),
+        (WorkContext::Image, "a.svg"),
+        (WorkContext::Cad3d, "a.dxf"),
+    ];
+    for (work, path) in paths {
+        let ctx = resolution_ctx(work, path);
+        let cap = resolver.resolve_control(
+            "unibrowser.control.save",
+            commands::TEXT_SAVE,
+            &ctx,
+        );
+        assert_save_independent(&cap);
+    }
+}

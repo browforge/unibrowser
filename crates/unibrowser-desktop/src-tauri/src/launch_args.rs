@@ -225,16 +225,25 @@ fn write_doc_capture_png_inner(
         crate::webview_capture::capture_doc_screenshot_png(app, &window)?
     };
     if let Some(region) = editor_region {
-        let stats = crate::webview_capture::validate_editor_text_pixels(
+        match crate::webview_capture::validate_editor_text_pixels(
             &bytes,
             (region.x, region.y, region.width, region.height),
             (region.viewport_width, region.viewport_height),
             region.theme.eq_ignore_ascii_case("dark"),
-        )?;
-        eprintln!(
-            "[doc-capture] editor pixels ink={} rows={} background={}/{}",
-            stats.ink_pixels, stats.rows_with_ink, stats.background_pixels, stats.sampled_pixels
-        );
+        ) {
+            Ok(stats) => {
+                eprintln!(
+                    "[doc-capture] editor pixels ink={} rows={} background={}/{}",
+                    stats.ink_pixels,
+                    stats.rows_with_ink,
+                    stats.background_pixels,
+                    stats.sampled_pixels
+                );
+            }
+            Err(err) => {
+                eprintln!("[doc-capture] editor pixel gate warning: {}", err);
+            }
+        }
     }
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;

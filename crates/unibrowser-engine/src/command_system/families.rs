@@ -191,6 +191,13 @@ fn editor_appearance_family(ctx: &ResolutionContext, resolver: &CapabilityResolv
     }
 }
 
+fn text_size_label(ctx: &ResolutionContext) -> &'static str {
+    match ctx.work {
+        WorkContext::PlainText | WorkContext::Markdown => "Editor text size",
+        _ => "Size",
+    }
+}
+
 fn text_formatting_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
     let type_group = ResolvedGroup {
         group_id: group_ids::TEXT_TYPE.into(),
@@ -212,7 +219,7 @@ fn text_formatting_family(ctx: &ResolutionContext, resolver: &CapabilityResolver
                 control_ids::TEXT_SIZE,
                 ControlType::ValueStepper,
                 commands::FONT_SIZE_INCREASE,
-                "Size",
+                text_size_label(ctx),
                 "type",
                 group_ids::TEXT_TYPE,
                 family_ids::TEXT_FORMATTING,

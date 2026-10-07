@@ -168,6 +168,15 @@ export async function applyDemoState(raw: string) {
       case "scale-150":
         document.documentElement.style.fontSize = "150%";
         break;
+      case "high-contrast": {
+        const { applyHighContrastToDocument } = await import("./accessibility");
+        applyHighContrastToDocument(true);
+        await invoke("set_accessibility_prefs", {
+          high_contrast: true,
+          reduce_motion: null,
+        }).catch(() => undefined);
+        break;
+      }
       case "cm-collapsed":
         document.body.classList.add("cm-collapsed");
         break;

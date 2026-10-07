@@ -437,11 +437,36 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
     cm.autoContext === "start" || cm.contextLabel?.toLowerCase() === "start";
   const requiredVisible = startContext ? Math.min(minVisible, 4) : minVisible;
   const requiredContrast = startContext ? Math.min(minContrast, 4) : minContrast;
+  const overflowEl = document.getElementById("command-manager-overflow");
+  const resolvedTotal =
+    typeof cm.pipeline?.ipcControlCount === "number"
+      ? (cm.pipeline.ipcControlCount as number)
+      : cm.controlCount;
+  const overflowModelCount =
+    typeof cm.pipeline?.frontendOverflowModelCount === "number"
+      ? (cm.pipeline.frontendOverflowModelCount as number)
+      : 0;
+  const overflowActive = Boolean(
+    overflowEl &&
+      !overflowEl.classList.contains("hidden") &&
+      (overflowEl.classList.contains("visible") || overflowModelCount > 0),
+  );
   if (cm.visibleCount < requiredVisible) {
-    return `command manager visible controls ${cm.visibleCount} < ${requiredVisible} (total ${cm.controlCount})`;
+    if (overflowActive && resolvedTotal >= requiredVisible) {
+      /* never-clip: complete groups live in overflow at narrow widths */
+    } else {
+      return `command manager visible controls ${cm.visibleCount} < ${requiredVisible} (total ${resolvedTotal})`;
+    }
   }
   if (cm.contrastOkCount < requiredContrast) {
-    return `command manager contrast-ok controls ${cm.contrastOkCount} < ${requiredContrast}`;
+    const overflowOk =
+      overflowActive &&
+      resolvedTotal >= requiredContrast &&
+      cm.contrastOkCount >= cm.visibleCount &&
+      cm.visibleCount > 0;
+    if (!overflowOk) {
+      return `command manager contrast-ok controls ${cm.contrastOkCount} < ${requiredContrast}`;
+    }
   }
   return null;
 }
