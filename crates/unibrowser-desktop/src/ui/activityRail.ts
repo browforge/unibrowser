@@ -187,7 +187,11 @@ export function initActivityRail(deps: {
           writeMode("collapsed");
         }
         applyModeClasses(rail);
-        renderRailPanel(rail, activeDestination);
+        if (mode === "expanded" && activeDestination === null) {
+          setActiveButton(rail, "files");
+        } else {
+          renderRailPanel(rail, activeDestination);
+        }
       },
     }),
   );
@@ -203,7 +207,8 @@ export function initActivityRail(deps: {
     },
   });
   settingsBtn.dataset.railId = settingsItem.id;
-  rail.insertBefore(sidePanel, settingsBtn);
+  const collapseButton = rail.querySelector(".rail-collapse");
+  rail.insertBefore(sidePanel, collapseButton ?? settingsBtn);
   rail.appendChild(settingsBtn);
   if (mode === "expanded") {
     setActiveButton(rail, "files");
@@ -247,5 +252,9 @@ export function setRailMode(next: RailMode) {
   }
   writeMode(next);
   applyModeClasses(rail);
+  if (next === "expanded" && activeDestination === null) {
+    setActiveButton(rail, "files");
+    return;
+  }
   renderRailPanel(rail, activeDestination);
 }

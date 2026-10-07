@@ -159,15 +159,6 @@ pub fn get_demo_state() -> Option<String> {
     demo_state_slot().lock().ok().and_then(|d| d.clone())
 }
 
-pub fn demo_state_has_document_mockup() -> bool {
-    demo_state_slot()
-        .lock()
-        .ok()
-        .and_then(|d| d.clone())
-        .map(|s| s.to_lowercase().contains("document-mockup"))
-        .unwrap_or(false)
-}
-
 #[tauri::command]
 pub fn take_doc_capture_path() -> Option<String> {
     doc_capture_slot()

@@ -22,7 +22,6 @@ pub fn apply_demo_state_rust(
         match t.as_str() {
             "document-mockup" | "document-mockup-problems" => {
                 crate::document_mockup::seed_document_mockup_problems();
-                eval_js(app, "document.body.dataset.demoProblems='1';")?;
                 eval_js(
                     app,
                     r"(function(){
@@ -70,7 +69,6 @@ pub fn apply_demo_state_rust(
                 )?;
             }
             "problems" | "problems-open" => {
-                eval_js(app, "document.body.dataset.demoProblems='1';")?;
                 let _ = crate::proofing::proofing_check(
                     state.clone(),
                     crate::proofing::ProofingCheckRequest {
@@ -122,20 +120,7 @@ pub fn apply_demo_state_rust(
             "live" | "live-preview" => {
                 let _ = crate::live_host::set_unibrow_live_mode(window.clone(), true, state.clone());
             }
-            "capture-ready" => {
-                eval_js(
-                    app,
-                    r"(function(){
-  document.getElementById('palette')?.classList.add('hidden');
-  document.getElementById('bookmark-bar')?.classList.add('hidden');
-  document.getElementById('onboarding-banner')?.classList.add('hidden');
-  document.getElementById('floating-toolbar-host')?.classList.add('hidden');
-  if (!document.body.dataset.demoProblems) {
-    document.getElementById('script-output-panel')?.classList.add('hidden');
-  }
-})();",
-                )?;
-            }
+            "capture-ready" => {}
             _ => {}
         }
     }

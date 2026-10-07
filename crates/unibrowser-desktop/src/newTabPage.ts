@@ -216,41 +216,11 @@ function appendRecentSection(host: HTMLElement, deps: NewTabDeps) {
 
   const list = document.createElement("div");
   list.className = "ntp-recent-list";
-  const rows = deps.recent.length ? deps.recent : demoRecentRows();
-  rows.slice(0, 8).forEach((entry) => {
+  deps.recent.slice(0, 8).forEach((entry) => {
     list.appendChild(recentRow(entry, deps.onOpenPath));
   });
   recentSec.appendChild(list);
   host.appendChild(recentSec);
-}
-
-function demoRecentRows(): RecentFileDto[] {
-  if (!document.body.classList.contains("doc-capture-mode")) {
-    return [];
-  }
-  const now = Date.now();
-  return [
-    {
-      path: "/workspace/examples/demo-pack/sample.ts",
-      label: "sync-notes.ts",
-      opened_at_ms: now - 12 * 60_000,
-    },
-    {
-      path: "/workspace/examples/demo-pack/sample.pdf",
-      label: "field-report.pdf",
-      opened_at_ms: now - 26 * 60 * 60_000,
-    },
-    {
-      path: "/workspace/examples/demo-pack/workshop-tour.unibrow",
-      label: "workshop-tour.unibrow",
-      opened_at_ms: now - 28 * 60 * 60_000,
-    },
-    {
-      path: "/workspace/examples/demo-pack/sample.dxf",
-      label: "north-bay-bracket.dxf",
-      opened_at_ms: now - 3 * 24 * 60 * 60_000,
-    },
-  ];
 }
 
 function recentRow(entry: RecentFileDto, onOpen: (path: string) => void): HTMLElement {
@@ -292,34 +262,9 @@ function appendDownloadsSection(host: HTMLElement, deps: NewTabDeps) {
 
   const list = document.createElement("div");
   list.className = "ntp-download-list";
-  const rows = deps.downloads.length ? deps.downloads : demoDownloadRows();
-  rows.forEach((entry) => list.appendChild(downloadRow(entry, deps.onOpenPath)));
+  deps.downloads.forEach((entry) => list.appendChild(downloadRow(entry, deps.onOpenPath)));
   sec.appendChild(list);
   host.appendChild(sec);
-}
-
-function demoDownloadRows(): DownloadHistoryEntryDto[] {
-  if (!document.body.classList.contains("doc-capture-mode")) {
-    return [];
-  }
-  const now = Date.now();
-  return [
-    {
-      id: "demo-active",
-      url: "https://example.invalid/workshop-reference-pack.zip",
-      label: "workshop-reference-pack.zip",
-      status: "in_progress",
-      at_ms: now,
-    },
-    {
-      id: "demo-done",
-      url: "https://example.invalid/maker-mark.svg",
-      label: "maker-mark.svg",
-      status: "saved",
-      destination: "Downloads",
-      at_ms: now - 3 * 60 * 60_000,
-    },
-  ];
 }
 
 function downloadRow(

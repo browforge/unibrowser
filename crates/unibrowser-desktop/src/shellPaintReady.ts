@@ -34,15 +34,7 @@ export function editorReadyForCapture(minChars = 80): boolean {
 }
 
 function monacoReady(): boolean {
-  if (document.body.classList.contains("doc-capture-mode")) {
-    return editorReadyForCapture(80);
-  }
-  const host = document.getElementById("text-editor-host");
-  if (!host || host.classList.contains("hidden")) {
-    return false;
-  }
-  const lines = document.querySelector(".monaco-editor .view-lines");
-  return (lines?.textContent ?? "").trim().length >= 8;
+  return editorReadyForCapture(80);
 }
 
 function unibrowBoardReady(): boolean {
@@ -187,7 +179,7 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   if (joined.includes(".docx") || joined.includes(".pdf") || joined.includes(".svg")) {
     checks.push(docViewerReady);
   }
-  if (tokens.includes("files") || (joined.includes("demo-pack") && !joined.includes(".unibrow"))) {
+  if (tokens.includes("files")) {
     checks.push(browseFolderReady);
   }
 

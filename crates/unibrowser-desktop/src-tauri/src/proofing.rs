@@ -156,11 +156,7 @@ pub fn proofing_check(
     ) {
         problems.extend(lsp_problems);
     }
-    if crate::launch_args::demo_state_has_document_mockup() {
-        crate::document_mockup::seed_document_mockup_problems();
-    } else {
-        crate::problems_store::set_problems(problems.clone());
-    }
+    crate::problems_store::set_problems(problems.clone());
     Ok(problems.iter().filter_map(dto).collect())
 }
 

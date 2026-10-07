@@ -506,7 +506,6 @@ async function saveDocxEditsAsHtml(
 }
 
 async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
-  const captureMode = document.body.classList.contains("doc-capture-mode");
   const mammoth = await import("mammoth");
   const bytes = await readBytes(path);
   const result = await mammoth.convertToHtml(
@@ -617,7 +616,7 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
   toolbar.appendChild(saveDocxBtn);
 
   const article = document.createElement("article");
-  article.className = captureMode ? "docx-view docx-view--paper" : "docx-view";
+  article.className = "docx-view docx-view--paper";
   article.style.fontSize = `${readerFontPt}pt`;
   article.innerHTML = result.value;
   saveHtmlBtn.onclick = () => {
@@ -627,24 +626,15 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
     void saveDocxEditsToDocx(path, article);
   };
   applyDocxSpellcheckExperiment(article);
-  if (!captureMode) {
-    appendTrustBanner(root, "remote-html");
-  }
 
   root.innerHTML = "";
-  if (!captureMode) {
-    root.appendChild(banner);
-    root.appendChild(toolbar);
-    root.appendChild(article);
-  } else {
-    const reader = document.createElement("div");
-    reader.className = "docx-reader";
-    const paper = document.createElement("div");
-    paper.className = "docx-paper";
-    paper.appendChild(article);
-    reader.appendChild(paper);
-    root.appendChild(reader);
-  }
+  const reader = document.createElement("div");
+  reader.className = "docx-reader";
+  const paper = document.createElement("div");
+  paper.className = "docx-paper";
+  paper.appendChild(article);
+  reader.appendChild(paper);
+  root.appendChild(reader);
   setViewerLocatorBridge({
     docxParagraph: (paragraphIndex) => {
       const nodes = article.querySelectorAll("p, h1, h2, h3, h4, li");
@@ -658,12 +648,6 @@ async function renderDocx(path: string, root: HTMLElement, readerFontPt = 12) {
     },
   });
   bindPreviewLinks(article, path);
-  if (!captureMode && result.messages.length) {
-    const note = document.createElement("p");
-    note.className = "viewer-note";
-    note.textContent = `mammoth: ${result.messages.length} conversion note(s)`;
-    root.appendChild(note);
-  }
 }
 
 async function syncPdfSelection(selected: boolean) {
@@ -4453,13 +4437,6 @@ function applyTabMutedToViewer(el: HTMLElement, muted: boolean) {
   });
 }
 
-function decorateViewerForCapture(el: HTMLElement, _viewer: DocumentViewerDto) {
-  el.querySelector(".doc-capture-viewer-overlay")?.remove();
-  el.querySelectorAll(".capture-viewer-hidden").forEach((node) => {
-    node.classList.remove("capture-viewer-hidden");
-  });
-}
-
 export interface DocumentViewerApplyExtras {
   downloadHistory?: DownloadHistoryEntryDto[];
   onRefreshState?: () => void | Promise<void>;
@@ -4511,9 +4488,6 @@ export const documentViewer = {
     if (key === prevKey && el.childElementCount > 0) {
       el.classList.remove("hidden");
       applyTabMutedToViewer(el, Boolean(viewer.tab_muted));
-      if (document.body.classList.contains("doc-capture-mode")) {
-        decorateViewerForCapture(el, viewer);
-      }
       return;
     }
     loadedKeys.set(el, key);
@@ -4611,9 +4585,6 @@ export const documentViewer = {
           body.textContent = `Unknown viewer: ${viewer.viewer}`;
       }
       applyTabMutedToViewer(el, Boolean(viewer.tab_muted));
-      if (document.body.classList.contains("doc-capture-mode")) {
-        decorateViewerForCapture(el, viewer);
-      }
     } catch (err) {
       el.innerHTML = `<p class='viewer-error'>${String(err)}</p>`;
     }

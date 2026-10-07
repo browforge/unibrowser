@@ -2661,8 +2661,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         try {
           const painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
           if (!painted) {
+            const timeoutDiag = formatDiagnosticsForLog(collectDocCaptureDiagnostics());
+            const editorLengths = {
+              document: textEditorHost.dataset.documentContentLength ?? null,
+              model: textEditorHost.dataset.modelContentLength ?? null,
+            };
             await invoke("abort_doc_capture", {
-              reason: "Shell paint readiness timed out",
+              reason: `Shell paint readiness timed out; editorLengths=${JSON.stringify(editorLengths)}; ${timeoutDiag}`,
             });
             return;
           }
@@ -2719,11 +2724,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             }
           }
           const editorErr = validateEditorForCapture();
-          if (
-            launchPathsNeedEditor(launchPaths) &&
-            editorErr &&
-            !document.body.classList.contains("cm-collapsed")
-          ) {
+          if (launchPathsNeedEditor(launchPaths) && editorErr) {
             await invoke("abort_doc_capture", {
               reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
             });
@@ -2731,7 +2732,6 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           }
           if (
             launchPathsNeedEditor(launchPaths) &&
-            !document.body.classList.contains("cm-collapsed") &&
             !editorReadyForCapture()
           ) {
             await invoke("abort_doc_capture", {
@@ -2739,11 +2739,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
-          const editorRect =
-            launchPathsNeedEditor(launchPaths) &&
-            !document.body.classList.contains("cm-collapsed")
-              ? textEditorHost.getBoundingClientRect()
-              : null;
+          const editorRect = launchPathsNeedEditor(launchPaths)
+            ? textEditorHost.getBoundingClientRect()
+            : null;
           await invoke("finish_doc_capture_and_exit", {
             editorRegion: editorRect
               ? {

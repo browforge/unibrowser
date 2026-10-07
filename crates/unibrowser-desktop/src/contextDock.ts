@@ -71,14 +71,8 @@ export async function syncContextDockPolicy(data: DockStateSlice): Promise<void>
   setActiveDockContext(ctx);
   const stored = readStoredAiVisible(ctx);
   const prefs = await invoke<{ panel_visible: boolean }>("get_ai_assistant_prefs");
-  const demoRaw = (document.body.dataset.demoState ?? "").toLowerCase();
-  const demoForcesAi =
-    demoRaw.includes("ai-sidebar") || demoRaw.includes("ai-open") || demoRaw.includes("ai,");
 
   if (ctx === "ntp" || ctx === "pdf" || ctx === "image") {
-    if (demoForcesAi) {
-      return;
-    }
     const wantAi = stored === true;
     if (prefs.panel_visible !== wantAi) {
       await setAiPanelVisible(wantAi);

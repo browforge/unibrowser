@@ -28,6 +28,7 @@ type MonacoModel = import("monaco-editor").editor.ITextModel;
 let monacoApi: Monaco | null = null;
 let editor: MonacoEditor | null = null;
 let hostEl: HTMLElement | null = null;
+let hostResizeObserver: ResizeObserver | null = null;
 let currentFontPt = 14;
 
 export function getEditorFontSizePt(): number {
@@ -284,10 +285,6 @@ function ensurePreviewShell(host: HTMLElement) {
 }
 
 function ensureMarkdownToolbar(host: HTMLElement, path: string) {
-  if (document.body.classList.contains("doc-capture-mode") && isMarkdownPath(path)) {
-    toolbarEl?.classList.add("hidden");
-    return;
-  }
   if (!isMarkdownPath(path)) {
     if (plainToolbarEl) {
       plainToolbarEl.remove();
@@ -387,6 +384,11 @@ async function ensureEditor(host: HTMLElement) {
     wordWrap: "on",
     experimentalGpuAcceleration: "off",
   });
+  hostResizeObserver?.disconnect();
+  hostResizeObserver = new ResizeObserver(() => {
+    editor?.layout();
+  });
+  hostResizeObserver.observe(host);
   host.classList.add("monaco-host-ready");
   bindFindShortcut(api);
   editor.onDidChangeModelContent(() => scheduleSync());
@@ -401,7 +403,7 @@ export function openTextFind() {
   editor?.getAction("actions.find")?.run();
 }
 
-/** Doc-capture and layout fixes after sidebars open. */
+/** Recompute Monaco after shell regions or sidebars change size. */
 export function relayoutTextEditor(): void {
   editor?.layout();
   window.dispatchEvent(new Event("resize"));
@@ -491,31 +493,19 @@ export const textEditor = {
       return;
     }
     this.show(host);
-    if (document.body.classList.contains("doc-capture-mode")) {
-      markdownPreview = false;
-      previewShellEl?.classList.add("hidden");
-      host.classList.remove("md-split");
-    }
     ensureMarkdownToolbar(host, doc.path);
     await ensureEditor(host);
     await syncMonacoTheme();
-    if (document.body.classList.contains("doc-capture-mode")) {
-      editor?.layout();
-      relayoutTextEditor();
-    }
     const api = await getMonaco();
     bindFindShortcut(api);
     const model = editor!.getModel();
-    const pathChanged = loadedPath !== doc.path;
-    if (pathChanged) {
-      suppressSync = true;
-      loadedPath = doc.path;
-      const uri = api.Uri.parse(`file://${doc.path}`);
-      const language = doc.language || "plaintext";
-      if (model && model.uri.toString() === uri.toString()) {
-        model.setValue(doc.content);
-        api.editor.setModelLanguage(model, language);
-      } else {
+    const uri = api.Uri.parse(`file://${doc.path}`);
+    const language = doc.language || "plaintext";
+    const pathChanged =
+      loadedPath !== doc.path || model?.uri.toString() !== uri.toString();
+    suppressSync = true;
+    try {
+      if (pathChanged) {
         const next =
           api.editor.getModel(uri) ??
           api.editor.createModel(doc.content, language, uri);
@@ -525,10 +515,27 @@ export const textEditor = {
         api.editor.setModelLanguage(next, language);
         editor!.setModel(next);
       }
+      const activeModel = editor!.getModel();
+      // Concurrent shell refreshes may observe the selected path before Monaco
+      // has hydrated its model. Never leave a non-empty document on a blank
+      // model, even when `loadedPath` already matches.
+      if (activeModel && activeModel.getValueLength() === 0 && doc.content.length > 0) {
+        activeModel.setValue(doc.content);
+        api.editor.setModelLanguage(activeModel, language);
+      }
+      loadedPath = doc.path;
+    } finally {
       suppressSync = false;
     }
+    host.dataset.documentContentLength = String(doc.content.length);
+    host.dataset.modelContentLength = String(editor!.getModel()?.getValueLength() ?? 0);
     currentFontPt = doc.font_size_pt;
     editor!.updateOptions({ fontSize: doc.font_size_pt });
+    editor!.layout();
+    window.requestAnimationFrame(() => {
+      editor?.layout();
+      window.requestAnimationFrame(() => editor?.layout());
+    });
     if (doc.reveal_line && doc.reveal_line > 0) {
       const line = doc.reveal_line;
       editor!.revealLineInCenter(line);

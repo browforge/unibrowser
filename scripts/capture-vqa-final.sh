@@ -34,7 +34,7 @@ capture_new_tab_pair() {
       WEBKIT_DISABLE_COMPOSITING_MODE=1 \
       UNIBROWSER_REPO_ROOT="$ROOT" \
       UNIBROWSER_SAFE_MODE=1 \
-      UNIBROWSER_DEMO_STATE="ntp,theme-${theme},rail-collapsed,capture-ready" \
+      UNIBROWSER_DEMO_STATE="theme-${theme},rail-collapsed,capture-ready" \
       "$BIN" --doc-capture "$tmp"
     mv "$tmp" "$OUT/new-tab-${theme}.png"
     convert "$OUT/new-tab-${theme}.png" \
@@ -47,10 +47,14 @@ compare_pair() {
   local light_mock="$2"
   local dark_mock="${3:-$light_mock}"
   convert "$OUT/${scenario}-light.png" -resize 1280x800! \
-    \( "$MOCK/$light_mock" -resize 1280x800! \) \
+    -gravity NorthWest -pointsize 14 -fill '#1f2326' -annotate +12+8 'App' \
+    \( "$MOCK/$light_mock" -resize 1280x800! \
+      -gravity NorthWest -pointsize 14 -fill '#1f2326' -annotate +12+8 'Mockup' \) \
     +append -strip "$OUT/${scenario}-side-by-side-light.png"
   convert "$OUT/${scenario}-dark.png" -resize 1280x800! \
-    \( "$MOCK/$dark_mock" -resize 1280x800! \) \
+    -gravity NorthWest -pointsize 14 -fill '#e8eef2' -annotate +12+8 'App' \
+    \( "$MOCK/$dark_mock" -resize 1280x800! \
+      -gravity NorthWest -pointsize 14 -fill '#e8eef2' -annotate +12+8 'Mockup' \) \
     +append -strip "$OUT/${scenario}-side-by-side-dark.png"
 }
 
@@ -60,29 +64,29 @@ capture_pair \
   "$DEMO/sample.ts"
 capture_pair \
   "pdf-annotation" \
-  "ai-sidebar,rail-collapsed" \
+  "rail-collapsed" \
   "$DEMO/sample.pdf"
 capture_pair \
   "image-svg" \
-  "ai-sidebar,rail-collapsed" \
+  "rail-collapsed" \
   "$DEMO/sample.svg"
 capture_pair \
   "rich-doc" \
-  "ai-sidebar,rail-collapsed" \
+  "rail-collapsed" \
   "$DEMO/sample-rich.docx"
 capture_new_tab_pair
 capture_pair \
   "rail-collapsed" \
   "ai-sidebar,rail-collapsed" \
-  "$DEMO/sample.md"
+  "$DEMO/sample.ts"
 capture_pair \
   "rail-expanded" \
   "ai-sidebar,rail-expanded" \
-  "$DEMO/sample.md"
+  "$DEMO/sample.ts"
 capture_pair \
   "chrome-collapsed" \
   "ai-sidebar,rail-collapsed,cm-collapsed" \
-  "$DEMO/sample.md"
+  "$DEMO/sample.ts"
 
 compare_pair \
   "document-problems-ai" \

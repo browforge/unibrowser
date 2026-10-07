@@ -448,9 +448,6 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
 
 /** Returns abort reason or null if editor area looks painted. */
 export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
-  if (document.body.classList.contains("cm-collapsed")) {
-    return null;
-  }
   const m = collectMonacoDiagnostics();
   if (!m) {
     return "text editor host missing or hidden";
