@@ -43,7 +43,7 @@ function subsetScore(groups: OverflowGroup[], source: OverflowGroup[]): number {
     (score, group) => score + (source.length - source.indexOf(group)),
     0,
   );
-  return controls * 10_000 + normalGroups * 100 + stableOrder;
+  return normalGroups * 100_000 + controls * 10_000 + stableOrder;
 }
 
 export function partitionGroupsByAvailableWidth<T extends OverflowGroup>(

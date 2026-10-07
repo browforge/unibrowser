@@ -43,6 +43,26 @@ for (const viewport of [800, 1024, 1280]) {
   });
 }
 
+test("normal groups overflow after wider low-priority groups", () => {
+  const important = {
+    priority: "normal",
+    resolved: { controls: [{ label: "Zoom" }] },
+  };
+  const low = {
+    priority: "low",
+    resolved: {
+      controls: [
+        { label: "Highlight" },
+        { label: "Note" },
+        { label: "Area" },
+      ],
+    },
+  };
+  const result = partitionGroupsByAvailableWidth([low, important], 110, 0);
+  assert.deepEqual(result.visible, [important]);
+  assert.deepEqual(result.overflow, [low]);
+});
+
 const browseGroups = [
   ["normal", ["New folder", "New text file"]],
   ["normal", ["Open", "Copy paths"]],
