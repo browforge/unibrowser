@@ -133,9 +133,9 @@ capture_states() {
   xdotool mousedown 1
   xdotool mousemove 1180 780
   xdotool mouseup 1
+  xdotool key Escape
   shot "${order}-focus" "$crop_x" "$crop_y" "$width" "$height"
 
-  xdotool key Escape
   xdotool mousemove "$target_x" "$target_y"
   xdotool mousedown 1
   shot "${order}-pressed" "$crop_x" "$crop_y" "$width" "$height"
