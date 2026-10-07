@@ -444,10 +444,6 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   };
 
   const setMode = async (next: WorkshopMode) => {
-    mode = next;
-    state.dataset.state = next;
-    state.textContent = next === "preview" ? "Preview" : next === "live" ? "LIVE" : "REC";
-    root.dataset.mode = next;
     if (next === "preview") {
       await invoke("set_unibrow_live_mode", { enabled: false }).catch(() => undefined);
     } else {
@@ -456,6 +452,10 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
         await invoke("start_unibrow_live_recording").catch(() => undefined);
       }
     }
+    mode = next;
+    state.dataset.state = next;
+    state.textContent = next === "preview" ? "Preview" : next === "live" ? "LIVE" : "REC";
+    root.dataset.mode = next;
     renderStage();
     renderInspector();
   };
