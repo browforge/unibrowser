@@ -1,4 +1,5 @@
 type ZoomListener = (scale: number, label: string) => void;
+export type ViewerZoomKind = "pdf" | "image" | "svg" | "cad";
 type PdfPageListener = (page: number, total: number, annotationCount: number) => void;
 
 let listener: ZoomListener | null = null;
@@ -22,12 +23,13 @@ export function getPdfCommandManagerLabels(): {
   return { page: pdfCmPage, zoomPct: pdfCmZoomPct };
 }
 
-export function reportViewerZoom(scale: number, kind: "pdf" | "image" | "svg") {
+export function reportViewerZoom(scale: number, kind: ViewerZoomKind) {
   const pct = Math.round(scale * 100);
   if (kind === "pdf") {
     pdfCmZoomPct = pct;
   }
-  const label = kind === "pdf" ? `${pct}%` : `Image ${pct}%`;
+  const label =
+    kind === "pdf" || kind === "cad" ? `${pct}%` : kind === "svg" ? `${pct}%` : `Image ${pct}%`;
   listener?.(scale, label);
 }
 

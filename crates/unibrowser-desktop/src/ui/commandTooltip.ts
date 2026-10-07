@@ -80,6 +80,11 @@ export function bindCommandTooltip(
   btn.addEventListener("blur", hide);
 }
 
+/** Hide any visible command tooltip and release focus before doc-capture screenshots. */
+export function dismissCommandTooltips(): void {
+  host().classList.add("hidden");
+}
+
 export function paletteEntryHint(entry: {
   title: string;
   reason: string | null;

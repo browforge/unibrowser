@@ -176,6 +176,7 @@ import {
   formatDiagnosticsForLog,
   validateEditorForCapture,
   validateImageViewerChrome,
+  clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
 import {
@@ -466,7 +467,11 @@ function refreshStatusBar(
   let font = "";
   if (showText && data.text_document) {
     font = t("status.fontPt", { pt: String(data.text_document.font_size_pt) });
-  } else if (showViewer && data.document_viewer?.reader_font_pt) {
+  } else if (
+    showViewer &&
+    data.document_viewer?.reader_font_pt &&
+    (viewerKind === "docx" || viewerKind === "epub" || viewerKind === "svg")
+  ) {
     font = t("status.fontPt", { pt: String(data.document_viewer.reader_font_pt) });
   }
   const ctx = getStatusContextMode();
@@ -533,9 +538,23 @@ function refreshStatusBar(
     !active?.is_directory &&
     (showText || showViewer || Boolean(path?.includes(".")));
   renderTitleBreadcrumb(path ?? null, useBreadcrumb);
+  const statusPath =
+    useBreadcrumb && path && !active?.is_http ? "" : (path ?? "");
+  const pathHint =
+    path && viewerKind === "dxf" && data.status
+      ? data.status
+      : path
+        ? t("status.copyPath")
+        : undefined;
+  const statusHint =
+    data.status.includes("command palette")
+      ? paletteChordHint
+      : showViewer && viewerKind === "dxf"
+        ? ""
+        : data.status;
   updateStatusBar({
-    path,
-    pathHint: path ? t("status.copyPath") : undefined,
+    path: statusPath,
+    pathHint,
     context,
     dirty,
     encoding: compact ? encoding || "UTF-8" : encoding,
@@ -548,7 +567,7 @@ function refreshStatusBar(
     saved,
     language,
     aiState: compact ? "AI: Read" : undefined,
-    hint: data.status.includes("command palette") ? paletteChordHint : data.status,
+    hint: statusHint,
   });
 }
 
@@ -1959,7 +1978,7 @@ async function applyState(data: TabContentDto) {
     );
   } else if (showViewer && data.document_viewer) {
     const kind = data.document_viewer.viewer;
-    if (kind === "pdf" || kind === "image") {
+    if (kind === "pdf" || kind === "image" || kind === "dxf") {
       setZoomHandler("readout", null, null);
     } else {
       setZoomHandler("hidden", null, null);
@@ -2879,6 +2898,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               };
             }
           }
+          clearCaptureHoverAndTooltips();
           await invoke("finish_doc_capture_and_exit", { editorRegion });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);

@@ -47,7 +47,9 @@ capture "image-light-1280" "$PACK/sample.svg"
 capture "image-raster-light-1280" "$PACK/sample.png"
 capture "image-raster-dark-1280" "$PACK/sample.png" "" "dark"
 capture "image-raster-hc-1280" "$PACK/sample.png" "high-contrast" "light"
-capture "dxf-proving-light-1280" "$PACK/sample.dxf" "ui14-dxf-measure-reason"
+capture "dxf-proving-light-1280" "$PACK/sample.dxf"
+capture "dxf-proving-dark-1280" "$PACK/sample.dxf" "" "dark"
+capture "dxf-proving-hc-1280" "$PACK/sample.dxf" "high-contrast" "light"
 
 declare -A seen_hashes=()
 for png in "$OUT"/*.png; do

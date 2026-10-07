@@ -108,6 +108,7 @@ export function renderResolvedControl(
   const actionable = a11y.actionable;
   const emulated = control.capability.state === "emulated";
   const locked = control.capability.state === "locked";
+  const unsupported = control.capability.state === "unsupported";
   const mixed = a11y.mixed;
   const a11yReason = a11y.reason;
 
@@ -153,6 +154,7 @@ export function renderResolvedControl(
     control.control_type === "toggle" ? "toggle" : "",
     modControl ? "cm-mod-control" : "",
     !actionable ? "disabled" : "",
+    unsupported ? "unsupported" : "",
     emulated ? "emulated" : "",
     locked ? "locked" : "",
     mixed ? "mixed" : "",

@@ -207,15 +207,8 @@ export async function applyDemoState(raw: string) {
         control?.focus();
         break;
       }
-      case "ui14-dxf-measure-reason": {
-        await new Promise((resolve) => window.setTimeout(resolve, 50));
-        document
-          .querySelector<HTMLElement>(
-            '[data-control-id="unibrowser.control.cad.measure"]',
-          )
-          ?.focus();
+      case "ui14-dxf-measure-reason":
         break;
-      }
       case "ui14-open-command-overflow": {
         const overflow = await waitForElement<HTMLButtonElement>(
           "#command-manager-overflow.visible",

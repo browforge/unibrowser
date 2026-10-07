@@ -1381,8 +1381,19 @@ async function renderDxf(path: string, root: HTMLElement) {
   const geomTitle = document.createElement("h3");
   geomTitle.textContent = "Geometry";
   geomPanel.appendChild(geomTitle);
-  const geomList = document.createElement("ul");
-  geomList.className = "dxf-geom-list";
+  const geomTable = document.createElement("table");
+  geomTable.className = "dxf-geom-table inspector-kv-table";
+  const geomHead = document.createElement("thead");
+  const geomHeadRow = document.createElement("tr");
+  for (const label of ["Entity", "Count"]) {
+    const th = document.createElement("th");
+    th.scope = "col";
+    th.textContent = label;
+    geomHeadRow.appendChild(th);
+  }
+  geomHead.appendChild(geomHeadRow);
+  geomTable.appendChild(geomHead);
+  const geomBody = document.createElement("tbody");
   const counts = new Map<string, number>();
   for (const ent of entities) {
     const kind = ent.type ?? "UNKNOWN";
@@ -1390,17 +1401,25 @@ async function renderDxf(path: string, root: HTMLElement) {
   }
   const summary = Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   if (summary.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "No entities parsed";
-    geomList.appendChild(li);
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 2;
+    cell.textContent = "No entities parsed";
+    row.appendChild(cell);
+    geomBody.appendChild(row);
   } else {
     for (const [kind, count] of summary.slice(0, 40)) {
-      const li = document.createElement("li");
-      li.textContent = `${kind}: ${count}`;
-      geomList.appendChild(li);
+      const row = document.createElement("tr");
+      const entityCell = document.createElement("td");
+      entityCell.textContent = kind;
+      const countCell = document.createElement("td");
+      countCell.textContent = String(count);
+      row.append(entityCell, countCell);
+      geomBody.appendChild(row);
     }
   }
-  geomPanel.appendChild(geomList);
+  geomTable.appendChild(geomBody);
+  geomPanel.appendChild(geomTable);
 
   let THREE: Awaited<ReturnType<typeof loadThree>> | null = null;
   try {
@@ -1415,6 +1434,7 @@ async function renderDxf(path: string, root: HTMLElement) {
   for (const layer of layers) {
     layerVisible.set(layer, true);
   }
+  let rebuildScene: (() => void) | null = null;
   const layout = document.createElement("div");
   layout.className = "dxf-layout";
   const layerPanel = document.createElement("aside");
@@ -1426,19 +1446,21 @@ async function renderDxf(path: string, root: HTMLElement) {
   layerList.className = "dxf-layer-list";
   for (const layer of layers) {
     const li = document.createElement("li");
+    li.className = "dxf-layer-row";
     const cb = document.createElement("input");
     cb.type = "checkbox";
+    cb.className = "ub-shell-checkbox";
     cb.checked = true;
     cb.id = `dxf-layer-${layer}`;
     const label = document.createElement("label");
+    label.className = "dxf-layer-label";
     label.htmlFor = cb.id;
     label.textContent = layer;
     cb.onchange = () => {
       layerVisible.set(layer, cb.checked);
-      rebuild();
+      rebuildScene?.();
     };
-    li.appendChild(cb);
-    li.appendChild(label);
+    li.append(cb, label);
     layerList.appendChild(li);
   }
   if (layers.length === 0) {
@@ -1458,8 +1480,8 @@ async function renderDxf(path: string, root: HTMLElement) {
   const wrap = document.createElement("div");
   wrap.className = "dxf-canvas-wrap";
   canvasCol.appendChild(wrap);
-  const width = wrap.clientWidth || 800;
-  const height = Math.max(400, wrap.clientHeight || 600);
+  let viewW = Math.max(1, wrap.clientWidth || 800);
+  let viewH = Math.max(1, wrap.clientHeight || 400);
 
   if (parseError) {
     showDxfWireframeError(
@@ -1520,8 +1542,9 @@ async function renderDxf(path: string, root: HTMLElement) {
     const segs = collectSegments();
     const bbox = segs.length >= 2 ? bboxFromSegments(segs) : null;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", String(width));
-    svg.setAttribute("height", String(height));
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "100%");
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
     svg.classList.add("dxf-svg-proxy");
     if (bbox) {
       const pad = 12;
@@ -1565,21 +1588,35 @@ async function renderDxf(path: string, root: HTMLElement) {
       svg.style.transformOrigin = "center";
       return true;
     };
+    rebuildScene = () => {
+      /* SVG proxy has no live rebuild */
+    };
     registerDxfLocator();
     return;
   }
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a22);
-  const camera = new THREE.OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, 0.1, 1000);
+  const camera = new THREE.OrthographicCamera(-viewW / 2, viewW / 2, viewH / 2, -viewH / 2, 0.1, 1000);
   camera.position.z = 10;
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(width, height);
+  renderer.setSize(viewW, viewH);
   wrap.appendChild(renderer.domElement);
   let panX = 0;
   let panY = 0;
   let zoom = 1;
   let baseBbox: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
+
+  const reportDxfZoom = () => {
+    reportViewerZoom(zoom, "cad");
+  };
+
+  const applyFitView = () => {
+    panX = 0;
+    panY = 0;
+    zoom = 1;
+    rebuild();
+  };
 
   const rebuild = () => {
     while (scene.children.length > 0) {
@@ -1601,7 +1638,7 @@ async function renderDxf(path: string, root: HTMLElement) {
       const worldW = Math.max(baseBbox.maxX - baseBbox.minX, 1) / zoom;
       const worldH = Math.max(baseBbox.maxY - baseBbox.minY, 1) / zoom;
       const pad = 1.12;
-      const aspect = width / height;
+      const aspect = viewW / viewH;
       let halfW = (worldW / 2) * pad;
       let halfH = (worldH / 2) * pad;
       if (halfW / halfH > aspect) {
@@ -1616,6 +1653,7 @@ async function renderDxf(path: string, root: HTMLElement) {
       camera.updateProjectionMatrix();
     }
     renderer.render(scene, camera);
+    reportDxfZoom();
     if (!baseBbox && entities.length > 0) {
       if (!wrap.querySelector(".dxf-wireframe-error")) {
         showDxfWireframeError(
@@ -1642,8 +1680,8 @@ async function renderDxf(path: string, root: HTMLElement) {
     if (!dragging || !baseBbox) {
       return;
     }
-    const dx = (e.clientX - lastX) * (camera.right - camera.left) / width;
-    const dy = (e.clientY - lastY) * (camera.top - camera.bottom) / height;
+    const dx = (e.clientX - lastX) * (camera.right - camera.left) / viewW;
+    const dy = (e.clientY - lastY) * (camera.top - camera.bottom) / viewH;
     panX -= dx;
     panY += dy;
     lastX = e.clientX;
@@ -1657,13 +1695,25 @@ async function renderDxf(path: string, root: HTMLElement) {
     rebuild();
   };
 
+  const resizeObserver = new ResizeObserver(() => {
+    viewW = Math.max(1, wrap.clientWidth);
+    viewH = Math.max(1, wrap.clientHeight);
+    renderer.setSize(viewW, viewH);
+    if (panX === 0 && panY === 0 && zoom === 1) {
+      rebuild();
+    } else {
+      rebuild();
+    }
+  });
+  resizeObserver.observe(wrap);
+  rebuildScene = rebuild;
+
   setDxfStatusHint(entities.length);
-  rebuild();
+  requestAnimationFrame(() => applyFitView());
   dxfViewCommand = (commandId) => {
     if (commandId === "unibrowser.cad.fitView") {
-      panX = 0;
-      panY = 0;
-      zoom = 1;
+      applyFitView();
+      return true;
     } else if (commandId === "unibrowser.cad.zoomOut") {
       zoom = Math.max(0.2, zoom / 1.25);
     } else if (commandId === "unibrowser.cad.zoomIn") {

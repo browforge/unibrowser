@@ -178,7 +178,7 @@ export function updateStatusBar(model: StatusBarModel) {
       aiEl.classList.remove("hidden");
     }
   }
-  if (hintEl) {
+  if (hintEl && model.hint) {
     hintEl.textContent = model.hint;
   }
 }

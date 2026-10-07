@@ -698,9 +698,24 @@ body[data-cm-density="large"] .cm-overflow.visible {
   background: #20313e;
 }
 
-[data-theme="light"] #chrome .cm-group .ui-command.disabled {
+[data-theme="light"] #chrome .cm-group .ui-command.disabled,
+[data-theme="light"] #chrome .cm-group .ui-command.unsupported {
   color: #aebac0 !important;
   opacity: 1;
+}
+
+#chrome .cm-group .ui-command.disabled,
+#chrome .cm-group .ui-command.unsupported {
+  color: var(--ub-text-3, #929caa);
+  border-color: transparent;
+  background: transparent;
+  cursor: not-allowed;
+}
+
+#chrome .cm-group .ui-command.disabled:focus-visible,
+#chrome .cm-group .ui-command.unsupported:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 [data-theme="light"] #chrome .cm-group-name {

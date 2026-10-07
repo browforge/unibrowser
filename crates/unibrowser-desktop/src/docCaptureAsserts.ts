@@ -531,6 +531,18 @@ export function formatDiagnosticsForLog(d: DocCaptureDiagnostics): string {
 }
 
 /** Returns abort reason when raster image viewer chrome violates one-home rules. */
+/** Blur focus and hide CM tooltips so captures do not show hover chrome. */
+export function clearCaptureHoverAndTooltips(): void {
+  document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) {
+    active.blur();
+  }
+  document.body.dispatchEvent(
+    new MouseEvent("mousemove", { clientX: 0, clientY: 0, bubbles: true }),
+  );
+}
+
 export function validateImageViewerChrome(launchPaths: string[]): string | null {
   const joined = launchPaths.join("|").toLowerCase();
   if (!/\.(png|jpe?g|webp|gif|bmp)$/i.test(joined)) {

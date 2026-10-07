@@ -16,6 +16,7 @@ capture_vqa() {
   local tmp="$outdir/.${name}.png"
   rm -f "$tmp"
   echo "=== capture ${name} (${geometry}) ==="
+  # Webview doc-capture clears CM tooltips and focus before writing the PNG.
   xvfb-run -a -s "-screen 0 ${geometry}x24" env \
     WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     WEBKIT_DISABLE_COMPOSITING_MODE=1 \
