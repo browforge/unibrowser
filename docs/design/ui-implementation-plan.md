@@ -512,11 +512,12 @@ Screenshot:
 
 **Visual-language impact:** Revised. Timeline tracks are recessed wells; source, preview, inspector, and timeline are joined workbench regions without floating cards.
 
-Status: done 2026-10-07. Joined sources / board preview / inspector grid with
-bottom timeline dock; title card selects into Inspector; Live controls collapse
-into a disclosure until UI-16. Evidence `unibrow-create-light-1600.png` graded
-Drift (Browse CM on project path, export stack below timeline) in
-`docs/design/ui-15-evidence.md`.
+Status: done 2026-10-07 after workshop redesign. One fixed Sources / 16:9 Stage
+/ Inspector grid sits above a three-track NLE timeline. Clip blocks are
+duration-proportional and support move/trim; exact timing is only in Inspector.
+The Project CM replaces Browse and Export opens in Inspector. Four light/dark,
+1600/1280 captures pass in `docs/design/ui-15-evidence.md`. Normative rationale:
+`docs/design/workshop-layout.md`.
 
 Likely files:
 
@@ -544,9 +545,10 @@ Screenshot:
 
 **Visual-language impact:** Revised. Red is reserved for LIVE/recording/error and all broadcast states remain clear without colour.
 
-Status: partial 2026-10-07. Studio header Preview / LIVE / Recording with
-restrained red semantics and three 1600 captures in `docs/design/ui-16-evidence.md`
-(3 Pass). Mixer, source health, and status redundancy still open.
+Status: done 2026-10-07 after workshop redesign. Preview, LIVE, and Recording
+are modes of the same Stage; LIVE/REC use restrained red state labels and
+Inspector switches to source health and Mixer. Eight LIVE/Recording light/dark,
+1600/1280 captures pass in `docs/design/ui-16-evidence.md`.
 
 Likely files:
 

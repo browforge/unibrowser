@@ -1,40 +1,48 @@
 # UI-15 evidence
 
-Captured with `scripts/capture-ui-15.sh` after `npm run build` and release
-desktop rebuild. One 1600x1000 PNG, light theme, standard contrast, 100% scale,
-compact Command Manager, collapsed activity rail. Demo state `ui15-unibrow-title`
-focuses the title board card (`node-1`). Hash and dimension checks pass.
+Captured with `scripts/capture-ui-15.sh`. The script runs `npm run build`
+before capture, rebuilds the embedded release frontend, enforces exact
+dimensions, and rejects duplicate hashes. Four PNGs cover 1600x1000 and
+1280x800 in light and dark themes.
 
 ## Literal image descriptions
 
 ### `unibrow-create-light-1600.png`
 
-1600x1000. Tab `sample.unibrow` with Save in the title bar. Collapsed **Live
-preview** disclosure at the top (studio header reads Preview when closed).
+Top chrome says **Project** and exposes Add asset, Add title, Split, Delete clip,
+Snap, Marker, Timeline zoom, Preview, LIVE, Record, and Export. Save remains in
+the title bar. The fixed workbench has Sources left, a large centred 16:9 Stage,
+Inspector right, and Timeline across the bottom. Stage shows the selected Title
+composition with white `Unibrowser` text. Inspector contains only selected clip
+Start and Duration fields. Timeline has one ruler, one playhead, and Video /
+Image, Title, and Audio / MIDI tracks with blocks sized by duration. No region
+overlaps or clips.
 
-Joined **Create** workbench grid:
+### `unibrow-create-dark-1600.png`
 
-- **Sources (left):** heading Sources; list of four project nodes (Unibrowser
-  title, Logo, Sample page, Chime) with type and asset hints; add-asset controls
-  and drop target in the rail.
-- **Preview (centre):** recessed grid canvas with four board cards; **Unibrowser**
-  title card selected (blue outline); pan/zoom hint above the well.
-- **Inspector (right):** Label Unibrowser, Type title, Asset —, Position 40 × 48,
-  Title text Unibrowser.
+Same geometry and content in dark theme. Source names, programme title, clip
+labels, duration labels, track names, and Inspector fields remain readable.
 
-**Timeline (bottom dock):** ruler 0–8s, playhead scrubber, markers, clip blocks on
-the track, and per-clip rows (Title, Logo, PDF, MIDI) with timing fields.
+### `unibrow-create-light-1280.png`
 
-Below the timeline: export/share/encode actions (contextual export; global Save
-remains in the title bar). Status bar shows project summary.
+At 1280x800 the Sources and Inspector rails narrow, Stage remains 16:9, and the
+Timeline dock is shorter. Add asset and Add title move into CM overflow while
+the Project family remains active. All four source rows and three tracks remain
+visible.
 
-Command Manager still follows **Browse** while the path is the project folder
-(no dedicated project family yet).
+### `unibrow-create-dark-1280.png`
+
+Same compact geometry in dark theme. The title clip remains selected by a blue
+outline; white clip text and Stage title remain readable. There is no horizontal
+or vertical region overlap.
 
 ## Grade
 
 | Evidence | Result | Basis |
 | --- | --- | --- |
-| Create workspace 1600 | Drift | Sources / preview / inspector grid and bottom timeline match UI-15; title card selected in inspector; Browse CM on project tab and export stack below timeline are known gaps. |
+| Create light 1600 | Pass | Correct Project CM, large Stage, joined rails, NLE tracks, no overlap or clipping. |
+| Create dark 1600 | Pass | Same geometry with readable dark-theme content. |
+| Create light 1280 | Pass | Responsive rails and timeline; Project CM overflows lower-priority Add controls without clipping. |
+| Create dark 1280 | Pass | Compact dark workbench remains readable and in flow. |
 
-Totals: 0 Pass, 1 Drift, 0 Fail.
+Totals: 4 Pass, 0 Drift, 0 Fail.
