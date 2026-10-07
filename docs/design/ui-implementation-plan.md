@@ -722,8 +722,9 @@ comparison in `docs/screenshots/parity/`.
 
 ### UI-21: Restore Settings task hierarchy
 
-Status: in progress 2026-10-07. Document-local toolbars now hide whenever a
-document viewer owns the work area. The page and row hierarchy remains open.
+Status: done 2026-10-07. Category rail search, page title and subtitle, aligned
+field rows, Developer callout, and bookmark bar moved to Developer with working
+chrome when enabled.
 
 Work:
 

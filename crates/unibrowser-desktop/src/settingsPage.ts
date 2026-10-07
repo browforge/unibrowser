@@ -31,6 +31,12 @@ import { setProofingSquigglesEnabled } from "./proofing";
 import { showErrorToast, showToast } from "./toast";
 import { showInlineConfirm } from "./inlineUi";
 import { appendDeveloperSettingsSection } from "./developerSettings";
+import {
+  applySettingsCategoryVisibility,
+  createSettingsFieldRow,
+  createSettingsToggle,
+  type SettingsCategoryMeta,
+} from "./settingsLayout";
 
 interface NtpSectionsDto {
   show_hero: boolean;
@@ -81,28 +87,35 @@ interface PrefsDto {
 export async function renderSettings(root: HTMLElement) {
   root.innerHTML = "";
   root.classList.add("settings-page");
-  const intro = document.createElement("p");
-  intro.className = "viewer-note settings-lead";
-  intro.textContent = t("settings.lead");
-  root.appendChild(intro);
-
-  const searchWrap = document.createElement("div");
-  searchWrap.className = "settings-search-wrap";
-  const searchInput = document.createElement("input");
-  searchInput.type = "search";
-  searchInput.className = "settings-search";
-  searchInput.placeholder = t("settings.searchPlaceholder");
-  searchInput.setAttribute("aria-label", t("settings.searchPlaceholder"));
-  searchWrap.appendChild(searchInput);
-  root.appendChild(searchWrap);
 
   const layout = document.createElement("div");
   layout.className = "settings-layout";
   const categoryRail = document.createElement("nav");
   categoryRail.className = "settings-category-rail";
   categoryRail.setAttribute("aria-label", "Settings categories");
+  const railTitle = document.createElement("h1");
+  railTitle.className = "settings-rail-title";
+  railTitle.textContent = t("settings.pageTitle");
+  categoryRail.appendChild(railTitle);
+  const searchWrap = document.createElement("div");
+  searchWrap.className = "settings-rail-search";
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.className = "settings-search";
+  searchInput.placeholder = t("settings.railSearchPlaceholder");
+  searchInput.setAttribute("aria-label", t("settings.railSearchPlaceholder"));
+  searchWrap.appendChild(searchInput);
+  categoryRail.appendChild(searchWrap);
   const content = document.createElement("div");
   content.className = "settings-content";
+  const pageHeader = document.createElement("header");
+  pageHeader.className = "settings-page-header";
+  const pageTitle = document.createElement("h2");
+  pageTitle.className = "settings-page-title";
+  const pageSubtitle = document.createElement("p");
+  pageSubtitle.className = "settings-page-subtitle";
+  pageHeader.append(pageTitle, pageSubtitle);
+  content.appendChild(pageHeader);
   layout.append(categoryRail, content);
   root.appendChild(layout);
 
@@ -123,12 +136,7 @@ export async function renderSettings(root: HTMLElement) {
   const prefs = await invoke<PrefsDto>("get_preferences");
 
   const langSection = document.createElement("section");
-  langSection.className = "settings-section";
-  const langHeading = document.createElement("h3");
-  langHeading.textContent = t("settings.language");
-  const langLead = document.createElement("p");
-  langLead.className = "viewer-note";
-  langLead.textContent = t("settings.languageLead");
+  langSection.className = "settings-section settings-section--fields";
   const langSelect = document.createElement("select");
   supportedLocales().forEach((loc) => {
     const opt = document.createElement("option");
@@ -143,15 +151,13 @@ export async function renderSettings(root: HTMLElement) {
     const { applyChromeI18n } = await import("./chromeI18n");
     applyChromeI18n();
   };
-  langSection.appendChild(langHeading);
-  langSection.appendChild(langLead);
-  langSection.appendChild(langSelect);
+  langSection.appendChild(
+    createSettingsFieldRow(t("settings.language"), t("settings.languageLead"), langSelect),
+  );
   root.appendChild(langSection);
 
   const themeSection = document.createElement("section");
-  themeSection.className = "settings-section";
-  const themeHeading = document.createElement("h3");
-  themeHeading.textContent = t("settings.theme");
+  themeSection.className = "settings-section settings-section--fields";
   const themeSelect = document.createElement("select");
   const themeLabels: Record<string, string> = {
     light: t("settings.themeLight"),
@@ -170,8 +176,9 @@ export async function renderSettings(root: HTMLElement) {
     await loadThemePreference();
     applyThemeToDocument();
   };
-  themeSection.appendChild(themeHeading);
-  themeSection.appendChild(themeSelect);
+  themeSection.appendChild(
+    createSettingsFieldRow(t("settings.theme"), t("settings.themeLead"), themeSelect),
+  );
   root.appendChild(themeSection);
 
   const appearanceSection = document.createElement("section");
@@ -233,31 +240,31 @@ export async function renderSettings(root: HTMLElement) {
   appearanceSection.appendChild(focusNote);
   root.appendChild(appearanceSection);
 
-  const bookmarkSection = document.createElement("section");
-  bookmarkSection.className = "settings-section";
-  const bookmarkHeading = document.createElement("h3");
-  bookmarkHeading.textContent = t("settings.bookmarkBar");
+  const bookmarkSection = document.createElement("details");
+  bookmarkSection.className = "settings-section settings-legacy-disclosure";
+  bookmarkSection.open = false;
+  const bookmarkSummary = document.createElement("summary");
+  bookmarkSummary.textContent = t("settings.bookmarkBarLegacy");
+  bookmarkSection.appendChild(bookmarkSummary);
   const bookmarkLead = document.createElement("p");
   bookmarkLead.className = "viewer-note";
-  bookmarkLead.textContent = t("settings.bookmarkBarLead");
-  bookmarkSection.appendChild(bookmarkHeading);
+  bookmarkLead.textContent = t("settings.bookmarkBarLegacyLead");
   bookmarkSection.appendChild(bookmarkLead);
-  const bookmarkEnableRow = document.createElement("div");
-  bookmarkEnableRow.className = "settings-row";
-  const bookmarkCb = document.createElement("input");
-  bookmarkCb.type = "checkbox";
-  bookmarkCb.id = "settings-bookmark-bar";
-  bookmarkCb.checked = prefs.bookmark_bar_enabled;
-  bookmarkCb.onchange = async () => {
-    await invoke<PrefsDto>("set_bookmark_bar_enabled", { enabled: bookmarkCb.checked });
-    window.dispatchEvent(new Event("unibrowser-prefs-changed"));
-  };
-  const bookmarkEnableLabel = document.createElement("label");
-  bookmarkEnableLabel.htmlFor = bookmarkCb.id;
-  bookmarkEnableLabel.textContent = t("settings.bookmarkBarShow");
-  bookmarkEnableRow.appendChild(bookmarkCb);
-  bookmarkEnableRow.appendChild(bookmarkEnableLabel);
-  bookmarkSection.appendChild(bookmarkEnableRow);
+  const bookmarkCb = createSettingsToggle(
+    "settings-bookmark-bar",
+    prefs.bookmark_bar_enabled,
+    async () => {
+      await invoke<PrefsDto>("set_bookmark_bar_enabled", { enabled: bookmarkCb.checked });
+      window.dispatchEvent(new Event("unibrowser-prefs-changed"));
+    },
+  );
+  bookmarkSection.appendChild(
+    createSettingsFieldRow(
+      t("settings.bookmarkBarShow"),
+      t("settings.bookmarkBarLegacyHint"),
+      bookmarkCb,
+    ),
+  );
 
   const quickLead = document.createElement("p");
   quickLead.className = "viewer-note";
@@ -598,25 +605,17 @@ export async function renderSettings(root: HTMLElement) {
   root.appendChild(autoSection);
 
   const sessionSection = document.createElement("section");
-  sessionSection.className = "settings-section";
-  const sessionHeading = document.createElement("h3");
-  sessionHeading.textContent = t("settings.session");
-  const sessionRow = document.createElement("div");
-  sessionRow.className = "settings-row";
-  const sessionCb = document.createElement("input");
-  sessionCb.type = "checkbox";
-  sessionCb.id = "settings-restore-session";
-  sessionCb.checked = prefs.restore_session_on_launch;
-  sessionCb.onchange = async () => {
-    await invoke("set_restore_session_on_launch", { enabled: sessionCb.checked });
-  };
-  const sessionLabel = document.createElement("label");
-  sessionLabel.htmlFor = sessionCb.id;
-  sessionLabel.textContent = t("recent.restore");
-  sessionRow.appendChild(sessionCb);
-  sessionRow.appendChild(sessionLabel);
-  sessionSection.appendChild(sessionHeading);
-  sessionSection.appendChild(sessionRow);
+  sessionSection.className = "settings-section settings-section--fields";
+  const sessionCb = createSettingsToggle(
+    "settings-restore-session",
+    prefs.restore_session_on_launch,
+    async () => {
+      await invoke("set_restore_session_on_launch", { enabled: sessionCb.checked });
+    },
+  );
+  sessionSection.appendChild(
+    createSettingsFieldRow(t("settings.onStartup"), t("settings.onStartupLead"), sessionCb),
+  );
   root.appendChild(sessionSection);
 
   const boardSection = document.createElement("section");
@@ -1304,11 +1303,42 @@ export async function renderSettings(root: HTMLElement) {
   diagLink.appendChild(diagBtn);
   root.appendChild(diagLink);
 
+  const developerCallout = document.createElement("aside");
+  developerCallout.className = "settings-developer-callout";
+  developerCallout.dataset.settingsCategory = "general";
+  const calloutTitle = document.createElement("h3");
+  calloutTitle.textContent = t("settings.developerCalloutTitle");
+  const calloutBody = document.createElement("p");
+  calloutBody.textContent = t("settings.developerCalloutBody");
+  const calloutBtn = document.createElement("button");
+  calloutBtn.type = "button";
+  calloutBtn.className = "settings-developer-callout-link";
+  calloutBtn.textContent = t("settings.developerCalloutAction");
+  calloutBtn.onclick = () => {
+    const devBtn = categoryRail.querySelector<HTMLButtonElement>(
+      '[data-settings-category-target="developer"]',
+    );
+    devBtn?.click();
+  };
+  developerCallout.append(calloutTitle, calloutBody, calloutBtn);
+
+  const categoryMeta: SettingsCategoryMeta[] = [
+    { id: "general", label: "General", subtitle: t("settings.generalSubtitle") },
+    { id: "appearance", label: "Appearance", subtitle: t("settings.appearanceSubtitle") },
+    { id: "files", label: "Files and downloads", subtitle: t("settings.filesSubtitle") },
+    { id: "editing", label: "Editing", subtitle: t("settings.editingSubtitle") },
+    { id: "accessibility", label: "Accessibility", subtitle: t("settings.accessibilitySubtitle") },
+    { id: "privacy", label: "Privacy and AI", subtitle: t("settings.privacySubtitle") },
+    { id: "mods", label: "Mods", subtitle: t("settings.modsSubtitle") },
+    { id: "keybindings", label: "Keybindings", subtitle: t("settings.keybindingsSubtitle") },
+    { id: "developer", label: "Developer", subtitle: t("settings.developerSubtitle") },
+  ];
+
   const categories = [
     {
       id: "general",
       label: "General",
-      sections: [langSection, bookmarkSection, sessionSection, ntpSection, windowSection, updatesSection],
+      sections: [langSection, sessionSection, ntpSection, windowSection, updatesSection],
     },
     {
       id: "appearance",
@@ -1328,7 +1358,7 @@ export async function renderSettings(root: HTMLElement) {
     {
       id: "developer",
       label: "Developer",
-      sections: [developerSection, resetSection, advancedSection],
+      sections: [bookmarkSection, developerSection, resetSection, advancedSection],
     },
   ] as const;
 
@@ -1342,28 +1372,40 @@ export async function renderSettings(root: HTMLElement) {
   diagLink.dataset.settingsCategory = "developer";
 
   [...root.children].forEach((child) => {
-    if (child === intro || child === searchWrap || child === layout) {
+    if (child === layout || child === developerCallout) {
       return;
     }
     content.appendChild(child);
   });
+  content.appendChild(developerCallout);
 
-  categories.forEach(({ id, label, sections }, index) => {
+  const activateCategory = (id: string) => {
+    const meta = categoryMeta.find((item) => item.id === id) ?? categoryMeta[0];
+    applySettingsCategoryVisibility(
+      content,
+      id,
+      pageTitle,
+      pageSubtitle,
+      meta,
+      developerCallout,
+    );
+    categoryRail.querySelectorAll(".settings-category").forEach((item) => {
+      const match = (item as HTMLButtonElement).dataset.settingsCategoryTarget === id;
+      item.setAttribute("aria-current", match ? "true" : "false");
+    });
+    content.scrollTop = 0;
+  };
+
+  categories.forEach(({ id, label }, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "settings-category";
     button.textContent = label;
     button.dataset.settingsCategoryTarget = id;
     button.setAttribute("aria-current", index === 0 ? "true" : "false");
-    button.onclick = () => {
-      categoryRail.querySelectorAll(".settings-category").forEach((item) => {
-        item.setAttribute("aria-current", item === button ? "true" : "false");
-      });
-      sections[0]?.scrollIntoView({ block: "start" });
-      (sections[0]?.querySelector("h3, summary, button, input, select") as HTMLElement | null)?.focus({
-        preventScroll: true,
-      });
-    };
+    button.onclick = () => activateCategory(id);
     categoryRail.appendChild(button);
   });
+
+  activateCategory("general");
 }

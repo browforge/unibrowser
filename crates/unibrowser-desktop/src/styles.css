@@ -4670,11 +4670,130 @@ mark.docx-search-hit--current {
 
 .settings-layout {
   display: grid;
-  grid-template-columns: 12rem minmax(0, 1fr);
+  grid-template-columns: 11.5rem minmax(0, 1fr);
   min-height: 0;
-  height: calc(100% - 5.25rem);
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--ub-border, #444);
+  height: 100%;
+  border: 1px solid var(--ub-border, #c9cfd7);
+  border-radius: 6px;
+  margin: 0.5rem 0.75rem 0.75rem;
+  overflow: hidden;
+  background: var(--ub-canvas, #f8f8f6);
+}
+
+.settings-rail-title {
+  margin: 0.35rem 0.55rem 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.settings-rail-search {
+  margin: 0 0.5rem 0.65rem;
+}
+
+.settings-rail-search .settings-search {
+  width: 100%;
+  max-width: none;
+  font-size: 0.8125rem;
+}
+
+.settings-page-header {
+  margin: 0.85rem 0 0.35rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--ub-border, #c9cfd7);
+}
+
+.settings-page-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.settings-page-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ub-label, #5c6670);
+}
+
+.settings-section--fields {
+  border-bottom: 0;
+  padding: 0;
+}
+
+.settings-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, 13rem);
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  min-height: 4rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--ub-border, #d5d1c9);
+}
+
+.settings-field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ub-text-1, #252a30);
+}
+
+.settings-field-helper {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--ub-label, #5c6670);
+}
+
+.settings-field-control {
+  justify-self: end;
+  width: 100%;
+  max-width: 13rem;
+}
+
+.settings-field-control select,
+.settings-field-control .settings-toggle-input {
+  width: 100%;
+}
+
+.settings-category-hidden {
+  display: none !important;
+}
+
+.settings-developer-callout {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  background: var(--ub-surface-subtle, #eceff3);
+  border: 1px solid var(--ub-border, #c9cfd7);
+}
+
+.settings-developer-callout h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.settings-developer-callout p {
+  margin: 0 0 0.65rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ub-label, #5c6670);
+}
+
+.settings-developer-callout-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--ub-accent, #1769aa);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.settings-legacy-disclosure > summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
 }
 
 .settings-category-rail {

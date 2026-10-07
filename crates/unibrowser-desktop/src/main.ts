@@ -1446,12 +1446,53 @@ async function renderSessionOptIn() {
 }
 
 function renderBookmarkBar(
-  _enabled: boolean,
-  _pins: PinnedLocationDto[],
-  _quickLinks: BookmarkQuickLinkDto[] = [],
+  enabled: boolean,
+  pins: PinnedLocationDto[],
+  quickLinks: BookmarkQuickLinkDto[] = [],
 ) {
   bookmarkBar.innerHTML = "";
-  bookmarkBar.classList.add("hidden");
+  if (!enabled) {
+    bookmarkBar.classList.add("hidden");
+    return;
+  }
+  const hasContent =
+    pins.length > 0 || quickLinks.some((link) => link.label.trim() && link.url.trim());
+  if (!hasContent) {
+    bookmarkBar.classList.add("hidden");
+    return;
+  }
+  bookmarkBar.classList.remove("hidden");
+  for (const pin of pins) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "bookmark-link";
+    btn.textContent = pin.label;
+    btn.title = pin.location;
+    btn.onclick = () => {
+      void invoke<TabContentDto>("open_path", { path: pin.location }).then((d) => d && applyState(d));
+    };
+    bookmarkBar.appendChild(btn);
+  }
+  for (const link of quickLinks) {
+    if (!link.label.trim() || !link.url.trim()) {
+      continue;
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "bookmark-link quick-link";
+    btn.textContent = link.label;
+    btn.title = link.url;
+    btn.onclick = () => {
+      void invoke<TabContentDto>("open_path", { path: link.url }).then((d) => {
+        if (d) {
+          applyState(d);
+          return;
+        }
+        window.open(link.url, "_blank", "noopener,noreferrer");
+      });
+    };
+    bookmarkBar.appendChild(btn);
+  }
 }
 
 function renderRecentFiles(entries: RecentFileDto[]) {
