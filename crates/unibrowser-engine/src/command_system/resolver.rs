@@ -114,6 +114,9 @@ fn frontend_owned_command(command_id: &str) -> bool {
         || command_id.starts_with("unibrowser.cad.")
         || command_id.starts_with("unibrowser.image.")
         || command_id.starts_with("unibrowser.pdf.")
+        || command_id.starts_with("unibrowser.browse.")
+        || command_id.starts_with("unibrowser.settings.")
+        || command_id.starts_with("unibrowser.mods.")
 }
 
 fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityState {

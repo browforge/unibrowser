@@ -576,6 +576,24 @@ fn frontend_owned_controls_survive_missing_rust_registry_handlers() {
             "unibrowser.control.project.preview",
             "unibrowser.project.preview",
         ),
+        (
+            WorkContext::Browse,
+            "folder",
+            "unibrowser.control.browse.open",
+            "unibrowser.browse.open",
+        ),
+        (
+            WorkContext::Settings,
+            "unibrowser://settings",
+            "unibrowser.control.settings.search",
+            "unibrowser.settings.search",
+        ),
+        (
+            WorkContext::Mods,
+            "unibrowser://mods",
+            "unibrowser.control.mods.search",
+            "unibrowser.mods.search",
+        ),
     ] {
         let ctx = resolution_ctx(work, path);
         let resolved = resolver.resolve_with_registry(
