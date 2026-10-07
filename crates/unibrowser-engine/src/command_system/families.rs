@@ -1,6 +1,6 @@
 use unibrowser_mod_api::{
-    commands, control_ids, family_ids, group_ids, CapabilityState, ControlType, DensityVariant,
-    OverflowPriority, ResolvedControl, ResolvedFamily, ResolvedGroup, SelectionState, WorkContext,
+    commands, control_ids, family_ids, group_ids, ControlType, DensityVariant, OverflowPriority,
+    ResolvedControl, ResolvedFamily, ResolvedGroup, SelectionState, WorkContext,
 };
 
 use super::context::ResolutionContext;
@@ -38,7 +38,14 @@ pub fn core_tab_layout(
 
 fn cad_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
     let family_id = "unibrowser.family.cad";
-    let make = |control_id, command_id, label, icon, group_id, priority| ResolvedGroup {
+    let make = |
+        control_id: &str,
+        command_id: &str,
+        label: &str,
+        icon: &str,
+        group_id: &str,
+        priority: OverflowPriority,
+    | ResolvedGroup {
         group_id: group_id.into(),
         label: label.into(),
         overflow_priority: priority,
