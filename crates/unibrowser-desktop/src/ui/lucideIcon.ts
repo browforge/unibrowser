@@ -53,7 +53,8 @@ export type LucideName =
   | "zoom-in"
   | "zoom-out"
   | "maximize"
-  | "eye";
+  | "eye"
+  | "shield";
 
 const PATHS: Record<LucideName, string> = {
   "arrow-left": '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
@@ -124,6 +125,8 @@ const PATHS: Record<LucideName, string> = {
     '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
   eye:
     '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+  shield:
+    '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>',
   "redo-2":
