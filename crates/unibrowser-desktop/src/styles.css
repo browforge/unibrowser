@@ -3505,6 +3505,10 @@ select:focus-visible,
   outline-color: #7cfc7c;
 }
 
+[data-high-contrast="true"] #command-manager .ui-command:focus-visible {
+  outline-offset: -3px;
+}
+
 .new-project-overlay {
   position: fixed;
   inset: 0;
