@@ -1072,6 +1072,10 @@ async function renderVideo(
   video.muted = tabMuted;
   video.src = convertFileSrc(path);
   stage.appendChild(video);
+  const prompt = document.createElement("p");
+  prompt.className = "media-video-prompt";
+  prompt.textContent = "Press Play to watch";
+  stage.appendChild(prompt);
   root.appendChild(stage);
   mountMediaControls(root, video);
   bindMediaViewerKeys(video);
@@ -1097,7 +1101,13 @@ async function renderVideo(
       poster.addEventListener("error", () => resolve(false), { once: true });
       window.setTimeout(() => resolve(false), 3000);
     });
-    video.addEventListener("play", () => poster.classList.add("hidden"));
+    if (posterReady) {
+      prompt.remove();
+    }
+    video.addEventListener("play", () => {
+      poster.classList.add("hidden");
+      prompt.classList.add("hidden");
+    });
     video.addEventListener("ended", () => poster.classList.remove("hidden"));
   } catch {
     posterReady = false;
@@ -1112,6 +1122,7 @@ async function renderVideo(
       window.setTimeout(resolve, 3000);
     });
   }
+  video.addEventListener("play", () => prompt.classList.add("hidden"));
   root.dataset.mediaReady = "1";
 }
 

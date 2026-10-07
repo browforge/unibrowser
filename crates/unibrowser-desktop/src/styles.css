@@ -4684,6 +4684,18 @@ select:focus-visible,
   background: #080a0b;
 }
 
+.media-video-prompt {
+  position: absolute;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--ub-border, #555);
+  border-radius: 4px;
+  background: var(--ub-panel, #1d2124);
+  color: var(--ub-text-1, #e9edef);
+  font-size: 13px;
+}
+
 .media-viewer .media-view {
   display: block;
   width: 100%;
