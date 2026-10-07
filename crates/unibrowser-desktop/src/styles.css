@@ -5617,7 +5617,7 @@ mark.docx-search-hit--current {
 
 [data-high-contrast="true"] .settings-content button,
 [data-high-contrast="true"] .settings-content select,
-[data-high-contrast="true"] .settings-content input {
+[data-high-contrast="true"] .settings-content input:not(.ub-switch):not(.settings-toggle-input):not([type="checkbox"]):not([type="radio"]) {
   border-color: currentColor;
   background: var(--ub-panel, #fff);
   color: var(--ub-text-1, #000);
