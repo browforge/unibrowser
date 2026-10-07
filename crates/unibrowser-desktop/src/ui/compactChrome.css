@@ -704,12 +704,24 @@ body[data-cm-density="large"] .cm-overflow.visible {
   opacity: 1;
 }
 
-#chrome .cm-group .ui-command.disabled,
-#chrome .cm-group .ui-command.unsupported {
-  color: var(--ub-text-3, #929caa);
+#chrome .cm-group .ui-command.disabled {
+  color: var(--ub-text-3, #929caa) !important;
   border-color: transparent;
   background: transparent;
   cursor: not-allowed;
+}
+
+#chrome .cm-group .ui-command.unsupported {
+  color: var(--ub-text-3, #929caa) !important;
+  border-color: transparent;
+  background: transparent;
+  cursor: not-allowed;
+}
+
+#chrome .cm-group .ui-command.unsupported .ub-icon,
+#chrome .cm-group .ui-command.unsupported .cm-cmd-label {
+  color: var(--ub-text-3, #929caa) !important;
+  opacity: 0.72;
 }
 
 #chrome .cm-group .ui-command.disabled:focus-visible,

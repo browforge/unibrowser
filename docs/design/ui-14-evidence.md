@@ -53,11 +53,18 @@ procedural fixture on a checkerboard viewport, and a status zoom that matches fi
 ### `dxf-proving-light-1280.png`
 
 The CAD / 3D row shows Select, Orientation, Pan, Orbit, Fit view, Zoom out,
-Zoom in, and Measure. Section, Appearance, and Export STEP remain in overflow.
-Measure is focused and its tooltip says that a full CAD geometry engine is
-required. The Layers dock, wireframe canvas well, and Geometry dock fill the
-viewer column; layer/pan guidance lives in the status hint, not a flush-left
-canvas note. No control or canvas edge clips.
+Zoom in, and Measure (greyed as unsupported). No tooltip or focus ring covers
+the Geometry header at capture time. The wireframe is fit-centred in the canvas
+well with margin. Layers use tokenised shell checkboxes; Geometry is an
+Entity/Count table. The status bar shows zoom once, omits the duplicate path
+when the title breadcrumb is visible, and keeps CAD dev metadata in the path
+tooltip only. Grade: Pass.
+
+### `dxf-proving-dark-1280.png` / `dxf-proving-hc-1280.png`
+
+Same layout on dark and high-contrast shells: fit-centred wireframe, greyed
+Measure, styled layer checkboxes, geometry table, and clean status bar without
+capture-time tooltips. Grade: Pass.
 
 ## Grade
 

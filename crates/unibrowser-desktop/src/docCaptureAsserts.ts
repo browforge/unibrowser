@@ -288,10 +288,11 @@ export function collectCommandManagerDiagnostics(): CommandManagerCaptureDiagnos
       rect.height >= 20 &&
       (labelRect?.width ?? 0) >= 4 &&
       (iconRect?.width ?? 0) >= 12;
+    const mutedUnsupported = el.classList.contains("unsupported");
     const visiblyStyled =
       style.visibility !== "hidden" &&
       style.display !== "none" &&
-      Number(style.opacity) >= 0.8;
+      (Number(style.opacity) >= 0.8 || mutedUnsupported);
     if (hasGeometry && visiblyStyled) {
       visibleCount += 1;
     }
