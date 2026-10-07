@@ -3067,7 +3067,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         .floating_bars
         .iter()
         .filter(|bar| match bar.presentation {
-            ToolbarPresentation::DetachedWindow => toolbar_only_id == Some(bar.id.as_str()),
+            ToolbarPresentation::DetachedWindow => toolbar_only_id.as_deref() == Some(bar.id.as_str()),
             ToolbarPresentation::InWindow => toolbar_only_id.is_none(),
         })
         .map(|bar| {

@@ -17,15 +17,17 @@ pub struct MonitorWorkArea {
 }
 
 pub fn toolbar_window_label(bar_id: &str) -> String {
-    format!("toolbar-{}", bar_id)
+    format!("toolbar-{}", bar_id.replace('.', "__dot__"))
 }
 
 pub fn is_toolbar_window_label(label: &str) -> bool {
     label.starts_with("toolbar-")
 }
 
-pub fn bar_id_from_toolbar_window(label: &str) -> Option<&str> {
-    label.strip_prefix("toolbar-")
+pub fn bar_id_from_toolbar_window(label: &str) -> Option<String> {
+    label
+        .strip_prefix("toolbar-")
+        .map(|id| id.replace("__dot__", "."))
 }
 
 pub fn recover_toolbar_position(
@@ -242,11 +244,19 @@ mod tests {
         assert_eq!(x, 2720.0);
         assert_eq!(y, 0.0);
     }
+
+    #[test]
+    fn toolbar_window_label_roundtrips_dotted_contribution_id() {
+        let id = "cmd-proving.detached-markdown";
+        let label = toolbar_window_label(id);
+        assert_eq!(label, "toolbar-cmd-proving__dot__detached-markdown");
+        assert_eq!(bar_id_from_toolbar_window(&label).as_deref(), Some(id));
+    }
 }
 
 pub fn dock_bar_on_window_close(app: &AppHandle, state: &AppState, label: &str) -> Result<(), String> {
     let bar_id = bar_id_from_toolbar_window(label).ok_or("not a toolbar window")?;
-    set_bar_presentation(state, bar_id, ToolbarPresentation::InWindow)?;
-    close_toolbar_window(app, bar_id);
+    set_bar_presentation(state, &bar_id, ToolbarPresentation::InWindow)?;
+    close_toolbar_window(app, &bar_id);
     Ok(())
 }
