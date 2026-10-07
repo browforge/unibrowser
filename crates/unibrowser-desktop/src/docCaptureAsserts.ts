@@ -389,7 +389,9 @@ export function collectStatusBarDiagnostics(): StatusBarCaptureDiagnostics {
   if (!host) {
     return { segmentCount: 0, segments: [] };
   }
-  const segments = Array.from(host.querySelectorAll(".status-segment"))
+  const segments = Array.from(
+    host.querySelectorAll(".status-item, .status-utility:not(.hidden), .status-notifications-btn:not(.hidden)"),
+  )
     .map((node) => {
       const el = node as HTMLElement;
       const rect = el.getBoundingClientRect();
@@ -498,10 +500,14 @@ export function validateProblemsForCapture(minRows = 3): string | null {
   }
   const tableWrap = panel.querySelector(".problems-table-wrap") as HTMLElement | null;
   const tableRect = tableWrap?.getBoundingClientRect() ?? panel.getBoundingClientRect();
+  const borderTolerance = Math.max(
+    1,
+    Number.parseFloat(getComputedStyle(tableWrap ?? panel).borderBottomWidth) || 0,
+  );
   if (
     visibleRows.some((row) => {
       const rect = row.getBoundingClientRect();
-      return rect.top < tableRect.top || rect.bottom > tableRect.bottom + 1;
+      return rect.top < tableRect.top || rect.bottom > tableRect.bottom + borderTolerance;
     })
   ) {
     return "problem row escapes the problems panel";
