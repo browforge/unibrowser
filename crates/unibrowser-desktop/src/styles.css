@@ -544,6 +544,10 @@ button.proving-disabled,
   padding-left: 0.35rem;
 }
 
+.split-secondary.hidden {
+  display: none;
+}
+
 .split-active #split-primary {
   border-right: 1px solid #444;
 }
