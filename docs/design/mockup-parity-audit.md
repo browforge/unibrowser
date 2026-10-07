@@ -16,12 +16,12 @@ the opened parity composites before assigning grades.
 | --- | --- | --- | --- |
 | UI-21 Settings | `9bca09bbbc3c91f2de51f3ffe405ac897d0991480002fa0aca2d6460db6c3b61` | General shows, in order, On startup, Downloads, Workspace, and Auto-save as ruled label-left/control-right rows with helper copy. The Developer callout follows. Search appears once in the category rail; the CM contains Keybindings and Diagnostics, not another search. AI and onboarding controls are absent from General. | Pass |
 | UI-22 Image | `3fa17365ce85d3a056ebe24be57d8536ebbbfc4ec91b46fc9db827855bbc41f6` | History is a stable left dock, the fitted raster occupies the centre canvas, and Adjust is a stable right dock. Both docks show quiet truthful empty text. No local image toolbar duplicates the Image CM. | Pass |
-| UI-23 New tab | `1fadbc6bd72f0a5300300aa0c6a3b8612c30a39f63c5d0ee451f8eb562913a56` | Open file is the filled accent action beside two neutral actions. Four known recent files use quiet text type marks. Downloads are unfilled ruled rows; the first has a real 64% progress bar and percentage, and the second is complete. No unknown fixture appears. | Pass |
-| UI-24 Workshop | `fc6e5e43495812f33e3cbda2708683df60750f400678334313d74a2218d11348` | The programme frame contains a selected lower third. The Inspector exposes Heading, Subtitle, Duration, and Position. A timecode transport sits below the stage. Video/Image, Title, and Audio/MIDI tracks are all fully visible without scrolling; light theme uses pale lanes and clips. | Pass |
+| UI-23 New tab | `f9019a815072c9047b2cf35b45b4dfd5f983eedfb9a34cb5a951a44d4f555df9` | Open file is the filled accent action beside two flat-bordered secondary actions (Open folder, Start a new project). Four known recent files use quiet text type marks. Downloads are unfilled ruled rows; the first has a real 64% progress bar and percentage, and the second is complete. No unknown fixture appears. | Pass |
+| UI-24 Workshop | `f70caf2c6f41599fe41666ef7408eff49ddbb000a257c0442c10928bcbb0d10a` | The programme frame contains a selected lower third. The Inspector header reads Lower third / Title clip, track 2 above Heading, Subtitle, Duration, and Position. A timecode transport sits below the stage. Video/Image, Title, and Audio/MIDI tracks are all fully visible without scrolling; light theme uses pale lanes and clips. | Pass |
 | UI-25 PDF | `284aa736ea53c00370c24c2ed1a79aced6b073f95fc312039aab1512456df843` | Pages is on the left, the white page is centred, and Annotations is on the right. The yellow annotation has the selected outline and a populated Opening summary inspector; the other area annotation is visibly subdued and indexed separately. | Pass |
-| UI-26 File browser | `02c3fb3541167ee30ab877474dd895e0234d3b3eb11d6e5c6ec9250bd7997d91` | Places, the file list, and Preview remain simultaneously visible at 1280. `sample.svg` is selected and its thumbnail, type, size, modified date, extension, path, and Open action appear in Preview. | Pass |
+| UI-26 File browser | `3fcce168abce122aafb3ec43dc4942356d85c67a25f910a46c87ea5c38793f64` | Two-row chrome only (no bookmark bar under the address field). Places shows RECENT FILES and PINNED section labels; `sample.svg` is selected with the 1 selected hint in the status bar, not a content banner. Places, list, and Preview are visible; `unknown.ubunknown` is absent from the demo-pack listing. | Pass |
 | UI-27 Document workbench | `505f9bb90e548f9b92e6950648a84a8cb28230174859a4389c2f300600ecd9ff` | The editor occupies the main region, AI Assistant is docked at right with document context and composer, and Problems is docked below with three readable rows. Region boundaries are joined and no third local document toolbar appears. | Pass |
-| UI-28 Mod Portal | `78098361f8ca8f8b03dd8f25e9d4dc0d4b2e96d511005fe49b8c64b2164b1ad1` | Discover shows one search row, network guidance, one suggested result with its action, and a closed Browse full catalogue disclosure. The six-card catalogue and Installed content no longer compete in the initial viewport. | Pass |
+| UI-28 Mod Portal | `74fe353a2645b4e7e13a7723d16f78f7ebad214a93f42dc3933f91cf40bef4c3` | Discover for `ext=step` shows one CAD file support card with human copy, Licence Apache-2.0, Reads local files only, a primary Install control, and contribution IDs tucked in Contribution details. No ubunknown tab label or handler strings appear in the card body. | Pass |
 
 The detailed sections below record the pre-ticket baseline at `dc46d54`; they
 are retained as the discrepancy history that produced UI-21 through UI-28.
@@ -257,3 +257,23 @@ Sources: the Mod Portal tile in `mockups/context-matrix.png` and
 The 18 final shell-density captures contain 56 visible status segments. The PNG
 guard samples every segment against its rendered bar background. All pass
 4.5:1; the minimum is `AI: Read` in `new-tab-light-1280.png` at 5.08:1.
+
+## GPT-ready drift summary (2026-10-07)
+
+UI-21 through UI-28 and UI-29 acceptance shots now pass on fresh captures at
+`fe3476e` (layout fix `673d270` for mod card overlap). Remaining **Drift** is
+cosmetic or schematic-only; nothing blocks the Quiet Utility parity tickets.
+
+| Surface | Drift (still unlike mockup, acceptable) |
+| --- | --- |
+| Settings | Category rail width and page title scale are slightly lighter than the mockup; behaviour matches. |
+| New tab | Centred column is narrower than the mockup work column; eight-row density is lower (four recents shown). |
+| Workshop | Mockup uses a schematic frame; app shows real programme content and clip labels. Inspector matches hierarchy. |
+| PDF | Annotation list uses more border weight than the schematic; selection and inspector hierarchy match. |
+| File browser | Approved source is a three-region schematic without file rows; app is denser with real data. Places labels are uppercase section headers, not the mockup's single Favourites block. |
+| Markdown / document | Mockup is layout-only; docked editor + AI + Problems match hierarchy. |
+| Image | History/Adjust docks match; mockup uses flatter empty copy. |
+| Mod portal | Mockup shows an icon tile and one-line licence row; app uses a text card with Contribution details disclosure. Task header copy is longer than the schematic. |
+| Status bar | Still shows AI, path, command context, and Alerts where the mockup often shows only local/online; contrast guard passes (UI-29). |
+
+**Fail rules:** none triggered on the refreshed light captures above.

@@ -528,7 +528,7 @@
       },
       {
         "id": "status-path",
-        "label": "unibrowser://mods?ext=ubunknown",
+        "label": "unibrowser://mods?ext=step",
         "bounds": {
           "x": 555.21875,
           "y": 777.5,
@@ -540,8 +540,8 @@
         "contrast": 11.116014789048625,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 8.242,
-        "pixelInkCount": 805,
+        "pixelContrast": 8.48,
+        "pixelInkCount": 647,
         "pixelBounds": {
           "x": 555,
           "y": 777,

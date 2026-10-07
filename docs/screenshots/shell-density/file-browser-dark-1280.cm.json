@@ -33,7 +33,7 @@
       "height": 30,
       "labelBounds": {
         "x": 125.53125,
-        "y": 78.875,
+        "y": 51.5,
         "width": 69.390625,
         "height": 16
       },
@@ -111,7 +111,7 @@
       "pixelInkCount": 384,
       "pixelBounds": {
         "x": 125,
-        "y": 78,
+        "y": 51,
         "width": 70,
         "height": 17
       }
@@ -130,7 +130,7 @@
       "height": 30,
       "labelBounds": {
         "x": 232.921875,
-        "y": 78.875,
+        "y": 51.5,
         "width": 78.609375,
         "height": 16
       },
@@ -208,7 +208,7 @@
       "pixelInkCount": 424,
       "pixelBounds": {
         "x": 232,
-        "y": 78,
+        "y": 51,
         "width": 80,
         "height": 17
       }
@@ -227,7 +227,7 @@
       "height": 30,
       "labelBounds": {
         "x": 381.53125,
-        "y": 78.875,
+        "y": 51.5,
         "width": 34,
         "height": 16
       },
@@ -305,7 +305,7 @@
       "pixelInkCount": 187,
       "pixelBounds": {
         "x": 381,
-        "y": 78,
+        "y": 51,
         "width": 35,
         "height": 17
       }
@@ -324,7 +324,7 @@
       "height": 30,
       "labelBounds": {
         "x": 453.53125,
-        "y": 78.875,
+        "y": 51.5,
         "width": 70.875,
         "height": 16
       },
@@ -402,7 +402,7 @@
       "pixelInkCount": 379,
       "pixelBounds": {
         "x": 453,
-        "y": 78,
+        "y": 51,
         "width": 72,
         "height": 17
       }
@@ -421,7 +421,7 @@
       "height": 30,
       "labelBounds": {
         "x": 594.40625,
-        "y": 78.875,
+        "y": 51.5,
         "width": 48.625,
         "height": 16
       },
@@ -499,7 +499,7 @@
       "pixelInkCount": 249,
       "pixelBounds": {
         "x": 594,
-        "y": 78,
+        "y": 51,
         "width": 50,
         "height": 17
       }
@@ -518,7 +518,7 @@
       "height": 30,
       "labelBounds": {
         "x": 681.03125,
-        "y": 78.875,
+        "y": 51.5,
         "width": 50.375,
         "height": 16
       },
@@ -596,7 +596,7 @@
       "pixelInkCount": 268,
       "pixelBounds": {
         "x": 681,
-        "y": 78,
+        "y": 51,
         "width": 51,
         "height": 17
       }
