@@ -408,7 +408,11 @@ export function validateDarkSurfaceBackgroundsForCapture(
         candidate.tagName.toLowerCase();
       return `dark surface ${identity} is brighter than --ub-surface-2 (background ${background}, raised ${raisedBackground})`;
     }
-    if (!shouldCheckFormControlBorder(candidate)) {
+    const isFormField =
+      candidate instanceof HTMLInputElement ||
+      candidate instanceof HTMLTextAreaElement ||
+      candidate instanceof HTMLSelectElement;
+    if (!isFormField || !shouldCheckFormControlBorder(candidate)) {
       continue;
     }
     if (style.boxShadow && style.boxShadow !== "none") {
@@ -423,7 +427,7 @@ export function validateDarkSurfaceBackgroundsForCapture(
         candidate.id ||
         Array.from(candidate.classList).join(".") ||
         candidate.tagName.toLowerCase();
-      return `dark form control ${identity} has uneven border colours (top ${style.borderTopColor}, bottom ${style.borderBottomColor})`;
+      return `dark form control ${identity} has uneven border colours (top ${style.borderTopColor}, right ${style.borderRightColor}, bottom ${style.borderBottomColor}, left ${style.borderLeftColor})`;
     }
   }
   return null;
