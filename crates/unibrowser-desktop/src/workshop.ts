@@ -35,6 +35,7 @@ export interface WorkshopViewer {
 
 type WorkshopMode = "preview" | "live" | "recording";
 type TrackKind = "visual" | "title" | "audio";
+let desiredWorkshopMode: WorkshopMode = "preview";
 
 function trackForClip(clip: WorkshopClip): TrackKind {
   const type = clip.node_type.toLowerCase();
@@ -77,7 +78,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   let selectedNode = selectedClip
     ? nodes.find((node) => node.id === selectedClip?.node_id) ?? null
     : nodes[0] ?? null;
-  let mode: WorkshopMode = "preview";
+  let mode: WorkshopMode = desiredWorkshopMode;
   let snap = true;
   let timelineZoom = 1;
 
@@ -102,7 +103,7 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   const state = document.createElement("span");
   state.className = "workshop-state";
   state.dataset.state = mode;
-  state.textContent = "Preview";
+  state.textContent = mode === "preview" ? "Preview" : mode === "live" ? "LIVE" : "REC";
   stageHead.append(stageTitle, state);
   const stageWell = document.createElement("div");
   stageWell.className = "workshop-stage-well";
@@ -444,6 +445,13 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   };
 
   const setMode = async (next: WorkshopMode) => {
+    desiredWorkshopMode = next;
+    mode = next;
+    state.dataset.state = next;
+    state.textContent = next === "preview" ? "Preview" : next === "live" ? "LIVE" : "REC";
+    root.dataset.mode = next;
+    renderStage();
+    renderInspector();
     if (next === "preview") {
       await invoke("set_unibrow_live_mode", { enabled: false }).catch(() => undefined);
     } else {
@@ -452,12 +460,6 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
         await invoke("start_unibrow_live_recording").catch(() => undefined);
       }
     }
-    mode = next;
-    state.dataset.state = next;
-    state.textContent = next === "preview" ? "Preview" : next === "live" ? "LIVE" : "REC";
-    root.dataset.mode = next;
-    renderStage();
-    renderInspector();
   };
 
   const renderExportSheet = () => {
