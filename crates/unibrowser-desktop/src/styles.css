@@ -3178,6 +3178,10 @@ body.content-fullscreen::after {
   outline-offset: 1px;
 }
 
+.pdf-highlight-rect:not(.pdf-highlight-rect--selected) {
+  opacity: 0.35;
+}
+
 .pdf-annotation-card-head {
   display: flex;
   align-items: center;
