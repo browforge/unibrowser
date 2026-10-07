@@ -614,6 +614,13 @@ Screenshot:
 
 **Visual-language impact:** Revised. Docking targets are functional overlays, with no decorative glow, glass, or oversized rounded drop zones.
 
+Status: Drift 2026-10-07. Explicit layout edit mode now gates command dragging,
+offers functional left/right/bottom dock targets, saves named layouts, and
+imports or exports workspace-layout files. Light and dark captures pass
+overlap and clipping checks. Detached-toolbar and two-monitor restart evidence
+is still unavailable in the single-display capture environment; see
+`docs/design/ui-18-evidence.md`.
+
 Likely files:
 
 - `src/commandManager.ts`
