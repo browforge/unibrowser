@@ -173,26 +173,28 @@
     </div>
     <div id="toast-host" class="toast-host ub-toast-layer hidden" role="status" aria-live="polite"></div>
     <footer id="status-bar" class="status-bar ub-shell-status" tabindex="-1">
-      <span id="status-saved" class="status-segment status-saved hidden"></span>
-      <span id="status-language" class="status-segment status-language hidden"></span>
-      <span id="status-cursor" class="status-segment"></span>
+      <div id="status-context-left" class="status-slot status-slot--left" aria-label="Context status"></div>
+      <span id="status-saved" class="status-segment status-saved hidden status-legacy"></span>
+      <span id="status-language" class="status-segment status-language hidden status-legacy"></span>
+      <span id="status-cursor" class="status-segment status-legacy hidden"></span>
       <span class="status-bar-spacer" aria-hidden="true"></span>
-      <span id="status-problems-count" class="status-segment status-problems-count hidden"></span>
-      <span id="status-ai-visibility" class="status-segment status-ai hidden" role="status"></span>
-      <span id="status-encoding" class="status-segment"></span>
-      <span id="status-zoom-label" class="status-segment status-zoom-readout"></span>
-      <span id="status-path" class="status-segment status-path status-verbose-only"></span>
-      <span id="status-context" class="status-segment status-context muted status-verbose-only"></span>
-      <span id="status-dirty" class="status-segment status-dirty status-verbose-only"></span>
-      <span id="status-autosave" class="status-segment status-autosave hidden status-verbose-only" role="status"></span>
-      <span id="status-reading" class="status-segment status-reading muted status-verbose-only"></span>
-      <span id="status-font" class="status-segment status-verbose-only"></span>
-      <span class="status-zoom-controls status-verbose-only">
+      <div id="status-context-right" class="status-slot status-slot--right" aria-label="Document status"></div>
+      <button type="button" id="status-ai-visibility" class="status-utility status-ai hidden" aria-label="AI status" title="AI status">AI</button>
+      <span id="status-problems-count" class="status-segment status-problems-count hidden status-legacy"></span>
+      <span id="status-encoding" class="status-segment status-legacy hidden"></span>
+      <span id="status-zoom-label" class="status-segment status-zoom-readout status-legacy hidden"></span>
+      <span id="status-path" class="status-segment status-path status-legacy hidden"></span>
+      <span id="status-context" class="status-segment status-context muted status-legacy hidden"></span>
+      <span id="status-dirty" class="status-segment status-dirty status-legacy hidden"></span>
+      <span id="status-autosave" class="status-segment status-autosave hidden status-legacy" role="status"></span>
+      <span id="status-reading" class="status-segment status-reading muted status-legacy hidden"></span>
+      <span id="status-font" class="status-segment status-legacy hidden"></span>
+      <span class="status-zoom-controls status-legacy hidden">
         <button type="button" id="status-zoom-out" class="status-zoom-btn hidden">-</button>
         <button type="button" id="status-zoom-in" class="status-zoom-btn hidden">+</button>
       </span>
-      <span id="status-encode" class="status-segment status-encode muted status-verbose-only"></span>
-      <span id="status-hint" class="status-hint status-verbose-only"></span>
+      <span id="status-encode" class="status-segment status-encode muted status-legacy hidden"></span>
+      <span id="status-hint" class="status-hint status-legacy hidden"></span>
     </footer>
     </div>
     <div id="tab-search" class="palette hidden" role="dialog" aria-label="Search open tabs">

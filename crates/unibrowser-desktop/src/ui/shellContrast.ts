@@ -93,6 +93,7 @@ export const SHELL_DENSITY_CONTRAST_TARGETS: Array<{
     required: false,
   },
   { id: "title-breadcrumb", selector: ".title-breadcrumb:not(.hidden)", minRatio: 4.5, when: "always" },
+  { id: "context-status-item", selector: ".status-item", minRatio: 4.5, when: "always" },
   { id: "files-meta", selector: ".files-meta", minRatio: 4.5, when: "files" },
   { id: "settings-form-label", selector: ".settings-content label", minRatio: 4.5, when: "settings" },
   {

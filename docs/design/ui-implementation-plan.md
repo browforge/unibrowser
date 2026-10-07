@@ -1124,6 +1124,46 @@ Acceptance:
 - Light, dark, high contrast, 100%, and 150% evidence passes drift checks.
 - Saving remains available through every unsupported/provider-failure state.
 
+## Phase G: context-aware status
+
+### UI-30: Status item component model and fixed slots
+
+Status: complete 2026-10-07. Specification:
+[status-bar.md](status-bar.md).
+
+- Replace the generic AI/path/command/alerts row with fixed left/right slots.
+- Render status through `StatusItem` components with stable ids, priority,
+  tooltip, semantic kind, and slot.
+- Expose `registerStatusContribution()` for context and mod contributions.
+- Keep path out when address or breadcrumb already identifies location.
+- Hide empty AI and notification utilities.
+- Preserve the 4.5:1 status contrast capture guard.
+
+Acceptance:
+
+- Context changes replace items without moving the two slots.
+- Status never wraps, overlaps, or increases shell height.
+- Every segment passes 4.5:1 in light, dark, and high contrast.
+
+### UI-31: Per-context defaults and narrow overflow
+
+Status: complete 2026-10-07. Specification:
+[status-bar.md](status-bar.md).
+
+- Text: save, language, caret, problems, encoding.
+- PDF: page, zoom, annotations.
+- Workshop: timecode, output format, sample rate/channels.
+- Settings: immediate-save statement.
+- Mod portal: Open VSX state and local scope.
+- File browser and media/viewer contexts use task-specific state.
+- Hide priority 60 and below first under 760px; truncate retained items.
+
+Acceptance:
+
+- No generic `Commands: X (auto)` or duplicate path appears.
+- Empty alerts and ordinary AI state consume no status space.
+- Narrow status retains the primary task state and active warnings.
+
 ## Visual QA remediation: VQA series
 
 Source audit: [visual-qa-2026-10-06.md](visual-qa-2026-10-06.md).

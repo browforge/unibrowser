@@ -36,7 +36,15 @@ function updateToggleLabel() {
     return;
   }
   const n = unreadCount();
-  toggleBtn.textContent = n > 0 ? t("notifications.buttonWithCount", { count: n }) : t("notifications.button");
+  toggleBtn.textContent = n > 0 ? `! ${n}` : "";
+  toggleBtn.title = n > 0
+    ? t("notifications.buttonWithCount", { count: n })
+    : t("notifications.buttonHint");
+  toggleBtn.setAttribute(
+    "aria-label",
+    n > 0 ? t("notifications.buttonWithCount", { count: n }) : t("notifications.button"),
+  );
+  toggleBtn.classList.toggle("hidden", n === 0);
   toggleBtn.classList.toggle("status-notifications-has-items", n > 0);
 }
 

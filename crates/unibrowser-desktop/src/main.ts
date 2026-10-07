@@ -125,6 +125,7 @@ import {
   setZoomHandler,
   updateStatusBar,
 } from "./statusBar";
+import type { StatusItem } from "./statusBar";
 import { getEncodeProgress, setEncodeProgress } from "./encodeProgress";
 import { runExportPrintPdf, runPrintSelection } from "./exportPdf";
 import {
@@ -453,6 +454,95 @@ let recentPanelOpen = false;
 
 const PALETTE_TOGGLE = "unibrowser.palette.toggle";
 
+function statusItemsForContext(
+  data: TabContentDto,
+  active: TabDto | undefined,
+  showText: boolean,
+  showViewer: boolean,
+  values: {
+    cursor: string;
+    encoding: string;
+    language?: string;
+    zoom: string;
+    reading: string;
+    dirty: string;
+    autosave: string;
+    encode: string;
+    statusHint: string;
+  },
+): { context: string; items: StatusItem[] } {
+  const viewer = showViewer ? data.document_viewer?.viewer ?? "" : "";
+  const location = data.omnibox.toLowerCase();
+  const left: StatusItem[] = [];
+  const right: StatusItem[] = [];
+  const item = (
+    id: string,
+    slot: "left" | "right",
+    text: string,
+    priority: number,
+    title?: string,
+  ): StatusItem => ({ id, slot, text, priority, title });
+
+  if (data.mod_portal || location.startsWith("unibrowser://mods")) {
+    left.push(item("mod-network", "left", isOpenVsxNetworkEnabled() ? "Open VSX: online" : "Open VSX: offline", 100));
+    right.push(item("mod-scope", "right", "Local mods", 40, "Local mods can read files only with declared permission"));
+    return { context: "mod-portal", items: [...left, ...right] };
+  }
+  if (viewer === "settings" || location.startsWith("unibrowser://settings")) {
+    left.push(item("settings-save", "left", "Changes save immediately", 100));
+    return { context: "settings", items: left };
+  }
+  if (viewer === "pdf") {
+    left.push(item("pdf-page", "left", values.reading || "Page 1", 100));
+    right.push(item("pdf-zoom", "right", values.zoom || "100%", 90, "PDF zoom"));
+    if (lastPdfAnnotationCount > 0) {
+      right.push(item("pdf-annotations", "right", `${lastPdfAnnotationCount} annotation${lastPdfAnnotationCount === 1 ? "" : "s"}`, 70));
+    }
+    return { context: "pdf", items: [...left, ...right] };
+  }
+  if (viewer === "unibrow") {
+    left.push(item("workshop-timecode", "left", "00:00:00.000", 100));
+    left.push(item("workshop-format", "left", "1080p / 30 fps", 80));
+    right.push(item("workshop-audio", "right", "48 kHz / Stereo", 80));
+    return { context: "workshop", items: [...left, ...right] };
+  }
+  if (viewer === "video" || viewer === "audio" || viewer === "midi") {
+    left.push(item("media-kind", "left", viewer === "video" ? "Video" : viewer === "audio" ? "Audio" : "MIDI", 100));
+    if (data.document_viewer?.media_note) {
+      left.push(item("media-format", "left", data.document_viewer.media_note, 50));
+    }
+    right.push(item("media-audio", "right", active?.muted ? "Muted" : "Audio on", 80));
+    return { context: "media", items: [...left, ...right] };
+  }
+  if (showText && data.text_document) {
+    left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
+    left.push(item("document-language", "left", values.language || data.text_document.language || "Text", 80));
+    left.push(item("document-caret", "left", values.cursor, 80));
+    right.push(item("document-problems", "right", "Problems 0", 70));
+    right.push(item("document-encoding", "right", values.encoding || "UTF-8", 60));
+    if (values.encode) {
+      right.push(item("document-encode", "right", values.encode, 110));
+    }
+    return { context: "document", items: [...left, ...right] };
+  }
+  if (active?.is_directory) {
+    left.push(item("files-selection", "left", values.statusHint || "No selection", 100));
+    return { context: "files", items: left };
+  }
+  if (viewer) {
+    left.push(item("viewer-kind", "left", data.document_viewer?.title || viewer.toUpperCase(), 80));
+    if (values.zoom) {
+      right.push(item("viewer-zoom", "right", values.zoom, 80));
+    }
+    return { context: viewer, items: [...left, ...right] };
+  }
+  if (active?.is_http) {
+    right.push(item("web-zoom", "right", values.zoom || "100%", 60));
+    return { context: "web", items: right };
+  }
+  return { context: "new-tab", items: [] };
+}
+
 function refreshStatusBar(
   data: TabContentDto,
   active: TabDto | undefined,
@@ -581,6 +671,17 @@ function refreshStatusBar(
       : showViewer && viewerKind === "dxf"
         ? ""
         : displayStatus);
+  const statusContribution = statusItemsForContext(data, active, showText, showViewer, {
+    cursor,
+    encoding,
+    language,
+    zoom: zoomOut,
+    reading,
+    dirty,
+    autosave,
+    encode,
+    statusHint,
+  });
   updateStatusBar({
     path: statusPath,
     pathHint,
@@ -595,8 +696,10 @@ function refreshStatusBar(
     autosave,
     saved,
     language,
-    aiState: compact ? "AI: Read" : undefined,
+    aiState: undefined,
     hint: statusHint,
+    statusContext: statusContribution.context,
+    items: statusContribution.items,
   });
 }
 

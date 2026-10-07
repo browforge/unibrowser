@@ -15,6 +15,46 @@ export interface StatusBarModel {
   problemsCount?: string;
   aiState?: string;
   hint: string;
+  statusContext?: string;
+  items?: StatusItem[];
+}
+
+export type StatusSlot = "left" | "right";
+
+export interface StatusItem {
+  id: string;
+  slot: StatusSlot;
+  text: string;
+  title?: string;
+  priority?: number;
+  compactText?: string;
+  kind?: "text" | "state" | "warning";
+}
+
+export interface StatusContribution {
+  id: string;
+  contexts: string[];
+  items: (model: StatusBarModel) => StatusItem[];
+}
+
+const contributions = new Map<string, StatusContribution>();
+
+export function registerStatusContribution(contribution: StatusContribution): () => void {
+  contributions.set(contribution.id, contribution);
+  return () => contributions.delete(contribution.id);
+}
+
+function resolveStatusItems(model: StatusBarModel): StatusItem[] {
+  const items = [...(model.items ?? [])];
+  const context = model.statusContext ?? "default";
+  for (const contribution of contributions.values()) {
+    if (contribution.contexts.includes(context) || contribution.contexts.includes("*")) {
+      items.push(...contribution.items(model));
+    }
+  }
+  return items
+    .filter((item) => item.text.trim())
+    .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 }
 
 let pathEl: HTMLElement | null = null;
@@ -40,8 +80,12 @@ let onFontReset: (() => void) | null = null;
 let onCopyPath: ((path: string) => void) | null = null;
 let lastPath = "";
 let lastFont = "";
+let leftSlotEl: HTMLElement | null = null;
+let rightSlotEl: HTMLElement | null = null;
 
 export function bindStatusBar(root: HTMLElement) {
+  leftSlotEl = root.querySelector("#status-context-left");
+  rightSlotEl = root.querySelector("#status-context-right");
   pathEl = root.querySelector("#status-path");
   contextEl = root.querySelector("#status-context");
   dirtyEl = root.querySelector("#status-dirty");
@@ -78,6 +122,28 @@ export function bindStatusBar(root: HTMLElement) {
     }
   });
   pathEl?.classList.add("status-path-copy");
+}
+
+function renderStatusItems(model: StatusBarModel) {
+  if (!leftSlotEl || !rightSlotEl) {
+    return;
+  }
+  leftSlotEl.innerHTML = "";
+  rightSlotEl.innerHTML = "";
+  for (const item of resolveStatusItems(model)) {
+    const el = document.createElement("span");
+    el.className = `status-item status-item--${item.kind ?? "text"}`;
+    el.dataset.statusItem = item.id;
+    el.dataset.priority = String(item.priority ?? 0);
+    el.textContent = item.text;
+    if (item.compactText) {
+      el.dataset.compactText = item.compactText;
+    }
+    if (item.title) {
+      el.title = item.title;
+    }
+    (item.slot === "left" ? leftSlotEl : rightSlotEl).appendChild(el);
+  }
 }
 
 export function setPathCopyHandler(handler: ((path: string) => void) | null) {
@@ -136,6 +202,7 @@ function setOptional(el: HTMLElement | null, value?: string) {
 }
 
 export function updateStatusBar(model: StatusBarModel) {
+  renderStatusItems(model);
   lastPath = model.path;
   if (pathEl) {
     pathEl.textContent = model.path;
@@ -167,15 +234,18 @@ export function updateStatusBar(model: StatusBarModel) {
   setOptional(autosaveEl, model.autosave);
   setOptional(savedEl, model.saved);
   setOptional(languageEl, model.language);
-  if (model.problemsCount && problemsCountEl) {
-    problemsCountEl.textContent = model.problemsCount;
-    problemsCountEl.classList.remove("hidden");
+  if (problemsCountEl) {
+    problemsCountEl.textContent = model.problemsCount ?? "";
+    problemsCountEl.classList.toggle("hidden", !model.problemsCount);
   }
-  if (model.aiState) {
-    const aiEl = document.getElementById("status-ai-visibility");
-    if (aiEl) {
+  const aiEl = document.getElementById("status-ai-visibility");
+  if (aiEl) {
+    if (model.aiState) {
       aiEl.textContent = model.aiState;
+      aiEl.title = model.aiState;
       aiEl.classList.remove("hidden");
+    } else {
+      aiEl.classList.add("hidden");
     }
   }
   if (hintEl && model.hint) {
