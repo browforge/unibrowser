@@ -134,6 +134,7 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         WorkContext::CodeEditor => code_capability(control_id),
         WorkContext::Pdf => pdf_capability(control_id),
         WorkContext::Image => image_capability(control_id, ctx),
+        WorkContext::Audio => media_capability(control_id),
         WorkContext::Cad3d => cad_capability(control_id),
         WorkContext::Project => project_capability(control_id),
         WorkContext::Start => start_capability(control_id),
@@ -143,6 +144,15 @@ fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilitySt
         WorkContext::Web => CapabilityState::Unsupported {
             reason: "Open a document to use formatting commands.".into(),
         },
+    }
+}
+
+fn media_capability(control_id: &str) -> CapabilityState {
+    if control_id.starts_with("unibrowser.control.media.") {
+        return CapabilityState::Supported;
+    }
+    CapabilityState::Unsupported {
+        reason: "This command is not available in the media viewer.".into(),
     }
 }
 

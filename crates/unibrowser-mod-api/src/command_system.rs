@@ -168,6 +168,7 @@ pub enum WorkContext {
     CodeEditor,
     Pdf,
     Image,
+    Audio,
     Cad3d,
     Project,
     Browse,

@@ -39,6 +39,7 @@ pub fn command_context_display_label(
         WorkContext::Start => "Start",
         WorkContext::Pdf => "PDF Annotation",
         WorkContext::Image => "Image",
+        WorkContext::Audio => "Audio",
         WorkContext::Cad3d => "CAD / 3D",
         WorkContext::Project => "Project",
         WorkContext::CodeEditor => "Code",
@@ -76,6 +77,12 @@ pub fn infer_work_context(
     ) {
         return WorkContext::Image;
     }
+    if matches!(
+        ext.as_str(),
+        "aac" | "flac" | "m4a" | "mkv" | "mov" | "mp3" | "mp4" | "ogg" | "wav" | "webm"
+    ) {
+        return WorkContext::Audio;
+    }
     if ext == "md" || ext == "markdown" {
         return WorkContext::Markdown;
     }
@@ -104,7 +111,7 @@ pub fn infer_work_context(
                 WorkContext::PlainText
             }
         }
-        CommandContext::Audio => WorkContext::PlainText,
+        CommandContext::Audio => WorkContext::Audio,
     }
 }
 

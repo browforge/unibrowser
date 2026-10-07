@@ -41,6 +41,9 @@ pub fn core_tab_layout(
             export_family(ctx, resolver),
         ];
     }
+    if ctx.work == WorkContext::Audio {
+        return vec![media_family(ctx, resolver)];
+    }
     vec![
         history_family(ctx, resolver),
         text_or_editor_family(ctx, resolver),
@@ -53,6 +56,45 @@ pub fn core_tab_layout(
     .into_iter()
     .filter(|f| !f.groups.is_empty())
     .collect()
+}
+
+fn media_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    let family_id = "unibrowser.family.media";
+    let controls = vec![
+        control_spec(
+            "unibrowser.control.media.mute",
+            ControlType::Button,
+            commands::TOGGLE_TAB_MUTE,
+            "Mute",
+            "media",
+            "unibrowser.group.media.playback",
+            family_id,
+            ctx,
+            resolver,
+        ),
+        control_spec(
+            "unibrowser.control.media.pictureInPicture",
+            ControlType::Button,
+            commands::PICTURE_IN_PICTURE,
+            "Picture-in-picture",
+            "pip",
+            "unibrowser.group.media.playback",
+            family_id,
+            ctx,
+            resolver,
+        ),
+    ];
+    ResolvedFamily {
+        family_id: family_id.into(),
+        label: "Media".into(),
+        overflow_priority: OverflowPriority::Primary,
+        groups: vec![ResolvedGroup {
+            group_id: "unibrowser.group.media.playback".into(),
+            label: "Playback".into(),
+            overflow_priority: OverflowPriority::Primary,
+            controls,
+        }],
+    }
 }
 
 fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {

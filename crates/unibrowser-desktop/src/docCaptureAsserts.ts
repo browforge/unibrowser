@@ -607,8 +607,9 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
     cm.autoContext === "start" || cm.contextLabel?.toLowerCase() === "start";
   const settingsContext = cm.contextLabel?.toLowerCase() === "settings";
   const modsContext = cm.contextLabel?.toLowerCase() === "mods";
-  const sparseContextLimit = settingsContext ? 2 : modsContext ? 5 : 4;
-  const sparseContext = startContext || settingsContext || modsContext;
+  const mediaContext = cm.contextLabel?.toLowerCase() === "audio";
+  const sparseContextLimit = settingsContext || mediaContext ? 2 : modsContext ? 5 : 4;
+  const sparseContext = startContext || settingsContext || modsContext || mediaContext;
   const requiredVisible = sparseContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
   const requiredContrast = sparseContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
   const overflowEl = document.getElementById("command-manager-overflow");
