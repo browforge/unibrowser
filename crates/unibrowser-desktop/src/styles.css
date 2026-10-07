@@ -443,6 +443,11 @@ button.proving-disabled,
   background: var(--ub-accent, #196f93);
 }
 
+.ub-switch:hover,
+.settings-toggle-input:hover {
+  border-color: var(--ub-accent-hover, var(--ub-accent));
+}
+
 .ub-switch:checked::after,
 .settings-toggle-input:checked::after {
   transform: translateX(14px);
@@ -451,7 +456,7 @@ button.proving-disabled,
 
 .ub-switch:focus-visible,
 .settings-toggle-input:focus-visible {
-  outline: 2px solid var(--ub-accent, #196f93);
+  outline: 2px solid var(--ub-focus, #83c7e6);
   outline-offset: 2px;
 }
 
@@ -3983,6 +3988,11 @@ button:active:not(:disabled):not([aria-disabled="true"]),
 [role="tab"]:active:not([aria-disabled="true"]) {
   border-color: var(--ub-accent);
   background-color: color-mix(in srgb, var(--ub-accent) 20%, var(--ub-control));
+}
+
+input:hover:not(:disabled):not([type="checkbox"]):not([type="radio"]),
+select:hover:not(:disabled) {
+  border-color: var(--ub-accent);
 }
 
 button:disabled:not(.ui-command),
