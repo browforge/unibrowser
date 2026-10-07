@@ -6508,6 +6508,13 @@ body.content-fullscreen #unknown-file-banner {
   margin-top: 2px;
 }
 
+.mod-card-install-status {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .mod-result-details {
   margin: 2px 0 0;
   font-size: 11px;
