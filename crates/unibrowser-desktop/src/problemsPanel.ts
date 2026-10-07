@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { patchStatusItem } from "./statusBar";
 import { navigateToTarget, type NavigationTarget } from "./locatorNavigate";
 import { selectBottomPanelTab } from "./terminalPanel";
 import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
@@ -63,6 +64,7 @@ async function refresh() {
       countEl.classList.add("hidden");
     }
   }
+  patchStatusItem("document-problems", `Problems ${list.length}`);
   const wrap = panelEl.querySelector(".problems-table-wrap");
   const detail = panelEl.querySelector(".problems-detail");
   const empty = panelEl.querySelector(".problems-empty");

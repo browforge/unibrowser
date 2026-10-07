@@ -168,7 +168,9 @@ function updateChrome(prefs: AiPrefs, status: AiStatus) {
   }
   const statusAi = document.getElementById("status-ai-visibility");
   if (statusAi) {
-    statusAi.textContent = status.can_see_tab ? "AI: Read" : "AI: hidden";
+    statusAi.textContent = "AI";
+    statusAi.title = status.can_see_tab ? "AI can read this context" : "AI cannot read this context";
+    statusAi.setAttribute("aria-label", statusAi.title);
     statusAi.classList.remove("hidden");
   }
 }
@@ -347,7 +349,9 @@ export async function refreshAiAssistantChrome() {
   const status = await invoke<AiStatus>("ai_assistant_status");
   const el = document.getElementById("status-ai-visibility");
   if (el) {
-    el.textContent = status.can_see_tab ? "AI: Read" : "AI: hidden";
+    el.textContent = "AI";
+    el.title = status.can_see_tab ? "AI can read this context" : "AI cannot read this context";
+    el.setAttribute("aria-label", el.title);
     el.classList.remove("hidden");
   }
 }

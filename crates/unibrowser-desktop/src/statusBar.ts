@@ -192,6 +192,15 @@ export function patchStatusReading(reading: string) {
   }
 }
 
+export function patchStatusItem(id: string, text: string) {
+  const el = document.querySelector<HTMLElement>(`[data-status-item="${id}"]`);
+  if (!el) {
+    return;
+  }
+  el.textContent = text;
+  el.classList.toggle("hidden", !text);
+}
+
 function setOptional(el: HTMLElement | null, value?: string) {
   if (!el) {
     return;
