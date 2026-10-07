@@ -714,6 +714,173 @@ Screenshot:
 
 - Final 1280 and 1600 shell matrix matching `mockups/context-matrix.png`.
 
+## Mockup-parity remediation: UI-21+
+
+Source audit: [mockup-parity-audit.md](mockup-parity-audit.md). Ticket order is
+visible-impact order. Each acceptance capture must also regenerate its labelled
+comparison in `docs/screenshots/parity/`.
+
+### UI-21: Restore Settings task hierarchy
+
+Work:
+
+- Remove document-local actions, including Print preview, while Settings owns
+  the work area.
+- Add the approved Settings page title, section title, subtitle, and aligned
+  setting-row hierarchy.
+- Keep the category rail compact and text-led; preserve Developer disclosure.
+
+Acceptance shot:
+
+- `settings-light-1280.png` beside `mockups/settings-mods-1280.png`.
+
+Fail rule:
+
+- Fail for any unrelated document toolbar, clipped category or field, mixed
+  native/custom field treatment, or helper text below 4.5:1.
+
+### UI-22: Restore the Image workbench regions
+
+Work:
+
+- Provide stable History and Adjust docks around the raster canvas.
+- Show truthful no-history and no-selection states without shrinking the image
+  below the 480 px content rule.
+
+Acceptance shot:
+
+- `image-light-1280.png` with History, fitted canvas, and Adjust visible.
+
+Fail rule:
+
+- Fail if either required dock is absent, covers the image, duplicates a
+  Command Manager action, or contains unreadable disabled text.
+
+### UI-23: Match New tab action and download hierarchy
+
+Work:
+
+- Strengthen Open file, Open folder, and New project as the primary action set.
+- Replace filled download bands with compact rows, real progress, and trailing
+  actions aligned with section headers.
+- Match the approved work-column width and warm surface.
+
+Acceptance shot:
+
+- `new-tab-light-1280.png` with recent files, one active download, and one
+  completed download.
+
+Fail rule:
+
+- Fail for card-grid treatment, a performative empty state, clipped metadata,
+  duplicated Open actions, or download progress represented inaccurately.
+
+### UI-24: Match Workshop stage and timeline proportions
+
+Work:
+
+- Rebalance Sources, Stage, Inspector, and Timeline to the approved 1280
+  proportions.
+- Use representative programme content and a selected title overlay.
+- Align timeline and Inspector type levels without increasing chrome height.
+
+Acceptance shot:
+
+- `workshop-light-1280.png` with a selected title and visible programme frame.
+
+Fail rule:
+
+- Fail for covered preview content, clipped tracks or Inspector fields,
+  duplicated timeline controls, or status text below 4.5:1.
+
+### UI-25: Clarify PDF annotation selection
+
+Work:
+
+- Make one annotation visibly selected and use the right dock as its inspector.
+- Reduce repeated card borders and restore selected-tool, field-label, and
+  annotation-action hierarchy.
+- Keep page shadow as the only work-area elevation.
+
+Acceptance shot:
+
+- `pdf-light-1280.png` with one selected annotation and its editable inspector.
+
+Fail rule:
+
+- Fail if selection relies on colour alone, page or dock content clips, all
+  annotations receive equal emphasis, or page controls are duplicated.
+
+### UI-26: Keep File browser preview present at 1280
+
+Work:
+
+- Preserve Places, file list, and Preview as joined regions at 1280.
+- Give no-selection and unsupported-preview states literal, useful copy.
+- Reduce file-type badge weight and redundant row rules.
+
+Acceptance shot:
+
+- `file-browser-light-1280.png` with one file selected and Preview visible.
+
+Fail rule:
+
+- Fail if Preview disappears, list content falls below 480 px without applying
+  the documented close/replace rule, or path/action controls duplicate.
+
+### UI-27: Align document workbench regions
+
+Work:
+
+- Remove or merge the third Preview/Export/Print row into the contextual command
+  model.
+- Prove editor, AI, and Problems as joined regions in one current capture.
+- Match approved warm editor and panel-header hierarchy.
+
+Acceptance shot:
+
+- `document-problems-ai-light-1280.png` with editor, AI, and three Problems rows.
+
+Fail rule:
+
+- Fail for a third permanent chrome row, floating or covering panels, raw
+  provider text, clipped editor content, or unreadable diagnostics.
+
+### UI-28: Reduce Mod Portal card-grid density
+
+Work:
+
+- Make search and network state one task header.
+- Establish clear title, package, source, licence, permission, and action levels.
+- Keep one focused result before the wider catalogue and expose truthful empty
+  and network-error states.
+
+Acceptance shot:
+
+- `mod-portal-light-1280.png` with one suggested result and a restrained
+  catalogue below.
+
+Fail rule:
+
+- Fail if every result has equal emphasis, metadata is below 12 px or 4.5:1,
+  install state relies on colour, or cards clip at 1280.
+
+### UI-29: Guard status-bar semantic contrast
+
+Status: done 2026-10-07. `AI: Read` now uses the theme accent token rather than
+the legacy pale accent. Capture diagnostics record every visible status segment
+and the PNG pixel guard rejects any segment below 4.5:1.
+
+Acceptance shot:
+
+- Light `new-tab-light-1280.png` and `workshop-light-1280.png`, with sibling
+  diagnostics reporting status segment pixel contrast.
+
+Fail rule:
+
+- Fail if any visible status label samples below 4.5:1, if status text overlaps
+  or clips, or if semantic state relies on colour alone.
+
 ## Command System: CMD series
 
 These tickets implement [command-system.md](command-system.md) and

@@ -499,5 +499,79 @@
         "height": 17
       }
     }
-  ]
+  ],
+  "statusBar": {
+    "segmentCount": 3,
+    "segments": [
+      {
+        "id": "status-ai-visibility",
+        "label": "AI: Read",
+        "bounds": {
+          "x": 490.5,
+          "y": 777.5,
+          "width": 40.71875,
+          "height": 17
+        },
+        "foreground": "rgb(33, 79, 101)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 7.031301929954518,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 5.574,
+        "pixelInkCount": 180,
+        "pixelBounds": {
+          "x": 490,
+          "y": 777,
+          "width": 42,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-path",
+        "label": "unibrowser://mods?ext=ubunknown",
+        "bounds": {
+          "x": 555.21875,
+          "y": 777.5,
+          "width": 466.5,
+          "height": 17
+        },
+        "foreground": "rgb(32, 34, 35)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 12.68246640479958,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.491,
+        "pixelInkCount": 817,
+        "pixelBounds": {
+          "x": 555,
+          "y": 777,
+          "width": 467,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-context",
+        "label": "Commands: Mods (auto)",
+        "bounds": {
+          "x": 1033.71875,
+          "y": 777,
+          "width": 129.828125,
+          "height": 18
+        },
+        "foreground": "rgb(32, 34, 35)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 12.68246640479958,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.546,
+        "pixelInkCount": 639,
+        "pixelBounds": {
+          "x": 1033,
+          "y": 777,
+          "width": 131,
+          "height": 18
+        }
+      }
+    ]
+  }
 }

@@ -892,5 +892,56 @@
         "height": 16
       }
     }
-  ]
+  ],
+  "statusBar": {
+    "segmentCount": 2,
+    "segments": [
+      {
+        "id": "status-ai-visibility",
+        "label": "AI: Read",
+        "bounds": {
+          "x": 386.515625,
+          "y": 777.5,
+          "width": 40.71875,
+          "height": 17
+        },
+        "foreground": "rgb(166, 235, 255)",
+        "background": "rgb(0, 0, 0)",
+        "contrast": 15.948730517995777,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 12.727,
+        "pixelInkCount": 181,
+        "pixelBounds": {
+          "x": 386,
+          "y": 777,
+          "width": 42,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-context",
+        "label": "Commands: Project (auto)",
+        "bounds": {
+          "x": 825.75,
+          "y": 777,
+          "width": 138.578125,
+          "height": 18
+        },
+        "foreground": "rgb(255, 255, 255)",
+        "background": "rgb(0, 0, 0)",
+        "contrast": 21,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 14.734,
+        "pixelInkCount": 684,
+        "pixelBounds": {
+          "x": 825,
+          "y": 777,
+          "width": 140,
+          "height": 18
+        }
+      }
+    ]
+  }
 }

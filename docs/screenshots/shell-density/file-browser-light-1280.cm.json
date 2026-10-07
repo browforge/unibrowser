@@ -7,7 +7,7 @@
   "contextLabel": "Browse",
   "autoContext": "browse",
   "pipeline": {
-    "activeTabId": "text",
+    "activeTabId": "office",
     "rustFamilyCount": 1,
     "rustControlCount": 15,
     "ipcFamilyCount": 1,
@@ -601,5 +601,79 @@
         "height": 17
       }
     }
-  ]
+  ],
+  "statusBar": {
+    "segmentCount": 3,
+    "segments": [
+      {
+        "id": "status-ai-visibility",
+        "label": "AI: Read",
+        "bounds": {
+          "x": 485.09375,
+          "y": 777.5,
+          "width": 40.71875,
+          "height": 17
+        },
+        "foreground": "rgb(33, 79, 101)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 7.031301929954518,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 5.926,
+        "pixelInkCount": 189,
+        "pixelBounds": {
+          "x": 485,
+          "y": 777,
+          "width": 41,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-path",
+        "label": "/workspace/examples/demo-pack",
+        "bounds": {
+          "x": 549.8125,
+          "y": 777.5,
+          "width": 461.09375,
+          "height": 17
+        },
+        "foreground": "rgb(32, 34, 35)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 12.68246640479958,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.031,
+        "pixelInkCount": 803,
+        "pixelBounds": {
+          "x": 549,
+          "y": 777,
+          "width": 462,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-context",
+        "label": "Commands: Browse (auto)",
+        "bounds": {
+          "x": 1022.90625,
+          "y": 777,
+          "width": 140.65625,
+          "height": 18
+        },
+        "foreground": "rgb(32, 34, 35)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 12.68246640479958,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 10.379,
+        "pixelInkCount": 681,
+        "pixelBounds": {
+          "x": 1022,
+          "y": 777,
+          "width": 142,
+          "height": 18
+        }
+      }
+    ]
+  }
 }

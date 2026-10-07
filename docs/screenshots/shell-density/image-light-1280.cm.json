@@ -989,5 +989,79 @@
         "height": 17
       }
     }
-  ]
+  ],
+  "statusBar": {
+    "segmentCount": 3,
+    "segments": [
+      {
+        "id": "status-ai-visibility",
+        "label": "AI: Read",
+        "bounds": {
+          "x": 390.4375,
+          "y": 777.5,
+          "width": 40.71875,
+          "height": 17
+        },
+        "foreground": "rgb(33, 79, 101)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 7.031301929954518,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 5.574,
+        "pixelInkCount": 181,
+        "pixelBounds": {
+          "x": 390,
+          "y": 777,
+          "width": 42,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-zoom-label",
+        "label": "Image 67%",
+        "bounds": {
+          "x": 443.15625,
+          "y": 777.5,
+          "width": 54.84375,
+          "height": 17
+        },
+        "foreground": "rgb(32, 34, 35)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 12.68246640479958,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 7.285,
+        "pixelInkCount": 275,
+        "pixelBounds": {
+          "x": 443,
+          "y": 777,
+          "width": 55,
+          "height": 18
+        }
+      },
+      {
+        "id": "status-context",
+        "label": "Commands: Image (auto)",
+        "bounds": {
+          "x": 888.4375,
+          "y": 777,
+          "width": 133.65625,
+          "height": 18
+        },
+        "foreground": "rgb(32, 34, 35)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 12.68246640479958,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 8.519,
+        "pixelInkCount": 669,
+        "pixelBounds": {
+          "x": 888,
+          "y": 777,
+          "width": 135,
+          "height": 18
+        }
+      }
+    ]
+  }
 }
