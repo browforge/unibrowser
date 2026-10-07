@@ -809,16 +809,32 @@ function renderFiles(
 
 function renderUnknownFileBanner(banner: UnknownFileBannerDto | null) {
   const el = document.getElementById("unknown-file-banner");
+  const splitPrimary = document.getElementById("split-primary");
+  const workArea = document.getElementById("work-area");
+  const onboarding = document.getElementById("onboarding-banner");
   if (!el) {
     return;
   }
   el.innerHTML = "";
   if (!banner) {
     el.classList.add("hidden");
+    el.classList.remove("unknown-support-panel");
+    splitPrimary?.classList.remove("unknown-support-active");
+    if (workArea && el.parentElement !== workArea) {
+      workArea.insertBefore(el, onboarding);
+    }
     return;
   }
+  splitPrimary?.classList.add("unknown-support-active");
+  el.classList.add("unknown-support-panel");
+  if (splitPrimary && el.parentElement !== splitPrimary) {
+    splitPrimary.appendChild(el);
+  }
   el.classList.remove("hidden");
-  const lead = document.createElement("span");
+  const heading = document.createElement("h2");
+  heading.textContent = "Open support";
+  el.appendChild(heading);
+  const lead = document.createElement("p");
   lead.textContent = t("unknownFile.lead", { ext: banner.extension });
   el.appendChild(lead);
   const actions = document.createElement("div");
@@ -876,15 +892,38 @@ function renderModPortal(portal: ModPortalDto | null) {
   const h = document.createElement("h2");
   h.textContent = portal.title;
   modPortalPanel.appendChild(h);
+  const tabs = document.createElement("nav");
+  tabs.className = "mod-portal-tabs";
+  tabs.setAttribute("aria-label", "Mod Portal sections");
+  ["Installed", "Discover", "Updates"].forEach((label, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mod-portal-tab";
+    button.textContent = label;
+    button.setAttribute("aria-current", index === 1 ? "page" : "false");
+    tabs.appendChild(button);
+  });
+  modPortalPanel.appendChild(tabs);
   const p = document.createElement("p");
   p.textContent = portal.message;
   modPortalPanel.appendChild(p);
   portal.suggestions.forEach((s) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "mod-suggestion";
+    btn.className = "mod-suggestion mod-result-card";
     const ubmod = s.ubmod_id ? ` · .ubmod ${s.ubmod_id}` : "";
-    btn.textContent = `${s.title} (${s.mod_id}${ubmod})`;
+    const title = document.createElement("strong");
+    title.textContent = s.title;
+    const id = document.createElement("span");
+    id.className = "mod-result-id";
+    id.textContent = `${s.mod_id}${ubmod}`;
+    const reason = document.createElement("span");
+    reason.className = "mod-result-reason";
+    reason.textContent = s.reason;
+    const meta = document.createElement("span");
+    meta.className = "mod-result-meta";
+    meta.textContent = "Source: catalogue · Permissions shown before install";
+    btn.append(title, id, reason, meta);
     btn.title = s.reason;
     btn.onclick = () => {
       if (s.open_vsx_id) {

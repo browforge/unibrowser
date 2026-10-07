@@ -246,6 +246,15 @@ export async function applyDemoState(raw: string) {
         );
         break;
       }
+      case "ui17-mod-portal": {
+        const data = await invoke("open_mod_portal", { ext: "ubunknown" }).catch(
+          () => null,
+        );
+        if (data) {
+          window.dispatchEvent(new CustomEvent("unibrowser-refresh", { detail: data }));
+        }
+        break;
+      }
       case "rail-expanded": {
         const { setRailMode } = await import("./ui/activityRail");
         setRailMode("expanded");
