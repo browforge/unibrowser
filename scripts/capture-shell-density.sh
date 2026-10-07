@@ -37,6 +37,7 @@ capture_new_tab() {
       WEBKIT_DISABLE_COMPOSITING_MODE=1 \
       UNIBROWSER_REPO_ROOT="$ROOT" \
       UNIBROWSER_SAFE_MODE=1 \
+      UNIBROWSER_DOC_CAPTURE=1 \
       UNIBROWSER_DOC_CAPTURE_SIZE="1280x800" \
       UNIBROWSER_DEMO_STATE="capture-ready,cm-compact,rail-collapsed,theme-${theme},standard-contrast,scale-100" \
       "$BIN" --doc-capture "$tmp"
@@ -65,6 +66,6 @@ capture_workshop_hc() {
 }
 capture_workshop_hc
 capture_scene "settings" "settings" "$DEMO/sample.txt"
-capture_scene "mod-portal" "ui17-mod-portal" "$DEMO/unknown.ubunknown"
+capture_scene "mod-portal" "ui17-mod-portal" "$DEMO/sample.step"
 
 echo "Shell density captures in $OUT"

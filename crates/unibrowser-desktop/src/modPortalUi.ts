@@ -15,6 +15,8 @@ export type ModSuggestion = {
   mod_id: string;
   title: string;
   reason: string;
+  licence?: string | null;
+  permission_summary?: string | null;
   open_vsx_id?: string | null;
   ubmod_id?: string | null;
 };
@@ -128,10 +130,6 @@ export function appendModSuggestionCard(
   badge.textContent = "Suggested";
   const title = document.createElement("strong");
   title.textContent = suggestion.title;
-  const id = document.createElement("span");
-  id.className = "mod-result-id";
-  const ubmod = suggestion.ubmod_id ? ` · .ubmod ${suggestion.ubmod_id}` : "";
-  id.textContent = `${suggestion.mod_id}${ubmod}`;
   const reason = document.createElement("span");
   reason.className = "mod-result-reason";
   reason.textContent = suggestion.reason;
@@ -139,15 +137,32 @@ export function appendModSuggestionCard(
   footer.className = "mod-card-footer";
   const meta = document.createElement("span");
   meta.className = "mod-result-meta";
-  meta.textContent =
-    "Source: built-in catalogue | Licence: check before install | Permissions: review before install";
+  const licence = suggestion.licence ?? "Licence: check before install";
+  const permissions =
+    suggestion.permission_summary ?? "Permissions: review before install";
+  meta.textContent = `Licence: ${licence.replace(/^Licence:\s*/i, "")} · ${permissions}`;
   const action = document.createElement("button");
   action.type = "button";
-  action.className = "mod-card-action";
-  action.textContent = suggestion.open_vsx_id ? "Install" : "Open";
+  action.className = "mod-card-action mod-card-action--primary";
+  action.textContent = "Install";
   action.onclick = () => onPrimary(suggestion);
+  const details = document.createElement("details");
+  details.className = "mod-result-details";
+  const summary = document.createElement("summary");
+  summary.textContent = "Contribution details";
+  const detailBody = document.createElement("span");
+  detailBody.className = "mod-result-id";
+  const parts = [`mod ${suggestion.mod_id}`];
+  if (suggestion.ubmod_id) {
+    parts.push(`ubmod ${suggestion.ubmod_id}`);
+  }
+  if (suggestion.open_vsx_id) {
+    parts.push(`Open VSX ${suggestion.open_vsx_id}`);
+  }
+  detailBody.textContent = parts.join(" · ");
+  details.append(summary, detailBody);
   footer.append(meta, action);
-  card.append(badge, title, id, reason, footer);
+  card.append(badge, title, reason, details, footer);
   parent.appendChild(card);
 }
 

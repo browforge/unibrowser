@@ -418,7 +418,7 @@ mod tests {
         let second = mgr.focus_or_open_internal(
             "mods",
             BrowserLocation::Internal {
-                page: "mods?ext=ubunknown".into(),
+                page: "mods?ext=step".into(),
             },
         );
         assert_eq!(first, second);

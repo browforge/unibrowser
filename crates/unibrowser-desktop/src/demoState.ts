@@ -252,7 +252,7 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "ui17-mod-portal": {
-        const data = await invoke("open_mod_portal", { ext: "ubunknown" }).catch(
+        const data = await invoke("open_mod_portal", { ext: "step" }).catch(
           () => null,
         );
         if (data) {

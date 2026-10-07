@@ -362,9 +362,9 @@ fn scenario_unknown_banner(
     state: &State<crate::state::AppState>,
     fixtures: &std::path::Path,
 ) -> Result<(), String> {
-    let path = fixtures.join("unknown.ubunknown");
+    let path = fixtures.join("sample.step");
     if !path.is_file() {
-        return Err("fixture unknown.ubunknown missing".into());
+        return Err("fixture sample.step missing".into());
     }
     let dto = open_path(window, app, state, &path)?;
     let banner = dto.unknown_file_banner.as_ref().ok_or("banner missing in state")?;

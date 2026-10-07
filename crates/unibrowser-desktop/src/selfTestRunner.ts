@@ -78,7 +78,7 @@ async function runFontTextSvg(plan: SelfTestPlan) {
 }
 
 async function runUnknownBanner(plan: SelfTestPlan) {
-  const unknown = joinPath(plan.fixtures, "unknown.ubunknown");
+  const unknown = joinPath(plan.fixtures, "sample.step");
   await openPath(unknown);
   const banner = document.getElementById("unknown-file-banner");
   if (!banner || banner.classList.contains("hidden")) {

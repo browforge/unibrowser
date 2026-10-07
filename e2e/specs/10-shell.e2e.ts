@@ -51,7 +51,7 @@ describe("Unibrowser shell (WebdriverIO + tauri-driver)", function () {
   });
 
   it("shows unknown-file banner (non-modal) for unhandled extension", async () => {
-    const unknown = path.join(FIXTURES, "unknown.ubunknown");
+    const unknown = path.join(FIXTURES, "sample.step");
     await openPath(unknown);
     const banner = await $("#unknown-file-banner");
     await banner.waitForDisplayed({ timeout: 15000 });

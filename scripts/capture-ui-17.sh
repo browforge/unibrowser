@@ -10,7 +10,7 @@ OUT="$ROOT/docs/screenshots/ui-17"
 mkdir -p "$OUT"
 rm -f "$OUT"/*.png
 BIN="$ROOT/target/release/unibrowser-desktop"
-FIXTURE="$ROOT/examples/demo-pack/unknown.ubunknown"
+FIXTURE="$ROOT/examples/demo-pack/sample.step"
 [[ -f "$FIXTURE" ]]
 
 capture() {

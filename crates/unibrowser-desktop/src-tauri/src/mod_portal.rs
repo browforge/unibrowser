@@ -5,6 +5,10 @@ pub struct ModSuggestionDto {
     pub mod_id: String,
     pub title: String,
     pub reason: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub licence: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permission_summary: Option<String>,
     /// Optional Open VSX extension id for in-portal search (stub catalog).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub open_vsx_id: Option<String>,
@@ -13,83 +17,131 @@ pub struct ModSuggestionDto {
     pub ubmod_id: Option<String>,
 }
 
+struct SuggestionSeed {
+    mod_id: String,
+    title: String,
+    reason: String,
+    licence: Option<String>,
+    permission_summary: Option<String>,
+    open_vsx_id: Option<String>,
+    ubmod_id: Option<String>,
+}
+
+fn seed_to_dto(seed: SuggestionSeed) -> ModSuggestionDto {
+    ModSuggestionDto {
+        mod_id: seed.mod_id,
+        title: seed.title,
+        reason: seed.reason,
+        licence: seed.licence,
+        permission_summary: seed.permission_summary,
+        open_vsx_id: seed.open_vsx_id,
+        ubmod_id: seed.ubmod_id,
+    }
+}
+
+fn cad_file_support(ubmod_id: &str) -> SuggestionSeed {
+    SuggestionSeed {
+        mod_id: "cad-support".into(),
+        title: "CAD file support".into(),
+        reason: "Open, measure, and preview exchange CAD files in Browse.".into(),
+        licence: Some("Apache-2.0".into()),
+        permission_summary: Some("Reads local files only".into()),
+        open_vsx_id: None,
+        ubmod_id: Some(ubmod_id.into()),
+    }
+}
+
 /// Static index until native `.ubmod` registry exists ([ADR 0014]).
 pub fn suggest_mods_for_extension(ext: &str) -> Vec<ModSuggestionDto> {
     let ext = ext.to_ascii_lowercase();
-    let suggestions: Vec<(String, String, Option<String>, Option<String>)> = match ext.as_str() {
-        "docx" | "doc" => vec![(
-            "base-docx".into(),
-            "Open Word documents".into(),
-            None,
-            Some("unibrowser.base-docx".into()),
-        )],
-        "pdf" => vec![(
-            "base-pdf".into(),
-            "View PDF (vector + raster)".into(),
-            None,
-            Some("unibrowser.base-pdf".into()),
-        )],
-        "dxf" => vec![(
-            "base-dxf".into(),
-            "View CAD drawings".into(),
-            None,
-            Some("unibrowser.base-dxf".into()),
-        )],
-        "mp4" | "webm" | "mkv" => vec![(
-            "base-video".into(),
-            "Play and edit video".into(),
-            None,
-            Some("unibrowser.base-video".into()),
-        )],
-        "wav" | "mp3" | "flac" => vec![(
-            "base-audio".into(),
-            "Play and edit audio".into(),
-            None,
-            Some("unibrowser.base-audio".into()),
-        )],
-        "mid" | "midi" => vec![(
-            "base-midi".into(),
-            "MIDI clips and preview".into(),
-            None,
-            Some("unibrowser.base-midi".into()),
-        )],
-        "js" | "mjs" | "cjs" | "jsx" => vec![(
-            "base-js".into(),
-            "Run user scripts safely".into(),
-            Some("dbaeumer.vscode-eslint".into()),
-            None,
-        )],
-        "ts" | "tsx" => vec![(
-            "base-js".into(),
-            "Script and TypeScript tooling (proving)".into(),
-            Some("ms-vscode.vscode-typescript-next".into()),
-            None,
-        )],
-        "psd" => vec![(
-            "base-psd".into(),
-            "Photoshop documents (community)".into(),
-            Some("ms-vscode.vscode-typescript-next".into()),
-            Some("community.psd-reader".into()),
-        )],
-        "xlsx" | "xls" => vec![(
-            "base-spreadsheet".into(),
-            "Spreadsheets".into(),
-            Some("GrapeCity.gc-excelviewer".into()),
-            Some("unibrowser.base-csv".into()),
-        )],
+    let seeds: Vec<SuggestionSeed> = match ext.as_str() {
+        "docx" | "doc" => vec![SuggestionSeed {
+            mod_id: "base-docx".into(),
+            title: "Open Word documents".into(),
+            reason: "Preview DOCX with layout and styles preserved.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-docx".into()),
+        }],
+        "pdf" => vec![SuggestionSeed {
+            mod_id: "base-pdf".into(),
+            title: "View PDF documents".into(),
+            reason: "Vector and raster PDF viewing with annotations.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-pdf".into()),
+        }],
+        "dxf" => vec![cad_file_support("unibrowser.base-dxf")],
+        "step" | "stp" | "3mf" | "iges" | "igs" => vec![cad_file_support("unibrowser.base-cad")],
+        "mp4" | "webm" | "mkv" => vec![SuggestionSeed {
+            mod_id: "base-video".into(),
+            title: "Play and edit video".into(),
+            reason: "Timeline playback and export for common containers.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-video".into()),
+        }],
+        "wav" | "mp3" | "flac" => vec![SuggestionSeed {
+            mod_id: "base-audio".into(),
+            title: "Play and edit audio".into(),
+            reason: "Waveform preview and clip editing.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-audio".into()),
+        }],
+        "mid" | "midi" => vec![SuggestionSeed {
+            mod_id: "base-midi".into(),
+            title: "MIDI clips and preview".into(),
+            reason: "Piano-roll preview for MIDI programme lanes.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: None,
+            ubmod_id: Some("unibrowser.base-midi".into()),
+        }],
+        "js" | "mjs" | "cjs" | "jsx" => vec![SuggestionSeed {
+            mod_id: "base-js".into(),
+            title: "Run user scripts safely".into(),
+            reason: "Lint and run JavaScript with sandboxed tooling.".into(),
+            licence: Some("MIT".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: Some("dbaeumer.vscode-eslint".into()),
+            ubmod_id: None,
+        }],
+        "ts" | "tsx" => vec![SuggestionSeed {
+            mod_id: "base-js".into(),
+            title: "Script and TypeScript tooling".into(),
+            reason: "Typecheck and prove TypeScript in the editor.".into(),
+            licence: Some("MIT".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: Some("ms-vscode.vscode-typescript-next".into()),
+            ubmod_id: None,
+        }],
+        "psd" => vec![SuggestionSeed {
+            mod_id: "base-psd".into(),
+            title: "Photoshop documents".into(),
+            reason: "Community reader for layered PSD previews.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: Some("ms-vscode.vscode-typescript-next".into()),
+            ubmod_id: Some("community.psd-reader".into()),
+        }],
+        "xlsx" | "xls" => vec![SuggestionSeed {
+            mod_id: "base-spreadsheet".into(),
+            title: "Spreadsheets".into(),
+            reason: "Preview workbook sheets and cell values.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
+            open_vsx_id: Some("GrapeCity.gc-excelviewer".into()),
+            ubmod_id: Some("unibrowser.base-csv".into()),
+        }],
         "" => vec![],
         _ => vec![],
     };
-    suggestions
-        .into_iter()
-        .map(|(id, title, open_vsx_id, ubmod_id)| ModSuggestionDto {
-            mod_id: id,
-            title,
-            reason: format!("No bundled handler for .{}", ext),
-            open_vsx_id,
-            ubmod_id,
-        })
-        .collect()
+    seeds.into_iter().map(seed_to_dto).collect()
 }
 
 pub fn suggest_mods_for_unknown_path(path: &str) -> Vec<ModSuggestionDto> {
@@ -99,22 +151,26 @@ pub fn suggest_mods_for_unknown_path(path: &str) -> Vec<ModSuggestionDto> {
         .unwrap_or("");
     let list = suggest_mods_for_extension(ext);
     if list.is_empty() && !ext.is_empty() {
-        return vec![ModSuggestionDto {
-            mod_id: "mod-portal".into(),
-            title: "Browse installable mods".into(),
-            reason: format!("'.{}' is not supported yet", ext),
+        return vec![seed_to_dto(SuggestionSeed {
+            mod_id: "format-support".into(),
+            title: "Format support".into(),
+            reason: "Install a handler to open this file type in Browse.".into(),
+            licence: Some("Apache-2.0".into()),
+            permission_summary: Some("Reads local files only".into()),
             open_vsx_id: None,
             ubmod_id: Some(format!("community.handler-{}", ext)),
-        }];
+        })];
     }
     if list.is_empty() {
-        return vec![ModSuggestionDto {
+        return vec![seed_to_dto(SuggestionSeed {
             mod_id: "mod-portal".into(),
             title: "Browse installable mods".into(),
-            reason: "Pick a format handler from the catalog".into(),
+            reason: "Pick a format handler from the catalogue.".into(),
+            licence: None,
+            permission_summary: None,
             open_vsx_id: None,
             ubmod_id: None,
-        }];
+        })];
     }
     list
 }
@@ -215,7 +271,14 @@ mod tests {
     fn unknown_extension_suggests_portal() {
         let list = suggest_mods_for_unknown_path("file.xyz");
         assert_eq!(list.len(), 1);
-        assert_eq!(list[0].mod_id, "mod-portal");
+        assert_eq!(list[0].title, "Format support");
+    }
+
+    #[test]
+    fn step_suggests_cad_support() {
+        let list = suggest_mods_for_extension("step");
+        assert_eq!(list[0].title, "CAD file support");
+        assert_eq!(list[0].licence.as_deref(), Some("Apache-2.0"));
     }
 
     #[test]

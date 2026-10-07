@@ -27,7 +27,7 @@ describe("Screenshot capture (1600x1000)", () => {
     const svg = path.join(DEMO_PACK, "sample.svg");
     const docx = path.join(FIXTURES, "minimal.docx");
     const unibrow = path.join(DEMO_PACK, "sample.unibrow");
-    const unknown = path.join(FIXTURES, "unknown.ubunknown");
+    const unknown = path.join(FIXTURES, "sample.step");
 
     await openPath(txt);
     await waitForSelector("#text-editor-host:not(.hidden)");

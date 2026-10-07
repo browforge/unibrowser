@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn mod_portal_internal_label() {
         let loc = BrowserLocation::Internal {
-            page: "mods?ext=ubunknown".into(),
+            page: "mods?ext=step".into(),
         };
         assert_eq!(loc.display_label(), "Mod portal");
     }
