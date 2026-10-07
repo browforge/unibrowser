@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && node scripts/write-frontend-stamp.mjs",
-    "test:overflow": "node --experimental-strip-types --test tests/commandOverflow.test.mjs tests/pdfCmOverflow.test.mjs tests/markdownCmOverflow.test.mjs",
+    "test:overflow": "node --experimental-strip-types --test tests/commandOverflow.test.mjs tests/pdfCmOverflow.test.mjs tests/markdownCmOverflow.test.mjs tests/workshopCmOverflow.test.mjs",
+    "test:qa": "node --experimental-strip-types --test tests/catalogInstall.test.mjs tests/pdfHighlightArm.test.mjs tests/workshopCmOverflow.test.mjs",
     "test:icons": "node --experimental-strip-types --test tests/commandIcons.test.mjs",
     "test:contrast": "node --experimental-strip-types --test tests/shellDensityContrast.test.mjs tests/captureLayoutGuards.test.mjs",
     "test:image-chrome": "node --experimental-strip-types --test tests/imageViewerChrome.test.mjs",

@@ -1,7 +1,8 @@
 //! Contract tests: worked examples in docs/design/command-system.md vs resolved model.
 
 use unibrowser_mod_api::{
-    commands, control_ids, CapabilityState, CommandContext, HostContext, Mode, WorkContext,
+    commands, control_ids, CapabilityState, CommandContext, HostContext, Mode, OverflowPriority,
+    WorkContext,
 };
 
 use super::context::{infer_work_context, ResolutionContext};
@@ -481,6 +482,12 @@ fn unibrow_path_resolves_project_family() {
     assert!(labels.contains(&"Add asset"));
     assert!(labels.contains(&"Preview"));
     assert!(labels.contains(&"Export"));
+    let export = project
+        .groups
+        .iter()
+        .find(|group| group.group_id == "unibrowser.group.project.output")
+        .expect("export group");
+    assert_eq!(export.overflow_priority, OverflowPriority::Primary);
 }
 
 #[test]

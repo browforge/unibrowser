@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { showPickList, type PickListItem } from "./inlineUi";
 import { showToast } from "./toast";
 
 interface WorkshopNode {
@@ -609,17 +608,38 @@ export async function renderWorkshop(viewer: WorkshopViewer, root: HTMLElement) 
   };
 
   const openExportDialog = async () => {
-    const formats: PickListItem[] = [
+    inspectorBody.replaceChildren();
+    const heading = document.createElement("section");
+    heading.className = "workshop-inspector-section workshop-export-panel";
+    heading.setAttribute("aria-label", "Export");
+    const title = document.createElement("h3");
+    title.textContent = "Export";
+    const lead = document.createElement("p");
+    lead.className = "workshop-empty";
+    lead.textContent = "Choose a delivery format. The timeline stays visible.";
+    heading.append(title, lead);
+    const formats = [
       { id: "project", label: "Project package", detail: "Portable .unibrow archive" },
       { id: "share", label: "Share package", detail: "Project without derived output" },
       { id: "preview", label: "Preview MP4", detail: "Quick local preview" },
       { id: "h264", label: "H.264 MP4", detail: "Production video" },
     ];
-    const picked = await showPickList("Export programme", formats);
-    if (!picked) {
-      return;
-    }
-    showToast(`${picked.label} export is not wired in this build.`, "info");
+    formats.forEach((format) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "workshop-export-option";
+      button.dataset.exportId = format.id;
+      const name = document.createElement("strong");
+      name.textContent = format.label;
+      const detail = document.createElement("span");
+      detail.textContent = format.detail;
+      button.append(name, detail);
+      button.onclick = () => {
+        showToast(`${format.label} export is not wired in this build.`, "info");
+      };
+      heading.appendChild(button);
+    });
+    inspectorBody.appendChild(heading);
   };
 
   const projectCommand = async (event: Event) => {

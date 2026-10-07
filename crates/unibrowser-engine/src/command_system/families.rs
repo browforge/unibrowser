@@ -177,7 +177,7 @@ fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
             group(
                 "unibrowser.group.project.timeline",
                 "Timeline",
-                OverflowPriority::Primary,
+                OverflowPriority::Normal,
                 vec![
                     control(
                         "unibrowser.control.project.snap",
@@ -205,7 +205,7 @@ fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
             group(
                 "unibrowser.group.project.mode",
                 "Mode",
-                OverflowPriority::Primary,
+                OverflowPriority::Normal,
                 vec![
                     control(
                         "unibrowser.control.project.preview",
@@ -233,7 +233,7 @@ fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
             group(
                 "unibrowser.group.project.output",
                 "Output",
-                OverflowPriority::Low,
+                OverflowPriority::Primary,
                 vec![control(
                     "unibrowser.control.project.export",
                     "unibrowser.project.export",
