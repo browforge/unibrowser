@@ -159,6 +159,23 @@ pub fn close_all_toolbar_windows(app: &AppHandle, state: &AppState) {
     }
 }
 
+/// Dock every detached bar and close its window so settings content stays reachable.
+pub fn dock_all_detached_toolbars(app: &AppHandle, state: &AppState) -> Result<(), String> {
+    let ids: Vec<String> = {
+        let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+        cm.floating_bars
+            .iter()
+            .filter(|bar| bar.presentation == ToolbarPresentation::DetachedWindow)
+            .map(|bar| bar.id.clone())
+            .collect()
+    };
+    for bar_id in ids {
+        set_bar_presentation(state, &bar_id, ToolbarPresentation::InWindow)?;
+        close_toolbar_window(app, &bar_id);
+    }
+    Ok(())
+}
+
 fn persist_layout(state: &AppState) -> Result<(), String> {
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     let path = toolbars_file_path().ok_or("config path unavailable")?;

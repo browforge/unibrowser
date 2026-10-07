@@ -15,8 +15,8 @@ pub mod types;
 pub use command_system::*;
 pub use contributes::{
     CommandLayoutFileV2, ContextLayout, ContributedControl, ContributedFamily,
-    ContributionValidationError, HiddenControlEntry, InsertPoint, LAYOUT_VERSION_V2,
-    ModContributes, MonitorAnchor, ToolbarLayoutEntry, validate_contributes,
+    ContributedToolbar, ContributionValidationError, HiddenControlEntry, InsertPoint,
+    LAYOUT_VERSION_V2, ModContributes, MonitorAnchor, ToolbarLayoutEntry, validate_contributes,
 };
 pub use context::CommandContext;
 pub use manifest::ModManifest;

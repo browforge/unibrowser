@@ -327,11 +327,7 @@ pub fn merge_toolbar_layouts(
                 x: 48.0,
                 y: 120.0,
                 coord_space: ToolbarCoordSpace::Screen,
-                presentation: if bar.detachable {
-                    ToolbarPresentation::DetachedWindow
-                } else {
-                    ToolbarPresentation::InWindow
-                },
+                presentation: ToolbarPresentation::InWindow,
                 monitor_name: None,
                 monitor_edid: None,
                 commands,
@@ -471,6 +467,32 @@ mod tests {
         assert_eq!(
             diag.messages,
             vec!["order cycle [zmod.a, zmod.b] moved to extension-point end"]
+        );
+    }
+
+    #[test]
+    fn detachable_toolbar_defaults_to_in_window() {
+        let mut diag = ContributionMergeDiagnostics::default();
+        let bars = merge_toolbar_layouts(
+            &[LoadedModContribution {
+                mod_name: "cmd-proving".into(),
+                contributes: ModContributes {
+                    toolbars: vec![unibrowser_mod_api::ContributedToolbar {
+                        id: "cmd-proving.detached-markdown".into(),
+                        label: "Markdown proving".into(),
+                        groups: vec![],
+                        floatable: true,
+                        detachable: true,
+                    }],
+                    ..ModContributes::default()
+                },
+            }],
+            &mut diag,
+        );
+        assert_eq!(bars.len(), 1);
+        assert_eq!(
+            bars[0].presentation,
+            crate::ui_command::ToolbarPresentation::InWindow
         );
     }
 }

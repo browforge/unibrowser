@@ -28,6 +28,12 @@ export function applyThemeOverride(theme: "light" | "dark") {
   applyThemeToDocument();
 }
 
+/** Apply a user-chosen theme without re-reading demo-state overrides. */
+export function applyUserThemePreference(theme: "light" | "dark" | "system") {
+  storedPreference = theme;
+  applyThemeToDocument();
+}
+
 export function applyThemeFromDemoState(raw: string) {
   const lower = raw.toLowerCase();
   if (lower.includes("theme-light")) {
