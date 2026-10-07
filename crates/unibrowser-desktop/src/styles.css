@@ -3085,9 +3085,64 @@ body.content-fullscreen::after {
   background: var(--ub-well, #fff);
 }
 
-.pdf-annotation-card--current {
+.pdf-annotation-card--selected {
   border-color: var(--ub-accent, #3d7ea6);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--ub-accent, #3d7ea6) 35%, transparent);
+}
+
+.pdf-annotation-inspector .pdf-annotation-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--ub-text-3, #6a7074);
+}
+
+.pdf-annotation-inspector .pdf-annotation-field input {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ub-text-1, #252a30);
+}
+
+.pdf-annotations-index-title {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ub-text-3, #6a7074);
+}
+
+.pdf-annotations-index {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pdf-annotation-index-row {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ub-text-2, #4b5052);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pdf-annotation-index-row:hover,
+.pdf-annotation-index-row:focus-visible {
+  background: rgb(31 35 38 / 6%);
+}
+
+.pdf-highlight-rect--selected {
+  outline: 2px solid var(--ub-accent, #3d7ea6);
+  outline-offset: 1px;
 }
 
 .pdf-annotation-card-head {

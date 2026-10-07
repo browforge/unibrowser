@@ -489,7 +489,8 @@ function pdfAnnotationKindLabel(kind: string | undefined): string {
 function rebuildPdfAnnotationsDock(
   annotDock: HTMLElement,
   highlights: PdfHighlightDto[],
-  currentPage: number,
+  selectedIndex: number,
+  onSelect: (index: number) => void,
   onJump: (page: number) => void,
 ) {
   annotDock.innerHTML = "";
@@ -497,7 +498,7 @@ function rebuildPdfAnnotationsDock(
   head.className = "pdf-annotations-head";
   const annotTitle = document.createElement("h3");
   annotTitle.className = "pdf-annotations-title";
-  annotTitle.textContent = `Annotations ${highlights.length}`;
+  annotTitle.textContent = `Annotations (${highlights.length})`;
   head.appendChild(annotTitle);
   annotDock.appendChild(head);
   const annotBody = document.createElement("div");
@@ -508,90 +509,93 @@ function rebuildPdfAnnotationsDock(
     empty.textContent = "No annotations on this document.";
     annotBody.appendChild(empty);
   } else {
-    const list = document.createElement("ul");
-    list.className = "pdf-annotations-list";
-    highlights.forEach((h, index) => {
-      const li = document.createElement("li");
-      li.className = "pdf-annotation-card";
-      if (h.page === currentPage) {
-        li.classList.add("pdf-annotation-card--current");
-      }
-      const row = document.createElement("div");
-      row.className = "pdf-annotation-card-head";
-      const identity = document.createElement("span");
-      identity.className = "pdf-annotation-identity";
-      const icon = document.createElement("span");
-      icon.className = `pdf-annotation-icon pdf-annotation-icon--${h.kind ?? "highlight"}`;
-      icon.setAttribute("aria-hidden", "true");
-      icon.textContent = h.kind === "note" ? "N" : h.kind === "area" ? "A" : "H";
-      const swatch = document.createElement("span");
-      swatch.className = "pdf-annotation-colour";
-      swatch.style.backgroundColor = h.color;
-      swatch.setAttribute("aria-label", `Annotation colour ${h.color}`);
-      const kind = document.createElement("span");
-      kind.className = "pdf-annotation-kind";
-      kind.textContent = pdfAnnotationKindLabel(h.kind);
-      identity.append(icon, swatch, kind);
-      const pageLink = document.createElement("button");
-      pageLink.type = "button";
-      pageLink.className = "pdf-annotation-page";
-      pageLink.textContent = `Page ${h.page}`;
-      pageLink.onclick = () => onJump(h.page);
-      row.appendChild(identity);
-      row.appendChild(pageLink);
-      const title = document.createElement("p");
-      title.className = "pdf-annotation-label";
-      title.textContent = h.label ?? `Annotation ${index + 1}`;
-      const meta = document.createElement("p");
-      meta.className = "pdf-annotation-meta";
-      const who = h.author ?? "Unknown";
-      const when = formatPdfAnnotationTime(h.created_at_ms);
-      meta.textContent = when ? `${who} · ${when}` : who;
-      const appearance = document.createElement("details");
-      appearance.className = "pdf-annotation-appearance";
-      const appearanceTrigger = document.createElement("summary");
-      appearanceTrigger.setAttribute("aria-label", "Annotation style");
-      const appearanceSwatch = document.createElement("span");
-      appearanceSwatch.className = "pdf-annotation-colour";
-      appearanceSwatch.style.backgroundColor = h.color;
-      appearanceTrigger.append(appearanceSwatch, document.createTextNode("Style"));
-      const popover = document.createElement("div");
-      popover.className = "pdf-annotation-swatch-popover";
-      const colour = document.createElement("input");
-      colour.type = "color";
-      colour.value = h.kind === "area" ? "#c0392b" : "#ffe600";
-      colour.setAttribute("aria-label", "Annotation colour");
-      const thickness = document.createElement("input");
-      thickness.type = "range";
-      thickness.min = "1";
-      thickness.max = "8";
-      thickness.value = h.kind === "area" ? "2" : "1";
-      thickness.setAttribute("aria-label", "Annotation thickness");
-      popover.append(colour, thickness);
-      appearance.append(appearanceTrigger, popover);
-      const reply = document.createElement("textarea");
-      reply.className = "pdf-annotation-reply";
-      reply.rows = 2;
-      reply.placeholder = "Reply to annotation";
-      const actions = document.createElement("div");
-      actions.className = "pdf-annotation-actions";
-      const resolveBtn = document.createElement("button");
-      resolveBtn.type = "button";
-      resolveBtn.className = "pdf-annotation-resolve";
-      resolveBtn.textContent = "Resolve";
-      const replyBtn = document.createElement("button");
-      replyBtn.type = "button";
-      replyBtn.className = "pdf-annotation-reply-btn";
-      replyBtn.textContent = "Post reply";
-      actions.append(appearance, replyBtn, resolveBtn);
-      li.appendChild(row);
-      li.appendChild(title);
-      li.appendChild(meta);
-      li.appendChild(reply);
-      li.appendChild(actions);
-      list.appendChild(li);
-    });
-    annotBody.appendChild(list);
+    const safeIndex =
+      selectedIndex >= 0 && selectedIndex < highlights.length ? selectedIndex : 0;
+    const selected = highlights[safeIndex];
+    const inspector = document.createElement("section");
+    inspector.className = "pdf-annotation-inspector pdf-annotation-card pdf-annotation-card--selected";
+    inspector.setAttribute("aria-label", "Selected annotation");
+    const toolRow = document.createElement("div");
+    toolRow.className = "pdf-annotation-card-head";
+    const identity = document.createElement("span");
+    identity.className = "pdf-annotation-identity";
+    const icon = document.createElement("span");
+    icon.className = `pdf-annotation-icon pdf-annotation-icon--${selected.kind ?? "highlight"}`;
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = selected.kind === "note" ? "N" : selected.kind === "area" ? "A" : "H";
+    const kind = document.createElement("span");
+    kind.className = "pdf-annotation-kind";
+    kind.textContent = pdfAnnotationKindLabel(selected.kind);
+    identity.append(icon, kind);
+    const pageLink = document.createElement("button");
+    pageLink.type = "button";
+    pageLink.className = "pdf-annotation-page";
+    pageLink.textContent = `Page ${selected.page}`;
+    pageLink.onclick = () => onJump(selected.page);
+    toolRow.append(identity, pageLink);
+    const title = document.createElement("label");
+    title.className = "pdf-annotation-field";
+    const titleCaption = document.createElement("span");
+    titleCaption.textContent = "Label";
+    const titleInput = document.createElement("input");
+    titleInput.type = "text";
+    titleInput.value = selected.label ?? `Annotation ${safeIndex + 1}`;
+    titleInput.setAttribute("aria-label", "Annotation label");
+    title.append(titleCaption, titleInput);
+    const meta = document.createElement("p");
+    meta.className = "pdf-annotation-meta";
+    const who = selected.author ?? "Unknown";
+    const when = formatPdfAnnotationTime(selected.created_at_ms);
+    meta.textContent = when ? `${who} · ${when}` : who;
+    const colourField = document.createElement("label");
+    colourField.className = "pdf-annotation-field";
+    const colourCaption = document.createElement("span");
+    colourCaption.textContent = "Colour";
+    const colour = document.createElement("input");
+    colour.type = "color";
+    colour.value = selected.kind === "area" ? "#c0392b" : "#ffe600";
+    colour.setAttribute("aria-label", "Annotation colour");
+    colourField.append(colourCaption, colour);
+    const reply = document.createElement("textarea");
+    reply.className = "pdf-annotation-reply";
+    reply.rows = 3;
+    reply.placeholder = "Reply to annotation";
+    const actions = document.createElement("div");
+    actions.className = "pdf-annotation-actions";
+    const resolveBtn = document.createElement("button");
+    resolveBtn.type = "button";
+    resolveBtn.className = "pdf-annotation-resolve";
+    resolveBtn.textContent = "Resolve";
+    const replyBtn = document.createElement("button");
+    replyBtn.type = "button";
+    replyBtn.className = "pdf-annotation-reply-btn";
+    replyBtn.textContent = "Post reply";
+    actions.append(resolveBtn, replyBtn);
+    inspector.append(toolRow, title, meta, colourField, reply, actions);
+    annotBody.appendChild(inspector);
+
+    if (highlights.length > 1) {
+      const indexTitle = document.createElement("h4");
+      indexTitle.className = "pdf-annotations-index-title";
+      indexTitle.textContent = "Other annotations";
+      annotBody.appendChild(indexTitle);
+      const list = document.createElement("ul");
+      list.className = "pdf-annotations-index";
+      highlights.forEach((h, index) => {
+        if (index === safeIndex) {
+          return;
+        }
+        const li = document.createElement("li");
+        const pick = document.createElement("button");
+        pick.type = "button";
+        pick.className = "pdf-annotation-index-row";
+        pick.textContent = `${pdfAnnotationKindLabel(h.kind)} · ${h.label ?? `Annotation ${index + 1}`}`;
+        pick.onclick = () => onSelect(index);
+        li.appendChild(pick);
+        list.appendChild(li);
+      });
+      annotBody.appendChild(list);
+    }
   }
   annotDock.appendChild(annotBody);
 }
@@ -626,6 +630,7 @@ async function renderPdf(
   } catch {
     highlights = [];
   }
+  let selectedHighlightIndex = 0;
 
   const workspace = document.createElement("div");
   workspace.className = "pdf-workspace";
@@ -653,21 +658,36 @@ async function renderPdf(
   workspace.appendChild(annotDock);
 
   const syncAnnotationDock = () => {
-    rebuildPdfAnnotationsDock(annotDock, highlights, currentPage, (p) => {
-      void goToPage(p);
-    });
+    rebuildPdfAnnotationsDock(
+      annotDock,
+      highlights,
+      selectedHighlightIndex,
+      (index) => {
+        selectedHighlightIndex = index;
+        void drawPage(currentPage);
+        syncAnnotationDock();
+      },
+      (p) => {
+        void goToPage(p);
+      },
+    );
     reportViewerPdfPage(currentPage, doc.numPages, highlights.length);
   };
 
   const paintHighlights = (pageNum: number, host: HTMLElement, width: number, height: number) => {
     host.querySelectorAll(".pdf-highlight-rect").forEach((el) => el.remove());
-    for (const h of highlights) {
+    highlights.forEach((h, index) => {
       if (h.page !== pageNum) {
-        continue;
+        return;
       }
       const box = document.createElement("div");
       const isArea = h.kind === "area";
       box.className = isArea ? "pdf-highlight-rect pdf-area-rect" : "pdf-highlight-rect";
+      if (index === selectedHighlightIndex) {
+        box.classList.add("pdf-highlight-rect--selected");
+        box.setAttribute("aria-current", "true");
+      }
+      box.tabIndex = 0;
       const cssRect = normalisedPdfRectToCss(h, width, height);
       box.style.left = `${cssRect.left}px`;
       box.style.top = `${cssRect.top}px`;
@@ -678,8 +698,13 @@ async function renderPdf(
       } else {
         box.style.background = h.color;
       }
+      box.onclick = () => {
+        selectedHighlightIndex = index;
+        syncAnnotationDock();
+        paintHighlights(pageNum, host, width, height);
+      };
       host.appendChild(box);
-    }
+    });
   };
 
   const thumbsPanel = document.createElement("aside");
