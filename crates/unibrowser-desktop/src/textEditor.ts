@@ -181,6 +181,7 @@ async function pushToHost() {
     selectionStart: start,
     selectionEnd: end,
   });
+  window.dispatchEvent(new CustomEvent("unibrowser-text-synced"));
   if (markdownPreview && previewEl && loadedPath) {
     await applyMarkdownPreview(previewEl, model.getValue(), loadedPath, previewTocEl);
   }

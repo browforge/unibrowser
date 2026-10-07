@@ -152,7 +152,18 @@ export function appendModSuggestionCard(
     ? "mod-card-install mod-card-install--flat"
     : "mod-card-action mod-card-action--primary";
   action.textContent = "Install";
-  action.onclick = () => onPrimary(suggestion);
+  action.onclick = () => {
+    onPrimary(suggestion);
+    let note = card.querySelector<HTMLElement>(".mod-card-install-status");
+    if (!note) {
+      note = document.createElement("p");
+      note.className = "mod-card-install-status viewer-note";
+      footer.appendChild(note);
+    }
+    note.textContent = suggestion.open_vsx_id
+      ? "Install copied the Open VSX id into Search. Turn the network on to fetch the package."
+      : "This card cannot finish install yet. Sideload a .vsix from Installed.";
+  };
   const details = document.createElement("details");
   details.className = "mod-result-details";
   details.open = false;

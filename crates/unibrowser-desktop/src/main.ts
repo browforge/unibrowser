@@ -3292,6 +3292,12 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     { menuButtonId: "title-menu-btn" },
   );
   void loadKeybindingHints();
+  window.addEventListener("unibrowser-text-synced", () => {
+    const saveSlot = document.querySelector<HTMLElement>('[data-status-item="document-save"]');
+    if (saveSlot) {
+      saveSlot.textContent = t("status.unsaved");
+    }
+  });
   window.addEventListener("unibrowser-autosave-tick", (event) => {
     const detail = (event as CustomEvent<number>).detail;
     if (typeof detail === "number" && detail > 0) {
