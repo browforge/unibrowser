@@ -1841,8 +1841,8 @@ async function applyState(data: TabContentDto) {
     lastBrowseFolderPath = data.browse_folder_path;
   }
   const active = data.tabs[data.active_index];
-  const showText = Boolean(data.text_document) && !active?.is_http;
   const showViewer = Boolean(data.document_viewer) && !active?.is_http;
+  const showText = Boolean(data.text_document) && !active?.is_http && !showViewer;
   const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
   const activeTabForNav = data.tabs[data.active_index];
