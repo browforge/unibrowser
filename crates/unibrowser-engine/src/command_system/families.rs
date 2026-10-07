@@ -1150,13 +1150,13 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
     let add_annotation = ResolvedGroup {
         group_id: "unibrowser.group.pdf.add-annotation".into(),
         label: "Add".into(),
-        overflow_priority: OverflowPriority::Primary,
+        overflow_priority: OverflowPriority::Low,
         controls: annotate.controls[3..].to_vec(),
     };
     let annotation_nav = ResolvedGroup {
         group_id: "unibrowser.group.pdf.annotation-nav".into(),
         label: "Annotations".into(),
-        overflow_priority: OverflowPriority::Normal,
+        overflow_priority: OverflowPriority::Low,
         controls: vec![
             control_spec(
                 control_ids::PDF_ANNOTATION_PREVIOUS,
