@@ -16,6 +16,7 @@ Markdown docs for contributors and maintainers. The product README stays the ent
 | Doc | Purpose |
 | --- | --- |
 | [principles.md](principles.md) | Core philosophy and decision checklist (tiebreaker) |
+| [positioning.md](positioning.md) | Platform vs suite clone; content kinds; local-first Save |
 | [vision.md](vision.md) | Goals: unified file + web shell, mod-driven formats |
 | [architecture.md](architecture.md) | Crate layout, data flow |
 | [roadmap.md](roadmap.md) | Phase plan |
@@ -97,6 +98,8 @@ ADRs are numbered in `docs/adr/`. Read the ones that touch your area before larg
 | [0024](adr/0024-live-sources-compositor-outputs.md) | Live sources, compositor, outputs | `crates/unibrowser-live`, `mods/live-proving`, [live-mod-authoring.md](live-mod-authoring.md) |
 | [0025](adr/0025-mod-apis-and-dependencies.md) | Mod APIs, semver deps, projections | `crates/unibrowser-mod-host` (`resolve_mod_graph`, `ModApiRegistry`) |
 | [0026](adr/0026-ai-assistant-as-mod.md) | AI assistant as mod (OpenAI-compatible) | `crates/unibrowser-ai-assistant`, `mods/ai-assistant` |
+| [0027](adr/0027-command-system-capabilities-and-extensibility.md) | Command capabilities and mod UI contributions | [design/command-system.md](design/command-system.md) |
+| [0028](adr/0028-platform-content-kinds-and-plugin-scope.md) | Platform model: content kinds, full-scope plugins | [positioning.md](positioning.md), CMD-12–15 in [ui-implementation-plan.md](design/ui-implementation-plan.md) |
 | [projections-coverage.md](projections-coverage.md) | Text/raster projection matrix | `crates/unibrowser-projections` |
 | [principles.md](principles.md) | Product principles (local-first, sacred save) | ADRs 0021–0023 |
 

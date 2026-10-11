@@ -1,12 +1,18 @@
 # Command system authoring for mods
 
-This guide complements [command-system.md](../design/command-system.md) for mod authors contributing commands, controls, families, toolbars, and capability providers.
+This guide complements [command-system.md](../design/command-system.md) for mod authors contributing commands, controls, families, toolbars, panels, status items, and capability providers. Platform scope: [ADR 0028](../adr/0028-platform-content-kinds-and-plugin-scope.md).
+
+## Content kinds
+
+Declare `content_kinds` on commands, capability providers, and kind-specific panels. Use core ids (`unibrowser.content.image`, `unibrowser.content.rich_text`, …) or register extension kinds under your mod namespace.
+
+Format mods should expose **embedded nodes** (image inside DOCX, inline asset in Markdown) so kind-targeted tools work without export round trips. Capability is **per content kind and per host format** (supported, emulated, unsupported with reason).
 
 ## Provider resolution
 
-1. The host builds a **resolution context** from the active document (path, mode, selection, work context).
-2. For each control, the host computes a **base capability** from work context (plain text, Markdown, PDF, and so on).
-3. **Capability providers** (native or WASM) may override capability, selection, value, and emulation notes for controls in their declared families.
+1. The host builds a **resolution context** from the active document (host format, mode, selection mapped to **content-kind nodes**, work context).
+2. For each control, the host computes a **base capability** from selection kinds and host format (not from file extension alone).
+3. **Capability providers** (native or WASM) may override capability, selection, value, and emulation notes for controls in their declared families and kinds.
 4. **User provider overrides** win over direct backend support until the user resets to the default provider.
 5. Provider callbacks are read-only for capability snapshots and bounded by time; they cannot block Save or cover content.
 
@@ -15,7 +21,9 @@ Register a provider in your mod manifest:
 ```json
 "capability_providers": [{
   "id": "my-mod::native",
-  "families": ["unibrowser.family.text-formatting"],
+  "families": ["unibrowser.family.image-adjust"],
+  "content_kinds": ["unibrowser.content.image"],
+  "host_formats": ["png", "docx"],
   "runtime": "native",
   "priority": 10
 }]
@@ -51,6 +59,11 @@ Declare only what you need in `capabilities`:
 | `ui.command_manager.contribute` | Insert controls at declared points |
 | `ui.toolbar.contribute` | Add floating toolbars |
 | `ui.toolbar.detach` | Allow detached toolbar windows |
+| `ui.panel.contribute` | Docked panel in an allowed region |
+| `ui.status.contribute` | Status-bar item in a fixed slot |
+| `content.read.tree` / `content.read.selection` | Traverse or read selection as kind nodes |
+| `content.edit` | Host transactions on kind nodes |
+| `provider.render` / `provider.analysis` | Kind-scoped provider hooks |
 
 Missing permission means the host ignores the contribution and may record a diagnostic.
 
@@ -78,4 +91,5 @@ Fix manifests or IDs; diagnostics never block saving.
 
 - [command-system.md](../design/command-system.md) — worked examples and data contracts
 - [ADR 0027](../adr/0027-command-system-capabilities-and-extensibility.md)
+- [ADR 0028](../adr/0028-platform-content-kinds-and-plugin-scope.md)
 - [api-gap-upstream.md](../api-gap-upstream.md) — request new host APIs upstream

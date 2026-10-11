@@ -1165,6 +1165,78 @@ Acceptance:
 - Empty alerts and ordinary AI state consume no status space.
 - Narrow status retains the primary task state and active warnings.
 
+## Phase H: Content-kind platform (ADR 0028)
+
+Runtime and API tickets implied by [ADR 0028](../adr/0028-platform-content-kinds-and-plugin-scope.md). Docs-only direction is accepted; implementation follows here.
+
+### CMD-12: Content-kind registry and schema
+
+Status: open.
+
+Work:
+
+- Versioned `content_kind_schema` in mod API; core kinds under `unibrowser.content.*`.
+- Host registry: labels, optional parent/child relationships, extension registration with `content.kind.register`.
+- Manifest validation for `content_kinds` on commands, providers, panels, and status contributions.
+
+Likely files: `unibrowser-mod-api`, `unibrowser-mod-host`, manifest schema tests.
+
+Acceptance:
+
+- Contract tests for canonical ids and namespace rejection rules.
+- Unknown kind on a contribution fails validation with a clear diagnostic; Save unaffected.
+
+### CMD-13: Embedded-content tree traversal
+
+Status: open.
+
+Work:
+
+- Document content tree API: node ids, kind, parent, host format, blob handles.
+- Selection maps to node paths (root and embedded).
+- Format backends (`base-*`) expose minimal trees for proving (image in rich doc, inline asset in Markdown).
+
+Likely files: `unibrowser-engine`, document backends, `HostContext` / selection DTOs.
+
+Acceptance:
+
+- Integration test: select embedded image node in a host fixture; traversal returns kind `unibrowser.content.image`.
+- Mixed root + embedded selection returns deterministic kind list for resolver.
+
+### CMD-14: Per-content-kind capability resolver
+
+Status: open.
+
+Work:
+
+- Extend resolver inputs: `selection_content_kinds`, `host_format_id`, `selection_node_paths`.
+- Provider declarations accept `content_kinds` and `host_formats`; matrix (kind × host) → supported / emulated / unsupported.
+- Update `ResolvedControl` diagnostics to cite kind and host when greyed.
+
+Likely files: `ui_command.rs`, capability provider registry, `command-system.md` worked examples.
+
+Acceptance:
+
+- Same control id: supported on PNG host, emulated or unsupported on host that cannot persist metadata — placement unchanged.
+- Provider failure and timeout degrade to unsupported; Save controls bypass overlays.
+
+### CMD-15: Plugin contribution points (panels, views, providers, services)
+
+Status: open.
+
+Work:
+
+- Manifest `contributes.panels`, `views`, `status_items`, `services`, and kind-scoped `providers` merged into fixed shell slots.
+- Permission gates: `ui.panel.contribute`, `ui.view.contribute`, `ui.status.contribute`, `service.register`, `provider.*`.
+- Portal hints: recommend mods by missing content kind or host format (wire to existing portal cards).
+
+Likely files: `modPortalUi.ts`, mod host loader, dock/status registration APIs.
+
+Acceptance:
+
+- Proving mod contributes one panel and one status item without covering content or Save.
+- Disabled mod removes contributions; orphaned layout entries follow CMD-10 rules.
+
 ## Visual QA remediation: VQA series
 
 Source audit: [visual-qa-2026-10-06.md](visual-qa-2026-10-06.md).

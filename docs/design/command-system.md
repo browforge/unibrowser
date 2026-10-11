@@ -14,6 +14,7 @@ The governing product idea is trustworthy repetition: the same job has the same 
 4. Make extension broad enough for specialist tools without letting a mod cover work or interfere with saving.
 5. Expose the same commands through the Command Manager, floating toolbars, context menus, keyboard bindings, and the command palette.
 6. Keep the engine small. Core owns contracts, resolution, placement, persistence, and safety. Format behaviour belongs in backends and mods.
+7. Target **content kinds** (image, rich text, audio clip, …), not file extensions alone, so the same control works on standalone files and embedded nodes ([ADR 0028](../adr/0028-platform-content-kinds-and-plugin-scope.md)).
 
 ## Non-goals
 
@@ -198,9 +199,12 @@ A context is the host snapshot used to resolve capability and state:
 
 ```text
 Context
-  document_type
+  host_format_id          # persistence backend for the root file (docx, png, markdown, …)
+  document_type           # work context / viewer lane (legacy alias; prefer host_format_id)
   backend_id
   mode
+  selection_content_kinds[]   # canonical content-kind ids for current selection
+  selection_node_paths[]      # optional paths into embedded content tree
   selection_domains[]
   selection_count
   editable
@@ -209,7 +213,28 @@ Context
   permission_grants[]
 ```
 
-Context changes include active tab, active backend, selection, editability, active tool, and mod availability. Capability resolution is pure for a given snapshot and can be tested without UI.
+Context changes include active tab, active backend, selection (including embedded content-kind nodes), editability, active tool, and mod availability. Capability resolution is pure for a given snapshot and can be tested without UI.
+
+### 7. Content kind
+
+A **content kind** is the semantic type of a node in the document content tree. Tools and capability providers declare which kinds they serve; format mods expose trees of kind-tagged nodes.
+
+```text
+ContentKindNode
+  node_id
+  kind_id                 # e.g. unibrowser.content.image
+  parent_id?
+  host_format_id          # backend that owns persistence at this node
+  blob_ref?               # sidecar or embedded bytes handle
+```
+
+Core maintains a versioned **content-kind registry** (`content_kind_schema`). Extension kinds use the plugin namespace; core kinds use `unibrowser.content.*`.
+
+**Traversal:** the host walks embedded nodes (image in DOCX, frame in video, inline asset in Markdown) so selection and capability apply to the **node**, not only the root extension. Mixed-kind selections combine capability per control using the same rules as mixed values (deterministic apply, grey unsupported with reason).
+
+**Matrix:** capability state is resolved per **(control, selection content kind, host format)**. Example: Assign colour profile on `unibrowser.content.image` is supported for PNG, emulated (baked) for a host that only stores pixels, unsupported with reason when no image is selected — placement unchanged.
+
+See [positioning.md](../positioning.md) for the product framing.
 
 ## Capability negotiation
 
@@ -245,13 +270,14 @@ The optional marker is a small dotted corner or approximation glyph. It must not
 
 For every family placement:
 
-1. Start with the family default capability for the active context.
-2. Apply the context's family override.
-3. Apply the winning per-control provider override.
-4. Resolve selection state and value.
-5. Apply the user's visibility choice.
-6. Recheck permission and trust policy.
-7. Return one resolved control model to every surface.
+1. Map selection to **content-kind nodes** (root or embedded).
+2. Start with the family default capability for the active context and dominant selection kind.
+3. Apply the context's family override for the active **host format**.
+4. Apply the winning per-control provider override for **(kind, host format)**.
+5. Resolve selection state and value.
+6. Apply the user's visibility choice.
+7. Recheck permission and trust policy.
+8. Return one resolved control model to every surface.
 
 The result is never inferred from whether a command handler happened to register. Missing providers resolve to unsupported with a reason.
 
@@ -417,8 +443,25 @@ Illustrative `info.json` contribution:
       {
         "id": "markdown-baseline.provider",
         "families": ["unibrowser.family.text-formatting"],
-        "contexts": ["text/markdown"],
+        "content_kinds": ["unibrowser.content.rich_text", "unibrowser.content.text_run"],
+        "host_formats": ["markdown"],
         "runtime": "selection"
+      }
+    ],
+    "panels": [
+      {
+        "id": "markdown-baseline.outline",
+        "region": "left",
+        "title": "Outline",
+        "content_kinds": ["unibrowser.content.rich_text"]
+      }
+    ],
+    "status_items": [
+      {
+        "id": "markdown-baseline.word-count",
+        "slot": "right",
+        "priority": 40,
+        "content_kinds": ["unibrowser.content.text_run"]
       }
     ]
   }
@@ -484,16 +527,19 @@ shell, editor, Command Manager row, or onboarding card is mounted):
 
 ### Contributions
 
-Mods may:
+Mods may contribute into **fixed host slots** only ([ADR 0028](../adr/0028-platform-content-kinds-and-plugin-scope.md)):
 
-- add commands;
+- add commands (declare `content_kinds[]` on tools that are kind-specific);
 - add controls to declared family extension points;
 - contribute new groups or families;
-- contribute Command Manager tabs for genuinely distinct contexts;
-- suggest toolbars;
-- make toolbars floatable or detachable to another monitor;
-- provide direct handlers or emulations;
-- provide value and mixed-selection state.
+- contribute Command Manager tabs for genuinely distinct work contexts;
+- suggest toolbars; float or detach toolbars to another monitor;
+- contribute **docked panels** and **views** in allowed regions;
+- contribute **status-bar items** in left/right slots;
+- register **capability providers** per family and content kind;
+- register **render/analysis providers** for declared kinds;
+- provide direct handlers, emulations, value, and mixed-selection state;
+- expose format read/write and content-kind trees for host formats they own.
 
 Mods may not:
 
@@ -545,6 +591,14 @@ Permissions are least-privilege and surfaced before enablement:
 | `ui.command_manager.contribute` | Add families, groups, controls, or tabs |
 | `ui.toolbar.contribute` | Suggest host-rendered toolbars |
 | `ui.toolbar.detach` | Allow host to detach a toolbar window |
+| `ui.panel.contribute` | Docked panel in an allowed region |
+| `ui.view.contribute` | Host-hosted view surface (no arbitrary DOM) |
+| `ui.status.contribute` | Status-bar item in a fixed slot |
+| `content.read.tree` | Traverse content-kind nodes |
+| `content.read.selection` | Selection mapped to kinds and node paths |
+| `content.edit` | Edits via host transactions per node |
+| `content.kind.register` | Extension kinds under plugin namespace |
+| `provider.render` / `provider.analysis` | Kind-scoped provider hooks |
 
 Native T1 mods still require explicit trust. WASM providers receive only granted host imports. All edits pass through host transactions and undo. Capability resolution is read-only.
 
@@ -671,7 +725,7 @@ Families (full target):
 - Text Formatting, only when a text layer is selected.
 - Export.
 
-With a bitmap selection, the Text Formatting family stays in its canonical tab position but is unsupported. With a text layer, it resolves according to the layer engine.
+With a bitmap selection (`unibrowser.content.image`), the Text Formatting family stays in its canonical tab position but is unsupported. With a text layer (`unibrowser.content.rich_text` or run), it resolves according to the layer engine and host format.
 
 Mod authoring: see [command-system-authoring.md](../mods/command-system-authoring.md).
 

@@ -1,6 +1,6 @@
 # Extension host (VSIX execution)
 
-VSIX packages install metadata and (optionally) run extension JavaScript through an **opt-in Node sidecar** ([ADR 0018](adr/0018-extension-host-stub.md), [ADR 0014](adr/0014-vsix-compatibility-layer.md)).
+VSIX packages install metadata and (optionally) run extension JavaScript through an **opt-in Node sidecar** ([ADR 0018](adr/0018-extension-host-stub.md), [ADR 0014](adr/0014-vsix-compatibility-layer.md)). VSIX is a **compat lane** alongside native platform plugins ([ADR 0028](adr/0028-platform-content-kinds-and-plugin-scope.md)): contributions map into the same fixed Command Manager, palette, and (when implemented) panel slots; kind-specific tools should declare `content_kinds` like native mods.
 
 ## What works
 

@@ -1,5 +1,7 @@
 # Unibrowser Plugin SDK (draft)
 
+Plugins are not limited to new file extensions: they may register commands, UI into fixed slots (Command Manager, panels, status bar), content-kind tools, providers, and services ([ADR 0028](../adr/0028-platform-content-kinds-and-plugin-scope.md), [positioning.md](../positioning.md)).
+
 Compiled mods ship as native libraries (`cdylib` on Linux/macOS, `dll` on Windows) that export a small C ABI. With the `dynamic-mods` feature, the host loads **enabled** mods from the user mods directory (see below). Linux is the first platform where cdylibs are loaded at runtime. Rust mods can use the same symbols as the reference stub; other languages link against [`ub-mod.h`](ub-mod.h).
 
 Signing policy (stub): [signing.md](signing.md).

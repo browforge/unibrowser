@@ -30,7 +30,7 @@ See [ADR 0023](adr/0023-saving-is-sacred.md).
 
 ## Mods on a small engine
 
-See [ADR 0021](adr/0021-diagnostics-host-lsp.md) and [ADR 0022](adr/0022-proofing-as-mods.md).
+See [ADR 0021](adr/0021-diagnostics-host-lsp.md), [ADR 0022](adr/0022-proofing-as-mods.md), and [ADR 0028](adr/0028-platform-content-kinds-and-plugin-scope.md) (platform scope and content kinds).
 
 - Generic diagnostics host + removable mods (spelling, grammar LSP, format checkers).
 - Bundled defaults (e.g. en-NZ spelling, Harper) ship for out-of-the-box squiggles but stay uninstallable mods.

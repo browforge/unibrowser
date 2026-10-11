@@ -1,10 +1,14 @@
 # Mod system overview
 
-Unibrowser mods are **compiled loadables** (DLL / `.so` / `.dylib` and/or **WASM**), not JSON programs. A small **manifest** (`info.json`) holds metadata, dependencies, API version, and **entry points** only ([ADR 0002](adr/0002-mod-system-and-sandboxing.md), [ADR 0006](adr/0006-mod-manifest-and-versioning.md)).
+Unibrowser is a **platform**: plugins (mods) can add formats, features, views, panels, toolbars, commands, scripts, providers, and services — not only “open this extension”. Product framing: [positioning.md](positioning.md). Platform contracts: [ADR 0028](adr/0028-platform-content-kinds-and-plugin-scope.md).
+
+Mods are **compiled loadables** (DLL / `.so` / `.dylib` and/or **WASM**), not JSON programs. A small **manifest** (`info.json`) holds metadata, dependencies, API version, and **entry points** only ([ADR 0002](adr/0002-mod-system-and-sandboxing.md), [ADR 0006](adr/0006-mod-manifest-and-versioning.md)).
 
 **VS Code `.vsix`** is a separate **compat import** lane ([ADR 0014](adr/0014-vsix-compatibility-layer.md)) — do not conflate with the native mod ABI.
 
 **Engines vs mods:** the product ships **host engines** (text, document, raster, vector, …); each lane has a **proving `base-*` mod**. **One mod may use several engines** (e.g. PDF → vector + raster + document). See [architecture.md](architecture.md).
+
+**Content kinds:** tools declare which **content kinds** they target (image, rich text, audio clip, …). Format mods expose **content-kind trees** (including embedded nodes). Capability is resolved per kind and per **host format** — see [command-system.md](design/command-system.md).
 
 ## Native mods (first-class)
 
@@ -78,8 +82,10 @@ See [ADR 0014](adr/0014-vsix-compatibility-layer.md).
 | Need | Prefer |
 |------|--------|
 | New file format / timeline / backend | **Native** compiled mod (T0–T2) |
+| Tool for a content kind (colour profile on any image node) | Native mod + `content_kinds` + capability provider |
+| Dock panel, status item, or service | Native mod with `ui.panel.contribute` / `ui.status.contribute` / `service.register` |
 | Syntax highlighting | VSIX import (V2) or WASM/native grammar mod |
-| Cross-app command with real enablement | Native handler in compiled mod |
+| Cross-format command with honest capability | Native handler + content-kind declarations |
 | Reuse VS Code extension (metadata only) | VSIX V1 |
 | GPL office kernel | T3 sidecar |
 
