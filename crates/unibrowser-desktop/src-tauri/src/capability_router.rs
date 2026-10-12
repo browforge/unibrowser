@@ -66,14 +66,14 @@ pub fn open_backend_for_path(
                 "capability_router: provider {} for {} failed to open {}; using legacy fallback",
                 mod_name,
                 capability_id,
-                path
+                path.display()
             );
         } else {
             eprintln!(
                 "capability_router: no provider for {} ({}) on {}; using legacy fallback",
                 capability_id,
                 resolved.reason,
-                path
+                path.display()
             );
         }
         return legacy_open_backend(path, effective_ext);

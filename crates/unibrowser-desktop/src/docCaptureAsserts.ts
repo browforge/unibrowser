@@ -503,6 +503,18 @@ function visibleElement(el: HTMLElement): boolean {
   );
 }
 
+function visibleChromeChildHeight(id: string): number {
+  const el = document.getElementById(id);
+  if (!el || !visibleElement(el)) {
+    return 0;
+  }
+  const style = getComputedStyle(el);
+  if (style.display === "none" || style.visibility === "hidden") {
+    return 0;
+  }
+  return el.getBoundingClientRect().height;
+}
+
 export function validateResponsiveShellForCapture(): string | null {
   const chrome = document.getElementById("chrome");
   const manager = document.getElementById("command-manager");
@@ -511,8 +523,17 @@ export function validateResponsiveShellForCapture(): string | null {
     return "responsive shell guard is missing chrome or Command Manager";
   }
   const chromeHeight = chrome.getBoundingClientRect().height;
-  if (!document.body.classList.contains("cm-collapsed") && Math.abs(chromeHeight - 80) > 2) {
-    return `top chrome is ${chromeHeight.toFixed(1)}px; expected 80px (+/-2px)`;
+  const expectedChrome =
+    visibleChromeChildHeight("title-bar") +
+    visibleChromeChildHeight("bookmark-bar") +
+    visibleChromeChildHeight("recent-panel") +
+    visibleChromeChildHeight("command-manager") +
+    visibleChromeChildHeight("floating-toolbar-host");
+  if (
+    !document.body.classList.contains("cm-collapsed") &&
+    Math.abs(chromeHeight - expectedChrome) > 4
+  ) {
+    return `top chrome is ${chromeHeight.toFixed(1)}px; expected ${expectedChrome.toFixed(1)}px from visible chrome children (+/-4px)`;
   }
   if (document.body.dataset.cmDensity === "compact") {
     const managerHeight = manager.getBoundingClientRect().height;

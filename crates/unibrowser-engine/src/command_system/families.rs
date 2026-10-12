@@ -1,6 +1,7 @@
 use unibrowser_mod_api::{
-    commands, control_ids, family_ids, group_ids, ControlType, DensityVariant, OverflowPriority,
-    ResolvedControl, ResolvedFamily, ResolvedGroup, SelectionState, WorkContext,
+    commands, content_kind::ids as ck, control_ids, family_ids, group_ids, ControlType,
+    DensityVariant, OverflowPriority, ResolvedControl, ResolvedFamily, ResolvedGroup, SelectionState,
+    WorkContext,
 };
 
 use super::context::ResolutionContext;
@@ -1335,7 +1336,11 @@ fn pdf_annotation_family(ctx: &ResolutionContext, resolver: &CapabilityResolver)
 }
 
 fn image_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
-    if ctx.work != WorkContext::Image {
+    let image_selection = ctx
+        .selection_content_kinds
+        .iter()
+        .any(|kind| kind == ck::IMAGE);
+    if ctx.work != WorkContext::Image && !image_selection {
         return ResolvedFamily {
             family_id: family_ids::IMAGE_ADJUST.into(),
             label: "Adjust".into(),

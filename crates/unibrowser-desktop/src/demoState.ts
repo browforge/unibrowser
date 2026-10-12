@@ -312,6 +312,30 @@ export async function applyDemoState(raw: string) {
       case "cm-collapsed":
         document.body.classList.add("cm-collapsed");
         break;
+      case "cm-image-tab":
+        await invoke("select_command_manager_tab", { tabId: "image" });
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
+      case "content-kind-grayscale-overflow": {
+        const overflow = await waitForElement<HTMLButtonElement>(
+          "#command-manager-overflow.visible",
+        );
+        overflow?.click();
+        await waitForElement(".cm-overflow-menu");
+        break;
+      }
+      case "content-kind-grayscale-focus": {
+        await new Promise((resolve) => window.setTimeout(resolve, 120));
+        const control =
+          document.querySelector<HTMLElement>(
+            '#command-manager-groups [data-control-id="image-grayscale-preview.control.grayscale"]',
+          ) ??
+          document.querySelector<HTMLElement>(
+            '.cm-overflow-menu [data-control-id="image-grayscale-preview.control.grayscale"]',
+          );
+        control?.focus();
+        break;
+      }
       case "capture-ready":
         await invoke("seed_demo_ntp_fixture_cmd").catch(() => undefined);
         await invoke("clear_command_manager_context_pin").catch(() => undefined);

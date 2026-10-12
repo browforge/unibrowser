@@ -58,6 +58,8 @@ export const CONTROL_ICON_MAP: Record<string, LucideName> = {
   x: "x",
   "arrow-left": "arrow-left",
   "arrow-right": "arrow-right",
+  media: "volume-2",
+  pip: "panels-top-left",
 };
 
 export function lucideForControlIcon(icon: string): LucideName {

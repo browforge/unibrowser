@@ -34,6 +34,10 @@ fn bundled_registry() -> CommandRegistry {
         ("live-proving", live_proving::register as ModRegisterFn),
         ("ai-assistant", ai_assistant::register as ModRegisterFn),
         ("cmd-proving", cmd_proving::register as ModRegisterFn),
+        (
+            "image-grayscale-preview",
+            image_grayscale_preview::register as ModRegisterFn,
+        ),
     ]
     .into_iter()
     .collect();

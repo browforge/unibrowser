@@ -32,7 +32,7 @@ Use `./scripts/check-workspace.sh` before pushing. When you connect GitHub Actio
 
 Manual Windows QA: [windows-testing.md](windows-testing.md). Packaging paths: [packaging.md](packaging.md).
 
-Linux packages: GTK 3, WebKit2GTK 4.1, and related Tauri deps (see workflow `apt-get` steps).
+Linux packages: run `sudo ./scripts/setup-linux-deps.sh` locally, or see the workflow `apt-get` steps (GTK 3, WebKit2GTK 4.1, xvfb, ImageMagick, fuse, patchelf, `wasm32-unknown-unknown`).
 
 ## Related
 

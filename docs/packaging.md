@@ -8,7 +8,7 @@ This repository is hosted on **Origin** (`origin.cursor.com`). The workflow file
 
 ## Linux (VM / `ubuntu-latest`)
 
-**Prerequisites:** same GTK/WebKit packages as [ci.md](ci.md) `linux` job, plus `fuse`, `libfuse2`, `patchelf` for AppImage.
+**Prerequisites:** run `sudo ./scripts/setup-linux-deps.sh` (GTK/WebKit, xvfb, ImageMagick, fuse, libfuse2, patchelf, and the wasm32 target), or install the same packages as [ci.md](ci.md) `linux` job manually.
 
 ```bash
 cd crates/unibrowser-desktop

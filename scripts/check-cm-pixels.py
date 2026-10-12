@@ -68,7 +68,13 @@ def sample_bounds(
     x1 = min(image.width, math.ceil((x + width) * scale_x))
     y1 = min(image.height, math.ceil((y + height) * scale_y))
     ratios: list[float] = []
-    for red, green, blue in image.crop((x0, y0, x1, y1)).get_flattened_data():
+    crop = image.crop((x0, y0, x1, y1))
+    pixel_data = (
+        crop.get_flattened_data()
+        if hasattr(crop, "get_flattened_data")
+        else crop.getdata()
+    )
+    for red, green, blue in pixel_data:
         pixel = (red, green, blue)
         delta = sum(abs(pixel[index] - background[index]) for index in range(3))
         if delta >= 18:

@@ -28,7 +28,7 @@ impl ResolutionContext {
         let selection_node_paths = default_selection_paths(&tree, &work);
         let selection_content_kinds =
             crate::content_tree::selection_content_kinds(&tree, &selection_node_paths);
-        Self {
+        let mut ctx = Self {
             work,
             command_context,
             host,
@@ -39,7 +39,14 @@ impl ResolutionContext {
             selection_content_kinds,
             selection_node_paths,
             content_tree_revision: 0,
+        };
+        if std::env::var("UNIBROWSER_SELECT_EMBEDDED_IMAGE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+        {
+            ctx = ctx.with_embedded_image_selection();
         }
+        ctx
     }
 
     pub fn with_embedded_image_selection(mut self) -> Self {
@@ -51,7 +58,11 @@ impl ResolutionContext {
         {
             self.selection_node_paths = vec![node];
         } else {
-            self.selection_node_paths = vec!["embedded-image-1".into()];
+            let fallback = match self.host_format_id.as_str() {
+                "md" | "markdown" => "embedded-image-md",
+                _ => "embedded-image-1",
+            };
+            self.selection_node_paths = vec![fallback.into()];
         }
         let path = self.doc_path.as_deref().unwrap_or("");
         let tree = crate::content_tree::document_content_tree(&self.host.backend_id, path);

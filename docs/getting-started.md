@@ -6,7 +6,7 @@ Unibrowser is an Apache-2.0 browser shell for local files and the web. This guid
 
 - Rust 1.85+ (`rust-toolchain.toml`)
 - Node.js 20+
-- **Linux (desktop):** GTK 3 and WebKitGTK dev packages ([Tauri prerequisites](https://tauri.app/start/prerequisites/))
+- **Linux (desktop):** GTK 3 and WebKitGTK dev packages ([Tauri prerequisites](https://tauri.app/start/prerequisites/)). On Ubuntu or Debian, run `sudo ./scripts/setup-linux-deps.sh` once per machine (build tools, WebKitGTK, xvfb, ImageMagick, AppImage helpers, and the `wasm32-unknown-unknown` Rust target).
 
 Windows desktop builds are optional for engine-only changes; CI checks `x86_64-pc-windows-msvc` for non-Tauri crates.
 

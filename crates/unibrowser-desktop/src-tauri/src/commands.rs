@@ -146,7 +146,6 @@ pub struct FloatingBarDto {
 }
 
 #[derive(Serialize)]
-#[derive(Serialize)]
 pub struct ShellContributionsDto {
     pub panels: Vec<unibrowser_engine::ResolvedPanelContribution>,
     pub views: Vec<unibrowser_engine::ResolvedViewContribution>,
