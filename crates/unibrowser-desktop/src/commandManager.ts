@@ -16,6 +16,23 @@ import { getPdfCommandManagerLabels } from "./viewerZoom";
 import { announceCm } from "./ui/cmA11y";
 import { bindCmRovingFocus } from "./ui/cmRovingFocus";
 import { commandGroupBudgetFromViewport } from "./ui/commandOverflow";
+import { isWebPlatform } from "./platform/isWeb";
+
+function prioritizeWebMarkdownGroups(
+  groups: ReturnType<typeof familiesToRenderGroups>,
+): ReturnType<typeof familiesToRenderGroups> {
+  if (!isWebPlatform() || groups.length === 0) {
+    return groups;
+  }
+  const pick = (name: string) => groups.find((g) => g.name === name);
+  const history = pick("History");
+  const emphasis = pick("Emphasis");
+  if (!history || !emphasis) {
+    return groups;
+  }
+  const rest = groups.filter((g) => g.name !== "History" && g.name !== "Emphasis");
+  return [history, emphasis, ...rest];
+}
 
 function layoutEditModeActive(): boolean {
   return document.body.classList.contains("layout-edit-mode");
@@ -582,12 +599,16 @@ export const commandManager = {
     if (active) {
       const patchedFamilies =
         active.families?.length > 0 ? patchPdfCommandFamilies(active.families) : [];
-      const allGroups =
+      let allGroups =
         patchedFamilies.length > 0 ? familiesToRenderGroups(patchedFamilies) : [];
-      const widthBudget = commandGroupBudgetFromViewport(
+      allGroups = prioritizeWebMarkdownGroups(allGroups);
+      let widthBudget = commandGroupBudgetFromViewport(
         window.innerWidth,
         groupsEl.clientWidth,
       );
+      if (isWebPlatform()) {
+        widthBudget += 160;
+      }
       let { visible, overflow } = partitionGroupsByAvailableWidth(allGroups, widthBudget);
       const setOverflowState = () => {
         const hasOverflow = overflow.length > 0;

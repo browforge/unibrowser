@@ -53,6 +53,9 @@ async function getMonaco(): Promise<Monaco> {
     loader.config({ monaco });
     monacoApi = await loader.init();
     await refreshVsixTextmateGrammars(monacoApi as Monaco).catch(() => {});
+    if (import.meta.env.VITE_UB_PLATFORM === "web") {
+      (window as unknown as { monaco?: Monaco }).monaco = monacoApi as Monaco;
+    }
   }
   return monacoApi as Monaco;
 }
@@ -342,6 +345,16 @@ async function ensureEditor(host: HTMLElement) {
   }
   findBound = false;
   const api = await getMonaco();
+  if (editor) {
+    editor.dispose();
+    editor = null;
+  }
+  for (const orphan of api.editor.getEditors()) {
+    const node = orphan.getDomNode();
+    if (node && host.contains(node)) {
+      orphan.dispose();
+    }
+  }
   hostEl = host;
   host.innerHTML = "";
   await applyMonacoEditorTheme(editorThemePref);
@@ -369,6 +382,15 @@ async function ensureEditor(host: HTMLElement) {
     emitCursorStatus();
   });
   editor.onDidChangeCursorPosition(() => emitCursorStatus());
+  for (const orphan of api.editor.getEditors()) {
+    if (orphan === editor) {
+      continue;
+    }
+    const node = orphan.getDomNode();
+    if (node && host.contains(node)) {
+      orphan.dispose();
+    }
+  }
 }
 
 export function openTextFind() {
@@ -492,10 +514,7 @@ export const textEditor = {
         editor!.setModel(next);
       }
       const activeModel = editor!.getModel();
-      // Concurrent shell refreshes may observe the selected path before Monaco
-      // has hydrated its model. Never leave a non-empty document on a blank
-      // model, even when `loadedPath` already matches.
-      if (activeModel && activeModel.getValueLength() === 0 && doc.content.length > 0) {
+      if (activeModel && activeModel.getValue() !== doc.content) {
         activeModel.setValue(doc.content);
         api.editor.setModelLanguage(activeModel, language);
       }
@@ -552,6 +571,35 @@ export const textEditor = {
     if (editor) {
       focusPreviousProofingProblem(editor);
     }
+  },
+
+  async applyMarkdownInlineWrap(before: string, after: string): Promise<boolean> {
+    if (!editor || !monacoApi || !loadedPath || !isMarkdownPath(loadedPath)) {
+      return false;
+    }
+    const model = editor.getModel();
+    const selection = editor.getSelection();
+    if (!model || !selection) {
+      return false;
+    }
+    const selected = model.getValueInRange(selection);
+    const replacement = selected ? `${before}${selected}${after}` : `${before}${after}`;
+    editor.executeEdits("markdown-inline", [
+      {
+        range: selection,
+        text: replacement,
+        forceMoveMarkers: true,
+      },
+    ]);
+    if (!selected) {
+      editor.setPosition({
+        lineNumber: selection.startLineNumber,
+        column: selection.startColumn + before.length,
+      });
+    }
+    editor.focus();
+    await pushToHost();
+    return true;
   },
 
   async refreshProofingMarkers() {

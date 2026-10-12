@@ -2018,6 +2018,16 @@ async function runUiCommand(commandId: string) {
     textEditor.focusPreviousProofingInEditor();
     return;
   }
+  const markdownWrap: Record<string, [string, string]> = {
+    "unibrowser.text.bold": ["**", "**"],
+    "unibrowser.text.italic": ["*", "*"],
+    "unibrowser.text.strikethrough": ["~~", "~~"],
+  };
+  const wrap = markdownWrap[commandId];
+  if (wrap && (await textEditor.applyMarkdownInlineWrap(wrap[0], wrap[1]))) {
+    await refreshCommandManager();
+    return;
+  }
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
   await processCommandResult(msg, commandId);
@@ -3061,20 +3071,21 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         await new Promise((resolve) => setTimeout(resolve, 350));
         await refreshState();
       }
-      if (
-        isWebPlatform() &&
-        new URLSearchParams(window.location.search).get("smoke") === "demo"
-      ) {
+      if (isWebPlatform()) {
         try {
-          const opened = await invoke<TabContentDto>("open_path", {
-            path: "demo-pack/sample.md",
-            line: null,
-          });
-          if (opened) {
-            await applyState(opened);
+          const live = await invoke<TabContentDto>("get_browser_state");
+          if (live.show_new_tab_page) {
+            const opened = await invoke<TabContentDto>("open_path", {
+              path: "demo-pack/sample.md",
+              line: null,
+            });
+            if (opened) {
+              await applyState(opened);
+              await refreshCommandManager();
+            }
           }
         } catch (err) {
-          reportSubsystemError("web-smoke-demo", err);
+          reportSubsystemError("web-demo-pack", err);
         }
       }
       if (demo) {

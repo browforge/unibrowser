@@ -315,7 +315,13 @@ impl WebHost {
         if let Some(text) = content {
             return self.open_text_path(path, text);
         }
-        if path.starts_with("unibrowser://") || path.starts_with("demo-pack/") {
+        if path.starts_with("demo-pack/") {
+            return Err(
+                "Demo pack files are opened from bundled assets in the web demo (use Open file or the demo pack links)"
+                    .into(),
+            );
+        }
+        if path.starts_with("unibrowser://") {
             return self.cmd_navigate(path);
         }
         Err("Open local files via the file picker in the web demo".into())
