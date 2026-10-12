@@ -35,6 +35,10 @@ fn bundled_registry() -> CommandRegistry {
         ("ai-assistant", ai_assistant::register as ModRegisterFn),
         ("cmd-proving", cmd_proving::register as ModRegisterFn),
         (
+            "text-toolbar-sample",
+            text_toolbar_sample::register as ModRegisterFn,
+        ),
+        (
             "image-grayscale-preview",
             image_grayscale_preview::register as ModRegisterFn,
         ),
