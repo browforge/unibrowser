@@ -242,12 +242,12 @@ The status bar never carries a full error sentence. Clicking a problem opens Pro
 | --- | --- | --- |
 | View only | `View only` | No changes are written. Choose **Start editing** or **Save As** to save work. |
 | Work in archive | `Archive` | Editing `filename.unibrow` in place. |
-| Folder mode | `Folder` | Project data in `.unibrow/` inside this folder. |
+| Folder mode | `Folder` | Project files in this folder; history in `.unibrow-history`. |
 
 After the user’s first mutating edit (or **Start editing** from view only), append a second left item until dismissed or saved:
 
 - **History will be saved in** `<absolute or project-relative path>`  
-  (archive path to the `.unibrow` file, or `…/ProjectName/.unibrow/` in folder mode.)
+  (inside the `.unibrow` archive, or `…/ProjectName/.unibrow-history` in folder mode.)
 
 **Large project hint (non-blocking):** when the project exceeds the configured threshold ([ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md) §4), show a `kind: warning` right-slot item:
 

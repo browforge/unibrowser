@@ -41,7 +41,7 @@ Plugin hook `history.preview_op(seq)` may highlight range in viewer. If absent, 
 
 | State | Copy |
 | --- | --- |
-| No history file | “Edits in this session are not recorded to disk yet. Save to a Unibrowser document or enable history sidecar.” |
+| No history file | “Edits in this session are not recorded to disk yet. Save to a Unibrowser document or enable a `.unibrow-history` sidecar.” |
 | Replay stopped | Banner above list: last good `seq`, required plugin version, **Install** / **Read-only** |
 | Foreign file, no sidecar | “Undo is for this session only. Save as .unibrow or enable history sidecar to keep edits.” |
 

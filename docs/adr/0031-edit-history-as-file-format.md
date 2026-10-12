@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-12
+- **Amends:** prior draft paths (`history/log`, `history/manifest.lock`) — superseded by single **`.unibrow-history`** ([ADR 0032](0032-unibrow-container-archive-and-folder-modes.md))
 - **Relates to:** [ADR 0015](0015-native-project-format.md), [ADR 0023](0023-saving-is-sacred.md), [ADR 0030](0030-core-as-skeleton.md)
 
 ## Context
@@ -22,18 +23,26 @@ Goals:
 
 ### 1. Logical model
 
-Each **history-bearing document** has:
+Each **history-bearing document** has **one history file** (canonical name **`.unibrow-history`**) that combines plugin pins and the edit log. There is no separate lockfile on disk.
 
 | Part | Role |
 | --- | --- |
-| **`history/log`** | Append-only sequence of **operations** (see §2) |
-| **`history/snapshots/`** | Periodic full **materialised state** checkpoints (format defined per host format / capability) |
-| **`history/manifest.lock`** | Lockfile pinning plugin ids and exact versions required to replay (see §3) |
-| **Head pointer** | Index of the latest applied op (undo = move head backward; redo = forward) |
+| **Pin header** | Leading section of `.unibrow-history` — plugin ids, **exact versions**, and highest `op_schema_version` seen per `op_type` (see §3). Rewritten when a new pin is needed; not append-only |
+| **Append log** | Same file, after a fixed **log marker** — committed **operations** (see §2) in order |
+| **Snapshots** | Full materialised checkpoints referenced from the log (blob in `assets/<hash>` or inline for small state); not a separate `history/snapshots/` tree |
+| **Head pointer** | Session state: latest applied `seq` (undo = move head backward; redo = forward) |
 
 The **current document state** is: latest snapshot at or before head, then apply ops `(snapshot_index+1 … head]`. Saving does not discard history unless the user runs **squash** (§6).
 
-Native `.unibrow` packages embed these under e.g. `history/` beside `project.json` and `assets/` ([ADR 0015](0015-native-project-format.md)). Zip and directory bundle shapes share the same interior paths.
+**Fixed paths** ([ADR 0032](0032-unibrow-container-archive-and-folder-modes.md)):
+
+| Container | History file path |
+| --- | --- |
+| OPC `.unibrow` archive | Package part **`.unibrow-history`** at the archive root (beside `manifest.json`) |
+| Folder-mode project | **`.unibrow-history`** in the project folder (hidden file; see ADR 0032) |
+| Foreign file on disk | Sidecar **`<filename>.unibrow-history`** next to the authoritative file (e.g. `report.docx.unibrow-history`) |
+
+Archive and folder mode use the **same file format** for `.unibrow-history`; only the outer container differs.
 
 ### 2. Operation schema
 
@@ -66,12 +75,14 @@ Plugins implement:
 - `invert(op, state) -> op'` optional for undo (or replay from earlier snapshot)
 - `migrate_op(op, from_schema, to_schema) -> op` for breaking payload changes (§5)
 
-### 3. Lockfile manifest (`history/manifest.lock`)
+### 3. Pin header (merged into `.unibrow-history`)
 
-Like `pnpm-lock.yaml`, a human-readable YAML (or JSON) file lists every plugin that contributed ops in this document:
+Plugin version pins live in the **header** at the start of `.unibrow-history`, not in a separate `manifest.lock`. The header is human-readable YAML or JSON (like `pnpm-lock.yaml`), bounded in size, and **rewritten atomically** whenever an appended op introduces a new `plugin_id`, **exact** `plugin_version`, `op_type`, or `op_schema_version` not already recorded.
+
+Example header (followed by a log marker line, then JSONL ops):
 
 ```yaml
-lockfileVersion: 1
+historyFormat: 1
 plugins:
   base-text@1.4.2:
     op_types:
@@ -80,9 +91,12 @@ plugins:
   base-pdf@0.9.0:
     op_types:
       annotate: 1
+--- UNIBROW HISTORY LOG ---
 ```
 
-Pins are **exact versions** (no carets). When a new op type or schema version first appears, the host updates the lock on append. Opening a document reads the lock before replay.
+Pins are **exact versions** (no carets). On append, if the op’s plugin tuple requires a header change, the host rewrites the header (write `.unibrow-history.part`, fsync, rename) then appends the op. Opening a document **reads the header first**, then replays the log after the marker.
+
+**Snapshots in the log:** a committed checkpoint is a normal op with `op_type: unibrowser.history.snapshot` and `payload` pointing at snapshot bytes (typically `assets/<content-hash>` per host format). Older snapshot blobs remain in `assets/` until squash or clean removes unreferenced hashes.
 
 ### 4. Missing or incompatible plugins
 
@@ -114,7 +128,7 @@ Command: **Squash history into snapshot** (palette + History panel).
 
 - Writes a new full snapshot at current head.
 - Truncates log before that point (user confirmation explains undo depth loss).
-- Updates lockfile to current plugin versions only if ops were dropped.
+- Rewrites the pin header to match remaining ops (current plugin versions only if ops were dropped).
 - Does not remove `assets/` blobs still referenced by the snapshot.
 
 Autosquash **optional** setting: when log byte size or op count exceeds threshold, prompt or auto-snapshot in background (default: prompt only).
@@ -134,24 +148,25 @@ Deleted content remains in the log until squash or **clean history** (§8). Comp
 
 - **Deleted text and annotations remain in history** until squash or clean. Sensitive edits are recoverable from the file.
 - **Clean history before sharing** — wizard: squash to single snapshot, strip log, optional strip old snapshots; explain what recipients can no longer undo.
-- **Export without history** — Save Copy / Export delivers foreign format final state only, or `.unibrow` with `history/` omitted (explicit checkbox, default off for “full project”, on for “delivery bundle”).
+- **Export without history** — Save Copy / Export delivers foreign format final state only, or `.unibrow` without the `.unibrow-history` part (explicit checkbox, default off for “full project”, on for “delivery bundle”).
 - Activity is local; no telemetry of ops.
 
 ### 9. Foreign formats (`.docx`, `.png`, …)
 
 | Pattern | History location |
 | --- | --- |
-| User saves directly to `file.docx` | Default: **sidecar** `file.docx.unibrow-history/` (directory) or `file.docx.ubhist` (single file) — user-visible name TBD in implementation |
-| User saves into `.unibrow` project | History in package `history/`; embedded asset may keep native bytes in `assets/` with ops referencing handles |
+| User saves directly to `file.docx` | Default: sidecar file **`file.docx.unibrow-history`** (same single-file format as native projects) |
+| User saves into `.unibrow` project | **`.unibrow-history`** inside archive or beside `project.json` in folder mode ([ADR 0032](0032-unibrow-container-archive-and-folder-modes.md)); embedded asset may keep native bytes in `assets/` with ops referencing handles |
 | User opts out | No history sidecar; in-memory undo only for session (current behaviour), with status bar note |
 
 Foreign file bytes always reflect **latest materialised state** on Save to that path; replay is required to reconstruct intermediate states. Plugins that cannot emit ops fall back to snapshot-only history (one op = full file replace) with size warning.
 
 ### 10. Crash safety
 
-- Append path: write op to `history/log.part`, fsync, rename to extend `history/log` (or append with length checksum per record).
-- Snapshot path: write `snapshots/<id>.part`, fsync, atomic rename, then append `unibrowser.history.snapshot` op pointing at id.
-- On open, detect trailing partial record; truncate or recover last complete op; surface non-modal “Recovered N edits after crash”.
+- **Op append:** stage tail in `.unibrow-history.part` or length-checksummed record buffer; fsync; append to log section after marker (or atomic replace of whole file when header and tail must commit together).
+- **Snapshot:** write snapshot bytes to `assets/<hash>.part`, fsync, rename, then append `unibrowser.history.snapshot` op to `.unibrow-history`.
+- **Header rewrite:** same atomic replace pattern as §3; never leave a pin header half-written.
+- On open, detect trailing partial record after marker; truncate or recover last complete op; surface non-modal “Recovered N edits after crash”.
 - Autosave slots may hold duplicate tail of log; merge by `seq` on recovery.
 
 ### 11. UI and commands (core)
@@ -185,21 +200,21 @@ This format does not implement sync. It **enables** later designs:
 | Never blocks save or work | Yes — save appends; open degradation is read-only with install path |
 | Local-first | Yes — no server; ops on disk |
 | Predictable and consistent | Yes — same undo model for native formats; foreign formats documented |
-| Simple durable mechanism | Yes — append log, lockfile, atomic rename |
+| Simple durable mechanism | Yes — one history file, pin header + append log, atomic rename |
 | Mod not core | Yes — op semantics in plugins; core stores and sequences |
 
 ## Consequences
 
 **Positive**
 
-- Portable undo; support can inspect `history/log` without reproducing UI steps.
+- Portable undo; support can inspect `.unibrow-history` (header + log) without reproducing UI steps.
 - Crash journal reduces lost work anxiety.
 - Clear path to sync without redesigning save format.
 
 **Tradeoffs**
 
 - Larger files; users must learn squash/clean before sharing secrets.
-- Lockfile rigidity: old projects need matching mods or migration investment.
+- Pin header rigidity: old projects need matching mods or migration investment.
 - Implementation spans host, every editing mod, and `.unibrow` IO.
 
 ## References

@@ -1320,8 +1320,8 @@ Status: open.
 
 Work:
 
-- Define `history/log`, `history/snapshots/`, `history/manifest.lock` inside `.unibrow` package.
-- Atomic append + partial tail recovery on open; integrate with existing zip/directory save ([ADR 0023](../adr/0023-saving-is-sacred.md)).
+- Define single **`.unibrow-history`** (pin header + log marker + JSONL ops) at archive root and in folder projects ([ADR 0031](../adr/0031-edit-history-as-file-format.md)).
+- Atomic append + header rewrite + partial tail recovery on open; integrate with existing zip/directory save ([ADR 0023](../adr/0023-saving-is-sacred.md)).
 
 Likely files: `unibrowser-project`, desktop save pipeline.
 
@@ -1346,14 +1346,14 @@ Acceptance:
 - Proving mod emits two ops; undo/redo matches head; grey when empty.
 - Read-only open when replay stops leaves head at last good seq.
 
-### HIST-03: Lockfile update and missing-plugin banner
+### HIST-03: Pin header update and missing-plugin banner
 
 Status: open.
 
 Work:
 
-- Update `manifest.lock` on each new plugin/op_schema pair.
-- Open flow: replay until failure; banner with Install version Y / Continue read-only ([ADR 0031](../adr/0031-edit-history-as-file-format.md) §4).
+- Rewrite `.unibrow-history` pin header on each new plugin/op_schema pair; then append op.
+- Open flow: read header, replay log until failure; banner with Install version Y / Continue read-only ([ADR 0031](../adr/0031-edit-history-as-file-format.md) §4).
 
 Likely files: project open, mod portal deep link, i18n.
 
@@ -1396,7 +1396,7 @@ Likely files: save dialogs, sidecar naming, export pipeline.
 Acceptance:
 
 - Save `.docx` with sidecar enabled creates companion history store; foreign bytes remain latest state.
-- Export without history produces file with no `history/` or sidecar.
+- Export without history produces file with no `.unibrow-history` part or sidecar.
 
 ### HIST-06: Squash and clean-before-sharing flows
 
@@ -1424,31 +1424,31 @@ Status: open.
 
 Work:
 
-- Implement OPC zip writer/reader for `.unibrow`: root `manifest.json`, `project.json`, `history/*`, content-addressed `assets/<hash>`.
-- STORE for already-compressed media parts; DEFLATE for JSON/text; round-trip with standard unzip.
+- Implement OPC zip writer/reader for `.unibrow`: root `manifest.json`, `project.json`, `.unibrow-history`, content-addressed `assets/<hash>`.
+- STORE for already-compressed media parts; DEFLATE for JSON/text and `.unibrow-history`; round-trip with standard unzip.
 
 Likely files: `unibrowser-project` zip bundle, format validation tests.
 
 Acceptance:
 
 - Fixture archive opens in `unzip -l`; duplicate asset bytes dedupe to one `assets/` entry.
-- Manifest and history paths match [ADR 0031](../adr/0031-edit-history-as-file-format.md).
+- Manifest and `.unibrow-history` paths match [ADR 0031](../adr/0031-edit-history-as-file-format.md) and [ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md).
 
-### PKG-02: Folder mode detection and `.unibrow/` IO
+### PKG-02: Folder mode detection and project folder IO
 
 Status: open.
 
 Work:
 
-- Open folder when `.unibrow/manifest.json` exists; same interior paths as archive.
-- Save writes under `.unibrow/` without requiring a `.unibrow` file extension on the parent folder.
+- Open folder when root `manifest.json` identifies a Unibrowser project; same paths as archive interior (`project.json`, `.unibrow-history`, `assets/`).
+- Save updates visible project files and appends `.unibrow-history` without a `.unibrow` file extension on the parent folder.
 
-Likely files: project open/save paths, path security allowlist for `.unibrow/` subtree.
+Likely files: project open/save paths, path security for project root.
 
 Acceptance:
 
-- Open `MyShow/` with hidden `.unibrow/` loads project; save updates `project.json` and history log in place.
-- Opening a plain folder without `.unibrow/` remains ordinary file browser behaviour.
+- Open `MyShow/` with `manifest.json` + `.unibrow-history` loads project; save appends history and updates `project.json`.
+- Opening a plain folder without project manifest remains ordinary file browser behaviour.
 
 ### PKG-03: Storage mode state (view / archive / folder)
 
@@ -1489,14 +1489,14 @@ Status: open.
 Work:
 
 - File menu + palette commands with confirmation and progress for large trees.
-- Pack produces OPC file; unpack creates `.unibrow/` without deleting source unless user confirms.
+- Pack produces OPC file; unpack creates folder project (`manifest.json`, `.unibrow-history`, …) without deleting source unless user confirms.
 
 Likely files: project conversion service, progress UI.
 
 Acceptance:
 
-- Round-trip pack → unpack → edit → pack preserves `history/log` seq continuity.
-- Cancel mid-unpack leaves no partial `.unibrow/` without user-visible failed state.
+- Round-trip pack → unpack → edit → pack preserves `.unibrow-history` seq continuity.
+- Cancel mid-unpack leaves no broken half-project without user-visible failed state.
 
 ### PKG-06: Large-project folder hint (configurable threshold)
 
