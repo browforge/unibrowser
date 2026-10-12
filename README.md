@@ -1,8 +1,8 @@
 # Unibrowser
 
-Open source **browser for files and the web**: one tab strip for folders, local files, and `https://` pages (Chrome OS–style). Downloads default to **open in a new tab**. Same commands and toolbars across formats (SOLIDWORKS-style modes, grey-out-not-hide), powered by Factorio-style mods and a VS Code–sized Rust core.
+Open source **browser for files and the web**: one tab strip for folders, local files, and `https://` pages (Chrome OS–style). Downloads default to **open in a new tab**. Same commands and toolbars across formats (SOLIDWORKS-style modes, grey-out-not-hide), powered by a **small core** (shell, plugin host, save, history store) and **plugins** — including bundled `base-*` defaults you can swap for alternatives.
 
-**Positioning:** Unibrowser is a **stable platform**, not a monolithic Office/Adobe clone. Plugins add formats and features; tools target **content kinds** (image, rich text, …) so the same control works on standalone files and embedded content. Local-first; Save is never blocked. [docs/positioning.md](docs/positioning.md).
+**Positioning:** Unibrowser is a **stable platform skeleton**, not a monolithic Office/Adobe clone. Almost every feature (text editor, PDF viewer, timeline, proofing) is a **plugin claim**; core keeps slots, permissions, and Save honest. Tools target **content kinds** (image, rich text, …) so the same control works on standalone files and embedded content. Local-first; Save is never blocked. [docs/positioning.md](docs/positioning.md).
 
 **Status:** Phase 1 MVP browser shell on **Tauri 2** (`unibrowser-desktop`). See [docs/vision.md](docs/vision.md), [docs/roadmap.md](docs/roadmap.md), and the post-blitz [UI/UX design package](docs/design/README.md).
 

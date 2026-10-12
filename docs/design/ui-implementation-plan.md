@@ -1237,6 +1237,183 @@ Acceptance:
 - Proving mod contributes one panel and one status item without covering content or Save.
 - Disabled mod removes contributions; orphaned layout entries follow CMD-10 rules.
 
+## Phase J: Core skeleton and capability providers (ADR 0030)
+
+### SKEL-01: Capability id registry and manifest `provides`
+
+Status: open.
+
+Work:
+
+- Versioned list of `unibrowser.capability.*` ids (open text, render PDF, project surface, …).
+- Extend `info.json` with `provides` entries: capability id, optional `default`, priority, content-kind scope.
+- Loader builds provider registry; log conflicts when two defaults claim the same capability.
+
+Likely files: `unibrowser-mod-api` manifest schema, mod host resolver, plugin SDK docs.
+
+Acceptance:
+
+- Two proving mods with the same capability show resolver diagnostic; shell starts; Save unaffected.
+- Disabled provider disappears from Open-with list without orphan tabs.
+
+### SKEL-02: Default provider preferences and Open with
+
+Status: open.
+
+Work:
+
+- Settings → Plugins → Defaults: per-capability dropdown of installed providers.
+- Files tab / tab context: **Open with** remembers per-path or per-extension choice.
+- Route tab open to selected provider; grey with portal link when none installed.
+
+Likely files: preferences schema, `main.ts` tab open path, settings UI.
+
+Acceptance:
+
+- User sets community text mod as default; new `.md` tabs use it; bundled `base-text` still available via Open with.
+- Missing provider opens read-only or files-only per capability policy without blocking Save.
+
+Screenshot:
+
+- Open-with menu on a text file at 1280×800 light.
+
+### SKEL-03: About and portal copy — features as plugins
+
+Status: open.
+
+Work:
+
+- About → Plugins lists bundled mods with capability chips (not “built-in Unibrowser editor”).
+- Portal cards show `provides` capabilities alongside format extensions.
+- Align README screenshots captions where they imply monolithic features.
+
+Likely files: `aboutPage.ts`, `modPortalUi.ts`, docs cross-links only if UI strings change.
+
+Acceptance:
+
+- No user-facing string claims “Unibrowser PDF viewer” without naming `base-pdf` or active provider.
+
+### SKEL-04: Extract legacy viewers behind capability boundaries (spike → slices)
+
+Status: open.
+
+Work:
+
+- Document map: which `unibrowser-desktop` paths belong to which `base-*` capability.
+- Spike: route one format (e.g. plain text) through provider registry only; no duplicate command handlers in shell.
+- Track remaining inline viewers as follow-up slices (PDF, DOCX, …).
+
+Likely files: `documentViewer.ts`, mod host activation, capability router module.
+
+Acceptance:
+
+- Text open path goes through registry in dev build; undo/save command ids unchanged.
+- Regression: `npm run build` and existing e2e shell spec green.
+
+## Phase K: History store and panel (ADR 0031)
+
+Specification: [history-panel.md](history-panel.md).
+
+### HIST-01: History file layout and atomic append
+
+Status: open.
+
+Work:
+
+- Define `history/log`, `history/snapshots/`, `history/manifest.lock` inside `.unibrow` package.
+- Atomic append + partial tail recovery on open; integrate with existing zip/directory save ([ADR 0023](../adr/0023-saving-is-sacred.md)).
+
+Likely files: `unibrowser-project`, desktop save pipeline.
+
+Acceptance:
+
+- Simulated crash mid-append recovers last complete op; non-modal recovery copy.
+- Save always succeeds appending ops for native project tab.
+
+### HIST-02: Host history API and undo/redo head
+
+Status: open.
+
+Work:
+
+- Core API: append op, set head, list ops, load snapshot at seq.
+- Wire `unibrowser.document.undo` / `redo` to head movement; plugins supply apply/invert.
+
+Likely files: new `history_store` module, `undo_stack.rs` migration path.
+
+Acceptance:
+
+- Proving mod emits two ops; undo/redo matches head; grey when empty.
+- Read-only open when replay stops leaves head at last good seq.
+
+### HIST-03: Lockfile update and missing-plugin banner
+
+Status: open.
+
+Work:
+
+- Update `manifest.lock` on each new plugin/op_schema pair.
+- Open flow: replay until failure; banner with Install version Y / Continue read-only ([ADR 0031](../adr/0031-edit-history-as-file-format.md) §4).
+
+Likely files: project open, mod portal deep link, i18n.
+
+Acceptance:
+
+- Fixture project with unpinned mod opens read-only with exact version in banner.
+- Install matching mod replays without data loss.
+
+### HIST-04: History panel UI
+
+Status: open.
+
+Work:
+
+- Bottom dock tab per [history-panel.md](history-panel.md): list, rollback, squash/clean entry points.
+- Keyboard navigation; inline confirm for rollback branch discard.
+
+Likely files: new `historyPanel.ts`, dock registration, styles.
+
+Acceptance:
+
+- Rollback to seq updates document; Problems-style density; does not cover Save.
+- Empty state copy matches design doc for session-only undo.
+
+Screenshot:
+
+- History panel with three ops at 1280×800 dark.
+
+### HIST-05: Foreign format sidecar and export without history
+
+Status: open.
+
+Work:
+
+- Optional sidecar path for `.docx` / raster saves; preference per workspace.
+- Export / Save Copy checkbox **Omit edit history** with privacy explainer.
+
+Likely files: save dialogs, sidecar naming, export pipeline.
+
+Acceptance:
+
+- Save `.docx` with sidecar enabled creates companion history store; foreign bytes remain latest state.
+- Export without history produces file with no `history/` or sidecar.
+
+### HIST-06: Squash and clean-before-sharing flows
+
+Status: open.
+
+Work:
+
+- Commands squash log to snapshot and clean wizard (strip log + old snapshots).
+- Plugin `migrate_op` registration hook for schema bumps.
+
+Likely files: history commands, mod API, settings.
+
+Acceptance:
+
+- Squash reduces log size; user confirm names redo depth loss.
+- Clean before sharing removes recoverable deleted content from bundle per ADR §8.
+
 ## Phase I: Plugin permissions and network (ADR 0029)
 
 Specification: [plugin-permissions-ui.md](plugin-permissions-ui.md). Runtime policy: [ADR 0029](../adr/0029-plugin-permissions-and-network-security.md).

@@ -2,18 +2,18 @@
 
 Unibrowser is a **local-first browser for files and the web**: one tab strip for folders, `https://` pages, and the documents you open from them. It is **not** trying to be a single install that clones every screen of Microsoft Office or Adobe Creative Suite the way LibreOffice or an all-in-one Craft-style suite does.
 
-Instead, Unibrowser is a **stable platform** with a small core and **plugins** that add what you need: file formats, panels, commands, toolbars, scripts, and services. The community ships features; the core keeps them **in the same places** and behaving **the same way** wherever the underlying content allows.
+Instead, Unibrowser is a **stable platform skeleton**: a thin core plus **plugins** that supply almost everything you touch — file formats, editors, viewers, panels, commands, toolbars, scripts, and services. Bundled `base-*` mods ship **enabled by default** so everyday use feels complete; they are still plugins you can replace with another **capability provider** ([ADR 0030](adr/0030-core-as-skeleton.md)). The core keeps contributions **in the same places** and behaving **the same way** wherever the underlying content allows.
 
 ## Platform, not a frozen suite
 
 | Monolithic suite clone | Unibrowser |
 | --- | --- |
-| One vendor ships every feature | Core ships shell, commands, trust, and Save |
-| Features tied to app boundaries | Plugins register capabilities into fixed slots |
+| One vendor ships every feature | Core ships shell, plugin host, UI slots, permissions, save, and history store |
+| Features tied to app boundaries | Plugins register **capabilities** into fixed slots; defaults are swappable |
 | Same tool reimplemented per app | Tools target **content kinds**, not just file extensions |
-| Upgrade means waiting for the suite release | Install or remove a plugin from the Mod Portal |
+| Upgrade means waiting for the suite release | Install, replace, or remove a plugin from the Mod Portal |
 
-You can still use many formats out of the box via bundled `base-*` mods. Anything beyond that is optional, inspectable, and uninstallable.
+You can still use many formats out of the box via bundled `base-*` mods. Anything beyond that is optional, inspectable, and uninstallable. Edit history for native documents lives in the file ([ADR 0031](adr/0031-edit-history-as-file-format.md)).
 
 ## Content kinds, not just extensions
 
@@ -51,4 +51,4 @@ Grey-out-not-hide applies everywhere: if a tool cannot run on the current select
 - **Everyday use:** open common files from the same browser-like shell; install a mod when the portal says a format or tool is missing.
 - **Power users and FOSS contributors:** build or sideload plugins, compose APIs ([ADR 0025](adr/0025-mod-apis-and-dependencies.md)), and keep the core small.
 
-For philosophy and decision rules, see [principles.md](principles.md). For technical contracts, see [ADR 0028](adr/0028-platform-content-kinds-and-plugin-scope.md) and [command-system.md](design/command-system.md).
+For philosophy and decision rules, see [principles.md](principles.md). For technical contracts, see [ADR 0028](adr/0028-platform-content-kinds-and-plugin-scope.md), [ADR 0030](adr/0030-core-as-skeleton.md), [ADR 0031](adr/0031-edit-history-as-file-format.md), and [command-system.md](design/command-system.md).

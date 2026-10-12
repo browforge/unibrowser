@@ -32,7 +32,10 @@ Inputs:
 - [ADR 0023: saving is sacred](../adr/0023-saving-is-sacred.md)
 - [ADR 0026: AI assistant](../adr/0026-ai-assistant-as-mod.md)
 - [ADR 0029: plugin permissions](../adr/0029-plugin-permissions-and-network-security.md)
+- [ADR 0030: core as skeleton](../adr/0030-core-as-skeleton.md)
+- [ADR 0031: edit history as file format](../adr/0031-edit-history-as-file-format.md)
 
 This package is design guidance, not a claim that the current UI matches the mockups.
 
-Permission surfaces: [plugin-permissions-ui.md](plugin-permissions-ui.md).
+Permission surfaces: [plugin-permissions-ui.md](plugin-permissions-ui.md).  
+History panel: [history-panel.md](history-panel.md).
