@@ -1,3 +1,4 @@
+pub mod capability_surface;
 pub mod command;
 pub mod command_manager;
 pub mod command_system;
@@ -11,6 +12,11 @@ pub mod tabs;
 pub mod toolbar;
 pub mod ui_command;
 
+pub use capability_surface::{
+    CapabilityDefaultConflict, CapabilityPrefs, ResolvedSurfaceProvider, SurfaceProviderRecord,
+    SurfaceProviderRegistry, build_surface_provider_registry, capability_for_effective_extension,
+    resolve_surface_provider,
+};
 pub use command::{CommandRegistry, HandlerRegistration};
 pub use command_system::{
     CapabilityResolver, ContributionMergeDiagnostics, LayoutStore, LoadedModContribution,

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+use crate::capability_surface::CapabilityProvideEntry;
 use crate::contributes::ModContributes;
 
 /// Factorio-style mod manifest (`info.json`).
@@ -36,6 +37,9 @@ pub struct ModManifest {
     pub wasm_module: Option<String>,
     #[serde(default)]
     pub capabilities: Vec<String>,
+    /// Surface providers this mod implements (ADR 0030). Distinct from API `provides` map.
+    #[serde(default, rename = "capability_provides")]
+    pub capability_provides: Vec<CapabilityProvideEntry>,
     #[serde(default)]
     pub contributes: Option<ModContributes>,
 }

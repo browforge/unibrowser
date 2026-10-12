@@ -254,6 +254,7 @@ mod tests {
             library: None,
             wasm_module: None,
             capabilities: vec![],
+            capability_provides: vec![],
             contributes: None,
         }
     }

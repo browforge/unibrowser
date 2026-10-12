@@ -28,6 +28,7 @@ fn manifests_ab() -> (unibrowser_mod_api::ModManifest, unibrowser_mod_api::ModMa
         library: None,
         wasm_module: None,
         capabilities: vec![],
+        capability_provides: vec![],
         contributes: None,
     };
     let mut b = a.clone();

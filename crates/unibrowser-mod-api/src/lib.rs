@@ -2,7 +2,9 @@
 
 pub const MOD_API_VERSION: &str = "0.1.0";
 
+pub mod capability_surface;
 pub mod command_system;
+pub mod content_kind;
 pub mod contributes;
 pub mod context;
 pub mod handlers;
@@ -12,6 +14,14 @@ pub mod projections;
 pub mod runtime;
 pub mod types;
 
+pub use capability_surface::{
+    CapabilityProvideEntry, CAPABILITY_SCHEMA_VERSION, validate_capability_id,
+    validate_capability_provide,
+};
+pub use content_kind::{
+    ContentKindRecord, ContentKindRegistry, CONTENT_KIND_SCHEMA_VERSION,
+    validate_content_kind_id,
+};
 pub use command_system::*;
 pub use contributes::{
     CommandLayoutFileV2, ContextLayout, ContributedControl, ContributedFamily,

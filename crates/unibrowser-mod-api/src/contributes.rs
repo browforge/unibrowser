@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+use crate::content_kind::{validate_content_kind_id, ContentKindRegistry};
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModContributes {
     #[serde(default)]
@@ -98,6 +100,8 @@ pub struct ContributedCapabilityProvider {
     #[serde(default)]
     pub contexts: Vec<String>,
     #[serde(default)]
+    pub content_kinds: Vec<String>,
+    #[serde(default)]
     pub runtime: String,
     #[serde(default)]
     pub priority: i32,
@@ -110,6 +114,14 @@ pub struct ContributionValidationError {
 }
 
 pub fn validate_contributes(mod_name: &str, c: &ModContributes) -> Vec<ContributionValidationError> {
+    validate_contributes_with_kinds(mod_name, c, &ContentKindRegistry::with_core_kinds())
+}
+
+pub fn validate_contributes_with_kinds(
+    mod_name: &str,
+    c: &ModContributes,
+    kinds: &ContentKindRegistry,
+) -> Vec<ContributionValidationError> {
     let mut errors = Vec::new();
     for cmd in &c.commands {
         if cmd.id.starts_with("unibrowser.") {
@@ -131,6 +143,21 @@ pub fn validate_contributes(mod_name: &str, c: &ModContributes) -> Vec<Contribut
                 mod_name: mod_name.to_string(),
                 message: format!("mod cannot replace core family {}", fam.id),
             });
+        }
+    }
+    for provider in &c.capability_providers {
+        for kind in &provider.content_kinds {
+            if let Err(msg) = validate_content_kind_id(kind, None) {
+                errors.push(ContributionValidationError {
+                    mod_name: mod_name.to_string(),
+                    message: msg,
+                });
+            } else if let Err(msg) = kinds.validate_reference(kind) {
+                errors.push(ContributionValidationError {
+                    mod_name: mod_name.to_string(),
+                    message: msg,
+                });
+            }
         }
     }
     errors

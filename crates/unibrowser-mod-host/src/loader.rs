@@ -81,6 +81,17 @@ impl ModHost {
                         ));
                     }
                 }
+                let kinds = unibrowser_mod_api::ContentKindRegistry::with_core_kinds();
+                for entry in &manifest.capability_provides {
+                    if let Err(msg) =
+                        unibrowser_mod_api::validate_capability_provide(&manifest.name, entry, &kinds)
+                    {
+                        contribution_notes.push(format!(
+                            "mod {} capability_provides: {}",
+                            manifest.name, msg
+                        ));
+                    }
+                }
                 if paths.contains_key(&manifest.name) {
                     continue;
                 }
