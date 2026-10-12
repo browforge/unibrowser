@@ -87,11 +87,13 @@ HTML “emulation” of headings is **supported** when the host is HTML; browser
 
 ### 5. Plugin contributions
 
-Mods declare controls with `surfaces: ["text_compact_toolbar", "command_manager"]` (schema extension in CMD-07). Rules:
+Plugins **MAY** create entirely new toolbars: their own declared toolbar surfaces, placed and dockable by the host so they stay consistent (same 32 px height tokens, Lucide 16 px icon style, overflow-by-whole-group, theming, and a user can hide or move them per layout persistence). They **MAY** also contribute individual controls to the first-party compact text toolbar or the Command Manager strip.
 
-- Core owns **slot order** and overflow policy on the compact bar ([text-toolbar.md](../design/text-toolbar.md)).
-- Mods may insert **after** core block picker into declared extension zones, or contribute **Command Manager-only** tools (e.g. citation insert).
-- Mods must not inject raw HTML toolbars ([ADR 0028](0028-platform-content-kinds-and-plugin-scope.md) §5).
+Mods declare controls with `surfaces: ["text_compact_toolbar", "command_manager"]` and/or `contributes.toolbars[]` with `placement: "text_compact"` (schema extension in CMD-07). Rules:
+
+- The host renders every toolbar surface; mods must not inject raw HTML toolbars ([ADR 0028](0028-platform-content-kinds-and-plugin-scope.md) §5).
+- Core owns **default slot order** and overflow policy on the bundled compact bar ([text-toolbar.md](../design/text-toolbar.md)); mod toolbars are separate surfaces with their own ids.
+- Mods may insert controls **after** declared extension points on the compact bar, contribute **Command Manager-only** tools (e.g. citation insert), or register an additional host-docked 32 px toolbar row.
 
 ### 6. Markdown-specific policy
 
@@ -105,7 +107,7 @@ Default Markdown mod (`markdown-baseline`) keeps inline HTML emulation **on** fo
 | Never blocks save or work | Toolbar state does not gate Save |
 | Local-first | No cloud style catalogue required |
 | Predictable across formats | Same semantic names; emulation disclosed |
-| Simple mechanism | Two fixed slots + resolver, not per-format ribbons |
+| Simple mechanism | Host-managed toolbar surfaces + resolver, not per-format ribbons |
 | Mod not core | Format mapping lives in `base-*` mods; core owns slots and picker shell |
 
 ## Consequences

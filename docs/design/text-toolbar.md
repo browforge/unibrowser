@@ -85,10 +85,20 @@ Command Manager overflow (unchanged): Proofing and Export families leave the str
 
 ## How plugins add items
 
+Plugins **MAY** create entirely new toolbars (declared `contributes.toolbars[]` with host placement and dock/detach), not only add icons to the first-party compact bar. The host places and styles every toolbar surface the same way: 32 px row height, Lucide 16 px icons, overflow by whole groups, shared tokens, and layout persistence so the user can hide or move toolbars.
+
+### Controls on the first-party compact bar
+
 1. Manifest `contributes.controls[]` with `surfaces: ["text_compact_toolbar"]` and `content_kinds: ["unibrowser.content.rich_text", …]`.
-2. Optional `insert.after`: `unibrowser.format.link` | `unibrowser.list.bullet` | `text_compact.overflow`.
+2. Optional `insert.after`: `unibrowser.control.semantic.block_style` | `unibrowser.control.text.link` | `unibrowser.control.text.list` | `unibrowser.control.text_compact.overflow`.
 3. Host validates IDs, capability provider, and tooltip contract before load ([CMD-07](ui-implementation-plan.md#cmd-07-mod-contribution-manifest-schema)).
 4. VSIX compat lane maps known contributions into the same slots ([extension-host.md](../extension-host.md)).
+
+### Additional plugin toolbars
+
+1. Manifest `contributes.toolbars[]` with `placement: "text_compact"` (docked under the title bar in Text context), optional `floatable` / `detachable`, and `groups` referencing mod control groups.
+2. Same overflow and icon-only rules as the first-party bar; labels live in tooltips only.
+3. User layout JSON stores visibility, dock region, and detached window geometry ([CMD-09](ui-implementation-plan.md#cmd-09-mod-groups-families-and-toolbars)).
 
 Mods that need a **labelled** control (e.g. “Insert citation”) should use **Command Manager** or palette, not widen the compact bar.
 
