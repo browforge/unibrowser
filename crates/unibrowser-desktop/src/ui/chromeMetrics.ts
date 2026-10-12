@@ -14,19 +14,13 @@ export interface ChromeHeights {
 export function measureChromeHeights(): ChromeHeights {
   const title = document.getElementById("title-bar");
   const compact = document.getElementById("text-compact-toolbar-host");
-  const modCompact = document.getElementById("text-mod-toolbar-host");
   const cm = document.getElementById("command-manager");
   const cmCollapsed = document.body.classList.contains("cm-collapsed");
   const titleBarPx = title ? Math.round(title.getBoundingClientRect().height) : 0;
   const compactHidden =
     cmCollapsed || compact?.classList.contains("hidden") || compact?.offsetParent === null;
   const textCompactToolbarPx =
-    !compactHidden && compact
-      ? Math.round(compact.getBoundingClientRect().height) +
-        (modCompact && !modCompact.classList.contains("hidden")
-          ? Math.round(modCompact.getBoundingClientRect().height)
-          : 0)
-      : 0;
+    !compactHidden && compact ? Math.round(compact.getBoundingClientRect().height) : 0;
   const cmStyle = cm ? getComputedStyle(cm) : null;
   const cmHidden =
     cmCollapsed || (cmStyle?.display === "none") || (cmStyle?.visibility === "hidden");
@@ -57,11 +51,11 @@ export function validateChromeHeightBudget(heights: ChromeHeights): string[] {
     (typeof document !== "undefined" &&
       document.body.classList.contains("text-compact-visible"))
   ) {
-    if (heights.textCompactToolbarPx > 64) {
-      errors.push(`text compact toolbar ${heights.textCompactToolbarPx}px exceeds 64px`);
+    if (heights.textCompactToolbarPx > 34) {
+      errors.push(`text compact toolbar ${heights.textCompactToolbarPx}px exceeds 32px row`);
     }
-    if (heights.totalChromePx < 108 || heights.totalChromePx > 152) {
-      errors.push(`text compact chrome ${heights.totalChromePx}px outside 108-152px`);
+    if (heights.totalChromePx < 108 || heights.totalChromePx > 120) {
+      errors.push(`text compact chrome ${heights.totalChromePx}px outside 108-120px (2 rows)`);
     }
   } else if (heights.cmDensity === "compact") {
     if (heights.totalChromePx < 78 || heights.totalChromePx > 82) {

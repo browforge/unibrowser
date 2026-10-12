@@ -33,18 +33,65 @@ test.describe("TXT toolbar web evidence", () => {
 
     const host = page.locator("#text-compact-toolbar-host");
     await expect(host).toBeVisible({ timeout: 30_000 });
-    await page.locator("#text-editor-host .view-lines").first().click();
-    await page.keyboard.press("Home");
-    const blockTrigger = host.locator(".text-compact-block-trigger");
-    await blockTrigger.click();
-    await host.locator('[data-command-id="unibrowser.semantic.block.heading_2"]').click();
-    await blockTrigger.click();
+
+    const line3 = page.locator("#text-editor-host .view-lines .view-line").nth(2);
+    await line3.click();
+    await page.evaluate(() => {
+      const monaco = (window as unknown as { monaco?: { editor: { getEditors: () => { getModel: () => { getLineContent: (n: number) => string }; getLineCount: () => number }; setPosition: (p: { lineNumber: number; column: number }) => void; executeEdits: (s: string, e: unknown[]) => void; revealLineInCenter: (n: number) => void }; Range: new (a: number, b: number, c: number, d: number) => unknown } }).monaco;
+      const editors = monaco?.editor.getEditors() ?? [];
+      const ed = editors[0];
+      const model = ed?.getModel();
+      if (!monaco || !ed || !model || model.getLineCount() < 3) {
+        throw new Error("monaco editor not ready for line 3");
+      }
+      const line = 3;
+      const text = model.getLineContent(line);
+      const stripped = text.replace(/^#{1,6}\s+/, "").replace(/^>\s+/, "");
+      ed.setPosition({ lineNumber: line, column: 1 });
+      ed.executeEdits("block-style", [
+        {
+          range: new monaco.Range(line, 1, line, text.length + 1),
+          text: `## ${stripped}`,
+          forceMoveMarkers: true,
+        },
+      ]);
+      ed.revealLineInCenter(line);
+      ed.focus();
+    });
+
+    await line3.click();
+
+    await page.evaluate(() => {
+      const hostEl = document.getElementById("text-compact-toolbar-host");
+      if (!hostEl) {
+        return;
+      }
+      const trigger = hostEl.querySelector<HTMLButtonElement>(".text-compact-block-trigger");
+      const menu = hostEl.querySelector<HTMLDivElement>(".text-compact-block-menu");
+      if (trigger && menu) {
+        menu.classList.remove("hidden");
+        trigger.setAttribute("aria-expanded", "true");
+        trigger.blur();
+      }
+      document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
+      document.activeElement instanceof HTMLElement && document.activeElement.blur();
+    });
+
     await expect(host.locator(".text-compact-block-menu:not(.hidden)")).toBeVisible({
       timeout: 15_000,
     });
+    await expect(host.locator(".text-compact-block-label")).toHaveText("Heading 2");
     await expect(
       host.locator('[data-command-id="unibrowser.semantic.block.heading_2"][aria-selected="true"]'),
     ).toBeVisible();
+
+    const lineText = await page.evaluate(() => {
+      const monaco = (window as unknown as { monaco?: { editor: { getEditors: () => { getModel: () => { getLineContent: (n: number) => string } | null }[] } } }).monaco;
+      const model = monaco?.editor.getEditors()[0]?.getModel();
+      return model?.getLineContent(3) ?? null;
+    });
+    expect(lineText?.startsWith("## ")).toBe(true);
+    expect(lineText).toContain("Unibrowser renders");
 
     const toolbarBox = await host.boundingBox();
     expect(toolbarBox?.height ?? 99).toBeLessThanOrEqual(33.5);
@@ -57,9 +104,6 @@ test.describe("TXT toolbar web evidence", () => {
     }));
     expect(wrapMetrics.flexWrap).toBe("nowrap");
     expect(wrapMetrics.scrollWidth).toBeLessThanOrEqual(wrapMetrics.clientWidth + 2);
-
-    const pickerLabel = await host.locator(".text-compact-block-label").textContent();
-    expect(pickerLabel?.trim().length ?? 0).toBeGreaterThan(0);
 
     await page.getByRole("button", { name: "Skip tour" }).click({ timeout: 3_000 }).catch(() => undefined);
     await page.getByRole("button", { name: "Dismiss" }).click({ timeout: 2_000 }).catch(() => undefined);

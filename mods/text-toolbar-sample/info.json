@@ -18,6 +18,11 @@
         "id": "text-toolbar-sample.insert.marker",
         "title": "Insert sample marker",
         "icon": "sparkles"
+      },
+      {
+        "id": "text-toolbar-sample.insert.banner",
+        "title": "Insert sample banner",
+        "icon": "bookmark"
       }
     ],
     "controls": [
@@ -31,13 +36,27 @@
         "insert": {
           "after": "unibrowser.control.text.link"
         }
+      },
+      {
+        "id": "text-toolbar-sample.control.banner",
+        "type": "button",
+        "command": "text-toolbar-sample.insert.banner",
+        "label": "Sample banner",
+        "icon": "bookmark",
+        "surfaces": ["text_compact_toolbar"],
+        "insert": {
+          "after": "text-toolbar-sample.control.marker"
+        }
       }
     ],
     "groups": [
       {
         "id": "text-toolbar-sample.group.tools",
         "label": "Sample",
-        "controls": ["text-toolbar-sample.control.marker"]
+        "controls": [
+          "text-toolbar-sample.control.marker",
+          "text-toolbar-sample.control.banner"
+        ]
       }
     ],
     "toolbars": [

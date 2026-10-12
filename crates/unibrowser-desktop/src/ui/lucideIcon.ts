@@ -42,6 +42,12 @@ export type LucideName =
   | "italic"
   | "underline"
   | "strikethrough"
+  | "code"
+  | "link"
+  | "list"
+  | "remove-formatting"
+  | "pilcrow"
+  | "sparkles"
   | "subscript"
   | "superscript"
   | "palette"
@@ -117,6 +123,15 @@ const PATHS: Record<LucideName, string> = {
   italic: '<path d="M19 4h-9M14 20H5M15 4 9 20"/>',
   underline: '<path d="M6 4v6a6 6 0 0 0 12 0V4"/><path d="M4 20h16"/>',
   strikethrough: '<path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><path d="M4 12h16"/>',
+  code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  list: '<path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/>',
+  "remove-formatting":
+    '<path d="M4 7V4h16v3"/><path d="M5 20h6"/><path d="M13 4 8 20"/><path d="m15 15 5 5"/><path d="m20 15-5 5"/>',
+  pilcrow:
+    '<path d="M13 4v16"/><path d="M17 4v16"/><path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/>',
+  sparkles:
+    '<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/>',
   subscript: '<path d="m4 5 8 8"/><path d="m12 13-8 8"/><path d="M20 19h-4c0-1.5.44-2 1.5-2.5S20 15.33 20 13a4 4 0 0 0-4-4"/>',
   superscript: '<path d="m4 19 8-8"/><path d="m12 11-8-8"/><path d="M20 5h-4c0 1.5.44 2 1.5 2.5S20 8.67 20 11a4 4 0 0 1-4 4"/>',
   palette:
@@ -182,6 +197,7 @@ export function createLucideIcon(
   svg.setAttribute("stroke-linejoin", "round");
   svg.setAttribute("class", className);
   svg.setAttribute("aria-hidden", "true");
+  svg.dataset.lucide = name;
   svg.innerHTML = PATHS[name];
   return svg;
 }

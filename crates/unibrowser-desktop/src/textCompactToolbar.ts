@@ -3,6 +3,8 @@ import {
   partitionGroupsByAvailableWidth,
   renderResolvedControl,
   capabilityReason,
+  controlIconUsesFallback,
+  lucideForControlIcon,
   type ResolvedControlDto,
   type ResolvedFamilyDto,
 } from "./ui/commandControls";
@@ -51,7 +53,7 @@ function renderBlockStylePicker(
   btn.dataset.controlId = control.control_id;
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
-  const icon = createLucideIcon("type", 16, "ub-icon svg-icon");
+  const icon = createLucideIcon("pilcrow", 16, "ub-icon svg-icon");
   btn.appendChild(icon);
   const label = document.createElement("span");
   label.className = "text-compact-block-label";
@@ -62,6 +64,7 @@ function renderBlockStylePicker(
   if (control.capability.state === "emulated") {
     const mark = document.createElement("span");
     mark.className = "cm-emulation-mark";
+    mark.textContent = "≈";
     mark.setAttribute("aria-hidden", "true");
     mark.title = capabilityReason(control.capability) ?? "";
     btn.appendChild(mark);
@@ -122,9 +125,60 @@ function renderCompactControl(
   return el;
 }
 
+function appendModDockedSection(
+  tools: HTMLElement,
+  bars: FloatingBarDto[],
+  onRun: (commandId: string) => Promise<void>,
+  chordByCommand: Map<string, string>,
+) {
+  for (const bar of bars) {
+    if (bar.commands.length === 0) {
+      continue;
+    }
+    const div = document.createElement("span");
+    div.className = "text-compact-divider";
+    div.setAttribute("aria-hidden", "true");
+    tools.appendChild(div);
+    const dock = document.createElement("div");
+    dock.className = "text-compact-mod-dock";
+    dock.dataset.toolbarId = bar.id;
+    const name = document.createElement("span");
+    name.className = "text-compact-mod-label";
+    name.textContent = bar.label;
+    dock.appendChild(name);
+    for (const cmd of bar.commands) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "text-compact-btn";
+      btn.dataset.commandId = cmd.command_id;
+      btn.setAttribute("aria-label", cmd.title);
+      const iconName = lucideForControlIcon(cmd.icon);
+      if (controlIconUsesFallback(cmd.icon) || iconName === "file") {
+        btn.dataset.iconFallback = "1";
+      }
+      btn.appendChild(createLucideIcon(iconName, 16, "ub-icon svg-icon"));
+      bindCommandTooltip(btn, {
+        title: cmd.title,
+        reason: cmd.reason,
+        chord: chordByCommand.get(cmd.command_id) ?? null,
+        enabled: cmd.enabled,
+      });
+      if (cmd.enabled) {
+        btn.onclick = () => void onRun(cmd.command_id);
+      } else {
+        btn.setAttribute("aria-disabled", "true");
+      }
+      dock.appendChild(btn);
+    }
+    tools.appendChild(dock);
+  }
+}
+
 function renderCompactRow(
   container: HTMLElement,
   families: ResolvedFamilyDto[],
+  compactDockedBars: FloatingBarDto[],
+  showModDock: boolean,
   onRun: (commandId: string) => Promise<void>,
   chordByCommand: Map<string, string>,
 ) {
@@ -150,6 +204,9 @@ function renderCompactRow(
     });
   };
   pushControls(visible);
+  if (showModDock && compactDockedBars.length > 0) {
+    appendModDockedSection(tools, compactDockedBars, onRun, chordByCommand);
+  }
   if (overflow.length > 0) {
     const overflowBtn = document.createElement("button");
     overflowBtn.type = "button";
@@ -187,42 +244,6 @@ function renderCompactRow(
   container.appendChild(tools);
 }
 
-function renderModDockedToolbar(
-  host: HTMLElement,
-  bar: FloatingBarDto,
-  onRun: (commandId: string) => Promise<void>,
-  chordByCommand: Map<string, string>,
-) {
-  const row = document.createElement("section");
-  row.className = "text-compact-toolbar text-compact-toolbar--mod";
-  row.dataset.toolbarId = bar.id;
-  row.setAttribute("aria-label", bar.label);
-  const tools = document.createElement("div");
-  tools.className = "text-compact-tools";
-  for (const cmd of bar.commands) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "text-compact-btn";
-    btn.dataset.commandId = cmd.command_id;
-    btn.setAttribute("aria-label", cmd.title);
-    btn.appendChild(createLucideIcon("pen-line", 16, "ub-icon svg-icon"));
-    bindCommandTooltip(btn, {
-      title: cmd.title,
-      reason: cmd.reason,
-      chord: chordByCommand.get(cmd.command_id) ?? null,
-      enabled: cmd.enabled,
-    });
-    if (cmd.enabled) {
-      btn.onclick = () => void onRun(cmd.command_id);
-    } else {
-      btn.setAttribute("aria-disabled", "true");
-    }
-    tools.appendChild(btn);
-  }
-  row.appendChild(tools);
-  host.appendChild(row);
-}
-
 export function refreshTextCompactToolbar(
   primaryHost: HTMLElement,
   modHost: HTMLElement,
@@ -237,19 +258,23 @@ export function refreshTextCompactToolbar(
     (tab.compact_toolbar_families?.length ?? 0) > 0 &&
     (autoContext === "text" || autoContext === "office");
   primaryHost.classList.toggle("hidden", !show);
-  modHost.classList.toggle("hidden", !show);
+  modHost.classList.add("hidden");
+  modHost.innerHTML = "";
   if (!show || !tab) {
     primaryHost.innerHTML = "";
-    modHost.innerHTML = "";
     document.body.classList.remove("text-compact-visible");
     return;
   }
   document.body.classList.add("text-compact-visible");
-  renderCompactRow(primaryHost, tab.compact_toolbar_families, onRun, chordByCommand);
-  modHost.innerHTML = "";
-  for (const bar of compactDockedBars) {
-    renderModDockedToolbar(modHost, bar, onRun, chordByCommand);
-  }
+  const showModDock = document.documentElement.dataset.ubModToolbarDocked === "1";
+  renderCompactRow(
+    primaryHost,
+    tab.compact_toolbar_families,
+    compactDockedBars,
+    showModDock,
+    onRun,
+    chordByCommand,
+  );
 }
 
 export function openBlockStyleMenuForCapture(host: HTMLElement): void {
@@ -258,5 +283,29 @@ export function openBlockStyleMenuForCapture(host: HTMLElement): void {
   if (trigger && menu) {
     menu.classList.remove("hidden");
     trigger.setAttribute("aria-expanded", "true");
+    trigger.blur();
+    document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
   }
+}
+
+/** Assert compact toolbar icons are mapped (no generic file glyph). */
+export function compactToolbarIconFallbackError(host: HTMLElement | null): string | null {
+  if (!host) {
+    return "compact toolbar host missing";
+  }
+  for (const svg of host.querySelectorAll<SVGElement>(".text-compact-btn .ub-icon[data-lucide]")) {
+    if (svg.dataset.lucide === "file") {
+      return "compact toolbar uses generic file icon fallback";
+    }
+  }
+  for (const btn of host.querySelectorAll<HTMLElement>(".text-compact-btn[data-icon-fallback='1']")) {
+    return `mod toolbar control ${btn.dataset.commandId ?? "?"} has unmapped icon`;
+  }
+  for (const control of host.querySelectorAll<HTMLElement>(".text-compact-btn[data-control-id]")) {
+    const icon = control.querySelector<SVGElement>(".ub-icon[data-lucide='file']");
+    if (icon && control.dataset.controlId !== BLOCK_STYLE_CONTROL) {
+      return `control ${control.dataset.controlId} renders file icon fallback`;
+    }
+  }
+  return null;
 }

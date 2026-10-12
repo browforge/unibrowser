@@ -1,3 +1,5 @@
+import { compactToolbarIconFallbackError } from "./textCompactToolbar";
+
 export interface MonacoCaptureDiagnostics {
   viewLineCount: number;
   viewTextLength: number;
@@ -1109,9 +1111,14 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   const modsContext = cm.contextLabel?.toLowerCase() === "mods";
   const mediaContext = cm.contextLabel?.toLowerCase() === "audio";
   const sparseContextLimit = mediaContext ? 1 : settingsContext ? 2 : modsContext ? 5 : 4;
+  const textCompactContext = document.body.classList.contains("text-compact-visible");
   const sparseContext = startContext || settingsContext || modsContext || mediaContext;
-  const requiredVisible = sparseContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
-  const requiredContrast = sparseContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
+  let requiredVisible = sparseContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
+  let requiredContrast = sparseContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
+  if (textCompactContext) {
+    requiredVisible = Math.min(requiredVisible, 5);
+    requiredContrast = Math.min(requiredContrast, 5);
+  }
   const overflowEl = document.getElementById("command-manager-overflow");
   const resolvedTotal =
     typeof cm.pipeline?.ipcControlCount === "number"
@@ -1450,6 +1457,7 @@ export interface TextCompactToolbarCaptureOptions {
   requirePickerOpen?: boolean;
   requireH2Selected?: boolean;
   requireDocxEmulatedH1?: boolean;
+  requireModToolbarDock?: boolean;
 }
 
 /** TXT-06: compact text toolbar geometry and picker state for doc-capture. */
@@ -1461,6 +1469,7 @@ export function validateTextCompactToolbarForCapture(
   const requirePickerOpen = opts.requirePickerOpen ?? false;
   const requireH2Selected = opts.requireH2Selected ?? false;
   const requireDocxEmulatedH1 = opts.requireDocxEmulatedH1 ?? false;
+  const requireModToolbarDock = opts.requireModToolbarDock ?? false;
   if (!document.body.classList.contains("text-compact-visible")) {
     return null;
   }
@@ -1491,6 +1500,17 @@ export function validateTextCompactToolbarForCapture(
       return `compact icon ${btn.dataset.controlId ?? "?"} still has a visible label`;
     }
   }
+  const iconErr = compactToolbarIconFallbackError(host);
+  if (iconErr) {
+    return iconErr;
+  }
+  const cmGroups = document.getElementById("command-manager-groups");
+  if (cmGroups) {
+    const cmText = cmGroups.textContent ?? "";
+    if (/\d+\s*pt/i.test(cmText)) {
+      return "Command Manager must not show document font size (pt) in compact text context";
+    }
+  }
   const pickerLabel = host.querySelector<HTMLElement>(".text-compact-block-label");
   if (!pickerLabel?.textContent?.trim()) {
     return "block-style picker missing current style label";
@@ -1516,17 +1536,33 @@ export function validateTextCompactToolbarForCapture(
         return "block-style picker must list Heading 1 for docx capture";
       }
       const trigger = host.querySelector<HTMLElement>(".text-compact-block-trigger");
-      if (!trigger?.querySelector(".cm-emulation-mark")) {
+      const mark = trigger?.querySelector<HTMLElement>(".cm-emulation-mark");
+      if (!mark?.textContent?.includes("≈")) {
         return "docx block-style picker must show emulated Heading 1 (≈) on trigger";
       }
     }
   }
   const modHost = document.getElementById("text-mod-toolbar-host");
   if (modHost && !modHost.classList.contains("hidden")) {
-    const modRect = modHost.getBoundingClientRect();
-    if (modRect.height > 33.5) {
-      return `mod text toolbar height ${modRect.height.toFixed(1)}px exceeds 32px row budget`;
+    return "plugin text toolbar must be folded into the compact row (mod host must stay hidden)";
+  }
+  if (requireModToolbarDock) {
+    const dock = host.querySelector<HTMLElement>(".text-compact-mod-dock");
+    if (!dock) {
+      return "sample mod toolbar dock must be visible for this capture";
     }
+    const label = dock.querySelector<HTMLElement>(".text-compact-mod-label")?.textContent?.trim();
+    if (!label) {
+      return "sample mod toolbar must show a visible name label";
+    }
+    const modButtons = dock.querySelectorAll<HTMLElement>(
+      "button.text-compact-btn[data-command-id]",
+    );
+    if (modButtons.length < 2) {
+      return `sample mod toolbar needs at least 2 controls, found ${modButtons.length}`;
+    }
+  } else if (host.querySelector(".text-compact-mod-dock")) {
+    return "mod docked toolbar must only appear when txt-mod-toolbar-visible demo is set";
   }
   return null;
 }

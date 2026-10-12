@@ -21,8 +21,21 @@ pub fn register(registry: &mut CommandRegistry) {
         default_keybinding: None,
         aliases: &["sample toolbar marker"],
     });
+    registry.register_command(CommandMeta {
+        id: "text-toolbar-sample.insert.banner",
+        title: "Insert sample banner",
+        icon: "bookmark",
+        default_keybinding: None,
+        aliases: &["sample toolbar banner"],
+    });
     registry.register_handler(HandlerRegistration {
         command_id: "text-toolbar-sample.insert.marker".into(),
+        backend_id: BACKEND_ID.into(),
+        enable: sample_enabled,
+        execute: sample_exec,
+    });
+    registry.register_handler(HandlerRegistration {
+        command_id: "text-toolbar-sample.insert.banner".into(),
         backend_id: BACKEND_ID.into(),
         enable: sample_enabled,
         execute: sample_exec,

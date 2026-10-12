@@ -54,6 +54,11 @@ export async function applyDemoState(raw: string) {
       case "txt-apply-h2": {
         const { textEditor } = await import("./textEditor");
         for (let attempt = 0; attempt < 80; attempt += 1) {
+          const positioned = await textEditor.setCursorLine(3);
+          if (!positioned) {
+            await new Promise((resolve) => window.setTimeout(resolve, 50));
+            continue;
+          }
           const applied = await textEditor.applySemanticBlockStyle(
             "unibrowser.semantic.block.heading_2",
           );
@@ -65,6 +70,24 @@ export async function applyDemoState(raw: string) {
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         break;
       }
+      case "txt-apply-h1": {
+        const { textEditor } = await import("./textEditor");
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          const applied = await textEditor.applySemanticBlockStyle(
+            "unibrowser.semantic.block.heading_1",
+          );
+          if (applied) {
+            break;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 50));
+        }
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
+      }
+      case "txt-mod-toolbar-visible":
+        document.documentElement.dataset.ubModToolbarDocked = "1";
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
       case "cmd-proving-detached": {
         if (!isToolbarOnlyWindow()) {
           await invoke("detach_floating_toolbar_window", {

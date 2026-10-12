@@ -472,13 +472,31 @@ body:not([data-cm-density="large"]) .cm-group-name {
 
 .cm-emulation-mark {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 4px;
-  height: 4px;
-  border-radius: 1px;
-  border: 1px dotted var(--ub-fg-muted);
+  top: 1px;
+  right: 3px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--ub-fg-muted, #93a5ae);
   pointer-events: none;
+}
+
+.text-compact-mod-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.text-compact-mod-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ub-fg-muted, #93a5ae);
+  padding: 0 6px 0 2px;
+  white-space: nowrap;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ui-command.emulated,

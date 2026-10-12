@@ -573,6 +573,28 @@ export const textEditor = {
     }
   },
 
+  getLineText(lineNumber: number): string | null {
+    const model = editor?.getModel();
+    if (!model || lineNumber < 1 || lineNumber > model.getLineCount()) {
+      return null;
+    }
+    return model.getLineContent(lineNumber);
+  },
+
+  setCursorLine(lineNumber: number): boolean {
+    if (!editor || !monacoApi) {
+      return false;
+    }
+    const model = editor.getModel();
+    if (!model || lineNumber < 1 || lineNumber > model.getLineCount()) {
+      return false;
+    }
+    editor.setPosition({ lineNumber, column: 1 });
+    editor.revealLineInCenter(lineNumber);
+    editor.focus();
+    return true;
+  },
+
   async applySemanticBlockStyle(commandId: string): Promise<boolean> {
     if (!editor || !monacoApi || !loadedPath) {
       return false;
@@ -758,4 +780,8 @@ export function navigateToTextByteRange(startByte: number, endByte: number) {
     endLineNumber: end.lineNumber,
     endColumn: end.column,
   });
+}
+
+if (typeof window !== "undefined") {
+  (window as unknown as { __ubTextEditor?: typeof textEditor }).__ubTextEditor = textEditor;
 }

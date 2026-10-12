@@ -1599,10 +1599,14 @@ pub(crate) fn control_spec(
 ) -> ResolvedControl {
     let capability = resolver.resolve_control(control_id, command_id, ctx);
     let value = if control_id == control_ids::TEXT_SIZE || control_id == control_ids::EDITOR_SIZE {
-        ctx.host
-            .selection
-            .font_size_pt
-            .map(|pt| format!("{:.0} pt", pt))
+        ctx.host.selection.font_size_pt.map(|pt| {
+            if matches!(ctx.work, WorkContext::PlainText | WorkContext::RichDocument) {
+                let pct = (pt / 12.0 * 100.0).round().max(50.0).min(200.0);
+                format!("{:.0}%", pct)
+            } else {
+                format!("{:.0} pt", pt)
+            }
+        })
     } else {
         None
     };

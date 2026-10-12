@@ -27,12 +27,12 @@ test("expanded compact chrome is ~80px", () => {
   assert.deepEqual(errs, []);
 });
 
-test("text compact chrome allows two 32px rows plus CM strip", () => {
+test("text compact chrome allows compact row plus CM strip", () => {
   const errs = validateChromeHeightBudget({
     titleBarPx: 40,
-    textCompactToolbarPx: 64,
+    textCompactToolbarPx: 32,
     commandManagerPx: 40,
-    totalChromePx: 144,
+    totalChromePx: 112,
     cmCollapsed: false,
     cmDensity: "compact",
     textCompactVisible: true,

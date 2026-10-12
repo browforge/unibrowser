@@ -3117,7 +3117,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         if (demoAgain) {
           try {
             const deferredCaptureTokens =
-              /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$)/;
+              /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$)/;
             const bootstrapDemo = demoAgain
               .split(/[,;]+/)
               .map((t) => t.trim())
@@ -3223,9 +3223,14 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (
             demoTokens.includes("txt-apply-h2") ||
             demoTokens.includes("txt-apply-h1") ||
-            demoTokens.includes("txt-block-picker-open")
+            demoTokens.includes("txt-block-picker-open") ||
+            demoTokens.includes("txt-mod-toolbar-visible")
           ) {
             await refreshCommandManager();
+            if (demoTokens.includes("txt-mod-toolbar-visible")) {
+              await applyDemoState("txt-mod-toolbar-visible");
+              await refreshCommandManager();
+            }
             for (const token of ["txt-apply-h2", "txt-apply-h1"]) {
               if (demoTokens.includes(token)) {
                 await applyDemoState(token);
@@ -3377,6 +3382,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             requireDocxEmulatedH1:
               demoLower.includes("txt-block-picker-open") &&
               launchPaths.some((p) => /\.docx$/i.test(p)),
+            requireModToolbarDock: demoLower.includes("txt-mod-toolbar-visible"),
           });
           if (txtCompactErr) {
             await invoke("abort_doc_capture", {

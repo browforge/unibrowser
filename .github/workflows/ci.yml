@@ -14,6 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install wasm32 target (mod-host tests)
+        run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: .
@@ -96,6 +98,8 @@ jobs:
         run: npm run build
       - name: Build media sidecar
         run: cargo build -p unibrowser-media --bin unibrowser-media-sidecar
+      - name: Stage media sidecar for Tauri (debug)
+        run: cargo build -p unibrowser-desktop
       - name: cargo test
         run: cargo test --workspace
       - name: cargo build Tauri (debug)

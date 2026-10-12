@@ -2815,6 +2815,12 @@ body.content-fullscreen::after {
   line-height: 1.5;
 }
 
+.document-viewer-host .docx-view img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
 .docx-toolbar,
 .epub-nav,
 .epub-search-row {

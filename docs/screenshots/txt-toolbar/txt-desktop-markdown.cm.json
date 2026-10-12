@@ -1,22 +1,22 @@
 {
   "viewportWidth": 1280,
   "viewportHeight": 800,
-  "controlCount": 6,
-  "visibleCount": 6,
-  "contrastOkCount": 6,
+  "controlCount": 5,
+  "visibleCount": 5,
+  "contrastOkCount": 5,
   "contextLabel": "Text",
   "autoContext": "text",
   "pipeline": {
     "activeTabId": "text",
-    "rustFamilyCount": 5,
-    "rustControlCount": 6,
-    "ipcFamilyCount": 5,
-    "ipcControlCount": 6,
-    "frontendGroupCount": 5,
-    "frontendResolvedControlCount": 6,
-    "frontendVisibleModelCount": 6,
+    "rustFamilyCount": 4,
+    "rustControlCount": 5,
+    "ipcFamilyCount": 4,
+    "ipcControlCount": 5,
+    "frontendGroupCount": 4,
+    "frontendResolvedControlCount": 5,
+    "frontendVisibleModelCount": 5,
     "frontendOverflowModelCount": 0,
-    "groupsWidth": 772
+    "groupsWidth": 716
   },
   "controls": [
     {
@@ -33,7 +33,7 @@
       "height": 30,
       "labelBounds": {
         "x": 106.84375,
-        "y": 116.5,
+        "y": 83.5,
         "width": 34,
         "height": 18
       },
@@ -110,7 +110,7 @@
       "pixelInkCount": 163,
       "pixelBounds": {
         "x": 106,
-        "y": 116,
+        "y": 83,
         "width": 35,
         "height": 19
       }
@@ -129,7 +129,7 @@
       "height": 30,
       "labelBounds": {
         "x": 178.84375,
-        "y": 116.5,
+        "y": 83.5,
         "width": 31,
         "height": 18
       },
@@ -206,7 +206,7 @@
       "pixelInkCount": 154,
       "pixelBounds": {
         "x": 178,
-        "y": 116,
+        "y": 83,
         "width": 32,
         "height": 19
       }
@@ -225,7 +225,7 @@
       "height": 30,
       "labelBounds": {
         "x": 279.84375,
-        "y": 116.5,
+        "y": 83.5,
         "width": 26,
         "height": 18
       },
@@ -302,106 +302,8 @@
       "pixelInkCount": 118,
       "pixelBounds": {
         "x": 279,
-        "y": 116,
+        "y": 83,
         "width": 27,
-        "height": 19
-      }
-    },
-    {
-      "controlId": "unibrowser.control.text.size",
-      "label": "12 pt",
-      "classes": [
-        "ui-command",
-        "cm-cap-supported",
-        "split-button",
-        "value-stepper"
-      ],
-      "capabilityState": "supported",
-      "enabled": true,
-      "disabledReason": null,
-      "width": 79,
-      "height": 30,
-      "labelBounds": {
-        "x": 375.84375,
-        "y": 116.5,
-        "width": 30,
-        "height": 18
-      },
-      "labelWidth": 30,
-      "iconWidth": 16,
-      "opacity": "1",
-      "filter": "none",
-      "foreground": "rgb(233, 237, 239)",
-      "labelForeground": "rgb(233, 237, 239)",
-      "background": "rgb(23, 37, 50)",
-      "contrast": 13.231816864242587,
-      "chromeTextVariable": "#e9edef",
-      "ancestors": [
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group-tools"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [
-            "cm-group",
-            "priority-low"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "div",
-          "id": "command-manager-groups",
-          "classes": [
-            "command-manager-groups"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgba(0, 0, 0, 0)"
-        },
-        {
-          "tag": "section",
-          "id": "command-manager",
-          "classes": [
-            "command-manager",
-            "command-manager-dense"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        },
-        {
-          "tag": "header",
-          "id": "chrome",
-          "classes": [
-            "ub-region",
-            "ub-region--chrome"
-          ],
-          "opacity": "1",
-          "filter": "none",
-          "color": "rgb(233, 237, 239)",
-          "background": "rgb(23, 37, 50)"
-        }
-      ],
-      "pixelContrast": 13.112,
-      "pixelInkCount": 133,
-      "pixelBounds": {
-        "x": 375,
-        "y": 116,
-        "width": 31,
         "height": 19
       }
     },
@@ -419,8 +321,8 @@
       "width": 73,
       "height": 30,
       "labelBounds": {
-        "x": 487.84375,
-        "y": 116.5,
+        "x": 375.84375,
+        "y": 83.5,
         "width": 36,
         "height": 18
       },
@@ -496,8 +398,8 @@
       "pixelContrast": 12.758,
       "pixelInkCount": 180,
       "pixelBounds": {
-        "x": 487,
-        "y": 116,
+        "x": 375,
+        "y": 83,
         "width": 37,
         "height": 19
       }
@@ -515,8 +417,8 @@
       "width": 77,
       "height": 30,
       "labelBounds": {
-        "x": 593.84375,
-        "y": 116.5,
+        "x": 481.84375,
+        "y": 83.5,
         "width": 40,
         "height": 18
       },
@@ -592,8 +494,8 @@
       "pixelContrast": 12.876,
       "pixelInkCount": 190,
       "pixelBounds": {
-        "x": 593,
-        "y": 116,
+        "x": 481,
+        "y": 83,
         "width": 41,
         "height": 19
       }

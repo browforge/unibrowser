@@ -20,13 +20,10 @@ pub fn editor_display_size_cm_family(
     ctx: &ResolutionContext,
     resolver: &CapabilityResolver,
 ) -> Option<ResolvedFamily> {
-    if !uses_compact_text_toolbar(ctx.work) {
+    if !uses_compact_text_toolbar(ctx.work) || ctx.work == WorkContext::Markdown {
         return None;
     }
-    let label = match ctx.work {
-        WorkContext::PlainText | WorkContext::Markdown => "Editor text size",
-        _ => "Size",
-    };
+    let label = "Editor zoom";
     Some(ResolvedFamily {
         family_id: family_ids::EDITOR_APPEARANCE.into(),
         label: "Editor".into(),

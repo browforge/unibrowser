@@ -12,6 +12,10 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const familiesPath = join(here, "../../unibrowser-engine/src/command_system/families.rs");
+const compactToolbarPath = join(
+  here,
+  "../../unibrowser-engine/src/command_system/compact_toolbar.rs",
+);
 
 /** Collect engine icon strings (label line followed by icon line before a group id). */
 function iconsFromFamiliesSource(source) {
@@ -27,7 +31,13 @@ function iconsFromFamiliesSource(source) {
 
 test("every built-in control icon is mapped (no lucide file fallback)", () => {
   const source = readFileSync(familiesPath, "utf8");
-  const icons = iconsFromFamiliesSource(source);
+  const compactSource = readFileSync(compactToolbarPath, "utf8");
+  const icons = [
+    ...new Set([
+      ...iconsFromFamiliesSource(source),
+      ...iconsFromFamiliesSource(compactSource),
+    ]),
+  ].sort();
   assert.ok(icons.length > 20, `expected many control icons, got ${icons.length}`);
   const missing = icons.filter((icon) => controlIconUsesFallback(icon));
   assert.deepEqual(
