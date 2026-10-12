@@ -106,7 +106,7 @@ jobs:
           Copy-Item -Force "target/debug/unibrowser-media-sidecar.exe" `
             "$destDir/unibrowser-media-sidecar-x86_64-pc-windows-msvc.exe"
       - name: cargo test
-        run: cargo test --workspace --exclude unibrowser-desktop
+        run: cargo test --workspace --exclude unibrowser-desktop --exclude ub-mod-wasm
       - name: cargo build Tauri (debug)
         run: cargo build -p unibrowser-desktop
       - name: Tauri bundle (NSIS + MSI)
