@@ -12,3 +12,7 @@ crates/unibrowser-desktop/src-tauri/binaries/*
 .idea
 .vscode
 /graft/
+/crates/unibrowser-desktop/dist-web/
+/crates/unibrowser-desktop/public/wasm/
+/crates/unibrowser-desktop/public/demo-pack/
+/crates/unibrowser-desktop/test-results/

@@ -40,6 +40,21 @@ Apache-2.0. See [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), [docs/licenses/](doc
 - **Node.js 20+** for the desktop UI build
 - **Windows:** MSVC, WebView2 runtime, Node.js; build on a Windows host (see below)
 
+## Try it in your browser
+
+A static build of the shell runs on GitHub Pages with no backend: open the [web demo](https://browforge.github.io/unibrowser/), try the bundled sample pack, and open local text or Markdown from your machine. Nothing you open is uploaded.
+
+Local web build:
+
+```bash
+cd crates/unibrowser-desktop
+npm install
+npm run build:web
+npx vite preview --mode web
+```
+
+Then open the URL shown (under `/unibrowser/`). For a production-like path, deploy `dist-web` to any static host.
+
 ## Run the product (Tauri)
 
 ```bash

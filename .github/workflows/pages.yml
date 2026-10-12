@@ -1,0 +1,59 @@
+name: GitHub Pages (web demo)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: crates/unibrowser-desktop/package-lock.json
+      - name: Install wasm-bindgen
+        run: cargo install wasm-bindgen-cli --locked
+      - name: Build web demo
+        working-directory: crates/unibrowser-desktop
+        run: |
+          npm ci
+          npm run build:web
+      - name: Web smoke test
+        working-directory: crates/unibrowser-desktop
+        run: |
+          npx playwright install chromium
+          npm run test:web-smoke
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: crates/unibrowser-desktop/dist-web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
