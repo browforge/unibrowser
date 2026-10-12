@@ -304,8 +304,8 @@ fn plain_text_size_label_is_editor_display() {
     let label = find_control_label(WorkContext::PlainText, "notes.txt", control_ids::TEXT_SIZE)
         .expect("size control");
     assert!(
-        label.contains("Editor text size"),
-        "plain text size label must not imply file formatting: {}",
+        label.contains("Editor zoom"),
+        "plain text size label must be editor zoom, not file formatting: {}",
         label
     );
 }

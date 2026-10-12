@@ -99,7 +99,12 @@ jobs:
       - name: Build media sidecar
         run: cargo build -p unibrowser-media --bin unibrowser-media-sidecar
       - name: Stage media sidecar for Tauri (debug)
-        run: cargo build -p unibrowser-desktop
+        shell: pwsh
+        run: |
+          $destDir = "crates/unibrowser-desktop/src-tauri/binaries"
+          New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+          Copy-Item -Force "target/debug/unibrowser-media-sidecar.exe" `
+            "$destDir/unibrowser-media-sidecar-x86_64-pc-windows-msvc.exe"
       - name: cargo test
         run: cargo test --workspace
       - name: cargo build Tauri (debug)
