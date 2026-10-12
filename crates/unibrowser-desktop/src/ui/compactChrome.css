@@ -279,6 +279,124 @@ body.cm-collapsed #chrome #command-manager.command-manager {
   overflow: hidden !important;
 }
 
+body.cm-collapsed #text-compact-toolbar-host,
+body.cm-collapsed #text-mod-toolbar-host {
+  display: none !important;
+}
+
+.text-compact-toolbar,
+.text-mod-toolbar-host .text-compact-toolbar--mod {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  max-height: 32px;
+  padding: 0 6px;
+  gap: 2px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+  background: var(--ub-chrome-panel, #1e2a33);
+  border-bottom: 1px solid var(--ub-border-subtle, #2c3b47);
+}
+
+.text-compact-toolbar.hidden,
+.text-mod-toolbar-host.hidden {
+  display: none !important;
+}
+
+.text-compact-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.text-compact-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ub-radius-4);
+  background: transparent;
+  color: inherit;
+}
+
+.text-compact-btn .cm-cmd-label {
+  display: none !important;
+}
+
+.text-compact-block-picker {
+  position: relative;
+  display: inline-flex;
+}
+
+.text-compact-block-trigger {
+  width: auto;
+  min-width: 120px;
+  max-width: 200px;
+  padding: 0 8px;
+  gap: 6px;
+}
+
+.text-compact-block-label {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.text-compact-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--ub-border-subtle, #3a4d5c);
+  flex-shrink: 0;
+}
+
+.text-compact-block-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 180px;
+  max-width: 240px;
+  padding: 4px;
+  border-radius: var(--ub-radius-4);
+  border: 1px solid var(--ub-border-subtle, #3a4d5c);
+  background: var(--ub-panel, #243442);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.text-compact-block-menu.hidden {
+  display: none;
+}
+
+.text-compact-block-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--ub-radius-4);
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+}
+
+.text-compact-block-item[aria-selected="true"] {
+  background: var(--ub-accent-muted, rgba(90, 160, 220, 0.2));
+}
+
+body.text-compact-visible #command-manager.command-manager {
+  min-height: 40px;
+  max-height: 40px;
+}
+
 .context-label {
   display: inline-flex;
   align-items: center;

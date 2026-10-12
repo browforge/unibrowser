@@ -94,6 +94,23 @@ export function runShellChromeAudit(): string[] {
         `collapsed chrome height ${heights.totalChromePx}px (expected ~40px title bar only)`,
       );
     }
+  } else if (
+    typeof document !== "undefined" &&
+    document.body.classList.contains("text-compact-visible")
+  ) {
+    if (heights.textCompactToolbarPx > 72) {
+      errors.push(
+        `text compact toolbar height ${heights.textCompactToolbarPx}px exceeds 72px (two 32px rows max)`,
+      );
+    }
+    if (heights.commandManagerPx > 42) {
+      errors.push(`command manager height ${heights.commandManagerPx}px exceeds 40px compact strip`);
+    }
+    if (heights.totalChromePx < 108 || heights.totalChromePx > 152) {
+      errors.push(
+        `text compact chrome height ${heights.totalChromePx}px (title ${heights.titleBarPx}px, compact ${heights.textCompactToolbarPx}px, cm ${heights.commandManagerPx}px) outside 108-152px budget`,
+      );
+    }
   } else if (density === "compact") {
     if (heights.totalChromePx < 78 || heights.totalChromePx > 82) {
       errors.push(

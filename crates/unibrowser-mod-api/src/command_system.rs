@@ -86,6 +86,12 @@ pub mod control_ids {
     pub const TEXT_SUBSCRIPT: &str = "unibrowser.control.text.subscript";
     pub const TEXT_SUPERSCRIPT: &str = "unibrowser.control.text.superscript";
     pub const TEXT_COLOUR: &str = "unibrowser.control.text.colour";
+    pub const SEMANTIC_BLOCK_STYLE: &str = "unibrowser.control.semantic.block_style";
+    pub const TEXT_CODE_INLINE: &str = "unibrowser.control.text.code_inline";
+    pub const TEXT_LINK: &str = "unibrowser.control.text.link";
+    pub const TEXT_LIST: &str = "unibrowser.control.text.list";
+    pub const TEXT_CLEAR: &str = "unibrowser.control.text.clear";
+    pub const TEXT_COMPACT_OVERFLOW: &str = "unibrowser.control.text_compact.overflow";
     pub const EDITOR_FONT: &str = "unibrowser.control.editor.font";
     pub const EDITOR_SIZE: &str = "unibrowser.control.editor.size";
     pub const START_OPEN_FILE: &str = "unibrowser.control.start.openFile";
@@ -137,6 +143,7 @@ pub mod control_ids {
 
 pub mod family_ids {
     pub const TEXT_FORMATTING: &str = "unibrowser.family.text-formatting";
+    pub const TEXT_COMPACT_TOOLBAR: &str = "unibrowser.family.text-compact-toolbar";
     pub const EDITOR_APPEARANCE: &str = "unibrowser.family.editor-appearance";
     pub const HISTORY: &str = "unibrowser.family.history";
     pub const FIND: &str = "unibrowser.family.find";

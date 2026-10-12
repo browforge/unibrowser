@@ -94,4 +94,28 @@ mod tests {
             assert!(raw.contains("\"ok\":true"));
         }
     }
+
+    #[test]
+    fn markdown_tab_exposes_compact_toolbar_families() {
+        host_init();
+        let open_args = serde_json::json!({
+            "path": "demo-pack/sample.md",
+            "content": "## Demo\n"
+        });
+        let open_raw = host_invoke(
+            "open_text_with_content",
+            &serde_json::to_string(&open_args).unwrap(),
+        );
+        assert!(open_raw.contains("\"ok\":true"), "{open_raw}");
+        let cm_raw = host_invoke("get_command_manager", "null");
+        assert!(
+            cm_raw.contains("\"compact_toolbar_families\""),
+            "{cm_raw}"
+        );
+        assert!(
+            cm_raw.contains("unibrowser.family.text_compact_toolbar")
+                || cm_raw.contains("unibrowser.control.semantic.block_style"),
+            "{cm_raw}"
+        );
+    }
 }

@@ -203,6 +203,7 @@ import {
   validateWorkshopTimelineForCapture,
   validateResponsiveShellForCapture,
   validateFocusRingForCapture,
+  validateTextCompactToolbarForCapture,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
@@ -2022,9 +2023,21 @@ async function runUiCommand(commandId: string) {
     "unibrowser.text.bold": ["**", "**"],
     "unibrowser.text.italic": ["*", "*"],
     "unibrowser.text.strikethrough": ["~~", "~~"],
+    "unibrowser.text.code_inline": ["`", "`"],
   };
   const wrap = markdownWrap[commandId];
   if (wrap && (await textEditor.applyMarkdownInlineWrap(wrap[0], wrap[1]))) {
+    await refreshCommandManager();
+    return;
+  }
+  if (commandId.startsWith("unibrowser.semantic.block.")) {
+    if (await textEditor.applySemanticBlockStyle(commandId)) {
+      await refreshCommandManager();
+      return;
+    }
+  }
+  if (commandId === "text-toolbar-sample.insert.marker") {
+    await textEditor.applyMarkdownInlineWrap("<!-- sample-toolbar -->", "");
     await refreshCommandManager();
     return;
   }
@@ -3104,7 +3117,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         if (demoAgain) {
           try {
             const deferredCaptureTokens =
-              /^(content-kind-|cm-image-tab-pin$|cm-image-tab$)/;
+              /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$)/;
             const bootstrapDemo = demoAgain
               .split(/[,;]+/)
               .map((t) => t.trim())
@@ -3206,6 +3219,23 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               reason: `shell chrome audit: ${auditErrors.join("; ")}`,
             });
             return;
+          }
+          if (
+            demoTokens.includes("txt-apply-h2") ||
+            demoTokens.includes("txt-apply-h1") ||
+            demoTokens.includes("txt-block-picker-open")
+          ) {
+            await refreshCommandManager();
+            for (const token of ["txt-apply-h2", "txt-apply-h1"]) {
+              if (demoTokens.includes(token)) {
+                await applyDemoState(token);
+                await refreshCommandManager();
+              }
+            }
+            if (demoTokens.includes("txt-block-picker-open")) {
+              await applyDemoState("txt-block-picker-open");
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, 100));
           }
           const diag = collectDocCaptureDiagnostics();
           const diagJson = formatDiagnosticsForLog(diag);
@@ -3340,6 +3370,19 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               });
               return;
             }
+          }
+          const txtCompactErr = validateTextCompactToolbarForCapture({
+            requirePickerOpen: demoLower.includes("txt-block-picker-open"),
+            requireH2Selected: demoLower.includes("txt-apply-h2"),
+            requireDocxEmulatedH1:
+              demoLower.includes("txt-block-picker-open") &&
+              launchPaths.some((p) => /\.docx$/i.test(p)),
+          });
+          if (txtCompactErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${txtCompactErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
           }
           const imageChromeErr = validateImageViewerChrome(launchPaths);
           if (imageChromeErr) {

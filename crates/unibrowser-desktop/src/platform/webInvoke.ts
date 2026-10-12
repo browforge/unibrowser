@@ -9,8 +9,18 @@ export async function webInvoke<T>(cmd: string, args?: Record<string, unknown>):
   switch (cmd) {
     case "take_launch_open_paths":
       return [] as T;
-    case "get_demo_state":
+    case "get_demo_state": {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = params.get("demo") ?? params.get("ub_demo");
+      if (fromQuery?.trim()) {
+        return fromQuery.trim() as T;
+      }
+      const hash = window.location.hash.replace(/^#/, "");
+      if (hash.startsWith("demo=")) {
+        return decodeURIComponent(hash.slice("demo=".length)) as T;
+      }
       return null as T;
+    }
     case "pick_open_file": {
       const picked = await pickOpenTextFile();
       if (!picked) {

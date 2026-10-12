@@ -87,7 +87,9 @@ fn control_capability(work: WorkContext, path: &str, control_id: &str) -> Capabi
 fn find_control_label(work: WorkContext, path: &str, control_id: &str) -> Option<String> {
     let resolver = CapabilityResolver::default();
     let ctx = resolution_ctx(work, path);
-    for family in core_tab_layout(&ctx, &resolver) {
+    let families = core_tab_layout(&ctx, &resolver);
+    let compact = super::compact_toolbar::compact_text_toolbar_families(&ctx, &resolver);
+    for family in families.iter().chain(compact.iter()) {
         for group in &family.groups {
             for control in &group.controls {
                 if control.control_id == control_id {

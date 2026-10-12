@@ -38,6 +38,33 @@ export async function applyDemoState(raw: string) {
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         break;
       }
+      case "txt-block-picker-open": {
+        const { openBlockStyleMenuForCapture } = await import("./textCompactToolbar");
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          const host = document.getElementById("text-compact-toolbar-host");
+          const trigger = host?.querySelector(".text-compact-block-trigger");
+          if (host && trigger) {
+            openBlockStyleMenuForCapture(host);
+            break;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 50));
+        }
+        break;
+      }
+      case "txt-apply-h2": {
+        const { textEditor } = await import("./textEditor");
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          const applied = await textEditor.applySemanticBlockStyle(
+            "unibrowser.semantic.block.heading_2",
+          );
+          if (applied) {
+            break;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 50));
+        }
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
+      }
       case "cmd-proving-detached": {
         if (!isToolbarOnlyWindow()) {
           await invoke("detach_floating_toolbar_window", {

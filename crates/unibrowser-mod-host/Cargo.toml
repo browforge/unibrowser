@@ -39,6 +39,7 @@ wasmi = { version = "0.40", optional = true }
 crc32fast = "1"
 ai-assistant = { path = "../../mods/ai-assistant" }
 cmd-proving = { path = "../../mods/cmd-proving" }
+text-toolbar-sample = { path = "../../mods/text-toolbar-sample" }
 image-grayscale-preview = { path = "../../mods/image-grayscale-preview" }
 
 [features]

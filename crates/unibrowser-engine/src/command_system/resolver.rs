@@ -126,13 +126,24 @@ fn frontend_owned_command(command_id: &str) -> bool {
         || command_id.starts_with("unibrowser.browse.")
         || command_id.starts_with("unibrowser.settings.")
         || command_id.starts_with("unibrowser.mods.")
+        || command_id.starts_with("unibrowser.semantic.")
+        || command_id.starts_with("unibrowser.text.")
+        || command_id.starts_with("unibrowser.list.")
 }
 
 fn default_capability(control_id: &str, ctx: &ResolutionContext) -> CapabilityState {
     match ctx.work {
         WorkContext::PlainText => plain_text_capability(control_id),
         WorkContext::Markdown => markdown_capability(control_id, ctx.markdown_inline_html),
-        WorkContext::RichDocument => CapabilityState::Supported,
+        WorkContext::RichDocument => {
+            if control_id == control_ids::SEMANTIC_BLOCK_STYLE {
+                return CapabilityState::Emulated {
+                    provider_id: "unibrowser.docx.named-style".into(),
+                    note: "Applies Word named styles (OOXML), not literal point sizes.".into(),
+                };
+            }
+            CapabilityState::Supported
+        }
         WorkContext::CodeEditor => code_capability(control_id),
         WorkContext::Pdf => pdf_capability(control_id),
         WorkContext::Image => image_capability(control_id, ctx),
@@ -204,8 +215,28 @@ fn start_capability(control_id: &str) -> CapabilityState {
     }
 }
 
+fn block_heading_capability(ctx: &ResolutionContext, level: u8) -> CapabilityState {
+    match ctx.work {
+        WorkContext::PlainText => CapabilityState::Unsupported {
+            reason: "Plain text has no heading structure. Save as Markdown or use a rich document.".into(),
+        },
+        WorkContext::Markdown => CapabilityState::Supported,
+        WorkContext::RichDocument => CapabilityState::Emulated {
+            provider_id: "unibrowser.docx.named-style".into(),
+            note: format!(
+                "Applies Word named style Heading {} (OOXML), not literal point size.",
+                level
+            ),
+        },
+        _ => CapabilityState::Unsupported {
+            reason: "Block headings are not available in this context.".into(),
+        },
+    }
+}
+
 fn plain_text_capability(control_id: &str) -> CapabilityState {
     match control_id {
+        control_ids::SEMANTIC_BLOCK_STYLE => CapabilityState::Supported,
         control_ids::TEXT_FONT | control_ids::TEXT_COLOUR => CapabilityState::Unsupported {
             reason: "Plain text has no font or colour semantics. Save as Markdown or use a rich document to preserve formatting.".into(),
         },
@@ -223,6 +254,12 @@ fn plain_text_capability(control_id: &str) -> CapabilityState {
 
 fn markdown_capability(control_id: &str, inline_html: bool) -> CapabilityState {
     match control_id {
+        control_ids::SEMANTIC_BLOCK_STYLE
+        | control_ids::TEXT_CODE_INLINE
+        | control_ids::TEXT_LINK
+        | control_ids::TEXT_LIST
+        | control_ids::TEXT_CLEAR
+        | control_ids::TEXT_COMPACT_OVERFLOW => CapabilityState::Supported,
         control_ids::TEXT_FONT => CapabilityState::Unsupported {
             reason: "Portable Markdown has no font family semantic.".into(),
         },

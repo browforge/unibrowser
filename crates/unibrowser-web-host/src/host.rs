@@ -515,6 +515,15 @@ impl WebHost {
                     Some(&contributions),
                     Some(&self.mod_runtime),
                 );
+                let compact_toolbar_families = self.command_manager.resolve_compact_toolbar_families(
+                    &self.registry,
+                    &host,
+                    doc_ref,
+                    &tab.id,
+                    doc_ref.map(|d| d.path.as_str()),
+                    Some(&contributions),
+                    Some(&self.mod_runtime),
+                );
                 let resolved_family_count = families.len();
                 let resolved_control_count = families
                     .iter()
@@ -538,6 +547,7 @@ impl WebHost {
                     selected: tab.id == selected,
                     commands,
                     families,
+                    compact_toolbar_families,
                     resolved_family_count,
                     resolved_control_count,
                 }
@@ -650,6 +660,7 @@ pub struct ManagerTabDto {
     pub selected: bool,
     pub commands: Vec<UiCommandDto>,
     pub families: Vec<unibrowser_mod_api::ResolvedFamily>,
+    pub compact_toolbar_families: Vec<unibrowser_mod_api::ResolvedFamily>,
     pub resolved_family_count: usize,
     pub resolved_control_count: usize,
 }

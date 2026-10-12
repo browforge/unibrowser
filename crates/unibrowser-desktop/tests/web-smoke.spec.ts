@@ -66,12 +66,17 @@ test.describe("web demo", () => {
     await expect
       .poll(async () => await cmCommands.count(), { timeout: 15_000 })
       .toBeGreaterThanOrEqual(3);
-    await expect(
-      page.locator("#command-manager-groups [aria-label='Bold']"),
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(
-      page.locator("#command-manager-groups [aria-label='Italic']"),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("body")).toHaveClass(/text-compact-visible/, {
+      timeout: 15_000,
+    });
+    const compactBar = page.locator("#text-compact-toolbar-host");
+    await expect(compactBar).toBeVisible({ timeout: 15_000 });
+    await expect(compactBar.locator("[aria-label='Bold']")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(compactBar.locator("[aria-label='Italic']")).toBeVisible({
+      timeout: 15_000,
+    });
 
     await page.getByRole("button", { name: "Skip tour" }).click({ timeout: 5_000 }).catch(() => undefined);
     await page.getByRole("button", { name: "Dismiss" }).click({ timeout: 2_000 }).catch(() => undefined);

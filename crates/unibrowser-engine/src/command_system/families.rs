@@ -45,18 +45,24 @@ pub fn core_tab_layout(
     if ctx.work == WorkContext::Audio {
         return vec![media_family(ctx, resolver)];
     }
-    vec![
+    let mut text_stack = vec![
         history_family(ctx, resolver),
         text_or_editor_family(ctx, resolver),
+    ];
+    if let Some(editor_size) = super::compact_toolbar::editor_display_size_cm_family(ctx, resolver) {
+        text_stack.push(editor_size);
+    }
+    text_stack.extend([
         find_family(ctx, resolver),
         proofing_family(ctx, resolver),
         export_family(ctx, resolver),
         pdf_annotation_family(ctx, resolver),
         image_family(ctx, resolver),
-    ]
-    .into_iter()
-    .filter(|f| !f.groups.is_empty())
-    .collect()
+    ]);
+    text_stack
+        .into_iter()
+        .filter(|f| !f.groups.is_empty())
+        .collect()
 }
 
 fn media_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
@@ -785,6 +791,14 @@ fn history_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
 }
 
 fn text_or_editor_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedFamily {
+    if super::compact_toolbar::uses_compact_text_toolbar(ctx.work) {
+        return ResolvedFamily {
+            family_id: family_ids::TEXT_FORMATTING.into(),
+            label: "Text Formatting".into(),
+            overflow_priority: OverflowPriority::Primary,
+            groups: vec![],
+        };
+    }
     if matches!(ctx.work, WorkContext::Pdf | WorkContext::Image) {
         return ResolvedFamily {
             family_id: family_ids::TEXT_FORMATTING.into(),
@@ -1572,7 +1586,7 @@ fn image_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Resol
     }
 }
 
-fn control_spec(
+pub(crate) fn control_spec(
     control_id: &str,
     control_type: ControlType,
     command_id: &str,

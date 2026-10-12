@@ -1,0 +1,55 @@
+{
+  "name": "text-toolbar-sample",
+  "version": "0.1.0",
+  "title": "Text toolbar sample",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0"
+  },
+  "description": "Sample mod for compact text toolbar and docked plugin toolbar (TXT-05)",
+  "capabilities": [
+    "ui.command_manager.contribute",
+    "ui.toolbar.contribute"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "id": "text-toolbar-sample.insert.marker",
+        "title": "Insert sample marker",
+        "icon": "sparkles"
+      }
+    ],
+    "controls": [
+      {
+        "id": "text-toolbar-sample.control.marker",
+        "type": "button",
+        "command": "text-toolbar-sample.insert.marker",
+        "label": "Sample marker",
+        "icon": "sparkles",
+        "surfaces": ["text_compact_toolbar"],
+        "insert": {
+          "after": "unibrowser.control.text.link"
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "text-toolbar-sample.group.tools",
+        "label": "Sample",
+        "controls": ["text-toolbar-sample.control.marker"]
+      }
+    ],
+    "toolbars": [
+      {
+        "id": "text-toolbar-sample.docked",
+        "label": "Sample mod toolbar",
+        "groups": ["text-toolbar-sample.group.tools"],
+        "floatable": false,
+        "detachable": false,
+        "default_visible": true,
+        "placement": "text_compact"
+      }
+    ]
+  }
+}

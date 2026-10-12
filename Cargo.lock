@@ -8747,6 +8747,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "text-toolbar-sample"
+version = "0.1.0"
+dependencies = [
+ "unibrowser-engine",
+ "unibrowser-mod-api",
+]
+
+[[package]]
 name = "text_placeholder"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9478,6 +9486,7 @@ dependencies = [
  "tauri-plugin-wdio",
  "tauri-plugin-wdio-webdriver",
  "tempfile",
+ "text-toolbar-sample",
  "toy-markdown",
  "unibrow-checker",
  "unibrowser-ai-assistant",
@@ -9619,6 +9628,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spell-en-nz",
+ "text-toolbar-sample",
  "thiserror 2.0.21",
  "toy-markdown",
  "unibrow-checker",

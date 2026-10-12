@@ -101,6 +101,10 @@ fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
         ("ai-assistant", ai_assistant::register as ModRegisterFn),
         ("cmd-proving", cmd_proving::register as ModRegisterFn),
         (
+            "text-toolbar-sample",
+            text_toolbar_sample::register as ModRegisterFn,
+        ),
+        (
             "image-grayscale-preview",
             image_grayscale_preview::register as ModRegisterFn,
         ),

@@ -37,6 +37,7 @@ members = [
     "mods/base-audio",
     "mods/base-hex",
     "mods/toy-markdown",
+    "mods/text-toolbar-sample",
     "mods/base-files",
     "mods/spell-en-nz",
     "mods/grammar-harper",

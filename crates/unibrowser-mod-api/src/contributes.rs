@@ -51,6 +51,8 @@ pub struct ContributedControl {
     pub icon: Option<String>,
     #[serde(default)]
     pub insert: Option<InsertPoint>,
+    #[serde(default)]
+    pub surfaces: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -101,6 +103,9 @@ pub struct ContributedToolbar {
     /// When false, toolbar layout is omitted until demo/dev flags enable proving toolbars.
     #[serde(default = "default_true")]
     pub default_visible: bool,
+    /// Host placement: `text_compact` docks a 32px row in Text context; omit for legacy floating bars.
+    #[serde(default)]
+    pub placement: Option<String>,
 }
 
 fn default_true() -> bool {

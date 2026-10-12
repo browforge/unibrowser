@@ -51,10 +51,27 @@ pub fn diagnose_contributions(
     diagnostics
 }
 
+pub fn merge_mod_compact_contributions(
+    families: &mut [ResolvedFamily],
+    contributions: &[LoadedModContribution],
+    diagnostics: &mut ContributionMergeDiagnostics,
+) {
+    merge_mod_contributions_filtered(families, contributions, diagnostics, true);
+}
+
 pub fn merge_mod_contributions(
     families: &mut [ResolvedFamily],
     contributions: &[LoadedModContribution],
     diagnostics: &mut ContributionMergeDiagnostics,
+) {
+    merge_mod_contributions_filtered(families, contributions, diagnostics, false);
+}
+
+fn merge_mod_contributions_filtered(
+    families: &mut [ResolvedFamily],
+    contributions: &[LoadedModContribution],
+    diagnostics: &mut ContributionMergeDiagnostics,
+    compact_only: bool,
 ) {
     let mut seen_control_ids: HashSet<String> = HashSet::new();
     for family in families.iter() {
@@ -73,6 +90,16 @@ pub fn merge_mod_contributions(
         let mut controls: Vec<_> = c.controls.iter().collect();
         controls.sort_by(|a, b| a.id.cmp(&b.id));
         for control in controls {
+            let on_compact_surface = control
+                .surfaces
+                .iter()
+                .any(|surface| surface == "text_compact_toolbar");
+            if compact_only && !on_compact_surface {
+                continue;
+            }
+            if !compact_only && on_compact_surface {
+                continue;
+            }
             if seen_control_ids.contains(&control.id) {
                 diagnostics.messages.push(format!(
                     "duplicate control id {} from mod {} (skipped)",
@@ -197,7 +224,15 @@ fn insert_control(
     mod_name: &str,
     diagnostics: &mut ContributionMergeDiagnostics,
 ) {
-    let family_id = "unibrowser.family.text-formatting";
+    let targets_compact = control
+        .surfaces
+        .iter()
+        .any(|surface| surface == "text_compact_toolbar");
+    let family_id = if targets_compact {
+        unibrowser_mod_api::family_ids::TEXT_COMPACT_TOOLBAR
+    } else {
+        unibrowser_mod_api::family_ids::TEXT_FORMATTING
+    };
     let Some(family) = families.iter_mut().find(|f| f.family_id == family_id) else {
         diagnostics.messages.push(format!(
             "mod {} control {} has no target family",
@@ -409,7 +444,7 @@ mod tests {
         let ctx = ResolutionContext::new(
             CommandContext::Text,
             host,
-            Some("readme.md".into()),
+            Some("brief.docx".into()),
             1,
         );
         let resolver = CapabilityResolver::default();
@@ -418,44 +453,70 @@ mod tests {
 
     #[test]
     fn extends_text_family_with_mod_control() {
-        let mut families = sample_families();
+        let host = HostContext {
+            mode: Mode::Text,
+            doc_type: String::new(),
+            backend_id: String::new(),
+            selection: Default::default(),
+            capabilities: Default::default(),
+        };
+        let ctx = ResolutionContext::new(
+            CommandContext::Text,
+            host,
+            Some("readme.md".into()),
+            1,
+        );
+        let resolver = CapabilityResolver::default();
+        let mut families = super::super::compact_toolbar::compact_text_toolbar_families(&ctx, &resolver);
         let mut diag = ContributionMergeDiagnostics::default();
         let contributions = vec![LoadedModContribution {
             mod_name: "cmd-proving".into(),
             contributes: ModContributes {
-                families: vec![ContributedFamily {
-                    id: family_ids::TEXT_FORMATTING.into(),
-                    extend: true,
-                    controls: vec![ContributedControl {
-                        id: "cmd-proving.control.chip".into(),
-                        control_type: "button".into(),
-                        command: "cmd-proving.subscript.apply".into(),
-                        label: Some("Proving chip".into()),
-                        icon: Some("extension".into()),
-                        insert: Some(InsertPoint {
-                            after: Some("unibrowser.control.text.subscript".into()),
-                            before: None,
-                            end: false,
-                        }),
-                    }],
+                controls: vec![ContributedControl {
+                    id: "cmd-proving.control.chip".into(),
+                    control_type: "button".into(),
+                    command: "cmd-proving.subscript.apply".into(),
+                    label: Some("Proving chip".into()),
+                    icon: Some("extension".into()),
+                    insert: Some(InsertPoint {
+                        after: Some("unibrowser.control.text.link".into()),
+                        before: None,
+                        end: false,
+                    }),
+                    surfaces: vec!["text_compact_toolbar".into()],
                 }],
                 ..ModContributes::default()
             },
         }];
-        merge_mod_contributions(&mut families, &contributions, &mut diag);
+        merge_mod_compact_contributions(&mut families, &contributions, &mut diag);
         let all_controls = families
             .iter()
             .flat_map(|f| f.groups.iter())
             .flat_map(|g| g.controls.iter())
             .map(|c| c.control_id.as_str())
             .collect::<Vec<_>>();
-        assert!(all_controls.iter().any(|id| *id == "unibrowser.control.text.subscript"));
+        assert!(all_controls.iter().any(|id| *id == "unibrowser.control.text.link"));
         assert!(all_controls.iter().any(|id| *id == "cmd-proving.control.chip"));
     }
 
     #[test]
     fn order_cycle_has_sorted_diagnostic() {
-        let mut families = sample_families();
+        let host = HostContext {
+            mode: Mode::Text,
+            doc_type: String::new(),
+            backend_id: String::new(),
+            selection: Default::default(),
+            capabilities: Default::default(),
+        };
+        let ctx = ResolutionContext::new(
+            CommandContext::Text,
+            host,
+            Some("readme.md".into()),
+            1,
+        );
+        let resolver = CapabilityResolver::default();
+        let mut families =
+            super::super::compact_toolbar::compact_text_toolbar_families(&ctx, &resolver);
         let mut diag = ContributionMergeDiagnostics::default();
         let controls = vec![
             ContributedControl {
@@ -469,6 +530,7 @@ mod tests {
                     before: None,
                     end: false,
                 }),
+                surfaces: vec!["text_compact_toolbar".into()],
             },
             ContributedControl {
                 id: "zmod.b".into(),
@@ -481,9 +543,10 @@ mod tests {
                     before: None,
                     end: false,
                 }),
+                surfaces: vec!["text_compact_toolbar".into()],
             },
         ];
-        merge_mod_contributions(
+        merge_mod_compact_contributions(
             &mut families,
             &[LoadedModContribution {
                 mod_name: "zmod".into(),
@@ -514,6 +577,7 @@ mod tests {
                         floatable: true,
                         detachable: true,
                         default_visible: true,
+                        placement: None,
                     }],
                     ..ModContributes::default()
                 },
@@ -543,6 +607,7 @@ mod tests {
                         floatable: true,
                         detachable: true,
                         default_visible: false,
+                        placement: None,
                     }],
                     ..ModContributes::default()
                 },

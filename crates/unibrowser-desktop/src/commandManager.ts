@@ -17,6 +17,7 @@ import { announceCm } from "./ui/cmA11y";
 import { bindCmRovingFocus } from "./ui/cmRovingFocus";
 import { commandGroupBudgetFromViewport } from "./ui/commandOverflow";
 import { isWebPlatform } from "./platform/isWeb";
+import { refreshTextCompactToolbar } from "./textCompactToolbar";
 
 function prioritizeWebMarkdownGroups(
   groups: ReturnType<typeof familiesToRenderGroups>,
@@ -92,6 +93,7 @@ export interface ManagerTabDto {
   selected: boolean;
   commands: UiCommandDto[];
   families: ResolvedFamilyDto[];
+  compact_toolbar_families: ResolvedFamilyDto[];
   resolved_family_count: number;
   resolved_control_count: number;
 }
@@ -694,6 +696,22 @@ export const commandManager = {
     } else {
       groupsEl.innerHTML = "";
     }
+    const compactHost = document.getElementById("text-compact-toolbar-host");
+    const modToolbarHost = document.getElementById("text-mod-toolbar-host");
+    if (compactHost && modToolbarHost) {
+      const compactDocked = snapshot.floating_bars.filter((bar) =>
+        bar.id.startsWith("text-toolbar-sample."),
+      );
+      refreshTextCompactToolbar(
+        compactHost,
+        modToolbarHost,
+        active,
+        snapshot.auto_context,
+        compactDocked,
+        onRun,
+        chordByCommand,
+      );
+    }
     floatingEl.innerHTML = "";
     floatingEl.classList.add("floating-toolbar-drop-host");
     floatingEl.ondragover = (e) => {
@@ -718,7 +736,10 @@ export const commandManager = {
       }).catch(() => {});
     };
     const visibleBars = snapshot.floating_bars.filter(
-      (bar) => bar.id !== "quick-text" && bar.commands.length > 0,
+      (bar) =>
+        bar.id !== "quick-text" &&
+        bar.commands.length > 0 &&
+        !bar.id.startsWith("text-toolbar-sample."),
     );
     visibleBars.forEach((bar) => {
       const wrap = document.createElement("div");

@@ -6,7 +6,8 @@ use unibrowser_mod_api::{
 
 use crate::command::CommandRegistry;
 use crate::command_system::{
-    CapabilityResolver, LayoutStore, ResolutionContext, core_tab_layout,
+    CapabilityResolver, LayoutStore, ResolutionContext, compact_text_toolbar_families,
+    core_tab_layout, merge_mod_compact_contributions,
 };
 use crate::ModRuntimeRegistry;
 
@@ -295,6 +296,56 @@ impl CommandManagerState {
             let mut diag = crate::command_system::ContributionMergeDiagnostics::default();
             crate::command_system::merge_mod_contributions(&mut families, contributions, &mut diag);
             let _ = diag;
+            crate::command_system::KindHostCapabilityMatrix::from_contributions(contributions)
+        } else {
+            crate::command_system::KindHostCapabilityMatrix::default()
+        };
+        self.refine_capabilities(
+            registry,
+            host,
+            doc,
+            &ctx,
+            mod_runtime,
+            &kind_host,
+            &mut families,
+        );
+        families
+    }
+
+    pub fn resolve_compact_toolbar_families(
+        &self,
+        registry: &CommandRegistry,
+        host: &HostContext,
+        doc: Option<&crate::document::DocumentSession>,
+        tab_id: &str,
+        fallback_doc_path: Option<&str>,
+        mod_contributions: Option<&[crate::command_system::LoadedModContribution]>,
+        mod_runtime: Option<&ModRuntimeRegistry>,
+    ) -> Vec<ResolvedFamily> {
+        let text_tab = CommandContext::Text.tab_id();
+        let office_tab = CommandContext::Office.tab_id();
+        if tab_id != text_tab && tab_id != office_tab {
+            return Vec::new();
+        }
+        if tab_id == office_tab && self.auto_context != CommandContext::Office {
+            return Vec::new();
+        }
+        let doc_path = doc
+            .map(|d| d.path.clone())
+            .or_else(|| fallback_doc_path.map(String::from));
+        let ctx = ResolutionContext::new(
+            self.auto_context,
+            host.clone(),
+            doc_path,
+            self.context_revision,
+        );
+        let mut families = compact_text_toolbar_families(&ctx, &self.resolver);
+        if families.is_empty() {
+            return families;
+        }
+        let kind_host = if let Some(contributions) = mod_contributions {
+            let mut diag = crate::command_system::ContributionMergeDiagnostics::default();
+            merge_mod_compact_contributions(&mut families, contributions, &mut diag);
             crate::command_system::KindHostCapabilityMatrix::from_contributions(contributions)
         } else {
             crate::command_system::KindHostCapabilityMatrix::default()

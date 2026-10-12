@@ -194,6 +194,10 @@ mod tests {
             ("ai-assistant", ai_assistant::register as ModRegisterFn),
             ("cmd-proving", cmd_proving::register as ModRegisterFn),
             (
+                "text-toolbar-sample",
+                text_toolbar_sample::register as ModRegisterFn,
+            ),
+            (
                 "image-grayscale-preview",
                 image_grayscale_preview::register as ModRegisterFn,
             ),
@@ -202,7 +206,7 @@ mod tests {
         .collect();
         let host = ModHost::discover_and_load(&[default_mods_dir()], &mut registry, &bundled)
             .expect("load");
-        assert_eq!(host.load_order.len(), 23);
+        assert_eq!(host.load_order.len(), 24);
         assert!(registry.command_meta("unibrowser.font.size.increase").is_some());
     }
 }

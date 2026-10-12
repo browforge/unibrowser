@@ -573,6 +573,46 @@ export const textEditor = {
     }
   },
 
+  async applySemanticBlockStyle(commandId: string): Promise<boolean> {
+    if (!editor || !monacoApi || !loadedPath) {
+      return false;
+    }
+    const model = editor.getModel();
+    if (!model) {
+      return false;
+    }
+    const line = editor.getPosition()?.lineNumber ?? 1;
+    const text = model.getLineContent(line);
+    const stripped = text.replace(/^#{1,6}\s+/, "").replace(/^>\s+/, "");
+    let nextLine = stripped;
+    if (commandId.endsWith("paragraph")) {
+      nextLine = stripped;
+    } else if (commandId.endsWith("heading_1")) {
+      nextLine = `# ${stripped}`;
+    } else if (commandId.endsWith("heading_2")) {
+      nextLine = `## ${stripped}`;
+    } else if (commandId.endsWith("heading_3")) {
+      nextLine = `### ${stripped}`;
+    } else if (commandId.endsWith("heading_4")) {
+      nextLine = `#### ${stripped}`;
+    } else if (commandId.endsWith("heading_5")) {
+      nextLine = `##### ${stripped}`;
+    } else if (commandId.endsWith("heading_6")) {
+      nextLine = `###### ${stripped}`;
+    } else if (commandId.endsWith("blockquote")) {
+      nextLine = `> ${stripped}`;
+    } else if (commandId.endsWith("code_block")) {
+      nextLine = `\`\`\`\n${stripped}\n\`\`\``;
+    } else {
+      return false;
+    }
+    const range = new monacoApi.Range(line, 1, line, text.length + 1);
+    editor.executeEdits("block-style", [{ range, text: nextLine, forceMoveMarkers: true }]);
+    editor.focus();
+    await pushToHost();
+    return true;
+  },
+
   async applyMarkdownInlineWrap(before: string, after: string): Promise<boolean> {
     if (!editor || !monacoApi || !loadedPath || !isMarkdownPath(loadedPath)) {
       return false;

@@ -160,6 +160,60 @@ impl CommandRegistry {
             aliases: &["strike"],
         });
         reg.register_command(CommandMeta {
+            id: commands::TEXT_CODE_INLINE,
+            title: "Inline code",
+            icon: "code",
+            default_keybinding: Some("Ctrl+`"),
+            aliases: &["code span"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_LINK,
+            title: "Insert link",
+            icon: "link",
+            default_keybinding: Some("Ctrl+K"),
+            aliases: &["hyperlink"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_CLEAR,
+            title: "Clear formatting",
+            icon: "remove-formatting",
+            default_keybinding: None,
+            aliases: &["clear marks"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_LIST_BULLET,
+            title: "Bullet list",
+            icon: "list",
+            default_keybinding: None,
+            aliases: &["unordered list"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_COMPACT_OVERFLOW,
+            title: "More formatting",
+            icon: "ellipsis",
+            default_keybinding: None,
+            aliases: &["text overflow"],
+        });
+        for (id, title, _level) in [
+            (commands::SEMANTIC_BLOCK_PARAGRAPH, "Paragraph", 0u8),
+            (commands::SEMANTIC_BLOCK_HEADING_1, "Heading 1", 1),
+            (commands::SEMANTIC_BLOCK_HEADING_2, "Heading 2", 2),
+            (commands::SEMANTIC_BLOCK_HEADING_3, "Heading 3", 3),
+            (commands::SEMANTIC_BLOCK_HEADING_4, "Heading 4", 4),
+            (commands::SEMANTIC_BLOCK_HEADING_5, "Heading 5", 5),
+            (commands::SEMANTIC_BLOCK_HEADING_6, "Heading 6", 6),
+            (commands::SEMANTIC_BLOCK_BLOCKQUOTE, "Block quote", 0),
+            (commands::SEMANTIC_BLOCK_CODE, "Code block", 0),
+        ] {
+            reg.register_command(CommandMeta {
+                id,
+                title,
+                icon: "pilcrow",
+                default_keybinding: None,
+                aliases: &[],
+            });
+        }
+        reg.register_command(CommandMeta {
             id: commands::TEXT_SUBSCRIPT,
             title: "Subscript",
             icon: "subscript",

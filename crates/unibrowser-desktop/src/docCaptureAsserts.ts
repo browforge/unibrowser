@@ -527,6 +527,8 @@ export function validateResponsiveShellForCapture(): string | null {
     visibleChromeChildHeight("title-bar") +
     visibleChromeChildHeight("bookmark-bar") +
     visibleChromeChildHeight("recent-panel") +
+    visibleChromeChildHeight("text-compact-toolbar-host") +
+    visibleChromeChildHeight("text-mod-toolbar-host") +
     visibleChromeChildHeight("command-manager") +
     visibleChromeChildHeight("floating-toolbar-host");
   if (
@@ -535,10 +537,19 @@ export function validateResponsiveShellForCapture(): string | null {
   ) {
     return `top chrome is ${chromeHeight.toFixed(1)}px; expected ${expectedChrome.toFixed(1)}px from visible chrome children (+/-4px)`;
   }
-  if (document.body.dataset.cmDensity === "compact") {
+  if (
+    document.body.dataset.cmDensity === "compact" &&
+    !document.body.classList.contains("text-compact-visible")
+  ) {
     const managerHeight = manager.getBoundingClientRect().height;
     if (Math.abs(managerHeight - 40) > 1) {
       return `compact Command Manager is ${managerHeight.toFixed(1)}px tall; expected 40px (+/-1px)`;
+    }
+  }
+  if (document.body.classList.contains("text-compact-visible")) {
+    const managerHeight = manager.getBoundingClientRect().height;
+    if (managerHeight > 42) {
+      return `text compact Command Manager strip is ${managerHeight.toFixed(1)}px tall; expected 40px (+/-2px)`;
     }
   }
   if (groups.scrollHeight > groups.clientHeight + 1) {
@@ -1431,6 +1442,91 @@ export function validateImageViewerChrome(launchPaths: string[]): string | null 
   const height = viewport.getBoundingClientRect().height;
   if (height < 280) {
     return `image viewport height ${height.toFixed(0)}px is too short (expected fill)`;
+  }
+  return null;
+}
+
+export interface TextCompactToolbarCaptureOptions {
+  requirePickerOpen?: boolean;
+  requireH2Selected?: boolean;
+  requireDocxEmulatedH1?: boolean;
+}
+
+/** TXT-06: compact text toolbar geometry and picker state for doc-capture. */
+export function validateTextCompactToolbarForCapture(
+  options: TextCompactToolbarCaptureOptions | boolean = false,
+): string | null {
+  const opts: TextCompactToolbarCaptureOptions =
+    typeof options === "boolean" ? { requirePickerOpen: options } : options;
+  const requirePickerOpen = opts.requirePickerOpen ?? false;
+  const requireH2Selected = opts.requireH2Selected ?? false;
+  const requireDocxEmulatedH1 = opts.requireDocxEmulatedH1 ?? false;
+  if (!document.body.classList.contains("text-compact-visible")) {
+    return null;
+  }
+  const host = document.getElementById("text-compact-toolbar-host");
+  if (!host || host.classList.contains("hidden")) {
+    return "text compact toolbar host missing while text-compact-visible";
+  }
+  const rect = host.getBoundingClientRect();
+  if (rect.height > 33.5) {
+    return `text compact toolbar height ${rect.height.toFixed(1)}px exceeds 32px row budget`;
+  }
+  const tools = host.querySelector<HTMLElement>(".text-compact-tools");
+  if (!tools) {
+    return "text compact toolbar missing .text-compact-tools row";
+  }
+  const toolsStyle = getComputedStyle(tools);
+  if (toolsStyle.flexWrap !== "nowrap") {
+    return `text compact toolbar flex-wrap is ${toolsStyle.flexWrap}, expected nowrap`;
+  }
+  if (tools.scrollWidth > tools.clientWidth + 2) {
+    return "text compact toolbar row appears wrapped or clipped without overflow";
+  }
+  for (const btn of host.querySelectorAll<HTMLElement>(".text-compact-btn")) {
+    if (btn.classList.contains("text-compact-block-trigger")) {
+      continue;
+    }
+    if (btn.querySelector(".cm-cmd-label")) {
+      return `compact icon ${btn.dataset.controlId ?? "?"} still has a visible label`;
+    }
+  }
+  const pickerLabel = host.querySelector<HTMLElement>(".text-compact-block-label");
+  if (!pickerLabel?.textContent?.trim()) {
+    return "block-style picker missing current style label";
+  }
+  const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
+  if (requirePickerOpen) {
+    if (!menu || menu.classList.contains("hidden")) {
+      return "block-style picker menu must be open for this capture";
+    }
+    if (requireH2Selected) {
+      const h2 = menu.querySelector<HTMLElement>(
+        '[data-command-id="unibrowser.semantic.block.heading_2"]',
+      );
+      if (!h2?.getAttribute("aria-selected")) {
+        return "block-style picker must show Heading 2 as selected when H2 is applied";
+      }
+    }
+    if (requireDocxEmulatedH1) {
+      const h1 = menu.querySelector<HTMLElement>(
+        '[data-command-id="unibrowser.semantic.block.heading_1"]',
+      );
+      if (!h1) {
+        return "block-style picker must list Heading 1 for docx capture";
+      }
+      const trigger = host.querySelector<HTMLElement>(".text-compact-block-trigger");
+      if (!trigger?.querySelector(".cm-emulation-mark")) {
+        return "docx block-style picker must show emulated Heading 1 (≈) on trigger";
+      }
+    }
+  }
+  const modHost = document.getElementById("text-mod-toolbar-host");
+  if (modHost && !modHost.classList.contains("hidden")) {
+    const modRect = modHost.getBoundingClientRect();
+    if (modRect.height > 33.5) {
+      return `mod text toolbar height ${modRect.height.toFixed(1)}px exceeds 32px row budget`;
+    }
   }
   return null;
 }

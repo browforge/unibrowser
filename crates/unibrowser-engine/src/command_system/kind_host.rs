@@ -173,6 +173,7 @@ mod tests {
                         label: Some("Grayscale preview".into()),
                         icon: None,
                         insert: None,
+                        surfaces: vec![],
                     }],
                 }],
                 capability_providers: vec![ContributedCapabilityProvider {
