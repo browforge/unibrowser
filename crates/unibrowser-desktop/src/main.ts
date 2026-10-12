@@ -192,7 +192,10 @@ import {
   validateProblemsForCapture,
   formatDiagnosticsForLog,
   validateEditorForCapture,
+  validateMarkdownPreviewForCapture,
   validateImageViewerChrome,
+  validateGrayscalePreviewControlForCapture,
+  validateProvingFloatingToolbarHiddenForCapture,
   validateCommandManagerMutedForCapture,
   validateDarkSurfaceBackgroundsForCapture,
   validateUbSwitchGeometryForCapture,
@@ -3048,8 +3051,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         }
         if (demoAgain) {
           try {
-            await applyDemoState(demoAgain);
-            await refreshState();
+            const deferredCaptureTokens =
+              /^(content-kind-|cm-image-tab-pin$|cm-image-tab$)/;
+            const bootstrapDemo = demoAgain
+              .split(/[,;]+/)
+              .map((t) => t.trim())
+              .filter(Boolean)
+              .filter((t) => !deferredCaptureTokens.test(t.toLowerCase()))
+              .join(",");
+            if (bootstrapDemo) {
+              await applyDemoState(bootstrapDemo);
+              await refreshState();
+            }
             const demoTokens = demoAgain.toLowerCase();
             const proofControl = demoTokens.includes("cmd11-plain-proof")
               ? "unibrowser.control.text.strikethrough"
@@ -3092,6 +3105,34 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               await new Promise((resolve) => window.setTimeout(resolve, 300));
             } catch {
               /* open_path errors surface on next interaction */
+            }
+          }
+          const demoTokens = demoAgain?.toLowerCase() ?? "";
+          if (
+            demoTokens.includes("content-kind-md-preview") ||
+            demoTokens.includes("content-kind-embedded-image-ui") ||
+            demoTokens.includes("cm-image-tab") ||
+            demoTokens.includes("cm-image-tab-pin") ||
+            demoTokens.includes("content-kind-grayscale-focus")
+          ) {
+            for (const token of [
+              "content-kind-md-preview",
+              "content-kind-embedded-image-ui",
+              "cm-image-tab-pin",
+            ]) {
+              if (demoTokens.includes(token)) {
+                await applyDemoState(token);
+              }
+            }
+            await refreshState();
+            await new Promise((resolve) => window.setTimeout(resolve, 200));
+            for (const token of [
+              "content-kind-grayscale-overflow",
+              "content-kind-grayscale-focus",
+            ]) {
+              if (demoTokens.includes(token)) {
+                await applyDemoState(token);
+              }
             }
           }
           const painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
@@ -3228,12 +3269,25 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           const captureUsesEditor =
             launchPathsNeedEditor(launchPaths) &&
             !demoAgain?.toLowerCase().includes("settings");
-          const editorErr = validateEditorForCapture();
-          if (captureUsesEditor && editorErr) {
-            await invoke("abort_doc_capture", {
-              reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
-            });
-            return;
+          const demoLower = demoAgain?.toLowerCase() ?? "";
+          const captureUsesMarkdownPreview =
+            captureUsesEditor && demoLower.includes("content-kind-md-preview");
+          if (captureUsesMarkdownPreview) {
+            const mdPreviewErr = validateMarkdownPreviewForCapture();
+            if (mdPreviewErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${mdPreviewErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          } else if (captureUsesEditor) {
+            const editorErr = validateEditorForCapture();
+            if (editorErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
           }
           const imageChromeErr = validateImageViewerChrome(launchPaths);
           if (imageChromeErr) {
@@ -3242,8 +3296,27 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          if (!demoLower.includes("cmd-proving")) {
+            const provingToolbarErr = validateProvingFloatingToolbarHiddenForCapture();
+            if (provingToolbarErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${provingToolbarErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          }
+          if (demoLower.includes("content-kind-grayscale")) {
+            const grayscaleErr = validateGrayscalePreviewControlForCapture();
+            if (grayscaleErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${grayscaleErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          }
           if (
             captureUsesEditor &&
+            !captureUsesMarkdownPreview &&
             !editorReadyForCapture()
           ) {
             await invoke("abort_doc_capture", {

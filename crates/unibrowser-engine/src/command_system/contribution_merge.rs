@@ -267,6 +267,28 @@ fn insert_at_point(
     controls.push(resolved);
 }
 
+fn contributed_control_type(raw: &str) -> ControlType {
+    match raw {
+        "toggle" => ControlType::Toggle,
+        "split_button" => ControlType::SplitButton,
+        "dropdown" => ControlType::Dropdown,
+        "value_stepper" => ControlType::ValueStepper,
+        "colour" => ControlType::Colour,
+        "gallery" => ControlType::Gallery,
+        "segmented" => ControlType::Segmented,
+        "menu_button" => ControlType::MenuButton,
+        "indicator_action" => ControlType::IndicatorAction,
+        _ => ControlType::Button,
+    }
+}
+
+pub fn proving_toolbar_in_default_layout() -> bool {
+    std::env::var("UNIBROWSER_DEMO_STATE")
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .contains("cmd-proving")
+}
+
 fn contributed_to_resolved(
     control: &ContributedControl,
     mod_name: &str,
@@ -290,7 +312,7 @@ fn contributed_to_resolved(
         .unwrap_or_else(|| "extension".into());
     ResolvedControl {
         control_id: control.id.clone(),
-        control_type: ControlType::Button,
+        control_type: contributed_control_type(&control.control_type),
         command_ids: vec![control.command.clone()],
         capability: CapabilityState::Supported,
         selection: SelectionState::Off,
@@ -313,8 +335,12 @@ pub fn merge_toolbar_layouts(
 ) -> Vec<crate::ui_command::FloatingToolbarLayout> {
     use crate::ui_command::{FloatingToolbarLayout, ToolbarAnchor, ToolbarCoordSpace, ToolbarPresentation};
     let mut out = Vec::new();
+    let include_proving = proving_toolbar_in_default_layout();
     for loaded in contributions {
         for bar in &loaded.contributes.toolbars {
+            if !bar.default_visible && !include_proving {
+                continue;
+            }
             if out.iter().any(|b: &FloatingToolbarLayout| b.id == bar.id) {
                 diagnostics.messages.push(format!(
                     "duplicate toolbar id {} from mod {}",
@@ -327,7 +353,7 @@ pub fn merge_toolbar_layouts(
             out.push(FloatingToolbarLayout {
                 id: bar.id.clone(),
                 label: bar.label.clone(),
-                anchor: ToolbarAnchor::Floating,
+                anchor: ToolbarAnchor::Docked,
                 x: 48.0,
                 y: 120.0,
                 coord_space: ToolbarCoordSpace::Screen,
@@ -487,6 +513,7 @@ mod tests {
                         groups: vec![],
                         floatable: true,
                         detachable: true,
+                        default_visible: true,
                     }],
                     ..ModContributes::default()
                 },
@@ -498,5 +525,30 @@ mod tests {
             bars[0].presentation,
             crate::ui_command::ToolbarPresentation::InWindow
         );
+        assert_eq!(bars[0].anchor, crate::ui_command::ToolbarAnchor::Docked);
+    }
+
+    #[test]
+    fn proving_toolbar_hidden_on_fresh_profile() {
+        std::env::remove_var("UNIBROWSER_DEMO_STATE");
+        let mut diag = ContributionMergeDiagnostics::default();
+        let bars = merge_toolbar_layouts(
+            &[LoadedModContribution {
+                mod_name: "cmd-proving".into(),
+                contributes: ModContributes {
+                    toolbars: vec![unibrowser_mod_api::ContributedToolbar {
+                        id: "cmd-proving.detached-markdown".into(),
+                        label: "Markdown proving".into(),
+                        groups: vec!["cmd-proving.group.proving".into()],
+                        floatable: true,
+                        detachable: true,
+                        default_visible: false,
+                    }],
+                    ..ModContributes::default()
+                },
+            }],
+            &mut diag,
+        );
+        assert!(bars.is_empty());
     }
 }

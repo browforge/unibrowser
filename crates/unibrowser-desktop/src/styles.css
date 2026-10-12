@@ -7078,6 +7078,42 @@ body.content-fullscreen #unknown-file-banner {
   max-height: 45vh;
 }
 
+html.ub-capture-md-preview #split-primary {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+html.ub-capture-md-preview #text-editor-host.md-split {
+  display: none;
+}
+
+html.ub-capture-md-preview .md-preview-shell {
+  display: flex;
+  flex-direction: column;
+  max-height: none;
+  flex: 1;
+  min-height: 420px;
+  margin-bottom: 0;
+  border: none;
+  background: var(--ub-surface, #fff);
+}
+
+html.ub-capture-md-preview .md-preview-shell.hidden {
+  display: none;
+}
+
+html.ub-capture-md-preview .md-preview-toc {
+  display: none;
+}
+
+html.ub-capture-md-preview .md-preview-body {
+  max-height: none;
+  flex: 1;
+  overflow: auto;
+}
+
 .svg-editor-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;

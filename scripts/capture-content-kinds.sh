@@ -16,7 +16,7 @@ PACK="$ROOT/examples/demo-pack"
 BIN="$ROOT/target/release/unibrowser-desktop"
 mkdir -p "$OUT"
 
-BASE_DEMO="capture-ready,cm-compact,rail-collapsed,theme-light,standard-contrast,scale-100,content-kind-grayscale-focus"
+BASE_DEMO="capture-ready,cm-compact,rail-collapsed,theme-light,standard-contrast,scale-100,content-kind-grayscale-overflow,content-kind-grayscale-focus"
 
 capture_kind() {
   local out_name="$1"
@@ -51,7 +51,7 @@ capture_kind() {
 }
 
 capture_kind "grayscale-standalone-png-1280-light" "$PACK/sample.png" "" "0"
-capture_kind "grayscale-embedded-docx-1280-light" "$PACK/sample-rich.docx" "" "1"
-capture_kind "grayscale-embedded-markdown-1280-light" "$PACK/sample.md" "" "1"
+capture_kind "grayscale-embedded-docx-1280-light" "$PACK/sample-rich.docx" ",content-kind-embedded-image-ui,cm-image-tab-pin" "1"
+capture_kind "grayscale-embedded-markdown-1280-light" "$PACK/sample.md" ",content-kind-md-preview,content-kind-embedded-image-ui,cm-image-tab-pin" "1"
 
 echo "Content-kind captures in $OUT"

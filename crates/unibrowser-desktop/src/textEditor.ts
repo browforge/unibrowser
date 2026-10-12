@@ -236,6 +236,61 @@ function ensurePlainTextPrintToolbar(_host: HTMLElement, path: string) {
   tearDownPreviewShell();
 }
 
+function ensureMarkdownPreviewShell(host: HTMLElement) {
+  if (previewShellEl && previewEl) {
+    return;
+  }
+  const parent = host.parentElement;
+  if (!parent) {
+    return;
+  }
+  previewShellEl = document.createElement("div");
+  previewShellEl.className = "md-preview-shell hidden";
+  previewTocEl = document.createElement("nav");
+  previewTocEl.className = "md-preview-toc";
+  previewTocEl.setAttribute("aria-label", "Table of contents");
+  previewEl = document.createElement("div");
+  previewEl.className = "md-preview md-preview-body";
+  previewShellEl.append(previewTocEl, previewEl);
+  parent.appendChild(previewShellEl);
+}
+
+export async function setMarkdownPreviewMode(
+  enabled: boolean,
+  host?: HTMLElement,
+): Promise<void> {
+  const editorHost = host ?? hostEl;
+  if (!editorHost || !loadedPath || !isMarkdownPath(loadedPath) || !editor) {
+    return;
+  }
+  ensureMarkdownPreviewShell(editorHost);
+  if (!previewShellEl || !previewEl) {
+    return;
+  }
+  markdownPreview = enabled;
+  if (enabled) {
+    previewShellEl.classList.remove("hidden");
+    editorHost.classList.add("md-split");
+    const model = editor.getModel();
+    if (model) {
+      await applyMarkdownPreview(
+        previewEl,
+        model.getValue(),
+        loadedPath,
+        previewTocEl,
+        {
+          embedImages: document.documentElement.classList.contains(
+            "ub-capture-md-preview",
+          ),
+        },
+      );
+    }
+  } else {
+    previewShellEl.classList.add("hidden");
+    editorHost.classList.remove("md-split");
+  }
+}
+
 function tearDownPreviewShell() {
   if (previewShellEl) {
     previewShellEl.remove();
@@ -251,6 +306,9 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
     toolbarEl = null;
   }
   if (!isMarkdownPath(path)) {
+    markdownPreview = false;
+    tearDownPreviewShell();
+    host.classList.remove("md-split");
     ensurePlainTextPrintToolbar(host, path);
     return;
   }
@@ -258,9 +316,6 @@ function ensureMarkdownToolbar(host: HTMLElement, path: string) {
     plainToolbarEl.remove();
     plainToolbarEl = null;
   }
-  markdownPreview = false;
-  tearDownPreviewShell();
-  host.classList.remove("md-split");
 }
 
 function bindFindShortcut(api: Monaco) {
@@ -463,7 +518,11 @@ export const textEditor = {
       editor!.setPosition({ lineNumber: line, column: 1 });
     }
     if (markdownPreview && previewEl) {
-      await applyMarkdownPreview(previewEl, doc.content, doc.path, previewTocEl);
+      await applyMarkdownPreview(previewEl, doc.content, doc.path, previewTocEl, {
+        embedImages: document.documentElement.classList.contains(
+          "ub-capture-md-preview",
+        ),
+      });
     }
     const editorWrap = host.parentElement;
     if (isExperimentalSpellcheckEnabled() && editorWrap) {

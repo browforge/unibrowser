@@ -98,6 +98,13 @@ pub struct ContributedToolbar {
     pub floatable: bool,
     #[serde(default)]
     pub detachable: bool,
+    /// When false, toolbar layout is omitted until demo/dev flags enable proving toolbars.
+    #[serde(default = "default_true")]
+    pub default_visible: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

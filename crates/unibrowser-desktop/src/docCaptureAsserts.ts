@@ -1135,6 +1135,29 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   return null;
 }
 
+/** Returns abort reason or null if markdown preview is painted for capture. */
+export function validateMarkdownPreviewForCapture(): string | null {
+  const shell = document.querySelector<HTMLElement>(".md-preview-shell");
+  if (!shell || shell.classList.contains("hidden")) {
+    return "markdown preview shell missing or hidden";
+  }
+  const preview = shell.querySelector<HTMLElement>(".md-preview-body");
+  if (!preview) {
+    return "markdown preview body missing";
+  }
+  const rect = preview.getBoundingClientRect();
+  if (rect.height < 64 || rect.width < 160) {
+    return `markdown preview geometry ${rect.width}x${rect.height} too small`;
+  }
+  if ((preview.textContent ?? "").trim().length < 20) {
+    return "markdown preview body has insufficient rendered text";
+  }
+  if (!preview.querySelector("img")) {
+    return "markdown preview missing inline image";
+  }
+  return null;
+}
+
 /** Returns abort reason or null if editor area looks painted. */
 export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
   const m = collectMonacoDiagnostics();
@@ -1306,6 +1329,82 @@ export function clearCaptureHoverAndTooltips(preserveFocus = false): void {
   }
   document.body.dispatchEvent(
     new MouseEvent("mousemove", { clientX: 0, clientY: 0, bubbles: true }),
+  );
+}
+
+export function provingFloatingToolbarScanError(
+  labels: string[],
+  provingControlIds: string[],
+): string | null {
+  for (const label of labels) {
+    if (/proving/i.test(label)) {
+      return `proving floating toolbar visible: "${label}"`;
+    }
+  }
+  for (const id of provingControlIds) {
+    if (id.includes("cmd-proving")) {
+      return `proving mod control on floating toolbar: ${id}`;
+    }
+  }
+  return null;
+}
+
+export function validateProvingFloatingToolbarHiddenForCapture(): string | null {
+  const labels: string[] = [];
+  const provingControlIds: string[] = [];
+  for (const bar of document.querySelectorAll<HTMLElement>(".floating-bar")) {
+    labels.push(bar.querySelector(".floating-bar-label")?.textContent?.trim() ?? "");
+    for (const control of bar.querySelectorAll<HTMLElement>("[data-control-id]")) {
+      provingControlIds.push(control.dataset.controlId ?? "");
+    }
+  }
+  return provingFloatingToolbarScanError(labels, provingControlIds);
+}
+
+export function grayscalePreviewControlCaptureError(
+  present: boolean,
+  visible: boolean,
+  capabilityState: string,
+): string | null {
+  if (!present) {
+    return "missing Grayscale preview control (image-grayscale-preview.control.grayscale)";
+  }
+  if (!visible) {
+    return "Grayscale preview control has no visible geometry";
+  }
+  if (capabilityState !== "supported" && capabilityState !== "emulated") {
+    return `Grayscale preview capability state is "${capabilityState}", expected supported or emulated`;
+  }
+  return null;
+}
+
+export function validateGrayscalePreviewControlForCapture(): string | null {
+  const selector =
+    '[data-control-id="image-grayscale-preview.control.grayscale"]';
+  const inCm = document.querySelector<HTMLElement>(
+    `#command-manager-groups ${selector}`,
+  );
+  const inOverflow = document.querySelector<HTMLElement>(
+    `.cm-overflow-menu ${selector}`,
+  );
+  const inOverflowHost = document.querySelector<HTMLElement>(
+    `#command-manager-overflow-menu ${selector}, [role="menu"] ${selector}`,
+  );
+  const control = inCm ?? inOverflow ?? inOverflowHost;
+  if (!control) {
+    return grayscalePreviewControlCaptureError(false, false, "");
+  }
+  const rect = control.getBoundingClientRect();
+  const style = getComputedStyle(control);
+  const visible =
+    rect.width > 0 &&
+    rect.height > 0 &&
+    style.display !== "none" &&
+    style.visibility !== "hidden";
+  return grayscalePreviewControlCaptureError(
+    true,
+    visible,
+    control.dataset.capabilityState ?? "",
   );
 }
 

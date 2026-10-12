@@ -46,13 +46,17 @@ fn root_content_kind(backend_id: &str, host: &str) -> String {
         "base-pdf" => ck::PDF_PAGE.into(),
         "base-docx" => ck::TEXT_RICH.into(),
         "toy-markdown" => ck::TEXT_MARKDOWN.into(),
-        "base-text" | "base-hex" | "base-js" => ck::TEXT_PLAIN.into(),
+        "base-text" | "base-hex" | "base-js" if host != "md" && host != "markdown" => {
+            ck::TEXT_PLAIN.into()
+        }
+        "base-text" | "base-hex" | "base-js" => ck::TEXT_MARKDOWN.into(),
         "base-dxf" => ck::VECTOR_CAD.into(),
         "base-audio" => ck::AUDIO_CLIP.into(),
         "base-video" => ck::VIDEO_CLIP.into(),
         "base-csv" => ck::TABULAR.into(),
         "unibrow" => ck::PROJECT_GRAPH.into(),
         _ if host == "unibrow" => ck::PROJECT_GRAPH.into(),
+        _ if host == "md" || host == "markdown" => ck::TEXT_MARKDOWN.into(),
         _ => ck::TEXT_PLAIN.into(),
     }
 }
@@ -82,6 +86,9 @@ fn embedded_nodes_for_backend(backend_id: &str, host: &str) -> Vec<ContentKindNo
                 label: Some(format!("Frame {}", i + 1)),
             })
             .collect(),
+        _ if host == "md" || host == "markdown" => {
+            vec![embedded_image_node("embedded-image-md", "root", host)]
+        }
         _ => Vec::new(),
     }
 }
@@ -115,6 +122,13 @@ mod tests {
     fn docx_fixture_exposes_embedded_image_kind() {
         let tree = document_content_tree("base-docx", "/tmp/sample.docx");
         let kinds = selection_content_kinds(&tree, &["embedded-image-1".into()]);
+        assert_eq!(kinds, vec![ck::IMAGE]);
+    }
+
+    #[test]
+    fn markdown_fixture_exposes_embedded_image_kind() {
+        let tree = document_content_tree("base-text", "/tmp/sample.md");
+        let kinds = selection_content_kinds(&tree, &["embedded-image-md".into()]);
         assert_eq!(kinds, vec![ck::IMAGE]);
     }
 

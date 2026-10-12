@@ -702,6 +702,66 @@ mod cmd_proving_tests {
     use super::*;
 
     #[test]
+    fn png_image_tab_resolves_grayscale_control() {
+        let built = build_command_registry(&Mutex::new(HashSet::new())).expect("registry");
+        let contributions = permitted_mod_contributions(&built.mod_host);
+        let cm = CommandManagerState::with_layout_path(
+            &unibrowser_engine::load_command_manager_file(None),
+            unibrowser_mod_api::CommandContext::Image,
+            None,
+        );
+        let host = unibrowser_mod_api::HostContext {
+            mode: unibrowser_mod_api::Mode::Image,
+            doc_type: "image".into(),
+            backend_id: "base-png".into(),
+            selection: Default::default(),
+            capabilities: Default::default(),
+        };
+        let families = cm.resolve_families_for_tab(
+            &built.registry,
+            &host,
+            None,
+            "image",
+            Some("/workspace/examples/demo-pack/sample.png"),
+            Some(&contributions),
+            Some(&built.mod_runtime),
+        );
+        let ids: Vec<_> = families
+            .iter()
+            .flat_map(|f| f.groups.iter())
+            .flat_map(|g| g.controls.iter())
+            .map(|c| c.control_id.as_str())
+            .collect();
+        assert!(
+            ids.contains(&"image-grayscale-preview.control.grayscale"),
+            "expected grayscale control in resolved families, got {:?}",
+            ids
+        );
+    }
+
+    #[test]
+    fn grayscale_mod_contributes_image_adjust_control() {
+        let built = build_command_registry(&Mutex::new(HashSet::new())).expect("registry");
+        let contributions = permitted_mod_contributions(&built.mod_host);
+        let grayscale = contributions
+            .iter()
+            .find(|loaded| loaded.mod_name == "image-grayscale-preview")
+            .expect("image-grayscale-preview contribution");
+        let family = grayscale
+            .contributes
+            .families
+            .iter()
+            .find(|f| f.id == "unibrowser.family.image-adjust")
+            .expect("image-adjust family extension");
+        assert!(
+            family
+                .controls
+                .iter()
+                .any(|c| c.id == "image-grayscale-preview.control.grayscale")
+        );
+    }
+
+    #[test]
     fn proving_toolbar_is_loaded_with_detach_permission() {
         let built = build_command_registry(&Mutex::new(HashSet::new())).expect("registry");
         let contributions = permitted_mod_contributions(&built.mod_host);

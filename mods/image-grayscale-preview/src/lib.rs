@@ -20,7 +20,9 @@ fn image_selection(doc: &unibrowser_engine::document::DocumentSession) -> bool {
     );
     let kinds = unibrowser_engine::content_tree::selection_content_kinds(
         &tree,
-        &[if path.ends_with(".docx") || path.ends_with(".md") || path.ends_with(".markdown") {
+        &[if path.ends_with(".md") || path.ends_with(".markdown") {
+            "embedded-image-md".into()
+        } else if path.ends_with(".docx") {
             "embedded-image-1".into()
         } else {
             tree.nodes

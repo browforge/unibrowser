@@ -7,6 +7,7 @@ import { bindCommandTooltip } from "./ui/commandTooltip";
 import {
   familiesToRenderGroups,
   partitionGroupsByAvailableWidth,
+  renderResolvedControl,
   renderResolvedGroups,
   type ResolvedFamilyDto,
 } from "./ui/commandControls";
@@ -451,35 +452,14 @@ function openOverflowGroupsMenu(
     heading.className = "palette-section-label";
     heading.textContent = group.name;
     menu.appendChild(heading);
-    group.commands.forEach((cmd) => {
-      const patched = patchPictureInPictureCommand(cmd);
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "palette-item-row";
-      btn.textContent = patched.title;
-      btn.classList.toggle("disabled", !patched.enabled);
-      if (!patched.enabled) {
-        btn.setAttribute("aria-disabled", "true");
-      }
-      if (patched.reason) {
-        btn.setAttribute("aria-description", patched.reason);
-      }
-      bindCommandTooltip(btn, {
-        title: patched.title,
-        reason: patched.reason,
-        chord: chordByCommand.get(patched.command_id) ?? null,
-        enabled: patched.enabled,
-      });
-      btn.onclick = () => {
-        if (!patched.enabled) {
-          announceCm(`${patched.title}, unavailable, ${patched.reason ?? "No provider"}`);
-          return;
-        }
+    for (const control of group.resolved.controls) {
+      const el = renderResolvedControl(control, onRun, chordByCommand, false);
+      el.onclick = (e) => {
+        e.stopPropagation();
         menu.remove();
-        void onRun(patched.command_id);
       };
-      menu.appendChild(btn);
-    });
+      menu.appendChild(el);
+    }
   });
   const rect = anchor.getBoundingClientRect();
   menu.style.left = `${rect.left}px`;

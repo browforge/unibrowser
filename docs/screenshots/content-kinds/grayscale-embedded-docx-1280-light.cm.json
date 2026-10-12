@@ -4,10 +4,10 @@
   "controlCount": 8,
   "visibleCount": 8,
   "contrastOkCount": 8,
-  "contextLabel": "Office",
+  "contextLabel": "Image",
   "autoContext": "office",
   "pipeline": {
-    "activeTabId": "office",
+    "activeTabId": "image",
     "rustFamilyCount": 6,
     "rustControlCount": 33,
     "ipcFamilyCount": 6,
@@ -16,7 +16,7 @@
     "frontendResolvedControlCount": 33,
     "frontendVisibleModelCount": 8,
     "frontendOverflowModelCount": 25,
-    "groupsWidth": 815
+    "groupsWidth": 824
   },
   "controls": [
     {
@@ -32,7 +32,7 @@
       "width": 71,
       "height": 30,
       "labelBounds": {
-        "x": 117,
+        "x": 120,
         "y": 50.5,
         "width": 34,
         "height": 18
@@ -110,7 +110,7 @@
       "pixelContrast": 11.923,
       "pixelInkCount": 153,
       "pixelBounds": {
-        "x": 117,
+        "x": 120,
         "y": 50,
         "width": 34,
         "height": 19
@@ -129,7 +129,7 @@
       "width": 68,
       "height": 30,
       "labelBounds": {
-        "x": 189,
+        "x": 192,
         "y": 50.5,
         "width": 31,
         "height": 18
@@ -207,7 +207,7 @@
       "pixelContrast": 12.076,
       "pixelInkCount": 161,
       "pixelBounds": {
-        "x": 189,
+        "x": 192,
         "y": 50,
         "width": 31,
         "height": 19
@@ -226,7 +226,7 @@
       "width": 65,
       "height": 30,
       "labelBounds": {
-        "x": 290,
+        "x": 293,
         "y": 50.5,
         "width": 28,
         "height": 18
@@ -304,7 +304,7 @@
       "pixelContrast": 12.501,
       "pixelInkCount": 120,
       "pixelBounds": {
-        "x": 290,
+        "x": 293,
         "y": 50,
         "width": 28,
         "height": 19
@@ -325,7 +325,7 @@
       "width": 79,
       "height": 30,
       "labelBounds": {
-        "x": 356,
+        "x": 359,
         "y": 50.5,
         "width": 30,
         "height": 18
@@ -403,7 +403,7 @@
       "pixelContrast": 12.076,
       "pixelInkCount": 120,
       "pixelBounds": {
-        "x": 356,
+        "x": 359,
         "y": 50,
         "width": 30,
         "height": 19
@@ -423,7 +423,7 @@
       "width": 64,
       "height": 30,
       "labelBounds": {
-        "x": 468,
+        "x": 471,
         "y": 50.5,
         "width": 27,
         "height": 18
@@ -501,7 +501,7 @@
       "pixelContrast": 11.987,
       "pixelInkCount": 148,
       "pixelBounds": {
-        "x": 468,
+        "x": 471,
         "y": 50,
         "width": 27,
         "height": 19
@@ -521,7 +521,7 @@
       "width": 65,
       "height": 30,
       "labelBounds": {
-        "x": 533,
+        "x": 536,
         "y": 50.5,
         "width": 28,
         "height": 18
@@ -599,7 +599,7 @@
       "pixelContrast": 11.955,
       "pixelInkCount": 143,
       "pixelBounds": {
-        "x": 533,
+        "x": 536,
         "y": 50,
         "width": 28,
         "height": 19
@@ -619,7 +619,7 @@
       "width": 96,
       "height": 30,
       "labelBounds": {
-        "x": 599,
+        "x": 602,
         "y": 50.5,
         "width": 59,
         "height": 18
@@ -697,7 +697,7 @@
       "pixelContrast": 12.076,
       "pixelInkCount": 268,
       "pixelBounds": {
-        "x": 599,
+        "x": 602,
         "y": 50,
         "width": 59,
         "height": 19
@@ -717,7 +717,7 @@
       "width": 120.75,
       "height": 30,
       "labelBounds": {
-        "x": 696,
+        "x": 699,
         "y": 50.5,
         "width": 83.75,
         "height": 18
@@ -795,7 +795,7 @@
       "pixelContrast": 12.076,
       "pixelInkCount": 402,
       "pixelBounds": {
-        "x": 696,
+        "x": 699,
         "y": 50,
         "width": 84,
         "height": 19

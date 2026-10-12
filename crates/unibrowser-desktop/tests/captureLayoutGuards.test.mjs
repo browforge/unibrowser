@@ -12,7 +12,25 @@ import {
   selectOptionListMeetsDarkSurface,
   switchTrackSizeWithinTolerance,
   timelineEndpointClearsScrollbar,
+  grayscalePreviewControlCaptureError,
+  provingFloatingToolbarScanError,
 } from "../src/docCaptureAsserts.ts";
+
+test("fresh capture profile has no proving floating toolbar helpers", () => {
+  assert.equal(provingFloatingToolbarScanError([], []), null);
+  assert.match(
+    provingFloatingToolbarScanError(["Markdown proving"], []) ?? "",
+    /proving floating toolbar/,
+  );
+});
+
+test("grayscale capture guard requires visible supported control", () => {
+  assert.equal(grayscalePreviewControlCaptureError(true, true, "emulated"), null);
+  assert.match(
+    grayscalePreviewControlCaptureError(false, false, "") ?? "",
+    /missing Grayscale preview/,
+  );
+});
 
 test("timeline ruler and endpoint labels must stay inside the viewport", () => {
   const viewport = { left: 0, right: 1000, top: 0, bottom: 180 };

@@ -32,6 +32,22 @@ function monacoReady(): boolean {
   return editorReadyForCapture(80);
 }
 
+function markdownPreviewReady(): boolean {
+  const shell = document.querySelector<HTMLElement>(".md-preview-shell");
+  if (!shell || shell.classList.contains("hidden")) {
+    return false;
+  }
+  const preview = shell.querySelector<HTMLElement>(".md-preview-body");
+  if (!preview || preview.getBoundingClientRect().height <= 0) {
+    return false;
+  }
+  const rect = preview.getBoundingClientRect();
+  if (rect.height < 64 || rect.width < 160) {
+    return false;
+  }
+  return (preview.textContent ?? "").trim().length >= 10;
+}
+
 function unibrowBoardReady(): boolean {
   const host = document.querySelector("#document-viewer-host");
   if (!host || host.classList.contains("hidden")) {
@@ -214,7 +230,13 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
       checks.push(liveBadgeReady);
     }
   }
+  const wantsMarkdownPreview = tokens.includes("content-kind-md-preview");
   if (
+    wantsMarkdownPreview &&
+    (joined.includes(".md") || joined.includes(".markdown"))
+  ) {
+    checks.push(markdownPreviewReady);
+  } else if (
     joined.includes(".txt") ||
     joined.includes(".md") ||
     joined.includes(".markdown") ||

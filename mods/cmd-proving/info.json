@@ -50,7 +50,8 @@
         "label": "Markdown proving",
         "groups": ["cmd-proving.group.proving"],
         "floatable": true,
-        "detachable": true
+        "detachable": true,
+        "default_visible": false
       }
     ],
     "capability_providers": [

@@ -328,10 +328,11 @@ export async function applyMarkdownPreview(
   markdown: string,
   basePath: string,
   tocEl?: HTMLElement | null,
+  options?: MarkdownRenderOptions,
 ) {
   await hydrateMarkdownContainer(container, markdown, basePath, {
-    embedImages: false,
-    includeMermaid: true,
+    embedImages: options?.embedImages ?? false,
+    includeMermaid: options?.includeMermaid ?? true,
   });
   const headings = collectHeadingAnchors(container);
   if (tocEl) {

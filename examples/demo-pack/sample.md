@@ -2,6 +2,8 @@
 
 Unibrowser renders Markdown in the document viewer.
 
+![Demo pack image](sample.png)
+
 - **Bold** and _italic_
 - [Architecture](../../docs/architecture.md) (link may not resolve in preview; open from repo)
 

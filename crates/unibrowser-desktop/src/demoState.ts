@@ -316,6 +316,11 @@ export async function applyDemoState(raw: string) {
         await invoke("select_command_manager_tab", { tabId: "image" });
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         break;
+      case "cm-image-tab-pin":
+        await invoke("select_command_manager_tab", { tabId: "image" });
+        await invoke("pin_command_manager_context");
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
       case "content-kind-grayscale-overflow": {
         const overflow = await waitForElement<HTMLButtonElement>(
           "#command-manager-overflow.visible",
@@ -324,8 +329,48 @@ export async function applyDemoState(raw: string) {
         await waitForElement(".cm-overflow-menu");
         break;
       }
+      case "content-kind-md-preview": {
+        const host = await waitForElement<HTMLElement>("#text-editor-host:not(.hidden)");
+        if (!host) {
+          break;
+        }
+        const { setMarkdownPreviewMode } = await import("./textEditor");
+        document.documentElement.classList.add("ub-capture-md-preview");
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          await setMarkdownPreviewMode(true, host);
+          const preview = document.querySelector(".md-preview-body");
+          if (preview && (preview.textContent ?? "").trim().length >= 10) {
+            break;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 50));
+        }
+        break;
+      }
+      case "content-kind-embedded-image-ui": {
+        const img = await waitForElement<HTMLImageElement>(
+          ".docx-view img, .md-preview img",
+        );
+        if (img) {
+          img.scrollIntoView({ block: "center" });
+          img.click();
+          img.focus();
+        }
+        break;
+      }
       case "content-kind-grayscale-focus": {
         await new Promise((resolve) => window.setTimeout(resolve, 120));
+        const overflow = document.querySelector<HTMLButtonElement>(
+          "#command-manager-overflow.visible",
+        );
+        if (
+          overflow &&
+          !document.querySelector(
+            '#command-manager-groups [data-control-id="image-grayscale-preview.control.grayscale"]',
+          )
+        ) {
+          overflow.click();
+          await waitForElement(".cm-overflow-menu");
+        }
         const control =
           document.querySelector<HTMLElement>(
             '#command-manager-groups [data-control-id="image-grayscale-preview.control.grayscale"]',

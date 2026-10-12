@@ -4,19 +4,19 @@
   "controlCount": 4,
   "visibleCount": 4,
   "contrastOkCount": 4,
-  "contextLabel": "Text",
+  "contextLabel": "Image",
   "autoContext": "text",
   "pipeline": {
-    "activeTabId": "text",
-    "rustFamilyCount": 5,
-    "rustControlCount": 15,
-    "ipcFamilyCount": 5,
-    "ipcControlCount": 15,
-    "frontendGroupCount": 7,
-    "frontendResolvedControlCount": 15,
+    "activeTabId": "image",
+    "rustFamilyCount": 6,
+    "rustControlCount": 33,
+    "ipcFamilyCount": 6,
+    "ipcControlCount": 33,
+    "frontendGroupCount": 11,
+    "frontendResolvedControlCount": 33,
     "frontendVisibleModelCount": 4,
-    "frontendOverflowModelCount": 11,
-    "groupsWidth": 634
+    "frontendOverflowModelCount": 29,
+    "groupsWidth": 633
   },
   "controls": [
     {
@@ -32,7 +32,7 @@
       "width": 71,
       "height": 30,
       "labelBounds": {
-        "x": 106.84375,
+        "x": 120,
         "y": 50.5,
         "width": 34,
         "height": 18
@@ -107,12 +107,12 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.994,
-      "pixelInkCount": 163,
+      "pixelContrast": 11.923,
+      "pixelInkCount": 153,
       "pixelBounds": {
-        "x": 106,
+        "x": 120,
         "y": 50,
-        "width": 35,
+        "width": 34,
         "height": 19
       }
     },
@@ -129,7 +129,7 @@
       "width": 68,
       "height": 30,
       "labelBounds": {
-        "x": 178.84375,
+        "x": 192,
         "y": 50.5,
         "width": 31,
         "height": 18
@@ -204,12 +204,12 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.271,
-      "pixelInkCount": 154,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 161,
       "pixelBounds": {
-        "x": 178,
+        "x": 192,
         "y": 50,
-        "width": 32,
+        "width": 31,
         "height": 19
       }
     },
@@ -226,7 +226,7 @@
       "width": 65,
       "height": 30,
       "labelBounds": {
-        "x": 279.84375,
+        "x": 293,
         "y": 50.5,
         "width": 28,
         "height": 18
@@ -301,12 +301,12 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 7.601,
-      "pixelInkCount": 121,
+      "pixelContrast": 7.434,
+      "pixelInkCount": 119,
       "pixelBounds": {
-        "x": 279,
+        "x": 293,
         "y": 50,
-        "width": 29,
+        "width": 28,
         "height": 19
       }
     },
@@ -325,7 +325,7 @@
       "width": 79,
       "height": 30,
       "labelBounds": {
-        "x": 345.84375,
+        "x": 359,
         "y": 50.5,
         "width": 30,
         "height": 18
@@ -400,12 +400,12 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 13.112,
-      "pixelInkCount": 133,
+      "pixelContrast": 12.076,
+      "pixelInkCount": 120,
       "pixelBounds": {
-        "x": 345,
+        "x": 359,
         "y": 50,
-        "width": 31,
+        "width": 30,
         "height": 19
       }
     }
