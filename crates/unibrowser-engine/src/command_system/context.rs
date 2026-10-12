@@ -1,5 +1,16 @@
 use unibrowser_mod_api::{CommandContext, HostContext, Mode, WorkContext};
 
+pub fn command_context_for_manager_tab(tab_id: &str, auto_context: CommandContext) -> CommandContext {
+    match tab_id {
+        "start" => CommandContext::Start,
+        "text" => CommandContext::Text,
+        "code" => CommandContext::Code,
+        "image" => CommandContext::Image,
+        "office" => CommandContext::Office,
+        _ => auto_context,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ResolutionContext {
     pub work: WorkContext,
@@ -141,6 +152,11 @@ pub fn infer_work_context(
         "aac" | "flac" | "m4a" | "mkv" | "mov" | "mp3" | "mp4" | "ogg" | "wav" | "webm"
     ) {
         return WorkContext::Audio;
+    }
+    // Command Manager Image tab (or auto context while an embedded image is selected)
+    // must resolve image families even inside .md / .docx hosts.
+    if command_context == CommandContext::Image {
+        return WorkContext::Image;
     }
     if ext == "md" || ext == "markdown" {
         return WorkContext::Markdown;

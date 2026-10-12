@@ -77,6 +77,44 @@ mod resolver_tests {
     }
 
     #[test]
+    fn image_command_context_on_markdown_path_uses_image_work() {
+        assert_eq!(
+            infer_work_context(CommandContext::Image, Mode::Text, Some("readme.md")),
+            WorkContext::Image,
+        );
+        let host = HostContext {
+            mode: Mode::Text,
+            doc_type: String::new(),
+            backend_id: String::new(),
+            selection: Default::default(),
+            capabilities: Default::default(),
+        };
+        let ctx = ResolutionContext::new(
+            CommandContext::Image,
+            host,
+            Some("readme.md".into()),
+            1,
+        );
+        assert_eq!(ctx.work, WorkContext::Image);
+        let families =
+            super::super::families::core_tab_layout(&ctx, &CapabilityResolver::default());
+        let control_ids: Vec<&str> = families
+            .iter()
+            .flat_map(|family| family.groups.iter())
+            .flat_map(|group| group.controls.iter())
+            .map(|control| control.control_id.as_str())
+            .collect();
+        assert!(!control_ids.is_empty());
+        assert!(
+            !control_ids
+                .iter()
+                .any(|id| id.starts_with("unibrowser.control.text.")),
+            "image tab families must not include text formatting controls: {:?}",
+            control_ids,
+        );
+    }
+
+    #[test]
     fn browse_context_uses_only_browse_controls() {
         let context = ctx(WorkContext::Browse, Some("/workspace"));
         let families =

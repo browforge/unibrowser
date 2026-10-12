@@ -354,12 +354,17 @@ body:not([data-cm-density="large"]) .cm-group-name {
 
 .cm-emulation-mark {
   position: absolute;
-  top: 2px;
+  top: 1px;
   right: 2px;
-  width: 4px;
-  height: 4px;
-  border-radius: 1px;
+  min-width: 0.65rem;
+  height: 0.65rem;
+  padding: 0 0.1rem;
+  border-radius: 2px;
   border: 1px dotted var(--ub-fg-muted);
+  font-size: 0.55rem;
+  line-height: 0.55rem;
+  font-weight: 700;
+  color: var(--ub-fg-muted);
   pointer-events: none;
 }
 

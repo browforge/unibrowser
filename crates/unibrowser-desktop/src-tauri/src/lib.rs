@@ -260,6 +260,7 @@ pub fn run() {
             commands::select_command_manager_tab,
             commands::pin_command_manager_context,
             commands::clear_command_manager_context_pin,
+            commands::sync_embedded_image_selection,
             commands::execute_command,
             commands::palette_search,
             commands::get_keybindings,

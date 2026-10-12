@@ -69,6 +69,9 @@ pub fn merge_mod_contributions(
     let mut ordered: Vec<_> = contributions.iter().collect();
     ordered.sort_by(|a, b| a.mod_name.cmp(&b.mod_name));
     for loaded in ordered {
+        if skip_proving_mod_contribution(&loaded.mod_name) {
+            continue;
+        }
         let c = &loaded.contributes;
         let mut controls: Vec<_> = c.controls.iter().collect();
         controls.sort_by(|a, b| a.id.cmp(&b.id));
@@ -282,11 +285,19 @@ fn contributed_control_type(raw: &str) -> ControlType {
     }
 }
 
-pub fn proving_toolbar_in_default_layout() -> bool {
+pub fn proving_mod_enabled_in_default_layout() -> bool {
     std::env::var("UNIBROWSER_DEMO_STATE")
         .unwrap_or_default()
         .to_ascii_lowercase()
         .contains("cmd-proving")
+}
+
+pub fn proving_toolbar_in_default_layout() -> bool {
+    proving_mod_enabled_in_default_layout()
+}
+
+fn skip_proving_mod_contribution(mod_name: &str) -> bool {
+    mod_name == "cmd-proving" && !proving_mod_enabled_in_default_layout()
 }
 
 fn contributed_to_resolved(
@@ -418,6 +429,7 @@ mod tests {
 
     #[test]
     fn extends_text_family_with_mod_control() {
+        std::env::set_var("UNIBROWSER_DEMO_STATE", "cmd-proving");
         let mut families = sample_families();
         let mut diag = ContributionMergeDiagnostics::default();
         let contributions = vec![LoadedModContribution {
@@ -451,6 +463,43 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(all_controls.iter().any(|id| *id == "unibrowser.control.text.subscript"));
         assert!(all_controls.iter().any(|id| *id == "cmd-proving.control.chip"));
+        std::env::remove_var("UNIBROWSER_DEMO_STATE");
+    }
+
+    #[test]
+    fn proving_chip_hidden_on_fresh_profile() {
+        std::env::remove_var("UNIBROWSER_DEMO_STATE");
+        let mut families = sample_families();
+        let mut diag = ContributionMergeDiagnostics::default();
+        let contributions = vec![LoadedModContribution {
+            mod_name: "cmd-proving".into(),
+            contributes: ModContributes {
+                families: vec![ContributedFamily {
+                    id: family_ids::TEXT_FORMATTING.into(),
+                    extend: true,
+                    controls: vec![ContributedControl {
+                        id: "cmd-proving.control.chip".into(),
+                        control_type: "button".into(),
+                        command: "cmd-proving.subscript.apply".into(),
+                        label: Some("Proving chip".into()),
+                        icon: Some("extension".into()),
+                        insert: Some(InsertPoint {
+                            after: Some("unibrowser.control.text.subscript".into()),
+                            before: None,
+                            end: false,
+                        }),
+                    }],
+                }],
+                ..ModContributes::default()
+            },
+        }];
+        merge_mod_contributions(&mut families, &contributions, &mut diag);
+        let has_chip = families
+            .iter()
+            .flat_map(|f| f.groups.iter())
+            .flat_map(|g| g.controls.iter())
+            .any(|c| c.control_id == "cmd-proving.control.chip");
+        assert!(!has_chip, "proving chip must stay hidden without cmd-proving demo state");
     }
 
     #[test]

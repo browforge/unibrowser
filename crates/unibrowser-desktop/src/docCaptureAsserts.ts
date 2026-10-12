@@ -1378,19 +1378,113 @@ export function grayscalePreviewControlCaptureError(
   return null;
 }
 
-export function validateGrayscalePreviewControlForCapture(): string | null {
+export type GrayscaleCaptureExpectations = {
+  requirePrimaryRow?: boolean;
+  requireEmulatedMarker?: boolean;
+};
+
+export function validateCommandTooltipsDismissedForCapture(): string | null {
+  const host = document.getElementById("ub-command-tooltip-host");
+  if (!host || host.classList.contains("hidden")) {
+    return null;
+  }
+  const rect = host.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    return "floating command tooltip still visible during capture";
+  }
+  return null;
+}
+
+export function validateNoProvingModInCommandManager(): string | null {
+  const roots = [
+    "#command-manager-groups",
+    ".cm-overflow-menu",
+    "#command-manager-overflow-menu",
+  ];
+  for (const root of roots) {
+    for (const el of document.querySelectorAll<HTMLElement>(
+      `${root} [data-control-id], ${root} .ui-command`,
+    )) {
+      const id = el.dataset.controlId ?? "";
+      const label = (el.textContent ?? "").trim();
+      if (/proving/i.test(id) || /proving/i.test(label)) {
+        return `proving mod visible in command manager: ${id || label}`;
+      }
+    }
+  }
+  return null;
+}
+
+export function validateCmTabRowMatchesActiveTab(): string | null {
+  const pipeline = document.documentElement.dataset.cmPipeline;
+  if (!pipeline) {
+    return "missing CM pipeline metadata for tab/family audit";
+  }
+  let activeTabId = "";
+  try {
+    activeTabId = (JSON.parse(pipeline) as { activeTabId?: string }).activeTabId ?? "";
+  } catch {
+    return "invalid CM pipeline metadata";
+  }
+  if (!activeTabId) {
+    return "missing active CM tab id";
+  }
+  const pinned = document
+    .getElementById("command-manager-pin")
+    ?.classList.contains("pinned");
+  if (pinned) {
+    return "command manager context is pinned during capture";
+  }
+  if (document.querySelector(".cm-overflow-menu")) {
+    return "overflow menu open during capture";
+  }
+  const visible = document.querySelectorAll<HTMLElement>(
+    "#command-manager-groups .ui-command[data-control-id]",
+  );
+  for (const el of visible) {
+    const id = el.dataset.controlId ?? "";
+    if (activeTabId === "image" && id.startsWith("unibrowser.control.text.")) {
+      return `image tab shows text control in primary row: ${id}`;
+    }
+  }
+  return null;
+}
+
+export function validateEmbeddedImageFitsPage(
+  imageSelector: string,
+  pageSelector: string,
+): string | null {
+  const img = document.querySelector<HTMLImageElement>(imageSelector);
+  const page = document.querySelector<HTMLElement>(pageSelector);
+  if (!img || !page) {
+    return `missing embedded image (${imageSelector}) or page (${pageSelector})`;
+  }
+  const imgRect = img.getBoundingClientRect();
+  const pageRect = page.getBoundingClientRect();
+  if (imgRect.width > pageRect.width + 2) {
+    return `embedded image width ${imgRect.width.toFixed(1)} exceeds page ${pageRect.width.toFixed(1)}`;
+  }
+  return null;
+}
+
+export function validateGrayscalePreviewControlForCapture(
+  expectations: GrayscaleCaptureExpectations = {},
+): string | null {
   const selector =
     '[data-control-id="image-grayscale-preview.control.grayscale"]';
   const inCm = document.querySelector<HTMLElement>(
     `#command-manager-groups ${selector}`,
   );
   const inOverflow = document.querySelector<HTMLElement>(
-    `.cm-overflow-menu ${selector}`,
+    `.cm-overflow-menu ${selector}, #command-manager-overflow-menu ${selector}`,
   );
-  const inOverflowHost = document.querySelector<HTMLElement>(
-    `#command-manager-overflow-menu ${selector}, [role="menu"] ${selector}`,
-  );
-  const control = inCm ?? inOverflow ?? inOverflowHost;
+  if (expectations.requirePrimaryRow && !inCm) {
+    if (inOverflow) {
+      return "grayscale control is in overflow; expected primary command manager row";
+    }
+    return grayscalePreviewControlCaptureError(false, false, "");
+  }
+  const control = inCm ?? inOverflow;
   if (!control) {
     return grayscalePreviewControlCaptureError(false, false, "");
   }
@@ -1401,11 +1495,25 @@ export function validateGrayscalePreviewControlForCapture(): string | null {
     rect.height > 0 &&
     style.display !== "none" &&
     style.visibility !== "hidden";
-  return grayscalePreviewControlCaptureError(
+  const capErr = grayscalePreviewControlCaptureError(
     true,
     visible,
     control.dataset.capabilityState ?? "",
   );
+  if (capErr) {
+    return capErr;
+  }
+  if (expectations.requireEmulatedMarker) {
+    const mark = control.querySelector<HTMLElement>(".cm-emulation-mark");
+    const note = mark?.dataset.emulationNote ?? control.title ?? "";
+    if (!mark || mark.getBoundingClientRect().width < 4) {
+      return "missing visible emulated marker on Grayscale preview control";
+    }
+    if (!/preview only/i.test(note)) {
+      return `Grayscale preview emulated reason not visible (got "${note.slice(0, 80)}")`;
+    }
+  }
+  return null;
 }
 
 export function validateImageViewerChrome(launchPaths: string[]): string | null {

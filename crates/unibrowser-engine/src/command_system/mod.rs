@@ -14,7 +14,10 @@ mod tests;
 #[cfg(test)]
 mod worked_context_contract;
 
-pub use context::{ResolutionContext, command_context_display_label, infer_work_context};
+pub use context::{
+    ResolutionContext, command_context_display_label, command_context_for_manager_tab,
+    infer_work_context,
+};
 pub use contribution_merge::{
     ContributionMergeDiagnostics, LoadedModContribution, diagnose_contributions,
     merge_mod_contributions, merge_toolbar_layouts,
