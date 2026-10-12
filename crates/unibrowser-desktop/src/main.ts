@@ -195,6 +195,10 @@ import {
   validateMarkdownPreviewForCapture,
   validateImageViewerChrome,
   validateGrayscalePreviewControlForCapture,
+  validateCommandTooltipsDismissedForCapture,
+  validateNoProvingModInCommandManager,
+  validateCmTabRowMatchesActiveTab,
+  validateEmbeddedImageFitsPage,
   validateProvingFloatingToolbarHiddenForCapture,
   validateCommandManagerMutedForCapture,
   validateDarkSurfaceBackgroundsForCapture,
@@ -3118,7 +3122,6 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             for (const token of [
               "content-kind-md-preview",
               "content-kind-embedded-image-ui",
-              "cm-image-tab-pin",
             ]) {
               if (demoTokens.includes(token)) {
                 await applyDemoState(token);
@@ -3126,13 +3129,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             }
             await refreshState();
             await new Promise((resolve) => window.setTimeout(resolve, 200));
-            for (const token of [
-              "content-kind-grayscale-overflow",
-              "content-kind-grayscale-focus",
-            ]) {
-              if (demoTokens.includes(token)) {
-                await applyDemoState(token);
-              }
+            if (demoTokens.includes("content-kind-embedded-image-ui")) {
+              await invoke("sync_embedded_image_selection", { active: true }).catch(
+                () => undefined,
+              );
+              await invoke("get_command_manager").catch(() => undefined);
+              await refreshState();
+              await new Promise((resolve) => window.setTimeout(resolve, 120));
             }
           }
           const painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
@@ -3306,12 +3309,65 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             }
           }
           if (demoLower.includes("content-kind-grayscale")) {
-            const grayscaleErr = validateGrayscalePreviewControlForCapture();
+            clearCaptureHoverAndTooltips(false);
+            const requireEmulated = launchPaths.some((p) =>
+              /\.docx$|\.md$|\.markdown$/i.test(p),
+            );
+            const grayscaleErr = validateGrayscalePreviewControlForCapture({
+              requirePrimaryRow: true,
+              requireEmulatedMarker: requireEmulated,
+            });
             if (grayscaleErr) {
               await invoke("abort_doc_capture", {
                 reason: `${grayscaleErr}; ${formatDiagnosticsForLog(diag)}`,
               });
               return;
+            }
+            const tooltipErr = validateCommandTooltipsDismissedForCapture();
+            if (tooltipErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${tooltipErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+            const provingCmErr = validateNoProvingModInCommandManager();
+            if (provingCmErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${provingCmErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+            const tabRowErr = validateCmTabRowMatchesActiveTab();
+            if (tabRowErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${tabRowErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+            const joined = launchPaths.join("|").toLowerCase();
+            if (joined.includes(".docx")) {
+              const layoutErr = validateEmbeddedImageFitsPage(
+                ".docx-view img",
+                ".docx-paper, .docx-reader, .docx-view",
+              );
+              if (layoutErr) {
+                await invoke("abort_doc_capture", {
+                  reason: `${layoutErr}; ${formatDiagnosticsForLog(diag)}`,
+                });
+                return;
+              }
+            }
+            if (joined.includes(".md")) {
+              const layoutErr = validateEmbeddedImageFitsPage(
+                ".md-preview img",
+                ".md-preview-body, .md-preview-shell",
+              );
+              if (layoutErr) {
+                await invoke("abort_doc_capture", {
+                  reason: `${layoutErr}; ${formatDiagnosticsForLog(diag)}`,
+                });
+                return;
+              }
             }
           }
           if (

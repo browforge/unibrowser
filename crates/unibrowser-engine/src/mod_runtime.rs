@@ -141,7 +141,8 @@ impl ModRuntimeRegistry {
         let Some(snap) = self.snapshot_for(provider_id, &control.control_id)? else {
             return Ok(());
         };
-        control.capability = runtime_kind_to_capability(provider_id, &snap);
+        control.capability =
+            runtime_kind_to_capability(provider_id, &snap, &control.capability);
         if runtime
             .descriptor
             .permissions
@@ -215,9 +216,19 @@ fn validate_snapshot(
 fn runtime_kind_to_capability(
     provider_id: &str,
     snap: &ControlRuntimeSnapshot,
+    previous: &CapabilityState,
 ) -> CapabilityState {
     match snap.capability {
-        RuntimeCapabilityKind::Supported => CapabilityState::Supported,
+        RuntimeCapabilityKind::Supported => {
+            if let CapabilityState::Emulated { note, .. } = previous {
+                CapabilityState::Emulated {
+                    provider_id: provider_id.into(),
+                    note: note.clone(),
+                }
+            } else {
+                CapabilityState::Supported
+            }
+        }
         RuntimeCapabilityKind::Emulated => CapabilityState::Emulated {
             provider_id: provider_id.into(),
             note: snap

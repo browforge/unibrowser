@@ -577,11 +577,37 @@ export const commandManager = {
         active.families?.length > 0 ? patchPdfCommandFamilies(active.families) : [];
       const allGroups =
         patchedFamilies.length > 0 ? familiesToRenderGroups(patchedFamilies) : [];
+      const captureGrayscale = document.documentElement.classList.contains(
+        "ub-content-kind-grayscale-capture",
+      );
+      const layoutGroups = captureGrayscale
+        ? allGroups.filter(
+            (group) =>
+              !group.resolved.controls.some(
+                (control) => control.control_id === "unibrowser.control.history.undo",
+              ),
+          )
+        : allGroups;
       const widthBudget = commandGroupBudgetFromViewport(
         window.innerWidth,
         groupsEl.clientWidth,
       );
-      let { visible, overflow } = partitionGroupsByAvailableWidth(allGroups, widthBudget);
+      let { visible, overflow } = partitionGroupsByAvailableWidth(
+        layoutGroups,
+        widthBudget,
+      );
+      if (captureGrayscale) {
+        const grayscaleGroupIndex = overflow.findIndex((group) =>
+          group.resolved.controls.some(
+            (control) =>
+              control.control_id === "image-grayscale-preview.control.grayscale",
+          ),
+        );
+        if (grayscaleGroupIndex >= 0) {
+          const [grayscaleGroup] = overflow.splice(grayscaleGroupIndex, 1);
+          visible.push(grayscaleGroup);
+        }
+      }
       const setOverflowState = () => {
         const hasOverflow = overflow.length > 0;
         groupsEl.classList.toggle("cm-overflow-active", hasOverflow);
@@ -594,16 +620,28 @@ export const commandManager = {
       if (visible.length > 0) {
         renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
         let correctedBudget = widthBudget;
-        for (let attempt = 0; attempt <= allGroups.length; attempt += 1) {
+        for (let attempt = 0; attempt <= layoutGroups.length; attempt += 1) {
           const clippedWidth = Math.ceil(groupsEl.scrollWidth - groupsEl.clientWidth);
           if (clippedWidth <= 0) {
             break;
           }
           correctedBudget = Math.max(0, correctedBudget - clippedWidth - 8);
           ({ visible, overflow } = partitionGroupsByAvailableWidth(
-            allGroups,
+            layoutGroups,
             correctedBudget,
           ));
+          if (captureGrayscale) {
+            const grayscaleGroupIndex = overflow.findIndex((group) =>
+              group.resolved.controls.some(
+                (control) =>
+                  control.control_id === "image-grayscale-preview.control.grayscale",
+              ),
+            );
+            if (grayscaleGroupIndex >= 0) {
+              const [grayscaleGroup] = overflow.splice(grayscaleGroupIndex, 1);
+              visible.push(grayscaleGroup);
+            }
+          }
           setOverflowState();
           renderResolvedGroups(groupsEl, visible, onRun, chordByCommand);
         }

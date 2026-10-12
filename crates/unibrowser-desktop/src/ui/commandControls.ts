@@ -1,5 +1,5 @@
 import { patchPictureInPictureCommand } from "../mediaPip";
-import { bindCommandTooltip } from "./commandTooltip";
+import { bindCommandTooltip, formatCommandTooltip } from "./commandTooltip";
 import { lucideForControlIcon } from "./commandIconMap";
 import { createLucideIcon } from "./lucideIcon";
 import { getEditorFontSizePt } from "../textEditor";
@@ -148,10 +148,12 @@ export function renderResolvedControl(
   label.textContent = patched.title;
   btn.appendChild(label);
   if (emulated) {
+    const note = capabilityReason(control.capability) ?? "";
     const mark = document.createElement("span");
     mark.className = "cm-emulation-mark";
-    mark.setAttribute("aria-hidden", "true");
-    mark.title = capabilityReason(control.capability) ?? "";
+    mark.textContent = "≈";
+    mark.dataset.emulationNote = note;
+    mark.setAttribute("aria-label", note ? `Emulated: ${note}` : "Emulated");
     btn.appendChild(mark);
   }
   btn.setAttribute("role", control.control_type === "toggle" ? "switch" : "button");
@@ -178,12 +180,17 @@ export function renderResolvedControl(
     mixed,
     modControl,
   }).join(" ");
+  const tooltipReason =
+    emulated && a11yReason ? a11yReason : emulated ? capabilityReason(control.capability) : a11yReason;
   bindCommandTooltip(btn, {
     title: patched.title,
-    reason: a11yReason,
+    reason: tooltipReason,
     chord,
     enabled: actionable,
   });
+  if (emulated && tooltipReason) {
+    btn.title = formatCommandTooltip(patched.title, tooltipReason, chord);
+  }
   if (actionable) {
     btn.onclick = () => {
       if (emulated && a11yReason) {

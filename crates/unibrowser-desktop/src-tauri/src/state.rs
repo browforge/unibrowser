@@ -381,6 +381,18 @@ impl AppState {
         let sess = self.session(window_label).expect("session");
         let tabs = sess.tabs.lock().expect("tabs lock");
         let tab = tabs.active_tab();
+        let doc_path = tab.and_then(|tab| {
+            tab.document
+                .as_ref()
+                .map(|d| d.path.clone())
+                .or_else(|| {
+                    if let BrowserLocation::File { path } = &tab.location {
+                        Some(path.to_string_lossy().to_string())
+                    } else {
+                        None
+                    }
+                })
+        });
         let ctx = if let Some(tab) = tab {
             if matches!(
                 &tab.location,
@@ -388,22 +400,11 @@ impl AppState {
             ) {
                 unibrowser_mod_api::CommandContext::Start
             } else {
-                let path = tab
-                    .document
-                    .as_ref()
-                    .map(|d| d.path.clone())
-                    .or_else(|| {
-                        if let BrowserLocation::File { path } = &tab.location {
-                            Some(path.to_string_lossy().to_string())
-                        } else {
-                            None
-                        }
-                    });
                 let mode = tab.document.as_ref().map(|d| d.backend.mode());
                 infer_context(
                     tab.is_directory,
                     matches!(tab.location, BrowserLocation::Http { .. }),
-                    path.as_deref(),
+                    doc_path.as_deref(),
                     mode,
                 )
             }
@@ -412,7 +413,20 @@ impl AppState {
         };
         let mut cm = self.command_manager.lock().expect("command manager lock");
         cm.bump_context_revision();
-        cm.select_tab_for_context(ctx);
+        let follow_embedded = std::env::var("UNIBROWSER_SELECT_EMBEDDED_IMAGE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+            && matches!(
+                doc_path.as_deref(),
+                Some(p) if p.to_ascii_lowercase().ends_with(".docx")
+                    || p.to_ascii_lowercase().ends_with(".md")
+                    || p.to_ascii_lowercase().ends_with(".markdown")
+            );
+        if follow_embedded {
+            cm.set_embedded_image_selection(true);
+        } else {
+            cm.select_tab_for_context(ctx);
+        }
     }
 
     pub fn resolve_location(

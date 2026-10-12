@@ -2815,6 +2815,14 @@ body.content-fullscreen::after {
   line-height: 1.5;
 }
 
+.docx-view img,
+.docx-view--paper img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
 .docx-toolbar,
 .epub-nav,
 .epub-search-row {
@@ -3713,7 +3721,9 @@ body.content-fullscreen::after {
 }
 
 .docx-view--paper {
-  max-width: none;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .svg-workspace {
@@ -7050,9 +7060,12 @@ body.content-fullscreen #unknown-file-banner {
   background: #252530;
 }
 
-.md-preview img {
+.md-preview img,
+.md-preview-body img {
+  display: block;
   max-width: 100%;
   height: auto;
+  object-fit: contain;
 }
 
 .md-preview-img--broken {
@@ -7108,10 +7121,20 @@ html.ub-capture-md-preview .md-preview-toc {
   display: none;
 }
 
+html.ub-content-kind-grayscale-capture
+  #command-manager-groups
+  .cm-group:has([data-control-id="unibrowser.control.history.undo"]) {
+  display: none;
+}
+
 html.ub-capture-md-preview .md-preview-body {
   max-height: none;
   flex: 1;
   overflow: auto;
+  max-width: 48rem;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .svg-editor-layout {

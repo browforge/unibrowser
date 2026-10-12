@@ -3251,6 +3251,16 @@ pub fn clear_command_manager_context_pin(state: State<AppState>) -> Result<(), S
     Ok(())
 }
 
+#[tauri::command]
+pub fn sync_embedded_image_selection(
+    active: bool,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
+    cm.set_embedded_image_selection(active);
+    Ok(())
+}
+
 fn export_command_manager_layout(state: State<AppState>) -> Result<String, String> {
     let cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     serde_json::to_string_pretty(&cm.to_file()).map_err(|e| e.to_string())

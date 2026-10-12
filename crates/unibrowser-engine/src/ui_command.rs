@@ -6,7 +6,8 @@ use unibrowser_mod_api::{
 
 use crate::command::CommandRegistry;
 use crate::command_system::{
-    CapabilityResolver, LayoutStore, ResolutionContext, core_tab_layout,
+    CapabilityResolver, LayoutStore, ResolutionContext, command_context_for_manager_tab,
+    core_tab_layout,
 };
 use crate::ModRuntimeRegistry;
 
@@ -119,6 +120,8 @@ pub struct CommandManagerState {
     pub resolver: CapabilityResolver,
     pub layout_store: LayoutStore,
     pub context_revision: u64,
+    /// Embedded image node selected in rich text / markdown preview.
+    pub embedded_image_selection: bool,
 }
 
 impl Default for CommandManagerFile {
@@ -246,6 +249,23 @@ impl CommandManagerState {
             resolver: CapabilityResolver::default(),
             layout_store: LayoutStore::default(),
             context_revision: 1,
+            embedded_image_selection: false,
+        }
+    }
+
+    pub fn set_embedded_image_selection(&mut self, active: bool) {
+        self.embedded_image_selection = active;
+        self.bump_context_revision();
+        if self.context_pin.is_some() {
+            return;
+        }
+        if active {
+            self.auto_context = CommandContext::Image;
+            self.transient_tab = None;
+            let id = CommandContext::Image.tab_id();
+            if self.tabs.iter().any(|t| t.id == id) {
+                self.selected_tab = id.to_string();
+            }
         }
     }
 
@@ -284,12 +304,20 @@ impl CommandManagerState {
         let doc_path = doc
             .map(|d| d.path.clone())
             .or_else(|| fallback_doc_path.map(String::from));
-        let ctx = ResolutionContext::new(
-            self.auto_context,
+        let tab_context = command_context_for_manager_tab(tab_id, self.auto_context);
+        let mut ctx = ResolutionContext::new(
+            tab_context,
             host.clone(),
             doc_path,
             self.context_revision,
         );
+        if self.embedded_image_selection
+            || std::env::var("UNIBROWSER_SELECT_EMBEDDED_IMAGE")
+                .map(|v| v == "1")
+                .unwrap_or(false)
+        {
+            ctx = ctx.with_embedded_image_selection();
+        }
         let mut families = core_tab_layout(&ctx, &self.resolver);
         let kind_host = if let Some(contributions) = mod_contributions {
             let mut diag = crate::command_system::ContributionMergeDiagnostics::default();
@@ -404,6 +432,9 @@ impl CommandManagerState {
 
     pub fn select_tab_for_context(&mut self, ctx: CommandContext) {
         self.auto_context = ctx;
+        if ctx != CommandContext::Image {
+            self.embedded_image_selection = false;
+        }
         if self.context_pin.is_some() {
             return;
         }

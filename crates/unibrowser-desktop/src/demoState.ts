@@ -321,6 +321,10 @@ export async function applyDemoState(raw: string) {
         await invoke("pin_command_manager_context");
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         break;
+      case "content-kind-grayscale-capture":
+        document.documentElement.classList.add("ub-content-kind-grayscale-capture");
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        break;
       case "content-kind-grayscale-overflow": {
         const overflow = await waitForElement<HTMLButtonElement>(
           "#command-manager-overflow.visible",
@@ -353,7 +357,10 @@ export async function applyDemoState(raw: string) {
         if (img) {
           img.scrollIntoView({ block: "center" });
           img.click();
-          img.focus();
+          await invoke("sync_embedded_image_selection", { active: true }).catch(
+            () => undefined,
+          );
+          window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         }
         break;
       }
