@@ -23,9 +23,16 @@ test.describe("web demo", () => {
     });
     const commandManager = page.locator("#command-manager");
     await expect(commandManager).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator("#command-manager-groups")).not.toBeEmpty({ timeout: 15_000 });
+    const cmCommands = page.locator("#command-manager-groups button:not([disabled])");
+    await expect
+      .poll(async () => await cmCommands.count(), { timeout: 15_000 })
+      .toBeGreaterThanOrEqual(3);
+    await expect(cmCommands.first()).toBeVisible();
 
     await expect(page.locator("#text-editor-host")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("#text-editor-host")).toContainText("Demo markdown", {
+      timeout: 30_000,
+    });
     await page.getByRole("button", { name: "Skip tour" }).click({ timeout: 5_000 }).catch(() => undefined);
     const editor = page.locator("#text-editor-host .native-edit-context").first();
     await expect(editor).toBeVisible({ timeout: 30_000 });

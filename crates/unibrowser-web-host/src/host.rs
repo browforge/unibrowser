@@ -168,6 +168,26 @@ impl WebHost {
             "sync_text_document" => self.cmd_sync_text(args),
             "save_active_document" | "write_document_bytes" => self.cmd_save(args),
             "get_command_manager" => Ok(serde_json::to_value(self.build_cm_dto()).map_err(|e| e.to_string())?),
+            "select_command_manager_tab" => {
+                let tab_id = args
+                    .get("tabId")
+                    .and_then(|v| v.as_str())
+                    .ok_or("tabId required")?;
+                if self.command_manager.tabs.iter().any(|t| t.id == tab_id) {
+                    self.command_manager.selected_tab = tab_id.to_string();
+                }
+                Ok(Value::Null)
+            }
+            "pin_command_manager_context" => {
+                self.command_manager.pin_selected_tab();
+                Ok(Value::Null)
+            }
+            "clear_command_manager_context_pin" => {
+                self.command_manager.clear_context_pin();
+                Ok(Value::Null)
+            }
+            "save_command_manager_layout" => Ok(Value::Null),
+            "dismiss_cm_pin_tip" => Ok(self.prefs.to_preferences_dto()),
             "execute_command" => {
                 let command_id = args
                     .get("commandId")
@@ -531,6 +551,7 @@ impl WebHost {
             tabs,
             floating_bars: vec![],
             diagnostics: vec!["Web demo: native mods and sidecars are unavailable.".into()],
+            shell_contributions: ShellContributionsDto::default(),
         }
     }
 }
@@ -627,6 +648,14 @@ pub struct ManagerTabDto {
     pub resolved_control_count: usize,
 }
 
+#[derive(Serialize, Default)]
+pub struct ShellContributionsDto {
+    pub panels: Vec<Value>,
+    pub views: Vec<Value>,
+    pub status_items: Vec<Value>,
+    pub services: Vec<Value>,
+}
+
 #[derive(Serialize)]
 pub struct CommandManagerDto {
     pub auto_context: String,
@@ -636,4 +665,5 @@ pub struct CommandManagerDto {
     pub tabs: Vec<ManagerTabDto>,
     pub floating_bars: Vec<Value>,
     pub diagnostics: Vec<String>,
+    pub shell_contributions: ShellContributionsDto,
 }

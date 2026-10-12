@@ -3061,6 +3061,22 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         await new Promise((resolve) => setTimeout(resolve, 350));
         await refreshState();
       }
+      if (
+        isWebPlatform() &&
+        new URLSearchParams(window.location.search).get("smoke") === "demo"
+      ) {
+        try {
+          const opened = await invoke<TabContentDto>("open_path", {
+            path: "demo-pack/sample.md",
+            line: null,
+          });
+          if (opened) {
+            await applyState(opened);
+          }
+        } catch (err) {
+          reportSubsystemError("web-smoke-demo", err);
+        }
+      }
       if (demo) {
         try {
           await applyDemoState(demo);

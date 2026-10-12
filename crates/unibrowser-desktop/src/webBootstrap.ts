@@ -74,8 +74,3 @@ try {
   reportShellMountFailure(message);
 }
 
-if (new URLSearchParams(window.location.search).get("smoke") === "demo") {
-  await new Promise((resolve) => window.setTimeout(resolve, 1500));
-  await webInvoke("open_path", { path: "demo-pack/sample.md" });
-  window.dispatchEvent(new CustomEvent("ub-browser-state-updated"));
-}

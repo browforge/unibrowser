@@ -528,7 +528,14 @@ export const commandManager = {
     }
     const snapshot = await invoke<CommandManagerDto>("get_command_manager");
     lastSnapshot = snapshot;
-    applyModShellContributions(snapshot.shell_contributions);
+    applyModShellContributions(
+      snapshot.shell_contributions ?? {
+        panels: [],
+        views: [],
+        status_items: [],
+        services: [],
+      },
+    );
     updatePinControl(pinEl, labelEl, snapshot);
     const commandTabId = snapshot.context_pinned
       ? snapshot.selected_tab
