@@ -186,6 +186,15 @@ pub struct Preferences {
     /// Block Open VSX and other catalog fetches; web/https tabs still load when you navigate.
     #[serde(default)]
     pub offline_mode: bool,
+    /// User-selected default surface provider per `unibrowser.capability.*` id.
+    #[serde(default)]
+    pub capability_default_providers: HashMap<String, String>,
+    /// Remembered Open-with provider mod name per file extension (no leading dot).
+    #[serde(default)]
+    pub open_with_by_extension: HashMap<String, String>,
+    /// Remembered Open-with provider mod name per absolute file path.
+    #[serde(default)]
+    pub open_with_by_path: HashMap<String, String>,
 }
 
 /// How https/file web tabs should reach the network (prefs only until webview proxy API lands).
@@ -386,6 +395,9 @@ impl Default for Preferences {
             web_proxy: WebProxyPrefs::default(),
             warn_insecure_http: true,
             offline_mode: false,
+            capability_default_providers: HashMap::new(),
+            open_with_by_extension: HashMap::new(),
+            open_with_by_path: HashMap::new(),
         }
     }
 }

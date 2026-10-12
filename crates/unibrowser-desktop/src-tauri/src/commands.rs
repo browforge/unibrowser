@@ -84,6 +84,8 @@ pub struct TabDto {
     pub browse_path: Option<String>,
     pub muted: bool,
     pub mute_available: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_path: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -376,6 +378,16 @@ pub struct TabContentDto {
     /// User-pinned places for the optional bookmark bar (not default Places pins).
     pub bookmark_bar_pins: Vec<PinnedLocationDto>,
     pub bookmark_quick_links: Vec<BookmarkQuickLinkDto>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub surface_capability_diagnostics: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub surface_provider_conflicts: Vec<SurfaceProviderConflictDto>,
+}
+
+#[derive(Serialize)]
+pub struct SurfaceProviderConflictDto {
+    pub capability_id: String,
+    pub mod_names: Vec<String>,
 }
 
 #[derive(Serialize, serde::Deserialize)]
@@ -525,7 +537,7 @@ fn ws_state(state: &AppState, window: &tauri::Window) -> Result<crate::window_se
     state.session(window.label())
 }
 
-fn ws(state: &State<AppState>, window: &tauri::Window) -> Result<crate::window_session::SharedWindowSession, String> {
+pub(crate) fn ws(state: &State<AppState>, window: &tauri::Window) -> Result<crate::window_session::SharedWindowSession, String> {
     ws_state(state.inner(), window)
 }
 
@@ -577,6 +589,12 @@ fn build_tab_dto(
         BrowserLocation::Http { .. } => ("http", true),
         BrowserLocation::Internal { .. } => ("internal", false),
     };
+    let file_path = match &tab.location {
+        BrowserLocation::File { path } if path.is_file() => {
+            Some(path.to_string_lossy().into_owned())
+        }
+        _ => None,
+    };
     TabDto {
         id: tab.id.0,
         label: tab.location.display_label(),
@@ -588,6 +606,7 @@ fn build_tab_dto(
         browse_path: tab_browse_path(state, tabs, tab),
         muted: tab.muted,
         mute_available: tab_mute_available(tab),
+        file_path,
     }
 }
 
@@ -1230,7 +1249,7 @@ fn tab_is_new_tab_home(tab: &unibrowser_engine::tabs::Tab) -> bool {
     )
 }
 
-fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, String> {
+pub(crate) fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, String> {
     crate::tabs_mutex::assert_tabs_lock_free();
     state.refresh_command_manager_context(window_label);
     let sess = ws_label(state, window_label)?;
@@ -1391,6 +1410,16 @@ fn snapshot(state: &AppState, window_label: &str) -> Result<TabContentDto, Strin
             .map(|l| BookmarkQuickLinkDto {
                 label: l.label.clone(),
                 url: l.url.clone(),
+            })
+            .collect(),
+        surface_capability_diagnostics: state.surface_registry().diagnostics.clone(),
+        surface_provider_conflicts: state
+            .surface_registry()
+            .default_conflicts
+            .iter()
+            .map(|c| SurfaceProviderConflictDto {
+                capability_id: c.capability_id.clone(),
+                mod_names: c.mod_names.clone(),
             })
             .collect(),
     })
@@ -1605,7 +1634,8 @@ fn reopen_active_file_mode(
         if !path.is_file() {
             return Err("not a file".into());
         }
-        let doc = crate::state::open_file_document_with_mode(&path, mode)
+        let doc = state
+            .open_file_document_with_mode(&path, mode)
             .ok_or("could not open file")?;
         tab.document = Some(doc);
         tab.is_directory = false;
@@ -2021,7 +2051,7 @@ pub fn navigate_omnibox(window: tauri::Window, input: String, app: AppHandle, st
     snapshot(&state, window.label())
 }
 
-fn allow_asset_protocol_file(app: &AppHandle, path: &Path) {
+pub(crate) fn allow_asset_protocol_file(app: &AppHandle, path: &Path) {
     if !path.is_file() {
         return;
     }

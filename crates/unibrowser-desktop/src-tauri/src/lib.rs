@@ -26,6 +26,7 @@ mod smf;
 mod midi_stub;
 mod settings_stub;
 mod about_stub;
+mod capability_router;
 mod keys_stub;
 mod diagnostics_stub;
 mod command_history;
@@ -77,6 +78,7 @@ mod git_status;
 mod rhai_host;
 mod session;
 mod state;
+mod surface_capability_api;
 mod user_backup;
 
 pub use state::open_file_document;
@@ -457,6 +459,11 @@ pub fn run() {
             commands::save_window_geometry,
             commands::create_unibrow_project,
             commands::list_mod_catalog,
+            surface_capability_api::list_surface_capability_groups,
+            surface_capability_api::set_capability_default_provider,
+            surface_capability_api::list_open_with_providers,
+            surface_capability_api::open_path_with_provider,
+            surface_capability_api::list_bundled_mod_plugins,
             commands::paste_unibrow_still_clip,
             commands::write_temp_png,
             commands::dismiss_cm_pin_tip,

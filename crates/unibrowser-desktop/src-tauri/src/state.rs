@@ -9,9 +9,9 @@ use base_files::list_directory;
 use base_web::{WebBackend, handles as web_handles};
 use unibrowser_engine::{
     CommandManagerState, CommandRegistry, DocumentSession, KeySequenceMatcher, KeybindingMap,
-    LoadedModContribution, ModRuntimeRegistry, TabManager, infer_context, load_command_manager_file,
-    merge_toolbar_layouts, navigation::parse_user_input,
-    ContributionMergeDiagnostics,
+    LoadedModContribution, ModRuntimeRegistry, SurfaceProviderRegistry, TabManager, infer_context,
+    load_command_manager_file, merge_toolbar_layouts, navigation::parse_user_input,
+    build_surface_provider_registry, ContributionMergeDiagnostics,
 };
 
 use crate::config::{keybindings_file_path, toolbars_file_path};
@@ -52,6 +52,7 @@ pub struct AppState {
     pub filename_search_cancel: AtomicBool,
     pub _mod_host: ModHost,
     pub mod_runtime: Mutex<ModRuntimeRegistry>,
+    pub surface_providers: RwLock<SurfaceProviderRegistry>,
 }
 
 impl AppState {
@@ -305,6 +306,8 @@ impl AppState {
         }
         let command_manager = Mutex::new(cm_state);
 
+        let surface_providers = RwLock::new(surface_registry_for_host(&built.mod_host));
+
         Self {
             registry: Mutex::new(built.registry),
             sessions,
@@ -318,9 +321,17 @@ impl AppState {
             filename_search_cancel: AtomicBool::new(false),
             _mod_host: built.mod_host,
             mod_runtime: Mutex::new(built.mod_runtime),
+            surface_providers,
             #[cfg(feature = "dynamic-mods")]
             dynamic_cdylibs: Mutex::new(built.dynamic_libs),
         }
+    }
+
+    pub fn surface_registry(&self) -> SurfaceProviderRegistry {
+        self.surface_providers
+            .read()
+            .map(|r| r.clone())
+            .unwrap_or_default()
     }
 
     pub fn refresh_extension_catalog(&self) -> Result<(), String> {
@@ -340,6 +351,9 @@ impl AppState {
         }
         if let Ok(mut kb) = self.keybindings.lock() {
             *kb = load_merged_keybindings();
+        }
+        if let Ok(mut reg) = self.surface_providers.write() {
+            *reg = surface_registry_for_host(&built.mod_host);
         }
         Ok(())
     }
@@ -403,7 +417,7 @@ impl AppState {
                 return (location, true, None);
             }
             if path.is_file() {
-                let doc = open_file_document(path);
+                let doc = self.open_file_document(path);
                 return (location, false, doc);
             }
         }
@@ -530,37 +544,67 @@ pub enum FileOpenMode {
     Hex,
 }
 
-pub fn open_file_document_with_mode(path: &Path, mode: FileOpenMode) -> Option<DocumentSession> {
-    let path_str = path.to_string_lossy().to_string();
-    match mode {
-        FileOpenMode::PlainText => {
-            let backend = base_hex::HexBackend::open_path_as_text(path).ok()?;
-            return Some(DocumentSession::new(path_str, Box::new(backend)));
+fn surface_registry_for_host(host: &ModHost) -> SurfaceProviderRegistry {
+    let manifests: Vec<_> = host.mods.iter().map(|m| m.manifest.clone()).collect();
+    build_surface_provider_registry(&manifests)
+}
+
+impl AppState {
+    pub fn open_file_document_with_mode(
+        &self,
+        path: &Path,
+        mode: FileOpenMode,
+    ) -> Option<DocumentSession> {
+        let path_str = path.to_string_lossy().to_string();
+        let sniffed = crate::content_sniff::sniff_format(path);
+        if unibrowser_project::is_unibrow_path(path) {
+            if let Ok(doc) = try_open_unibrow_document(path) {
+                return Some(doc);
+            }
+            return None;
         }
-        FileOpenMode::Hex => {
-            let backend = base_hex::HexBackend::open_path(path).ok()?;
-            return Some(DocumentSession::new(path_str, Box::new(backend)));
-        }
-        FileOpenMode::Auto => {}
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        let effective = effective_extension(sniffed, &ext);
+        let prefs = crate::preferences::load_preferences();
+        let registry = self.surface_registry();
+        let backend = crate::capability_router::open_backend_for_path(
+            &registry,
+            &prefs,
+            path,
+            &effective,
+            mode,
+        )?;
+        apply_docx_font_pref(path, backend)
     }
-    open_file_document(path)
+
+    pub fn open_file_document(&self, path: &Path) -> Option<DocumentSession> {
+        self.open_file_document_with_mode(path, FileOpenMode::Auto)
+    }
+}
+
+pub fn open_file_document_with_mode(path: &Path, mode: FileOpenMode) -> Option<DocumentSession> {
+    // Legacy entry for unit tests: uses bundled registry from a throwaway AppState.
+    AppState::new().open_file_document_with_mode(path, mode)
 }
 
 pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
-    let path_str = path.to_string_lossy().to_string();
+    AppState::new().open_file_document(path)
+}
+
+pub fn effective_extension_for_path(path: &Path, ext: &str) -> String {
     let sniffed = crate::content_sniff::sniff_format(path);
-    if unibrowser_project::is_unibrow_path(path) {
-        if let Ok(doc) = try_open_unibrow_document(path) {
-            return Some(doc);
-        }
-        return None;
-    }
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    let effective = match sniffed {
+    effective_extension(sniffed, ext).to_string()
+}
+
+fn effective_extension(
+    sniffed: Option<crate::content_sniff::SniffedFormat>,
+    ext: &str,
+) -> &str {
+    match sniffed {
         Some(crate::content_sniff::SniffedFormat::Pdf) => "pdf",
         Some(crate::content_sniff::SniffedFormat::Png) => "png",
         Some(crate::content_sniff::SniffedFormat::Jpeg) => "jpeg",
@@ -572,38 +616,26 @@ pub fn open_file_document(path: &Path) -> Option<DocumentSession> {
         Some(crate::content_sniff::SniffedFormat::Ogg) => "ogg",
         Some(crate::content_sniff::SniffedFormat::Flac) => "flac",
         Some(crate::content_sniff::SniffedFormat::Epub) => "epub",
-        Some(crate::content_sniff::SniffedFormat::Zip) => ext.as_str(),
-        None => ext.as_str(),
-    };
-    let backend: Option<Box<dyn unibrowser_engine::document::DocumentBackend>> = match effective
-    {
-        "png" | "jpg" | "jpeg" | "gif" | "webp" => Some(base_png::open_file(path)),
-        "svg" => Some(base_svg::open_file(path)),
-        "docx" => {
-            let mut backend = base_docx::open_file(path).ok()?;
-            let path_key = path.to_string_lossy();
-            if let Some(pt) = crate::preferences::docx_reader_font(path_key.as_ref()) {
-                if let Some(b) = base_docx::try_docx_backend(&mut *backend) {
-                    b.reader_font_pt = pt;
-                }
+        Some(crate::content_sniff::SniffedFormat::Zip) => ext,
+        None => ext,
+    }
+}
+
+fn apply_docx_font_pref(
+    path: &Path,
+    backend: Box<dyn unibrowser_engine::document::DocumentBackend>,
+) -> Option<DocumentSession> {
+    let path_str = path.to_string_lossy().to_string();
+    let mut backend = backend;
+    if backend.backend_id() == base_docx::BACKEND_ID {
+        let path_key = path.to_string_lossy();
+        if let Some(pt) = crate::preferences::docx_reader_font(path_key.as_ref()) {
+            if let Some(b) = base_docx::try_docx_backend(&mut *backend) {
+                b.reader_font_pt = pt;
             }
-            Some(backend)
         }
-        "pdf" => base_pdf::open_file(path).ok(),
-        "dxf" => base_dxf::open_file(path).ok(),
-        "js" | "mjs" | "cjs" | "jsx" | "ts" | "tsx" => base_js::open_file(path).ok(),
-        "rhai" => base_text::open_file(path).ok(),
-        "csv" | "tsv" => Some(base_csv::open_file(path)),
-        "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
-        "mp4" | "webm" | "avi" => base_video::open_file(path).ok(),
-        "wav" | "mp3" | "ogg" | "flac" => base_audio::open_file(path).ok(),
-        "mid" | "midi" => crate::midi_stub::open_file(path).ok(),
-        "epub" => Some(base_epub::open_file(path)),
-        "zip" | "7z" | "rar" | "tar" | "gz" => None,
-        _ if is_known_text_extension(effective) => base_text::open_file(path).ok(),
-        _ => unibrowser_mod_host::wasm::open_wasm_extension_backend(path),
-    };
-    backend.map(|b| DocumentSession::new(path_str, b))
+    }
+    Some(DocumentSession::new(path_str, backend))
 }
 
 /// Extensions opened as plain text when sniffing does not override.
