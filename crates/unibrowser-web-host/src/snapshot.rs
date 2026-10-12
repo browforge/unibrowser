@@ -184,10 +184,8 @@ pub fn build_snapshot(host: &mut WebHost, prefs: &WebPrefs) -> TabContentDto {
         None => (None, None),
     };
 
-    let fallback_status = format!(
-        "{} commands (web demo)",
-        host.registry.sorted_command_ids().len()
-    );
+    let command_count = host.registry.commands().count();
+    let fallback_status = format!("{} commands (web demo)", command_count);
     let status = document_status.unwrap_or(fallback_status);
 
     TabContentDto {

@@ -39,9 +39,9 @@ jobs:
           npm run build:web
       - name: Web smoke test
         working-directory: crates/unibrowser-desktop
-        run: |
-          npx playwright install chromium
-          npm run test:web-smoke
+        env:
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
+        run: npm run test:web-smoke
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

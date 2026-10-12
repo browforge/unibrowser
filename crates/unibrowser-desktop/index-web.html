@@ -5,6 +5,39 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Unibrowser (web demo)</title>
+    <style>
+      html {
+        background: #1a1a1f;
+        color: #e8e8e8;
+      }
+      body:not([data-ub-ready="1"]) #app-shell {
+        visibility: hidden;
+      }
+      .shell-fallback {
+        position: fixed;
+        inset: 0;
+        z-index: 100000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background: #1a1a1f;
+        color: #e8e8e8;
+        font-family: system-ui, sans-serif;
+      }
+      .shell-fallback.hidden,
+      body[data-ub-ready="1"] .shell-fallback {
+        display: none;
+      }
+      .shell-fallback-detail {
+        font-size: 0.9rem;
+        opacity: 0.85;
+        max-width: 32rem;
+        text-align: center;
+        padding: 0 1rem;
+      }
+    </style>
   </head>
   <body>
     <div id="shell-fallback" class="shell-fallback" role="status" aria-live="polite">

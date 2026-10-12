@@ -21,6 +21,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: isWeb ? "dist-web" : "dist",
+      modulePreload: isWeb
+        ? { polyfill: false, resolveDependencies: () => [] }
+        : undefined,
       rollupOptions: {
         input: isWeb ? path.resolve(rootDir, "index-web.html") : path.resolve(rootDir, "index.html"),
         output: {

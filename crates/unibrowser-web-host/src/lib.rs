@@ -1,5 +1,6 @@
 #![recursion_limit = "512"]
 
+mod ai_prefs;
 mod host;
 mod prefs;
 mod snapshot;
@@ -75,5 +76,22 @@ mod tests {
         host_init();
         let raw = host_invoke("get_browser_state", "null");
         assert!(raw.contains("\"show_new_tab_page\":true"));
+    }
+
+    #[test]
+    fn command_manager_round_trip() {
+        host_init();
+        let raw = host_invoke("get_command_manager", "null");
+        assert!(raw.contains("\"tabs\""));
+        assert!(raw.contains("\"ok\":true"));
+    }
+
+    #[test]
+    fn command_manager_many_invokes() {
+        host_init();
+        for _ in 0..200 {
+            let raw = host_invoke("get_command_manager", "null");
+            assert!(raw.contains("\"ok\":true"));
+        }
     }
 }

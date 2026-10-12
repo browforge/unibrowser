@@ -7,6 +7,10 @@ function notifyBrowserState() {
 
 export async function webInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   switch (cmd) {
+    case "take_launch_open_paths":
+      return [] as T;
+    case "get_demo_state":
+      return null as T;
     case "pick_open_file": {
       const picked = await pickOpenTextFile();
       if (!picked) {
@@ -67,7 +71,6 @@ export async function webInvoke<T>(cmd: string, args?: Record<string, unknown>):
   }
   const value = await wasmInvoke<T>(cmd, args);
   if (
-    cmd === "get_browser_state" ||
     cmd === "new_tab" ||
     cmd === "select_tab" ||
     cmd === "close_tab" ||

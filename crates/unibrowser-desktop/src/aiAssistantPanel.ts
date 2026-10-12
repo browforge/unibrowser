@@ -258,6 +258,10 @@ async function refreshPanel() {
 }
 
 export async function setAiPanelVisible(visible: boolean) {
+  const alreadyVisible = panelEl ? !panelEl.classList.contains("hidden") : visible;
+  if (alreadyVisible === visible) {
+    return;
+  }
   const prefs = await invoke<AiPrefs>("get_ai_assistant_prefs");
   prefs.panel_visible = visible;
   prefs.panel_docked = true;
@@ -336,7 +340,7 @@ export function initAiAssistantPanel() {
     if (!prefs.panel_docked) {
       prefs.panel_docked = true;
     }
-    const visible = prefs.panel_visible;
+    const visible = prefs.panel_visible === true;
     panelEl!.classList.toggle("hidden", !visible);
     applyDockLayout(visible, panelWidth(prefs));
     if (visible) {

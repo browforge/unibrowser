@@ -247,6 +247,7 @@ import {
 import { applyImageCompare, type ImageCompareViewDto } from "./imageCompare";
 import { runCaptureVisibleTab } from "./tabCapture";
 import { initToolbarOnlyShell } from "./toolbarOnly";
+import { isWebPlatform } from "./platform/isWeb";
 import { toggleLayoutEditMode } from "./layoutEditMode";
 import { showOpenWithMenu } from "./openWithMenu";
 
@@ -2318,6 +2319,30 @@ async function applyState(data: TabContentDto) {
 (window as unknown as { __selfTestApplyState?: (d: TabContentDto) => Promise<void> }).__selfTestApplyState =
   applyState;
 
+let webBrowserStateRefreshQueued = false;
+let webBrowserStateRefreshAgain = false;
+
+function scheduleBrowserStateRefresh() {
+  if (!isWebPlatform()) {
+    void refreshState();
+    return;
+  }
+  if (webBrowserStateRefreshQueued) {
+    webBrowserStateRefreshAgain = true;
+    return;
+  }
+  webBrowserStateRefreshQueued = true;
+  queueMicrotask(() => {
+    webBrowserStateRefreshQueued = false;
+    void refreshState().finally(() => {
+      if (webBrowserStateRefreshAgain) {
+        webBrowserStateRefreshAgain = false;
+        scheduleBrowserStateRefresh();
+      }
+    });
+  });
+}
+
 async function refreshState() {
   try {
     const data = await invoke<TabContentDto>("get_browser_state");
@@ -2442,7 +2467,7 @@ const omniboxAutocomplete = bindOmniboxAutocomplete(omnibox, omniboxSuggestions,
 tabSearchQuery.addEventListener("input", () => void refreshTabSearchResults());
 
 listen("browser-state-updated", () => {
-  void refreshState();
+  scheduleBrowserStateRefresh();
 });
 
 listen<{ message: string; severity?: string }>("unibrowser-extension-toast", (event) => {

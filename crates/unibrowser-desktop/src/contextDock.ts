@@ -70,17 +70,18 @@ export async function syncContextDockPolicy(data: DockStateSlice): Promise<void>
   const ctx = workDockContextFromState(data);
   setActiveDockContext(ctx);
   const stored = readStoredAiVisible(ctx);
-  const prefs = await invoke<{ panel_visible: boolean }>("get_ai_assistant_prefs");
+  const prefs = await invoke<{ panel_visible?: boolean }>("get_ai_assistant_prefs");
+  const panelVisible = prefs.panel_visible === true;
 
   if (ctx === "ntp" || ctx === "pdf" || ctx === "image") {
     const wantAi = stored === true;
-    if (prefs.panel_visible !== wantAi) {
+    if (panelVisible !== wantAi) {
       await setAiPanelVisible(wantAi);
     }
     return;
   }
 
-  if (stored !== null && prefs.panel_visible !== stored) {
+  if (stored !== null && panelVisible !== stored) {
     await setAiPanelVisible(stored);
   }
 }

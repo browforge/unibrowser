@@ -8,6 +8,7 @@ use unibrowser_engine::{
 };
 use unibrowser_mod_api::{BrowserLocation, CommandContext, HostContext};
 
+use crate::ai_prefs::AiAssistantPrefsWeb;
 use crate::prefs::WebPrefs;
 use crate::snapshot::{
     build_snapshot, is_text_path, navigate_tabs, open_text_backend, TabContentDto,
@@ -35,6 +36,7 @@ pub struct WebHost {
     pub last_unknown_banner: Option<Value>,
     pub mod_runtime: ModRuntimeRegistry,
     pub pending_save: Option<(String, String)>,
+    pub ai_prefs: AiAssistantPrefsWeb,
 }
 
 impl WebHost {
@@ -64,6 +66,7 @@ impl WebHost {
             last_unknown_banner: None,
             mod_runtime: ModRuntimeRegistry::default(),
             pending_save: None,
+            ai_prefs: AiAssistantPrefsWeb::default(),
         }
     }
 
@@ -243,7 +246,32 @@ impl WebHost {
             "get_autosave_status" => {
                 Ok(serde_json::json!({ "last_autosave_at_ms": 0 }))
             }
-            "get_self_test_plan" | "take_doc_capture_path" => Ok(Value::Null),
+            "get_self_test_plan" | "take_doc_capture_path" | "get_demo_state" => Ok(Value::Null),
+            "take_launch_open_paths" => Ok(serde_json::json!([])),
+            "resolve_capture_path" => {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or("path required")?;
+                Ok(Value::String(path.to_string()))
+            }
+            "get_ai_assistant_prefs" => {
+                Ok(serde_json::to_value(&self.ai_prefs).map_err(|e| e.to_string())?)
+            }
+            "set_ai_assistant_prefs" => {
+                self.ai_prefs.merge_from_args(args);
+                Ok(Value::Null)
+            }
+            "ai_assistant_status" => {
+                Ok(serde_json::to_value(self.ai_prefs.status()).map_err(|e| e.to_string())?)
+            }
+            "list_editor_themes_cmd" => Ok(serde_json::json!([
+                {"id": "vs", "label": "Light", "source": "builtin"},
+                {"id": "vs-dark", "label": "Dark", "source": "builtin"},
+                {"id": "auto", "label": "Match app theme", "source": "builtin"}
+            ])),
+            "list_monaco_grammars_cmd" => Ok(serde_json::json!([])),
+            "get_editor_monaco_theme" => Ok(Value::Null),
             "releases_page_url" => Ok(Value::String(
                 "https://github.com/browforge/unibrowser/releases".into(),
             )),
