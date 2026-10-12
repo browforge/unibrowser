@@ -242,12 +242,14 @@ The status bar never carries a full error sentence. Clicking a problem opens Pro
 | --- | --- | --- |
 | View only | `View only` | No changes are written. Choose **Start editing** or **Save As** to save work. |
 | Work in archive | `Archive` | Editing `filename.unibrow` in place. |
-| Folder mode | `Folder` | Project files in this folder; history in `.unibrow-history`. |
+| Folder mode | `Folder` | Your folder stays yours; Unibrowser adds at most `.unibrow-history` after you edit. |
 
 After the user’s first mutating edit (or **Start editing** from view only), append a second left item until dismissed or saved:
 
 - **History will be saved in** `<absolute or project-relative path>`  
   (inside the `.unibrow` archive, or `…/ProjectName/.unibrow-history` in folder mode.)
+
+**Plain folder rule:** opening a normal directory never creates `manifest.json`, `project.json`, or `assets/`. Those appear only after **Unpack to folder** or **Collect into project** ([ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md) §2).
 
 **Large project hint (non-blocking):** when the project exceeds the configured threshold ([ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md) §4), show a `kind: warning` right-slot item:
 
@@ -260,9 +262,9 @@ Never auto-switch to folder mode. Threshold off → no hint.
 
 | Label | Behaviour |
 | --- | --- |
-| **Unpack to folder** | Explicit conversion from archive to folder project; confirmation names destination. |
-| **Pack as .unibrow** | Build OPC `.unibrow` from folder project; confirmation names output file. |
-| **Collect into project** | Copy linked media into `assets/` (embed); grey when nothing is referenced. |
+| **Unpack to folder** | Writes full package files (`manifest.json`, `project.json`, `assets/`, `.unibrow-history`, …) to the chosen folder; confirmation names destination. |
+| **Pack as .unibrow** | Writes a new `.unibrow` archive (manifest **inside the zip only**); does not add `manifest.json` or `assets/` to a plain source folder. |
+| **Collect into project** | Embeds linked media; may create `manifest.json`, `project.json`, and `assets/` on disk when needed; grey when nothing to collect. |
 
 Mode indicator stays visible during pack/unpack; Save is never covered by the hint.
 

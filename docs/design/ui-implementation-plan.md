@@ -1434,21 +1434,23 @@ Acceptance:
 - Fixture archive opens in `unzip -l`; duplicate asset bytes dedupe to one `assets/` entry.
 - Manifest and `.unibrow-history` paths match [ADR 0031](../adr/0031-edit-history-as-file-format.md) and [ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md).
 
-### PKG-02: Folder mode detection and project folder IO
+### PKG-02: Folder mode — plain vs unpacked on-disk IO
 
 Status: open.
 
 Work:
 
-- Open folder when root `manifest.json` identifies a Unibrowser project; same paths as archive interior (`project.json`, `.unibrow-history`, `assets/`).
-- Save updates visible project files and appends `.unibrow-history` without a `.unibrow` file extension on the parent folder.
+- **Plain folder (ADR 0032 §2a):** open any directory; never write `manifest.json`, `project.json`, or `assets/` on open or edit; first mutating edit may create **only** `.unibrow-history`.
+- **Unpacked folder (§2b):** detect root `manifest.json`; read/write same paths as archive interior.
+- Regression guard: automated test that opening + editing a temp folder leaves no package files except optional `.unibrow-history`.
 
 Likely files: project open/save paths, path security for project root.
 
 Acceptance:
 
-- Open `MyShow/` with `manifest.json` + `.unibrow-history` loads project; save appends history and updates `project.json`.
-- Opening a plain folder without project manifest remains ordinary file browser behaviour.
+- Open `MyShow/` (no manifest), edit timeline → only `.unibrow-history` appears on disk.
+- Open `MyShow/` after **Unpack to folder** → `manifest.json` + `project.json` present; save updates them and appends history.
+- Plain folder open remains ordinary browse when user does not start native project editing.
 
 ### PKG-03: Storage mode state (view / archive / folder)
 
@@ -1464,6 +1466,7 @@ Likely files: document session, project tab backend, command enablement.
 Acceptance:
 
 - Open `.unibrow` read-only volume → view only; Save As offers writable path.
+- Folder mode on plain dir: first edit may add `.unibrow-history` only; no manifest until unpack/collect.
 - Mode label matches ADR names in status contribution.
 
 ### PKG-04: Status bar mode indicator and first-edit history path
@@ -1489,13 +1492,15 @@ Status: open.
 Work:
 
 - File menu + palette commands with confirmation and progress for large trees.
-- Pack produces OPC file; unpack creates folder project (`manifest.json`, `.unibrow-history`, …) without deleting source unless user confirms.
+- **Unpack** writes §2b layout (`manifest.json`, `project.json`, `assets/`, `.unibrow-history`, …) without deleting source unless user confirms.
+- **Pack** serialises session + history + user files into OPC; **`manifest.json` only inside the new `.unibrow`**, never dropped into a plain source folder.
 
 Likely files: project conversion service, progress UI.
 
 Acceptance:
 
-- Round-trip pack → unpack → edit → pack preserves `.unibrow-history` seq continuity.
+- Pack from plain folder: before/after listing shows no new `manifest.json` in source dir; output `.unibrow` contains manifest part.
+- Round-trip unpack → edit → pack preserves `.unibrow-history` seq continuity.
 - Cancel mid-unpack leaves no broken half-project without user-visible failed state.
 
 ### PKG-06: Large-project folder hint (configurable threshold)
@@ -1536,13 +1541,14 @@ Status: open.
 
 Work:
 
-- `refs/` entries in graph; missing-file banner; **Collect into project** copies into `assets/<hash>`.
+- `refs/` entries in graph; missing-file banner; **Collect into project** copies into `assets/<hash>` and may materialise §2b files (`manifest.json`, `project.json`, `assets/`) on disk when user confirms.
 
 Likely files: asset index, file ops, Command Manager entry.
 
 Acceptance:
 
-- Link large video → ref only; Collect embeds once; move `.unibrow` without ref breaks until relink.
+- Plain folder: Collect is the only path (besides Unpack) that creates `manifest.json` / `project.json` / `assets/` on disk.
+- Link large video → ref only until Collect; Collect embeds once under `assets/`.
 - Collect grey when no refs in project.
 
 ## Phase I: Plugin permissions and network (ADR 0029)
