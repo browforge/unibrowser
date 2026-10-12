@@ -1414,6 +1414,137 @@ Acceptance:
 - Squash reduces log size; user confirm names redo depth loss.
 - Clean before sharing removes recoverable deleted content from bundle per ADR §8.
 
+## Phase L: `.unibrow` package modes and OPC container (ADR 0032)
+
+Specification: [ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md), [ux.md](ux.md) (storage mode section).
+
+### PKG-01: OPC archive layout and compression policy
+
+Status: open.
+
+Work:
+
+- Implement OPC zip writer/reader for `.unibrow`: root `manifest.json`, `project.json`, `history/*`, content-addressed `assets/<hash>`.
+- STORE for already-compressed media parts; DEFLATE for JSON/text; round-trip with standard unzip.
+
+Likely files: `unibrowser-project` zip bundle, format validation tests.
+
+Acceptance:
+
+- Fixture archive opens in `unzip -l`; duplicate asset bytes dedupe to one `assets/` entry.
+- Manifest and history paths match [ADR 0031](../adr/0031-edit-history-as-file-format.md).
+
+### PKG-02: Folder mode detection and `.unibrow/` IO
+
+Status: open.
+
+Work:
+
+- Open folder when `.unibrow/manifest.json` exists; same interior paths as archive.
+- Save writes under `.unibrow/` without requiring a `.unibrow` file extension on the parent folder.
+
+Likely files: project open/save paths, path security allowlist for `.unibrow/` subtree.
+
+Acceptance:
+
+- Open `MyShow/` with hidden `.unibrow/` loads project; save updates `project.json` and history log in place.
+- Opening a plain folder without `.unibrow/` remains ordinary file browser behaviour.
+
+### PKG-03: Storage mode state (view / archive / folder)
+
+Status: open.
+
+Work:
+
+- Session flag for three modes; view only blocks disk writes; archive vs folder routes IO per ADR §3.
+- **Start editing** transitions from view only with writable target check.
+
+Likely files: document session, project tab backend, command enablement.
+
+Acceptance:
+
+- Open `.unibrow` read-only volume → view only; Save As offers writable path.
+- Mode label matches ADR names in status contribution.
+
+### PKG-04: Status bar mode indicator and first-edit history path
+
+Status: open.
+
+Work:
+
+- Left-slot items per [ux.md](ux.md): mode label + **History will be saved in …** after first edit.
+- No status text on open-before-edit beyond mode when view only.
+
+Likely files: `statusBar.ts`, project status contributions, i18n.
+
+Acceptance:
+
+- First text edit in archive mode shows history path pointing at the `.unibrow` file.
+- View only shows `View only` with tooltip from design doc.
+
+### PKG-05: Unpack to folder and Pack as .unibrow
+
+Status: open.
+
+Work:
+
+- File menu + palette commands with confirmation and progress for large trees.
+- Pack produces OPC file; unpack creates `.unibrow/` without deleting source unless user confirms.
+
+Likely files: project conversion service, progress UI.
+
+Acceptance:
+
+- Round-trip pack → unpack → edit → pack preserves `history/log` seq continuity.
+- Cancel mid-unpack leaves no partial `.unibrow/` without user-visible failed state.
+
+### PKG-06: Large-project folder hint (configurable threshold)
+
+Status: open.
+
+Work:
+
+- Settings → Projects: size and/or asset-count threshold; off disables hint.
+- Non-blocking status warning + **Unpack to folder** link; never auto-switch mode.
+
+Likely files: settings schema, project open estimator, status bar warning item.
+
+Acceptance:
+
+- Fixture above threshold shows hint in archive mode only.
+- Threshold set to off → no warning item.
+
+### PKG-07: Archive edit journal and atomic save
+
+Status: open.
+
+Work:
+
+- Journal beside file or cache per preference; fold into zip on save/autosave with atomic replace.
+- Crash open recovers journal per [ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md) §5.
+
+Likely files: save pipeline, recovery banner copy.
+
+Acceptance:
+
+- Kill process during edit; reopen offers recovery count; Save succeeds after accept.
+- Document tradeoff: multi-GB archive save may be slow; folder mode avoids full repack in acceptance notes.
+
+### PKG-08: Referenced media and Collect into project
+
+Status: open.
+
+Work:
+
+- `refs/` entries in graph; missing-file banner; **Collect into project** copies into `assets/<hash>`.
+
+Likely files: asset index, file ops, Command Manager entry.
+
+Acceptance:
+
+- Link large video → ref only; Collect embeds once; move `.unibrow` without ref breaks until relink.
+- Collect grey when no refs in project.
+
 ## Phase I: Plugin permissions and network (ADR 0029)
 
 Specification: [plugin-permissions-ui.md](plugin-permissions-ui.md). Runtime policy: [ADR 0029](../adr/0029-plugin-permissions-and-network-security.md).

@@ -34,6 +34,7 @@ Inputs:
 - [ADR 0029: plugin permissions](../adr/0029-plugin-permissions-and-network-security.md)
 - [ADR 0030: core as skeleton](../adr/0030-core-as-skeleton.md)
 - [ADR 0031: edit history as file format](../adr/0031-edit-history-as-file-format.md)
+- [ADR 0032: `.unibrow` container archive and folder modes](../adr/0032-unibrow-container-archive-and-folder-modes.md)
 
 This package is design guidance, not a claim that the current UI matches the mockups.
 

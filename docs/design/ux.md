@@ -232,6 +232,40 @@ Right:
 
 The status bar never carries a full error sentence. Clicking a problem opens Problems.
 
+### Native project storage mode (`.unibrow`)
+
+[ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md) defines three modes; the user always sees which one is active.
+
+**Status bar (left slot, high priority when a native project tab is active):**
+
+| Mode | Primary text | Tooltip |
+| --- | --- | --- |
+| View only | `View only` | No changes are written. Choose **Start editing** or **Save As** to save work. |
+| Work in archive | `Archive` | Editing `filename.unibrow` in place. |
+| Folder mode | `Folder` | Project data in `.unibrow/` inside this folder. |
+
+After the user’s first mutating edit (or **Start editing** from view only), append a second left item until dismissed or saved:
+
+- **History will be saved in** `<absolute or project-relative path>`  
+  (archive path to the `.unibrow` file, or `…/ProjectName/.unibrow/` in folder mode.)
+
+**Large project hint (non-blocking):** when the project exceeds the configured threshold ([ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md) §4), show a `kind: warning` right-slot item:
+
+- Copy: **This project is large. Folder mode can be faster for big media.**  
+- Action: **Unpack to folder** (command link; does not switch mode without confirmation.)
+
+Never auto-switch to folder mode. Threshold off → no hint.
+
+**Commands (File menu and palette; stable ids TBD in implementation):**
+
+| Label | Behaviour |
+| --- | --- |
+| **Unpack to folder** | Explicit conversion from archive to folder project; confirmation names destination. |
+| **Pack as .unibrow** | Build OPC `.unibrow` from folder project; confirmation names output file. |
+| **Collect into project** | Copy linked media into `assets/` (embed); grey when nothing is referenced. |
+
+Mode indicator stays visible during pack/unpack; Save is never covered by the hint.
+
 ## Command placement rules
 
 | Surface | Use for | Do not use for |
