@@ -291,12 +291,23 @@ impl CommandManagerState {
             self.context_revision,
         );
         let mut families = core_tab_layout(&ctx, &self.resolver);
-        if let Some(contributions) = mod_contributions {
+        let kind_host = if let Some(contributions) = mod_contributions {
             let mut diag = crate::command_system::ContributionMergeDiagnostics::default();
             crate::command_system::merge_mod_contributions(&mut families, contributions, &mut diag);
             let _ = diag;
-        }
-        self.refine_capabilities(registry, host, doc, &ctx, mod_runtime, &mut families);
+            crate::command_system::KindHostCapabilityMatrix::from_contributions(contributions)
+        } else {
+            crate::command_system::KindHostCapabilityMatrix::default()
+        };
+        self.refine_capabilities(
+            registry,
+            host,
+            doc,
+            &ctx,
+            mod_runtime,
+            &kind_host,
+            &mut families,
+        );
         families
     }
 
@@ -307,6 +318,7 @@ impl CommandManagerState {
         doc: Option<&crate::document::DocumentSession>,
         ctx: &ResolutionContext,
         mod_runtime: Option<&ModRuntimeRegistry>,
+        kind_host: &crate::command_system::KindHostCapabilityMatrix,
         families: &mut [ResolvedFamily],
     ) {
         for family in families.iter_mut() {
@@ -328,6 +340,18 @@ impl CommandManagerState {
                         primary,
                         ctx,
                     );
+                    if let Some(cap) = kind_host.resolve_control(
+                        &control.control_id,
+                        control.provider_id.as_deref(),
+                        &control.family_id,
+                        ctx,
+                    ) {
+                        if crate::command_system::save_commands_always_supported(primary) {
+                            // Save bypass unchanged.
+                        } else {
+                            control.capability = cap;
+                        }
+                    }
                     if let Some(runtime) = mod_runtime {
                         if let Err(error) = runtime.apply_to_control(control) {
                             control.capability = CapabilityState::Unsupported {

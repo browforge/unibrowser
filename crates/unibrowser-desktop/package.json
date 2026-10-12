@@ -14,7 +14,7 @@
     "test:cm-chrome": "node --experimental-strip-types --test tests/cmCapabilityChrome.test.mjs",
     "test:ui19": "node --experimental-strip-types --test tests/ui19Multiscale.test.mjs",
     "test:chrome": "node --experimental-strip-types --test tests/chromeMetrics.test.mjs",
-    "test:capability": "node --experimental-strip-types --test tests/capabilityProvider.test.mjs",
+    "test:capability": "node --experimental-strip-types --test tests/capabilityProvider.test.mjs tests/contentKindTraversal.test.mjs tests/kindHostResolver.test.mjs",
     "preview": "vite preview",
     "tauri": "tauri"
   },

@@ -1,4 +1,5 @@
 pub mod capability_surface;
+pub mod content_tree;
 pub mod command;
 pub mod command_manager;
 pub mod command_system;
@@ -21,8 +22,10 @@ pub use command::{CommandRegistry, HandlerRegistration};
 pub use command_system::{
     CapabilityResolver, ContributionMergeDiagnostics, LayoutStore, LoadedModContribution,
     ResolutionContext, command_context_display_label, core_tab_layout, diagnose_contributions,
-    infer_work_context, merge_mod_contributions, merge_toolbar_layouts, migrate_toolbars_json,
-    save_commands_always_supported,
+    infer_work_context, merge_mod_contributions, merge_shell_contributions,
+    merge_toolbar_layouts, migrate_toolbars_json, save_commands_always_supported,
+    KindHostCapabilityMatrix, ResolvedPanelContribution, ResolvedServiceContribution,
+    ResolvedStatusContribution, ResolvedViewContribution, ShellContributionSnapshot,
 };
 pub use document::{DocumentBackend, DocumentSession};
 pub use mode::ModeController;

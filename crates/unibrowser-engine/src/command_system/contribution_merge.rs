@@ -214,7 +214,7 @@ fn insert_control_in_family(
     control: &ContributedControl,
     mod_name: &str,
 ) {
-    let resolved = contributed_to_resolved(control, mod_name);
+    let resolved = contributed_to_resolved(control, mod_name, &family.family_id);
     let group_id = format!("{}.group", mod_name);
     for group in &mut family.groups {
         if group.controls.iter().any(|c| {
@@ -267,7 +267,11 @@ fn insert_at_point(
     controls.push(resolved);
 }
 
-fn contributed_to_resolved(control: &ContributedControl, mod_name: &str) -> ResolvedControl {
+fn contributed_to_resolved(
+    control: &ContributedControl,
+    mod_name: &str,
+    family_id: &str,
+) -> ResolvedControl {
     let fallback_label = control
         .id
         .split('.')
@@ -299,7 +303,7 @@ fn contributed_to_resolved(control: &ContributedControl, mod_name: &str) -> Reso
         provider_id: Some(format!("{}::native", mod_name)),
         context_revision: 0,
         group_id: format!("{}.group", mod_name),
-        family_id: "unibrowser.family.text-formatting".into(),
+        family_id: family_id.into(),
     }
 }
 

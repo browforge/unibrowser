@@ -5,6 +5,7 @@ pub const MOD_API_VERSION: &str = "0.1.0";
 pub mod capability_surface;
 pub mod command_system;
 pub mod content_kind;
+pub mod content_tree;
 pub mod contributes;
 pub mod context;
 pub mod handlers;
@@ -22,11 +23,16 @@ pub use content_kind::{
     ContentKindRecord, ContentKindRegistry, CONTENT_KIND_SCHEMA_VERSION,
     validate_content_kind_id,
 };
+pub use content_tree::{
+    ContentKindNode, DocumentContentTree, CONTENT_TREE_SCHEMA_VERSION,
+};
 pub use command_system::*;
 pub use contributes::{
-    CommandLayoutFileV2, ContextLayout, ContributedControl, ContributedFamily,
-    ContributedToolbar, ContributionValidationError, HiddenControlEntry, InsertPoint,
-    LAYOUT_VERSION_V2, ModContributes, MonitorAnchor, ToolbarLayoutEntry, validate_contributes,
+    CommandLayoutFileV2, ContextLayout, ContributedCapabilityProvider,
+    ContributedControl, ContributedFamily, ContributedHostFormatCapability, ContributedPanel,
+    ContributedService, ContributedStatusItem, ContributedToolbar, ContributedView,
+    ContributionValidationError, HiddenControlEntry, InsertPoint, LAYOUT_VERSION_V2,
+    ModContributes, MonitorAnchor, ToolbarLayoutEntry, validate_contributes,
 };
 pub use context::CommandContext;
 pub use manifest::ModManifest;

@@ -13,7 +13,7 @@ pub struct ModContributes {
     pub controls: Vec<ContributedControl>,
     #[serde(default)]
     pub groups: Vec<ContributedGroup>,
-    #[serde(default, rename = "command_families")]
+    #[serde(default, rename = "command_families", alias = "families")]
     pub families: Vec<ContributedFamily>,
     #[serde(default)]
     pub tabs: Vec<ContributedTab>,
@@ -21,6 +21,14 @@ pub struct ModContributes {
     pub toolbars: Vec<ContributedToolbar>,
     #[serde(default)]
     pub capability_providers: Vec<ContributedCapabilityProvider>,
+    #[serde(default)]
+    pub panels: Vec<ContributedPanel>,
+    #[serde(default)]
+    pub views: Vec<ContributedView>,
+    #[serde(default)]
+    pub status_items: Vec<ContributedStatusItem>,
+    #[serde(default)]
+    pub services: Vec<ContributedService>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -102,9 +110,60 @@ pub struct ContributedCapabilityProvider {
     #[serde(default)]
     pub content_kinds: Vec<String>,
     #[serde(default)]
+    pub host_formats: Vec<String>,
+    #[serde(default)]
+    pub format_states: Vec<ContributedHostFormatCapability>,
+    #[serde(default)]
     pub runtime: String,
     #[serde(default)]
     pub priority: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContributedHostFormatCapability {
+    pub host_format: String,
+    /// `supported`, `emulated`, or `unsupported`
+    pub state: String,
+    #[serde(default)]
+    pub note: Option<String>,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContributedPanel {
+    pub id: String,
+    pub region: String,
+    pub title: String,
+    #[serde(default)]
+    pub content_kinds: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContributedView {
+    pub id: String,
+    pub title: String,
+    #[serde(default)]
+    pub content_kinds: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContributedStatusItem {
+    pub id: String,
+    pub slot: String,
+    #[serde(default)]
+    pub priority: i32,
+    #[serde(default)]
+    pub label: String,
+    #[serde(default)]
+    pub content_kinds: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContributedService {
+    pub id: String,
+    #[serde(default)]
+    pub description: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,6 +201,22 @@ pub fn validate_contributes_with_kinds(
             errors.push(ContributionValidationError {
                 mod_name: mod_name.to_string(),
                 message: format!("mod cannot replace core family {}", fam.id),
+            });
+        }
+    }
+    for panel in &c.panels {
+        if !["left", "right", "bottom"].contains(&panel.region.as_str()) {
+            errors.push(ContributionValidationError {
+                mod_name: mod_name.to_string(),
+                message: format!("panel {} has invalid region {}", panel.id, panel.region),
+            });
+        }
+    }
+    for item in &c.status_items {
+        if !["left", "right"].contains(&item.slot.as_str()) {
+            errors.push(ContributionValidationError {
+                mod_name: mod_name.to_string(),
+                message: format!("status item {} has invalid slot {}", item.id, item.slot),
             });
         }
     }

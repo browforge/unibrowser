@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use unibrowser_mod_api::{control_ids, CapabilityState, WorkContext};
 
 use super::context::ResolutionContext;
+use super::kind_host::KindHostCapabilityMatrix;
 use super::provider::ProviderRegistry;
 use super::save_guard::save_commands_always_supported;
 use crate::command::CommandRegistry;
@@ -14,6 +15,7 @@ pub struct CapabilityResolver {
     pub user_provider_overrides: HashMap<String, String>,
     pub hidden_controls: HashMap<String, bool>,
     pub layout_revision: u64,
+    pub kind_host: KindHostCapabilityMatrix,
 }
 
 impl CapabilityResolver {

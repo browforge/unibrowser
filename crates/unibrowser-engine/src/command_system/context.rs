@@ -8,6 +8,10 @@ pub struct ResolutionContext {
     pub doc_path: Option<String>,
     pub revision: u64,
     pub markdown_inline_html: bool,
+    pub host_format_id: String,
+    pub selection_content_kinds: Vec<String>,
+    pub selection_node_paths: Vec<String>,
+    pub content_tree_revision: u64,
 }
 
 impl ResolutionContext {
@@ -18,6 +22,12 @@ impl ResolutionContext {
         revision: u64,
     ) -> Self {
         let work = infer_work_context(command_context, host.mode, doc_path.as_deref());
+        let path = doc_path.as_deref().unwrap_or("");
+        let host_format_id = crate::content_tree::host_format_from_path(path);
+        let tree = crate::content_tree::document_content_tree(&host.backend_id, path);
+        let selection_node_paths = default_selection_paths(&tree, &work);
+        let selection_content_kinds =
+            crate::content_tree::selection_content_kinds(&tree, &selection_node_paths);
         Self {
             work,
             command_context,
@@ -25,8 +35,46 @@ impl ResolutionContext {
             doc_path,
             revision,
             markdown_inline_html: true,
+            host_format_id,
+            selection_content_kinds,
+            selection_node_paths,
+            content_tree_revision: 0,
         }
     }
+
+    pub fn with_embedded_image_selection(mut self) -> Self {
+        if let Some(node) = self
+            .selection_node_paths
+            .iter()
+            .find(|p| p.contains("embedded-image"))
+            .cloned()
+        {
+            self.selection_node_paths = vec![node];
+        } else {
+            self.selection_node_paths = vec!["embedded-image-1".into()];
+        }
+        let path = self.doc_path.as_deref().unwrap_or("");
+        let tree = crate::content_tree::document_content_tree(&self.host.backend_id, path);
+        self.selection_content_kinds =
+            crate::content_tree::selection_content_kinds(&tree, &self.selection_node_paths);
+        self
+    }
+}
+
+fn default_selection_paths(
+    tree: &unibrowser_mod_api::DocumentContentTree,
+    work: &WorkContext,
+) -> Vec<String> {
+    if *work == WorkContext::Image {
+        if let Some(node) = tree
+            .nodes
+            .iter()
+            .find(|n| n.kind_id == unibrowser_mod_api::content_kind::ids::IMAGE)
+        {
+            return vec![node.node_id.clone()];
+        }
+    }
+    vec!["root".into()]
 }
 
 /// User-visible Command Manager context label (follows active document work context).
