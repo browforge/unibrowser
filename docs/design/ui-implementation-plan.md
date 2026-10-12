@@ -1237,6 +1237,191 @@ Acceptance:
 - Proving mod contributes one panel and one status item without covering content or Save.
 - Disabled mod removes contributions; orphaned layout entries follow CMD-10 rules.
 
+## Phase I: Plugin permissions and network (ADR 0029)
+
+Specification: [plugin-permissions-ui.md](plugin-permissions-ui.md). Runtime policy: [ADR 0029](../adr/0029-plugin-permissions-and-network-security.md).
+
+### PERM-01: Permission manifest schema and validation
+
+Status: open.
+
+Work:
+
+- Add versioned `permissions` block to `info.json` (`permission_schema` semver).
+- Validate `network.domains`, `filesystem.scopes`, `clipboard`, `process.launch`, per-kind `content.read` / `content.write`, `secrets` slots, `background`, and ADR 0028 UI/command keys before loading payload.
+- Require `permissions.network.reason` and `permissions.network.disclosure` when any domain is declared.
+
+Likely files: manifest schema tests, `unibrowser-mod-host` loader, plugin SDK docs.
+
+Acceptance:
+
+- Invalid or overbroad wildcard without flag fails load with a clear diagnostic; Save unaffected.
+- Proving fixture mod with two domains loads and lists both in portal chips.
+
+### PERM-02: Grant store and version reset
+
+Status: open.
+
+Work:
+
+- Persist grants in `permission-grants.json` under config dir.
+- Implement Allow once (session), Always allow, and explicit deny.
+- On plugin version bump with new domains/scopes/secrets/process entries, reset persistent grants and show portal banner copy from design doc.
+
+Likely files: new `permission_grants.rs` (or prefs module), desktop settings bindings.
+
+Acceptance:
+
+- Restart preserves Always grants; Allow once does not survive quit.
+- Upgrade fixture from v1 to v2 with a new domain clears Always grant and requires new consent.
+
+### PERM-03: Host-mediated network gate
+
+Status: open.
+
+Work:
+
+- Central fetch/WebSocket API for mods; deny when domain not declared or not granted.
+- Honour global Offline mode kill switch with design-doc copy.
+- Integrate Open VSX and portal search with the same gate and logging hooks.
+
+Likely files: mod host network shim, `network.md` behaviour parity tests, portal fetch paths.
+
+Acceptance:
+
+- Undeclared origin fails closed without crashing the shell.
+- Offline mode blocks mod catalogue fetch; user-initiated https tab still loads.
+
+### PERM-04: Network consent banner (first use)
+
+Status: open.
+
+Work:
+
+- Non-modal banner per [plugin-permissions-ui.md](plugin-permissions-ui.md) §1.
+- Queue concurrent requests; wire Allow once / Always / Don't allow to PERM-02.
+- Assistant variant uses disclosure bullets; no focus trap.
+
+Likely files: `permissionConsentBanner.ts`, shell layout CSS, i18n strings.
+
+Acceptance:
+
+- Banner does not cover Save or block typing in the editor.
+- Esc maps to Don't allow; keyboard path reaches all three actions.
+
+Screenshot:
+
+- Light and dark 1280×800 with banner open over a text document.
+
+### PERM-05: Settings Permissions page
+
+Status: open.
+
+Work:
+
+- Settings → Plugins → Permissions list cards with revoke per origin.
+- Show filesystem, clipboard, process, and content-kind summary per plugin.
+- Footer links to Offline mode and activity log.
+
+Likely files: `settingsPage.ts`, new permissions section module.
+
+Acceptance:
+
+- Revoke updates grant store immediately; greyed commands refresh without restart.
+- Full-trust native note appears only for unsigned T1 mods.
+
+Screenshot:
+
+- Permissions page with two plugins at 1280×800.
+
+### PERM-06: Network activity log
+
+Status: open.
+
+Work:
+
+- Append JSONL log with rotation cap per ADR 0029.
+- UI table with filters, Save log, Clear log (inline confirm).
+
+Likely files: `networkActivityLog.ts`, log writer in host.
+
+Acceptance:
+
+- Each gated fetch writes one row with bytes and grant type; secrets never logged.
+- Clear log empties view and file; Save As exports valid JSON.
+
+Screenshot:
+
+- Activity log with two rows.
+
+### PERM-07: Keychain-backed plugin secrets
+
+Status: open.
+
+Work:
+
+- `secrets.put/get/delete` host API; OS keychain service naming per plugin slot.
+- Block plain-text secret fields in mod prefs paths.
+
+Likely files: `unibrowser-mod-api`, platform keychain crate/wrapper.
+
+Acceptance:
+
+- Proving mod stores and retrieves a token; grep of config dir shows no secret value.
+- Activity log records slot use without value.
+
+### PERM-08: Mod Portal permission chips
+
+Status: open.
+
+Work:
+
+- Derive chips from manifest for cards and expanded detail (Network count, Sandboxed, Full trust).
+- List domains and kinds in expanded view in plain language.
+
+Likely files: `modPortalUi.ts`, catalog row DTO.
+
+Acceptance:
+
+- WASM fixture shows Sandboxed; unsigned native shows Full trust warning before Enable.
+- Install flow does not auto-grant network.
+
+### PERM-09: Command Manager grant affordance
+
+Status: open.
+
+Work:
+
+- Extend disabled reason DTO with `grant_action` (plugin id, capability, origin).
+- Tooltip + palette remedy **Grant…** opens PERM-04 banner; no modal on Save path.
+
+Likely files: `commandManager.ts`, `ui_command.rs`, palette component.
+
+Acceptance:
+
+- Network-gated mod command grey with reason; Grant completes pending action.
+- Save control never shows grant UI.
+
+Screenshot:
+
+- Greyed command with tooltip at 1280 (text context).
+
+### PERM-10: WASM default vs native full-trust install path
+
+Status: open.
+
+Work:
+
+- Portal Enable flow: T2 copy “Runs sandboxed”; T1 unsigned secondary warning panel per design doc.
+- Align extension-host Node trust with grant store (follow-up: remove blocking trust dialog).
+
+Likely files: `modPortalUi.ts`, extension-host prefs migration note.
+
+Acceptance:
+
+- Decline full-trust warning leaves mod disabled; document editing and Save work.
+- T2 install does not show full-trust warning.
+
 ## Visual QA remediation: VQA series
 
 Source audit: [visual-qa-2026-10-06.md](visual-qa-2026-10-06.md).
