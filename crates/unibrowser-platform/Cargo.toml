@@ -1,0 +1,9 @@
+[package]
+name = "unibrowser-platform"
+description = "Platform traits for desktop (Tauri) and web hosts — no UI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
