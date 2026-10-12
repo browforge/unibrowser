@@ -64,6 +64,7 @@ unibrowser-ai-assistant = { path = "../../unibrowser-ai-assistant" }
 unibrowser-projections = { path = "../../unibrowser-projections" }
 ai-assistant = { path = "../../../mods/ai-assistant" }
 cmd-proving = { path = "../../../mods/cmd-proving" }
+image-grayscale-preview = { path = "../../../mods/image-grayscale-preview" }
 url = "2"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 urlencoding = "2"

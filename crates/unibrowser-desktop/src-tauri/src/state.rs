@@ -100,6 +100,10 @@ fn bundled_mod_registers() -> HashMap<&'static str, ModRegisterFn> {
         ("live-proving", live_proving::register as ModRegisterFn),
         ("ai-assistant", ai_assistant::register as ModRegisterFn),
         ("cmd-proving", cmd_proving::register as ModRegisterFn),
+        (
+            "image-grayscale-preview",
+            image_grayscale_preview::register as ModRegisterFn,
+        ),
     ]
     .into_iter()
     .collect()
@@ -143,6 +147,16 @@ fn permitted_mod_contributions(host: &ModHost) -> Vec<LoadedModContribution> {
                         for toolbar in &mut contributes.toolbars {
                             toolbar.detachable = false;
                         }
+                    }
+                    if !grants.iter().any(|g| g == "ui.panel.contribute") {
+                        contributes.panels.clear();
+                        contributes.views.clear();
+                    }
+                    if !grants.iter().any(|g| g == "ui.status.contribute") {
+                        contributes.status_items.clear();
+                    }
+                    if !grants.iter().any(|g| g == "service.register") {
+                        contributes.services.clear();
                     }
                     LoadedModContribution {
                         mod_name: loaded.manifest.name.clone(),
@@ -246,6 +260,7 @@ fn build_command_registry(
     }
     let mut mod_runtime = ModRuntimeRegistry::default();
     cmd_proving::register_runtime(&mut mod_runtime);
+    image_grayscale_preview::register_runtime(&mut mod_runtime);
 
     Ok(BuiltRegistry {
         registry,

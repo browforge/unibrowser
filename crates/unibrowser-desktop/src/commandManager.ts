@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { patchStatusItem } from "./statusBar";
 import { patchPictureInPictureCommand } from "./mediaPip";
 import { showToast } from "./toast";
 import { t } from "./i18n";
@@ -90,6 +91,16 @@ export interface FloatingBarDto {
   commands: UiCommandDto[];
 }
 
+export interface ShellContributionsDto {
+  panels: { mod_name: string; panel: { id: string; region: string; title: string } }[];
+  views: { mod_name: string; view: { id: string; title: string } }[];
+  status_items: {
+    mod_name: string;
+    item: { id: string; slot: string; priority: number; label: string };
+  }[];
+  services: { mod_name: string; service: { id: string; description: string } }[];
+}
+
 export interface CommandManagerDto {
   auto_context: string;
   selected_tab: string;
@@ -98,6 +109,7 @@ export interface CommandManagerDto {
   tabs: ManagerTabDto[];
   floating_bars: FloatingBarDto[];
   diagnostics: string[];
+  shell_contributions: ShellContributionsDto;
 }
 
 export interface CommandManagerFile {
@@ -507,6 +519,12 @@ function updatePinControl(
   }
 }
 
+function applyModShellContributions(shell: ShellContributionsDto): void {
+  for (const entry of shell.status_items) {
+    patchStatusItem(entry.item.id, entry.item.label);
+  }
+}
+
 function isPreviewingTab(snapshot: CommandManagerDto, tabId: string): boolean {
   return (
     !snapshot.context_pinned &&
@@ -530,6 +548,7 @@ export const commandManager = {
     }
     const snapshot = await invoke<CommandManagerDto>("get_command_manager");
     lastSnapshot = snapshot;
+    applyModShellContributions(snapshot.shell_contributions);
     updatePinControl(pinEl, labelEl, snapshot);
     const commandTabId = snapshot.context_pinned
       ? snapshot.selected_tab

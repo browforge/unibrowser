@@ -1,0 +1,102 @@
+{
+  "name": "image-grayscale-preview",
+  "version": "0.1.0",
+  "title": "Image grayscale preview",
+  "author": "Unibrowser Team",
+  "unibrowser_api": "0.1.0",
+  "dependencies": {
+    "base": ">=0.1.0",
+    "base-png": ">=0.1.0"
+  },
+  "description": "CMD-13/14 proving tool: grayscale preview on image content kinds across host formats.",
+  "capabilities": [
+    "commands.capability.provide",
+    "document.read.selection",
+    "ui.command_manager.contribute",
+    "ui.status.contribute",
+    "content.read.tree"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "id": "image-grayscale-preview.grayscale.toggle",
+        "title": "Grayscale preview",
+        "icon": "image"
+      }
+    ],
+    "families": [
+      {
+        "id": "unibrowser.family.image-adjust",
+        "extend": true,
+        "controls": [
+          {
+            "id": "image-grayscale-preview.control.grayscale",
+            "type": "toggle",
+            "command": "image-grayscale-preview.grayscale.toggle",
+            "label": "Grayscale preview",
+            "icon": "image",
+            "insert": {
+              "after": "unibrowser.control.image.colour"
+            }
+          }
+        ]
+      }
+    ],
+    "capability_providers": [
+      {
+        "id": "image-grayscale-preview::native",
+        "families": ["unibrowser.family.image-adjust"],
+        "content_kinds": ["unibrowser.content.image"],
+        "host_formats": ["png", "jpg", "jpeg", "gif", "webp", "docx", "md", "markdown"],
+        "format_states": [
+          {
+            "host_format": "png",
+            "state": "supported"
+          },
+          {
+            "host_format": "jpg",
+            "state": "supported"
+          },
+          {
+            "host_format": "jpeg",
+            "state": "supported"
+          },
+          {
+            "host_format": "gif",
+            "state": "supported"
+          },
+          {
+            "host_format": "webp",
+            "state": "supported"
+          },
+          {
+            "host_format": "docx",
+            "state": "emulated",
+            "note": "Preview only; DOCX stores rich text, not pixel filters."
+          },
+          {
+            "host_format": "md",
+            "state": "emulated",
+            "note": "Preview only; Markdown stores references, not raster edits."
+          },
+          {
+            "host_format": "markdown",
+            "state": "emulated",
+            "note": "Preview only; Markdown stores references, not raster edits."
+          }
+        ],
+        "runtime": "native",
+        "priority": 20
+      }
+    ],
+    "status_items": [
+      {
+        "id": "image-grayscale-preview.status.hint",
+        "slot": "right",
+        "priority": 12,
+        "label": "Grayscale preview",
+        "content_kinds": ["unibrowser.content.image"]
+      }
+    ]
+  }
+}

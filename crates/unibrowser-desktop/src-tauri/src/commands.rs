@@ -146,6 +146,15 @@ pub struct FloatingBarDto {
 }
 
 #[derive(Serialize)]
+#[derive(Serialize)]
+pub struct ShellContributionsDto {
+    pub panels: Vec<unibrowser_engine::ResolvedPanelContribution>,
+    pub views: Vec<unibrowser_engine::ResolvedViewContribution>,
+    pub status_items: Vec<unibrowser_engine::ResolvedStatusContribution>,
+    pub services: Vec<unibrowser_engine::ResolvedServiceContribution>,
+}
+
+#[derive(Serialize)]
 pub struct CommandManagerDto {
     pub auto_context: String,
     pub selected_tab: String,
@@ -154,6 +163,7 @@ pub struct CommandManagerDto {
     pub tabs: Vec<ManagerTabDto>,
     pub floating_bars: Vec<FloatingBarDto>,
     pub diagnostics: Vec<String>,
+    pub shell_contributions: ShellContributionsDto,
 }
 
 #[derive(Serialize)]
@@ -3206,6 +3216,7 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
     );
     diagnostics.sort();
     diagnostics.dedup();
+    let shell = unibrowser_engine::merge_shell_contributions(&mod_contributions);
     Ok(CommandManagerDto {
         auto_context,
         selected_tab: selected,
@@ -3214,6 +3225,12 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
         tabs: tab_dtos,
         floating_bars,
         diagnostics,
+        shell_contributions: ShellContributionsDto {
+            panels: shell.panels,
+            views: shell.views,
+            status_items: shell.status_items,
+            services: shell.services,
+        },
     })
 }
 
