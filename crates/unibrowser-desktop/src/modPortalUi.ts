@@ -3,6 +3,7 @@ import { fileTypeVisualForPath } from "./fileTypeIcons";
 import { isOpenVsxNetworkEnabled, setOpenVsxNetworkEnabled } from "./modsOpenVsx";
 import { showToast } from "./toast";
 import { catalogInstallPath, type CatalogInstallPath } from "./catalogInstall";
+import { formatCapabilityChip } from "./capabilityProviders";
 
 export { catalogInstallPath, type CatalogInstallPath };
 
@@ -11,6 +12,7 @@ export type ModCatalogEntry = {
   title: string;
   kind: string;
   blurb: string;
+  capability_ids?: string[];
   open_vsx_id?: string | null;
   ubmod_id?: string | null;
 };
@@ -155,7 +157,15 @@ export function appendModCatalogCard(
   action.textContent = actionLabel(state, Boolean(entry.open_vsx_id));
   action.onclick = () => onPrimary(entry, card);
   footer.append(meta, action);
-  card.append(badge, title, id, reason, footer);
+  const parts: HTMLElement[] = [badge, title, id, reason];
+  if (entry.capability_ids?.length) {
+    const caps = document.createElement("span");
+    caps.className = "mod-result-capabilities viewer-note";
+    caps.textContent = entry.capability_ids.map(formatCapabilityChip).join(" · ");
+    parts.push(caps);
+  }
+  parts.push(footer);
+  card.append(...parts);
   parent.appendChild(card);
 }
 

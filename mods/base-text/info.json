@@ -8,5 +8,13 @@
     "base": ">=0.1.0"
   },
   "description": "Plain text documents with selectable text and font size",
-  "capabilities": ["font-size"]
+  "capabilities": ["font-size"],
+  "capability_provides": [
+    {
+      "capability": "unibrowser.capability.open_text",
+      "default": true,
+      "priority": 100,
+      "content_kinds": ["unibrowser.content.text_plain", "unibrowser.content.text_markdown"]
+    }
+  ]
 }

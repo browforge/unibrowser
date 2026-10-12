@@ -39,6 +39,36 @@ export async function renderAbout(root: HTMLElement) {
   lead.textContent = t("about.lead");
   root.appendChild(lead);
 
+  const plugins = document.createElement("section");
+  plugins.className = "about-section";
+  const plh = document.createElement("h3");
+  plh.textContent = t("about.pluginsHeading");
+  plugins.appendChild(plh);
+  const plp = document.createElement("p");
+  plp.className = "viewer-note";
+  plp.textContent = t("about.pluginsLead");
+  plugins.appendChild(plp);
+  const modList = await invoke<
+    { name: string; title: string; capabilities: string[] }[]
+  >("list_bundled_mod_plugins").catch(() => []);
+  const pul = document.createElement("ul");
+  pul.className = "about-plugin-list";
+  for (const mod of modList) {
+    const li = document.createElement("li");
+    const titleLine = document.createElement("strong");
+    titleLine.textContent = `${mod.title} (${mod.name})`;
+    li.appendChild(titleLine);
+    if (mod.capabilities.length) {
+      const chips = document.createElement("span");
+      chips.className = "about-plugin-caps";
+      chips.textContent = ` — ${mod.capabilities.join(", ")}`;
+      li.appendChild(chips);
+    }
+    pul.appendChild(li);
+  }
+  plugins.appendChild(pul);
+  root.appendChild(plugins);
+
   const licence = document.createElement("section");
   licence.className = "about-section";
   const lh = document.createElement("h3");

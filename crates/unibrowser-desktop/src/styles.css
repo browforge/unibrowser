@@ -7601,3 +7601,53 @@ html[data-reduce-motion="true"] *::after {
   position: relative;
 }
 
+.open-with-menu {
+  z-index: 1200;
+  min-width: 12rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--ub-border, #3a3f4b);
+  border-radius: 4px;
+  background: var(--ub-surface-elevated, #1e222a);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.open-with-menu-title {
+  margin: 0 0 0.35rem;
+  font-size: 12px;
+  color: var(--ub-text-muted, #9aa3b2);
+}
+
+.open-with-menu-item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.open-with-menu-item:hover,
+.open-with-menu-item.active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.about-plugin-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.about-plugin-caps {
+  font-weight: normal;
+  color: var(--ub-text-muted, #9aa3b2);
+}
+
+.mod-result-capabilities {
+  display: block;
+  margin-top: 0.25rem;
+}
+

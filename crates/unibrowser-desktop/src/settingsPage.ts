@@ -32,6 +32,7 @@ import { setProofingSquigglesEnabled } from "./proofing";
 import { showErrorToast, showToast } from "./toast";
 import { showInlineConfirm } from "./inlineUi";
 import { appendDeveloperSettingsSection } from "./developerSettings";
+import { appendPluginDefaultsSection } from "./pluginDefaultsSettings";
 import {
   applySettingsCategoryVisibility,
   createSettingsFieldRow,
@@ -917,6 +918,7 @@ export async function renderSettings(root: HTMLElement) {
   resetSection.appendChild(resetRow);
   root.appendChild(resetSection);
 
+  const pluginDefaultsSection = await appendPluginDefaultsSection(root);
   const developerSection = await appendDeveloperSettingsSection(root);
 
   const advancedSection = document.createElement("details");
@@ -1358,7 +1360,7 @@ export async function renderSettings(root: HTMLElement) {
     { id: "editing", label: "Editing", sections: [boardSection, mediaSection] },
     { id: "accessibility", label: "Accessibility", sections: [a11ySection] },
     { id: "privacy", label: "Privacy and AI", sections: [networkSection, aiSection] },
-    { id: "mods", label: "Mods", sections: [developerSection] },
+    { id: "mods", label: "Mods", sections: [pluginDefaultsSection, developerSection] },
     { id: "keybindings", label: "Keybindings", sections: [keysLink] },
     {
       id: "developer",

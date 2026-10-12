@@ -245,6 +245,7 @@ import { applyImageCompare, type ImageCompareViewDto } from "./imageCompare";
 import { runCaptureVisibleTab } from "./tabCapture";
 import { initToolbarOnlyShell } from "./toolbarOnly";
 import { toggleLayoutEditMode } from "./layoutEditMode";
+import { showOpenWithMenu } from "./openWithMenu";
 
 interface TabDto {
   id: number;
@@ -257,6 +258,7 @@ interface TabDto {
   browse_path?: string | null;
   muted: boolean;
   mute_available: boolean;
+  file_path?: string | null;
 }
 
 interface TabSearchHit {
@@ -916,6 +918,12 @@ function renderTabs(data: TabContentDto) {
         ).then((d) => d && applyState(d));
       };
       wrap.appendChild(muteBtn);
+    }
+    if (tab.file_path) {
+      wrap.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        void showOpenWithMenu<TabContentDto>(tab.file_path!, wrap, (dto) => applyState(dto));
+      });
     }
     wrap.appendChild(btn);
     wrap.appendChild(close);

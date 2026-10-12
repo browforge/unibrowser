@@ -8,5 +8,13 @@
     "base": ">=0.1.0"
   },
   "description": "Minimal Markdown document mod demonstrating third bundled mod",
-  "capabilities": ["font-size"]
+  "capabilities": ["font-size"],
+  "capability_provides": [
+    {
+      "capability": "unibrowser.capability.open_text",
+      "default": false,
+      "priority": 50,
+      "content_kinds": ["unibrowser.content.text_markdown"]
+    }
+  ]
 }
