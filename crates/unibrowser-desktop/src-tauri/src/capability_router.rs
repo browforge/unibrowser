@@ -62,6 +62,19 @@ pub fn open_backend_for_path(
             if let Some(backend) = open_via_provider_mod(&mod_name, path, effective_ext) {
                 return Some(backend);
             }
+            eprintln!(
+                "capability_router: provider {} for {} failed to open {}; using legacy fallback",
+                mod_name,
+                capability_id,
+                path
+            );
+        } else {
+            eprintln!(
+                "capability_router: no provider for {} ({}) on {}; using legacy fallback",
+                capability_id,
+                resolved.reason,
+                path
+            );
         }
         return legacy_open_backend(path, effective_ext);
     }
@@ -104,10 +117,29 @@ fn open_via_provider_mod(
     }
 }
 
-/// Legacy direct routing when capability resolution fails (graceful fallback).
+/// Legacy routing for hosts without registry coverage (MIDI, archives, WASM extensions)
+/// and when a resolved provider cannot open the file.
 fn legacy_open_backend(
     path: &Path,
     effective_ext: &str, // sniffed extension token
+) -> Option<Box<dyn unibrowser_engine::document::DocumentBackend>> {
+    match effective_ext {
+        "mid" | "midi" => crate::midi_stub::open_file(path).ok(),
+        "zip" | "7z" | "rar" | "tar" | "gz" => None,
+        _ if is_known_text_extension(effective_ext) => base_text::open_file(path).ok(),
+        _ => {
+            if capability_for_effective_extension(effective_ext).is_some() {
+                legacy_builtin_open(path, effective_ext)
+            } else {
+                unibrowser_mod_host::wasm::open_wasm_extension_backend(path)
+            }
+        }
+    }
+}
+
+fn legacy_builtin_open(
+    path: &Path,
+    effective_ext: &str,
 ) -> Option<Box<dyn unibrowser_engine::document::DocumentBackend>> {
     match effective_ext {
         "png" | "jpg" | "jpeg" | "gif" | "webp" => Some(base_png::open_file(path)),
@@ -121,10 +153,55 @@ fn legacy_open_backend(
         "txt" | "md" | "json" | "rs" | "toml" | "html" | "css" => base_text::open_file(path).ok(),
         "mp4" | "webm" | "avi" => base_video::open_file(path).ok(),
         "wav" | "mp3" | "ogg" | "flac" => base_audio::open_file(path).ok(),
-        "mid" | "midi" => crate::midi_stub::open_file(path).ok(),
         "epub" => Some(base_epub::open_file(path)),
-        "zip" | "7z" | "rar" | "tar" | "gz" => None,
-        _ if is_known_text_extension(effective_ext) => base_text::open_file(path).ok(),
-        _ => unibrowser_mod_host::wasm::open_wasm_extension_backend(path),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use unibrowser_engine::build_surface_provider_registry;
+    use unibrowser_mod_api::{CapabilityProvideEntry, ModManifest};
+
+    fn manifest(name: &str, cap: &str) -> ModManifest {
+        ModManifest {
+            name: name.into(),
+            version: "0.1.0".into(),
+            title: name.into(),
+            author: String::new(),
+            unibrowser_api: "0.1.0".into(),
+            dependencies: Default::default(),
+            optional_dependencies: Default::default(),
+            incompatibilities: Default::default(),
+            provides: Default::default(),
+            api_dependencies: Default::default(),
+            description: String::new(),
+            library: None,
+            wasm_module: None,
+            capabilities: Vec::new(),
+            capability_provides: vec![CapabilityProvideEntry {
+                capability: cap.into(),
+                default: true,
+                priority: 100,
+                content_kinds: vec![],
+            }],
+            contributes: None,
+        }
+    }
+
+    #[test]
+    fn registry_first_png_open_uses_base_png() {
+        let reg = build_surface_provider_registry(&[manifest(
+            "base-png",
+            unibrowser_mod_api::capability_surface::ids::RENDER_IMAGE,
+        )]);
+        let prefs = Preferences::default();
+        let dir = tempfile::tempdir().expect("dir");
+        let path = dir.path().join("x.png");
+        std::fs::write(&path, b"\x89PNG\r\n\x1a\n").expect("write");
+        let backend = open_backend_for_path(&reg, &prefs, &path, "png", FileOpenMode::Auto);
+        assert!(backend.is_some());
+        assert_eq!(backend.unwrap().backend_id(), "base-png");
     }
 }

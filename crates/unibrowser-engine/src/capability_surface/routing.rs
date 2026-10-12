@@ -16,6 +16,7 @@ pub fn capability_for_effective_extension(effective_ext: &str) -> Option<&'stati
         "wav" | "mp3" | "ogg" | "flac" => Some(ids::OPEN_AUDIO),
         "mid" | "midi" => None,
         "epub" => Some(ids::OPEN_EPUB),
+        "unibrow" => Some(ids::PROJECT_SURFACE),
         "zip" | "7z" | "rar" | "tar" | "gz" => None,
         _ => None,
     }
