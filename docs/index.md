@@ -100,6 +100,7 @@ ADRs are numbered in `docs/adr/`. Read the ones that touch your area before larg
 | [0026](adr/0026-ai-assistant-as-mod.md) | AI assistant as mod (OpenAI-compatible) | `crates/unibrowser-ai-assistant`, `mods/ai-assistant` |
 | [0027](adr/0027-command-system-capabilities-and-extensibility.md) | Command capabilities and mod UI contributions | [design/command-system.md](design/command-system.md) |
 | [0028](adr/0028-platform-content-kinds-and-plugin-scope.md) | Platform model: content kinds, full-scope plugins | [positioning.md](positioning.md), CMD-12–15 in [ui-implementation-plan.md](design/ui-implementation-plan.md) |
+| [0034](adr/0034-compact-text-toolbar-and-semantic-styles.md) | Compact text icon toolbar; semantic block styles | [text-toolbar.md](design/text-toolbar.md), [text-editor-toolbars.md](research/text-editor-toolbars.md), TXT-01–06 in [ui-implementation-plan.md](design/ui-implementation-plan.md) |
 | [projections-coverage.md](projections-coverage.md) | Text/raster projection matrix | `crates/unibrowser-projections` |
 | [principles.md](principles.md) | Product principles (local-first, sacred save) | ADRs 0021–0023 |
 

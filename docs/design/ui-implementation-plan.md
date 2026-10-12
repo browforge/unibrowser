@@ -1125,6 +1125,154 @@ Acceptance:
 - Light, dark, high contrast, 100%, and 150% evidence passes drift checks.
 - Saving remains available through every unsupported/provider-failure state.
 
+## Compact text toolbar: TXT series
+
+Implements [ADR 0034](../adr/0034-compact-text-toolbar-and-semantic-styles.md),
+[text-toolbar.md](text-toolbar.md), and research in
+[text-editor-toolbars.md](../research/text-editor-toolbars.md). Depends on CMD-03
+primitives and CMD-06 resolved rendering. Order: shell region, block picker,
+capability providers, CM split, mod surface, evidence.
+
+### TXT-01: Compact text toolbar region and chrome coupling
+
+Likely files:
+
+- `crates/unibrowser-desktop/src/commandManager.ts`
+- `crates/unibrowser-desktop/src/styles.css`
+- shell layout in `src/main.ts`
+
+Work:
+
+- Add a 32 px `text-compact-toolbar` region above the Command Manager when
+  `CommandContext` is Text and the document is editable rich/plain text.
+- Render icon-only controls from the resolved model for surface
+  `text_compact_toolbar` (empty until TXT-02 wires controls).
+- Tie visibility to existing CM collapse (Ctrl+F1): both tiers hide together.
+- Do not show the region for Code, Image, PDF, or CAD contexts.
+
+Acceptance:
+
+- Markdown at 1280 px shows 32 px + 40 px chrome; code file shows CM only.
+- Collapse leaves a single 40 px hidden state (no orphan gap).
+- Region uses Lucide 16 px and existing focus-ring tokens.
+
+Screenshot:
+
+- Markdown light 1280 with compact bar placeholder and CM strip below.
+
+### TXT-02: Semantic block-style picker
+
+Likely files:
+
+- `crates/unibrowser-mod-api` (semantic ids / command registration)
+- `crates/unibrowser-desktop/src/commandManager.ts`
+- `mods/base-text` or `mods/toy-markdown` providers
+
+Work:
+
+- Implement dropdown control `unibrowser.semantic.block_style` per
+  [text-toolbar.md](text-toolbar.md) § Block-style picker.
+- Wire Ctrl+Alt+0–6 shortcuts; mixed block selection shows Mixed.
+- Remove document font-size stepper from default Text Formatting family on CM;
+  relabel editor-only size as “Editor size” where it remains.
+
+Acceptance:
+
+- Markdown H2 applies `##` prefix; plain text greys heading rows with reason.
+- Picker trigger shows current style name, not point size.
+- Keyboard and palette expose the same command id.
+
+Screenshot:
+
+- Markdown with picker open; plain text with disabled headings.
+
+### TXT-03: Split Text Formatting between compact bar and CM strip
+
+Likely files:
+
+- `crates/unibrowser-desktop/src/commandManager.ts`
+- default layout JSON / `toolbars.json` seed
+- `docs/design/command-system.md` (worked examples)
+
+Work:
+
+- Map bold, italic, strike, inline code, link, lists, clear to
+  `text_compact_toolbar`; keep History, Find, Proofing, Export on CM.
+- Move underline, colour, sub/sup to compact overflow by default.
+- Update canonical Text tab family list: Text Formatting inline controls no
+  longer occupy CM primary row (block picker only on compact bar).
+
+Acceptance:
+
+- CM Text row at 1280 px fits without wrapping; no duplicate Bold on CM.
+- Overflow chevron on compact bar matches deterministic width rules in design doc.
+- `command-system.md` Markdown example matches runtime layout.
+
+Screenshot:
+
+- Text context CM + compact bar side by side, light and dark.
+
+### TXT-04: Block-style capability matrix per host format
+
+Likely files:
+
+- `mods/toy-markdown` / `markdown-baseline` provider
+- `mods/base-docx` (rich document)
+- capability resolver tests
+
+Work:
+
+- Register `block_style` providers for markdown, html, docx, odt, rtf, plain
+  text per ADR 0034 mapping table.
+- Return `emulated` with notes for Markdown underline, task lists in ODT, etc.
+- Keep `.cm-emulation-mark` on emulated compact-bar toggles.
+
+Acceptance:
+
+- Contract tests cover each semantic × host cell in the ADR table.
+- Unsupported plain-text headings retain focusable controls with reasons.
+- Save unaffected when provider times out.
+
+### TXT-05: Mod manifest `text_compact_toolbar` surface
+
+Likely files:
+
+- `crates/unibrowser-mod-api/src/contributes.rs`
+- mod loader validation
+- `docs/mods/command-system-authoring.md`
+
+Work:
+
+- Extend CMD-07 schema with `surfaces: ["text_compact_toolbar"]` and
+  `insert.after` extension points from [text-toolbar.md](text-toolbar.md).
+- Validate content_kinds and refuse arbitrary HTML toolbars.
+
+Acceptance:
+
+- Sample mod contributes one icon after `unibrowser.format.link`; appears in
+  compact bar with tooltip and capability state.
+- Disabled mod removes control without layout crash (CMD-10 rules).
+
+### TXT-06: Compact toolbar evidence and accessibility
+
+Likely files:
+
+- `e2e/specs/` or desktop self-test hooks
+- `docs/screenshots/` capture scripts
+- `tests/controlA11y.test.mjs`
+
+Work:
+
+- Capture 1280 matrices: Markdown, plain text, rich document; light/dark/hc.
+- Add roving-toolbar test for Alt+F10 and arrow navigation on compact bar.
+- Sibling `.cm.json` includes compact bar bounds.
+
+Acceptance:
+
+- axe and existing CM a11y tests pass with compact bar visible.
+- Emulated underline shows marker and described approximation in SR text.
+- Drift checklist passes for new PNGs.
+
 ## Phase G: context-aware status
 
 ### UI-30: Status item component model and fixed slots
