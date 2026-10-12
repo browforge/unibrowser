@@ -32,3 +32,9 @@ with zipfile.ZipFile(out, "w") as zf:
     zf.writestr("word/document.xml", document)
 
 print(f"wrote {out}")
+
+step_src = ROOT.parent / "examples" / "demo-pack" / "sample.step"
+step_dst = ROOT / "fixtures" / "sample.step"
+if step_src.is_file():
+    step_dst.write_bytes(step_src.read_bytes())
+    print(f"copied {step_dst}")

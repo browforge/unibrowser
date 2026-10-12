@@ -1,0 +1,9 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Demo STEP fixture for mod portal captures'),'2;1');
+FILE_NAME('sample.step','sample.step',('Unibrowser'),('Unibrowser'),'','','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));
+ENDSEC;
+DATA;
+ENDSEC;
+END-ISO-10303-21;
