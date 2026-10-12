@@ -11,3 +11,4 @@ crates/unibrowser-desktop/src-tauri/binaries/*
 .DS_Store
 .idea
 .vscode
+/graft/
