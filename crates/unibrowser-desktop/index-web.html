@@ -1,0 +1,252 @@
+<!doctype html>
+<!-- ub-shell-batch3-v1 -->
+<html lang="en" data-ub-shell="batch3-v1">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unibrowser (web demo)</title>
+  </head>
+  <body>
+    <div id="shell-fallback" class="shell-fallback" role="status" aria-live="polite">
+      <strong>Unibrowser</strong>
+      <span class="shell-fallback-detail">Loading shell...</span>
+    </div>
+    <div id="shell-subsystem-notice" class="shell-subsystem-notice hidden" role="status">
+      <span class="shell-subsystem-notice-text"></span>
+    </div>
+    <div id="app-shell" class="ub-shell">
+    <header id="chrome" class="ub-region ub-region--chrome">
+      <nav id="app-menu-bar" class="app-menu-bar app-menu-bar--access" aria-label="Application menu"></nav>
+      <div id="title-bar" class="title-bar" aria-label="Window and document navigation">
+        <button type="button" id="title-menu-btn" class="title-icon app-menu-trigger-compact" title="Main menu (Alt)" aria-label="Main menu" aria-haspopup="true"></button>
+        <div id="tab-strip" class="title-tabs tab-strip" role="tablist" aria-label="Open tabs"></div>
+        <div id="title-nav" class="title-nav hidden" aria-label="Browser navigation">
+          <button type="button" id="btn-back" class="title-icon" title="Back" aria-label="Back"></button>
+          <button type="button" id="btn-forward" class="title-icon" title="Forward" aria-label="Forward"></button>
+          <button type="button" id="btn-reload" class="title-icon" title="Reload" aria-label="Reload"></button>
+        </div>
+        <div class="omnibox-wrap title-omnibox">
+          <div id="title-breadcrumb" class="title-breadcrumb hidden" aria-label="Document location"></div>
+          <input id="omnibox" type="text" placeholder="file://, https://, or path" autocomplete="off" aria-label="Location and commands" />
+          <div id="omnibox-suggestions" class="omnibox-suggestions hidden" role="listbox"></div>
+        </div>
+        <button type="button" id="btn-save" class="title-icon title-save-btn button primary" title="Save" aria-label="Save">Save</button>
+        <button type="button" id="title-overflow" class="title-icon" title="More actions" aria-label="Layout and more options" aria-haspopup="true"></button>
+        <span id="title-drag-region" class="drag-region" aria-hidden="true"></span>
+        <div id="window-controls" class="window-controls" aria-label="Window controls">
+          <button type="button" id="win-minimize" aria-label="Minimize"></button>
+          <button type="button" id="win-maximize" aria-label="Maximize"></button>
+          <button type="button" id="win-close" aria-label="Close"></button>
+        </div>
+      </div>
+      <div id="bookmark-bar" class="bookmark-bar hidden" aria-label="Pinned places"></div>
+      <div id="recent-panel" class="recent-panel hidden" aria-label="Recent files"></div>
+      <section id="command-manager" class="command-manager" aria-label="Command manager">
+        <button type="button" id="command-manager-context" class="context-label" aria-haspopup="true" aria-expanded="false"></button>
+        <span class="cm-divider context-divider" aria-hidden="true"></span>
+        <div id="command-manager-groups" class="command-manager-groups" role="toolbar" aria-label="Context commands"></div>
+        <button type="button" id="command-manager-overflow" class="cm-overflow hidden" title="More commands" aria-label="More commands"></button>
+        <span class="cm-spacer" aria-hidden="true"></span>
+        <div class="cm-pin-wrap">
+          <span id="command-manager-pin-label" class="cm-pin-label">Following: ...</span>
+          <button
+            type="button"
+            id="command-manager-pin"
+            class="cm-pin pin-button"
+            title="Pin the commands tab (stop following document context)"
+          >
+            Pin
+          </button>
+        </div>
+        <button type="button" id="command-manager-collapse" class="title-icon collapse-manager" title="Collapse Command Manager (Ctrl+F1)" aria-label="Collapse Command Manager"></button>
+      </section>
+      <div id="floating-toolbar-host" class="floating-toolbar-host"></div>
+    </header>
+    <div id="work-area" class="ub-work-area">
+    <div id="recovery-bar-host" class="recovery-bar-host hidden" role="status" aria-live="polite"></div>
+    <div id="inline-ui-layer" class="inline-ui-layer hidden" aria-hidden="true"></div>
+    <div id="unknown-file-banner" class="unknown-file-banner hidden" role="status" aria-live="polite"></div>
+    <div id="onboarding-banner" class="onboarding-banner hidden" role="status">
+      <span>Tip: Ctrl+Shift+P opens the command palette. Dismiss this any time.</span>
+      <button type="button" id="onboarding-dismiss">Dismiss</button>
+    </div>
+    <div id="onboarding-tour" class="onboarding-tour hidden" aria-live="polite"></div>
+    <div class="ub-work-area-row">
+    <nav id="activity-rail" class="workspace-rail collapsed" aria-label="Side panels"></nav>
+    <main id="content-host" class="content-host">
+      <div id="new-tab-page-host" class="new-tab-page-host hidden" aria-label="Start page"></div>
+      <div id="split-primary" class="split-pane">
+        <div id="files-browser-wrap" class="files-browser-wrap panel hidden">
+          <div id="files-panel" class="files-panel-main"></div>
+          <aside id="files-side-panel" class="files-side-panel hidden" aria-label="Files actions"></aside>
+        </div>
+        <div id="diff-editor-host" class="diff-editor-host hidden"></div>
+        <div id="image-compare-host" class="image-compare-host hidden" aria-label="Image compare"></div>
+        <div id="text-editor-host" class="text-editor-host hidden"></div>
+        <div id="document-viewer-host" class="document-viewer-host hidden"></div>
+        <div id="mod-portal-panel" class="panel mod-portal hidden"></div>
+        <div id="doc-panel" class="panel doc-panel"></div>
+      </div>
+      <div id="split-secondary" class="split-pane split-secondary hidden">
+        <div id="split-text-editor-host" class="text-editor-host hidden"></div>
+        <div id="split-document-viewer-host" class="document-viewer-host hidden"></div>
+        <div id="split-doc-panel" class="panel doc-panel hidden"></div>
+      </div>
+    </main>
+    <aside
+      id="ai-assistant-panel"
+      class="ai-assistant-panel hidden"
+      aria-label="AI assistant"
+    >
+      <div id="ai-assistant-resize" class="ai-assistant-resize" title="Resize sidebar" aria-hidden="true"></div>
+      <div class="ai-assistant-tabs" role="tablist" aria-label="Assistant panels">
+        <button type="button" class="ai-assistant-tab is-active" data-ai-tab="assistant" role="tab" aria-selected="true">AI Assistant</button>
+        <button type="button" class="ai-assistant-tab" data-ai-tab="tools" role="tab" aria-selected="false">Tools</button>
+        <button type="button" class="ai-assistant-tab" data-ai-tab="assets" role="tab" aria-selected="false">Assets</button>
+        <span class="ai-assistant-tabs-spacer"></span>
+        <button type="button" class="ai-assistant-close" aria-label="Close">x</button>
+      </div>
+      <div class="ai-assistant-meta muted"></div>
+      <div class="ai-assistant-grant-chip hidden"></div>
+      <div class="ai-assistant-body"></div>
+      <div class="ai-assistant-composer">
+        <textarea class="ai-assistant-composer-input" rows="3" aria-label="Ask about the open document"></textarea>
+        <div class="ai-assistant-composer-row">
+          <span class="ai-assistant-composer-note muted">Nothing is sent without permission.</span>
+          <button type="button" class="ai-assistant-composer-send button primary">Send</button>
+        </div>
+      </div>
+    </aside>
+    </div>
+    <aside id="script-output-panel" class="script-output-panel ub-dock-panel hidden" aria-label="Bottom panel">
+      <div id="bottom-panel-resize-grip" class="bottom-panel-resize-grip" title="Drag to resize panel" aria-hidden="true"></div>
+      <div class="script-output-head">
+        <div class="bottom-panel-tabs" role="tablist" aria-label="Bottom panel tabs">
+          <button type="button" id="bottom-panel-tab-output" class="bottom-panel-tab is-active" role="tab" aria-selected="true" aria-controls="bottom-panel-output-pane">Output</button>
+          <button type="button" id="bottom-panel-tab-terminal" class="bottom-panel-tab" role="tab" aria-selected="false" aria-controls="bottom-panel-terminal-pane">Terminal</button>
+          <button type="button" id="bottom-panel-tab-problems" class="bottom-panel-tab" role="tab" aria-selected="false" aria-controls="bottom-panel-problems-pane">Problems</button>
+        </div>
+        <button type="button" id="script-output-close" aria-label="Close bottom panel">x</button>
+      </div>
+      <div id="bottom-panel-output-pane" class="bottom-panel-pane" role="tabpanel">
+        <div id="script-output-log" class="script-output-log"></div>
+      </div>
+      <div id="bottom-panel-terminal-pane" class="bottom-panel-pane bottom-panel-terminal hidden" role="tabpanel" aria-hidden="true">
+        <div id="terminal-host" class="terminal-host"></div>
+      </div>
+      <div id="bottom-panel-problems-pane" class="bottom-panel-pane hidden" role="tabpanel" aria-hidden="true">
+        <div id="problems-panel" class="problems-panel">
+          <div class="problems-head">
+            <select class="problems-filter-severity" aria-label="Severity filter">
+              <option value="">All severities</option>
+              <option value="error">Error</option>
+              <option value="warning">Warning</option>
+              <option value="info">Info</option>
+            </select>
+            <input type="search" class="problems-filter-source" placeholder="Filter source" aria-label="Filter by source" />
+            <input type="search" class="problems-filter-message" placeholder="Filter message" aria-label="Filter by message" />
+          </div>
+          <p class="problems-empty hidden" role="status">No problems</p>
+          <div class="problems-table-wrap">
+            <table class="problems-table" aria-label="Problems">
+              <thead>
+                <tr>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Message</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Location</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+          <div class="problems-detail hidden" aria-live="polite"></div>
+        </div>
+      </div>
+    </aside>
+    </div>
+    <div id="extension-tip" class="extension-tip hidden" role="status" aria-live="polite">
+      <span id="extension-tip-message" class="extension-tip-message"></span>
+      <button type="button" id="extension-tip-mods" class="extension-tip-action">Mods</button>
+      <button type="button" id="extension-tip-dismiss" class="extension-tip-action">Dismiss forever</button>
+    </div>
+    <div id="toast-host" class="toast-host ub-toast-layer hidden" role="status" aria-live="polite"></div>
+    <footer id="status-bar" class="status-bar ub-shell-status" tabindex="-1">
+      <div id="status-context-left" class="status-slot status-slot--left" aria-label="Context status"></div>
+      <span id="status-saved" class="status-segment status-saved hidden status-legacy"></span>
+      <span id="status-language" class="status-segment status-language hidden status-legacy"></span>
+      <span id="status-cursor" class="status-segment status-legacy hidden"></span>
+      <span class="status-bar-spacer" aria-hidden="true"></span>
+      <div id="status-context-right" class="status-slot status-slot--right" aria-label="Document status"></div>
+      <button type="button" id="status-ai-visibility" class="status-utility status-ai hidden" aria-label="AI status" title="AI status">AI</button>
+      <span id="status-problems-count" class="status-segment status-problems-count hidden status-legacy"></span>
+      <span id="status-encoding" class="status-segment status-legacy hidden"></span>
+      <span id="status-zoom-label" class="status-segment status-zoom-readout status-legacy hidden"></span>
+      <span id="status-path" class="status-segment status-path status-legacy hidden"></span>
+      <span id="status-context" class="status-segment status-context muted status-legacy hidden"></span>
+      <span id="status-dirty" class="status-segment status-dirty status-legacy hidden"></span>
+      <span id="status-autosave" class="status-segment status-autosave hidden status-legacy" role="status"></span>
+      <span id="status-reading" class="status-segment status-reading muted status-legacy hidden"></span>
+      <span id="status-font" class="status-segment status-legacy hidden"></span>
+      <span class="status-zoom-controls status-legacy hidden">
+        <button type="button" id="status-zoom-out" class="status-zoom-btn hidden">-</button>
+        <button type="button" id="status-zoom-in" class="status-zoom-btn hidden">+</button>
+      </span>
+      <span id="status-encode" class="status-segment status-encode muted status-legacy hidden"></span>
+      <span id="status-hint" class="status-hint status-legacy hidden"></span>
+    </footer>
+    </div>
+    <div id="tab-search" class="palette hidden" role="dialog" aria-label="Search open tabs">
+      <input id="tab-search-query" type="text" placeholder="Filter open tabs..." />
+      <div id="tab-search-results"></div>
+    </div>
+    <div id="document-find-bar" class="document-find-bar hidden" role="search">
+      <label class="document-find-label" for="document-find-input">Find</label>
+      <input id="document-find-input" type="search" autocomplete="off" spellcheck="false" />
+      <button type="button" id="document-find-prev" title="Previous match">Prev</button>
+      <button type="button" id="document-find-next" title="Next match">Next</button>
+      <button type="button" id="document-find-close" title="Close find">Close</button>
+    </div>
+    <div id="palette" class="palette hidden" role="dialog" aria-modal="true" aria-label="Command palette">
+      <input id="palette-query" type="text" placeholder="Search commands (Ctrl+Shift+P)" aria-label="Search commands" />
+      <div id="palette-results"></div>
+    </div>
+    <div
+      id="keys-shortcuts-overlay"
+      class="palette keys-overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+    >
+      <input
+        id="keys-shortcuts-query"
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Filter keyboard shortcuts"
+      />
+      <div id="keys-shortcuts-results" class="keys-shortcuts-results"></div>
+    </div>
+    <div id="workspace-quick-open" class="palette hidden" role="dialog" aria-label="Go to file in workspace">
+      <div class="filename-search-head">
+        <input id="workspace-quick-open-query" type="search" placeholder="File name in workspace..." autocomplete="off" />
+        <button type="button" id="workspace-quick-open-close">Close</button>
+      </div>
+      <p id="workspace-quick-open-hint" class="viewer-note filename-search-root-label"></p>
+      <div id="workspace-quick-open-results"></div>
+    </div>
+    <div id="filename-search" class="palette hidden" role="dialog" aria-label="Deep find">
+      <div class="filename-search-head">
+        <input id="filename-search-query" type="search" placeholder="Filename..." />
+        <button type="button" id="filename-search-cancel">Cancel search</button>
+        <button type="button" id="filename-search-close">Close</button>
+      </div>
+      <label class="filename-search-root-label">
+        Search under
+        <input id="filename-search-root" type="text" class="files-search-input" />
+      </label>
+      <p id="filename-search-limits" class="viewer-note filename-search-root-label"></p>
+      <div id="filename-search-results"></div>
+    </div>
+    <script type="module" src="/src/webBootstrap.ts"></script>
+  </body>
+</html>

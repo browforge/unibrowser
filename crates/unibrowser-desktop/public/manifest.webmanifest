@@ -1,0 +1,10 @@
+{
+  "name": "Unibrowser",
+  "short_name": "Unibrowser",
+  "description": "Browser demo for files and text — runs entirely on your device.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "icons": []
+}

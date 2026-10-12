@@ -583,3 +583,29 @@ body.ub-status-compact .status-verbose-only {
 .status-hint {
   color: var(--ub-status-text);
 }
+
+.ub-web-privacy-notice {
+  margin: 0;
+  padding: var(--ub-space-2) var(--ub-space-3);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ub-text-2);
+  background: var(--ub-well);
+  border-bottom: var(--ub-border-width) solid var(--ub-border);
+}
+
+.ub-web-privacy-notice-text {
+  margin: 0;
+  display: inline;
+}
+
+.ub-web-privacy-notice-link {
+  color: var(--ub-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+body.ub-platform-web .window-controls,
+body.ub-platform-web .drag-region {
+  display: none;
+}

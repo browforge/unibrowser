@@ -1,4 +1,6 @@
 {
+  "web.privacyLead": "Runs entirely in your browser. Files you open never leave this device.",
+  "web.desktopDownload": "Download the desktop app",
   "ntp.title": "Start where you left off",
   "ntp.lead": "Open a local file or project. Nothing is uploaded unless you choose a network action.",
   "ntp.openFile": "Open file",

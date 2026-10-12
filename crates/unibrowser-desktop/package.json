@@ -16,6 +16,11 @@
     "test:chrome": "node --experimental-strip-types --test tests/chromeMetrics.test.mjs",
     "test:capability": "node --experimental-strip-types --test tests/capabilityProvider.test.mjs tests/contentKindTraversal.test.mjs tests/kindHostResolver.test.mjs",
     "preview": "vite preview",
+    "dev:web": "vite --mode web",
+    "prepare:web-public": "node scripts/prepare-web-public.mjs",
+    "build:wasm": "bash ../../scripts/build-web-wasm.sh",
+    "build:web": "npm run prepare:web-public && npm run build:wasm && tsc && vite build --mode web && cp dist-web/index-web.html dist-web/index.html",
+    "test:web-smoke": "playwright test tests/web-smoke.spec.ts",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -39,6 +44,7 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2",
     "@types/three": "^0.186.0",
+    "@playwright/test": "^1.55.0",
     "typescript": "~6.0.3",
     "vite": "^8.0.16"
   }
