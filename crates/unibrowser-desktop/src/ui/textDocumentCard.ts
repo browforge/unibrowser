@@ -1,10 +1,11 @@
 /** Bear concept Render 1: light paper document card with in-card formatting toolbar. */
 
+import { refreshDocumentCardStatusFooter } from "./documentCardStatus";
+
 const CARD_SHELL_ID = "document-card-shell";
 const CARD_TOOLBAR_MOUNT_ID = "document-card-toolbar-mount";
 const CARD_BODY_MOUNT_ID = "document-card-body-mount";
 const CARD_TAB_ID = "document-card-tab";
-const CARD_STATUS_ID = "document-card-status";
 const COMPACT_TOOLBAR_ID = "text-compact-toolbar-host";
 
 function activeDocumentPane(): HTMLElement | null {
@@ -44,7 +45,6 @@ export function syncTextDocumentCard(active: boolean, fileLabel?: string | null)
   const bodyMount = document.getElementById(CARD_BODY_MOUNT_ID);
   const toolbar = document.getElementById(COMPACT_TOOLBAR_ID);
   const tab = document.getElementById(CARD_TAB_ID);
-  const status = document.getElementById(CARD_STATUS_ID);
   const pane = activeDocumentPane();
 
   const useCard =
@@ -90,22 +90,12 @@ export function syncTextDocumentCard(active: boolean, fileLabel?: string | null)
     tab.append(label, close);
   }
 
-  if (status) {
-    const ctx = document.body.dataset.cmAutoContext ?? "text";
-    const kind =
-      ctx === "office" ? "Word document" : ctx === "text" ? "Markdown" : "Document";
-    const zoom =
-      document.querySelector<HTMLElement>(
-        '[data-control-id="unibrowser.control.editor.size"] .cm-cmd-label, [data-control-id="unibrowser.control.text.size"] .cm-cmd-label',
-      )?.textContent?.trim() ?? "100%";
-    status.replaceChildren();
-    const left = document.createElement("span");
-    left.textContent = `${kind} · 512 words · Saved 10:18`;
-    const zoomSpan = document.createElement("span");
-    zoomSpan.className = "document-card-status-zoom";
-    zoomSpan.textContent = zoom;
-    status.append(left, zoomSpan);
-  }
+  refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
+}
+
+export function syncDocumentCardDirtyFlag(dirty: boolean): void {
+  document.body.dataset.documentCardDirty = dirty ? "1" : "0";
+  refreshDocumentCardStatusFooter(dirty);
 }
 
 export function exposeTextDocumentCard() {

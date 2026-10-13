@@ -405,6 +405,10 @@ export async function applyDemoState(raw: string) {
           await new Promise((resolve) => window.setTimeout(resolve, 50));
         }
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        {
+          const { syncDocumentCardDirtyFlag } = await import("./ui/textDocumentCard");
+          syncDocumentCardDirtyFlag(false);
+        }
         break;
       }
       case "content-kind-embedded-image-ui": {

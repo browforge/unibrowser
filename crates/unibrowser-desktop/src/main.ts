@@ -11,7 +11,8 @@ import "./styles.css";
 import "./ui/tokens.css";
 import "./ui/compactChrome.css";
 import "./ui/textDocumentCard.css";
-import { exposeTextDocumentCard } from "./ui/textDocumentCard";
+import { exposeTextDocumentCard, syncDocumentCardDirtyFlag } from "./ui/textDocumentCard";
+import { setDocumentCardAutosaveAtMs } from "./ui/documentCardStatus";
 import "./ui/quietUtilityShell.css";
 import { initCommandPalette } from "./ui/commandPalette";
 import { initDockPanel } from "./ui/dockPanel";
@@ -207,6 +208,8 @@ import {
   validateResponsiveShellForCapture,
   validateFocusRingForCapture,
   validateTextCompactToolbarForCapture,
+  validateDocumentCardFooterForCapture,
+  validateMarkdownPreviewImageFitsPage,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
 import { validateShellDensityContrastForCapture } from "./ui/shellContrast";
@@ -2328,6 +2331,7 @@ async function applyState(data: TabContentDto) {
     fontLabel.title = fontResetable ? t("status.fontResetTitle") : "";
   }
   refreshStatusBar(data, active, showText, showViewer);
+  syncDocumentCardDirtyFlag(Boolean(active?.dirty && !active.is_directory));
   const recoveryHost = document.getElementById("recovery-bar-host");
   if (recoveryHost) {
     renderRecoveryBar(recoveryHost, data.recovery_bar ?? [], () => {
@@ -3393,6 +3397,24 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          if (document.body.classList.contains("text-document-card")) {
+            const cardFooterErr = validateDocumentCardFooterForCapture();
+            if (cardFooterErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${cardFooterErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          }
+          if (captureUsesMarkdownPreview) {
+            const imgFitErr = validateMarkdownPreviewImageFitsPage();
+            if (imgFitErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${imgFitErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          }
           const imageChromeErr = validateImageViewerChrome(launchPaths);
           if (imageChromeErr) {
             await invoke("abort_doc_capture", {
@@ -3542,17 +3564,20 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     if (saveSlot) {
       saveSlot.textContent = t("status.unsaved");
     }
+    syncDocumentCardDirtyFlag(true);
   });
   window.addEventListener("unibrowser-autosave-tick", (event) => {
     const detail = (event as CustomEvent<number>).detail;
     if (typeof detail === "number" && detail > 0) {
       lastAutosaveAtMs = detail;
+      setDocumentCardAutosaveAtMs(detail);
       void refreshState();
     }
   });
   void invoke<{ last_autosave_at_ms: number }>("get_autosave_status").then((st) => {
     if (st.last_autosave_at_ms > 0) {
       lastAutosaveAtMs = st.last_autosave_at_ms;
+      setDocumentCardAutosaveAtMs(st.last_autosave_at_ms);
     }
   });
   void invoke<{

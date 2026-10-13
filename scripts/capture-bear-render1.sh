@@ -14,5 +14,17 @@ DOCX_DEMO="theme-light,text-card-render1,title-breadcrumb,ai,ai-mockup-composer,
 capture_vqa "$OUT" "bear-render-1-markdown-1280" "$MARKDOWN_DEMO" "examples/demo-pack/sample.md"
 capture_vqa "$OUT" "bear-render-1-docx-1280" "$DOCX_DEMO" "examples/demo-pack/sample-rich.docx"
 
+echo "=== capture txt-web-markdown-picker-h2 (web build, Playwright) ==="
+(
+  cd "$ROOT/crates/unibrowser-desktop"
+  npm run build:web
+  npx playwright test tests/txt-toolbar-web-capture.spec.ts --config playwright.config.ts
+)
+
 cp -f "$OUT/bear-render-1-"*.png "$ART"/ 2>/dev/null || true
-echo "Bear Render 1 captures in $OUT"
+cp -f "$OUT/bear-render-1-"*.cm.json "$ART"/ 2>/dev/null || true
+cp -f "$OUT/txt-web-markdown-picker-h2.png" "$ART"/ 2>/dev/null || true
+
+python3 "$ROOT/scripts/write-bear-defect-checklist.py" "$ART"
+
+echo "Bear Render 1 captures in $OUT (artifacts in $ART)"

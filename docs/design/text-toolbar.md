@@ -20,7 +20,7 @@ Two concept renders define the product direction. **Render 1** is the binding ta
   7. **Divider**
   8. **Overflow:** `⋮` for secondary marks (strikethrough, underline, clear formatting, etc.).
 - **Typography in the card body:** Serif-forward body (`Source Serif 4` / Palatino class). Headings in **dark navy**. Block quotes: **pale blue fill**, **left accent bar** in accent blue.
-- **Card status line (footer of paper card):** e.g. `Markdown · 512 words · Saved 10:18` with zoom **`100%`** right-aligned on the card (editor zoom lives here or in overflow — not on the formatting row).
+- **Card status line (footer of paper card):** `{format} · {live word count} · {Saved HH:MM | Not saved}` with zoom **`100%`** right-aligned on the card (editor zoom lives here or in overflow — not on the formatting row). Values are computed from the open document and tab dirty/autosave state, not concept-art literals.
 - **App bar above the card (not this doc, but same screenshot):** Breadcrumb (`Notes / file.md ▾`), ghost **+ New**, Undo/Redo icons, filled blue **Save**, **⋮**.
 - **Left rail:** Icon + small label stacked (Files, Search, Project, 3D, Video, Audio, Code, Paint, Assets, Settings).
 - **Right dock:** Tabs **AI Assistant**, **Tools**, **Assets**.
@@ -89,6 +89,12 @@ Unchanged: `surfaces: ["text_compact_toolbar"]` and `contributes.toolbars[]` wit
 - `docs/screenshots/txt-toolbar/bear-render-1-markdown-1280.png`
 - `docs/screenshots/txt-toolbar/bear-render-1-docx-1280.png`
 - Capture demo: `text-card-render1` + `content-kind-md-preview` (markdown) / rich docx sample (office).
+
+### Walkthrough (1280×800 captures vs Render 1)
+
+**Markdown (`bear-render-1-markdown-1280.png`):** Dark navy work area frames a centred paper card (`#faf9f6`). A small in-card tab reads `sample.md` with ×. The in-card row shows **Markdown** + chevron, dividers, **B / I / code**, bullet and numbered list, **link / image**, then **⋮** — ink on paper, no tiles. Preview body uses serif type; a block quote appears as pale blue with a left accent bar. Card footer shows live word count and save state plus `100%` zoom. Title bar breadcrumb, blue **Save**, expanded left rail (icon + label), right dock **AI Assistant / Tools / Assets**. Global CM strip is hidden (`cm-collapsed` + `text-document-card`).
+
+**Word (`bear-render-1-docx-1280.png`):** Same frame and card chrome; tab `sample-rich.docx`. Format trigger label **Word**; same icon order on the in-card row. Docx reader body on paper; footer uses live word count and save state.
 
 ## Related
 

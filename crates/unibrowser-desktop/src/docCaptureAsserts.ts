@@ -1,4 +1,5 @@
 import { compactToolbarIconFallbackError } from "./textCompactToolbar";
+import { documentWordCount } from "./ui/documentCardStatus";
 
 export interface MonacoCaptureDiagnostics {
   viewLineCount: number;
@@ -1632,6 +1633,68 @@ export function validateTextCompactToolbarForCapture(
       if (!host.querySelector(`[data-control-id="${id}"]`)) {
         return `Render 1 in-card toolbar missing control ${id}`;
       }
+    }
+  }
+  return null;
+}
+
+const CONCEPT_RENDER_FOOTER_SNIPPETS = ["512 words", "Saved 10:18"];
+
+/** Render 1 card footer must reflect live word count and save state (not concept art literals). */
+export function validateDocumentCardFooterForCapture(): string | null {
+  if (!document.body.classList.contains("text-document-card")) {
+    return null;
+  }
+  const main = document.querySelector<HTMLElement>(".document-card-status-main");
+  const text = main?.textContent?.trim() ?? "";
+  if (!text) {
+    return "document card footer missing status text";
+  }
+  for (const snippet of CONCEPT_RENDER_FOOTER_SNIPPETS) {
+    if (text.includes(snippet)) {
+      return `document card footer still uses concept placeholder "${snippet}"`;
+    }
+  }
+  const match = text.match(/(\d+)\s+words?\b/i);
+  if (!match) {
+    return `document card footer missing word count in "${text}"`;
+  }
+  const shown = Number.parseInt(match[1], 10);
+  const expected = documentWordCount();
+  if (!Number.isFinite(shown) || shown !== expected) {
+    return `document card footer word count ${shown} does not match document (${expected})`;
+  }
+  const dirty = document.body.dataset.documentCardDirty === "1";
+  if (dirty && !text.includes("Not saved")) {
+    return `document card footer must show Not saved when dirty; got "${text}"`;
+  }
+  if (!dirty && text.includes("Not saved")) {
+    return `document card footer must not show Not saved when document is clean`;
+  }
+  return null;
+}
+
+/** Markdown preview embedded images should not exceed the preview column width. */
+export function validateMarkdownPreviewImageFitsPage(): string | null {
+  const shell = document.querySelector<HTMLElement>(".md-preview-shell:not(.hidden)");
+  if (!shell) {
+    return null;
+  }
+  const body = shell.querySelector<HTMLElement>(".md-preview-body");
+  if (!body) {
+    return "markdown preview body missing for image fit check";
+  }
+  const bodyWidth = body.getBoundingClientRect().width;
+  if (bodyWidth < 80) {
+    return `markdown preview body width ${bodyWidth.toFixed(0)}px too narrow`;
+  }
+  for (const img of body.querySelectorAll<HTMLImageElement>("img")) {
+    const rect = img.getBoundingClientRect();
+    if (rect.width < 8 || rect.height < 8) {
+      return "markdown preview image has no visible layout box";
+    }
+    if (rect.width > bodyWidth + 4) {
+      return `markdown preview image width ${rect.width.toFixed(0)}px exceeds body ${bodyWidth.toFixed(0)}px`;
     }
   }
   return null;
