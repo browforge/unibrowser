@@ -1397,7 +1397,18 @@ export function validateDocumentFeatureCaptureDom(): string | null {
       return "doc-visual-md-docx capture must show emulated block-style (≈) badge";
     }
     if (!dom.cardImageNaturalWidthOk) {
-      return "doc-visual-md-docx capture requires every card image to load (naturalWidth > 0)";
+      const richSurface =
+        document.querySelector<HTMLElement>("#rich-text-editor-host:not(.hidden) .rich-text-doc") ??
+        document.querySelector<HTMLElement>(
+          "#document-split-preview-host:not(.hidden) .rich-text-doc",
+        );
+      const imgs = richSurface
+        ? Array.from(richSurface.querySelectorAll<HTMLImageElement>("img")).map(
+            (img) =>
+              `nw=${img.naturalWidth} src=${(img.currentSrc || img.src || "").slice(0, 96)}`,
+          )
+        : [];
+      return `doc-visual-md-docx capture requires every card image to load (naturalWidth > 0); ${imgs.join("; ")}`;
     }
     if (!dom.statusBarDocumentLanguage.includes("Word document")) {
       return "doc-visual-md-docx capture status bar must show Word document";

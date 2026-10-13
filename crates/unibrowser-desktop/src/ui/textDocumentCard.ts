@@ -243,51 +243,73 @@ export async function prepareDocVisualMdDocxDesktopCapture(): Promise<void> {
   if (document.body.dataset.ubDocVisualMdDocxApplied === "1") {
     return;
   }
+  const { traceDocCaptureStep, withDocCaptureTimeout } = await import("../docCaptureTrace");
   const savedPath = "examples/demo-pack/sample.docx";
+  const imageBase = "examples/demo-pack/sample.md";
   const editorHost = document.getElementById("text-editor-host");
   if (!editorHost) {
     throw new Error("doc-visual-md-docx capture requires text-editor-host");
   }
-  const { setDocumentEditorMode } = await import("../documentEditorModes");
-  setDocumentEditorMode("wysiwyg", false);
-  const {
-    refreshVisualDocxRichSurface,
-    syncDocumentEditorSurfaceVisibility,
-  } = await import("../documentEditorHost");
-  const { documentViewer } = await import("../documentViewer");
-  const markdown = await (
-    await import("../demoPackSample")
-  ).readDemoPackSampleMarkdownDesktopCapture();
-  const { parseMarkdownDocument } = await import("../documentModelBridge");
-  const { seedDocumentModelSessionForDemo } = await import("../documentEditorHost");
-  seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
-  document.body.dataset.documentImageBasePath = "examples/demo-pack/sample.md";
-  document.body.dataset.activeDocumentPath = savedPath;
-  document.body.dataset.cmAutoContext = "office";
-  const viewerHost = document.getElementById("document-viewer-host");
-  if (viewerHost) {
-    documentViewer.hide(viewerHost);
-  }
-  editorHost.classList.remove("hidden");
-  syncDocumentEditorSurfaceVisibility();
-  await refreshVisualDocxRichSurface(savedPath, "examples/demo-pack/sample.md");
-  const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
-  dismissDocCaptureChrome();
-  syncTextDocumentCard(true, "sample.docx");
-  forceDocFeatureCaptureLayout("sample.docx");
-  refreshDocumentCardStatusFooter(false);
-  const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
-  if (compactHost) {
-    const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
-    seedDocVisualCompactToolbarFallback(compactHost, true);
-  }
-  await (await import("../richTextEditor")).waitForRichCardImagesLoaded(4_000);
-  const refreshStatusBarOnly = (
-    window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
-  ).__unibrowserRefreshStatusBarOnly;
-  if (refreshStatusBarOnly) {
-    await refreshStatusBarOnly();
-  }
+  await withDocCaptureTimeout("prepare:load-markdown", 30_000, async () => {
+    const { setDocumentEditorMode } = await import("../documentEditorModes");
+    setDocumentEditorMode("wysiwyg", false);
+    const markdown = await (
+      await import("../demoPackSample")
+    ).readDemoPackSampleMarkdownDesktopCapture();
+    const { parseMarkdownDocument } = await import("../documentModelBridge");
+    const { seedDocumentModelSessionForDemo } = await import("../documentEditorHost");
+    const { resolveDocumentModelImageAssets } = await import("../richTextEditor");
+    const parsed = await parseMarkdownDocument(markdown);
+    const model = await resolveDocumentModelImageAssets(parsed.model, imageBase);
+    seedDocumentModelSessionForDemo({ ...parsed, model });
+    document.body.dataset.documentImageBasePath = imageBase;
+    document.body.dataset.activeDocumentPath = savedPath;
+    document.body.dataset.cmAutoContext = "office";
+    return markdown.length;
+  });
+  await withDocCaptureTimeout("prepare:hide-viewer-and-layout", 15_000, async () => {
+    const { syncDocumentEditorSurfaceVisibility } = await import("../documentEditorHost");
+    const { documentViewer } = await import("../documentViewer");
+    const viewerHost = document.getElementById("document-viewer-host");
+    if (viewerHost) {
+      documentViewer.hide(viewerHost);
+    }
+    editorHost.classList.remove("hidden");
+    syncDocumentEditorSurfaceVisibility();
+  });
+  await withDocCaptureTimeout("prepare:refresh-visual-docx-surface", 45_000, async () => {
+    const { refreshVisualDocxRichSurface } = await import("../documentEditorHost");
+    await refreshVisualDocxRichSurface(savedPath, imageBase);
+    const richHost = document.getElementById("rich-text-editor-host");
+    if (richHost) {
+      const { resolveRichImages } = await import("../richTextEditor");
+      await resolveRichImages(richHost, imageBase);
+    }
+  });
+  await withDocCaptureTimeout("prepare:chrome-and-toolbar", 20_000, async () => {
+    const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
+    dismissDocCaptureChrome();
+    syncTextDocumentCard(true, "sample.docx");
+    forceDocFeatureCaptureLayout("sample.docx");
+    refreshDocumentCardStatusFooter(false);
+    const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
+    if (compactHost) {
+      const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+      seedDocVisualCompactToolbarFallback(compactHost, true);
+    }
+  });
+  await withDocCaptureTimeout("prepare:waitForRichCardImagesLoaded", 20_000, async () => {
+    await (await import("../richTextEditor")).waitForRichCardImagesLoaded(12_000);
+  });
+  await withDocCaptureTimeout("prepare:status-bar", 20_000, async () => {
+    const refreshStatusBarOnly = (
+      window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+    ).__unibrowserRefreshStatusBarOnly;
+    if (refreshStatusBarOnly) {
+      await refreshStatusBarOnly();
+    }
+  });
+  traceDocCaptureStep("prepare:shell-paint-ready");
   document.body.dataset.ubDocVisualMdDocxApplied = "1";
 }
 

@@ -287,8 +287,10 @@ impl AppState {
     pub fn new() -> Self {
         let vsix_host_commands = Mutex::new(HashSet::new());
         let built = build_command_registry(&vsix_host_commands).expect("mods");
-        let cwd = std::env::var("HOME")
-            .map(PathBuf::from)
+        let cwd = std::env::var("UNIBROWSER_REPO_ROOT")
+            .map(|r| PathBuf::from(r.trim_end_matches('/')))
+            .or_else(|_| std::env::current_dir())
+            .or_else(|_| std::env::var("HOME").map(PathBuf::from))
             .unwrap_or_else(|_| PathBuf::from("/"));
         let home = BrowserLocation::File {
             path: cwd.clone(),

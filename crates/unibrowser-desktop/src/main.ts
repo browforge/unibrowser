@@ -76,6 +76,9 @@ void invoke<string | null>("take_doc_capture_path").then((docCapture) => {
     return;
   }
   document.body.dataset.ubDocCapture = "1";
+  void import("./docCaptureTrace").then(({ installDocCaptureConsoleForwarder }) => {
+    installDocCaptureConsoleForwarder();
+  });
   const pushAudit = () => {
     void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
     window.setTimeout(pushAudit, 200);
@@ -2422,6 +2425,20 @@ async function applyState(data: TabContentDto) {
 
 (window as unknown as { __selfTestApplyState?: (d: TabContentDto) => Promise<void> }).__selfTestApplyState =
   applyState;
+
+(
+  window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+).__unibrowserRefreshStatusBarOnly = async () => {
+  if (!lastTabSnapshot) {
+    await refreshState();
+    return;
+  }
+  const data = lastTabSnapshot;
+  const active = data.tabs[data.active_index];
+  const showViewer = Boolean(data.document_viewer) && !active?.is_http;
+  const showText = Boolean(data.text_document) && !active?.is_http && !showViewer;
+  refreshStatusBar(data, active, showText, showViewer);
+};
 
 let webBrowserStateRefreshQueued = false;
 let webBrowserStateRefreshAgain = false;

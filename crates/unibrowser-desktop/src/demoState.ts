@@ -252,16 +252,30 @@ export async function applyDemoState(raw: string) {
         const { getDocumentModelSession, seedDocumentModelSessionForDemo } = await import(
           "./documentEditorHost"
         );
+        const imageBasePathEarly = isWebPlatform()
+          ? mdPath
+          : "examples/demo-pack/sample.md";
+        const { parseMarkdownDocument } = await import("./documentModelBridge");
+        const { resolveDocumentModelImageAssets } = await import("./richTextEditor");
         let session = getDocumentModelSession();
         if (!session) {
-          const { parseMarkdownDocument } = await import("./documentModelBridge");
-          seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
+          const parsed = await parseMarkdownDocument(markdown);
+          const model = await resolveDocumentModelImageAssets(parsed.model, imageBasePathEarly);
+          seedDocumentModelSessionForDemo({ ...parsed, model });
           session = getDocumentModelSession();
         }
         if (editorHost) {
           const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
           await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
           session = getDocumentModelSession();
+          if (session && captureMode && !isWebPlatform()) {
+            const model = await resolveDocumentModelImageAssets(
+              session.model,
+              imageBasePathEarly,
+            );
+            seedDocumentModelSessionForDemo({ ...session, model });
+            session = getDocumentModelSession();
+          }
         }
         setDocumentEditorMode("wysiwyg", false);
         const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
@@ -273,9 +287,7 @@ export async function applyDemoState(raw: string) {
         } else {
           saved = await saveMarkdownVisualAsDocx(mdPath);
         }
-        const imageBasePath = isWebPlatform()
-          ? mdPath
-          : "examples/demo-pack/sample.md";
+        const imageBasePath = imageBasePathEarly;
         document.body.dataset.documentImageBasePath = imageBasePath;
         const refresh = (
           window as unknown as { __unibrowserRefreshState?: () => Promise<void> }

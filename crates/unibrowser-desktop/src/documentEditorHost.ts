@@ -402,6 +402,14 @@ export async function refreshVisualDocxRichSurface(
   markdownImageBasePath: string,
 ): Promise<void> {
   if (!monacoHost) {
+    const editorHost = document.getElementById("text-editor-host");
+    if (editorHost) {
+      monacoHost = editorHost;
+      ensureRichHost(editorHost);
+      mountModeControls();
+    }
+  }
+  if (!monacoHost) {
     return;
   }
   document.body.dataset.documentImageBasePath = markdownImageBasePath;
