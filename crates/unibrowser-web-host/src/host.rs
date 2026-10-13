@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use base_text::TextBackend;
 use serde::Serialize;
 use serde_json::Value;
+use unibrowser_document_model::HistoryLogEntry;
 use unibrowser_engine::{
     CommandManagerState, CommandRegistry, DocumentSession, KeybindingMap, LoadedModContribution,
     ModRuntimeRegistry, TabManager, infer_context, palette::search_commands,
@@ -37,6 +40,7 @@ pub struct WebHost {
     pub mod_runtime: ModRuntimeRegistry,
     pub pending_save: Option<(String, String)>,
     pub ai_prefs: AiAssistantPrefsWeb,
+    pub document_history: HashMap<String, Vec<HistoryLogEntry>>,
 }
 
 impl WebHost {
@@ -67,6 +71,7 @@ impl WebHost {
             mod_runtime: ModRuntimeRegistry::default(),
             pending_save: None,
             ai_prefs: AiAssistantPrefsWeb::default(),
+            document_history: HashMap::new(),
         }
     }
 
@@ -178,6 +183,43 @@ impl WebHost {
                     serde_json::from_value(args.clone()).map_err(|e| e.to_string())?;
                 let text = crate::document_model::serialize_markdown_request(req)?;
                 Ok(serde_json::json!({ "content": text }))
+            }
+            "document_source_projection" => {
+                let req: crate::document_model::DocumentSerializeRequest =
+                    serde_json::from_value(args.clone()).map_err(|e| e.to_string())?;
+                let text = crate::document_model::source_projection_request(req)?;
+                Ok(serde_json::json!({ "content": text }))
+            }
+            "document_merge_source" => {
+                let req: crate::document_model::DocumentMergeSourceRequest =
+                    serde_json::from_value(args.clone()).map_err(|e| e.to_string())?;
+                crate::document_model::merge_source_request(req)
+            }
+            "document_history_list" => {
+                let path = args.get("path").and_then(|v| v.as_str()).ok_or("path required")?;
+                let rows = self
+                    .document_history
+                    .get(path)
+                    .cloned()
+                    .unwrap_or_default();
+                Ok(serde_json::to_value(rows).map_err(|e| e.to_string())?)
+            }
+            "document_history_append" => {
+                let path = args.get("path").and_then(|v| v.as_str()).ok_or("path required")?;
+                let op: unibrowser_document_model::DocumentHistoryOp =
+                    serde_json::from_value(args.get("op").cloned().ok_or("op required")?)
+                        .map_err(|e| e.to_string())?;
+                let list = self.document_history.entry(path.to_string()).or_default();
+                let seq = list.last().map(|e| e.seq + 1).unwrap_or(1);
+                let entry = crate::document_model::history_entry_from_op(op, seq)?;
+                list.push(entry);
+                Ok(Value::Null)
+            }
+            "document_promote_opaque" => {
+                let req: crate::document_model::DocumentPromoteOpaqueRequest =
+                    serde_json::from_value(args.clone()).map_err(|e| e.to_string())?;
+                let parsed = crate::document_model::promote_opaque_request(req)?;
+                Ok(serde_json::to_value(parsed).map_err(|e| e.to_string())?)
             }
             "sync_text_document" => self.cmd_sync_text(args),
             "save_active_document" | "write_document_bytes" => self.cmd_save(args),

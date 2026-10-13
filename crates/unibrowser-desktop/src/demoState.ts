@@ -167,6 +167,50 @@ export async function applyDemoState(raw: string) {
         setDocumentEditorMode("reading");
         break;
       }
+      case "doc-merge-banner": {
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("split", false);
+        break;
+      }
+      case "doc-opaque-card": {
+        await invoke("open_path", { path: "demo-pack/sample-opaque.md" });
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg", false);
+        break;
+      }
+      case "doc-history-panel": {
+        await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
+        await new Promise((r) => window.setTimeout(r, 400));
+        const docPath = document.body.dataset.activeDocumentPath ?? "demo-pack/sample.md";
+        await invoke("document_history_append", {
+          path: docPath,
+          op: {
+            op_type: "base-text.block.set_style",
+            block_id: "b2",
+            style: "heading_2",
+            emulation_note: null,
+          },
+        }).catch(() => undefined);
+        await invoke("document_history_append", {
+          path: docPath,
+          op: {
+            op_type: "base-text.text.replace",
+            block_id: "b2",
+            from: 0,
+            to: 4,
+            text: "Demo",
+            marks: [],
+          },
+        }).catch(() => undefined);
+        const { showHistoryPanelTab, refreshHistoryPanel } = await import("./historyPanel");
+        showHistoryPanelTab();
+        await refreshHistoryPanel(docPath);
+        break;
+      }
+      case "doc-visual-docx": {
+        await invoke("open_path", { path: "demo-pack/sample-rich.docx" });
+        break;
+      }
       case "text-card-render1":
         document.body.classList.add("cm-collapsed");
         {

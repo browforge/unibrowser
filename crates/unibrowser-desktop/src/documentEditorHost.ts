@@ -1,5 +1,7 @@
 import {
+  appendDocumentHistoryOp,
   parseMarkdownDocument,
+  serializeMarkdownDocument,
   type DocumentParseResponse,
   type DocumentModelDto,
   type SourceMapDto,
@@ -10,7 +12,8 @@ import {
   mountDocumentModeStrip,
   onDocumentEditorModeChange,
 } from "./documentEditorModes";
-import { mountRichTextEditor } from "./richTextEditor";
+import { destroyRichTextEditor, mountRichTextEditor } from "./richTextEditor";
+import { hideSourceMergeBanner, seedDemoMergeBanner } from "./documentSourceMerge";
 
 const RICH_HOST_ID = "rich-text-editor-host";
 const SPLIT_PREVIEW_ID = "document-split-preview-host";
@@ -133,15 +136,107 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
   });
 }
 
+async function commitModelToMarkdown(touchedBlockIds: string[]) {
+  if (!session || !documentPath) {
+    return;
+  }
+  const dirty = Array.from(new Set([...touchedBlockIds]));
+  const content = await serializeMarkdownDocument({
+    model: session.model,
+    source_map: session.source_map,
+    original_base64: session.original_base64,
+    dirty_block_ids: dirty,
+    touched_block_ids: dirty,
+  });
+  const { textEditor } = await import("./textEditor");
+  await textEditor.setContentFromHost(content);
+  for (const blockId of dirty) {
+    await appendDocumentHistoryOp(documentPath, {
+      op_type: "base-text.text.replace",
+      block_id: blockId,
+      from: 0,
+      to: 0,
+      text: "",
+      marks: [],
+    }).catch(() => undefined);
+  }
+}
+
 async function renderRich() {
   if (!session || !richHost || !documentPath) {
     return;
   }
-  const readonly = getDocumentEditorMode() === "reading";
-  await mountRichTextEditor(richHost, session.model, readonly, documentPath);
-  if (splitPreviewHost && getDocumentEditorMode() === "split") {
-    await mountRichTextEditor(splitPreviewHost, session.model, true, documentPath);
+  const mode = getDocumentEditorMode();
+  const readonly = mode === "reading";
+  const split = mode === "split";
+
+  if (!split) {
+    if (readonly) {
+      await mountRichTextEditor(richHost, session.model, true, { basePath: documentPath });
+    } else if (mode === "wysiwyg") {
+      await mountRichTextEditor(richHost, session.model, false, {
+        basePath: documentPath,
+        onModelChange: (nextModel, touched) => {
+          if (!session) {
+            return;
+          }
+          session = { ...session, model: nextModel };
+          void commitModelToMarkdown(touched);
+        },
+      });
+    }
   }
+
+  if (splitPreviewHost && split) {
+    await mountRichTextEditor(splitPreviewHost, session.model, true, { basePath: documentPath });
+  }
+}
+
+function installSessionListeners() {
+  if (document.body.dataset.documentEditorListeners) {
+    return;
+  }
+  document.body.dataset.documentEditorListeners = "1";
+  window.addEventListener("unibrowser-document-session-updated", (ev) => {
+    const detail = (ev as CustomEvent).detail as DocumentParseResponse & {
+      model: DocumentModelDto;
+      source_map: SourceMapDto;
+      original_base64: string;
+      dirty_block_ids?: string[];
+      touched_block_ids?: string[];
+    };
+    session = {
+      model: detail.model,
+      source_map: detail.source_map,
+      original_base64: detail.original_base64,
+    };
+    void renderRich();
+  });
+  window.addEventListener("unibrowser-document-parse-opaque", async (ev) => {
+    const blockId = (ev as CustomEvent).detail?.blockId as string | undefined;
+    if (!blockId || !session || !documentPath) {
+      return;
+    }
+    await appendDocumentHistoryOp(documentPath, {
+      op_type: "base-text.opaque.replace",
+      block_id: blockId,
+      raw: "",
+    }).catch(() => undefined);
+    const { invoke } = await import("@tauri-apps/api/core");
+    const promoted = await invoke<DocumentParseResponse>("document_promote_opaque", {
+      model: session.model,
+      source_map: session.source_map,
+      original_base64: session.original_base64,
+      dirty_block_ids: [],
+      touched_block_ids: [],
+      block_id: blockId,
+    }).catch(() => null);
+    if (promoted) {
+      session = promoted;
+      void renderRich();
+      await commitModelToMarkdown([blockId]);
+    }
+  });
 }
 
 export async function syncDocumentEditorForTextTab(
@@ -152,6 +247,8 @@ export async function syncDocumentEditorForTextTab(
   monacoHost = monacoEditorHost;
   documentPath = path;
   relocateDocumentEditorSurfaces(monacoEditorHost);
+  document.body.dataset.activeDocumentPath = path;
+  installSessionListeners();
   if (!isMarkdownPath(path)) {
     document.getElementById("document-mode-inline-host")?.remove();
     document.getElementById("document-mode-strip-host")?.classList.add("hidden");
@@ -198,11 +295,24 @@ export async function syncDocumentEditorForTextTab(
     const { setDocumentEditorMode } = await import("./documentEditorModes");
     setDocumentEditorMode("source", false);
   }
+  if (demo.includes("doc-mode-split") && demo.includes("doc-merge-banner")) {
+    const { setDocumentEditorMode } = await import("./documentEditorModes");
+    setDocumentEditorMode("split", false);
+    seedDemoMergeBanner(monacoEditorHost.parentElement ?? monacoEditorHost);
+  }
   ensureRichHost(monacoEditorHost);
   ensureSplitPreview(monacoEditorHost);
   hideLegacyMarkdownPreview();
   applySurfaceVisibility(getDocumentEditorMode());
   await renderRich();
+}
+
+export async function onMonacoMarkdownContentChanged(content: string) {
+  if (!monacoHost?.parentElement) {
+    return;
+  }
+  const { checkSourceBuffer } = await import("./documentSourceMerge");
+  await checkSourceBuffer(monacoHost.parentElement, content);
 }
 
 export function getDocumentModelSession(): {
@@ -214,4 +324,10 @@ export function getDocumentModelSession(): {
     return null;
   }
   return session;
+}
+
+export function teardownDocumentEditor() {
+  destroyRichTextEditor();
+  hideSourceMergeBanner();
+  session = null;
 }

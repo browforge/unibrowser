@@ -240,6 +240,11 @@ function scheduleSync() {
   }
   syncTimer = setTimeout(() => {
     pushToHost().catch(() => {});
+    if (loadedPath && isMarkdownPath(loadedPath) && editor) {
+      void import("./documentEditorHost").then((m) =>
+        m.onMonacoMarkdownContentChanged(editor!.getValue()),
+      );
+    }
   }, 250);
 }
 
@@ -707,6 +712,21 @@ export const textEditor = {
     editor.focus();
     await pushToHost();
     return true;
+  },
+
+  async setContentFromHost(content: string) {
+    if (!editor) {
+      return;
+    }
+    suppressSync = true;
+    try {
+      const model = editor.getModel();
+      if (model && model.getValue() !== content) {
+        model.setValue(content);
+      }
+    } finally {
+      suppressSync = false;
+    }
   },
 
   async refreshProofingMarkers() {

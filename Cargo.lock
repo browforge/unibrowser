@@ -9550,6 +9550,7 @@ dependencies = [
  "scraper",
  "serde",
  "thiserror 2.0.21",
+ "unibrowser-document-model",
  "zip 2.4.2",
 ]
 

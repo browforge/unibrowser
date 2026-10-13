@@ -1252,6 +1252,24 @@ export function validateRichTextDocumentForCapture(): string | null {
 
 /** Returns abort reason or null if editor area looks painted. */
 export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
+  const richDoc = document.querySelector(".rich-text-doc");
+  const mergeBanner = document.querySelector(
+    ".document-source-merge-banner:not(.hidden)",
+  );
+  if (mergeBanner && document.body.classList.contains("document-mode-split")) {
+    return null;
+  }
+  if (
+    richDoc &&
+    !richDoc.classList.contains("hidden") &&
+    (document.body.classList.contains("document-mode-wysiwyg") ||
+      document.body.classList.contains("document-mode-reading"))
+  ) {
+    const text = richDoc.textContent ?? "";
+    if (text.trim().length >= 80) {
+      return null;
+    }
+  }
   const m = collectMonacoDiagnostics();
   if (!m) {
     return "text editor host missing or hidden";
@@ -1262,7 +1280,12 @@ export function validateEditorForCapture(minLines = 6, minVariance = 12): string
   if (m.viewTextLength < 80) {
     return `monaco text length ${m.viewTextLength} < 80`;
   }
-  if (m.hostHeight > 120 && m.editorHeight < m.hostHeight * 0.4) {
+  if (
+    m.hostHeight > 120 &&
+    m.editorHeight < m.hostHeight * 0.4 &&
+    !document.body.classList.contains("document-mode-split") &&
+    !document.body.classList.contains("document-mode-wysiwyg")
+  ) {
     return `monaco editor height ${m.editorHeight} vs host ${m.hostHeight}`;
   }
   const canvas = sampleMonacoCanvasVariance();

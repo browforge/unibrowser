@@ -1,6 +1,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import type { DocumentModelDto } from "./documentModelBridge";
 import { isWebPlatform } from "./platform/isWeb";
+import { mountProseMirrorEditor, type RichTextEditorHandle } from "./richTextProseMirror";
 
 type BlockDto = {
   type: string;
@@ -20,6 +21,13 @@ type InlineMarkDto = {
   kind: string;
   href?: string | null;
 };
+
+export type MountRichTextOptions = {
+  basePath?: string | null;
+  onModelChange?: (model: DocumentModelDto, touchedBlockIds: string[]) => void;
+};
+
+let activeHandle: RichTextEditorHandle | null = null;
 
 function escapeHtml(text: string): string {
   return text
@@ -172,7 +180,7 @@ export function renderDocumentModelToHtml(model: DocumentModelDto, readonly = fa
         break;
       case "opaque":
         parts.push(
-          `<div class="rich-text-opaque" data-block-id="${block.id ?? ""}"><span class="rich-text-opaque-label">${escapeHtml(block.label ?? "Raw Markdown (preserved)")}</span><pre>${escapeHtml(block.raw ?? "")}</pre></div>`,
+          `<div class="rich-text-opaque" data-block-id="${block.id ?? ""}"><span class="rich-text-opaque-label">${escapeHtml(block.label ?? "Raw Markdown (preserved)")}</span><pre>${escapeHtml(block.raw ?? "")}</pre><button type="button" class="rich-text-opaque-parse" data-command="parse-opaque">Parse as Markdown</button></div>`,
         );
         break;
       default:
@@ -214,16 +222,65 @@ async function resolveRichImages(host: HTMLElement, basePath: string): Promise<v
   }
 }
 
-export async function mountRichTextEditor(
+function mountReadonlyHtml(
   host: HTMLElement,
   model: DocumentModelDto,
   readonly: boolean,
   basePath?: string | null,
-): Promise<HTMLElement> {
+): HTMLElement {
   host.innerHTML = renderDocumentModelToHtml(model, readonly);
   host.classList.add("rich-text-editor-host");
+  host.querySelector("article")?.addEventListener("click", (ev) => {
+    const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>("[data-command='parse-opaque']");
+    if (!btn) {
+      return;
+    }
+    ev.preventDefault();
+    window.dispatchEvent(
+      new CustomEvent("unibrowser-document-parse-opaque", {
+        detail: { blockId: btn.closest("[data-block-id]")?.getAttribute("data-block-id") },
+      }),
+    );
+  });
+  if (basePath) {
+    void resolveRichImages(host, basePath);
+  }
+  return host.querySelector("article") ?? host;
+}
+
+export async function mountRichTextEditor(
+  host: HTMLElement,
+  model: DocumentModelDto,
+  readonly: boolean,
+  options?: MountRichTextOptions | string | null,
+  legacyBasePath?: string | null,
+): Promise<HTMLElement> {
+  let basePath: string | null | undefined = legacyBasePath;
+  let onModelChange: MountRichTextOptions["onModelChange"];
+  if (typeof options === "string" || options === null) {
+    basePath = options;
+  } else if (options) {
+    basePath = options.basePath ?? basePath;
+    onModelChange = options.onModelChange;
+  }
+
+  if (readonly || !onModelChange) {
+    activeHandle?.destroy();
+    activeHandle = null;
+    return mountReadonlyHtml(host, model, readonly, basePath);
+  }
+
+  activeHandle?.destroy();
+  activeHandle = mountProseMirrorEditor(host, model, readonly, (next, touched) => {
+    onModelChange?.(next, touched);
+  });
   if (basePath) {
     await resolveRichImages(host, basePath);
   }
   return host.querySelector("article") ?? host;
+}
+
+export function destroyRichTextEditor() {
+  activeHandle?.destroy();
+  activeHandle = null;
 }
