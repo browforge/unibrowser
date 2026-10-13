@@ -179,7 +179,13 @@ export async function ensureDocFeatureCaptureLayout(
     };
     await deps.applyDemoToken("doc-visual-md-docx");
     for (let attempt = 0; attempt < 180; attempt += 1) {
-      if (cardReady()) {
+      await deps.refreshCommandManager();
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
+      await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
+      window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+      if (cardReady() && compactToolbarReady()) {
+        forceDocFeatureCaptureLayout("sample.docx");
         dismissDocCaptureChrome();
         return;
       }
@@ -247,9 +253,26 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   forceDocFeatureCaptureLayout(label);
   dismissDocCaptureChrome();
   const { invoke } = await import("@tauri-apps/api/core");
-  await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
-  window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
+    window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+    if (compactToolbarReady()) {
+      break;
+    }
+    await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
+    window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+    if (compactToolbarReady()) {
+      break;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 80));
+  }
   await new Promise((resolve) => window.setTimeout(resolve, 120));
+  const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
+  if (compactHost) {
+    const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+    seedDocVisualCompactToolbarFallback(compactHost, true);
+  }
+  forceDocFeatureCaptureLayout(label);
   const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
   refreshDocumentCardStatusFooter(false);
 }

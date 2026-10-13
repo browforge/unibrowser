@@ -1,0 +1,55 @@
+{
+  "version": "v4",
+  "captures": [
+    {
+      "file": "doc-wysiwyg-blockquote-desktop-v4.png",
+      "md5": "e7c55947f24453fdb05f462eb93a80ed",
+      "description": "Desktop 1280x800: paper card Visual mode; rich-editor hit-test gate; pale blue blockquote and demo-pack image; compact Heading 2 toolbar."
+    },
+    {
+      "file": "doc-split-apply-banner-desktop-v4.png",
+      "md5": "b9ca3d0773c4ece8d07145a447be6072",
+      "description": "Desktop 1280x800: Split mode merge-apply banner; Monaco source and rich preview columns on the paper card."
+    },
+    {
+      "file": "doc-opaque-card-desktop-v4.png",
+      "md5": "694adfd51679b70c775def1f0c0b3a6b",
+      "description": "Desktop 1280x800: opaque HTML block in Visual rich text; compact in-card toolbar."
+    },
+    {
+      "file": "doc-visual-docx-desktop-v4.png",
+      "md5": "ad068249217ad5376429ec85f52e0bff",
+      "description": "Desktop 1280x800: sample.md saved as sample.docx on one card; full demo-pack body; Word footer; office compact toolbar with Heading 1 and emulated (approx) badge; no duplicate heading layer."
+    },
+    {
+      "file": "doc-history-panel-desktop-v4.png",
+      "md5": "2aa3439445139bbe6bf3c56a553ad012",
+      "description": "Desktop 1280x800: Visual mode with History panel; single rich-text surface (no clipped duplicate Demo markdown line)."
+    },
+    {
+      "file": "doc-wysiwyg-blockquote-web-v4.png",
+      "md5": "09cfcac53b58f9b8c44e5c810797850b",
+      "description": "Web WASM 1280x800: matches desktop blockquote card; rich-editor subtree DOM gate."
+    },
+    {
+      "file": "doc-split-apply-banner-web-v4.png",
+      "md5": "37f68590622589010738abd43e59dd50",
+      "description": "Web WASM 1280x800: Split merge banner on paper card."
+    },
+    {
+      "file": "doc-opaque-card-web-v4.png",
+      "md5": "7eebab69947805bf8e1b0ede574cab2b",
+      "description": "Web WASM 1280x800: opaque block Visual capture."
+    },
+    {
+      "file": "doc-visual-docx-web-v4.png",
+      "md5": "68f46a1d7733afcc8e7331d8c83368ce",
+      "description": "Web WASM 1280x800: same examples/demo-pack/sample.md content as desktop; Word card footer; status bar Word kind; Heading 1 with approx badge on compact toolbar."
+    },
+    {
+      "file": "doc-history-panel-web-v4.png",
+      "md5": "c5d48aa3205a163c5693968cd960bb7d",
+      "description": "Web WASM 1280x800: History panel with Visual rich editor only in the card body."
+    }
+  ]
+}

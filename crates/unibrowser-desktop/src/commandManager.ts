@@ -41,8 +41,12 @@ function compactToolbarTabForSnapshot(
   const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
   if (demo.includes("doc-visual-md-docx")) {
     const officeTab = snapshot.tabs.find((t) => t.id === "office");
+    const textTab = snapshot.tabs.find((t) => t.id === "text");
     if (officeTab && (officeTab.compact_toolbar_families?.length ?? 0) > 0) {
       return { tab: officeTab, autoContext: "office" };
+    }
+    if (textTab && (textTab.compact_toolbar_families?.length ?? 0) > 0) {
+      return { tab: textTab, autoContext: "text" };
     }
   }
   const textTab = snapshot.tabs.find((t) => t.id === "text");

@@ -559,8 +559,21 @@ function statusItemsForContext(
     const problemsText =
       document.getElementById("bottom-panel-tab-problems")?.textContent ?? "";
     const problemsCount = problemsText.match(/\d+/)?.[0] ?? "0";
+    const docPath = (
+      document.body.dataset.activeDocumentPath ??
+      data.text_document.path ??
+      ""
+    ).toLowerCase();
+    const officeDoc =
+      docPath.endsWith(".docx") ||
+      docPath.endsWith(".doc") ||
+      docPath.endsWith(".odt") ||
+      (document.body.dataset.cmAutoContext ?? "") === "office";
+    const languageLabel = officeDoc
+      ? "Word"
+      : values.language || data.text_document.language || "Text";
     left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
-    left.push(item("document-language", "left", values.language || data.text_document.language || "Text", 80));
+    left.push(item("document-language", "left", languageLabel, 80));
     left.push(item("document-caret", "left", values.cursor, 80));
     right.push(item("document-problems", "right", `Problems ${problemsCount}`, 70));
     right.push(item("document-encoding", "right", values.encoding || "UTF-8", 60));
@@ -3206,6 +3219,15 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
                 await applyDemoState(token);
               },
             });
+            if (demoLowerInteractive.includes("doc-visual-md-docx")) {
+              const compactHost = document.getElementById("text-compact-toolbar-host");
+              if (compactHost) {
+                const { seedDocVisualCompactToolbarFallback } = await import(
+                  "./textCompactToolbar"
+                );
+                seedDocVisualCompactToolbarFallback(compactHost, true);
+              }
+            }
           }
           if (demo.toLowerCase().includes("ai")) {
             await refreshAiAssistantChrome();

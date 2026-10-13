@@ -269,6 +269,11 @@ export async function applyDemoState(raw: string) {
         }
         const { finalizeVisualDocxAfterSave } = await import("./ui/textDocumentCard");
         await finalizeVisualDocxAfterSave(saved);
+        const compactHost = document.getElementById("text-compact-toolbar-host");
+        if (compactHost) {
+          const { seedDocVisualCompactToolbarFallback } = await import("./textCompactToolbar");
+          seedDocVisualCompactToolbarFallback(compactHost, true);
+        }
         break;
       }
       case "text-card-render1": {

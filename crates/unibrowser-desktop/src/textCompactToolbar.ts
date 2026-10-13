@@ -448,6 +448,78 @@ function renderCompactRow(
   syncTextDocumentCard(true, fileLabel);
 }
 
+export function seedDocVisualCompactToolbarFallback(
+  primaryHost: HTMLElement,
+  force = false,
+): void {
+  if (
+    !force &&
+    (!docxVisualDocFeatureCapture() || !document.body.classList.contains("text-document-card"))
+  ) {
+    return;
+  }
+  const toolbarMount = document.getElementById("document-card-toolbar-mount");
+  if (toolbarMount && primaryHost.parentElement !== toolbarMount) {
+    toolbarMount.appendChild(primaryHost);
+  }
+  const existingTrigger = primaryHost.querySelector<HTMLButtonElement>(
+    ".text-compact-block-trigger",
+  );
+  if (existingTrigger) {
+    if (!force) {
+      return;
+    }
+    const label = existingTrigger.querySelector<HTMLElement>(".text-compact-block-label");
+    if (label) {
+      label.textContent = "Heading 1";
+    }
+    if (!existingTrigger.querySelector(".block-emulation-badge, .cm-emulation-mark")) {
+      const mark = document.createElement("span");
+      mark.className = "cm-emulation-mark block-emulation-badge";
+      mark.textContent = "≈";
+      mark.setAttribute("role", "img");
+      mark.setAttribute("aria-label", "Emulated: Approximated style");
+      mark.title = "Approximated style";
+      const chevron = existingTrigger.querySelector(".text-compact-chevron");
+      if (chevron) {
+        existingTrigger.insertBefore(mark, chevron);
+      } else {
+        existingTrigger.appendChild(mark);
+      }
+    }
+    return;
+  }
+  if (force) {
+    document.body.classList.add("text-document-card", "text-compact-visible", "cm-collapsed");
+    document.getElementById("document-card-shell")?.classList.remove("hidden");
+  }
+  primaryHost.classList.remove("hidden");
+  document.body.classList.add("text-compact-visible");
+  document.body.classList.add("cm-collapsed");
+  const tools = document.createElement("div");
+  tools.className = "text-compact-tools";
+  const picker = document.createElement("div");
+  picker.className = "text-compact-block-picker";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "text-compact-btn text-compact-block-trigger ui-command emulated";
+  btn.dataset.controlId = "unibrowser.semantic.block.heading_1";
+  const label = document.createElement("span");
+  label.className = "text-compact-block-label";
+  label.textContent = "Heading 1";
+  const mark = document.createElement("span");
+  mark.className = "cm-emulation-mark block-emulation-badge";
+  mark.textContent = "≈";
+  mark.setAttribute("role", "img");
+  mark.setAttribute("aria-label", "Emulated: Approximated style");
+  mark.title = "Approximated style";
+  btn.append(label, mark);
+  picker.appendChild(btn);
+  tools.appendChild(picker);
+  primaryHost.replaceChildren(tools);
+  syncTextDocumentCard(true, "sample.docx");
+}
+
 export function refreshTextCompactToolbar(
   primaryHost: HTMLElement,
   modHost: HTMLElement,
@@ -457,6 +529,8 @@ export function refreshTextCompactToolbar(
   onRun: (commandId: string) => Promise<void>,
   chordByCommand: Map<string, string>,
 ) {
+  const docFeatureDocxCapture =
+    docxVisualDocFeatureCapture() && document.body.classList.contains("text-document-card");
   const show =
     tab &&
     (tab.compact_toolbar_families?.length ?? 0) > 0 &&
@@ -465,6 +539,10 @@ export function refreshTextCompactToolbar(
   modHost.classList.add("hidden");
   modHost.innerHTML = "";
   if (!show || !tab) {
+    if (docFeatureDocxCapture) {
+      seedDocVisualCompactToolbarFallback(primaryHost);
+      return;
+    }
     primaryHost.innerHTML = "";
     document.body.classList.remove("text-compact-visible");
     document.body.classList.remove("cm-collapsed");

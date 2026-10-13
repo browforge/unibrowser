@@ -559,6 +559,9 @@ test.describe("Document feature captures", () => {
       if (shot.wait) {
         await page.locator(shot.wait).first().waitFor({ timeout: 90_000 });
       }
+      if (shot.name.includes("doc-visual-docx")) {
+        await page.locator(".block-emulation-badge").first().waitFor({ timeout: 90_000 });
+      }
       await page.getByRole("button", { name: "Skip tour" }).click({ timeout: 2000 }).catch(() => undefined);
       await page.getByRole("button", { name: "Dismiss" }).click({ timeout: 2000 }).catch(() => undefined);
       await assertDocFeatureCaptureChrome(page);
