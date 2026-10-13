@@ -68,7 +68,7 @@ Templates are **starting graphs + optional asset blobs + metadata**. They are no
 **Apply algorithm:**
 
 1. Create empty project session (§2).
-2. Run **relationship resolution** for the template pack ([ADR 0037](0037-plugin-and-template-relationships.md)); show consent sheet for requires/recommends before continuing.
+2. Run **relationship resolution** for the template pack ([ADR 0037](0037-plugin-and-template-relationships.md)); on **Create**, show consent sheet (requires locked with reasons; recommends **checked**; optional **unchecked**).
 3. Replace graph from `project.json`; register assets from `assets/`.
 4. On first mutating op, write **pin header** for exact versions of enabled plugins ([ADR 0031](0031-edit-history-as-file-format.md) §3).
 5. Unsatisfied `requires` after user dismisses consent: **inline banner** with **Install**; optional integrations stay grey per ADR 0037; never block Save.

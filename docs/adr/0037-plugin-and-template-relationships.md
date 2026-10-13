@@ -28,8 +28,8 @@ All relationship entries reference a **plugin id** (`name` from `info.json`) and
 | Kind | JSON key | Factorio analogue | npm analogue | Meaning |
 | --- | --- | --- | --- | --- |
 | **Requires** | `requires` | (no prefix) | `dependencies` | Hard dependency. Host **refuses to enable** the declaring pack/mod or **refuses to apply** the template until every `requires` entry is satisfied by an **enabled** plugin version in range. |
-| **Recommends** | `recommends` | (ecosystem convention) | suggested / `peerDependencies`-like | **Suggested** companion. Shown at install/apply with **checkboxes**; **never auto-enabled** without user opt-in. Example: a DOCX **export** mod recommends a **document editor** mod. |
-| **Optional** | `optional` | `?` optional | `optionalDependencies` | If present and enabled, the host **loads integration hooks**; if absent, the declaring mod/template still works (features may be greyed). No prompt unless user opens “Enhancements”. |
+| **Recommends** | `recommends` | (ecosystem convention) | suggested / `peerDependencies`-like | **Suggested** companion on the consent sheet: **checkbox on by default**; user may uncheck before **Continue**. Example: a DOCX **export** mod recommends a **document editor** mod. |
+| **Optional** | `optional` | `?` optional | `optionalDependencies` | Listed on the same sheet with **checkbox off by default**; user may enable. If absent or unchecked, the declaring mod/template still works (integration hooks off). |
 | **Incompatible** | `incompatible` | `!` | (no direct field; overrides) | If the other plugin is **enabled**, the declaring plugin **cannot be enabled** and the template **cannot be applied**. UI shows **reason** string from manifest (required). |
 
 **Not modelled here (future):** Factorio `~` (dependency without load-order edge). Unibrowser load order remains topological on `requires` only ([ADR 0006](0006-mod-manifest-and-versioning.md)).
@@ -67,7 +67,8 @@ Add (or migrate from legacy `dependencies` / `optional_dependencies`):
 ```
 
 - Legacy `dependencies` maps to `relationships.requires` on load (deprecation warning in portal).
-- `incompatible` values are either a **range string** (shorthand) or `{ "range", "reason" }` object; `reason` is mandatory in object form and shown in UI.
+- `requires`, `recommends`, and `optional` values are a **range string** or `{ "range", "reason" }`; `reason` is shown on the consent sheet (required for `incompatible`; strongly encouraged for `requires`).
+- `incompatible` values use the same object form; `reason` is mandatory and shown in UI.
 
 #### 2b. Template `template.json`
 
@@ -94,16 +95,16 @@ Single **relationship consent** surface (non-modal sheet; blocks the triggering 
 
 | Section | Controls | Default |
 | --- | --- | --- |
-| **Required** | List plugin id, version range, installed candidate version | All must be installed/enabled to continue; **Continue** disabled until satisfied or user runs **Install missing** |
-| **Recommended** | Checkbox per entry + one-line `recommend_reason` from manifest (optional; host falls back to generic copy) | **Unchecked** by default (user opts in) |
-| **Optional** | Collapsed “Enhancements (optional)” with checkboxes | Unchecked |
+| **Required** | Locked **on** (no toggle); plugin id, version range, installed candidate; manifest **`reason`** or host fallback | All must be installed/enabled; **Continue** disabled until satisfied or user runs **Install missing** |
+| **Recommended** | Checkbox per entry + manifest **`reason`** (or fallback) | **Checked** by default; user may uncheck any entry |
+| **Optional** | Checkbox per entry + **`reason`** (or fallback); same sheet, below recommends | **Unchecked** by default; user may check any entry |
 | **Incompatible** | Read-only red list if user already has conflicting mods enabled | **Continue** disabled until user disables conflicting mod or cancels |
 
 **Install from portal:** show consent after **Install** click, before download when network needed ([ADR 0029](0029-plugin-permissions-and-network-security.md)).
 
-**Apply template:** show consent after template selection, **before** configure step ([new-project-flow.md](../design/new-project-flow.md)). Required missing → **Install** / **Cancel**; recommends unchecked unless user ticks.
+**Apply template:** show consent on **Create** after configure ([new-project-flow.md](../design/new-project-flow.md)). Required missing → **Install** / **Cancel**; recommends start checked; optional start unchecked.
 
-**Never:** silent install of recommends; force-enable optional; enable incompatible pair.
+**Never:** skip the consent sheet; enable incompatible pair; turn on optional entries without an explicit user check.
 
 Save, autosave, and foreign-file open remain enabled when relationships are unsatisfied; only the **dependent feature** greys out ([ADR 0023](0023-saving-is-sacred.md)).
 
@@ -112,8 +113,8 @@ Save, autosave, and foreign-file open remain enabled when relationships are unsa
 | Event | Lock / pin behaviour |
 | --- | --- |
 | User enables mods after consent | Pin header records **exact** `plugin_version` per enabled id |
-| User applies template | Template `id@version` stored in `manifest.json` on first save ([ADR 0036](0036-new-project-empty-by-default-and-templates.md)); pins reflect **enabled** plugins after apply, not unchecked recommends |
-| User checks a **recommend** at apply | Install/enable → pin on first op |
+| User applies template | Template `id@version` stored in `manifest.json` on first save ([ADR 0036](0036-new-project-empty-by-default-and-templates.md)); pins reflect plugins **enabled after consent** (checked requires, checked recommends, checked optional) |
+| User unchecks a **recommend** or **optional** on the sheet | Those ids are not installed/enabled; not pinned on first op |
 | Hub updates plugin | Does not rewrite pins; **Update available** in portal; replay still uses pinned version until user runs **Upgrade project plugins** (future command) |
 | Missing pin at replay | Block replay for that plugin’s ops with **Install version x.y.z** (existing ADR 0031 rule) |
 
@@ -145,7 +146,7 @@ Portal list rows show chips: **Needs mod**, **Conflict**, **Recommend available*
 
 | Check | Answer |
 | --- | --- |
-| Trusts the user | Yes — recommends are opt-in; clear conflicts |
+| Trusts the user | Yes — recommends default on but user can decline; clear conflicts |
 | Never blocks save or work | Yes — blocks enable/apply, not Save |
 | Local-first | Yes — resolution uses installed cache |
 | Predictable and consistent | Yes — same four kinds for mods and templates |

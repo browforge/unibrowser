@@ -111,7 +111,7 @@ Paper sub-panel (same shell), after template passes relationship pre-check:
 
 Buttons: **Back**, **Create** (primary), **Cancel**.
 
-**Create** runs: relationship consent sheet (requires locked on; **recommends** checkboxes **unchecked by default** per [ADR 0037](../adr/0037-plugin-and-template-relationships.md)) → apply template in memory → close gallery → project tab.
+**Create** runs: relationship consent sheet ([ADR 0037](../adr/0037-plugin-and-template-relationships.md)): **requires** locked on with reason; **recommends** checked by default (user may uncheck); **optional** listed and unchecked by default (user may check) → install/enable selected → apply template in memory → close gallery → project tab.
 
 ### Search
 
@@ -173,7 +173,7 @@ Palette strings must match menu labels exactly ([ux.md](ux.md)).
 3. Load `project.json` + assets from template pack ([ADR 0036](../adr/0036-new-project-empty-by-default-and-templates.md) §4).
 4. If `default_workspace` set, switch layout once (Browse/Write/Create/Live) without changing open tabs.
 5. Tab title: configure **Project name**; unsatisfied requires → banner with **Install**; Save still enabled.
-6. Pin header on first edit records enabled plugin versions, not unchecked recommends.
+6. Pin header on first edit records plugin versions enabled after consent (includes recommends left checked; excludes user-unchecked recommends and optional).
 
 ## Behaviour: open foreign file (unchanged)
 

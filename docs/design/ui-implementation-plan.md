@@ -2385,7 +2385,7 @@ Likely files: project tab chrome, mod dependency resolver.
 
 Acceptance:
 
-- Apply video template without `base-video` → consent blocks Create until install or cancel; post-apply banner if user skipped optional recommends only.
+- Apply video template without `base-video` → consent blocks Create until install or cancel; post-apply banner only if requires still unsatisfied after sheet.
 
 ### NEW-09: First Save dialog and recents
 
@@ -2459,14 +2459,15 @@ Status: open.
 
 Work:
 
-- Non-modal sheet: required list (locked), recommends checkboxes (**unchecked** default), optional collapsed, incompatible read-only block.
+- Non-modal sheet: requires locked on with reason; recommends checkboxes (**checked** default, user may uncheck); optional listed with checkboxes (**unchecked** default); incompatible read-only block.
 - Wire to portal install and template **Create**.
 
 Likely files: `modPortalUi.ts`, template gallery step B.
 
 Acceptance:
 
-- Recommends never install without checkbox.
+- Recommends install/enable when left checked; skipped when user unchecks before Continue.
+- Optional install/enable only when user checks.
 - Continue disabled until requires satisfied or user cancels.
 
 ### REL-04: Pin header integration
@@ -2475,13 +2476,13 @@ Status: open.
 
 Work:
 
-- After enable/apply + first op, pin exact versions of enabled plugins per ADR 0031; exclude unchecked recommends.
+- After enable/apply + first op, pin exact versions of plugins enabled via consent per ADR 0031.
 
 Likely files: history writer, project session.
 
 Acceptance:
 
-- Apply template with one recommend checked → only checked mod pinned after edit.
+- Apply template with default recommends → those mods pinned after first edit; unchecking a recommend before Continue excludes it from pins.
 - Replay opens project with pinned versions.
 
 ### REL-05: Portal chips and conflict copy
