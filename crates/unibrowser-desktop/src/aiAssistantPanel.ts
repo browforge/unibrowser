@@ -258,8 +258,12 @@ async function refreshPanel() {
 }
 
 export async function setAiPanelVisible(visible: boolean) {
-  const alreadyVisible = panelEl ? !panelEl.classList.contains("hidden") : visible;
-  if (alreadyVisible === visible) {
+  if (panelEl) {
+    const isVisible = !panelEl.classList.contains("hidden");
+    if (isVisible === visible) {
+      return;
+    }
+  } else if (!visible) {
     return;
   }
   const prefs = await invoke<AiPrefs>("get_ai_assistant_prefs");

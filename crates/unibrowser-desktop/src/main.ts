@@ -1,8 +1,10 @@
 import "./shellBootstrap";
 import {
   hideShellFallback,
+  hideSubsystemNoticeForCapture,
   reportSubsystemError,
   safeSubsystemInit,
+  validateSubsystemNoticeHiddenForCapture,
 } from "./shellBootstrap";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -171,7 +173,11 @@ import {
 import { initTerminalPanel, toggleTerminalPanel } from "./terminalPanel";
 import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } from "./aiAssistantPanel";
 import { syncContextDockPolicy } from "./contextDock";
-import { applyDemoState } from "./demoState";
+import {
+  applyDeferredTextToolbarDemoTokens,
+  applyDemoState,
+  bootstrapDemoStateTokens,
+} from "./demoState";
 import {
   appendModCatalogCard,
   appendModSuggestionCard,
@@ -3029,6 +3035,46 @@ function deferNonCriticalInit(fn: () => void) {
   }
 }
 
+function mountActivityRail() {
+  const workAreaRow = document.querySelector(".ub-work-area-row") as HTMLElement | null;
+  if (!workAreaRow) {
+    return;
+  }
+  initActivityRail({
+    workAreaRow,
+    onDestination: (id) => {
+      if (id === "files") {
+        if (filesPanel.childElementCount === 0) {
+          return;
+        }
+        filesBrowserWrap.classList.toggle("hidden");
+        if (!filesBrowserWrap.classList.contains("hidden")) {
+          void refreshState();
+        }
+        return;
+      }
+      if (id === "search") {
+        toggleGlobalFind(lastBrowseFolderPath);
+        return;
+      }
+      if (id === "settings") {
+        omnibox.value = "unibrowser://settings";
+        void navigateOmnibox();
+        return;
+      }
+      if (id === "project") {
+        omnibox.value = "unibrowser://action/new-project";
+        void navigateOmnibox();
+        return;
+      }
+      if (id === "assets") {
+        omnibox.value = "unibrowser://mods";
+        void navigateOmnibox();
+      }
+    },
+  });
+}
+
 safeSubsystemInit("script-output", () => initScriptOutputPanel());
 safeSubsystemInit("terminal", () => initTerminalPanel());
 safeSubsystemInit("problems", () => initProblemsPanel());
@@ -3063,7 +3109,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     hideShellFallback();
     void refreshState().then(async () => {
       await loadThemePreference();
+      mountActivityRail();
       const launchPaths = await invoke<string[]>("take_launch_open_paths");
+      const docCapturePath = await invoke<string | null>("take_doc_capture_path");
       const demo = await invoke<string | null>("get_demo_state");
       if (demo) {
         applyThemeFromDemoState(demo);
@@ -3110,12 +3158,27 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       }
       if (demo) {
         try {
-          await applyDemoState(demo);
+          const bootstrap = bootstrapDemoStateTokens(demo);
+          if (bootstrap) {
+            await applyDemoState(bootstrap);
+          }
         } catch (err) {
           reportSubsystemError("demo-state", err);
         }
       }
-      const docCapture = await invoke<string | null>("take_doc_capture_path");
+      if (demo && !docCapturePath) {
+        try {
+          await refreshCommandManager();
+          await applyDeferredTextToolbarDemoTokens(demo);
+          if (demo.toLowerCase().includes("ai")) {
+            await refreshAiAssistantChrome();
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 80));
+        } catch (err) {
+          reportSubsystemError("demo-state", err);
+        }
+      }
+      const docCapture = docCapturePath;
       if (docCapture) {
         const demoAgain = await invoke<string | null>("get_demo_state");
         if (demoAgain?.toLowerCase().includes("cmd-proving-detached")) {
@@ -3123,14 +3186,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         }
         if (demoAgain) {
           try {
-            const deferredCaptureTokens =
-              /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$)/;
-            const bootstrapDemo = demoAgain
-              .split(/[,;]+/)
-              .map((t) => t.trim())
-              .filter(Boolean)
-              .filter((t) => !deferredCaptureTokens.test(t.toLowerCase()))
-              .join(",");
+            const bootstrapDemo = bootstrapDemoStateTokens(demoAgain);
             if (bootstrapDemo) {
               await applyDemoState(bootstrapDemo);
               await refreshState();
@@ -3234,19 +3290,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             demoTokens.includes("txt-mod-toolbar-visible")
           ) {
             await refreshCommandManager();
-            if (demoTokens.includes("txt-mod-toolbar-visible")) {
-              await applyDemoState("txt-mod-toolbar-visible");
-              await refreshCommandManager();
-            }
-            for (const token of ["txt-apply-h2", "txt-apply-h1"]) {
-              if (demoTokens.includes(token)) {
-                await applyDemoState(token);
-                await refreshCommandManager();
-              }
-            }
-            if (demoTokens.includes("txt-block-picker-open")) {
-              await applyDemoState("txt-block-picker-open");
-            }
+            await applyDeferredTextToolbarDemoTokens(demoAgain ?? "");
             await new Promise((resolve) => window.setTimeout(resolve, 100));
           }
           const diag = collectDocCaptureDiagnostics();
@@ -3474,9 +3518,26 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               };
             }
           }
+          const shellNoticeErr = validateSubsystemNoticeHiddenForCapture();
+          if (shellNoticeErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${shellNoticeErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          hideSubsystemNoticeForCapture();
+          const pickerOpen = demoLower.includes("txt-block-picker-open");
           clearCaptureHoverAndTooltips(
             demoAgain?.toLowerCase().includes("ui19-focus-visible") ?? false,
+            pickerOpen,
           );
+          if (pickerOpen) {
+            const host = document.getElementById("text-compact-toolbar-host");
+            if (host) {
+              const { openBlockStyleMenuForCapture } = await import("./textCompactToolbar");
+              openBlockStyleMenuForCapture(host);
+            }
+          }
           await invoke("finish_doc_capture_and_exit", { editorRegion });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -3501,40 +3562,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
     onReload: () => void invoke<TabContentDto>("reload_tab").then(applyState),
     navigateOmnibox: () => void navigateOmnibox(),
   });
-  const workAreaRow = document.querySelector(".ub-work-area-row") as HTMLElement;
-  initActivityRail({
-    workAreaRow,
-    onDestination: (id) => {
-      if (id === "files") {
-        if (filesPanel.childElementCount === 0) {
-          return;
-        }
-        filesBrowserWrap.classList.toggle("hidden");
-        if (!filesBrowserWrap.classList.contains("hidden")) {
-          void refreshState();
-        }
-        return;
-      }
-      if (id === "search") {
-        toggleGlobalFind(lastBrowseFolderPath);
-        return;
-      }
-      if (id === "settings") {
-        omnibox.value = "unibrowser://settings";
-        void navigateOmnibox();
-        return;
-      }
-      if (id === "project") {
-        omnibox.value = "unibrowser://action/new-project";
-        void navigateOmnibox();
-        return;
-      }
-      if (id === "assets") {
-        omnibox.value = "unibrowser://mods";
-        void navigateOmnibox();
-      }
-    },
-  });
+  mountActivityRail();
   commandManager.bindCollapseControl(commandManagerCollapse);
   commandManager.bindPinControl(
     commandManagerPin,

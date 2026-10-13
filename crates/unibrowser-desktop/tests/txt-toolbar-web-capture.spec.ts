@@ -16,7 +16,9 @@ test.describe("TXT toolbar web evidence", () => {
     mkdirSync(OUT_DIR, { recursive: true });
     mkdirSync(ART_DIR, { recursive: true });
 
-    const demo = process.env.UB_WEB_DEMO ?? "theme-light,text-card-render1,txt-apply-h2,txt-block-picker-open";
+    const demo =
+      process.env.UB_WEB_DEMO ??
+      "theme-light,text-card-render1,title-breadcrumb,ai,ai-mockup-composer,rail-expanded,txt-apply-h2,txt-block-picker-open";
     await page.goto(`./?demo=${encodeURIComponent(demo)}`);
 
     await expect(page.locator("html")).toHaveAttribute("data-ub-web-wasm", "1", {
@@ -35,6 +37,13 @@ test.describe("TXT toolbar web evidence", () => {
       timeout: 30_000,
     });
     await expect(page.locator("#command-manager")).toBeHidden({ timeout: 15_000 });
+
+    await expect(page.locator("#shell-subsystem-notice")).toBeHidden({ timeout: 5_000 });
+    await expect(page.locator("#activity-rail")).toHaveClass(/expanded/, { timeout: 15_000 });
+    await expect(page.locator("#activity-rail .rail-destination")).toHaveCount(6, {
+      timeout: 15_000,
+    });
+    await expect(page.locator(".ai-assistant-panel")).toBeVisible({ timeout: 15_000 });
 
     const host = page.locator("#text-compact-toolbar-host");
     await expect(host).toBeVisible({ timeout: 30_000 });
@@ -85,9 +94,9 @@ test.describe("TXT toolbar web evidence", () => {
       document.activeElement instanceof HTMLElement && document.activeElement.blur();
     });
 
-    await expect(host.locator(".text-compact-block-menu:not(.hidden)")).toBeVisible({
-      timeout: 15_000,
-    });
+    const openMenu = host.locator(".text-compact-block-menu:not(.hidden)");
+    await expect(openMenu).toBeVisible({ timeout: 15_000 });
+    await expect(openMenu.locator(".text-compact-block-item").first()).toBeVisible();
     await expect(host.locator(".text-compact-block-label")).toHaveText("Heading 2");
     await expect(
       host.locator('[data-command-id="unibrowser.semantic.block.heading_2"]'),

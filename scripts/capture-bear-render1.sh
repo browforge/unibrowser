@@ -18,7 +18,7 @@ echo "=== capture txt-web-markdown-picker-h2 (web build, Playwright) ==="
 (
   cd "$ROOT/crates/unibrowser-desktop"
   npm run build:web
-  UB_WEB_DEMO="theme-light,text-card-render1,txt-apply-h2,txt-block-picker-open" \
+  UB_WEB_DEMO="theme-light,text-card-render1,title-breadcrumb,ai,ai-mockup-composer,rail-expanded,txt-apply-h2,txt-block-picker-open" \
     npx playwright test tests/txt-toolbar-web-capture.spec.ts --config playwright.config.ts
 )
 

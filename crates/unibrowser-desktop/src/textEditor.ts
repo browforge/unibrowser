@@ -2,6 +2,7 @@ import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import { applyMarkdownPreview } from "./markdownPreview";
 import { textReadingStats } from "./textStats";
+import { inferSemanticBlockStyleAtCursor as inferFromLine } from "./semanticBlockStyle";
 import { t } from "./i18n";
 import {
   attachSpellcheckPane,
@@ -128,58 +129,18 @@ export function getActiveTextContent(): string | null {
   return editor.getModel()?.getValue() ?? null;
 }
 
-const BLOCK_STYLE_BY_LEVEL: { commandId: string; label: string }[] = [
-  { commandId: "unibrowser.semantic.block.heading_1", label: "Heading 1" },
-  { commandId: "unibrowser.semantic.block.heading_2", label: "Heading 2" },
-  { commandId: "unibrowser.semantic.block.heading_3", label: "Heading 3" },
-  { commandId: "unibrowser.semantic.block.heading_4", label: "Heading 4" },
-  { commandId: "unibrowser.semantic.block.heading_5", label: "Heading 5" },
-  { commandId: "unibrowser.semantic.block.heading_6", label: "Heading 6" },
-];
-
-/** Block-style picker trigger label from the cursor line (markdown/plain); docx uses engine default until wired. */
+/** Block-style picker trigger label from the cursor line (markdown/plain); docx uses demo dataset when set. */
 export function inferSemanticBlockStyleAtCursor(): { commandId: string; label: string } {
-  const fallback = {
-    commandId: "unibrowser.semantic.block.paragraph",
-    label: "Paragraph",
-  };
-  const demoLabel = document.body.dataset.ubBlockStyleLabel?.trim();
-  const demoCommand = document.body.dataset.ubBlockStyleCommandId?.trim();
-  if (demoLabel && demoCommand) {
-    return { commandId: demoCommand, label: demoLabel };
-  }
   if (!editor || !loadedPath) {
-    return fallback;
+    return inferFromLine(() => null, 1, false);
   }
   const model = editor.getModel();
   const line = editor.getPosition()?.lineNumber ?? 1;
-  if (!model || line < 1 || line > model.getLineCount()) {
-    return fallback;
-  }
-  const text = model.getLineContent(line);
-  if (isMarkdownPath(loadedPath)) {
-    const heading = text.match(/^(#{1,6})\s/);
-    if (heading) {
-      const level = heading[1].length;
-      const entry = BLOCK_STYLE_BY_LEVEL[level - 1];
-      if (entry) {
-        return entry;
-      }
-    }
-    if (/^>\s/.test(text)) {
-      return {
-        commandId: "unibrowser.semantic.block.blockquote",
-        label: "Block quote",
-      };
-    }
-    if (/^```/.test(text)) {
-      return {
-        commandId: "unibrowser.semantic.block.code_block",
-        label: "Code block",
-      };
-    }
-  }
-  return fallback;
+  return inferFromLine(
+    (n) => model?.getLineContent(n) ?? null,
+    line,
+    isMarkdownPath(loadedPath),
+  );
 }
 
 /** Self-test / automation: append text at end of active Monaco document. */

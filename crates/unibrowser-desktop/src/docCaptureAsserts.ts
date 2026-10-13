@@ -1339,7 +1339,10 @@ export function validateCommandManagerMutedForCapture(): string | null {
 }
 
 /** Hide hover chrome and optionally preserve intentional keyboard-focus evidence. */
-export function clearCaptureHoverAndTooltips(preserveFocus = false): void {
+export function clearCaptureHoverAndTooltips(
+  preserveFocus = false,
+  preserveBlockPicker = false,
+): void {
   document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
   document.querySelectorAll<HTMLElement>(".rail-destination, .rail-edge-hit").forEach((el) => {
     el.removeAttribute("title");
@@ -1347,7 +1350,16 @@ export function clearCaptureHoverAndTooltips(preserveFocus = false): void {
   if (!preserveFocus) {
     const active = document.activeElement;
     if (active instanceof HTMLElement) {
-      active.blur();
+      const keepPickerFocus =
+        preserveBlockPicker &&
+        Boolean(
+          document.querySelector(
+            "#text-compact-toolbar-host .text-compact-block-menu:not(.hidden)",
+          ),
+        );
+      if (!keepPickerFocus) {
+        active.blur();
+      }
     }
   }
   document.body.dispatchEvent(
@@ -1603,9 +1615,13 @@ export function validateTextCompactToolbarForCapture(
         return "block-style picker must list Heading 1 for docx capture";
       }
       const trigger = host.querySelector<HTMLElement>(".text-compact-block-trigger");
-      const mark = trigger?.querySelector<HTMLElement>(".cm-emulation-mark");
+      const mark = trigger?.querySelector<HTMLElement>(".block-emulation-badge, .cm-emulation-mark");
       if (!mark?.textContent?.includes("≈")) {
         return "docx block-style picker must show emulated Heading 1 (≈) on trigger";
+      }
+      const markRect = mark.getBoundingClientRect();
+      if (markRect.width < 14 || markRect.height < 12) {
+        return "docx emulation badge must be legible (min 14×12px)";
       }
     }
   }

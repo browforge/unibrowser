@@ -532,6 +532,22 @@ body:not([data-cm-density="large"]) .cm-group-name {
   pointer-events: none;
 }
 
+.text-compact-block-trigger .block-emulation-badge {
+  top: 50%;
+  right: 22px;
+  transform: translateY(-50%);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: #ffe8a3;
+  background: #6b4e16;
+  border: 1px solid #c9a227;
+  border-radius: 4px;
+  pointer-events: auto;
+  cursor: help;
+}
+
 .text-compact-mod-dock {
   display: inline-flex;
   align-items: center;

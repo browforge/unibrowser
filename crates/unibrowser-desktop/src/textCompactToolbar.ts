@@ -95,11 +95,13 @@ function renderBlockStylePicker(
   const chevron = createLucideIcon("chevron-down", 14, "ub-icon svg-icon text-compact-chevron");
   btn.appendChild(chevron);
   if (emulated) {
+    const reason = capabilityReason(control.capability) ?? "Approximated style";
     const mark = document.createElement("span");
-    mark.className = "cm-emulation-mark";
+    mark.className = "cm-emulation-mark block-emulation-badge";
     mark.textContent = "≈";
-    mark.setAttribute("aria-hidden", "true");
-    mark.title = capabilityReason(control.capability) ?? "";
+    mark.setAttribute("role", "img");
+    mark.setAttribute("aria-label", `Emulated: ${reason}`);
+    mark.title = reason;
     btn.appendChild(mark);
   }
   bindCommandTooltip(btn, {

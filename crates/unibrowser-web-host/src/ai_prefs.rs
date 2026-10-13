@@ -42,6 +42,12 @@ impl AiAssistantPrefsWeb {
     pub fn merge_from_args(&mut self, args: &Value) {
         let prefs = args.get("prefs").or(Some(args));
         if let Some(p) = prefs {
+            if let Some(v) = p.get("base_url").and_then(|v| v.as_str()) {
+                self.base_url = Some(v.to_string());
+            }
+            if let Some(v) = p.get("model").and_then(|v| v.as_str()) {
+                self.model = Some(v.to_string());
+            }
             if let Some(v) = p.get("panel_visible").and_then(|v| v.as_bool()) {
                 self.panel_visible = v;
             }
@@ -50,6 +56,12 @@ impl AiAssistantPrefsWeb {
             }
             if let Some(v) = p.get("panel_width").and_then(|v| v.as_f64()) {
                 self.panel_width = v;
+            }
+            if let Some(v) = p.get("panel_x").and_then(|v| v.as_f64()) {
+                self.panel_x = v;
+            }
+            if let Some(v) = p.get("panel_y").and_then(|v| v.as_f64()) {
+                self.panel_y = v;
             }
         }
     }

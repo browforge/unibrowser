@@ -31,6 +31,25 @@ export function showShellFallbackMessage(message: string) {
   }
 }
 
+export function hideSubsystemNoticeForCapture(): void {
+  const notice = noticeEl();
+  if (notice) {
+    notice.classList.add("hidden");
+  }
+}
+
+/** Fail doc-capture / screenshot when a subsystem error toast is still visible. */
+export function validateSubsystemNoticeHiddenForCapture(): string | null {
+  const notice = noticeEl();
+  if (!notice || notice.classList.contains("hidden")) {
+    return null;
+  }
+  const text = notice.querySelector(".shell-subsystem-notice-text")?.textContent?.trim();
+  return text
+    ? `shell subsystem notice visible: ${text}`
+    : "shell subsystem notice visible";
+}
+
 export function reportSubsystemError(subsystem: string, err: unknown) {
   const text = err instanceof Error ? err.message : String(err);
   const line = `${subsystem}: ${text}`;
