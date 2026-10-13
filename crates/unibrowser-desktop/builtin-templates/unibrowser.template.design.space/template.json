@@ -1,0 +1,21 @@
+{
+  "template_schema_version": 1,
+  "id": "unibrowser.template.design.space",
+  "version": "1.0.0",
+  "title": "Design space",
+  "description": "Infinite canvas with layout grids.",
+  "categories": [
+    "design"
+  ],
+  "tags": [
+    "canvas",
+    "design"
+  ],
+  "relationships": {
+    "requires": {},
+    "recommends": {},
+    "optional": {},
+    "incompatible": {}
+  },
+  "default_workspace": "create"
+}

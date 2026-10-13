@@ -1,0 +1,21 @@
+{
+  "template_schema_version": 1,
+  "id": "unibrowser.template.video.simple",
+  "version": "1.0.0",
+  "title": "Simple video",
+  "description": "Timeline with title card placeholder.",
+  "categories": [
+    "video"
+  ],
+  "tags": [
+    "video",
+    "timeline"
+  ],
+  "relationships": {
+    "requires": {},
+    "recommends": {},
+    "optional": {},
+    "incompatible": {}
+  },
+  "default_workspace": "create"
+}

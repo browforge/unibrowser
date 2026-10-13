@@ -20,6 +20,7 @@ mod open_vsx;
 pub mod path_security;
 pub mod preferences;
 mod project_backend;
+mod project_templates;
 mod live_host;
 mod ai_assistant_host;
 mod smf;
@@ -284,6 +285,7 @@ pub fn run() {
             commands::document_history_append,
             commands::document_history_append_snapshot,
             commands::document_save_markdown_as_docx,
+            commands::retarget_active_file_tab_path,
             commands::document_save_docx_from_model,
             commands::document_promote_opaque,
             rhai_host::run_rhai_script,
@@ -469,6 +471,11 @@ pub fn run() {
             commands::set_onboarding_checklist_skip_forever,
             commands::save_window_geometry,
             commands::create_unibrow_project,
+            project_templates::new_empty_project,
+            project_templates::new_project_from_template,
+            project_templates::list_project_templates,
+            project_templates::save_project_as_template,
+            project_templates::remove_user_template,
             commands::list_mod_catalog,
             surface_capability_api::list_surface_capability_groups,
             surface_capability_api::set_capability_default_provider,

@@ -1,0 +1,21 @@
+{
+  "template_schema_version": 1,
+  "id": "unibrowser.template.presentation",
+  "version": "1.0.0",
+  "title": "Presentation",
+  "description": "Slide board with speaker notes region.",
+  "categories": [
+    "presentation"
+  ],
+  "tags": [
+    "slides",
+    "presentation"
+  ],
+  "relationships": {
+    "requires": {},
+    "recommends": {},
+    "optional": {},
+    "incompatible": {}
+  },
+  "default_workspace": "create"
+}

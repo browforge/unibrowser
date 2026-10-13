@@ -1,0 +1,18 @@
+{
+  "format_version": 2,
+  "title": "Office document",
+  "nodes": [
+    {
+      "id": "frame-1",
+      "type": "document",
+      "label": "Document",
+      "x": 48,
+      "y": 56
+    }
+  ],
+  "timeline": {
+    "clips": [],
+    "transitions": [],
+    "markers": []
+  }
+}

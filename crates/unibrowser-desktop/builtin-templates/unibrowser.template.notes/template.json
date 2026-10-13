@@ -1,0 +1,21 @@
+{
+  "template_schema_version": 1,
+  "id": "unibrowser.template.notes",
+  "version": "1.0.0",
+  "title": "Notes board",
+  "description": "Lightweight board with markdown note nodes.",
+  "categories": [
+    "notes"
+  ],
+  "tags": [
+    "notes",
+    "board"
+  ],
+  "relationships": {
+    "requires": {},
+    "recommends": {},
+    "optional": {},
+    "incompatible": {}
+  },
+  "default_workspace": "browse"
+}

@@ -1,0 +1,21 @@
+{
+  "template_schema_version": 1,
+  "id": "unibrowser.template.document.office",
+  "version": "1.0.0",
+  "title": "Office document",
+  "description": "Single rich-text frame with print-oriented page setup.",
+  "categories": [
+    "document"
+  ],
+  "tags": [
+    "office",
+    "document"
+  ],
+  "relationships": {
+    "requires": {},
+    "recommends": {},
+    "optional": {},
+    "incompatible": {}
+  },
+  "default_workspace": "write"
+}

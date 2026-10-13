@@ -1,0 +1,25 @@
+{
+  "format_version": 2,
+  "title": "Notes board",
+  "nodes": [
+    {
+      "id": "note-1",
+      "type": "note",
+      "label": "Note",
+      "x": 48,
+      "y": 56
+    },
+    {
+      "id": "note-2",
+      "type": "note",
+      "label": "Another note",
+      "x": 280,
+      "y": 160
+    }
+  ],
+  "timeline": {
+    "clips": [],
+    "transitions": [],
+    "markers": []
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "format_version": 2,
+  "title": "Design space",
+  "nodes": [
+    {
+      "id": "canvas-1",
+      "type": "canvas",
+      "label": "Canvas",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "timeline": {
+    "clips": [],
+    "transitions": [],
+    "markers": []
+  }
+}

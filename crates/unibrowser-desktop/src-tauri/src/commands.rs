@@ -589,6 +589,17 @@ fn tab_browse_path(
     None
 }
 
+fn tab_display_label(state: &AppState, tab: &unibrowser_engine::tabs::Tab) -> String {
+    if let BrowserLocation::File { path } = &tab.location {
+        if unibrowser_project::is_memory_project_root(path) {
+            if let Ok(pkg) = crate::project_templates::open_memory_package(state, path) {
+                return pkg.manifest.title.clone();
+            }
+        }
+    }
+    tab.location.display_label()
+}
+
 fn build_tab_dto(
     state: &AppState,
     tabs: &unibrowser_engine::TabManager,
@@ -607,7 +618,7 @@ fn build_tab_dto(
     };
     TabDto {
         id: tab.id.0,
-        label: tab.location.display_label(),
+        label: tab_display_label(state, tab),
         location_kind: kind.into(),
         is_directory: tab.is_directory,
         is_http,
@@ -677,7 +688,13 @@ fn open_file_tabs_dto(state: &AppState, window_label: &str) -> Vec<OpenFileTabDt
     collect_open_file_tabs(&tabs)
 }
 
-fn open_unibrow_package(path: &Path) -> Result<unibrowser_project::ProjectPackage, String> {
+pub(crate) fn open_unibrow_package(
+    state: &AppState,
+    path: &Path,
+) -> Result<unibrowser_project::ProjectPackage, String> {
+    if unibrowser_project::is_memory_project_root(path) {
+        return crate::project_templates::open_memory_package(state, path);
+    }
     let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
     let root = unibrowser_project::resolve_package_root(path, &cache).map_err(|e| e.to_string())?;
     unibrowser_project::open_package(&root).map_err(|e| e.to_string())
@@ -714,7 +731,7 @@ fn document_viewer_dto(
 ) -> Option<DocumentViewerDto> {
     if doc.backend.backend_id() == crate::project_backend::BACKEND_ID {
         let root = Path::new(&doc.path);
-        let opened = open_unibrow_package(root).ok();
+        let opened = open_unibrow_package(&*state, root).ok();
         let nodes = opened.as_ref().map(|pkg| {
             pkg.manifest
                 .nodes
@@ -2024,7 +2041,7 @@ pub fn open_dropped_paths(
         }
         let loc = BrowserLocation::File { path: safe.clone() };
         let (loc, is_dir, doc) = if unibrowser_project::is_unibrow_path(&safe) {
-            let doc = crate::state::try_open_unibrow_document(&safe)?;
+            let doc = state.try_open_unibrow_document(&safe)?;
             (loc, false, Some(doc))
         } else {
             state.resolve_location(loc)
@@ -2138,7 +2155,7 @@ pub fn open_path(
     let file_path = resolve_open_path(&path, &state.cwd)?;
     if unibrowser_project::is_unibrow_path(&file_path) {
         allow_asset_protocol_file(&app, &file_path);
-        let doc = crate::state::try_open_unibrow_document(&file_path)?;
+        let doc = state.inner().try_open_unibrow_document(&file_path)?;
         let loc = BrowserLocation::File {
             path: file_path.clone(),
         };
@@ -2207,7 +2224,7 @@ fn open_resolved_path_on_tab(
         path: file_path.to_path_buf(),
     };
     let (loc, is_dir, doc) = if unibrowser_project::is_unibrow_path(file_path) {
-        let doc = crate::state::try_open_unibrow_document(file_path)?;
+        let doc = state.try_open_unibrow_document(file_path)?;
         (loc, false, Some(doc))
     } else {
         state.resolve_location(loc)
@@ -2298,7 +2315,7 @@ pub fn open_path_in_new_tab(
     allow_asset_protocol_file(&app, &file_path);
     let loc = BrowserLocation::File { path: file_path.clone() };
     let (loc, is_dir, doc) = if unibrowser_project::is_unibrow_path(&file_path) {
-        let doc = crate::state::try_open_unibrow_document(&file_path)?;
+        let doc = state.inner().try_open_unibrow_document(&file_path)?;
         (loc, false, Some(doc))
     } else {
         state.resolve_location(loc)
@@ -3787,6 +3804,9 @@ fn execute_command_impl(
     if command_id == unibrowser_mod_api::commands::START_NEW_PROJECT {
         return Ok("start-new-project".into());
     }
+    if command_id == "unibrowser.start.newFromTemplate" {
+        return Ok("start-new-template-gallery".into());
+    }
     if command_id == unibrowser_mod_api::commands::START_RECENT {
         return Ok("start-recent".into());
     }
@@ -3910,7 +3930,7 @@ fn execute_command_impl(
                 let path = doc.path.clone();
                 let project = std::path::PathBuf::from(&path);
                 let delta = if command_id == FONT_INCREASE_ID { 2.0 } else { -2.0 };
-                let mut package = open_unibrow_package(&project)?;
+                let mut package = open_unibrow_package(&*state, &project)?;
                 let pt = unibrowser_project::adjust_timeline_title_font_pt(&mut package, delta)
                     .map_err(|e| e.to_string())?;
                 let label = window.label().to_string();
@@ -4876,6 +4896,30 @@ pub fn document_save_markdown_as_docx(
     crate::document_model_api::save_markdown_as_docx(&markdown_path, &model)
 }
 
+/// After Save As, align tab label, omnibox breadcrumb, and text backend path with the new file.
+#[tauri::command]
+pub fn retarget_active_file_tab_path(
+    window: tauri::Window,
+    new_path: String,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let path = resolve_open_path(&new_path, &state.cwd)?;
+    let _sess_tabs = ws(&state, &window)?;
+    let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+    if let BrowserLocation::File { path: loc } = &mut tab.location {
+        *loc = path.clone();
+    }
+    if let Some(doc) = tab.document.as_mut() {
+        let path_str = path.to_string_lossy().into_owned();
+        doc.path = path_str.clone();
+        if let Some(backend) = try_text_backend(&mut *doc.backend) {
+            backend.path = path_str;
+        }
+    }
+    snapshot(&state, window.label())
+}
+
 #[tauri::command]
 pub fn document_save_docx_from_model(
     path: String,
@@ -5221,7 +5265,7 @@ pub fn remove_unibrow_orphan_asset(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::remove_orphan_asset(&mut package, &asset_file).map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
@@ -5277,7 +5321,7 @@ pub fn add_unibrow_asset(window: tauri::Window,
     if !source.is_file() {
         return Err("source is not a file".into());
     }
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     let node_type = unibrowser_project::guess_asset_node_type(&source);
     let label = source
         .file_name()
@@ -5297,7 +5341,7 @@ fn reload_unibrow_project_tab(
     project: &Path,
     project_path: String,
 ) -> Result<(), String> {
-    let package = open_unibrow_package(project)?;
+    let package = open_unibrow_package(&*state, project)?;
     crate::project_recovery::maybe_backup_project(&project_path, &package.root);
     let _sess_tabs = ws_label(state, window_label)?;
     let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
@@ -5324,7 +5368,7 @@ pub fn remove_unibrow_node(window: tauri::Window,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::remove_node(&mut package, &node_id).map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
     let loc = BrowserLocation::File { path: project };
@@ -5342,7 +5386,7 @@ pub fn set_unibrow_node_position(window: tauri::Window,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::set_node_board_position(&mut package, &node_id, x, y)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -5359,7 +5403,7 @@ pub fn add_unibrow_timeline_clip(window: tauri::Window,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::append_timeline_clip_for_node(&mut package, &node_id)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -5376,7 +5420,7 @@ pub fn remove_unibrow_timeline_clip(window: tauri::Window,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::remove_timeline_clip(&mut package, &clip_id)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -5398,7 +5442,7 @@ pub fn update_unibrow_timeline_clip(
     let project = resolve_open_path(&project_path, &state.cwd)?;
     let root = unibrow_package_root(&project)?;
     let before = crate::project_undo::read_manifest_json(&root)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::update_timeline_clip_timing(
         &mut package,
         &clip_id,
@@ -5799,7 +5843,7 @@ pub fn timeline_clip_scrub_preview(
     offset_sec: f64,
 ) -> Result<TimelineScrubPreviewDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let package = open_unibrow_package(&project)?;
+    let package = open_unibrow_package(&*state, &project)?;
     timeline_clip_preview_at(&project, &package, &clip_id, offset_sec)
 }
 
@@ -5811,7 +5855,7 @@ pub fn timeline_clip_block_preview(
     clip_id: String,
 ) -> Result<TimelineScrubPreviewDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let package = open_unibrow_package(&project)?;
+    let package = open_unibrow_package(&*state, &project)?;
     timeline_clip_preview_at(&project, &package, &clip_id, 0.0)
 }
 
@@ -5825,7 +5869,7 @@ pub fn set_unibrow_node_color(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     let raw = color.as_deref();
     unibrowser_project::set_node_label_color(&mut package, &node_id, raw)
         .map_err(|e| e.to_string())?;
@@ -5848,7 +5892,7 @@ pub fn set_unibrow_timeline_clip_fade(
     let project = resolve_open_path(&project_path, &state.cwd)?;
     let root = unibrow_package_root(&project)?;
     let before = crate::project_undo::read_manifest_json(&root)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::set_timeline_clip_fade(
         &mut package,
         &clip_id,
@@ -5889,7 +5933,7 @@ pub fn set_unibrow_timeline_clip_duck(
     let project = resolve_open_path(&project_path, &state.cwd)?;
     let root = unibrow_package_root(&project)?;
     let before = crate::project_undo::read_manifest_json(&root)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::set_timeline_clip_duck_under_video(
         &mut package,
         &clip_id,
@@ -5919,7 +5963,7 @@ pub fn set_unibrow_timeline_clip_color(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::set_timeline_clip_color(&mut package, &clip_id, color.as_deref())
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -5939,7 +5983,7 @@ pub fn add_unibrow_timeline_marker(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::add_timeline_marker(&mut package, time_sec, title, color.as_deref())
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -5957,7 +6001,7 @@ pub fn remove_unibrow_timeline_marker(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::remove_timeline_marker(&mut package, &marker_id)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -5977,7 +6021,7 @@ pub fn add_unibrow_clip_marker(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::add_clip_marker(&mut package, &clip_id, offset_sec, label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -5996,7 +6040,7 @@ pub fn remove_unibrow_clip_marker(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::remove_clip_marker(&mut package, &clip_id, &marker_id)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -6016,7 +6060,7 @@ pub fn set_unibrow_timeline_transition(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     if enabled {
         unibrowser_project::upsert_fade_transition(&mut package, &after_clip_id, duration_sec)
             .map_err(|e| e.to_string())?;
@@ -6039,7 +6083,7 @@ pub fn reorder_unibrow_timeline_clips(window: tauri::Window,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::reorder_timeline_clip(&mut package, from_index, to_index)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -6057,7 +6101,7 @@ pub fn rename_unibrow_node(window: tauri::Window,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::rename_node_label(&mut package, &node_id, &label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -6076,7 +6120,7 @@ pub fn rename_unibrow_timeline_clip(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::rename_timeline_clip_label(&mut package, &clip_id, &label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -7639,13 +7683,21 @@ pub fn create_unibrow_project(window: tauri::Window,
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
+    let tpl = template.as_deref().unwrap_or("blank");
+    if tpl.eq_ignore_ascii_case("blank") && parent_dir.trim().is_empty() {
+        return crate::project_templates::new_empty_project(
+            window,
+            state,
+            app,
+            Some(name),
+        );
+    }
     let parent = PathBuf::from(parent_dir);
     let root = parent.join(format!("{}.unibrow", name));
     let mut package = unibrowser_project::create_package(&root, &name).map_err(|e| e.to_string())?;
-    let tpl = template.as_deref().unwrap_or("notes");
     unibrowser_project::apply_project_template(&mut package, tpl).map_err(|e| e.to_string())?;
     let loc = BrowserLocation::File { path: root.clone() };
-    let doc = crate::state::open_file_document(&root);
+    let doc = state.inner().open_file_document(&root);
     let _sess_tabs = ws(&state, &window)?;
     {
         let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
@@ -7685,7 +7737,7 @@ pub fn paste_unibrow_still_clip(
     if !source.is_file() {
         return Err("clipboard image path is not a file".into());
     }
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     let node_type = unibrowser_project::guess_asset_node_type(&source);
     let label = source
         .file_stem()
@@ -7719,7 +7771,7 @@ pub fn add_unibrow_pdf_page_timeline_clip(
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "PDF page".into())
     });
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::add_pdf_page_timeline_clip(&mut package, &source, page, &label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -7750,7 +7802,7 @@ pub fn add_unibrow_svg_still_timeline_clip(
         .file_stem()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "SVG".into());
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::add_asset_timeline_clip(&mut package, &source, &label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -7768,7 +7820,7 @@ pub fn add_unibrow_title_timeline_clip(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::add_title_card_timeline_clip(&mut package, &title_text)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -7799,7 +7851,7 @@ pub fn add_unibrow_midi_timeline_clip(
         .file_stem()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "MIDI".into());
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::add_asset_timeline_clip(&mut package, &source, &label)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -7818,7 +7870,7 @@ pub fn set_unibrow_timeline_clip_pdf_page(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::set_timeline_clip_pdf_page(&mut package, &clip_id, page)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;
@@ -7837,7 +7889,7 @@ pub fn set_unibrow_timeline_clip_title_text(
     app: AppHandle,
 ) -> Result<TabContentDto, String> {
     let project = resolve_open_path(&project_path, &state.cwd)?;
-    let mut package = open_unibrow_package(&project)?;
+    let mut package = open_unibrow_package(&*state, &project)?;
     unibrowser_project::set_timeline_clip_title_text(&mut package, &clip_id, &title_text)
         .map_err(|e| e.to_string())?;
     reload_unibrow_project_tab(state.inner(), window.label(), &project, project_path)?;

@@ -40,6 +40,7 @@ pub struct ImageCompareState {
 pub struct AppState {
     pub registry: Mutex<CommandRegistry>,
     pub sessions: Mutex<HashMap<String, SharedWindowSession>>,
+    pub memory_projects: Mutex<HashMap<String, crate::project_templates::MemoryProjectEntry>>,
     pub cwd: PathBuf,
     mods_loaded: RwLock<String>,
     #[cfg(feature = "dynamic-mods")]
@@ -332,6 +333,7 @@ impl AppState {
         Self {
             registry: Mutex::new(built.registry),
             sessions,
+            memory_projects: Mutex::new(HashMap::new()),
             cwd,
             mods_loaded: RwLock::new(built.mods_line),
             keybindings,
@@ -543,6 +545,9 @@ fn internal_files_path(page: &str, cwd: &Path) -> PathBuf {
 }
 
 pub fn try_open_unibrow_document(path: &Path) -> Result<DocumentSession, String> {
+    if unibrowser_project::is_memory_project_root(path) {
+        return Err("memory project requires an active session".into());
+    }
     use crate::project_backend::UnibrowBackend;
     let path_str = path.to_string_lossy().to_string();
     let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
@@ -557,6 +562,32 @@ pub fn try_open_unibrow_document(path: &Path) -> Result<DocumentSession, String>
         path_str,
         Box::new(UnibrowBackend::open(pkg)),
     ))
+}
+
+impl AppState {
+    pub fn try_open_unibrow_document(&self, path: &Path) -> Result<DocumentSession, String> {
+        use crate::project_backend::UnibrowBackend;
+        let path_str = path.to_string_lossy().to_string();
+        if unibrowser_project::is_memory_project_root(path) {
+            let pkg = crate::project_templates::open_memory_package(self, path)?;
+            return Ok(DocumentSession::new(
+                path_str,
+                Box::new(UnibrowBackend::open(pkg)),
+            ));
+        }
+        let cache = crate::config::unibrow_zip_cache_dir().ok_or("config path unavailable")?;
+        let root =
+            unibrowser_project::resolve_package_root(path, &cache).map_err(|e| {
+                unibrowser_project::friendly_open_error(&e)
+            })?;
+        let pkg = unibrowser_project::open_package(&root).map_err(|e| {
+            unibrowser_project::friendly_open_error(&e)
+        })?;
+        Ok(DocumentSession::new(
+            path_str,
+            Box::new(UnibrowBackend::open(pkg)),
+        ))
+    }
 }
 
 pub enum FileOpenMode {
@@ -579,7 +610,7 @@ impl AppState {
         let path_str = path.to_string_lossy().to_string();
         let sniffed = crate::content_sniff::sniff_format(path);
         if unibrowser_project::is_unibrow_path(path) {
-            if let Ok(doc) = try_open_unibrow_document(path) {
+            if let Ok(doc) = self.try_open_unibrow_document(path) {
                 return Some(doc);
             }
             return None;
