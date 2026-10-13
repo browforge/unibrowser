@@ -65,7 +65,7 @@ export function refreshDocumentCardStatusFooter(dirty: boolean): void {
   }
   const ctx = document.body.dataset.cmAutoContext ?? "text";
   const kind =
-    ctx === "office" ? "Word document" : ctx === "text" ? "Markdown" : "Document";
+    ctx === "office" ? "Word" : ctx === "text" ? "Markdown" : "Plain text";
   const zoom =
     document.querySelector<HTMLElement>(
       '[data-control-id="unibrowser.control.editor.size"] .cm-cmd-label, [data-control-id="unibrowser.control.text.size"] .cm-cmd-label',

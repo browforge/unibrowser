@@ -16,7 +16,8 @@ test.describe("TXT toolbar web evidence", () => {
     mkdirSync(OUT_DIR, { recursive: true });
     mkdirSync(ART_DIR, { recursive: true });
 
-    await page.goto(`./?demo=${encodeURIComponent("theme-light")}`);
+    const demo = process.env.UB_WEB_DEMO ?? "theme-light,text-card-render1,txt-apply-h2,txt-block-picker-open";
+    await page.goto(`./?demo=${encodeURIComponent(demo)}`);
 
     await expect(page.locator("html")).toHaveAttribute("data-ub-web-wasm", "1", {
       timeout: 120_000,
@@ -30,6 +31,10 @@ test.describe("TXT toolbar web evidence", () => {
     await expect(page.locator("body")).toHaveClass(/text-compact-visible/, {
       timeout: 30_000,
     });
+    await expect(page.locator("body")).toHaveClass(/text-document-card/, {
+      timeout: 30_000,
+    });
+    await expect(page.locator("#command-manager")).toBeHidden({ timeout: 15_000 });
 
     const host = page.locator("#text-compact-toolbar-host");
     await expect(host).toBeVisible({ timeout: 30_000 });
@@ -60,6 +65,9 @@ test.describe("TXT toolbar web evidence", () => {
     });
 
     await line3.click();
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+    });
 
     await page.evaluate(() => {
       const hostEl = document.getElementById("text-compact-toolbar-host");
@@ -80,7 +88,7 @@ test.describe("TXT toolbar web evidence", () => {
     await expect(host.locator(".text-compact-block-menu:not(.hidden)")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(host.locator(".text-compact-block-label")).toHaveText("Markdown");
+    await expect(host.locator(".text-compact-block-label")).toHaveText("Heading 2");
     await expect(
       host.locator('[data-command-id="unibrowser.semantic.block.heading_2"]'),
     ).toBeVisible();

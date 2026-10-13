@@ -506,11 +506,11 @@
     "segments": [
       {
         "id": "",
-        "label": "Saved",
+        "label": "Unsaved",
         "bounds": {
           "x": 12,
           "y": 777.5,
-          "width": 40.75,
+          "width": 54.75,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -519,11 +519,11 @@
         "opacity": "1",
         "filter": "none",
         "pixelContrast": 6.732,
-        "pixelInkCount": 171,
+        "pixelInkCount": 217,
         "pixelBounds": {
           "x": 12,
           "y": 777,
-          "width": 41,
+          "width": 55,
           "height": 18
         }
       },
@@ -531,7 +531,7 @@
         "id": "",
         "label": "markdown",
         "bounds": {
-          "x": 52.75,
+          "x": 66.75,
           "y": 777.5,
           "width": 74.34375,
           "height": 17
@@ -544,7 +544,7 @@
         "pixelContrast": 7.087,
         "pixelInkCount": 270,
         "pixelBounds": {
-          "x": 52,
+          "x": 66,
           "y": 777,
           "width": 76,
           "height": 18
@@ -552,11 +552,11 @@
       },
       {
         "id": "",
-        "label": "Ln 1, Col 1",
+        "label": "Ln 3, Col 55",
         "bounds": {
-          "x": 127.09375,
+          "x": 141.09375,
           "y": 777.5,
-          "width": 69.59375,
+          "width": 75.59375,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -564,12 +564,12 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 7.844,
-        "pixelInkCount": 181,
+        "pixelContrast": 7.538,
+        "pixelInkCount": 234,
         "pixelBounds": {
-          "x": 127,
+          "x": 141,
           "y": 777,
-          "width": 70,
+          "width": 76,
           "height": 18
         }
       },

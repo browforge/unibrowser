@@ -237,6 +237,16 @@ body.text-document-card .rail-side-panel {
   display: none !important;
 }
 
-body.text-document-card #text-compact-toolbar-host.text-compact-toolbar:not(.document-card-toolbar-mount *) {
+body.text-document-card #text-compact-toolbar-host.text-compact-toolbar:not(.document-card-toolbar-mount *),
+body.text-compact-visible #text-compact-toolbar-host.text-compact-toolbar:not(.document-card-toolbar-mount *) {
+  display: none !important;
+}
+
+body.text-compact-visible #work-area,
+body.text-compact-visible .content-host {
+  background: var(--ub-doc-card-frame, #0f1a24);
+}
+
+body.text-compact-visible:not(.text-document-card) #command-manager.command-manager {
   display: none !important;
 }

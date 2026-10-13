@@ -1572,6 +1572,16 @@ export function validateTextCompactToolbarForCapture(
   if (!pickerLabel?.textContent?.trim()) {
     return "block-style picker missing current style label";
   }
+  const pickerText = pickerLabel.textContent.trim();
+  if (pickerText === "Markdown" || pickerText === "Word" || pickerText === "Plain text") {
+    return `block-style picker must show block type, not format name "${pickerText}"`;
+  }
+  if (opts.requireH2Selected && pickerText !== "Heading 2") {
+    return `block-style picker trigger must show Heading 2 after txt-apply-h2, got "${pickerText}"`;
+  }
+  if (opts.requireDocxEmulatedH1 && pickerText !== "Heading 1") {
+    return `block-style picker trigger must show Heading 1 for docx capture, got "${pickerText}"`;
+  }
   const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
   if (requirePickerOpen) {
     if (!menu || menu.classList.contains("hidden")) {

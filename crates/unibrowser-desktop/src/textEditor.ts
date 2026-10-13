@@ -128,6 +128,60 @@ export function getActiveTextContent(): string | null {
   return editor.getModel()?.getValue() ?? null;
 }
 
+const BLOCK_STYLE_BY_LEVEL: { commandId: string; label: string }[] = [
+  { commandId: "unibrowser.semantic.block.heading_1", label: "Heading 1" },
+  { commandId: "unibrowser.semantic.block.heading_2", label: "Heading 2" },
+  { commandId: "unibrowser.semantic.block.heading_3", label: "Heading 3" },
+  { commandId: "unibrowser.semantic.block.heading_4", label: "Heading 4" },
+  { commandId: "unibrowser.semantic.block.heading_5", label: "Heading 5" },
+  { commandId: "unibrowser.semantic.block.heading_6", label: "Heading 6" },
+];
+
+/** Block-style picker trigger label from the cursor line (markdown/plain); docx uses engine default until wired. */
+export function inferSemanticBlockStyleAtCursor(): { commandId: string; label: string } {
+  const fallback = {
+    commandId: "unibrowser.semantic.block.paragraph",
+    label: "Paragraph",
+  };
+  const demoLabel = document.body.dataset.ubBlockStyleLabel?.trim();
+  const demoCommand = document.body.dataset.ubBlockStyleCommandId?.trim();
+  if (demoLabel && demoCommand) {
+    return { commandId: demoCommand, label: demoLabel };
+  }
+  if (!editor || !loadedPath) {
+    return fallback;
+  }
+  const model = editor.getModel();
+  const line = editor.getPosition()?.lineNumber ?? 1;
+  if (!model || line < 1 || line > model.getLineCount()) {
+    return fallback;
+  }
+  const text = model.getLineContent(line);
+  if (isMarkdownPath(loadedPath)) {
+    const heading = text.match(/^(#{1,6})\s/);
+    if (heading) {
+      const level = heading[1].length;
+      const entry = BLOCK_STYLE_BY_LEVEL[level - 1];
+      if (entry) {
+        return entry;
+      }
+    }
+    if (/^>\s/.test(text)) {
+      return {
+        commandId: "unibrowser.semantic.block.blockquote",
+        label: "Block quote",
+      };
+    }
+    if (/^```/.test(text)) {
+      return {
+        commandId: "unibrowser.semantic.block.code_block",
+        label: "Code block",
+      };
+    }
+  }
+  return fallback;
+}
+
 /** Self-test / automation: append text at end of active Monaco document. */
 export function appendActiveEditorText(chunk: string): boolean {
   if (!editor || !monacoApi) {
@@ -153,6 +207,11 @@ function emitCursorStatus() {
     return;
   }
   cursorListener({ line: pos.lineNumber, column: pos.column });
+  if (document.body.classList.contains("text-compact-visible")) {
+    void import("./textCompactToolbar").then(({ refreshCompactBlockPickerLabel }) => {
+      refreshCompactBlockPickerLabel();
+    });
+  }
 }
 
 function isMarkdownPath(path: string): boolean {

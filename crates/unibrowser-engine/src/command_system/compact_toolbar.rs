@@ -184,9 +184,9 @@ pub fn compact_text_toolbar_families(
 
 fn block_style_control(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedControl {
     let (default_cmd, label) = match ctx.work {
-        WorkContext::PlainText => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Plain text"),
-        WorkContext::Markdown => (commands::SEMANTIC_BLOCK_HEADING_2, "Markdown"),
-        WorkContext::RichDocument => (commands::SEMANTIC_BLOCK_HEADING_1, "Word"),
+        WorkContext::PlainText => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Paragraph"),
+        WorkContext::Markdown => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Paragraph"),
+        WorkContext::RichDocument => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Paragraph"),
         _ => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Paragraph"),
     };
     let capability = resolver.resolve_control(

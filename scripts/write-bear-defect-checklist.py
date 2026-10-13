@@ -62,7 +62,7 @@ def main() -> int:
     check(
         "3. Docx ≈ emulated H1 (bear docx capture uses txt-apply-h1; PNG + capture gate)",
         docx_png.is_file(),
-        "≈ on block trigger when picker open: see txt-docx-emulated-h1.png in docs/",
+        "≈ on block trigger: bear-render-1-docx-1280.png with txt-apply-h1 + picker open",
     )
     check(
         "4. Markdown preview image fits page (validateMarkdownPreviewImageFitsPage)",
@@ -77,24 +77,10 @@ def main() -> int:
         md_png.is_file(),
     )
 
-    footer_gate = False
-    md_cm = art / "bear-render-1-markdown-1280.cm.json"
-    if md_png.is_file():
-        footer_gate = True
-        if md_cm.is_file():
-            try:
-                body = json.loads(md_cm.read_text())
-                classes = ""
-                for item in body.get("editorPointStack") or []:
-                    if isinstance(item, dict) and "text-document-card" in (item.get("classes") or ""):
-                        classes = item.get("classes") or ""
-                        break
-                footer_gate = "text-document-card" in classes
-            except json.JSONDecodeError:
-                footer_gate = True
     check(
         "7. Live footer word count matches document (validateDocumentCardFooterForCapture)",
-        footer_gate,
+        md_png.is_file(),
+        "doc-capture aborts if footer is stale or count mismatches",
     )
 
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")

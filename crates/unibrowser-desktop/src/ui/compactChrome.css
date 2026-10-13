@@ -439,8 +439,13 @@ body.cm-collapsed.text-document-card .document-card-toolbar-mount #text-compact-
 }
 
 body.text-compact-visible #command-manager.command-manager {
-  min-height: 40px;
-  max-height: 40px;
+  display: none !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
 }
 
 .context-label {

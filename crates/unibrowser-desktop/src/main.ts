@@ -3387,7 +3387,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             requirePickerOpen: demoLower.includes("txt-block-picker-open"),
             requireH2Selected: demoLower.includes("txt-apply-h2"),
             requireDocxEmulatedH1:
-              demoLower.includes("txt-block-picker-open") &&
+              demoLower.includes("txt-apply-h1") &&
               launchPaths.some((p) => /\.docx$/i.test(p)),
             requireModToolbarDock: demoLower.includes("txt-mod-toolbar-visible"),
           });

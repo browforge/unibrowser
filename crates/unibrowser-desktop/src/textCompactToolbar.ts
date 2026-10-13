@@ -13,6 +13,7 @@ import { bindCommandTooltip } from "./ui/commandTooltip";
 import { controlA11yState } from "./ui/controlA11y";
 import { uiCommandChromeClassList } from "./ui/cmControlClasses";
 import { syncTextDocumentCard } from "./ui/textDocumentCard";
+import { inferSemanticBlockStyleAtCursor } from "./textEditor";
 import type { FloatingBarDto, ManagerTabDto } from "./commandManager";
 
 const BLOCK_COMMANDS: { id: string; label: string }[] = [
@@ -54,6 +55,7 @@ function renderBlockStylePicker(
   control: ResolvedControlDto,
   onRun: (commandId: string) => Promise<void>,
   chordByCommand: Map<string, string>,
+  selectedCommandId?: string,
 ): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "text-compact-block-picker";
@@ -83,9 +85,12 @@ function renderBlockStylePicker(
     const icon = createLucideIcon("pilcrow", 16, "ub-icon svg-icon");
     btn.appendChild(icon);
   }
+  const inferred = inferSemanticBlockStyleAtCursor();
+  const activeCommandId = selectedCommandId ?? inferred.commandId;
+  const displayLabel = inferred.label;
   const label = document.createElement("span");
   label.className = "text-compact-block-label";
-  label.textContent = control.value ?? control.label;
+  label.textContent = displayLabel;
   btn.appendChild(label);
   const chevron = createLucideIcon("chevron-down", 14, "ub-icon svg-icon text-compact-chevron");
   btn.appendChild(chevron);
@@ -113,10 +118,7 @@ function renderBlockStylePicker(
     row.dataset.commandId = item.id;
     row.textContent = item.label;
     row.setAttribute("role", "option");
-    if (
-      label.textContent === item.label ||
-      (item.id.endsWith("heading_2") && label.textContent === "Heading 2")
-    ) {
+    if (item.id === activeCommandId) {
       row.setAttribute("aria-selected", "true");
     }
     row.onclick = (e) => {
@@ -298,10 +300,12 @@ export function refreshTextCompactToolbar(
   if (!show || !tab) {
     primaryHost.innerHTML = "";
     document.body.classList.remove("text-compact-visible");
+    document.body.classList.remove("cm-collapsed");
     syncTextDocumentCard(false);
     return;
   }
   document.body.classList.add("text-compact-visible");
+  document.body.classList.add("cm-collapsed");
   const showModDock = document.documentElement.dataset.ubModToolbarDocked === "1";
   renderCompactRow(
     primaryHost,
@@ -311,6 +315,28 @@ export function refreshTextCompactToolbar(
     onRun,
     chordByCommand,
   );
+}
+
+export function refreshCompactBlockPickerLabel(): void {
+  if (!document.body.classList.contains("text-compact-visible")) {
+    return;
+  }
+  const host = document.getElementById("text-compact-toolbar-host");
+  if (!host) {
+    return;
+  }
+  const inferred = inferSemanticBlockStyleAtCursor();
+  const label = host.querySelector<HTMLElement>(".text-compact-block-label");
+  if (label) {
+    label.textContent = inferred.label;
+  }
+  const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
+  if (menu) {
+    menu.querySelectorAll<HTMLElement>(".text-compact-block-item").forEach((row) => {
+      const selected = row.dataset.commandId === inferred.commandId;
+      row.toggleAttribute("aria-selected", selected);
+    });
+  }
 }
 
 export function openBlockStyleMenuForCapture(host: HTMLElement): void {

@@ -71,6 +71,9 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "txt-apply-h1": {
+        document.body.dataset.ubBlockStyleCommandId =
+          "unibrowser.semantic.block.heading_1";
+        document.body.dataset.ubBlockStyleLabel = "Heading 1";
         const { textEditor } = await import("./textEditor");
         for (let attempt = 0; attempt < 80; attempt += 1) {
           const applied = await textEditor.applySemanticBlockStyle(

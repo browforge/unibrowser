@@ -11,7 +11,7 @@ Two concept renders define the product direction. **Render 1** is the binding ta
 - **Frame:** Dark navy application shell (`#0f1a24` class of values). The editable document sits on a **light paper card** (`#faf9f6`) with a soft shadow inside the frame.
 - **Document tab:** Small tab on the card top edge with file name and close **×** (not the main window tab strip).
 - **In-card toolbar (this doc):** One slim row on the **top edge of the paper card** (not the global Command Manager strip):
-  1. **Format dropdown** at the left — label is the **document format name** (`Markdown ▾`, `Word ▾`, `Plain text ▾`), not a font size and not a heading level. The menu lists block/heading styles (paragraph, H1–H6, block quote, code block). **No font-size control** on this row.
+  1. **Block-style dropdown** at the left — trigger shows the **cursor line’s block type** (`Paragraph`, `Heading 2`, `Block quote`, …). Menu lists Paragraph, H1–H6, Block quote, Code block. Office/docx shows **≈** on the trigger when the style is emulated. **Document format** (`Markdown`, `Word`, `Plain text`) lives in the **card footer**, not on this control. **No font-size** on this row.
   2. **Inline marks:** Bold, Italic, Inline code — Lucide-style **thin stroke**, monochrome ink on paper, **no tiles, borders, or filled button chrome**.
   3. **Divider** (thin vertical rule, generous horizontal spacing).
   4. **Lists:** Bullet list, Numbered list — separate icon buttons (not a split chevron on the bar).
@@ -39,7 +39,7 @@ Implementation flag: `body.text-document-card` mounts `#text-compact-toolbar-hos
 ```
 ┌─ App title bar (breadcrumb, Save, window controls) ─────────────────────────┐
 ├─ Left rail │  ┌─ doc tab × ────────────────────────────────────────────┐ │
-│            │  ├─ Markdown ▾ │ B I code │ list # │ link image │ ⋮ ────────┤ │  ← compact toolbar
+│            │  ├─ Heading 2 ▾ │ B I code │ list # │ link image │ ⋮ ───────┤ │  ← compact toolbar
 │            │  ├─ document body (serif, paper) ──────────────────────────┤ │
 │            │  └─ Markdown · words · Saved ······················· 100% ─┘ │
 │            │                                    │ AI │ Tools │ Assets │ dock
@@ -56,7 +56,7 @@ Icons: **Lucide 16 px**, stroke **1.75**, hit target **28–30 px**, **icon-only
 
 | # | Control id | Icon | Notes |
 | --- | --- | --- | --- |
-| 1 | `unibrowser.control.semantic.block_style` | (label only) | Trigger text = format name: **Markdown**, **Word**, **Plain text** |
+| 1 | `unibrowser.control.semantic.block_style` | (label only) | Trigger text = **block type at cursor** (e.g. **Heading 2**); menu = paragraph/H1–H6/quote/code |
 | — | *divider* | | |
 | 2 | `unibrowser.control.text.bold` | `bold` | Toggle |
 | 3 | `unibrowser.control.text.italic` | `italic` | Toggle |
@@ -74,7 +74,7 @@ Icons: **Lucide 16 px**, stroke **1.75**, hit target **28–30 px**, **icon-only
 
 ## Block-style picker menu
 
-Same semantic ids as ADR 0034 (paragraph, heading_1 … heading_6, blockquote, code_block). Mixed selection uses **Mixed** in menu state; trigger label stays the **format name**, not the active heading.
+Same semantic ids as ADR 0034 (paragraph, heading_1 … heading_6, blockquote, code_block). Mixed selection uses **Mixed** in menu state; trigger label reflects the **active block** at the caret (inferred from markdown syntax or docx style).
 
 ## Overflow
 
