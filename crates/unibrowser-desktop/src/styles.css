@@ -4218,6 +4218,30 @@ select:disabled {
   justify-content: flex-end;
 }
 
+.save-template-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ub-shell, #141617) 72%, transparent);
+}
+
+.save-template-panel {
+  width: min(420px, 92vw);
+  padding: 1rem 1.25rem;
+  background: var(--ub-paper, #faf9f6);
+  border: 1px solid var(--ub-border, #d8d6cf);
+  border-radius: 8px;
+}
+
+.save-template-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
 .template-gallery-chips {
   display: flex;
   flex-wrap: wrap;

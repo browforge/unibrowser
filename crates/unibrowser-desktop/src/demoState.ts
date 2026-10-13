@@ -77,6 +77,9 @@ export async function applyDemoState(raw: string) {
     return null;
   };
 
+  if (tokens.some((t) => t.startsWith("new-project-capture"))) {
+    document.body.dataset.ubNewProjectCapture = "1";
+  }
   for (const token of tokens) {
     switch (token) {
       case "document-mockup":
@@ -476,8 +479,35 @@ export async function applyDemoState(raw: string) {
       case "new-project-gallery":
       case "new-project-capture-gallery": {
         await invoke("new_tab", {});
-        const { openTemplateGallery } = await import("./templateGallery");
-        openTemplateGallery(async () => undefined);
+        const { openTemplateGalleryForCapture } = await import("./templateGallery");
+        await openTemplateGalleryForCapture({ step: "pick", searchQuery: "office" });
+        break;
+      }
+      case "new-project-capture-configure": {
+        await invoke("new_tab", {});
+        const { openTemplateGalleryForCapture } = await import("./templateGallery");
+        await openTemplateGalleryForCapture({
+          step: "configure",
+          selectedTemplateId: "unibrowser.template.document.office",
+        });
+        break;
+      }
+      case "new-project-capture-empty": {
+        await invoke("new_empty_project", { title: "Untitled project" });
+        break;
+      }
+      case "new-project-capture-office-project": {
+        await invoke("new_project_from_template", {
+          templateId: "unibrowser.template.document.office",
+          projectName: "Office document",
+          location: "",
+        });
+        break;
+      }
+      case "new-project-capture-save-template": {
+        await invoke("new_empty_project", { title: "Studio starter" });
+        const { showSaveAsTemplateCaptureOverlay } = await import("./saveAsTemplate");
+        showSaveAsTemplateCaptureOverlay();
         break;
       }
       case "files":

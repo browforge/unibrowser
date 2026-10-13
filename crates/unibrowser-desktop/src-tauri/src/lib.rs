@@ -475,6 +475,7 @@ pub fn run() {
             project_templates::new_project_from_template,
             project_templates::list_project_templates,
             project_templates::save_project_as_template,
+            project_templates::pick_save_ubtemplate_path,
             project_templates::remove_user_template,
             commands::list_mod_catalog,
             surface_capability_api::list_surface_capability_groups,

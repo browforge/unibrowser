@@ -2586,6 +2586,11 @@ async function navigateOmnibox() {
     void startNewEmptyProject();
     return;
   }
+  if (input === "unibrowser://action/save-as-template") {
+    const { runSaveProjectAsTemplate } = await import("./saveAsTemplate");
+    await runSaveProjectAsTemplate();
+    return;
+  }
   if (input === "unibrowser://action/new-from-template") {
     void startNewFromTemplateGallery();
     return;

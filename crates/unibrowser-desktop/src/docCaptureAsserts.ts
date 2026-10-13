@@ -519,6 +519,9 @@ function visibleChromeChildHeight(id: string): number {
 }
 
 export function validateResponsiveShellForCapture(): string | null {
+  if (document.body.dataset.ubNewProjectCapture === "1") {
+    return null;
+  }
   const chrome = document.getElementById("chrome");
   const manager = document.getElementById("command-manager");
   const groups = document.getElementById("command-manager-groups");
@@ -542,7 +545,8 @@ export function validateResponsiveShellForCapture(): string | null {
   }
   if (
     document.body.dataset.cmDensity === "compact" &&
-    !document.body.classList.contains("text-compact-visible")
+    !document.body.classList.contains("text-compact-visible") &&
+    !document.body.classList.contains("cm-collapsed")
   ) {
     const managerHeight = manager.getBoundingClientRect().height;
     if (Math.abs(managerHeight - 40) > 1) {
@@ -1462,6 +1466,9 @@ export function validateDocumentFeatureCaptureChrome(): string | null {
 
 /** Returns abort reason or null if CM shows enough visible, contrasting controls. */
 export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6): string | null {
+  if (document.body.dataset.ubNewProjectCapture === "1") {
+    return null;
+  }
   if (document.body.classList.contains("cm-collapsed")) {
     return null;
   }

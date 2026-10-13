@@ -333,6 +333,23 @@ pub fn save_project_as_template(
 }
 
 #[tauri::command]
+pub async fn pick_save_ubtemplate_path(
+    _window: Window,
+    app: AppHandle,
+    suggested_name: String,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Save template")
+        .set_file_name(suggested_name)
+        .add_filter("Unibrowser template", &["ubtemplate"])
+        .blocking_save_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
+#[tauri::command]
 pub fn remove_user_template(template_id: String) -> Result<(), String> {
     let cfg = config::config_dir().ok_or("config dir unavailable")?;
     let mut index = load_user_template_index(&cfg);

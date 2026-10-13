@@ -44,6 +44,140 @@ export type TemplateGalleryCreate = {
   location: string;
 };
 
+export type TemplateGalleryCaptureOptions = {
+  step?: "pick" | "configure";
+  searchQuery?: string;
+  selectedTemplateId?: string;
+};
+
+/** Doc capture: open gallery frozen on pick or configure (does not create a project). */
+export async function openTemplateGalleryForCapture(
+  options: TemplateGalleryCaptureOptions = {},
+): Promise<void> {
+  const templates = await invoke<ProjectTemplateSummary[]>("list_project_templates");
+  let step: "pick" | "configure" = options.step ?? "pick";
+  let selected: ProjectTemplateSummary | null =
+    options.selectedTemplateId
+      ? templates.find((t) => t.id === options.selectedTemplateId) ?? null
+      : null;
+  if (step === "configure" && !selected && templates.length) {
+    selected = templates[0];
+  }
+  let query = options.searchQuery ?? "";
+
+  const overlay = document.createElement("div");
+  overlay.className = "template-gallery-overlay";
+  const panel = document.createElement("div");
+  panel.className = "template-gallery-panel";
+  panel.setAttribute("role", "dialog");
+
+  const header = document.createElement("header");
+  header.className = "template-gallery-header";
+  const search = document.createElement("input");
+  search.type = "search";
+  search.className = "ub-form-control template-gallery-search";
+  search.placeholder = t("templateGallery.search");
+  search.value = query;
+  header.appendChild(search);
+
+  const filters = document.createElement("div");
+  filters.className = "template-gallery-filters";
+  const domain = document.createElement("select");
+  domain.innerHTML =
+    "<option value='all'>Domain: All</option><option value='document'>Document</option>";
+  const workspace = document.createElement("select");
+  workspace.innerHTML = "<option value='all'>Workspace: All</option>";
+  const kind = document.createElement("select");
+  kind.innerHTML = "<option value='all'>Kind: All</option><option value='starter'>Starter</option>";
+  filters.append(domain, workspace, kind);
+
+  const chips = document.createElement("div");
+  chips.className = "template-gallery-chips";
+  ["all", "builtin", "user", "installed"].forEach((chip) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "template-gallery-chip" + (chip === "builtin" ? " active" : "");
+    btn.dataset.chip = chip;
+    btn.textContent = t(`templateGallery.chip.${chip}` as "templateGallery.chip.all");
+    chips.appendChild(btn);
+  });
+
+  const recentRow = document.createElement("div");
+  recentRow.className = "template-gallery-recent";
+  const body = document.createElement("div");
+  body.className = "template-gallery-body";
+  const footer = document.createElement("footer");
+  footer.className = "template-gallery-footer";
+  const actions = document.createElement("div");
+  actions.className = "template-gallery-actions";
+
+  const renderPick = () => {
+    body.replaceChildren();
+    const grid = document.createElement("div");
+    grid.className = "template-gallery-grid";
+    templates.forEach((tpl) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "template-gallery-tile";
+      if (selected?.id === tpl.id) {
+        card.classList.add("selected");
+      }
+      const h = document.createElement("strong");
+      h.textContent = tpl.title;
+      const p = document.createElement("span");
+      p.textContent = tpl.description;
+      card.append(h, p);
+      grid.appendChild(card);
+    });
+    body.append(grid);
+    actions.replaceChildren();
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "primary";
+    next.textContent = t("templateGallery.next");
+    actions.appendChild(next);
+  };
+
+  const renderConfigure = () => {
+    body.replaceChildren();
+    const form = document.createElement("div");
+    form.className = "template-gallery-configure";
+    const nameLabel = document.createElement("label");
+    nameLabel.textContent = t("templateGallery.projectName");
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "ub-form-control";
+    nameInput.value = selected?.title ?? "Office document";
+    nameLabel.appendChild(nameInput);
+    form.append(nameLabel);
+    body.appendChild(form);
+    actions.replaceChildren();
+    const create = document.createElement("button");
+    create.type = "button";
+    create.className = "primary";
+    create.textContent = t("templateGallery.create");
+    actions.appendChild(create);
+  };
+
+  const render = () => {
+    panel.replaceChildren(header, filters, chips, recentRow, body, footer, actions);
+    if (step === "pick") {
+      renderPick();
+    } else {
+      renderConfigure();
+    }
+  };
+
+  search.oninput = () => {
+    query = search.value;
+  };
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+  render();
+  search.focus();
+}
+
 export function openTemplateGallery(
   onCreate: (payload: TemplateGalleryCreate) => void | Promise<void>,
 ): void {

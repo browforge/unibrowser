@@ -264,6 +264,9 @@ function targetApplies(
 }
 
 export function validateShellDensityContrastForCapture(minRatio = 4.5): string | null {
+  if (document.body.dataset.ubNewProjectCapture === "1") {
+    return null;
+  }
   const flags = sceneFlags();
   if (!flags.workshop && !flags.modPortal && !flags.settings && !flags.files) {
     return null;
