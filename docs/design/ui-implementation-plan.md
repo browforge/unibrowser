@@ -2253,3 +2253,164 @@ Status: open.
   possible without dismissing a stray toolbar first.
 - Likely files: `toolbar_windows.rs`, settings page, command pin.
 - Evidence: `docs/screenshots/workflow-walkthrough/07-theme-appearance.png`.
+
+## Phase M: New project and templates (ADR 0036)
+
+Specification: [ADR 0036](../adr/0036-new-project-empty-by-default-and-templates.md), [new-project-flow.md](new-project-flow.md), [new-project-and-templates.md](../research/new-project-and-templates.md).
+
+### NEW-01: Empty project session (in-memory New)
+
+Status: open.
+
+Work:
+
+- **New** / `Ctrl+N` creates project tab with empty graph seed; no filesystem writes.
+- Tab title **Untitled project**; status **In memory** until Save.
+- Align with [ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md) open-never-creates-files.
+
+Likely files: project session host, NTP handlers, `emptyState.ts`, command registry.
+
+Acceptance:
+
+- New → edit → quit without Save leaves zero new files in temp or last folder.
+- Save opens dialog defaulting to `.unibrow`.
+
+### NEW-02: New tab page actions (paper card)
+
+Status: open.
+
+Work:
+
+- NTP layout per [new-project-flow.md](new-project-flow.md): **New** primary, **New from template**, Open file/folder; remove duplicate top-row New project.
+- Quiet Utility surfaces: dark shell, centred paper card, recents/downloads sections when populated.
+
+Likely files: NTP renderer, `emptyState.ts`, chrome CSS.
+
+Acceptance:
+
+- Screenshot parity with design doc at 1280 light/dark.
+- No Word/PPT/PNG creation buttons on NTP.
+
+### NEW-03: New chevron menu and File menu parity
+
+Status: open.
+
+Work:
+
+- File → **New**, **New from template…**, Open file, Open folder (VS Code order).
+- Optional **New** split: empty project default; stub entries for New window when gated.
+
+Likely files: `appMenu.ts`, i18n, keybindings.
+
+Acceptance:
+
+- Palette labels match menu strings.
+- `Ctrl+Shift+N` opens template gallery.
+
+### NEW-04: Template gallery UI
+
+Status: open.
+
+Work:
+
+- Full-height paper panel: search, filters (Built-in / My templates / Installed), tile grid, portal link footer.
+- Keyboard: `/` focus search, Escape close, Enter apply.
+
+Likely files: new gallery module, NTP routing.
+
+Acceptance:
+
+- Built-in tiles listed in ADR 0036 §9 appear when packs exist.
+- Empty search shows helpful copy, not a blank panel.
+
+### NEW-05: `.ubtemplate` pack loader and apply
+
+Status: open.
+
+Work:
+
+- Parse OPC/directory template packs (`template.json`, `project.json`, `assets/`).
+- Apply algorithm ADR 0036 §4; record template id@version on first project save.
+
+Likely files: `unibrowser-project`, desktop template service.
+
+Acceptance:
+
+- Fixture template round-trips; corrupt pack shows inline error with **New empty** escape hatch.
+- Apply does not write disk until Save/first edit rules say otherwise.
+
+### NEW-06: User templates (Save as template)
+
+Status: open.
+
+Work:
+
+- **Save as template…** exports current graph to `.ubtemplate` + updates `templates/user/index.json`.
+
+Likely files: file dialog, export path in project commands.
+
+Acceptance:
+
+- Saved template appears under **My templates** filter after restart.
+- Remove from gallery does not delete file without confirm.
+
+### NEW-07: Hub template packs in mod portal
+
+Status: open.
+
+Work:
+
+- Portal **Templates** tab: install/update/remove; extract to `templates/installed/`.
+- `companion_mods` install sheet with [ADR 0029](../adr/0029-plugin-permissions-and-network-security.md) network consent.
+
+Likely files: `modPortalUi.ts`, catalog schema, registry entries.
+
+Acceptance:
+
+- Offline mode blocks fetch; installed packs available offline in gallery.
+- Unsigned pack shows trust warning before install.
+
+### NEW-08: Required-plugin banner on apply
+
+Status: open.
+
+Work:
+
+- When `requires.plugins` missing, show non-modal banner with **Install** (portal deep link) and disabled feature list.
+- Save remains enabled ([ADR 0023](../adr/0023-saving-is-sacred.md)).
+
+Likely files: project tab chrome, mod dependency resolver.
+
+Acceptance:
+
+- Install video template without `base-video` → banner + Install; after install, features enable without restart if hot-load supported, else documented restart.
+
+### NEW-09: First Save dialog and recents
+
+Status: open.
+
+Work:
+
+- Save As offers `.unibrow` archive default; folder picker path for folder mode.
+- Successful save adds recents row kind **Project**.
+
+Likely files: save commands, recents store.
+
+Acceptance:
+
+- First save after New sets storage mode per user choice (ADR 0032).
+- Recents open saved path correctly.
+
+### NEW-10: Docs and workflow alignment
+
+Status: open.
+
+Work:
+
+- Update [workflows.md](workflows.md) journeys 1 and 5; link ADR 0036 from [index.md](../index.md) ADR table.
+- Capture evidence PNGs under `docs/screenshots/new-project-flow/`.
+
+Acceptance:
+
+- `lint-doc-links.sh` passes on touched docs.
+- Workflow 5 no longer describes format-first template chooser as default New path.
