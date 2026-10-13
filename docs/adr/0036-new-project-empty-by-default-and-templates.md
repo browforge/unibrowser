@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-13
-- **Relates to:** [ADR 0015](0015-native-project-format.md), [ADR 0032](0032-unibrow-container-archive-and-folder-modes.md), [ADR 0031](0031-edit-history-as-file-format.md), [ADR 0029](0029-plugin-permissions-and-network-security.md), [ADR 0006](0006-mod-manifest-and-versioning.md), [ADR 0035](0035-one-document-model-wysiwyg.md)
+- **Relates to:** [ADR 0015](0015-native-project-format.md), [ADR 0032](0032-unibrow-container-archive-and-folder-modes.md), [ADR 0031](0031-edit-history-as-file-format.md), [ADR 0029](0029-plugin-permissions-and-network-security.md), [ADR 0006](0006-mod-manifest-and-versioning.md), [ADR 0035](0035-one-document-model-wysiwyg.md), [ADR 0037](0037-plugin-and-template-relationships.md)
 - **Research:** [new-project-and-templates.md](../research/new-project-and-templates.md)
 - **Design:** [new-project-flow.md](../design/new-project-flow.md)
 
@@ -68,13 +68,14 @@ Templates are **starting graphs + optional asset blobs + metadata**. They are no
 **Apply algorithm:**
 
 1. Create empty project session (§2).
-2. Replace graph from `project.json`; register assets from `assets/`.
-3. Merge **pin header** requirements from `template.json` `requires.plugins` into session pin set ([ADR 0031](0031-edit-history-as-file-format.md) §3) before first op append.
-4. If a required plugin is missing: **inline banner** on project tab with **Install** (portal) and **Continue without** only when template declares `optional_plugins` for that id; never block Save.
+2. Run **relationship resolution** for the template pack ([ADR 0037](0037-plugin-and-template-relationships.md)); show consent sheet for requires/recommends before continuing.
+3. Replace graph from `project.json`; register assets from `assets/`.
+4. On first mutating op, write **pin header** for exact versions of enabled plugins ([ADR 0031](0031-edit-history-as-file-format.md) §3).
+5. Unsatisfied `requires` after user dismisses consent: **inline banner** with **Install**; optional integrations stay grey per ADR 0037; never block Save.
 
 ### 5. Template manifest (`template.json`)
 
-Versioned document (`template_schema_version`, initial `1`).
+Versioned document (`template_schema_version`, initial `1`). Plugin relationships use [ADR 0037](0037-plugin-and-template-relationships.md) (`requires`, `recommends`, `optional`, `incompatible`).
 
 | Field | Required | Meaning |
 | --- | --- | --- |
@@ -82,8 +83,8 @@ Versioned document (`template_schema_version`, initial `1`).
 | `version` | yes | Semver of **this template pack** (not the app) |
 | `title`, `description` | yes | Gallery copy; localisable keys allowed |
 | `categories` | yes | e.g. `document`, `presentation`, `video`, `design`, `notes` |
-| `requires.plugins` | yes | Array of `{ "id", "version": "exact semver" }` — same pin discipline as history header |
-| `optional_plugins` | no | Plugins that enhance but are not required to open |
+| `tags` | no | Search facets (Visual Studio–style); e.g. `video`, `timeline`, `office` |
+| `relationships` | yes | ADR 0037 object; at minimum `requires` may be `{}` for blank template |
 | `default_workspace` | no | Hint: `browse` \| `write` \| `create` \| `live` ([ux.md](../design/ux.md)) — applies layout only |
 | `min_app_version` | no | Host semver lower bound |
 | `hub` | no | `{ "publisher", "content_hash" }` when installed from portal |
@@ -106,7 +107,7 @@ Versioned document (`template_schema_version`, initial `1`).
 - Template packs are **first-class portal artefacts** beside mods: signed catalog entries, offline cache, pinned checksum ([mod-system.md](../mod-system.md)).
 - Installing a template pack extracts to `templates/installed/<id>/<version>/` (read-only to mods).
 - Portal UI: **Templates** tab with Install / Update / Uninstall; no auto-apply on install.
-- Template pack manifest may list **`companion_mods`** with exact versions; install flow offers **Install required mods** in one sheet ([ADR 0029](0029-plugin-permissions-and-network-security.md) consent for network).
+- Template pack `relationships` drives the shared **relationship consent** sheet ([ADR 0037](0037-plugin-and-template-relationships.md)); network fetch still follows [ADR 0029](0029-plugin-permissions-and-network-security.md).
 
 ### 8. Privacy and security (ADR 0029)
 
@@ -140,7 +141,7 @@ Exact graph shapes are owned by bundled mods; this ADR fixes **product verbs and
 Detailed UX: [new-project-flow.md](../design/new-project-flow.md). Implementation: NEW-* tickets in [ui-implementation-plan.md](../design/ui-implementation-plan.md).
 
 - New tab: **New** primary; **New from template** secondary; **Open file** / **Open folder**; recents below.
-- File menu: align with VS Code ordering (New, New from template…, Open…).
+- File menu: **New**, **New from template…**, **Open…**; template gallery follows Visual Studio **Create a new project** patterns ([research](../research/new-project-and-templates.md)).
 - Remove duplicate “New project” rows and format pickers from NTP.
 
 ## Principles check
@@ -178,3 +179,4 @@ Detailed UX: [new-project-flow.md](../design/new-project-flow.md). Implementatio
 - [ADR 0032](0032-unibrow-container-archive-and-folder-modes.md)
 - [ADR 0031](0031-edit-history-as-file-format.md)
 - [ADR 0029](0029-plugin-permissions-and-network-security.md)
+- [ADR 0037](0037-plugin-and-template-relationships.md)

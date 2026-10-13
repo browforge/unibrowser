@@ -2297,7 +2297,7 @@ Status: open.
 
 Work:
 
-- File → **New**, **New from template…**, Open file, Open folder (VS Code order).
+- File → **New**, **New from template…**, Open file, Open folder (Visual Studio File menu spirit).
 - Optional **New** split: empty project default; stub entries for New window when gated.
 
 Likely files: `appMenu.ts`, i18n, keybindings.
@@ -2307,14 +2307,15 @@ Acceptance:
 - Palette labels match menu strings.
 - `Ctrl+Shift+N` opens template gallery.
 
-### NEW-04: Template gallery UI
+### NEW-04: Template gallery UI (Visual Studio Create a new project)
 
 Status: open.
 
 Work:
 
-- Full-height paper panel: search, filters (Built-in / My templates / Installed), tile grid, portal link footer.
-- Keyboard: `/` focus search, Escape close, Enter apply.
+- Full-height paper panel: **recent templates**, search, Domain / Workspace / Kind filters, chips (Built-in / My templates / Installed), tag chips on tiles.
+- Step B **configure**: project name + location; **Next** / **Create** flow per [new-project-flow.md](new-project-flow.md).
+- Keyboard: `/` focus search, Escape close, Enter on selected tile → Next.
 
 Likely files: new gallery module, NTP routing.
 
@@ -2322,6 +2323,7 @@ Acceptance:
 
 - Built-in tiles listed in ADR 0036 §9 appear when packs exist.
 - Empty search shows helpful copy, not a blank panel.
+- Recent templates row repopulates after apply.
 
 ### NEW-05: `.ubtemplate` pack loader and apply
 
@@ -2361,7 +2363,7 @@ Status: open.
 Work:
 
 - Portal **Templates** tab: install/update/remove; extract to `templates/installed/`.
-- `companion_mods` install sheet with [ADR 0029](../adr/0029-plugin-permissions-and-network-security.md) network consent.
+- Index `relationships` for hub search; install uses REL-03 consent sheet and [ADR 0029](../adr/0029-plugin-permissions-and-network-security.md) network consent.
 
 Likely files: `modPortalUi.ts`, catalog schema, registry entries.
 
@@ -2370,20 +2372,20 @@ Acceptance:
 - Offline mode blocks fetch; installed packs available offline in gallery.
 - Unsigned pack shows trust warning before install.
 
-### NEW-08: Required-plugin banner on apply
+### NEW-08: Relationship banner after apply
 
 Status: open.
 
 Work:
 
-- When `requires.plugins` missing, show non-modal banner with **Install** (portal deep link) and disabled feature list.
+- When `relationships.requires` still unsatisfied after consent, show non-modal banner with **Install** (portal deep link) and disabled feature list ([ADR 0037](../adr/0037-plugin-and-template-relationships.md)).
 - Save remains enabled ([ADR 0023](../adr/0023-saving-is-sacred.md)).
 
 Likely files: project tab chrome, mod dependency resolver.
 
 Acceptance:
 
-- Install video template without `base-video` → banner + Install; after install, features enable without restart if hot-load supported, else documented restart.
+- Apply video template without `base-video` → consent blocks Create until install or cancel; post-apply banner if user skipped optional recommends only.
 
 ### NEW-09: First Save dialog and recents
 
@@ -2414,3 +2416,85 @@ Acceptance:
 
 - `lint-doc-links.sh` passes on touched docs.
 - Workflow 5 no longer describes format-first template chooser as default New path.
+
+## Phase N: Plugin and template relationships (ADR 0037)
+
+Specification: [ADR 0037](../adr/0037-plugin-and-template-relationships.md).
+
+### REL-01: Relationship schema and legacy migration
+
+Status: open.
+
+Work:
+
+- Add `relationships` to mod `info.json` and `template.json` validators (`relationship_schema: 1`).
+- Map legacy `dependencies` / `optional_dependencies` → `requires` / `optional` with portal warning.
+
+Likely files: `unibrowser-mod-api` manifest, template parser.
+
+Acceptance:
+
+- Fixture with incompatible pair fails validation without `reason`.
+- Legacy mod loads with deprecation notice once.
+
+### REL-02: Resolution engine (requires, incompatible, cycles)
+
+Status: open.
+
+Work:
+
+- Implement resolution algorithm ADR 0037 §3 on enable, install, apply, open.
+- Topological load order on `requires` only.
+
+Likely files: `unibrowser-mod-host` `resolve_mod_graph`, new `relationship_resolver`.
+
+Acceptance:
+
+- Enable A when B enabled and `A.incompatible.B` → blocked with REL_INCOMPATIBLE copy.
+- Cycle in requires → REL_CYCLE message lists path.
+
+### REL-03: Relationship consent sheet
+
+Status: open.
+
+Work:
+
+- Non-modal sheet: required list (locked), recommends checkboxes (**unchecked** default), optional collapsed, incompatible read-only block.
+- Wire to portal install and template **Create**.
+
+Likely files: `modPortalUi.ts`, template gallery step B.
+
+Acceptance:
+
+- Recommends never install without checkbox.
+- Continue disabled until requires satisfied or user cancels.
+
+### REL-04: Pin header integration
+
+Status: open.
+
+Work:
+
+- After enable/apply + first op, pin exact versions of enabled plugins per ADR 0031; exclude unchecked recommends.
+
+Likely files: history writer, project session.
+
+Acceptance:
+
+- Apply template with one recommend checked → only checked mod pinned after edit.
+- Replay opens project with pinned versions.
+
+### REL-05: Portal chips and conflict copy
+
+Status: open.
+
+Work:
+
+- Mod/template rows: **Needs mod**, **Conflict**, **Recommend available** chips.
+- Centralise message templates ADR 0037 §6.
+
+Likely files: portal list renderer, i18n.
+
+Acceptance:
+
+- Search hub for tag + filter by unsatisfied requires (stub index field acceptable v1).

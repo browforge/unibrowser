@@ -7,7 +7,7 @@ Normative interaction design for **New**, **New from template**, and the New tab
 ## Goals
 
 1. **New** means “start thinking in a Unibrowser project,” not “pick a file type.”
-2. Templates are **optional acceleration**, browsed like VS Code / Figma galleries—not a blocking wizard.
+2. Templates are **optional acceleration**, browsed like **Visual Studio → Create a new project** (recents, search, filters, tags, configure)—not a format wizard.
 3. Disk stays clean until the user edits or saves ([ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md)).
 4. Export formats never appear on the start card except under an explicit **Export** entry elsewhere.
 
@@ -71,15 +71,22 @@ Rendered like `new-tab.html` / `new-tab.png`, with these content changes:
 
 Command Manager **Create** group label stays **Create**; control title **New** with chevron, not “Project (Video).”
 
-## Template gallery
+## Template gallery (Visual Studio Create a new project)
 
-Opened by **New from template**, File → **New from template…**, or palette.
+Opened by **New from template**, File → **New from template…**, or palette. Reference: [Create a project](https://learn.microsoft.com/en-us/visualstudio/ide/create-new-project) ([research](../research/new-project-and-templates.md)).
+
+### Step A — Pick a template
 
 ### Layout (render-1 family)
 
 - Shell remains dark navy; gallery content is a **full-height paper panel** sliding over the well (not a system modal).
-- **Header:** search field (focus on open), filter chips **All · Built-in · My templates · Installed**.
-- **Body:** responsive grid of template tiles (min 200px): thumbnail, title, one-line description, category pill.
+- **Recent templates** horizontal list (last 5 applied); persists locally.
+- **Header:** search field (focus on open); three filter dropdowns (Visual Studio parity):
+  - **Domain** (language analogue): All, Document, Presentation, Video, Design, Notes, …
+  - **Workspace** (platform analogue): All, Browse, Write, Create, Live
+  - **Kind** (project type analogue): All, Starter, Tutorial, Hub
+- **Filter chips:** **All · Built-in · My templates · Installed**.
+- **Body:** responsive grid of template tiles (min 200px): thumbnail, title, one-line description, **tag chips** (`template.json` `tags`).
 - **Footer:** link **Get more templates** → Mod portal Templates tab (network consent per [plugin-permissions-ui.md](plugin-permissions-ui.md)).
 
 ### Tile interaction
@@ -87,9 +94,24 @@ Opened by **New from template**, File → **New from template…**, or palette.
 | State | UI |
 | --- | --- |
 | Default | Hover: 1px border on card; no lift shadow |
-| Missing plugin | Amber chip **Needs Video mod**; tile still selectable |
-| Selected + Enter | Apply template → close gallery → project tab |
+| Missing `requires` plugin | Amber chip **Needs {id}**; **Next** opens relationship sheet ([ADR 0037](../adr/0037-plugin-and-template-relationships.md)) |
+| `incompatible` with enabled mod | Red chip **Conflict**; tile not selectable; show reason |
+| Selected + **Next** | Step B — configure (not instant apply) |
 | Escape | Close gallery; no new tab |
+
+### Step B — Configure
+
+Paper sub-panel (same shell), after template passes relationship pre-check:
+
+| Field | Default | Notes |
+| --- | --- | --- |
+| **Project name** | Template title | Tab title until Save |
+| **Location** | Last project folder or empty | Optional preflight; first Save still offers full dialog if empty |
+| **Place in solution** | Hidden for v1 | Reserved for future multi-project workspace ([workspace-folders.md](../workspace-folders.md)) |
+
+Buttons: **Back**, **Create** (primary), **Cancel**.
+
+**Create** runs: relationship consent sheet (requires locked on; **recommends** checkboxes **unchecked by default** per [ADR 0037](../adr/0037-plugin-and-template-relationships.md)) → apply template in memory → close gallery → project tab.
 
 ### Search
 
@@ -115,7 +137,7 @@ Match [ADR 0036](../adr/0036-new-project-empty-by-default-and-templates.md) §9:
 | `Ctrl+N` / `Cmd+N` | Global | **New** empty project |
 | `Ctrl+Shift+N` | Global | **New from template** (open gallery) |
 | `Ctrl+O` | Global | Open file |
-| `Ctrl+K Ctrl+O` | Global | Open folder (VS Code parity) |
+| `Ctrl+K Ctrl+O` | Global | Open folder |
 | `Enter` | NTP focused | Activates focused button or opens selected recent |
 | `↑` `↓` | NTP | Move among actions / recents |
 | `/` | NTP | Focus location/command field |
@@ -147,10 +169,11 @@ Palette strings must match menu labels exactly ([ux.md](ux.md)).
 ## Behaviour: apply template
 
 1. Run empty project seed (same as **New**).
-2. Load `project.json` + assets from template pack ([ADR 0036](../adr/0036-new-project-empty-by-default-and-templates.md) §4).
-3. If `default_workspace` set, switch layout once (Browse/Write/Create/Live) without changing open tabs.
-4. Missing required mod: non-modal banner at top of project content with **Install from portal** and **Learn more**; Save still enabled.
-5. Tab title: template `title` until user renames or saves.
+2. Resolve `relationships` ([ADR 0037](../adr/0037-plugin-and-template-relationships.md)); user confirms install sheet.
+3. Load `project.json` + assets from template pack ([ADR 0036](../adr/0036-new-project-empty-by-default-and-templates.md) §4).
+4. If `default_workspace` set, switch layout once (Browse/Write/Create/Live) without changing open tabs.
+5. Tab title: configure **Project name**; unsatisfied requires → banner with **Install**; Save still enabled.
+6. Pin header on first edit records enabled plugin versions, not unchecked recommends.
 
 ## Behaviour: open foreign file (unchanged)
 
