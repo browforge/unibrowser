@@ -341,13 +341,17 @@ export async function syncDocumentEditorForTextTab(
     const { setDocumentEditorMode } = await import("./documentEditorModes");
     setDocumentEditorMode("reading", false);
   }
+  const projectDocumentVisual =
+    document.body.dataset.cmAutoContext === "office" &&
+    path.includes("/assets/document.md");
   const wantsVisual =
     demo.includes("doc-mode-wysiwyg") ||
     demo.includes("doc-mode-reading") ||
     demo.includes("doc-mode-split") ||
     demo.includes("doc-history-panel") ||
     demo.includes("doc-visual-md-docx") ||
-    demo.includes("doc-opaque-card");
+    demo.includes("doc-opaque-card") ||
+    projectDocumentVisual;
   const toolbarCapture =
     demo.includes("txt-apply-h2") || demo.includes("txt-block-picker-open");
   if (toolbarCapture && !wantsVisual) {

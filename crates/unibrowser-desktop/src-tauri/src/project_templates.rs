@@ -203,10 +203,11 @@ fn open_memory_project_tab(
     let _sess_tabs = ws_label(state, window.label())?;
     {
         let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        let reuse_home = tabs
-            .active_tab()
-            .map(tab_is_new_tab_home)
-            .unwrap_or(false);
+        let reuse_home = tabs.tab_count() <= 1
+            || tabs
+                .active_tab()
+                .map(tab_is_new_tab_home)
+                .unwrap_or(false);
         if reuse_home {
             tabs.navigate_active(loc.clone(), false, Some(doc));
         } else {

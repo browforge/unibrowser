@@ -846,11 +846,12 @@ impl WebHost {
     }
 
     fn open_memory_project_tab(&mut self, loc: BrowserLocation) {
-        let reuse_home = self
-            .tabs
-            .active_tab()
-            .map(|t| matches!(&t.location, BrowserLocation::Internal { page } if page == "home"))
-            .unwrap_or(false);
+        let reuse_home = self.tabs.tab_count() <= 1
+            || self
+                .tabs
+                .active_tab()
+                .map(|t| matches!(&t.location, BrowserLocation::Internal { page } if page == "home"))
+                .unwrap_or(false);
         if reuse_home {
             self.tabs.navigate_active(loc, false, None);
         } else {

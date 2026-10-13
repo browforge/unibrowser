@@ -46,19 +46,16 @@ export async function activateProjectDocumentEditor(
   viewer: DocumentViewerDto,
   textEditorHost: HTMLElement,
 ): Promise<void> {
-  const { parseMarkdownDocument } = await import("./documentModelBridge");
   const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
   const { setDocumentEditorMode } = await import("./documentEditorModes");
   const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
   const label = viewer.title?.trim() || "Document";
   const docPath = `${viewer.path.replace(/\/$/, "")}/assets/document.md`;
-  const parsed = await parseMarkdownDocument("");
-  const { seedDocumentModelSessionForDemo } = await import("./documentEditorHost");
-  seedDocumentModelSessionForDemo(parsed);
+  const docContent = " ";
   document.body.dataset.cmAutoContext = "office";
   document.body.dataset.activeDocumentPath = docPath;
   setDocumentEditorMode("wysiwyg", false);
-  await syncDocumentEditorForTextTab(textEditorHost, docPath, "");
+  await syncDocumentEditorForTextTab(textEditorHost, docPath, docContent);
   syncTextDocumentCard(true, label);
   await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
   const { refreshCompactBlockPickerLabel } = await import("./textCompactToolbar");
