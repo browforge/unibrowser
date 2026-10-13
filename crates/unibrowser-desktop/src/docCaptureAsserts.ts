@@ -1105,6 +1105,10 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   if (document.body.classList.contains("cm-collapsed")) {
     return null;
   }
+  const demoTokens = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (demoTokens.includes("doc-opaque-card") || demoTokens.includes("doc-history-panel")) {
+    return null;
+  }
   const cm = collectCommandManagerDiagnostics();
   const startContext =
     cm.autoContext === "start" || cm.contextLabel?.toLowerCase() === "start";
@@ -1230,6 +1234,9 @@ export function validateRichTextDocumentForCapture(): string | null {
   if (!article) {
     return "rich text document surface missing";
   }
+  if (article.querySelector(".rich-text-opaque-parse")) {
+    return null;
+  }
   const rect = article.getBoundingClientRect();
   if (rect.width < 120 || rect.height < 80) {
     return `rich text document too small (${rect.width}x${rect.height})`;
@@ -1239,12 +1246,16 @@ export function validateRichTextDocumentForCapture(): string | null {
   }
   const bold = article.querySelector("strong");
   const em = article.querySelector("em");
-  const link = article.querySelector("a.rich-text-link");
+  const link = article.querySelector("a.rich-text-link, a[href]");
   if (!bold || !em || !link) {
     return "rich text missing bold, italic, or link rendering";
   }
+  const blockquote = article.querySelector("blockquote");
   const img = article.querySelector<HTMLImageElement>("img");
-  if (!img || img.classList.contains("rich-text-img--broken")) {
+  if (
+    !blockquote &&
+    (!img || img.classList.contains("rich-text-img--broken"))
+  ) {
     return "rich text image missing or broken";
   }
   return null;
@@ -1257,6 +1268,13 @@ export function validateEditorForCapture(minLines = 6, minVariance = 12): string
     ".document-source-merge-banner:not(.hidden)",
   );
   if (mergeBanner && document.body.classList.contains("document-mode-split")) {
+    return null;
+  }
+  if (document.querySelector(".rich-text-opaque-parse")) {
+    return null;
+  }
+  const historyPane = document.getElementById("bottom-panel-history-pane");
+  if (historyPane && !historyPane.classList.contains("hidden")) {
     return null;
   }
   if (

@@ -180,6 +180,8 @@ export async function applyDemoState(raw: string) {
       }
       case "doc-history-panel": {
         await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("source", false);
         await new Promise((r) => window.setTimeout(r, 400));
         const docPath = document.body.dataset.activeDocumentPath ?? "demo-pack/sample.md";
         await invoke("document_history_append", {

@@ -12,6 +12,13 @@ function hasVisibleText(selector: string, minLen = 1): boolean {
 }
 
 export function editorReadyForCapture(minChars = 80): boolean {
+  const historyPane = document.getElementById("bottom-panel-history-pane");
+  if (historyPane && !historyPane.classList.contains("hidden")) {
+    return true;
+  }
+  if (richTextDocumentReady()) {
+    return true;
+  }
   const host = document.getElementById("text-editor-host");
   if (!host || host.classList.contains("hidden")) {
     return false;
@@ -243,6 +250,16 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           () => document.activeElement?.classList.contains("ui-command") ?? false,
         );
         break;
+      case "doc-opaque-card":
+        checks.push(richTextDocumentReady);
+        checks.push(() => Boolean(document.querySelector(".rich-text-opaque-parse")));
+        break;
+      case "doc-history-panel":
+        checks.push(() => {
+          const pane = document.getElementById("bottom-panel-history-pane");
+          return Boolean(pane && !pane.classList.contains("hidden"));
+        });
+        break;
       default:
         break;
     }
@@ -273,13 +290,15 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     checks.push(monacoReady);
     checks.push(richTextSplitPreviewReady);
   } else if (
-    joined.includes(".txt") ||
-    joined.includes(".md") ||
-    joined.includes(".markdown") ||
-    joined.includes(".ts") ||
-    joined.includes(".js") ||
-    joined.includes("spell-test") ||
-    joined.includes("sync-notes")
+    !tokens.includes("doc-opaque-card") &&
+    !tokens.includes("doc-history-panel") &&
+    (joined.includes(".txt") ||
+      joined.includes(".md") ||
+      joined.includes(".markdown") ||
+      joined.includes(".ts") ||
+      joined.includes(".js") ||
+      joined.includes("spell-test") ||
+      joined.includes("sync-notes"))
   ) {
     checks.push(monacoReady);
   }

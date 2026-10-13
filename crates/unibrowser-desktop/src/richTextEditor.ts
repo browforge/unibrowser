@@ -192,7 +192,7 @@ export function renderDocumentModelToHtml(model: DocumentModelDto, readonly = fa
 }
 
 async function resolveRichImages(host: HTMLElement, basePath: string): Promise<void> {
-  const imgs = host.querySelectorAll<HTMLImageElement>("img[data-doc-src]");
+  const imgs = host.querySelectorAll<HTMLImageElement>("img");
   for (const img of imgs) {
     const raw = img.dataset.docSrc ?? img.getAttribute("src") ?? "";
     if (!raw || isAbsoluteUrl(raw)) {
