@@ -60,7 +60,18 @@ test.describe("web demo", () => {
     await expect(page.locator(".tab[aria-selected='true']")).toContainText("sample.md", {
       timeout: 30_000,
     });
+    const sourceMode = page.locator('[data-doc-mode="source"]').first();
+    await expect(sourceMode).toBeVisible({ timeout: 30_000 });
+    await sourceMode.click();
+    await page.waitForFunction(
+      () => document.body.dataset.documentEditorMode === "source",
+      undefined,
+      { timeout: 15_000 },
+    );
     await expect(page.locator("#text-editor-host")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("#text-editor-host .native-edit-context").first()).toBeVisible({
+      timeout: 30_000,
+    });
     await expectVisibleMonacoDemoContent(page);
 
     const cmCommands = page.locator("#command-manager-groups button:not([disabled])");
@@ -89,7 +100,21 @@ test.describe("web demo", () => {
     await page.locator("#text-editor-host .view-lines").first().click();
     await page.keyboard.press("Control+End");
     await page.keyboard.insertText("\nWeb smoke edit");
-    await expectVisibleMonacoDemoContent(page);
+    await page.waitForFunction(
+      (heading) => {
+        const monaco = (window as unknown as {
+          monaco?: {
+            editor: {
+              getEditors: () => { getModel: () => { getValue: () => string } | null }[];
+            };
+          };
+        }).monaco;
+        const value = monaco?.editor?.getEditors()?.[0]?.getModel()?.getValue() ?? "";
+        return value.includes(heading) && value.includes("Web smoke edit");
+      },
+      DEMO_HEADING,
+      { timeout: 30_000 },
+    );
     await page.waitForFunction(() => {
       const host = document.querySelector("#text-editor-host");
       if (!host) {
