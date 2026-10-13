@@ -100,25 +100,3 @@ jobs:
         run: npm run build
       - name: cargo test
         run: cargo test --workspace --exclude unibrowser-desktop --exclude ub-mod-wasm
-      - name: Build media sidecar (release)
-        run: cargo build -p unibrowser-media --bin unibrowser-media-sidecar --release
-      - name: Stage media sidecar for Tauri (release)
-        shell: pwsh
-        run: |
-          $destDir = "crates/unibrowser-desktop/src-tauri/binaries"
-          New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-          Copy-Item -Force "target/release/unibrowser-media-sidecar.exe" `
-            "$destDir/unibrowser-media-sidecar-x86_64-pc-windows-msvc.exe"
-      - name: cargo build Tauri (release)
-        run: cargo build -p unibrowser-desktop --release
-      - name: Tauri bundle (NSIS + MSI)
-        working-directory: crates/unibrowser-desktop
-        run: npm run tauri build
-      - name: Upload Windows installers
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installers
-          path: |
-            target/release/bundle/nsis/*.exe
-            target/release/bundle/msi/*.msi
-          if-no-files-found: warn
