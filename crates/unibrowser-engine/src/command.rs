@@ -188,6 +188,20 @@ impl CommandRegistry {
             aliases: &["unordered list"],
         });
         reg.register_command(CommandMeta {
+            id: commands::TEXT_LIST_NUMBERED,
+            title: "Numbered list",
+            icon: "list-ordered",
+            default_keybinding: None,
+            aliases: &["ordered list"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::TEXT_INSERT_IMAGE,
+            title: "Insert image",
+            icon: "image",
+            default_keybinding: None,
+            aliases: &["insert image", "add image"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::TEXT_COMPACT_OVERFLOW,
             title: "More formatting",
             icon: "ellipsis",

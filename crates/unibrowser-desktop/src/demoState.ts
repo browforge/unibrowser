@@ -5,6 +5,43 @@ import { t } from "./i18n";
 import { showActionToast } from "./toast";
 import { isToolbarOnlyWindow } from "./toolbarOnly";
 
+/** Tokens that need editor/compact toolbar ready (also deferred in doc-capture). */
+export const DEFERRED_DEMO_TOKEN_RE =
+  /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$)/;
+
+export function bootstrapDemoStateTokens(raw: string): string {
+  return raw
+    .split(/[,;]+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .filter((t) => !DEFERRED_DEMO_TOKEN_RE.test(t.toLowerCase()))
+    .join(",");
+}
+
+/** Apply text-toolbar demo tokens after command manager / compact row are mounted. */
+export async function applyDeferredTextToolbarDemoTokens(raw: string): Promise<void> {
+  const demoTokens = raw.toLowerCase();
+  if (
+    !demoTokens.includes("txt-apply-h2") &&
+    !demoTokens.includes("txt-apply-h1") &&
+    !demoTokens.includes("txt-block-picker-open") &&
+    !demoTokens.includes("txt-mod-toolbar-visible")
+  ) {
+    return;
+  }
+  if (demoTokens.includes("txt-mod-toolbar-visible")) {
+    await applyDemoState("txt-mod-toolbar-visible");
+  }
+  for (const token of ["txt-apply-h2", "txt-apply-h1"] as const) {
+    if (demoTokens.includes(token)) {
+      await applyDemoState(token);
+    }
+  }
+  if (demoTokens.includes("txt-block-picker-open")) {
+    await applyDemoState("txt-block-picker-open");
+  }
+}
+
 /** Hidden preset for docs screenshots (`UNIBROWSER_DEMO_STATE`, comma-separated). */
 export async function applyDemoState(raw: string) {
   const tokens = raw
@@ -71,6 +108,9 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "txt-apply-h1": {
+        document.body.dataset.ubBlockStyleCommandId =
+          "unibrowser.semantic.block.heading_1";
+        document.body.dataset.ubBlockStyleLabel = "Heading 1";
         const { textEditor } = await import("./textEditor");
         for (let attempt = 0; attempt < 80; attempt += 1) {
           const applied = await textEditor.applySemanticBlockStyle(
@@ -84,6 +124,16 @@ export async function applyDemoState(raw: string) {
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         break;
       }
+      case "text-card-render1":
+        document.body.classList.add("cm-collapsed");
+        {
+          const rail = document.getElementById("activity-rail");
+          rail?.querySelectorAll(".rail-destination.active").forEach((el) => {
+            el.classList.remove("active");
+          });
+          rail?.querySelector<HTMLElement>(".rail-side-panel")?.classList.add("hidden");
+        }
+        break;
       case "txt-mod-toolbar-visible":
         document.documentElement.dataset.ubModToolbarDocked = "1";
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
@@ -393,6 +443,11 @@ export async function applyDemoState(raw: string) {
             break;
           }
           await new Promise((resolve) => window.setTimeout(resolve, 50));
+        }
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        {
+          const { syncDocumentCardDirtyFlag } = await import("./ui/textDocumentCard");
+          syncDocumentCardDirtyFlag(false);
         }
         break;
       }

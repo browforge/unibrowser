@@ -1,4 +1,5 @@
 import { compactToolbarIconFallbackError } from "./textCompactToolbar";
+import { documentWordCount } from "./ui/documentCardStatus";
 
 export interface MonacoCaptureDiagnostics {
   viewLineCount: number;
@@ -1112,9 +1113,13 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   const mediaContext = cm.contextLabel?.toLowerCase() === "audio";
   const sparseContextLimit = mediaContext ? 1 : settingsContext ? 2 : modsContext ? 5 : 4;
   const textCompactContext = document.body.classList.contains("text-compact-visible");
+  const documentCardContext = document.body.classList.contains("text-document-card");
   const sparseContext = startContext || settingsContext || modsContext || mediaContext;
   let requiredVisible = sparseContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
   let requiredContrast = sparseContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
+  if (documentCardContext) {
+    return null;
+  }
   if (textCompactContext) {
     requiredVisible = Math.min(requiredVisible, 5);
     requiredContrast = Math.min(requiredContrast, 5);
@@ -1334,7 +1339,10 @@ export function validateCommandManagerMutedForCapture(): string | null {
 }
 
 /** Hide hover chrome and optionally preserve intentional keyboard-focus evidence. */
-export function clearCaptureHoverAndTooltips(preserveFocus = false): void {
+export function clearCaptureHoverAndTooltips(
+  preserveFocus = false,
+  preserveBlockPicker = false,
+): void {
   document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
   document.querySelectorAll<HTMLElement>(".rail-destination, .rail-edge-hit").forEach((el) => {
     el.removeAttribute("title");
@@ -1342,7 +1350,16 @@ export function clearCaptureHoverAndTooltips(preserveFocus = false): void {
   if (!preserveFocus) {
     const active = document.activeElement;
     if (active instanceof HTMLElement) {
-      active.blur();
+      const keepPickerFocus =
+        preserveBlockPicker &&
+        Boolean(
+          document.querySelector(
+            "#text-compact-toolbar-host .text-compact-block-menu:not(.hidden)",
+          ),
+        );
+      if (!keepPickerFocus) {
+        active.blur();
+      }
     }
   }
   document.body.dispatchEvent(
@@ -1460,6 +1477,57 @@ export interface TextCompactToolbarCaptureOptions {
   requireModToolbarDock?: boolean;
 }
 
+/** Quiet Utility: compact row shares CM chrome tokens; no light tiles on controls. */
+function compactToolbarQuietUtilityMismatch(host: HTMLElement): string | null {
+  const onCard = document.body.classList.contains("text-document-card");
+  const reference = onCard
+    ? document.querySelector<HTMLElement>(".document-card-toolbar-mount")
+    : document.getElementById("command-manager");
+  if (!reference) {
+    return null;
+  }
+  const hostBg = getComputedStyle(host).backgroundColor;
+  const refBg = getComputedStyle(reference).backgroundColor;
+  if (onCard) {
+    const hostLumCard = parseRgbLuminance(hostBg);
+    const paperLum = parseRgbLuminance(refBg);
+    if (
+      hostLumCard !== null &&
+      paperLum !== null &&
+      hostBg !== "rgba(0, 0, 0, 0)" &&
+      Math.abs(hostLumCard - paperLum) > 0.12
+    ) {
+      return `in-card toolbar background ${hostBg} must sit on paper card ${refBg}`;
+    }
+  } else if (hostBg !== refBg) {
+    return `text compact toolbar background ${hostBg} must match command manager ${refBg}`;
+  }
+  const hostLum = parseRgbLuminance(hostBg);
+  if (hostLum === null) {
+    return `text compact toolbar background ${hostBg} is not parseable`;
+  }
+  for (const el of host.querySelectorAll<HTMLElement>(".ui-command, button.text-compact-btn")) {
+    const style = getComputedStyle(el);
+    const bgLum = parseRgbLuminance(style.backgroundColor);
+    if (bgLum !== null && bgLum - hostLum > 0.08) {
+      const id = el.dataset.controlId ?? el.dataset.commandId ?? "?";
+      return `compact control ${id} has boxed/light background ${style.backgroundColor}`;
+    }
+    if (style.borderTopWidth && parseFloat(style.borderTopWidth) >= 1) {
+      const borderLum = parseRgbLuminance(style.borderTopColor);
+      if (
+        borderLum !== null &&
+        borderLum - hostLum > 0.15 &&
+        style.borderTopColor !== "rgba(0, 0, 0, 0)"
+      ) {
+        const id = el.dataset.controlId ?? el.dataset.commandId ?? "?";
+        return `compact control ${id} has visible boxed border ${style.borderTopColor}`;
+      }
+    }
+  }
+  return null;
+}
+
 /** TXT-06: compact text toolbar geometry and picker state for doc-capture. */
 export function validateTextCompactToolbarForCapture(
   options: TextCompactToolbarCaptureOptions | boolean = false,
@@ -1478,8 +1546,9 @@ export function validateTextCompactToolbarForCapture(
     return "text compact toolbar host missing while text-compact-visible";
   }
   const rect = host.getBoundingClientRect();
-  if (rect.height > 33.5) {
-    return `text compact toolbar height ${rect.height.toFixed(1)}px exceeds 32px row budget`;
+  const maxRow = document.body.classList.contains("text-document-card") ? 38.5 : 33.5;
+  if (rect.height > maxRow) {
+    return `text compact toolbar height ${rect.height.toFixed(1)}px exceeds ${maxRow}px row budget`;
   }
   const tools = host.querySelector<HTMLElement>(".text-compact-tools");
   if (!tools) {
@@ -1515,6 +1584,16 @@ export function validateTextCompactToolbarForCapture(
   if (!pickerLabel?.textContent?.trim()) {
     return "block-style picker missing current style label";
   }
+  const pickerText = pickerLabel.textContent.trim();
+  if (pickerText === "Markdown" || pickerText === "Word" || pickerText === "Plain text") {
+    return `block-style picker must show block type, not format name "${pickerText}"`;
+  }
+  if (opts.requireH2Selected && pickerText !== "Heading 2") {
+    return `block-style picker trigger must show Heading 2 after txt-apply-h2, got "${pickerText}"`;
+  }
+  if (opts.requireDocxEmulatedH1 && pickerText !== "Heading 1") {
+    return `block-style picker trigger must show Heading 1 for docx capture, got "${pickerText}"`;
+  }
   const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
   if (requirePickerOpen) {
     if (!menu || menu.classList.contains("hidden")) {
@@ -1536,9 +1615,13 @@ export function validateTextCompactToolbarForCapture(
         return "block-style picker must list Heading 1 for docx capture";
       }
       const trigger = host.querySelector<HTMLElement>(".text-compact-block-trigger");
-      const mark = trigger?.querySelector<HTMLElement>(".cm-emulation-mark");
+      const mark = trigger?.querySelector<HTMLElement>(".block-emulation-badge, .cm-emulation-mark");
       if (!mark?.textContent?.includes("≈")) {
         return "docx block-style picker must show emulated Heading 1 (≈) on trigger";
+      }
+      const markRect = mark.getBoundingClientRect();
+      if (markRect.width < 14 || markRect.height < 12) {
+        return "docx emulation badge must be legible (min 14×12px)";
       }
     }
   }
@@ -1563,6 +1646,82 @@ export function validateTextCompactToolbarForCapture(
     }
   } else if (host.querySelector(".text-compact-mod-dock")) {
     return "mod docked toolbar must only appear when txt-mod-toolbar-visible demo is set";
+  }
+  const quietErr = compactToolbarQuietUtilityMismatch(host);
+  if (quietErr) {
+    return quietErr;
+  }
+  if (document.body.classList.contains("text-document-card")) {
+    for (const id of [
+      "unibrowser.control.text.link",
+      "unibrowser.control.text.insert_image",
+    ]) {
+      if (!host.querySelector(`[data-control-id="${id}"]`)) {
+        return `Render 1 in-card toolbar missing control ${id}`;
+      }
+    }
+  }
+  return null;
+}
+
+const CONCEPT_RENDER_FOOTER_SNIPPETS = ["512 words", "Saved 10:18"];
+
+/** Render 1 card footer must reflect live word count and save state (not concept art literals). */
+export function validateDocumentCardFooterForCapture(): string | null {
+  if (!document.body.classList.contains("text-document-card")) {
+    return null;
+  }
+  const main = document.querySelector<HTMLElement>(".document-card-status-main");
+  const text = main?.textContent?.trim() ?? "";
+  if (!text) {
+    return "document card footer missing status text";
+  }
+  for (const snippet of CONCEPT_RENDER_FOOTER_SNIPPETS) {
+    if (text.includes(snippet)) {
+      return `document card footer still uses concept placeholder "${snippet}"`;
+    }
+  }
+  const match = text.match(/(\d+)\s+words?\b/i);
+  if (!match) {
+    return `document card footer missing word count in "${text}"`;
+  }
+  const shown = Number.parseInt(match[1], 10);
+  const expected = documentWordCount();
+  if (!Number.isFinite(shown) || shown !== expected) {
+    return `document card footer word count ${shown} does not match document (${expected})`;
+  }
+  const dirty = document.body.dataset.documentCardDirty === "1";
+  if (dirty && !text.includes("Not saved")) {
+    return `document card footer must show Not saved when dirty; got "${text}"`;
+  }
+  if (!dirty && text.includes("Not saved")) {
+    return `document card footer must not show Not saved when document is clean`;
+  }
+  return null;
+}
+
+/** Markdown preview embedded images should not exceed the preview column width. */
+export function validateMarkdownPreviewImageFitsPage(): string | null {
+  const shell = document.querySelector<HTMLElement>(".md-preview-shell:not(.hidden)");
+  if (!shell) {
+    return null;
+  }
+  const body = shell.querySelector<HTMLElement>(".md-preview-body");
+  if (!body) {
+    return "markdown preview body missing for image fit check";
+  }
+  const bodyWidth = body.getBoundingClientRect().width;
+  if (bodyWidth < 80) {
+    return `markdown preview body width ${bodyWidth.toFixed(0)}px too narrow`;
+  }
+  for (const img of body.querySelectorAll<HTMLImageElement>("img")) {
+    const rect = img.getBoundingClientRect();
+    if (rect.width < 8 || rect.height < 8) {
+      return "markdown preview image has no visible layout box";
+    }
+    if (rect.width > bodyWidth + 4) {
+      return `markdown preview image width ${rect.width.toFixed(0)}px exceeds body ${bodyWidth.toFixed(0)}px`;
+    }
   }
   return null;
 }

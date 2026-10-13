@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <title>Unibrowser — text compact chrome (approved)</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <script>
+    const docx = new URLSearchParams(location.search).get("docx") === "1";
+    document.documentElement.dataset.docx = docx ? "1" : "0";
+  </script>
+  <main class="chrome-stack-only" aria-label="Text compact toolbar and Command Manager chrome">
+    <header class="titlebar" aria-label="Title bar">
+      <button class="title-icon app-menu" aria-label="Main menu"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="title-tabs" role="tablist"><div class="title-tab active"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg><span id="tab-label">sample.md</span><span class="close">x</span></div></div>
+      <div class="command-centre"><span class="crumb-muted">demo-pack /</span><strong id="doc-name">sample.md</strong></div>
+      <button class="button primary title-save">Save</button>
+      <span class="drag-region" aria-hidden="true"></span>
+      <div class="window-controls"><button aria-label="Minimise">-</button><button aria-label="Maximise">[]</button><button aria-label="Close">x</button></div>
+    </header>
+    <div class="text-compact-bar" role="toolbar" aria-label="Text formatting">
+      <button class="cm-command split-button" title="Block style"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4H3"/><path d="M17 4h4"/><path d="M19 4v16"/><path d="M5 12h14"/><path d="M5 20h10"/></svg><span class="cm-command-label" id="block-label">Paragraph</span><span class="split-caret" aria-hidden="true">v</span></button>
+      <span class="cm-divider" aria-hidden="true"></span>
+      <button class="cm-command icon-only" title="Bold"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg><span class="cm-command-label">Bold</span></button>
+      <button class="cm-command icon-only" title="Italic"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4h-9M14 20H5M15 4 9 20"/></svg><span class="cm-command-label">Italic</span></button>
+      <button class="cm-command icon-only" title="Strikethrough"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><path d="M4 12h16"/></svg><span class="cm-command-label">Strikethrough</span></button>
+      <button class="cm-command icon-only" title="Inline code"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg><span class="cm-command-label">Code</span></button>
+      <span class="cm-divider" aria-hidden="true"></span>
+      <button class="cm-command icon-only" title="Link"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span class="cm-command-label">Link</span></button>
+      <button class="cm-command icon-only" title="Bullet list"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h.01M3 18h.01M3 6h.01"/><path d="M8 12h13M8 18h13M8 6h13"/></svg><span class="cm-command-label">List</span></button>
+      <span class="cm-divider" aria-hidden="true"></span>
+      <button class="cm-command icon-only" title="Clear formatting"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 21 4.7-4.7M16 3l5 5-9 9H7v-5z"/><path d="m18 12 2 2"/></svg><span class="cm-command-label">Clear</span></button>
+      <button class="cm-command icon-only" title="More"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span class="cm-command-label">More</span></button>
+    </div>
+    <div class="command-manager" aria-label="Text commands">
+      <button class="context-label">Text<span aria-hidden="true">v</span></button>
+      <span class="cm-divider context-divider"></span>
+      <div class="cm-group priority-normal" role="group" aria-label="History"><div class="cm-group-tools"><button class="cm-command" title="Undo"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v1"/></svg><span class="cm-command-label">Undo</span></button><button class="cm-command" title="Redo"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0-6 6v1"/></svg><span class="cm-command-label">Redo</span></button></div><span class="cm-group-name">History</span></div>
+      <span class="cm-divider"></span>
+      <div class="cm-group priority-normal" role="group" aria-label="Find"><div class="cm-group-tools"><button class="cm-command" title="Find"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span class="cm-command-label">Find</span></button></div><span class="cm-group-name">Find</span></div>
+      <span class="cm-divider"></span>
+      <div class="cm-group priority-normal" role="group" aria-label="View"><div class="cm-group-tools"><button class="cm-command split-button" title="Editor zoom"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M8 11h6"/></svg><span class="cm-command-label">100%</span><span class="split-caret" aria-hidden="true">v</span></button></div><span class="cm-group-name">View</span></div>
+      <span class="spacer"></span>
+      <span class="follow">Following: <strong>Text</strong></span>
+      <button class="pin-button">Pin</button>
+      <button class="title-icon collapse-manager" aria-label="Collapse Command Manager">^</button>
+    </div>
+  </main>
+  <script>
+    if (document.documentElement.dataset.docx === "1") {
+      document.getElementById("tab-label").textContent = "sample-rich.docx";
+      document.getElementById("doc-name").textContent = "sample-rich.docx";
+      const block = document.getElementById("block-label");
+      block.textContent = "Heading 1";
+      const trigger = block.closest("button");
+      const mark = document.createElement("span");
+      mark.className = "cm-emulation-mark";
+      mark.textContent = "≈";
+      mark.setAttribute("aria-hidden", "true");
+      trigger.appendChild(mark);
+    }
+  </script>
+</body>
+</html>

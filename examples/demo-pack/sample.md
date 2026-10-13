@@ -2,6 +2,8 @@
 
 Unibrowser renders Markdown in the document viewer.
 
+> Render 1 block quotes use a pale blue panel and a left accent bar on the paper card.
+
 ![Demo pack image](sample.png)
 
 - **Bold** and _italic_

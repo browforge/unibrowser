@@ -1,22 +1,22 @@
 {
   "viewportWidth": 1280,
   "viewportHeight": 800,
-  "controlCount": 5,
-  "visibleCount": 5,
-  "contrastOkCount": 5,
-  "contextLabel": "Text",
-  "autoContext": "text",
+  "controlCount": 6,
+  "visibleCount": 0,
+  "contrastOkCount": 0,
+  "contextLabel": "Office",
+  "autoContext": "office",
   "pipeline": {
-    "activeTabId": "text",
-    "rustFamilyCount": 4,
-    "rustControlCount": 5,
-    "ipcFamilyCount": 4,
-    "ipcControlCount": 5,
-    "frontendGroupCount": 4,
-    "frontendResolvedControlCount": 5,
-    "frontendVisibleModelCount": 5,
+    "activeTabId": "office",
+    "rustFamilyCount": 5,
+    "rustControlCount": 6,
+    "ipcFamilyCount": 5,
+    "ipcControlCount": 6,
+    "frontendGroupCount": 5,
+    "frontendResolvedControlCount": 6,
+    "frontendVisibleModelCount": 6,
     "frontendOverflowModelCount": 0,
-    "groupsWidth": 716
+    "groupsWidth": 0
   },
   "controls": [
     {
@@ -29,16 +29,16 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 71,
-      "height": 30,
+      "width": 0,
+      "height": 0,
       "labelBounds": {
-        "x": 106.84375,
-        "y": 83.5,
-        "width": 34,
-        "height": 18
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       },
-      "labelWidth": 34,
-      "iconWidth": 16,
+      "labelWidth": 0,
+      "iconWidth": 0,
       "opacity": "1",
       "filter": "none",
       "foreground": "rgb(233, 237, 239)",
@@ -106,13 +106,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.994,
-      "pixelInkCount": 163,
+      "pixelContrast": 1.0,
+      "pixelInkCount": 0,
       "pixelBounds": {
-        "x": 106,
-        "y": 83,
-        "width": 35,
-        "height": 19
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       }
     },
     {
@@ -125,16 +125,16 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 68,
-      "height": 30,
+      "width": 0,
+      "height": 0,
       "labelBounds": {
-        "x": 178.84375,
-        "y": 83.5,
-        "width": 31,
-        "height": 18
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       },
-      "labelWidth": 31,
-      "iconWidth": 16,
+      "labelWidth": 0,
+      "iconWidth": 0,
       "opacity": "1",
       "filter": "none",
       "foreground": "rgb(233, 237, 239)",
@@ -202,13 +202,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.271,
-      "pixelInkCount": 154,
+      "pixelContrast": 1.0,
+      "pixelInkCount": 0,
       "pixelBounds": {
-        "x": 178,
-        "y": 83,
-        "width": 32,
-        "height": 19
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       }
     },
     {
@@ -221,16 +221,16 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 63,
-      "height": 30,
+      "width": 0,
+      "height": 0,
       "labelBounds": {
-        "x": 279.84375,
-        "y": 83.5,
-        "width": 26,
-        "height": 18
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       },
-      "labelWidth": 26,
-      "iconWidth": 16,
+      "labelWidth": 0,
+      "iconWidth": 0,
       "opacity": "1",
       "filter": "none",
       "foreground": "rgb(233, 237, 239)",
@@ -298,13 +298,111 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.994,
-      "pixelInkCount": 118,
+      "pixelContrast": 1.0,
+      "pixelInkCount": 0,
       "pixelBounds": {
-        "x": 279,
-        "y": 83,
-        "width": 27,
-        "height": 19
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "controlId": "unibrowser.control.text.size",
+      "label": "100%",
+      "classes": [
+        "ui-command",
+        "cm-cap-supported",
+        "split-button",
+        "value-stepper"
+      ],
+      "capabilityState": "supported",
+      "enabled": true,
+      "disabledReason": null,
+      "width": 0,
+      "height": 0,
+      "labelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "labelWidth": 0,
+      "iconWidth": 0,
+      "opacity": "1",
+      "filter": "none",
+      "foreground": "rgb(233, 237, 239)",
+      "labelForeground": "rgb(233, 237, 239)",
+      "background": "rgb(23, 37, 50)",
+      "contrast": 13.231816864242587,
+      "chromeTextVariable": "#e9edef",
+      "ancestors": [
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group-tools"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [
+            "cm-group",
+            "priority-low"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "div",
+          "id": "command-manager-groups",
+          "classes": [
+            "command-manager-groups"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "tag": "section",
+          "id": "command-manager",
+          "classes": [
+            "command-manager",
+            "command-manager-dense"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        },
+        {
+          "tag": "header",
+          "id": "chrome",
+          "classes": [
+            "ub-region",
+            "ub-region--chrome"
+          ],
+          "opacity": "1",
+          "filter": "none",
+          "color": "rgb(233, 237, 239)",
+          "background": "rgb(23, 37, 50)"
+        }
+      ],
+      "pixelContrast": 1.0,
+      "pixelInkCount": 0,
+      "pixelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       }
     },
     {
@@ -318,16 +416,16 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 73,
-      "height": 30,
+      "width": 0,
+      "height": 0,
       "labelBounds": {
-        "x": 375.84375,
-        "y": 83.5,
-        "width": 36,
-        "height": 18
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       },
-      "labelWidth": 36,
-      "iconWidth": 16,
+      "labelWidth": 0,
+      "iconWidth": 0,
       "opacity": "1",
       "filter": "none",
       "foreground": "rgb(233, 237, 239)",
@@ -395,13 +493,13 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.758,
-      "pixelInkCount": 180,
+      "pixelContrast": 1.0,
+      "pixelInkCount": 0,
       "pixelBounds": {
-        "x": 375,
-        "y": 83,
-        "width": 37,
-        "height": 19
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       }
     },
     {
@@ -414,16 +512,16 @@
       "capabilityState": "supported",
       "enabled": true,
       "disabledReason": null,
-      "width": 77,
-      "height": 30,
+      "width": 0,
+      "height": 0,
       "labelBounds": {
-        "x": 481.84375,
-        "y": 83.5,
-        "width": 40,
-        "height": 18
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       },
-      "labelWidth": 40,
-      "iconWidth": 16,
+      "labelWidth": 0,
+      "iconWidth": 0,
       "opacity": "1",
       "filter": "none",
       "foreground": "rgb(233, 237, 239)",
@@ -491,49 +589,26 @@
           "background": "rgb(23, 37, 50)"
         }
       ],
-      "pixelContrast": 12.876,
-      "pixelInkCount": 190,
+      "pixelContrast": 1.0,
+      "pixelInkCount": 0,
       "pixelBounds": {
-        "x": 481,
-        "y": 83,
-        "width": 41,
-        "height": 19
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
       }
     }
   ],
   "statusBar": {
-    "segmentCount": 6,
+    "segmentCount": 2,
     "segments": [
       {
         "id": "",
-        "label": "Saved",
+        "label": "Word document",
         "bounds": {
           "x": 12,
           "y": 777.5,
-          "width": 40.75,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.732,
-        "pixelInkCount": 171,
-        "pixelBounds": {
-          "x": 12,
-          "y": 777,
-          "width": 41,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "markdown",
-        "bounds": {
-          "x": 52.75,
-          "y": 777.5,
-          "width": 74.34375,
+          "width": 91.6875,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -542,80 +617,11 @@
         "opacity": "1",
         "filter": "none",
         "pixelContrast": 7.087,
-        "pixelInkCount": 270,
+        "pixelInkCount": 371,
         "pixelBounds": {
-          "x": 52,
+          "x": 12,
           "y": 777,
-          "width": 76,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "Ln 1, Col 1",
-        "bounds": {
-          "x": 127.09375,
-          "y": 777.5,
-          "width": 69.59375,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 7.844,
-        "pixelInkCount": 181,
-        "pixelBounds": {
-          "x": 127,
-          "y": 777,
-          "width": 70,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "Problems 0",
-        "bounds": {
-          "x": 1094.9375,
-          "y": 777.5,
-          "width": 66.6875,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.107,
-        "pixelInkCount": 270,
-        "pixelBounds": {
-          "x": 1094,
-          "y": 777,
-          "width": 68,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "UTF-8",
-        "bounds": {
-          "x": 1161.625,
-          "y": 777.5,
-          "width": 38.796875,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.309,
-        "pixelInkCount": 141,
-        "pixelBounds": {
-          "x": 1161,
-          "y": 777,
-          "width": 40,
+          "width": 92,
           "height": 18
         }
       },
@@ -623,7 +629,7 @@
         "id": "status-ai-visibility",
         "label": "AI",
         "bounds": {
-          "x": 1212.421875,
+          "x": 1212.40625,
           "y": 775.203125,
           "width": 22,
           "height": 21.59375

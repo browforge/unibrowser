@@ -2,6 +2,7 @@ import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import { applyMarkdownPreview } from "./markdownPreview";
 import { textReadingStats } from "./textStats";
+import { inferSemanticBlockStyleAtCursor as inferFromLine } from "./semanticBlockStyle";
 import { t } from "./i18n";
 import {
   attachSpellcheckPane,
@@ -128,6 +129,20 @@ export function getActiveTextContent(): string | null {
   return editor.getModel()?.getValue() ?? null;
 }
 
+/** Block-style picker trigger label from the cursor line (markdown/plain); docx uses demo dataset when set. */
+export function inferSemanticBlockStyleAtCursor(): { commandId: string; label: string } {
+  if (!editor || !loadedPath) {
+    return inferFromLine(() => null, 1, false);
+  }
+  const model = editor.getModel();
+  const line = editor.getPosition()?.lineNumber ?? 1;
+  return inferFromLine(
+    (n) => model?.getLineContent(n) ?? null,
+    line,
+    isMarkdownPath(loadedPath),
+  );
+}
+
 /** Self-test / automation: append text at end of active Monaco document. */
 export function appendActiveEditorText(chunk: string): boolean {
   if (!editor || !monacoApi) {
@@ -153,6 +168,11 @@ function emitCursorStatus() {
     return;
   }
   cursorListener({ line: pos.lineNumber, column: pos.column });
+  if (document.body.classList.contains("text-compact-visible")) {
+    void import("./textCompactToolbar").then(({ refreshCompactBlockPickerLabel }) => {
+      refreshCompactBlockPickerLabel();
+    });
+  }
 }
 
 function isMarkdownPath(path: string): boolean {

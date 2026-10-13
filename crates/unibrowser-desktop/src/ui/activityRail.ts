@@ -47,6 +47,7 @@ const PANEL_COPY: Record<RailDestination, { title: string; lines: string[] }> = 
 let activeDestination: RailDestination | null = null;
 let mode: RailMode = "collapsed";
 let edgeHitEl: HTMLElement | null = null;
+let railInitialized = false;
 
 function readMode(): RailMode {
   try {
@@ -145,6 +146,10 @@ export function initActivityRail(deps: {
   if (!rail) {
     return;
   }
+  if (railInitialized) {
+    return;
+  }
+  railInitialized = true;
   mode = readMode();
   applyModeClasses(rail);
   rail.innerHTML = "";

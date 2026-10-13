@@ -10,6 +10,10 @@ import {
 } from "./ui/commandControls";
 import { createLucideIcon } from "./ui/lucideIcon";
 import { bindCommandTooltip } from "./ui/commandTooltip";
+import { controlA11yState } from "./ui/controlA11y";
+import { uiCommandChromeClassList } from "./ui/cmControlClasses";
+import { syncTextDocumentCard } from "./ui/textDocumentCard";
+import { inferSemanticBlockStyleAtCursor } from "./textEditor";
 import type { FloatingBarDto, ManagerTabDto } from "./commandManager";
 
 const BLOCK_COMMANDS: { id: string; label: string }[] = [
@@ -27,6 +31,13 @@ const BLOCK_COMMANDS: { id: string; label: string }[] = [
 const BLOCK_STYLE_CONTROL = "unibrowser.control.semantic.block_style";
 
 function compactWidthBudget(host: HTMLElement): number {
+  const cardMount = document.querySelector<HTMLElement>(".document-card-toolbar-mount");
+  if (document.body.classList.contains("text-document-card") && cardMount) {
+    const mountWidth = cardMount.clientWidth;
+    if (mountWidth > 120) {
+      return mountWidth - 28;
+    }
+  }
   const width = host.clientWidth || window.innerWidth;
   if (width < 400) {
     return Math.max(120, width - 48);
@@ -44,29 +55,53 @@ function renderBlockStylePicker(
   control: ResolvedControlDto,
   onRun: (commandId: string) => Promise<void>,
   chordByCommand: Map<string, string>,
+  selectedCommandId?: string,
 ): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "text-compact-block-picker";
+  const a11y = controlA11yState(control);
+  const emulated = control.capability.state === "emulated";
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "text-compact-btn text-compact-block-trigger";
+  btn.className = [
+    ...uiCommandChromeClassList({
+      controlType: "button",
+      capabilityState: control.capability.state,
+      actionable: a11y.actionable,
+      emulated,
+      locked: control.capability.state === "locked",
+      mixed: a11y.mixed,
+      modControl: false,
+    }),
+    "split-button",
+    "text-compact-btn",
+    "text-compact-block-trigger",
+  ].join(" ");
   btn.dataset.controlId = control.control_id;
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
-  const icon = createLucideIcon("pilcrow", 16, "ub-icon svg-icon");
-  btn.appendChild(icon);
+  const cardMode = document.body.classList.contains("text-document-card");
+  if (!cardMode) {
+    const icon = createLucideIcon("pilcrow", 16, "ub-icon svg-icon");
+    btn.appendChild(icon);
+  }
+  const inferred = inferSemanticBlockStyleAtCursor();
+  const activeCommandId = selectedCommandId ?? inferred.commandId;
+  const displayLabel = inferred.label;
   const label = document.createElement("span");
   label.className = "text-compact-block-label";
-  label.textContent = control.value ?? control.label;
+  label.textContent = displayLabel;
   btn.appendChild(label);
   const chevron = createLucideIcon("chevron-down", 14, "ub-icon svg-icon text-compact-chevron");
   btn.appendChild(chevron);
-  if (control.capability.state === "emulated") {
+  if (emulated) {
+    const reason = capabilityReason(control.capability) ?? "Approximated style";
     const mark = document.createElement("span");
-    mark.className = "cm-emulation-mark";
+    mark.className = "cm-emulation-mark block-emulation-badge";
     mark.textContent = "≈";
-    mark.setAttribute("aria-hidden", "true");
-    mark.title = capabilityReason(control.capability) ?? "";
+    mark.setAttribute("role", "img");
+    mark.setAttribute("aria-label", `Emulated: ${reason}`);
+    mark.title = reason;
     btn.appendChild(mark);
   }
   bindCommandTooltip(btn, {
@@ -85,10 +120,7 @@ function renderBlockStylePicker(
     row.dataset.commandId = item.id;
     row.textContent = item.label;
     row.setAttribute("role", "option");
-    if (
-      label.textContent === item.label ||
-      (item.id.endsWith("heading_2") && label.textContent === "Heading 2")
-    ) {
+    if (item.id === activeCommandId) {
       row.setAttribute("aria-selected", "true");
     }
     row.onclick = (e) => {
@@ -136,7 +168,7 @@ function appendModDockedSection(
       continue;
     }
     const div = document.createElement("span");
-    div.className = "text-compact-divider";
+    div.className = "cm-divider";
     div.setAttribute("aria-hidden", "true");
     tools.appendChild(div);
     const dock = document.createElement("div");
@@ -149,7 +181,7 @@ function appendModDockedSection(
     for (const cmd of bar.commands) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "text-compact-btn";
+      btn.className = "ui-command cm-mod-control cm-cap-supported text-compact-btn";
       btn.dataset.commandId = cmd.command_id;
       btn.setAttribute("aria-label", cmd.title);
       const iconName = lucideForControlIcon(cmd.icon);
@@ -185,7 +217,9 @@ function renderCompactRow(
   container.innerHTML = "";
   const groups = familiesToRenderGroups(families);
   const budget = compactWidthBudget(container);
-  let { visible, overflow } = partitionGroupsByAvailableWidth(groups, budget);
+  let { visible, overflow } = document.body.classList.contains("text-document-card")
+    ? { visible: groups, overflow: [] as typeof groups }
+    : partitionGroupsByAvailableWidth(groups, budget);
   const tools = document.createElement("div");
   tools.className = "text-compact-tools";
   tools.setAttribute("role", "toolbar");
@@ -194,7 +228,7 @@ function renderCompactRow(
     list.forEach((group, index) => {
       if (index > 0 || tools.childElementCount > 0) {
         const div = document.createElement("span");
-        div.className = "text-compact-divider";
+        div.className = "cm-divider";
         div.setAttribute("aria-hidden", "true");
         tools.appendChild(div);
       }
@@ -210,7 +244,7 @@ function renderCompactRow(
   if (overflow.length > 0) {
     const overflowBtn = document.createElement("button");
     overflowBtn.type = "button";
-    overflowBtn.className = "text-compact-btn";
+    overflowBtn.className = "ui-command cm-cap-supported text-compact-btn";
     overflowBtn.setAttribute("aria-label", "More formatting");
     overflowBtn.appendChild(createLucideIcon("ellipsis", 16, "ub-icon svg-icon"));
     overflowBtn.onclick = (e) => {
@@ -242,6 +276,11 @@ function renderCompactRow(
     tools.appendChild(overflowBtn);
   }
   container.appendChild(tools);
+  const fileLabel =
+    document.querySelector<HTMLElement>(".title-tabs .tab.active .tab-label")?.textContent ??
+    document.querySelector<HTMLElement>("#title-breadcrumb strong")?.textContent ??
+    null;
+  syncTextDocumentCard(true, fileLabel);
 }
 
 export function refreshTextCompactToolbar(
@@ -263,9 +302,12 @@ export function refreshTextCompactToolbar(
   if (!show || !tab) {
     primaryHost.innerHTML = "";
     document.body.classList.remove("text-compact-visible");
+    document.body.classList.remove("cm-collapsed");
+    syncTextDocumentCard(false);
     return;
   }
   document.body.classList.add("text-compact-visible");
+  document.body.classList.add("cm-collapsed");
   const showModDock = document.documentElement.dataset.ubModToolbarDocked === "1";
   renderCompactRow(
     primaryHost,
@@ -275,6 +317,28 @@ export function refreshTextCompactToolbar(
     onRun,
     chordByCommand,
   );
+}
+
+export function refreshCompactBlockPickerLabel(): void {
+  if (!document.body.classList.contains("text-compact-visible")) {
+    return;
+  }
+  const host = document.getElementById("text-compact-toolbar-host");
+  if (!host) {
+    return;
+  }
+  const inferred = inferSemanticBlockStyleAtCursor();
+  const label = host.querySelector<HTMLElement>(".text-compact-block-label");
+  if (label) {
+    label.textContent = inferred.label;
+  }
+  const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
+  if (menu) {
+    menu.querySelectorAll<HTMLElement>(".text-compact-block-item").forEach((row) => {
+      const selected = row.dataset.commandId === inferred.commandId;
+      row.toggleAttribute("aria-selected", selected);
+    });
+  }
 }
 
 export function openBlockStyleMenuForCapture(host: HTMLElement): void {
@@ -293,7 +357,9 @@ export function compactToolbarIconFallbackError(host: HTMLElement | null): strin
   if (!host) {
     return "compact toolbar host missing";
   }
-  for (const svg of host.querySelectorAll<SVGElement>(".text-compact-btn .ub-icon[data-lucide]")) {
+  for (const svg of host.querySelectorAll<SVGElement>(
+    "#text-compact-toolbar-host .text-compact-btn .ub-icon[data-lucide]",
+  )) {
     if (svg.dataset.lucide === "file") {
       return "compact toolbar uses generic file icon fallback";
     }

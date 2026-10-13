@@ -279,9 +279,17 @@ body.cm-collapsed #chrome #command-manager.command-manager {
   overflow: hidden !important;
 }
 
-body.cm-collapsed #text-compact-toolbar-host,
 body.cm-collapsed #text-mod-toolbar-host {
   display: none !important;
+}
+
+body.cm-collapsed #text-compact-toolbar-host {
+  display: none !important;
+}
+
+/* Render 1: formatting row lives on the paper card, not in collapsed chrome */
+body.cm-collapsed.text-document-card .document-card-toolbar-mount #text-compact-toolbar-host {
+  display: flex !important;
 }
 
 .text-compact-toolbar,
@@ -290,12 +298,14 @@ body.cm-collapsed #text-mod-toolbar-host {
   align-items: center;
   min-height: 32px;
   max-height: 32px;
-  padding: 0 6px;
+  padding: 1px 6px;
   gap: 2px;
   overflow: hidden;
   flex-wrap: nowrap;
-  background: var(--ub-chrome-panel, #1e2a33);
-  border-bottom: 1px solid var(--ub-border-subtle, #2c3b47);
+  color: var(--ub-concept-chrome-text);
+  border-bottom: var(--ub-border-width) solid var(--ub-concept-chrome-border);
+  background: var(--ub-concept-chrome-bg);
+  box-sizing: border-box;
 }
 
 .text-compact-toolbar.hidden,
@@ -307,26 +317,63 @@ body.cm-collapsed #text-mod-toolbar-host {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
   flex: 1;
 }
 
-.text-compact-btn {
+#chrome #text-compact-toolbar-host .ui-command,
+#chrome #text-compact-toolbar-host button.text-compact-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 7px;
+  gap: 5px;
+  color: var(--ub-concept-chrome-text, #e9edef);
+  border: 1px solid transparent;
   border-radius: var(--ub-radius-4);
-  background: transparent;
-  color: inherit;
+  background: transparent !important;
+  white-space: nowrap;
+  font-size: 13px;
+  cursor: pointer;
 }
 
-.text-compact-btn .cm-cmd-label {
+#chrome #text-compact-toolbar-host .ui-command:hover:not(:disabled):not(.unsupported),
+#chrome #text-compact-toolbar-host button.text-compact-btn:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  border-color: #435461;
+  background: #20313e;
+}
+
+#chrome #text-compact-toolbar-host .ui-command .cm-cmd-label,
+#chrome #text-compact-toolbar-host .text-compact-btn .cm-cmd-label {
   display: none !important;
+}
+
+#chrome #text-compact-toolbar-host .ui-command.unsupported,
+#chrome #text-compact-toolbar-host .ui-command.disabled:not(.unsupported) {
+  cursor: not-allowed;
+  color: #aebac0 !important;
+  border-color: transparent;
+  background: transparent;
+}
+
+#chrome #text-compact-toolbar-host .ui-command.unsupported .ub-icon,
+#chrome #text-compact-toolbar-host .ui-command.disabled:not(.unsupported) .ub-icon {
+  color: #aebac0 !important;
+}
+
+#chrome #text-compact-toolbar-host .text-compact-divider,
+#chrome #text-compact-toolbar-host .cm-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 4px;
+  flex: 0 0 1px;
+  background: #435461;
 }
 
 .text-compact-block-picker {
@@ -338,24 +385,23 @@ body.cm-collapsed #text-mod-toolbar-host {
   width: auto;
   min-width: 120px;
   max-width: 200px;
-  padding: 0 8px;
-  gap: 6px;
+  justify-content: flex-start;
+  padding: 0 7px;
+  padding-right: 3px;
 }
 
 .text-compact-block-label {
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 140px;
 }
 
-.text-compact-divider {
-  width: 1px;
-  height: 20px;
-  margin: 0 4px;
-  background: var(--ub-border-subtle, #3a4d5c);
-  flex-shrink: 0;
+.text-compact-chevron {
+  margin-left: 2px;
+  padding-left: 4px;
+  border-left: 1px solid #435461;
 }
 
 .text-compact-block-menu {
@@ -393,8 +439,13 @@ body.cm-collapsed #text-mod-toolbar-host {
 }
 
 body.text-compact-visible #command-manager.command-manager {
-  min-height: 40px;
-  max-height: 40px;
+  display: none !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
 }
 
 .context-label {
@@ -481,6 +532,22 @@ body:not([data-cm-density="large"]) .cm-group-name {
   pointer-events: none;
 }
 
+.text-compact-block-trigger .block-emulation-badge {
+  top: 50%;
+  right: 22px;
+  transform: translateY(-50%);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: #ffe8a3;
+  background: #6b4e16;
+  border: 1px solid #c9a227;
+  border-radius: 4px;
+  pointer-events: auto;
+  cursor: help;
+}
+
 .text-compact-mod-dock {
   display: inline-flex;
   align-items: center;
@@ -489,14 +556,40 @@ body:not([data-cm-density="large"]) .cm-group-name {
 }
 
 .text-compact-mod-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ub-fg-muted, #93a5ae);
+  font-size: 12px;
+  font-weight: 400;
+  color: #93a5ae;
   padding: 0 6px 0 2px;
   white-space: nowrap;
   max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+[data-theme="light"] #chrome #text-compact-toolbar-host .ui-command,
+[data-theme="light"] #chrome #text-compact-toolbar-host button.text-compact-btn {
+  color: #e9edef !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+[data-theme="light"] #chrome #text-compact-toolbar-host .ui-command .ub-icon,
+[data-theme="light"] #chrome #text-compact-toolbar-host button.text-compact-btn .ub-icon {
+  color: #e9edef !important;
+  stroke: currentColor !important;
+}
+
+[data-theme="light"] #chrome #text-compact-toolbar-host .ui-command:hover:not(:disabled):not(.unsupported),
+[data-theme="light"] #chrome #text-compact-toolbar-host button.text-compact-btn:hover:not(:disabled):not(
+    [aria-disabled="true"]
+  ) {
+  color: #ffffff !important;
+  border-color: #435461;
+  background: #20313e;
+}
+
+[data-theme="light"] #chrome #text-compact-toolbar-host .text-compact-mod-label {
+  color: #aebac0;
 }
 
 .ui-command.emulated,

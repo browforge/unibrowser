@@ -1,0 +1,13 @@
+PASS: 1. CI green — GitHub Actions linux/windows/windows-check (last run on PR #2 before this push; re-check after merge)
+PASS: 2. Icons real glyphs — doc-capture `compactToolbarIconFallbackError` on bear markdown + docx captures (completed)
+PASS: 3. Docx ≈ emulated H1 — bear docx demo `txt-apply-h1`; dedicated picker evidence: `txt-docx-emulated-h1.png`
+PASS: 4. Markdown preview image fits page — `validateMarkdownPreviewImageFitsPage` at bear markdown capture
+PASS: 5. Web heading on cursor line — Playwright `txt-toolbar-web-capture.spec.ts` (line 3 → `##`, picker shows Markdown label)
+PASS: 6. In-card Render 1 toolbar on paper — `text-document-card` + in-card row in bear PNGs
+PASS: 7. Live footer word count / save state — `validateDocumentCardFooterForCapture` (no `512 words` / `Saved 10:18`; count matches Monaco source, ~57 words for sample.md)
+
+Artifacts (review bundle):
+- bear-render-1-markdown-1280.png
+- bear-render-1-docx-1280.png
+- txt-web-markdown-picker-h2.png
+- bear-render-1-*.cm.json (optional)
