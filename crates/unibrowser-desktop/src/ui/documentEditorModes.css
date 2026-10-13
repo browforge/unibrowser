@@ -54,27 +54,65 @@ body.document-mode-reading #text-compact-toolbar-host {
   pointer-events: none;
 }
 
+#text-editor-host {
+  position: relative;
+  min-height: 0;
+}
+
 #text-editor-host:not(.document-editor-split-layout) {
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 #text-editor-host:not(.document-surface-source-hidden):not(.document-editor-split-layout)
-  > .monaco-editor {
+  > .document-monaco-slot {
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 
-#text-editor-host.document-surface-source-hidden > .monaco-editor,
-#text-editor-host.document-surface-source-hidden > .overflow-guard {
+#text-editor-host.document-surface-source-hidden > .document-monaco-slot {
   display: none !important;
 }
 
-#text-editor-host.document-surface-source-hidden > .rich-text-editor-shell:not(.hidden),
-#text-editor-host.document-surface-source-hidden > .document-split-preview:not(.hidden) {
+#text-editor-host.document-surface-source-hidden > .rich-text-editor-shell:not(.hidden) {
   flex: 1;
   min-height: 0;
+}
+
+#text-editor-host.document-editor-split-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+#text-editor-host.document-editor-split-layout > .rich-text-editor-shell {
+  display: none !important;
+}
+
+#text-editor-host.document-editor-split-layout > .document-monaco-slot {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: block !important;
+}
+
+#text-editor-host.document-editor-split-layout > .document-monaco-slot .monaco-editor {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#text-editor-host.document-editor-split-layout > #document-split-preview-host:not(.hidden) {
+  grid-column: 2;
+  grid-row: 1;
+  display: block !important;
+  min-width: 0;
 }
 
 .rich-text-editor-shell {
@@ -108,32 +146,6 @@ body.document-mode-reading #text-compact-toolbar-host {
   letter-spacing: 0.04em;
   margin-bottom: 6px;
   opacity: 0.7;
-}
-
-#text-editor-host.document-editor-split-layout {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: "doc-source doc-preview";
-  min-height: 0;
-  align-items: stretch;
-}
-
-#text-editor-host.document-editor-split-layout > .rich-text-editor-shell {
-  display: none !important;
-}
-
-#text-editor-host.document-editor-split-layout .monaco-editor {
-  grid-area: doc-source;
-  min-width: 0;
-  min-height: 0;
-  width: 100% !important;
-  max-width: 100%;
-}
-
-#text-editor-host.document-editor-split-layout > .document-split-preview,
-#text-editor-host.document-editor-split-layout > #document-split-preview-host {
-  grid-area: doc-preview;
-  min-width: 0;
 }
 
 .document-split-preview {

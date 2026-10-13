@@ -1182,6 +1182,47 @@ export function validateMarkdownPreviewForCapture(): string | null {
 }
 
 /** Returns abort reason or null if WYSIWYG rich document looks painted. */
+export function validateSplitDocumentForCapture(): string | null {
+  const host = document.getElementById("text-editor-host");
+  if (!host || host.classList.contains("hidden")) {
+    return "text editor host missing for split capture";
+  }
+  if (!host.classList.contains("document-editor-split-layout")) {
+    return "document-editor-split-layout missing on text editor host";
+  }
+  const slot = host.querySelector<HTMLElement>(".document-monaco-slot");
+  const preview = document.getElementById("document-split-preview-host");
+  if (!slot) {
+    return "document-monaco-slot missing in split mode";
+  }
+  if (!preview || preview.classList.contains("hidden")) {
+    return "document-split-preview-host hidden or missing";
+  }
+  if (!preview.querySelector(".rich-text-doc")) {
+    return "split preview missing rendered rich-text-doc";
+  }
+  const hostRect = host.getBoundingClientRect();
+  const slotRect = slot.getBoundingClientRect();
+  const previewRect = preview.getBoundingClientRect();
+  if (hostRect.width < 200 || hostRect.height < 120) {
+    return `editor host too small for split (${hostRect.width}x${hostRect.height})`;
+  }
+  if (slotRect.width > hostRect.width * 0.58) {
+    return `monaco slot too wide (${slotRect.width.toFixed(0)}px, host ${hostRect.width.toFixed(0)}px)`;
+  }
+  if (previewRect.width < hostRect.width * 0.32) {
+    return `split preview too narrow (${previewRect.width.toFixed(0)}px)`;
+  }
+  if (previewRect.left < slotRect.right - 12) {
+    return "split preview not positioned to the right of monaco slot";
+  }
+  const modeFooter = document.getElementById("document-mode-inline-host");
+  if (!modeFooter?.querySelector("[data-doc-mode]")) {
+    return "document mode footer buttons missing";
+  }
+  return null;
+}
+
 export function validateRichTextDocumentForCapture(): string | null {
   const article = document.querySelector<HTMLElement>(
     "#rich-text-editor-host:not(.hidden) .rich-text-doc, #document-split-preview-host:not(.hidden) .rich-text-doc",

@@ -383,14 +383,24 @@ async function ensureEditor(host: HTMLElement) {
       preserved.push(el);
     }
   }
+  const existingSlot = host.querySelector<HTMLElement>(".document-monaco-slot");
+  if (existingSlot) {
+    preserved.push(existingSlot);
+  }
   host.innerHTML = "";
   for (const el of preserved) {
     host.appendChild(el);
   }
+  let monacoSlot = host.querySelector<HTMLElement>(".document-monaco-slot");
+  if (!monacoSlot) {
+    monacoSlot = document.createElement("div");
+    monacoSlot.className = "document-monaco-slot";
+    host.appendChild(monacoSlot);
+  }
   await applyMonacoEditorTheme(editorThemePref);
   const monacoTheme = resolveEditorThemeId(editorThemePref);
   // Spellcheck: Monaco has no built-in dictionary; see docs/qa-desktop.md.
-  editor = api.editor.create(host, {
+  editor = api.editor.create(monacoSlot, {
     theme: monacoTheme,
     automaticLayout: true,
     minimap: { enabled: false },
@@ -404,6 +414,7 @@ async function ensureEditor(host: HTMLElement) {
     editor?.layout();
   });
   hostResizeObserver.observe(host);
+  hostResizeObserver.observe(monacoSlot);
   host.classList.add("monaco-host-ready");
   bindFindShortcut(api);
   editor.onDidChangeModelContent(() => scheduleSync());

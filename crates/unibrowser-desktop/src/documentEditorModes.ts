@@ -151,7 +151,7 @@ export function mountDocumentModeStrip(
     btn.type = "button";
     btn.className = "document-mode-strip-btn";
     btn.dataset.docMode = mode.id;
-    btn.setAttribute("role", "tab");
+    btn.setAttribute("role", "button");
     btn.textContent = mode.label;
     btn.onclick = () => setDocumentEditorMode(mode.id);
     host.appendChild(btn);

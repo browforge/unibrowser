@@ -21,6 +21,24 @@ let richHost: HTMLElement | null = null;
 let splitPreviewHost: HTMLElement | null = null;
 let documentPath: string | null = null;
 
+async function resolveDemoTokens(): Promise<string> {
+  const fromUrl = new URLSearchParams(window.location.search).get("demo");
+  if (fromUrl?.trim()) {
+    return fromUrl.toLowerCase();
+  }
+  const fromBody = document.body.dataset.ubDemoTokens;
+  if (fromBody?.trim()) {
+    return fromBody.toLowerCase();
+  }
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const state = await invoke<string | null>("get_demo_state");
+    return state?.toLowerCase() ?? "";
+  } catch {
+    return "";
+  }
+}
+
 function isMarkdownPath(path: string): boolean {
   const lower = path.toLowerCase();
   return lower.endsWith(".md") || lower.endsWith(".markdown");
@@ -71,19 +89,21 @@ export function relocateDocumentEditorSurfaces(editorHost: HTMLElement): void {
   }
 }
 
+export function ensureDocumentModeFooterMounted(): void {
+  mountModeControls();
+}
+
 function mountModeControls(): void {
   const chromeStrip = document.getElementById("document-mode-strip-host");
   chromeStrip?.classList.add("hidden");
   const cardFooter = document.getElementById("document-card-status");
   let inlineHost = document.getElementById("document-mode-inline-host");
-  if (document.body.classList.contains("text-document-card") && cardFooter) {
-    if (!inlineHost) {
-      inlineHost = document.createElement("div");
-      inlineHost.id = "document-mode-inline-host";
-      cardFooter.appendChild(inlineHost);
-    }
+  if (cardFooter && !inlineHost) {
+    inlineHost = document.createElement("div");
+    inlineHost.id = "document-mode-inline-host";
+    cardFooter.appendChild(inlineHost);
   }
-  const mountTarget = inlineHost ?? chromeStrip;
+  const mountTarget = inlineHost ?? cardFooter ?? chromeStrip;
   if (!mountTarget) {
     return;
   }
@@ -108,6 +128,9 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
   splitPreviewHost?.classList.toggle("hidden", !split);
   document.body.classList.toggle("document-editor-reading", reading);
   hideLegacyMarkdownPreview();
+  void import("./textEditor").then(({ relayoutTextEditor }) => {
+    window.requestAnimationFrame(() => relayoutTextEditor());
+  });
 }
 
 async function renderRich() {
@@ -129,8 +152,8 @@ export async function syncDocumentEditorForTextTab(
   monacoHost = monacoEditorHost;
   documentPath = path;
   relocateDocumentEditorSurfaces(monacoEditorHost);
-  mountModeControls();
   if (!isMarkdownPath(path)) {
+    document.getElementById("document-mode-inline-host")?.remove();
     document.getElementById("document-mode-strip-host")?.classList.add("hidden");
     richHost?.classList.add("hidden");
     splitPreviewHost?.classList.add("hidden");
@@ -147,7 +170,10 @@ export async function syncDocumentEditorForTextTab(
     monacoHost.classList.remove("document-surface-source-hidden");
     return;
   }
-  const demo = new URLSearchParams(window.location.search).get("demo")?.toLowerCase() ?? "";
+  mountModeControls();
+  const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
+  refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
+  const demo = await resolveDemoTokens();
   await bindDocumentPath(path);
   if (demo.includes("doc-mode-wysiwyg")) {
     const { setDocumentEditorMode } = await import("./documentEditorModes");

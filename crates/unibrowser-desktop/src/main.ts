@@ -205,6 +205,7 @@ import {
   formatDiagnosticsForLog,
   validateEditorForCapture,
   validateRichTextDocumentForCapture,
+  validateSplitDocumentForCapture,
   validateMarkdownPreviewForCapture,
   validateImageViewerChrome,
   validateGrayscalePreviewControlForCapture,
@@ -3118,6 +3119,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       const docCapturePath = await invoke<string | null>("take_doc_capture_path");
       const demo = await invoke<string | null>("get_demo_state");
       if (demo) {
+        document.body.dataset.ubDemoTokens = demo.toLowerCase();
         applyThemeFromDemoState(demo);
         if (demo.toLowerCase().includes("theme-light") || demo.toLowerCase().includes("theme-dark")) {
           const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
@@ -3424,6 +3426,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               return;
             }
             if (docMode === "split") {
+              const splitLayoutErr = validateSplitDocumentForCapture();
+              if (splitLayoutErr) {
+                await invoke("abort_doc_capture", {
+                  reason: `${splitLayoutErr}; ${formatDiagnosticsForLog(diag)}`,
+                });
+                return;
+              }
               const splitRichErr = validateRichTextDocumentForCapture();
               if (splitRichErr) {
                 await invoke("abort_doc_capture", {
