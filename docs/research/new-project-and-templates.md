@@ -65,7 +65,7 @@ VS Code **Get Started** walkthroughs teach the shell without choosing a file typ
 1. **Primary action:** **New** → empty in-memory `.unibrow` project tab; tab title “Untitled project” until Save.
 2. **Secondary:** **New from template** opens gallery (built-in, user, hub); never blocks New.
 3. **File menu:** mirror VS Code — **New**, **New from template…**, **Open File…**, **Open Folder…**; no “New Word Document.”
-4. **Save / Export:** first Save asks path and archive vs folder ([ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md)); Export menu lists delivery formats (ADR 0035).
+4. **Save / Export:** first Save asks path and archive vs folder ([ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md)); Export menu lists delivery formats ([ADR 0035](../adr/0035-one-document-model-wysiwyg.md)).
 5. **Hub:** template packs are **installable content** beside mods; pinned versions in project history when applied.
 6. **User templates:** **Save as template…** on any saved project; stored under user config, shareable as `.ubtemplate` (see ADR 0036).
 
