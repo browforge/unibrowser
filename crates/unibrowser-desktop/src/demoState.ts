@@ -221,15 +221,23 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "doc-visual-md-docx": {
-        const mdPath = "demo-pack/sample.md";
+        const { DEMO_PACK_SAMPLE_MD_REL, fetchDemoPackSampleMarkdownWeb } = await import(
+          "./demoPackSample"
+        );
+        const mdPath = DEMO_PACK_SAMPLE_MD_REL;
         const { isWebPlatform } = await import("./platform/isWeb");
-        const markdown =
-          "# Demo markdown\n\nUnibrowser renders Markdown in the document viewer.\n\n> Render 1 block quotes use a pale blue panel.\n\n**Bold** and _italic_ with [Architecture](architecture.md).\n";
         const editorHost = document.getElementById("text-editor-host");
+        let markdown: string;
         if (isWebPlatform()) {
+          markdown = await fetchDemoPackSampleMarkdownWeb();
           await invoke("open_text_with_content", { path: mdPath, content: markdown });
         } else {
           await invoke("open_path", { path: "examples/demo-pack/sample.md" }).catch(() => undefined);
+          const { getActiveTextContent } = await import("./textEditor");
+          markdown = getActiveTextContent() ?? "";
+          if (!markdown.trim()) {
+            throw new Error("examples/demo-pack/sample.md did not load for doc-visual-md-docx");
+          }
         }
         if (editorHost) {
           const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");

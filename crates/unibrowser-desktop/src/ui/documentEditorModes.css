@@ -75,6 +75,27 @@ body.document-mode-reading #text-compact-toolbar-host {
   display: none !important;
 }
 
+#document-split-preview-host.hidden,
+.rich-text-editor-shell.hidden {
+  display: none !important;
+}
+
+body.document-mode-wysiwyg #text-editor-host.document-surface-source-hidden .monaco-editor,
+body.document-mode-reading #text-editor-host.document-surface-source-hidden .monaco-editor,
+body.document-mode-wysiwyg #text-editor-host.document-surface-source-hidden > .document-monaco-slot,
+body.document-mode-reading #text-editor-host.document-surface-source-hidden > .document-monaco-slot {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.text-document-card.document-mode-wysiwyg .md-preview-shell,
+body.text-document-card.document-mode-reading .md-preview-shell {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 #text-editor-host.document-surface-source-hidden > .rich-text-editor-shell:not(.hidden) {
   flex: 1;
   min-height: 0;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate doc-feature v3 PNG captures: unique MD5s, CM chrome, and DOM layout assertions."""
+"""Gate doc-feature v4 PNG captures: unique MD5s, CM chrome, and DOM layout assertions."""
 from __future__ import annotations
 
 import hashlib
@@ -8,16 +8,16 @@ import sys
 from pathlib import Path
 
 NAMES = [
-    "doc-wysiwyg-blockquote-desktop-v3.png",
-    "doc-split-apply-banner-desktop-v3.png",
-    "doc-opaque-card-desktop-v3.png",
-    "doc-visual-docx-desktop-v3.png",
-    "doc-history-panel-desktop-v3.png",
-    "doc-wysiwyg-blockquote-web-v3.png",
-    "doc-split-apply-banner-web-v3.png",
-    "doc-opaque-card-web-v3.png",
-    "doc-visual-docx-web-v3.png",
-    "doc-history-panel-web-v3.png",
+    "doc-wysiwyg-blockquote-desktop-v4.png",
+    "doc-split-apply-banner-desktop-v4.png",
+    "doc-opaque-card-desktop-v4.png",
+    "doc-visual-docx-desktop-v4.png",
+    "doc-history-panel-desktop-v4.png",
+    "doc-wysiwyg-blockquote-web-v4.png",
+    "doc-split-apply-banner-web-v4.png",
+    "doc-opaque-card-web-v4.png",
+    "doc-visual-docx-web-v4.png",
+    "doc-history-panel-web-v4.png",
 ]
 
 
@@ -48,7 +48,7 @@ def full_command_manager_row_visible(cm: dict) -> bool:
     return len(visible) >= 4 and groups_width > 200
 
 
-def dom_assertions_ok(cm: dict) -> str | None:
+def dom_assertions_ok(cm: dict, png_name: str) -> str | None:
     dom = cm.get("dom")
     if not isinstance(dom, dict):
         return "missing dom diagnostics in capture CM JSON"
@@ -67,6 +67,15 @@ def dom_assertions_ok(cm: dict) -> str | None:
     overlap = dom.get("outsideOverlapCount")
     if isinstance(overlap, int) and overlap > 0:
         return f"outsideOverlapCount={overlap}"
+    rich_violations = dom.get("richEditorSubtreeViolations")
+    if isinstance(rich_violations, int) and rich_violations > 0:
+        return f"richEditorSubtreeViolations={rich_violations}"
+    if "doc-visual-docx" in png_name:
+        footer = dom.get("documentCardFooterText")
+        if isinstance(footer, str) and "Word" not in footer:
+            return "doc-visual-docx capture footer must include Word kind"
+        if dom.get("docxEmulationBadgeVisible") is not True:
+            return "doc-visual-docx capture must show ≈ emulation badge"
     return None
 
 
@@ -117,7 +126,7 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
-        dom_err = dom_assertions_ok(cm)
+        dom_err = dom_assertions_ok(cm, name)
         if dom_err:
             print(f"{dom_err} in {name} (see {cm_path.name})", file=sys.stderr)
             return 1

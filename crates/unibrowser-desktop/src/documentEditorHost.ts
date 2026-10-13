@@ -133,8 +133,36 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
   monacoHost?.classList.toggle("document-editor-split-layout", split);
   richHost?.classList.toggle("hidden", !wysiwyg || split);
   splitPreviewHost?.classList.toggle("hidden", !split);
+  if (wysiwyg && !split && splitPreviewHost) {
+    splitPreviewHost.classList.add("hidden");
+    splitPreviewHost.innerHTML = "";
+  }
   document.body.classList.toggle("document-editor-reading", reading);
   hideLegacyMarkdownPreview();
+  if (monacoHost) {
+    const monacoSlot = monacoHost.querySelector<HTMLElement>(".document-monaco-slot");
+    if (monacoSlot) {
+      monacoSlot.style.display = source ? "" : "none";
+    }
+    monacoHost.querySelectorAll<HTMLElement>(".monaco-editor").forEach((node) => {
+      if (!source) {
+        node.style.visibility = "hidden";
+        node.style.pointerEvents = "none";
+      } else {
+        node.style.visibility = "";
+        node.style.pointerEvents = "";
+      }
+    });
+  }
+  if (wysiwyg && monacoHost) {
+    void import("./textEditor").then(({ setMarkdownPreviewMode }) => {
+      void setMarkdownPreviewMode(false, monacoHost);
+    });
+  }
+  if (richHost && wysiwyg && !split) {
+    richHost.style.position = "relative";
+    richHost.style.zIndex = "2";
+  }
   void import("./textEditor").then(({ relayoutTextEditor }) => {
     window.requestAnimationFrame(() => relayoutTextEditor());
   });
@@ -288,7 +316,10 @@ export async function syncDocumentEditorForTextTab(
   const wantsVisual =
     demo.includes("doc-mode-wysiwyg") ||
     demo.includes("doc-mode-reading") ||
-    demo.includes("doc-mode-split");
+    demo.includes("doc-mode-split") ||
+    demo.includes("doc-history-panel") ||
+    demo.includes("doc-visual-md-docx") ||
+    demo.includes("doc-opaque-card");
   const toolbarCapture =
     demo.includes("txt-apply-h2") || demo.includes("txt-block-picker-open");
   if (toolbarCapture && !wantsVisual) {

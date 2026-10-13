@@ -38,6 +38,13 @@ function compactToolbarTabForSnapshot(
   if (!docFeatureCaptureDemoActive()) {
     return { tab: active, autoContext: snapshot.auto_context };
   }
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (demo.includes("doc-visual-md-docx")) {
+    const officeTab = snapshot.tabs.find((t) => t.id === "office");
+    if (officeTab && (officeTab.compact_toolbar_families?.length ?? 0) > 0) {
+      return { tab: officeTab, autoContext: "office" };
+    }
+  }
   const textTab = snapshot.tabs.find((t) => t.id === "text");
   if (textTab && (textTab.compact_toolbar_families?.length ?? 0) > 0) {
     return { tab: textTab, autoContext: "text" };

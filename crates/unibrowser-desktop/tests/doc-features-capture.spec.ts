@@ -182,6 +182,47 @@ test.describe("Document feature captures", () => {
       }
       const bodyMount = document.getElementById("document-card-body-mount");
       const bodyRect = bodyMount?.getBoundingClientRect();
+      const straySelector =
+        ".monaco-editor, .view-lines, .view-line, .md-preview-body, .md-preview-shell, #document-split-preview-host";
+      if (bodyMount && (mode === "wysiwyg" || mode === "reading") && richHost && !richHost.classList.contains("hidden")) {
+        const rect = bodyMount.getBoundingClientRect();
+        const xs = [rect.left + rect.width * 0.25, rect.left + rect.width / 2, rect.left + rect.width * 0.75];
+        const ys = [rect.top + 16, rect.top + rect.height * 0.35, rect.top + rect.height * 0.65];
+        for (const y of ys) {
+          for (const x of xs) {
+            let reachedRich = false;
+            for (const el of document.elementsFromPoint(x, y)) {
+              if (!(el instanceof HTMLElement)) {
+                continue;
+              }
+              if (!bodyMount.contains(el)) {
+                break;
+              }
+              if (richHost.contains(el)) {
+                reachedRich = true;
+                break;
+              }
+              if (!visible(el)) {
+                continue;
+              }
+              if (
+                el.id === "text-editor-host" ||
+                el.id === "document-card-body-mount" ||
+                el.classList.contains("document-monaco-slot") ||
+                el.classList.contains("rich-text-editor-shell")
+              ) {
+                continue;
+              }
+              if (el.closest(straySelector)) {
+                return "card body hit-test must stay inside rich editor";
+              }
+            }
+            if (!reachedRich) {
+              return "card body hit-test must stay inside rich editor";
+            }
+          }
+        }
+      }
       if (bodyRect && bodyRect.width > 40 && bodyRect.height > 40) {
         const shell = document.getElementById("document-card-shell");
         const sampleYs = [
@@ -201,16 +242,21 @@ test.describe("Document feature captures", () => {
             if (el.id === "command-manager" || el.closest("#command-manager")) {
               return "outside chrome overlaps the document card body";
             }
-            if (
-              el.id === "text-editor-host" &&
-              el.classList.contains("document-surface-source-hidden")
-            ) {
-              return "outside chrome overlaps the document card body";
-            }
             if (el.id === "document-viewer-host" && !el.classList.contains("hidden")) {
               return "outside chrome overlaps the document card body";
             }
           }
+        }
+      }
+      const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+      if (demo.includes("doc-visual-md-docx")) {
+        const footerText = footerMain?.textContent ?? "";
+        if (!footerText.includes("Word")) {
+          return "doc-visual-md-docx capture footer must show Word kind";
+        }
+        const approx = document.querySelector<HTMLElement>(".block-emulation-badge, .cm-emulation-mark");
+        if (!approx?.textContent?.includes("≈")) {
+          return "doc-visual-md-docx capture must show emulated block-style (≈) badge";
         }
       }
       return null;
@@ -342,6 +388,64 @@ test.describe("Document feature captures", () => {
         ((mode === "wysiwyg" || mode === "reading") && visibleEditorHost === "rich");
       const bodyMount = document.getElementById("document-card-body-mount");
       const bodyRect = bodyMount?.getBoundingClientRect();
+      const visible = (el: HTMLElement) => {
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== "none" &&
+          style.visibility !== "hidden"
+        );
+      };
+      const straySelector =
+        ".monaco-editor, .view-lines, .view-line, .md-preview-body, .md-preview-shell, #document-split-preview-host";
+      let richEditorSubtreeViolations = 0;
+      if (
+        bodyMount &&
+        (mode === "wysiwyg" || mode === "reading") &&
+        richHost &&
+        !richHost.classList.contains("hidden")
+      ) {
+        const rect = bodyMount.getBoundingClientRect();
+        const xs = [rect.left + rect.width * 0.25, rect.left + rect.width / 2, rect.left + rect.width * 0.75];
+        const ys = [rect.top + 16, rect.top + rect.height * 0.35, rect.top + rect.height * 0.65];
+        for (const y of ys) {
+          for (const x of xs) {
+            let reachedRich = false;
+            for (const el of document.elementsFromPoint(x, y)) {
+              if (!(el instanceof HTMLElement)) {
+                continue;
+              }
+              if (!bodyMount.contains(el)) {
+                break;
+              }
+              if (richHost.contains(el)) {
+                reachedRich = true;
+                break;
+              }
+              if (!visible(el)) {
+                continue;
+              }
+              if (
+                el.id === "text-editor-host" ||
+                el.id === "document-card-body-mount" ||
+                el.classList.contains("document-monaco-slot") ||
+                el.classList.contains("rich-text-editor-shell")
+              ) {
+                continue;
+              }
+              if (el.closest(straySelector)) {
+                richEditorSubtreeViolations += 1;
+                break;
+              }
+            }
+            if (!reachedRich) {
+              richEditorSubtreeViolations += 1;
+            }
+          }
+        }
+      }
       let outsideOverlapCount = 0;
       if (bodyRect && bodyRect.width > 40 && bodyRect.height > 40) {
         const shell = document.getElementById("document-card-shell");
@@ -363,13 +467,6 @@ test.describe("Document feature captures", () => {
               outsideOverlapCount += 1;
               break;
             }
-            if (
-              el.id === "text-editor-host" &&
-              el.classList.contains("document-surface-source-hidden")
-            ) {
-              outsideOverlapCount += 1;
-              break;
-            }
             if (el.id === "document-viewer-host" && !el.classList.contains("hidden")) {
               outsideOverlapCount += 1;
               break;
@@ -377,6 +474,9 @@ test.describe("Document feature captures", () => {
           }
         }
       }
+      const approxBadge = document.querySelector<HTMLElement>(
+        ".block-emulation-badge, .cm-emulation-mark",
+      );
       return {
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
@@ -400,6 +500,9 @@ test.describe("Document feature captures", () => {
           visibleEditorHost,
           modeMatchesVisibleHost,
           outsideOverlapCount,
+          richEditorSubtreeViolations,
+          documentCardFooterText: footerMain?.textContent?.trim() ?? "",
+          docxEmulationBadgeVisible: Boolean(approxBadge?.textContent?.includes("≈")),
         },
       };
     });
@@ -417,32 +520,32 @@ test.describe("Document feature captures", () => {
     }
   }
 
-  test("web doc feature screenshots v3", async ({ browser }) => {
+  test("web doc feature screenshots v4", async ({ browser }) => {
     mkdirSync(ART, { recursive: true });
     mkdirSync(OUT, { recursive: true });
     const shots: { name: string; demo: string; wait?: string }[] = [
       {
-        name: "doc-wysiwyg-blockquote-web-v3.png",
+        name: "doc-wysiwyg-blockquote-web-v4.png",
         demo: "doc-mode-wysiwyg,txt-apply-h2",
         wait: ".rich-text-doc blockquote",
       },
       {
-        name: "doc-split-apply-banner-web-v3.png",
+        name: "doc-split-apply-banner-web-v4.png",
         demo: "doc-mode-split,doc-merge-banner",
         wait: ".document-source-merge-banner:not(.hidden)",
       },
       {
-        name: "doc-opaque-card-web-v3.png",
+        name: "doc-opaque-card-web-v4.png",
         demo: "doc-opaque-card",
         wait: ".rich-text-opaque-parse",
       },
       {
-        name: "doc-history-panel-web-v3.png",
+        name: "doc-history-panel-web-v4.png",
         demo: "doc-history-panel,txt-apply-h2",
         wait: "#bottom-panel-history-pane:not(.hidden)",
       },
       {
-        name: "doc-visual-docx-web-v3.png",
+        name: "doc-visual-docx-web-v4.png",
         demo: "doc-visual-md-docx",
         wait: "#document-card-tab .document-card-tab-label:text-is('sample.docx')",
       },

@@ -1174,6 +1174,73 @@ function editorHostForMode(
   return "none";
 }
 
+const RICH_EDITOR_STRAY_SELECTOR =
+  ".monaco-editor, .view-lines, .view-line, .md-preview-body, .md-preview-shell, #document-split-preview-host";
+
+function richEditorSubtreeViolationCount(
+  bodyMount: HTMLElement,
+  mode: string,
+): number {
+  if (mode !== "wysiwyg" && mode !== "reading") {
+    return 0;
+  }
+  const richRoot = document.getElementById("rich-text-editor-host");
+  if (!richRoot || richRoot.classList.contains("hidden")) {
+    return 0;
+  }
+  const rect = bodyMount.getBoundingClientRect();
+  if (rect.width < 40 || rect.height < 40) {
+    return 0;
+  }
+  const xs = [
+    rect.left + rect.width * 0.25,
+    rect.left + rect.width / 2,
+    rect.left + rect.width * 0.75,
+  ];
+  const ys = [
+    rect.top + 16,
+    rect.top + rect.height * 0.35,
+    rect.top + rect.height * 0.65,
+  ];
+  let violations = 0;
+  for (const y of ys) {
+    for (const x of xs) {
+      let reachedRich = false;
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (!(el instanceof HTMLElement)) {
+          continue;
+        }
+        if (!bodyMount.contains(el)) {
+          break;
+        }
+        if (richRoot.contains(el)) {
+          reachedRich = true;
+          break;
+        }
+        if (!visibleElement(el)) {
+          continue;
+        }
+        if (
+          el.id === "text-editor-host" ||
+          el.id === "document-card-body-mount" ||
+          el.classList.contains("document-monaco-slot") ||
+          el.classList.contains("rich-text-editor-shell")
+        ) {
+          continue;
+        }
+        if (el.closest(RICH_EDITOR_STRAY_SELECTOR)) {
+          violations += 1;
+          break;
+        }
+      }
+      if (!reachedRich) {
+        violations += 1;
+      }
+    }
+  }
+  return violations;
+}
+
 export interface DocumentFeatureCaptureDomDiagnostics {
   visibleDocumentCardCount: number;
   commandManagerVisible: boolean;
@@ -1182,6 +1249,9 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   visibleEditorHost: string;
   modeMatchesVisibleHost: boolean;
   outsideOverlapCount: number;
+  richEditorSubtreeViolations: number;
+  documentCardFooterText: string;
+  docxEmulationBadgeVisible: boolean;
 }
 
 export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDiagnostics {
@@ -1198,6 +1268,11 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
   );
   const footerMain = document.querySelector<HTMLElement>(".document-card-status-main");
   const footerUsesCardTokens = footerUsesDocumentCardTokens(footerMain);
+  const documentCardFooterText = footerMain?.textContent?.trim() ?? "";
+  const approxBadge = document.querySelector<HTMLElement>(
+    ".block-emulation-badge, .cm-emulation-mark",
+  );
+  const docxEmulationBadgeVisible = Boolean(approxBadge?.textContent?.includes("≈"));
   const activeMode = document.body.dataset.documentEditorMode ?? "";
   const visibleEditorHost = editorHostForMode(
     (activeMode as "wysiwyg" | "source" | "split" | "reading") || "wysiwyg",
@@ -1208,6 +1283,9 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     ((activeMode === "wysiwyg" || activeMode === "reading") && visibleEditorHost === "rich");
   const bodyMount = document.getElementById("document-card-body-mount");
   const bodyRect = bodyMount?.getBoundingClientRect();
+  const richEditorSubtreeViolations = bodyMount
+    ? richEditorSubtreeViolationCount(bodyMount, activeMode)
+    : 0;
   let outsideOverlapCount = 0;
   if (bodyRect && bodyRect.width > 40 && bodyRect.height > 40) {
     const shell = document.getElementById("document-card-shell");
@@ -1251,6 +1329,9 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     visibleEditorHost,
     modeMatchesVisibleHost,
     outsideOverlapCount,
+    richEditorSubtreeViolations,
+    documentCardFooterText,
+    docxEmulationBadgeVisible,
   };
 }
 
@@ -1280,6 +1361,22 @@ export function validateDocumentFeatureCaptureDom(): string | null {
   }
   if (dom.outsideOverlapCount > 0) {
     return `outside chrome overlaps the document card body (${dom.outsideOverlapCount} hits)`;
+  }
+  if (dom.richEditorSubtreeViolations > 0) {
+    return `card body hit-test must stay inside rich editor (${dom.richEditorSubtreeViolations} violations)`;
+  }
+  if (demo.includes("doc-visual-md-docx")) {
+    const footerMain = document.querySelector<HTMLElement>(".document-card-status-main");
+    const footerText = footerMain?.textContent ?? "";
+    if (!footerText.includes("Word")) {
+      return "doc-visual-md-docx capture footer must show Word kind";
+    }
+    const approx = document.querySelector<HTMLElement>(
+      ".block-emulation-badge, .cm-emulation-mark",
+    );
+    if (!approx?.textContent?.includes("≈")) {
+      return "doc-visual-md-docx capture must show emulated block-style (≈) badge";
+    }
   }
   return null;
 }

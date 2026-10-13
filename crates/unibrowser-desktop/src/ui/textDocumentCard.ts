@@ -234,6 +234,7 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   const { documentViewer } = await import("../documentViewer");
   const label = savedPath.split(/[/\\]/).pop() ?? "sample.docx";
   document.body.dataset.activeDocumentPath = savedPath;
+  document.body.dataset.cmAutoContext = "office";
   const viewerHost = document.getElementById("document-viewer-host");
   if (viewerHost) {
     documentViewer.hide(viewerHost);
@@ -245,7 +246,12 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   syncDocumentEditorSurfaceVisibility();
   forceDocFeatureCaptureLayout(label);
   dismissDocCaptureChrome();
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
   window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+  const { refreshTextCompactToolbar } = await import("../textCompactToolbar");
+  refreshTextCompactToolbar();
+  await new Promise((resolve) => window.setTimeout(resolve, 120));
   const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
   refreshDocumentCardStatusFooter(false);
 }
