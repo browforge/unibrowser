@@ -149,6 +149,7 @@ export async function ensureDocFeatureCaptureLayout(
     refreshState: () => Promise<void>;
     refreshCommandManager: () => Promise<void>;
     applyDemoToken: (token: string) => Promise<void>;
+    skipDemoApply?: boolean;
   },
 ): Promise<void> {
   const demo = demoRaw.toLowerCase();
@@ -177,14 +178,20 @@ export async function ensureDocFeatureCaptureLayout(
         !document.querySelector<HTMLElement>("#document-viewer-host:not(.hidden)")
       );
     };
-    await deps.applyDemoToken("doc-visual-md-docx");
-    for (let attempt = 0; attempt < 180; attempt += 1) {
-      await deps.refreshCommandManager();
+    if (!cardReady() && !deps.skipDemoApply) {
+      await deps.applyDemoToken("doc-visual-md-docx");
+      await deps.refreshState();
+    }
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if (!deps.skipDemoApply && attempt % 4 === 0) {
+        await deps.refreshCommandManager();
+      }
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
       await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
       window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
-      if (cardReady() && compactToolbarReady()) {
+      const toolbarOk = deps.skipDemoApply || compactToolbarReady();
+      if (cardReady() && toolbarOk) {
         forceDocFeatureCaptureLayout("sample.docx");
         dismissDocCaptureChrome();
         return;
@@ -231,7 +238,81 @@ export async function ensureDocFeatureCaptureLayout(
   await new Promise((resolve) => window.setTimeout(resolve, 180));
 }
 
-/** Last-resort layout for doc-feature screenshots when demo state did not mount the card. */
+/** Desktop headless doc-capture: markdown → visual DOCX card without Save dialog or full refreshState. */
+export async function prepareDocVisualMdDocxDesktopCapture(): Promise<void> {
+  if (document.body.dataset.ubDocVisualMdDocxApplied === "1") {
+    return;
+  }
+  const { traceDocCaptureStep, withDocCaptureTimeout } = await import("../docCaptureTrace");
+  const savedPath = "examples/demo-pack/sample.docx";
+  const imageBase = "examples/demo-pack/sample.md";
+  const editorHost = document.getElementById("text-editor-host");
+  if (!editorHost) {
+    throw new Error("doc-visual-md-docx capture requires text-editor-host");
+  }
+  await withDocCaptureTimeout("prepare:load-markdown", 30_000, async () => {
+    const { setDocumentEditorMode } = await import("../documentEditorModes");
+    setDocumentEditorMode("wysiwyg", false);
+    const markdown = await (
+      await import("../demoPackSample")
+    ).readDemoPackSampleMarkdownDesktopCapture();
+    const { parseMarkdownDocument } = await import("../documentModelBridge");
+    const { seedDocumentModelSessionForDemo } = await import("../documentEditorHost");
+    const { resolveDocumentModelImageAssets } = await import("../richTextEditor");
+    const parsed = await parseMarkdownDocument(markdown);
+    const model = await resolveDocumentModelImageAssets(parsed.model, imageBase);
+    seedDocumentModelSessionForDemo({ ...parsed, model });
+    document.body.dataset.documentImageBasePath = imageBase;
+    document.body.dataset.activeDocumentPath = savedPath;
+    document.body.dataset.cmAutoContext = "office";
+    return markdown.length;
+  });
+  await withDocCaptureTimeout("prepare:hide-viewer-and-layout", 15_000, async () => {
+    const { syncDocumentEditorSurfaceVisibility } = await import("../documentEditorHost");
+    const { documentViewer } = await import("../documentViewer");
+    const viewerHost = document.getElementById("document-viewer-host");
+    if (viewerHost) {
+      documentViewer.hide(viewerHost);
+    }
+    editorHost.classList.remove("hidden");
+    syncDocumentEditorSurfaceVisibility();
+  });
+  await withDocCaptureTimeout("prepare:refresh-visual-docx-surface", 45_000, async () => {
+    const { refreshVisualDocxRichSurface } = await import("../documentEditorHost");
+    await refreshVisualDocxRichSurface(savedPath, imageBase);
+    const richHost = document.getElementById("rich-text-editor-host");
+    if (richHost) {
+      const { resolveRichImages } = await import("../richTextEditor");
+      await resolveRichImages(richHost, imageBase);
+    }
+  });
+  await withDocCaptureTimeout("prepare:chrome-and-toolbar", 20_000, async () => {
+    const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
+    dismissDocCaptureChrome();
+    syncTextDocumentCard(true, "sample.docx");
+    forceDocFeatureCaptureLayout("sample.docx");
+    refreshDocumentCardStatusFooter(false);
+    const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
+    if (compactHost) {
+      const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+      seedDocVisualCompactToolbarFallback(compactHost, true);
+    }
+  });
+  await withDocCaptureTimeout("prepare:waitForRichCardImagesLoaded", 20_000, async () => {
+    await (await import("../richTextEditor")).waitForRichCardImagesLoaded(12_000);
+  });
+  await withDocCaptureTimeout("prepare:status-bar", 20_000, async () => {
+    const refreshStatusBarOnly = (
+      window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+    ).__unibrowserRefreshStatusBarOnly;
+    if (refreshStatusBarOnly) {
+      await refreshStatusBarOnly();
+    }
+  });
+  traceDocCaptureStep("prepare:shell-paint-ready");
+  document.body.dataset.ubDocVisualMdDocxApplied = "1";
+}
+
 /** After Save As DOCX, keep the Render 1 paper card in Visual mode (not the browse DOCX viewer). */
 export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<void> {
   const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
@@ -250,10 +331,15 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   await bindDocumentPath(savedPath);
   setDocumentEditorMode("wysiwyg", false);
   syncDocumentEditorSurfaceVisibility();
+  const imageBase =
+    document.body.dataset.documentImageBasePath?.trim() ||
+    savedPath.replace(/[/\\][^/\\]+$/u, "/sample.md");
+  const { refreshVisualDocxRichSurface } = await import("../documentEditorHost");
+  await refreshVisualDocxRichSurface(savedPath, imageBase);
   forceDocFeatureCaptureLayout(label);
   dismissDocCaptureChrome();
   const { invoke } = await import("@tauri-apps/api/core");
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+  for (let attempt = 0; attempt < 35; attempt += 1) {
     await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
     window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
     if (compactToolbarReady()) {
@@ -275,6 +361,14 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   forceDocFeatureCaptureLayout(label);
   const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
   refreshDocumentCardStatusFooter(false);
+  const { waitForRichCardImagesLoaded } = await import("../richTextEditor");
+  await waitForRichCardImagesLoaded();
+  const refreshStatusBarOnly = (
+    window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+  ).__unibrowserRefreshStatusBarOnly;
+  if (refreshStatusBarOnly) {
+    await refreshStatusBarOnly();
+  }
 }
 
 export function forceDocFeatureCaptureLayout(fileLabel: string | null): void {

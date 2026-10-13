@@ -261,3 +261,7 @@ export function updateStatusBar(model: StatusBarModel) {
     hintEl.textContent = model.hint;
   }
 }
+
+(
+  window as unknown as { patchStatusItem?: typeof patchStatusItem }
+).patchStatusItem = patchStatusItem;

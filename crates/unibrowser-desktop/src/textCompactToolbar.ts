@@ -682,3 +682,9 @@ export function compactToolbarIconFallbackError(host: HTMLElement | null): strin
   }
   return null;
 }
+
+(
+  window as unknown as {
+    __seedDocVisualCompactToolbarFallback?: typeof seedDocVisualCompactToolbarFallback;
+  }
+).__seedDocVisualCompactToolbarFallback = seedDocVisualCompactToolbarFallback;

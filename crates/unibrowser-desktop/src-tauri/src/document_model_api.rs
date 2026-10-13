@@ -196,7 +196,8 @@ pub fn save_markdown_as_docx(markdown_path: &str, model: &DocumentModel) -> Resu
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "document".into());
     let out = parent.join(format!("{}.docx", stem));
-    unibrowser_docx::save_docx_from_document_model(&out, model).map_err(|e| e.to_string())?;
+    unibrowser_docx::save_docx_from_document_model_with_assets(&out, model, Some(parent))
+        .map_err(|e| e.to_string())?;
     Ok(out.to_string_lossy().into_owned())
 }
 

@@ -51,6 +51,19 @@ struct InlineRun {
 enum Block {
     Paragraph(Vec<InlineRun>),
     Heading(u8, Vec<InlineRun>),
+    Image {
+        rel_id: String,
+        media_name: String,
+        alt: String,
+    },
+}
+
+#[derive(Debug, Clone)]
+struct MediaPart {
+    zip_path: String,
+    bytes: Vec<u8>,
+    content_type: String,
+    rel_id: String,
 }
 
 const ORIGINAL_UNSUPPORTED: &[&str] = &[
@@ -65,7 +78,7 @@ const ORIGINAL_UNSUPPORTED: &[&str] = &[
 
 const HTML_ALLOWED: &[&str] = &[
     "p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "b", "em", "i", "u", "br", "span", "a",
-    "ul", "ol", "li", "blockquote",
+    "ul", "ol", "li", "blockquote", "img",
 ];
 
 /// Scan `word/document.xml` for OOXML this writer cannot preserve.
@@ -97,8 +110,16 @@ pub fn save_docx_from_document_model(
     docx_path: &Path,
     model: &unibrowser_document_model::DocumentModel,
 ) -> Result<DocxSaveReport, DocxSaveError> {
+    save_docx_from_document_model_with_assets(docx_path, model, None)
+}
+
+pub fn save_docx_from_document_model_with_assets(
+    docx_path: &Path,
+    model: &unibrowser_document_model::DocumentModel,
+    assets_dir: Option<&Path>,
+) -> Result<DocxSaveReport, DocxSaveError> {
     let html = unibrowser_document_model::model_to_docx_html(model);
-    save_docx_from_html(docx_path, &html)
+    save_docx_from_html_with_assets(docx_path, &html, assets_dir)
 }
 
 /// In-memory DOCX zip for WASM and other hosts without a writable filesystem.
@@ -128,7 +149,15 @@ fn read_zip_entry_bytes(zip_bytes: &[u8], name: &str) -> Result<String, DocxSave
 }
 
 fn save_docx_from_html_bytes(shell: &[u8], html: &str) -> Result<Vec<u8>, DocxSaveError> {
-    let blocks = parse_html_blocks(html)?;
+    save_docx_from_html_bytes_with_assets(shell, html, None)
+}
+
+fn save_docx_from_html_bytes_with_assets(
+    shell: &[u8],
+    html: &str,
+    assets_dir: Option<&Path>,
+) -> Result<Vec<u8>, DocxSaveError> {
+    let (blocks, media) = parse_html_blocks_with_assets(html, assets_dir)?;
     let blocks = if blocks.is_empty() {
         vec![Block::Paragraph(Vec::new())]
     } else {
@@ -136,7 +165,98 @@ fn save_docx_from_html_bytes(shell: &[u8], html: &str) -> Result<Vec<u8>, DocxSa
     };
     let sect = extract_sect_pr(&read_zip_entry_bytes(shell, "word/document.xml")?)?;
     let new_document_xml = build_document_xml(&blocks, sect.as_deref())?;
-    repack_docx_bytes(shell, "word/document.xml", &new_document_xml)
+    repack_docx_bytes_with_media(shell, "word/document.xml", &new_document_xml, &media)
+}
+
+fn repack_docx_bytes_with_media(
+    src: &[u8],
+    replace_name: &str,
+    replace_bytes: &[u8],
+    media: &[MediaPart],
+) -> Result<Vec<u8>, DocxSaveError> {
+    if media.is_empty() {
+        return repack_docx_bytes(src, replace_name, replace_bytes);
+    }
+    let mut archive = ZipArchive::new(Cursor::new(src))?;
+    let mut out = Vec::new();
+    let mut writer = ZipWriter::new(Cursor::new(&mut out));
+    let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let doc_rels_path = "word/_rels/document.xml.rels";
+    let mut doc_rels = read_zip_entry_bytes(src, doc_rels_path).unwrap_or_else(|_| {
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>"#
+            .into()
+    });
+    let mut content_types = read_zip_entry_bytes(src, "[Content_Types].xml")?;
+    for part in media {
+        if !content_types.contains(&part.content_type) {
+            let ext = part
+                .zip_path
+                .rsplit('.')
+                .next()
+                .unwrap_or("png");
+            let default = format!(
+                r#"<Default Extension="{ext}" ContentType="{ct}"/>"#,
+                ext = ext,
+                ct = part.content_type
+            );
+            content_types = content_types.replace(
+                "</Types>",
+                &format!("{default}</Types>"),
+            );
+        }
+        let target = part
+            .zip_path
+            .strip_prefix("word/")
+            .unwrap_or(&part.zip_path);
+        let rel = format!(
+            r#"<Relationship Id="{id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="{target}"/>"#,
+            id = part.rel_id,
+            target = target
+        );
+        if !doc_rels.contains(&part.rel_id) {
+            doc_rels = doc_rels.replace("</Relationships>", &format!("{rel}</Relationships>"));
+        }
+    }
+    let media_paths: std::collections::HashSet<String> =
+        media.iter().map(|m| m.zip_path.clone()).collect();
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let name = file.name().to_string();
+        if media_paths.contains(&name) {
+            continue;
+        }
+        writer.start_file(name.clone(), opts)?;
+        if name == replace_name {
+            writer.write_all(replace_bytes)?;
+        } else if name == doc_rels_path {
+            writer.write_all(doc_rels.as_bytes())?;
+        } else if name == "[Content_Types].xml" {
+            writer.write_all(content_types.as_bytes())?;
+        } else {
+            let mut buf = Vec::new();
+            file.read_to_end(&mut buf)?;
+            writer.write_all(&buf)?;
+        }
+    }
+    for part in media {
+        writer.start_file(part.zip_path.clone(), opts)?;
+        writer.write_all(&part.bytes)?;
+    }
+    writer.finish()?;
+    Ok(out)
+}
+
+fn rewrite_document_with_media(
+    docx_path: &Path,
+    document_xml: &[u8],
+    media: &[MediaPart],
+) -> Result<(), DocxSaveError> {
+    let shell = std::fs::read(docx_path)?;
+    let out = repack_docx_bytes_with_media(&shell, "word/document.xml", document_xml, media)?;
+    std::fs::write(docx_path, out)?;
+    Ok(())
 }
 
 fn repack_docx_bytes(
@@ -182,6 +302,14 @@ fn ensure_empty_docx_shell(docx_path: &Path) -> Result<(), DocxSaveError> {
 
 /// Replace document body from HTML produced by the Mammoth preview (supported subset only).
 pub fn save_docx_from_html(docx_path: &Path, html: &str) -> Result<DocxSaveReport, DocxSaveError> {
+    save_docx_from_html_with_assets(docx_path, html, None)
+}
+
+pub fn save_docx_from_html_with_assets(
+    docx_path: &Path,
+    html: &str,
+    assets_dir: Option<&Path>,
+) -> Result<DocxSaveReport, DocxSaveError> {
     ensure_empty_docx_shell(docx_path)?;
     let mut warnings = Vec::new();
     let original_issues = scan_original_fidelity(docx_path)?;
@@ -198,7 +326,7 @@ pub fn save_docx_from_html(docx_path: &Path, html: &str) -> Result<DocxSaveRepor
             html_issues.join(", ")
         ));
     }
-    let blocks = parse_html_blocks(html)?;
+    let (blocks, media) = parse_html_blocks_with_assets(html, assets_dir)?;
     let blocks = if blocks.is_empty() {
         warnings.push("Preview had no paragraphs; writing a single empty paragraph.".into());
         vec![Block::Paragraph(Vec::new())]
@@ -207,7 +335,7 @@ pub fn save_docx_from_html(docx_path: &Path, html: &str) -> Result<DocxSaveRepor
     };
     let sect = extract_sect_pr(&read_zip_entry(docx_path, "word/document.xml")?)?;
     let new_document_xml = build_document_xml(&blocks, sect.as_deref())?;
-    rewrite_document_xml_in_place(docx_path, &new_document_xml)?;
+    rewrite_document_with_media(docx_path, &new_document_xml, &media)?;
     warnings.push(
         "Body replaced with supported paragraph/heading markup only; styles and numbering from Word are not round-tripped.".into(),
     );
@@ -244,12 +372,19 @@ fn unsupported_html_tags(html: &str) -> Vec<String> {
 }
 
 fn parse_html_blocks(html: &str) -> Result<Vec<Block>, DocxSaveError> {
+    parse_html_blocks_with_assets(html, None).map(|(blocks, _)| blocks)
+}
+
+fn parse_html_blocks_with_assets(
+    html: &str,
+    assets_dir: Option<&Path>,
+) -> Result<(Vec<Block>, Vec<MediaPart>), DocxSaveError> {
     let trimmed = html.trim();
     let fragment = !trimmed.to_ascii_lowercase().starts_with("<html")
         && !trimmed.to_ascii_lowercase().starts_with("<body");
     if fragment {
         let frag = Html::parse_fragment(html);
-        return blocks_from_root(frag.root_element());
+        return blocks_from_root(frag.root_element(), assets_dir, &mut 0);
     }
     let doc = Html::parse_document(html);
     let body_sel = scraper::Selector::parse("body").unwrap();
@@ -259,16 +394,34 @@ fn parse_html_blocks(html: &str) -> Result<Vec<Block>, DocxSaveError> {
         .next()
         .or_else(|| doc.select(&article_sel).next())
         .ok_or_else(|| DocxSaveError::Msg("HTML has no body".into()))?;
-    blocks_from_root(root)
+    blocks_from_root(root, assets_dir, &mut 0)
 }
 
-fn blocks_from_root(root: ElementRef<'_>) -> Result<Vec<Block>, DocxSaveError> {
+fn blocks_from_root(
+    root: ElementRef<'_>,
+    assets_dir: Option<&Path>,
+    next_rel: &mut usize,
+) -> Result<(Vec<Block>, Vec<MediaPart>), DocxSaveError> {
     let mut blocks = Vec::new();
+    let mut media = Vec::new();
+    let img_sel = scraper::Selector::parse("img").unwrap();
     for child in root.children().filter(|n| n.value().is_element()) {
         let el = ElementRef::wrap(child).ok_or_else(|| DocxSaveError::Msg("element".into()))?;
         let tag = el.value().name();
         match tag {
-            "p" => blocks.push(Block::Paragraph(inline_runs_from(el))),
+            "p" => {
+                if let Some(img) = el.select(&img_sel).next() {
+                    let (block, part) = image_block_from_img(img, assets_dir, next_rel)?;
+                    if let Some(block) = block {
+                        blocks.push(block);
+                        if let Some(part) = part {
+                            media.push(part);
+                        }
+                        continue;
+                    }
+                }
+                blocks.push(Block::Paragraph(inline_runs_from(el)));
+            }
             "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                 let level = tag[1..].parse().unwrap_or(1);
                 blocks.push(Block::Heading(level, inline_runs_from(el)));
@@ -290,6 +443,19 @@ fn blocks_from_root(root: ElementRef<'_>) -> Result<Vec<Block>, DocxSaveError> {
                     }
                 }
             }
+            "figure" => {
+                if let Some(img) = el.select(&img_sel).next() {
+                    let (block, part) = image_block_from_img(img, assets_dir, next_rel)?;
+                    if let Some(block) = block {
+                        blocks.push(block);
+                        if let Some(part) = part {
+                            media.push(part);
+                        }
+                        continue;
+                    }
+                }
+                blocks.push(Block::Paragraph(inline_runs_from(el)));
+            }
             _ => {
                 return Err(DocxSaveError::UnsupportedHtml(format!("<{}>", tag)));
             }
@@ -298,7 +464,63 @@ fn blocks_from_root(root: ElementRef<'_>) -> Result<Vec<Block>, DocxSaveError> {
     if blocks.is_empty() && root.value().name() != "html" {
         blocks.push(Block::Paragraph(inline_runs_from(root)));
     }
-    Ok(blocks)
+    Ok((blocks, media))
+}
+
+fn image_block_from_img(
+    img: ElementRef<'_>,
+    assets_dir: Option<&Path>,
+    next_rel: &mut usize,
+) -> Result<(Option<Block>, Option<MediaPart>), DocxSaveError> {
+    let src = img.attr("src").unwrap_or("").trim();
+    if src.is_empty() {
+        return Ok((None, None));
+    }
+    let alt = img.attr("alt").unwrap_or("").to_string();
+    let file_name = Path::new(src)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "image.png".into());
+    *next_rel += 1;
+    let rel_id = format!("rId{}", *next_rel + 1);
+    let media_name = format!("media/{}", file_name);
+    let zip_path = format!("word/{}", media_name);
+    let part = if let Some(dir) = assets_dir {
+        let path = dir.join(src);
+        if path.is_file() {
+            let bytes = std::fs::read(&path)?;
+            let content_type = image_content_type(&file_name);
+            Some(MediaPart {
+                zip_path,
+                bytes,
+                content_type,
+                rel_id: rel_id.clone(),
+            })
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let block = Block::Image {
+        rel_id,
+        media_name: file_name,
+        alt,
+    };
+    Ok((Some(block), part))
+}
+
+fn image_content_type(file_name: &str) -> String {
+    let lower = file_name.to_ascii_lowercase();
+    if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
+        "image/jpeg".into()
+    } else if lower.ends_with(".gif") {
+        "image/gif".into()
+    } else if lower.ends_with(".webp") {
+        "image/webp".into()
+    } else {
+        "image/png".into()
+    }
 }
 
 fn inline_runs_from(root: ElementRef<'_>) -> Vec<InlineRun> {
@@ -349,24 +571,55 @@ fn collect_runs(node: ElementRef<'_>, bold: bool, italic: bool, out: &mut Vec<In
 
 fn build_document_xml(blocks: &[Block], sect_pr: Option<&str>) -> Result<Vec<u8>, DocxSaveError> {
     let mut docx = Docx::new();
+    let mut image_paragraphs: Vec<String> = Vec::new();
     for block in blocks {
-        let para = match block {
-            Block::Paragraph(runs) => paragraph_from_runs(runs),
-            Block::Heading(level, runs) => {
-                paragraph_from_runs(runs).style(&format!("Heading{}", level))
+        match block {
+            Block::Paragraph(runs) => {
+                docx = docx.add_paragraph(paragraph_from_runs(runs));
             }
-        };
-        docx = docx.add_paragraph(para);
+            Block::Heading(level, runs) => {
+                docx = docx.add_paragraph(
+                    paragraph_from_runs(runs).style(&format!("Heading{}", level)),
+                );
+            }
+            Block::Image {
+                rel_id,
+                media_name,
+                alt,
+            } => {
+                image_paragraphs.push(image_paragraph_xml(rel_id, media_name, alt));
+            }
+        }
     }
     let built = docx.build();
     let mut xml =
         String::from_utf8(built.document).map_err(|e| DocxSaveError::Msg(e.to_string()))?;
+    if !image_paragraphs.is_empty() {
+        let insert = image_paragraphs.join("");
+        if let Some(idx) = xml.find("</w:body>") {
+            xml.insert_str(idx, &insert);
+        }
+    }
     if let Some(sect) = sect_pr {
         if !xml.contains("w:sectPr") {
             xml = xml.replace("</w:body>", &format!("{sect}</w:body>"));
         }
     }
     Ok(xml.into_bytes())
+}
+
+fn image_paragraph_xml(rel_id: &str, media_name: &str, alt: &str) -> String {
+    let alt_esc = xml_escape_attr(alt);
+    let name_esc = xml_escape_attr(media_name);
+    format!(
+        r#"<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><wp:extent cx="1905000" cy="1428750"/><wp:docPr id="1" name="{name_esc}" descr="{alt_esc}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="{name_esc}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="{rel_id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1905000" cy="1428750"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"#
+    )
+}
+
+fn xml_escape_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
 }
 
 fn paragraph_from_runs(runs: &[InlineRun]) -> Paragraph {

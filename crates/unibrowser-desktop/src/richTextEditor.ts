@@ -46,7 +46,9 @@ function isAbsoluteUrl(src: string): boolean {
     lower.startsWith("https://") ||
     lower.startsWith("http://") ||
     lower.startsWith("data:") ||
-    lower.startsWith("file://")
+    lower.startsWith("file://") ||
+    lower.startsWith("asset://") ||
+    lower.startsWith("blob:")
   );
 }
 
@@ -196,30 +198,106 @@ export function renderDocumentModelToHtml(model: DocumentModelDto, readonly = fa
   return parts.join("");
 }
 
-async function resolveRichImages(host: HTMLElement, basePath: string): Promise<void> {
+function richEditorImageBasePath(basePath: string): string {
+  const override = document.body.dataset.documentImageBasePath?.trim();
+  return override || basePath;
+}
+
+async function resolveDesktopImageHref(
+  resolvedBase: string,
+  raw: string,
+): Promise<string | null> {
+  const repoRelative = joinDocRelative(resolvedBase, raw);
+  const fileUrl = await invoke<string>("resolve_preview_link", {
+    basePath: resolvedBase,
+    href: raw,
+  });
+  const filePath = fileUrl.replace(/^file:\/\//i, "");
+  await invoke("allow_asset_path", { path: repoRelative }).catch(() => undefined);
+  await invoke("allow_asset_path", { path: filePath }).catch(() => undefined);
+  for (const readPath of [repoRelative, filePath]) {
+    try {
+      const data = await invoke<number[]>("read_document_bytes", { path: readPath });
+      const bytes = new Uint8Array(data);
+      const mime = guessImageMime(readPath);
+      return `data:${mime};base64,${bytesToBase64(bytes)}`;
+    } catch {
+      /* try next path */
+    }
+  }
+  return convertFileSrc(filePath);
+}
+
+/** Inline relative image hrefs in the model so ProseMirror keeps resolved src (DOM-only patches get overwritten). */
+export async function resolveDocumentModelImageAssets(
+  model: DocumentModelDto,
+  basePath: string,
+): Promise<DocumentModelDto> {
+  const resolvedBase = richEditorImageBasePath(basePath);
+  const blocks = model.blocks ?? [];
+  let changed = false;
+  const nextBlocks: unknown[] = [];
+  for (const block of blocks) {
+    const b = block as BlockDto;
+    if (b.type !== "image" || !b.src || isAbsoluteUrl(b.src)) {
+      nextBlocks.push(block);
+      continue;
+    }
+    if (isWebPlatform()) {
+      const url = joinDocRelative(resolvedBase, b.src);
+      const dataUrl = await loadImageDataUrl(url, guessImageMime(b.src));
+      nextBlocks.push({ ...b, src: dataUrl ?? url });
+      changed = true;
+      continue;
+    }
+    try {
+      const resolved = await resolveDesktopImageHref(resolvedBase, b.src);
+      nextBlocks.push({ ...b, src: resolved ?? b.src });
+      changed = true;
+    } catch {
+      nextBlocks.push(block);
+    }
+  }
+  if (!changed) {
+    return model;
+  }
+  return { ...model, blocks: nextBlocks };
+}
+
+async function loadImageDataUrl(url: string, mimeHint?: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      return null;
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const mime = mimeHint ?? res.headers.get("content-type") ?? guessImageMime(url);
+    return `data:${mime};base64,${bytesToBase64(bytes)}`;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveRichImages(host: HTMLElement, basePath: string): Promise<void> {
+  const resolvedBase = richEditorImageBasePath(basePath);
   const imgs = host.querySelectorAll<HTMLImageElement>("img");
   for (const img of imgs) {
+    img.classList.remove("rich-text-img--broken");
     const raw = img.dataset.docSrc ?? img.getAttribute("src") ?? "";
     if (!raw || isAbsoluteUrl(raw)) {
       continue;
     }
     if (isWebPlatform()) {
-      img.src = joinDocRelative(basePath, raw);
+      const url = joinDocRelative(resolvedBase, raw);
+      const dataUrl = await loadImageDataUrl(url, guessImageMime(raw));
+      img.src = dataUrl ?? url;
       continue;
     }
     try {
-      const fileUrl = await invoke<string>("resolve_preview_link", {
-        basePath,
-        href: raw,
-      });
-      const filePath = fileUrl.replace(/^file:\/\//i, "");
-      try {
-        const data = await invoke<number[]>("read_document_bytes", { path: filePath });
-        const bytes = new Uint8Array(data);
-        const mime = guessImageMime(filePath);
-        img.src = `data:${mime};base64,${bytesToBase64(bytes)}`;
-      } catch {
-        img.src = convertFileSrc(filePath);
+      const resolved = await resolveDesktopImageHref(resolvedBase, raw);
+      if (resolved) {
+        img.src = resolved;
+        await img.decode().catch(() => undefined);
       }
     } catch {
       img.classList.add("rich-text-img--broken");
@@ -227,12 +305,12 @@ async function resolveRichImages(host: HTMLElement, basePath: string): Promise<v
   }
 }
 
-function mountReadonlyHtml(
+async function mountReadonlyHtml(
   host: HTMLElement,
   model: DocumentModelDto,
   readonly: boolean,
   basePath?: string | null,
-): HTMLElement {
+): Promise<HTMLElement> {
   host.innerHTML = renderDocumentModelToHtml(model, readonly);
   host.classList.add("rich-text-editor-host");
   host.querySelector("article")?.addEventListener("click", (ev) => {
@@ -248,7 +326,7 @@ function mountReadonlyHtml(
     );
   });
   if (basePath) {
-    void resolveRichImages(host, basePath);
+    await resolveRichImages(host, basePath);
   }
   return host.querySelector("article") ?? host;
 }
@@ -272,7 +350,7 @@ export async function mountRichTextEditor(
   if (readonly || !onModelChange) {
     activeHandle?.destroy();
     activeHandle = null;
-    return mountReadonlyHtml(host, model, readonly, basePath);
+    return await mountReadonlyHtml(host, model, readonly, basePath);
   }
 
   activeHandle?.destroy();
@@ -290,4 +368,53 @@ export async function mountRichTextEditor(
 export function destroyRichTextEditor() {
   activeHandle?.destroy();
   activeHandle = null;
+}
+
+/** Wait until every image in the document card rich surface has decoded (naturalWidth > 0). */
+export async function waitForRichCardImagesLoaded(timeoutMs = 12_000): Promise<void> {
+  const shell = document.getElementById("document-card-shell");
+  const rich =
+    document.querySelector<HTMLElement>("#rich-text-editor-host:not(.hidden) .rich-text-doc") ??
+    document.querySelector<HTMLElement>(
+      "#document-split-preview-host:not(.hidden) .rich-text-doc",
+    );
+  if (!shell || shell.classList.contains("hidden") || !rich) {
+    return;
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const imgs = Array.from(rich.querySelectorAll<HTMLImageElement>("img"));
+    if (imgs.length === 0) {
+      return;
+    }
+    const pending = imgs.filter((img) => !img.naturalWidth);
+    if (pending.length === 0) {
+      return;
+    }
+    await Promise.all(
+      pending.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete && img.naturalWidth > 0) {
+              resolve();
+              return;
+            }
+            const perImgMs = Math.min(4_000, Math.max(500, deadline - Date.now()));
+            const timer = window.setTimeout(() => {
+              console.error(
+                `[doc-capture] rich image wait timeout src=${img.currentSrc || img.src}`,
+              );
+              resolve();
+            }, perImgMs);
+            const done = () => {
+              window.clearTimeout(timer);
+              resolve();
+            };
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          }),
+      ),
+    );
+    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+  }
 }

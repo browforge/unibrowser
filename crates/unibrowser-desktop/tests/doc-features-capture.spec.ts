@@ -258,6 +258,23 @@ test.describe("Document feature captures", () => {
         if (!approx?.textContent?.includes("≈")) {
           return "doc-visual-md-docx capture must show emulated block-style (≈) badge";
         }
+        const rich =
+          document.querySelector<HTMLElement>("#rich-text-editor-host:not(.hidden) .rich-text-doc") ??
+          document.querySelector<HTMLElement>(
+            "#document-split-preview-host:not(.hidden) .rich-text-doc",
+          );
+        const imgs = rich ? Array.from(rich.querySelectorAll<HTMLImageElement>("img")) : [];
+        if (imgs.some((img) => img.naturalWidth <= 0)) {
+          return "doc-visual-md-docx capture requires card images to load (naturalWidth > 0)";
+        }
+        const statusText = Array.from(
+          document.querySelectorAll<HTMLElement>("#status-bar .status-item"),
+        )
+          .map((el) => el.textContent?.trim() ?? "")
+          .join(" ");
+        if (!statusText.includes("Word document")) {
+          return "doc-visual-md-docx capture status bar must show Word document";
+        }
       }
       return null;
     });
@@ -477,6 +494,19 @@ test.describe("Document feature captures", () => {
       const approxBadge = document.querySelector<HTMLElement>(
         ".block-emulation-badge, .cm-emulation-mark",
       );
+      const richSurface =
+        document.querySelector<HTMLElement>("#rich-text-editor-host:not(.hidden) .rich-text-doc") ??
+        document.querySelector<HTMLElement>(
+          "#document-split-preview-host:not(.hidden) .rich-text-doc",
+        );
+      const richImgs = richSurface
+        ? Array.from(richSurface.querySelectorAll<HTMLImageElement>("img"))
+        : [];
+      const statusBarText = Array.from(
+        document.querySelectorAll<HTMLElement>("#status-bar .status-item"),
+      )
+        .map((el) => el.textContent?.trim() ?? "")
+        .join(" ");
       return {
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
@@ -503,6 +533,9 @@ test.describe("Document feature captures", () => {
           richEditorSubtreeViolations,
           documentCardFooterText: footerMain?.textContent?.trim() ?? "",
           docxEmulationBadgeVisible: Boolean(approxBadge?.textContent?.includes("≈")),
+          cardImageNaturalWidthOk:
+            richImgs.length === 0 || richImgs.every((img) => img.naturalWidth > 0),
+          statusBarDocumentLanguage: statusBarText,
         },
       };
     });
@@ -520,32 +553,32 @@ test.describe("Document feature captures", () => {
     }
   }
 
-  test("web doc feature screenshots v4", async ({ browser }) => {
+  test("web doc feature screenshots v5", async ({ browser }) => {
     mkdirSync(ART, { recursive: true });
     mkdirSync(OUT, { recursive: true });
     const shots: { name: string; demo: string; wait?: string }[] = [
       {
-        name: "doc-wysiwyg-blockquote-web-v4.png",
+        name: "doc-wysiwyg-blockquote-web-v5.png",
         demo: "doc-mode-wysiwyg,txt-apply-h2",
         wait: ".rich-text-doc blockquote",
       },
       {
-        name: "doc-split-apply-banner-web-v4.png",
+        name: "doc-split-apply-banner-web-v5.png",
         demo: "doc-mode-split,doc-merge-banner",
         wait: ".document-source-merge-banner:not(.hidden)",
       },
       {
-        name: "doc-opaque-card-web-v4.png",
+        name: "doc-opaque-card-web-v5.png",
         demo: "doc-opaque-card",
         wait: ".rich-text-opaque-parse",
       },
       {
-        name: "doc-history-panel-web-v4.png",
+        name: "doc-history-panel-web-v5.png",
         demo: "doc-history-panel,txt-apply-h2",
         wait: "#bottom-panel-history-pane:not(.hidden)",
       },
       {
-        name: "doc-visual-docx-web-v4.png",
+        name: "doc-visual-docx-web-v6.png",
         demo: "doc-visual-md-docx",
         wait: "#document-card-tab .document-card-tab-label:text-is('sample.docx')",
       },
@@ -556,11 +589,18 @@ test.describe("Document feature captures", () => {
       });
       const page = await context.newPage();
       await openDemo(page, shot.demo);
+      if (shot.name.includes("doc-visual-docx")) {
+        await page.evaluate(async () => {
+          const apply = (
+            window as unknown as { __unibrowserApplyDemoState?: (token: string) => Promise<void> }
+          ).__unibrowserApplyDemoState;
+          if (apply) {
+            await apply("doc-visual-md-docx");
+          }
+        });
+      }
       if (shot.wait) {
         await page.locator(shot.wait).first().waitFor({ timeout: 90_000 });
-      }
-      if (shot.name.includes("doc-visual-docx")) {
-        await page.locator(".block-emulation-badge").first().waitFor({ timeout: 90_000 });
       }
       await page.getByRole("button", { name: "Skip tour" }).click({ timeout: 2000 }).catch(() => undefined);
       await page.getByRole("button", { name: "Dismiss" }).click({ timeout: 2000 }).catch(() => undefined);

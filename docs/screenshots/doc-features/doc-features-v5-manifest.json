@@ -1,0 +1,55 @@
+{
+  "version": "v5",
+  "captures": [
+    {
+      "file": "doc-wysiwyg-blockquote-desktop-v5.png",
+      "md5": "e7c55947f24453fdb05f462eb93a80ed",
+      "description": "Desktop 1280x800: paper card Visual mode; blockquote and demo-pack image; compact Heading 2 toolbar."
+    },
+    {
+      "file": "doc-split-apply-banner-desktop-v5.png",
+      "md5": "b9ca3d0773c4ece8d07145a447be6072",
+      "description": "Desktop 1280x800: Split mode merge-apply banner on the paper card."
+    },
+    {
+      "file": "doc-opaque-card-desktop-v5.png",
+      "md5": "694adfd51679b70c775def1f0c0b3a6b",
+      "description": "Desktop 1280x800: opaque HTML block in Visual rich text."
+    },
+    {
+      "file": "doc-visual-docx-desktop-v5.png",
+      "md5": "ad32f06bff706207f7ebb2fe8a621e90",
+      "description": "Desktop 1280x800: sample.md visual card after DOCX save path; embedded card image (naturalWidth > 0); Word footer and status bar; office compact toolbar with ≈ badge."
+    },
+    {
+      "file": "doc-history-panel-desktop-v5.png",
+      "md5": "43c66bcc5913953fbdeccafe6c7b95e3",
+      "description": "Desktop 1280x800: Visual mode with History panel."
+    },
+    {
+      "file": "doc-wysiwyg-blockquote-web-v5.png",
+      "md5": "09cfcac53b58f9b8c44e5c810797850b",
+      "description": "Web WASM 1280x800: blockquote card parity."
+    },
+    {
+      "file": "doc-split-apply-banner-web-v5.png",
+      "md5": "37f68590622589010738abd43e59dd50",
+      "description": "Web WASM 1280x800: Split merge banner."
+    },
+    {
+      "file": "doc-opaque-card-web-v5.png",
+      "md5": "7eebab69947805bf8e1b0ede574cab2b",
+      "description": "Web WASM 1280x800: opaque block Visual capture."
+    },
+    {
+      "file": "doc-visual-docx-web-v5.png",
+      "md5": "57b219a0b80149e16eb0190045a4292e",
+      "description": "Web WASM 1280x800: DOCX visual demo; card images loaded; status bar Word document; ≈ emulation badge."
+    },
+    {
+      "file": "doc-history-panel-web-v5.png",
+      "md5": "04ce3314ebadcdfe7680e39dc0876cab",
+      "description": "Web WASM 1280x800: History panel with Visual rich editor in card body."
+    }
+  ]
+}
