@@ -376,7 +376,17 @@ async function ensureEditor(host: HTMLElement) {
     }
   }
   hostEl = host;
+  const preserved: HTMLElement[] = [];
+  for (const id of ["rich-text-editor-host", "document-split-preview-host"]) {
+    const el = document.getElementById(id);
+    if (el && el.parentElement === host) {
+      preserved.push(el);
+    }
+  }
   host.innerHTML = "";
+  for (const el of preserved) {
+    host.appendChild(el);
+  }
   await applyMonacoEditorTheme(editorThemePref);
   const monacoTheme = resolveEditorThemeId(editorThemePref);
   // Spellcheck: Monaco has no built-in dictionary; see docs/qa-desktop.md.

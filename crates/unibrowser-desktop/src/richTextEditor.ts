@@ -1,17 +1,24 @@
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import type { DocumentModelDto } from "./documentModelBridge";
+import { isWebPlatform } from "./platform/isWeb";
 
 type BlockDto = {
   type: string;
   id?: string;
   level?: number;
-  inlines?: { text: string; marks?: unknown[] }[];
+  inlines?: { text: string; marks?: InlineMarkDto[] }[];
   text?: string;
   language?: string | null;
   label?: string | null;
   raw?: string;
-  items?: { inlines: { text: string }[] }[];
+  items?: { inlines: { text: string; marks?: InlineMarkDto[] }[] }[];
   src?: string;
   alt?: string;
+};
+
+type InlineMarkDto = {
+  kind: string;
+  href?: string | null;
 };
 
 function escapeHtml(text: string): string {
@@ -21,11 +28,71 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
-function renderInlines(inlines: { text: string }[] | undefined): string {
+function escapeAttr(text: string): string {
+  return escapeHtml(text).replace(/"/g, "&quot;");
+}
+
+function isAbsoluteUrl(src: string): boolean {
+  const lower = src.trim().toLowerCase();
+  return (
+    lower.startsWith("https://") ||
+    lower.startsWith("http://") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("file://")
+  );
+}
+
+function joinDocRelative(basePath: string, href: string): string {
+  const trimmed = href.trim();
+  if (isAbsoluteUrl(trimmed)) {
+    return trimmed;
+  }
+  const normalizedBase = basePath.replace(/\\/g, "/");
+  const slash = normalizedBase.lastIndexOf("/");
+  const dir = slash >= 0 ? normalizedBase.slice(0, slash + 1) : "";
+  const joined = `${dir}${trimmed}`.replace(/\/+/g, "/");
+  if (isWebPlatform()) {
+    return joined.startsWith("./") || joined.startsWith("/") ? joined : `./${joined}`;
+  }
+  return joined;
+}
+
+function renderMarkedText(text: string, marks: InlineMarkDto[] | undefined): string {
+  let html = escapeHtml(text);
+  for (const mark of marks ?? []) {
+    switch (mark.kind) {
+      case "bold":
+        html = `<strong>${html}</strong>`;
+        break;
+      case "italic":
+        html = `<em>${html}</em>`;
+        break;
+      case "strikethrough":
+        html = `<s>${html}</s>`;
+        break;
+      case "code":
+        html = `<code>${html}</code>`;
+        break;
+      case "link": {
+        const href = escapeAttr(mark.href ?? "#");
+        html = `<a href="${href}" class="rich-text-link">${html}</a>`;
+        break;
+      }
+      case "underline":
+        html = `<u>${html}</u>`;
+        break;
+      default:
+        break;
+    }
+  }
+  return html;
+}
+
+function renderInlines(inlines: { text: string; marks?: InlineMarkDto[] }[] | undefined): string {
   if (!inlines?.length) {
     return "";
   }
-  return inlines.map((span) => escapeHtml(span.text)).join("");
+  return inlines.map((span) => renderMarkedText(span.text, span.marks)).join("");
 }
 
 export function renderDocumentModelToHtml(model: DocumentModelDto, readonly = false): string {
@@ -71,7 +138,7 @@ export function renderDocumentModelToHtml(model: DocumentModelDto, readonly = fa
         break;
       case "image":
         parts.push(
-          `<figure data-block-id="${block.id ?? ""}"><img alt="${escapeHtml(block.alt ?? "")}" src="${escapeHtml(block.src ?? "")}"/></figure>`,
+          `<figure data-block-id="${block.id ?? ""}"><img alt="${escapeHtml(block.alt ?? "")}" src="${escapeAttr(block.src ?? "")}" data-doc-src="${escapeAttr(block.src ?? "")}"/></figure>`,
         );
         break;
       case "horizontal_rule":
@@ -90,12 +157,39 @@ export function renderDocumentModelToHtml(model: DocumentModelDto, readonly = fa
   return parts.join("");
 }
 
-export function mountRichTextEditor(
+async function resolveRichImages(host: HTMLElement, basePath: string): Promise<void> {
+  const imgs = host.querySelectorAll<HTMLImageElement>("img[data-doc-src]");
+  for (const img of imgs) {
+    const raw = img.dataset.docSrc ?? img.getAttribute("src") ?? "";
+    if (!raw || isAbsoluteUrl(raw)) {
+      continue;
+    }
+    if (isWebPlatform()) {
+      img.src = joinDocRelative(basePath, raw);
+      continue;
+    }
+    try {
+      const fileUrl = await invoke<string>("resolve_preview_link", {
+        basePath,
+        href: raw,
+      });
+      img.src = convertFileSrc(fileUrl.replace(/^file:\/\//i, ""));
+    } catch {
+      img.classList.add("rich-text-img--broken");
+    }
+  }
+}
+
+export async function mountRichTextEditor(
   host: HTMLElement,
   model: DocumentModelDto,
   readonly: boolean,
-): HTMLElement {
+  basePath?: string | null,
+): Promise<HTMLElement> {
   host.innerHTML = renderDocumentModelToHtml(model, readonly);
   host.classList.add("rich-text-editor-host");
+  if (basePath) {
+    await resolveRichImages(host, basePath);
+  }
   return host.querySelector("article") ?? host;
 }

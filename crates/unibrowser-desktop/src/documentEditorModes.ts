@@ -124,12 +124,22 @@ export function toggleReadingMode() {
   setDocumentEditorMode("reading");
 }
 
-export function mountDocumentModeStrip(host: HTMLElement) {
+export function mountDocumentModeStrip(
+  host: HTMLElement,
+  variant: "chrome" | "inline" = "chrome",
+) {
   stripEl = host;
-  host.innerHTML = "";
-  host.className = "document-mode-strip";
-  host.setAttribute("role", "tablist");
-  host.setAttribute("aria-label", "Document editing mode");
+  if (variant === "inline") {
+    host.innerHTML = "";
+    host.className = "document-mode-strip document-mode-strip--inline";
+    host.setAttribute("role", "tablist");
+    host.setAttribute("aria-label", "Document editing mode");
+  } else {
+    host.innerHTML = "";
+    host.className = "document-mode-strip";
+    host.setAttribute("role", "tablist");
+    host.setAttribute("aria-label", "Document editing mode");
+  }
   const modes: { id: DocumentEditorMode; label: string }[] = [
     { id: "wysiwyg", label: "Visual" },
     { id: "source", label: "Source" },

@@ -67,6 +67,9 @@ export function syncTextDocumentCard(active: boolean, fileLabel?: string | null)
 
   if (pane && bodyMount && pane.parentElement !== bodyMount) {
     bodyMount.appendChild(pane);
+    void import("../documentEditorHost").then(({ relocateDocumentEditorSurfaces }) => {
+      relocateDocumentEditorSurfaces(pane);
+    });
   }
   if (toolbar && toolbarMount && toolbar.parentElement !== toolbarMount) {
     toolbarMount.appendChild(toolbar);

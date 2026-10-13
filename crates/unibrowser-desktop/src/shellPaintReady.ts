@@ -16,6 +16,10 @@ export function editorReadyForCapture(minChars = 80): boolean {
   if (!host || host.classList.contains("hidden")) {
     return false;
   }
+  const mode = document.body.dataset.documentEditorMode;
+  if (mode === "wysiwyg" || mode === "reading") {
+    return richTextDocumentReady();
+  }
   const monacoRoot = host.querySelector(".monaco-editor") as HTMLElement | null;
   if (!monacoRoot || monacoRoot.getBoundingClientRect().width <= 0) {
     return false;
@@ -30,6 +34,30 @@ export function editorReadyForCapture(minChars = 80): boolean {
 
 function monacoReady(): boolean {
   return editorReadyForCapture(80);
+}
+
+function richTextDocumentReady(): boolean {
+  const article =
+    document.querySelector<HTMLElement>(
+      "#rich-text-editor-host:not(.hidden) .rich-text-doc",
+    ) ??
+    document.querySelector<HTMLElement>(
+      "#document-split-preview-host:not(.hidden) .rich-text-doc",
+    );
+  if (!article || article.getBoundingClientRect().height < 48) {
+    return false;
+  }
+  return (article.textContent ?? "").trim().length >= 20;
+}
+
+function richTextSplitPreviewReady(): boolean {
+  const article = document.querySelector<HTMLElement>(
+    "#document-split-preview-host:not(.hidden) .rich-text-doc",
+  );
+  if (!article || article.getBoundingClientRect().width < 80) {
+    return false;
+  }
+  return (article.textContent ?? "").trim().length >= 20;
 }
 
 function markdownPreviewReady(): boolean {
@@ -236,6 +264,14 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     (joined.includes(".md") || joined.includes(".markdown"))
   ) {
     checks.push(markdownPreviewReady);
+  } else if (
+    tokens.includes("doc-mode-wysiwyg") ||
+    tokens.includes("doc-mode-reading")
+  ) {
+    checks.push(richTextDocumentReady);
+  } else if (tokens.includes("doc-mode-split")) {
+    checks.push(monacoReady);
+    checks.push(richTextSplitPreviewReady);
   } else if (
     joined.includes(".txt") ||
     joined.includes(".md") ||

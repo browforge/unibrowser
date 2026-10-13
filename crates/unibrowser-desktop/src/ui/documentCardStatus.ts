@@ -70,6 +70,7 @@ export function refreshDocumentCardStatusFooter(dirty: boolean): void {
     document.querySelector<HTMLElement>(
       '[data-control-id="unibrowser.control.editor.size"] .cm-cmd-label, [data-control-id="unibrowser.control.text.size"] .cm-cmd-label',
     )?.textContent?.trim() ?? "100%";
+  const modeHost = document.getElementById("document-mode-inline-host");
   status.replaceChildren();
   const left = document.createElement("span");
   left.className = "document-card-status-main";
@@ -78,4 +79,7 @@ export function refreshDocumentCardStatusFooter(dirty: boolean): void {
   zoomSpan.className = "document-card-status-zoom";
   zoomSpan.textContent = zoom;
   status.append(left, zoomSpan);
+  if (modeHost) {
+    status.append(modeHost);
+  }
 }

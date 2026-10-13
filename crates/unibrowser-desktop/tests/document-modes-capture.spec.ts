@@ -23,20 +23,42 @@ test.describe("Document mode captures", () => {
     });
   }
 
-  test("web document mode screenshots v1", async ({ page }) => {
+  test("web document mode screenshots v2", async ({ page }) => {
     mkdirSync(ART, { recursive: true });
     const shots: { name: string; demo: string }[] = [
-      { name: "doc-modes-wysiwyg-web-v1.png", demo: "doc-mode-wysiwyg" },
-      { name: "doc-modes-source-web-v1.png", demo: "doc-mode-source" },
-      { name: "doc-modes-split-web-v1.png", demo: "doc-mode-split" },
+      { name: "doc-modes-wysiwyg-web-v2.png", demo: "doc-mode-wysiwyg" },
+      { name: "doc-modes-source-web-v2.png", demo: "doc-mode-source" },
+      { name: "doc-modes-split-web-v2.png", demo: "doc-mode-split" },
       {
-        name: "doc-modes-picker-web-v1.png",
+        name: "doc-modes-picker-web-v2.png",
         demo: "doc-mode-wysiwyg,txt-block-picker-open",
       },
     ];
     for (const shot of shots) {
       await openDemo(page, shot.demo);
-      await page.getByRole("button", { name: "Skip tour" }).click({ timeout: 2000 }).catch(() => undefined);
+      await page
+        .getByRole("button", { name: "Skip tour" })
+        .click({ timeout: 2000 })
+        .catch(() => undefined);
+      await page
+        .getByRole("button", { name: "Dismiss" })
+        .click({ timeout: 2000 })
+        .catch(() => undefined);
+      await expect(page.locator("#document-mode-strip-host")).toBeHidden();
+      if (shot.demo.includes("doc-mode-split")) {
+        await expect(page.locator("body")).toHaveAttribute("data-document-editor-mode", "split", {
+          timeout: 15_000,
+        });
+        await expect(page.locator("#text-editor-host")).toHaveClass(/document-editor-split-layout/);
+        await expect(page.locator("#document-split-preview-host")).not.toHaveClass(/hidden/);
+      }
+      if (shot.demo.includes("doc-mode-wysiwyg")) {
+        await expect(page.locator("body")).toHaveAttribute(
+          "data-document-editor-mode",
+          /wysiwyg|reading/,
+          { timeout: 15_000 },
+        );
+      }
       await page.screenshot({
         path: path.join(ART, shot.name),
         fullPage: false,

@@ -656,20 +656,172 @@ fn parse_image_line(line: &str) -> Option<(String, String, Option<String>)> {
 }
 
 pub fn parse_inline(text: &str) -> Vec<InlineSpan> {
-    if text.is_empty() {
-        return vec![InlineSpan {
+    let spans = parse_inline_spans(text);
+    if spans.is_empty() {
+        vec![InlineSpan {
             text: String::new(),
             marks: vec![],
-        }];
+        }]
+    } else {
+        spans
     }
-    vec![InlineSpan {
-        text: text.to_string(),
-        marks: parse_marks_simple(text),
-    }]
 }
 
-fn parse_marks_simple(_text: &str) -> Vec<InlineMark> {
-    vec![]
+fn parse_inline_spans(text: &str) -> Vec<InlineSpan> {
+    let mut out = Vec::new();
+    let mut rest = text;
+    while !rest.is_empty() {
+        if let Some(parsed) = try_parse_inline_token(rest) {
+            out.extend(parsed.spans);
+            rest = &rest[parsed.consumed..];
+            continue;
+        }
+        let end = rest[1..]
+            .find(|c| matches!(c, '*' | '_' | '`' | '[' | '~'))
+            .map(|idx| idx + 1)
+            .unwrap_or(rest.len());
+        push_plain_span(&mut out, &rest[..end]);
+        rest = &rest[end..];
+    }
+    out
+}
+
+struct ParsedInline {
+    spans: Vec<InlineSpan>,
+    consumed: usize,
+}
+
+fn push_plain_span(out: &mut Vec<InlineSpan>, text: &str) {
+    if text.is_empty() {
+        return;
+    }
+    if let Some(last) = out.last_mut() {
+        if last.marks.is_empty() {
+            last.text.push_str(text);
+            return;
+        }
+    }
+    out.push(InlineSpan {
+        text: text.to_string(),
+        marks: vec![],
+    });
+}
+
+fn try_parse_inline_token(rest: &str) -> Option<ParsedInline> {
+    if rest.starts_with('[') && !rest.starts_with("![") {
+        if let Some(parsed) = try_parse_link(rest) {
+            return Some(parsed);
+        }
+    }
+    if rest.starts_with('`') {
+        return try_parse_code(rest);
+    }
+    if rest.starts_with("**") {
+        return try_parse_wrapped(rest, "**", MarkKind::Bold);
+    }
+    if rest.starts_with("__") {
+        return try_parse_wrapped(rest, "__", MarkKind::Bold);
+    }
+    if rest.starts_with("~~") {
+        return try_parse_wrapped(rest, "~~", MarkKind::Strikethrough);
+    }
+    if rest.starts_with('*') {
+        return try_parse_wrapped(rest, "*", MarkKind::Italic);
+    }
+    if rest.starts_with('_') {
+        return try_parse_wrapped(rest, "_", MarkKind::Italic);
+    }
+    None
+}
+
+fn try_parse_link(rest: &str) -> Option<ParsedInline> {
+    let label_end = rest[1..].find(']')?;
+    let label = &rest[1..1 + label_end];
+    let after = &rest[1 + label_end + 1..];
+    if !after.starts_with('(') {
+        return None;
+    }
+    let url_end = after[1..].find(')')?;
+    let href = after[1..1 + url_end].to_string();
+    let consumed = 1 + label_end + 1 + 1 + url_end + 1;
+    Some(ParsedInline {
+        spans: vec![InlineSpan {
+            text: label.to_string(),
+            marks: vec![InlineMark {
+                kind: MarkKind::Link,
+                href: Some(href),
+                emulation: None,
+            }],
+        }],
+        consumed,
+    })
+}
+
+fn try_parse_code(rest: &str) -> Option<ParsedInline> {
+    let inner_end = rest[1..].find('`')?;
+    let inner = &rest[1..1 + inner_end];
+    Some(ParsedInline {
+        spans: vec![InlineSpan {
+            text: inner.to_string(),
+            marks: vec![InlineMark {
+                kind: MarkKind::Code,
+                href: None,
+                emulation: None,
+            }],
+        }],
+        consumed: 1 + inner_end + 1,
+    })
+}
+
+fn try_parse_wrapped(rest: &str, delim: &str, kind: MarkKind) -> Option<ParsedInline> {
+    let inner_start = delim.len();
+    let search = &rest[inner_start..];
+    let close = search.find(delim)?;
+    if close == 0 {
+        return None;
+    }
+    let inner = &search[..close];
+    let inner_spans = parse_inline_spans(inner);
+    let marked = apply_mark_to_spans(inner_spans, kind);
+    Some(ParsedInline {
+        spans: marked,
+        consumed: inner_start + close + delim.len(),
+    })
+}
+
+fn apply_mark_to_spans(spans: Vec<InlineSpan>, kind: MarkKind) -> Vec<InlineSpan> {
+    spans
+        .into_iter()
+        .map(|span| {
+            let mut marks = vec![InlineMark {
+                kind: kind.clone(),
+                href: None,
+                emulation: None,
+            }];
+            marks.extend(span.marks);
+            InlineSpan {
+                text: span.text,
+                marks,
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod inline_tests {
+    use super::*;
+
+    #[test]
+    fn parses_bold_italic_link_and_code() {
+        let spans = parse_inline("**Bold** and _italic_ and `code` and [Architecture](x.md)");
+        assert!(spans.iter().any(|s| s.text == "Bold" && s.marks.iter().any(|m| m.kind == MarkKind::Bold)));
+        assert!(spans.iter().any(|s| s.text == "italic" && s.marks.iter().any(|m| m.kind == MarkKind::Italic)));
+        assert!(spans.iter().any(|s| s.text == "code" && s.marks.iter().any(|m| m.kind == MarkKind::Code)));
+        assert!(spans.iter().any(|s| {
+            s.text == "Architecture"
+                && s.marks.iter().any(|m| m.kind == MarkKind::Link && m.href.as_deref() == Some("x.md"))
+        }));
+    }
 }
 
 fn inline_plain(inlines: &[InlineSpan]) -> String {

@@ -1181,6 +1181,34 @@ export function validateMarkdownPreviewForCapture(): string | null {
   return null;
 }
 
+/** Returns abort reason or null if WYSIWYG rich document looks painted. */
+export function validateRichTextDocumentForCapture(): string | null {
+  const article = document.querySelector<HTMLElement>(
+    "#rich-text-editor-host:not(.hidden) .rich-text-doc, #document-split-preview-host:not(.hidden) .rich-text-doc",
+  );
+  if (!article) {
+    return "rich text document surface missing";
+  }
+  const rect = article.getBoundingClientRect();
+  if (rect.width < 120 || rect.height < 80) {
+    return `rich text document too small (${rect.width}x${rect.height})`;
+  }
+  if ((article.textContent ?? "").trim().length < 40) {
+    return "rich text document has insufficient text";
+  }
+  const bold = article.querySelector("strong");
+  const em = article.querySelector("em");
+  const link = article.querySelector("a.rich-text-link");
+  if (!bold || !em || !link) {
+    return "rich text missing bold, italic, or link rendering";
+  }
+  const img = article.querySelector<HTMLImageElement>("img");
+  if (!img || img.classList.contains("rich-text-img--broken")) {
+    return "rich text image missing or broken";
+  }
+  return null;
+}
+
 /** Returns abort reason or null if editor area looks painted. */
 export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
   const m = collectMonacoDiagnostics();

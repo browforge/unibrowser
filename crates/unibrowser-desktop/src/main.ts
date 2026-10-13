@@ -204,6 +204,7 @@ import {
   validateProblemsForCapture,
   formatDiagnosticsForLog,
   validateEditorForCapture,
+  validateRichTextDocumentForCapture,
   validateMarkdownPreviewForCapture,
   validateImageViewerChrome,
   validateGrayscalePreviewControlForCapture,
@@ -3411,12 +3412,25 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               return;
             }
           } else if (captureUsesEditor) {
-            const editorErr = validateEditorForCapture();
+            const docMode = document.body.dataset.documentEditorMode ?? "";
+            const richMode = docMode === "wysiwyg" || docMode === "reading";
+            const editorErr = richMode
+              ? validateRichTextDocumentForCapture()
+              : validateEditorForCapture();
             if (editorErr) {
               await invoke("abort_doc_capture", {
                 reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
               });
               return;
+            }
+            if (docMode === "split") {
+              const splitRichErr = validateRichTextDocumentForCapture();
+              if (splitRichErr) {
+                await invoke("abort_doc_capture", {
+                  reason: `split preview: ${splitRichErr}; ${formatDiagnosticsForLog(diag)}`,
+                });
+                return;
+              }
             }
           }
           if (document.body.classList.contains("text-document-card")) {
@@ -3462,13 +3476,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               return;
             }
           }
-          if (
-            captureUsesEditor &&
-            !captureUsesMarkdownPreview &&
-            !editorReadyForCapture()
-          ) {
+          if (captureUsesEditor && !captureUsesMarkdownPreview && !editorReadyForCapture()) {
             await invoke("abort_doc_capture", {
-              reason: `Monaco editor is blank after paint wait; ${formatDiagnosticsForLog(diag)}`,
+              reason: `Document editor is blank after paint wait; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
           }

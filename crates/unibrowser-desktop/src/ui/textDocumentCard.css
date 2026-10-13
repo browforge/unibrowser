@@ -76,8 +76,27 @@ body.text-document-card .document-card-tab-close {
 
 body.text-document-card .document-card-toolbar-mount {
   flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
   border-bottom: 1px solid rgba(28, 40, 52, 0.1);
   background: var(--ub-doc-card-paper);
+}
+
+body.text-document-card .document-card-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.text-document-card .document-card-status .document-mode-strip--inline {
+  order: 2;
+  margin-left: auto;
+}
+
+body.text-document-card #onboarding-banner,
+body.text-document-card #onboarding-tour {
+  display: none !important;
 }
 
 body.text-document-card .document-card-toolbar-mount .text-compact-toolbar {
