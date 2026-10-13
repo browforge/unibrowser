@@ -196,6 +196,48 @@ pub fn build_snapshot(host: &mut WebHost, prefs: &WebPrefs) -> TabContentDto {
             return None;
         };
         let key = path.to_string_lossy().to_string();
+        if unibrowser_project::is_memory_project_root(path) {
+            let session_id = unibrowser_project::memory_session_id(path)?;
+            let pkg = host.memory_projects.get(&session_id)?;
+            let nodes = pkg
+                .manifest
+                .nodes
+                .iter()
+                .map(|n| {
+                    serde_json::json!({
+                        "id": n.id,
+                        "node_type": n.node_type,
+                        "label": n.label,
+                        "asset": n.asset,
+                        "x": n.x,
+                        "y": n.y,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let clips = pkg
+                .manifest
+                .timeline
+                .clips
+                .iter()
+                .map(|c| {
+                    serde_json::json!({
+                        "id": c.id,
+                        "node_id": c.node_id,
+                        "node_type": "clip",
+                        "start_sec": c.start_sec,
+                        "duration_sec": c.duration_sec,
+                        "label": c.label,
+                    })
+                })
+                .collect::<Vec<_>>();
+            return Some(serde_json::json!({
+                "path": key,
+                "viewer": "unibrow",
+                "title": pkg.manifest.title,
+                "project_nodes": nodes,
+                "project_clips": clips,
+            }));
+        }
         if !host.virtual_docx_bytes.contains_key(&key) {
             return None;
         }

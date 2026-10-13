@@ -11,6 +11,7 @@ source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/new-project"
 ART="/opt/cursor/artifacts"
 mkdir -p "$OUT" "$ART"
+rm -f "$OUT"/*-v2-1280.png "$OUT"/*-v2-web-1280.png
 rm -f "$OUT"/*-1280.png "$OUT"/*-web-1280.png
 
 capture_desktop() {
@@ -33,16 +34,18 @@ capture_desktop() {
     UNIBROWSER_DEMO_STATE="$demo_full" \
     "$BIN" "${open_args[@]}" --doc-capture "$tmp"
   capture_config_cleanup
-  mv "$tmp" "$OUT/${name}-1280.png"
-  cp "$OUT/${name}-1280.png" "$ART/${name}-1280-v1.png"
-  [[ "$(identify -format '%wx%h' "$OUT/${name}-1280.png")" == "1280x800" ]]
+  mv "$tmp" "$OUT/${name}-v2-1280.png"
+  cp "$OUT/${name}-v2-1280.png" "$ART/${name}-v2-1280.png"
+  [[ "$(identify -format '%wx%h' "$OUT/${name}-v2-1280.png")" == "1280x800" ]]
 }
 
 capture_desktop "new-tab-paper-card" "new-project-capture-ntp"
 capture_desktop "template-gallery-pick" "new-project-capture-gallery"
+capture_desktop "template-gallery-pick-office" "new-project-capture-gallery-office"
 capture_desktop "template-gallery-configure" "new-project-capture-configure"
 capture_desktop "empty-project-tab" "new-project-capture-empty"
 capture_desktop "office-template-project" "new-project-capture-office-project"
+capture_desktop "presentation-template-project" "new-project-capture-presentation-project"
 capture_desktop "save-as-template" "new-project-capture-save-template"
 capture_desktop "docx-tab-breadcrumb" "text-card-render1,title-breadcrumb,rail-collapsed,doc-visual-md-docx" \
   "$ROOT/examples/demo-pack/sample.md"

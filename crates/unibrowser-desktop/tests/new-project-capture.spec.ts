@@ -25,10 +25,10 @@ test.describe("New project flow (web WASM)", () => {
   async function shot(page: import("@playwright/test").Page, name: string) {
     mkdirSync(OUT, { recursive: true });
     mkdirSync(ART, { recursive: true });
-    const file = path.join(OUT, `${name}-web-1280.png`);
+    const file = path.join(OUT, `${name}-v2-web-1280.png`);
     const bytes = await page.screenshot({ fullPage: false });
     writeFileSync(file, bytes);
-    writeFileSync(path.join(ART, `${name}-web-1280-v1.png`), bytes);
+    writeFileSync(path.join(ART, `${name}-v2-web-1280.png`), bytes);
     const box = await page.viewportSize();
     expect(box).toEqual({ width: 1280, height: 800 });
   }
@@ -41,6 +41,7 @@ test.describe("New project flow (web WASM)", () => {
   test("Template gallery pick", async ({ page }) => {
     await openDemo(page, "new-project-capture-gallery");
     await expect(page.locator(".template-gallery-overlay")).toBeVisible();
+    await expect(page.locator("#template-gallery-title")).toHaveText("Create a new project");
     await shot(page, "template-gallery-pick");
   });
 });

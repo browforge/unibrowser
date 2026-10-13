@@ -14,7 +14,7 @@ import { renderKeys } from "./keysPage";
 import { renderDiagnostics } from "./diagnosticsPage";
 import { invokeWithToast, showErrorToast, showToast } from "./toast";
 import { t } from "./i18n";
-import { renderWorkshop, resetWorkshopListeners } from "./workshop";
+import { resetWorkshopListeners } from "./workshop";
 import { clearViewerLocatorBridge, setViewerLocatorBridge } from "./locatorViewerBridge";
 import {
   downloadPrintFriendlyHtml,
@@ -2363,7 +2363,8 @@ export const documentViewer = {
     el.innerHTML = "<p class='viewer-loading'>Loading…</p>";
     try {
       el.innerHTML = "";
-      if (viewer.viewer !== "pdf") {
+      const hideTitleForProject = viewer.viewer === "unibrow";
+      if (viewer.viewer !== "pdf" && !hideTitleForProject) {
         const title = document.createElement("h2");
         title.className = "viewer-title";
         title.textContent = viewer.title;
@@ -2419,10 +2420,18 @@ export const documentViewer = {
         case "script":
           await renderScript(viewer, body);
           break;
-        case "unibrow":
+        case "unibrow": {
           resetWorkshopListeners();
-          await renderWorkshop(viewer, body);
+          const { renderProjectSurface, classifyProjectSurface } = await import("./projectSurface");
+          const surface = classifyProjectSurface(viewer);
+          if (surface === "document") {
+            body.replaceChildren();
+            body.className = "viewer-body project-document-host";
+            break;
+          }
+          await renderProjectSurface(viewer, body);
           break;
+        }
         case "midi":
           renderMidi(viewer, body);
           break;

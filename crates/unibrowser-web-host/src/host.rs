@@ -806,7 +806,7 @@ impl WebHost {
         let loc = BrowserLocation::File {
             path: pkg.root.clone(),
         };
-        self.tabs.open_tab(loc);
+        self.open_memory_project_tab(loc);
         self.chrome_notice = Some(format!(
             "{} — in memory until you save (web session)",
             title
@@ -840,9 +840,22 @@ impl WebHost {
         let loc = BrowserLocation::File {
             path: pkg.root.clone(),
         };
-        self.tabs.open_tab(loc);
+        self.open_memory_project_tab(loc);
         self.chrome_notice = Some(format!("{} — template applied in memory (web)", title));
         Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?)
+    }
+
+    fn open_memory_project_tab(&mut self, loc: BrowserLocation) {
+        let reuse_home = self
+            .tabs
+            .active_tab()
+            .map(|t| matches!(&t.location, BrowserLocation::Internal { page } if page == "home"))
+            .unwrap_or(false);
+        if reuse_home {
+            self.tabs.navigate_active(loc, false, None);
+        } else {
+            self.tabs.open_tab(loc);
+        }
     }
 
     fn cmd_retarget_active_path(&mut self, args: &Value) -> Result<Value, String> {

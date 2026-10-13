@@ -480,6 +480,12 @@ export async function applyDemoState(raw: string) {
       case "new-project-capture-gallery": {
         await invoke("new_tab", {});
         const { openTemplateGalleryForCapture } = await import("./templateGallery");
+        await openTemplateGalleryForCapture({ step: "pick" });
+        break;
+      }
+      case "new-project-capture-gallery-office": {
+        await invoke("new_tab", {});
+        const { openTemplateGalleryForCapture } = await import("./templateGallery");
         await openTemplateGalleryForCapture({ step: "pick", searchQuery: "office" });
         break;
       }
@@ -500,6 +506,14 @@ export async function applyDemoState(raw: string) {
         await invoke("new_project_from_template", {
           templateId: "unibrowser.template.document.office",
           projectName: "Office document",
+          location: "",
+        });
+        break;
+      }
+      case "new-project-capture-presentation-project": {
+        await invoke("new_project_from_template", {
+          templateId: "unibrowser.template.presentation",
+          projectName: "Presentation",
           location: "",
         });
         break;

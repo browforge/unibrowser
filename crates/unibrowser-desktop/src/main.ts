@@ -247,6 +247,7 @@ import {
   invokeNewEmptyProject,
   invokeNewProjectFromTemplate,
 } from "./newProjectActions";
+import { activateProjectDocumentEditor, isProjectDocumentSurface } from "./projectSurface";
 import { emptyStateBlock } from "./emptyState";
 import {
   clearFilesPanelContext,
@@ -2248,8 +2249,13 @@ async function applyState(data: TabContentDto) {
     lastBrowseFolderPath = data.browse_folder_path;
   }
   const active = data.tabs[data.active_index];
-  const showViewer = Boolean(data.document_viewer) && !active?.is_http;
-  const showText = Boolean(data.text_document) && !active?.is_http && !showViewer;
+  const projectDocument = Boolean(
+    data.document_viewer && isProjectDocumentSurface(data.document_viewer),
+  );
+  const showViewer =
+    Boolean(data.document_viewer) && !active?.is_http && !projectDocument;
+  const showText =
+    (Boolean(data.text_document) || projectDocument) && !active?.is_http;
   const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
   const activeTabForNav = data.tabs[data.active_index];
@@ -2348,7 +2354,10 @@ async function applyState(data: TabContentDto) {
     recentPanel.classList.add("hidden");
   }
   if (!showDiff) {
-    if (showText && data.text_document) {
+    if (showText && projectDocument && data.document_viewer) {
+      await activateProjectDocumentEditor(data.document_viewer, textEditorHost);
+      documentViewer.hide(documentViewerHost);
+    } else if (showText && data.text_document) {
       await textEditor.apply(data.text_document, textEditorHost);
       documentViewer.hide(documentViewerHost);
     } else {
@@ -2457,8 +2466,13 @@ async function applyState(data: TabContentDto) {
   }
   const data = lastTabSnapshot;
   const active = data.tabs[data.active_index];
-  const showViewer = Boolean(data.document_viewer) && !active?.is_http;
-  const showText = Boolean(data.text_document) && !active?.is_http && !showViewer;
+  const projectDocument = Boolean(
+    data.document_viewer && isProjectDocumentSurface(data.document_viewer),
+  );
+  const showViewer =
+    Boolean(data.document_viewer) && !active?.is_http && !projectDocument;
+  const showText =
+    (Boolean(data.text_document) || projectDocument) && !active?.is_http;
   refreshStatusBar(data, active, showText, showViewer);
 };
 
@@ -2656,6 +2670,13 @@ async function startNewFromTemplateGallery() {
     await applyState(data as TabContentDto);
   });
 }
+
+window.addEventListener("unibrowser-project-new-from-template", () => {
+  void startNewFromTemplateGallery();
+});
+window.addEventListener("unibrowser-project-add-content", () => {
+  void startNewFromTemplateGallery();
+});
 
 window.addEventListener("unibrowser-open-mod-portal-templates", () => {
   void invoke<TabContentDto>("open_mod_portal", { ext: null }).then((d) => d && applyState(d));

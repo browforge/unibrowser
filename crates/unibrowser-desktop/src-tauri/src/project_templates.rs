@@ -183,6 +183,13 @@ fn resolve_template_pack(state: &AppState, template_id: &str) -> Result<Template
     Err(format!("template not found: {}", template_id))
 }
 
+fn tab_is_new_tab_home(tab: &unibrowser_engine::tabs::Tab) -> bool {
+    matches!(
+        &tab.location,
+        BrowserLocation::Internal { page } if page == "home"
+    )
+}
+
 fn open_memory_project_tab(
     state: &AppState,
     window: &Window,
@@ -196,10 +203,18 @@ fn open_memory_project_tab(
     let _sess_tabs = ws_label(state, window.label())?;
     {
         let mut tabs = _sess_tabs.tabs.lock().map_err(|e| e.to_string())?;
-        tabs.open_tab(loc.clone());
-        if let Some(tab) = tabs.active_tab_mut() {
-            tab.is_directory = false;
-            tab.document = Some(doc);
+        let reuse_home = tabs
+            .active_tab()
+            .map(tab_is_new_tab_home)
+            .unwrap_or(false);
+        if reuse_home {
+            tabs.navigate_active(loc.clone(), false, Some(doc));
+        } else {
+            tabs.open_tab(loc.clone());
+            if let Some(tab) = tabs.active_tab_mut() {
+                tab.is_directory = false;
+                tab.document = Some(doc);
+            }
         }
     }
     update_content_webview(app, window.label(), &loc)?;
