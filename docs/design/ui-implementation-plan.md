@@ -1562,6 +1562,162 @@ Acceptance:
 - Squash reduces log size; user confirm names redo depth loss.
 - Clean before sharing removes recoverable deleted content from bundle per ADR §8.
 
+## Phase M: One document model and editor modes (ADR 0035)
+
+Specification: [document-editor-modes.md](document-editor-modes.md), [ADR 0035](../adr/0035-one-document-model-wysiwyg.md). Research: [markdown-editing-modes.md](../research/markdown-editing-modes.md).
+
+Depends on TXT-01–TXT-04 (compact toolbar) and HIST-02 (history API) for full integration; DOC-01–03 can start in parallel.
+
+### DOC-01: Document model schema and session host
+
+Status: open.
+
+Work:
+
+- Publish `unibrowser.document.model` v1 JSON schema (blocks, marks, opaque, metadata).
+- Core session object: model + optional `source_map` + dirty block set; validate on load.
+
+Likely files: `unibrowser-mod-api`, new document model module, `base-text` types.
+
+Acceptance:
+
+- Fixture model round-trips JSON; invalid block rejected with actionable error.
+- Content tree exposes `unibrowser.content.rich_text` root per ADR 0028.
+
+### DOC-02: Shared WYSIWYG surface (ProseMirror host)
+
+Status: open.
+
+Work:
+
+- `base-text` (or dedicated editor mod) hosts ProseMirror view bound to model; transactions → model ops.
+- Paper card layout per [document-editor-modes.md](document-editor-modes.md); integrate compact toolbar slot.
+
+Likely files: `documentViewer.ts`, new `richTextEditor.ts`, styles for paper card.
+
+Acceptance:
+
+- Open sample `.md` in WYSIWYG; bold/heading picker mutates model; undo uses session stack until HIST-02 wires log.
+
+Screenshot: WYSIWYG light 1280×800 with mode strip.
+
+### DOC-03: Markdown parse/serialize with source_map
+
+Status: open.
+
+Work:
+
+- `parse(bytes) → { model, source_map }` and `serialize` with byte-identical untouched blocks ([ADR 0035](../adr/0035-one-document-model-wysiwyg.md) §4).
+- Opaque blocks for unknown syntax; GFM baseline.
+
+Likely files: `mods/base-text`, `crates/unibrowser-projections` or new markdown crate.
+
+Acceptance:
+
+- Corpus of 20+ fixtures: no edit → SHA-256 unchanged on save.
+- Edit single paragraph → only that span may change cosmetics.
+
+### DOC-04: Source and Split panes
+
+Status: open.
+
+Work:
+
+- Source projection buffer with apply/discard banner; re-parse merge.
+- Split layout with scroll sync and focus rules.
+
+Likely files: `documentViewer.ts`, Monaco or CodeMirror host for source.
+
+Acceptance:
+
+- Split at 50/50; toolbar bold works in source pane; dirty guard blocks silent WYSIWYG switch.
+
+### DOC-05: Mode strip UI and persistence
+
+Status: open.
+
+Work:
+
+- Segmented control + status chip; workspace layout stores per-tab mode and split ratio.
+- Default `document.default_mode = wysiwyg` for new profiles.
+
+Likely files: chrome components, preferences schema, i18n.
+
+Acceptance:
+
+- Reload restores last mode per path; Reading disables edit toolbar.
+
+### DOC-06: Reading mode projection
+
+Status: open.
+
+Work:
+
+- Read-only render sharing WYSIWYG typography; `Ctrl+E` toggle; links active.
+
+Likely files: document viewer, a11y live region.
+
+Acceptance:
+
+- No caret in Reading; switch back restores prior edit mode.
+
+### DOC-07: History ops on document model
+
+Status: open.
+
+Work:
+
+- Register `base-text.block.*`, `base-text.text.*`, `base-text.opaque.*` op types; snapshot includes model + map blob ref.
+
+Likely files: `base-text`, history store integration (HIST-02).
+
+Acceptance:
+
+- Two heading changes append ops; replay on cold open matches session.
+
+### DOC-08: DOCX serialiser plugin (shared model)
+
+Status: open.
+
+Work:
+
+- `base-docx` maps model ↔ OOXML; capability matrix from ADR 0034; no `source_map` byte rule.
+
+Likely files: `mods/base-docx`.
+
+Acceptance:
+
+- Same toolbar edits `.docx` and `.md` with consistent semantic labels; DOCX save opens in Word.
+
+### DOC-09: Opaque block UX and “Parse as Markdown” command
+
+Status: open.
+
+Work:
+
+- Opaque card UI; explicit parse command with diff preview; never auto-promote.
+
+Likely files: editor components, command registry.
+
+Acceptance:
+
+- Raw HTML block survives WYSIWYG ↔ Source ↔ save cycle.
+
+### DOC-10: Round-trip and mode-switch regression suite
+
+Status: open.
+
+Work:
+
+- Automated tests: byte identity, mode switch without delimiter drift, emulation markers.
+- Document in [markdown-editing-modes.md](../research/markdown-editing-modes.md) corpus appendix.
+
+Likely files: `e2e/`, `mods/base-text/tests/`.
+
+Acceptance:
+
+- CI gate on fixture folder; documents known intentional normalisation inside edited blocks.
+
 ## Phase L: `.unibrow` package modes and OPC container (ADR 0032)
 
 Specification: [ADR 0032](../adr/0032-unibrow-container-archive-and-folder-modes.md), [ux.md](ux.md) (storage mode section).

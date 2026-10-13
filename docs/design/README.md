@@ -35,8 +35,10 @@ Inputs:
 - [ADR 0030: core as skeleton](../adr/0030-core-as-skeleton.md)
 - [ADR 0031: edit history as file format](../adr/0031-edit-history-as-file-format.md)
 - [ADR 0032: `.unibrow` container archive and folder modes](../adr/0032-unibrow-container-archive-and-folder-modes.md)
+- [ADR 0035: one document model and WYSIWYG modes](../adr/0035-one-document-model-wysiwyg.md)
 
 This package is design guidance, not a claim that the current UI matches the mockups.
 
 Permission surfaces: [plugin-permissions-ui.md](plugin-permissions-ui.md).  
-History panel: [history-panel.md](history-panel.md).
+History panel: [history-panel.md](history-panel.md).  
+Document modes: [document-editor-modes.md](document-editor-modes.md).
