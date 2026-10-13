@@ -78,6 +78,10 @@ body.document-mode-reading #text-compact-toolbar-host {
 #document-split-preview-host.hidden,
 .rich-text-editor-shell.hidden {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
 }
 
 body.document-mode-wysiwyg #text-editor-host.document-surface-source-hidden .monaco-editor,

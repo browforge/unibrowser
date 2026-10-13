@@ -249,8 +249,6 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   const { invoke } = await import("@tauri-apps/api/core");
   await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
   window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
-  const { refreshTextCompactToolbar } = await import("../textCompactToolbar");
-  refreshTextCompactToolbar();
   await new Promise((resolve) => window.setTimeout(resolve, 120));
   const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
   refreshDocumentCardStatusFooter(false);

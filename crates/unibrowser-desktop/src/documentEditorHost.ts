@@ -133,9 +133,12 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
   monacoHost?.classList.toggle("document-editor-split-layout", split);
   richHost?.classList.toggle("hidden", !wysiwyg || split);
   splitPreviewHost?.classList.toggle("hidden", !split);
-  if (wysiwyg && !split && splitPreviewHost) {
+  if (!split && splitPreviewHost) {
     splitPreviewHost.classList.add("hidden");
-    splitPreviewHost.innerHTML = "";
+    splitPreviewHost.style.display = "none";
+    splitPreviewHost.replaceChildren();
+  } else if (splitPreviewHost && split) {
+    splitPreviewHost.style.display = "";
   }
   document.body.classList.toggle("document-editor-reading", reading);
   hideLegacyMarkdownPreview();
@@ -155,13 +158,15 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
     });
   }
   if (wysiwyg && monacoHost) {
+    const host = monacoHost;
     void import("./textEditor").then(({ setMarkdownPreviewMode }) => {
-      void setMarkdownPreviewMode(false, monacoHost);
+      void setMarkdownPreviewMode(false, host);
     });
   }
-  if (richHost && wysiwyg && !split) {
+  if (richHost && wysiwyg && !split && monacoHost) {
     richHost.style.position = "relative";
     richHost.style.zIndex = "2";
+    monacoHost.appendChild(richHost);
   }
   void import("./textEditor").then(({ relayoutTextEditor }) => {
     window.requestAnimationFrame(() => relayoutTextEditor());
