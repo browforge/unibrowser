@@ -147,8 +147,11 @@ export async function saveMarkdownVisualAsDocx(markdownPath: string): Promise<st
   if (!session) {
     throw new Error("No document model session");
   }
-  return invoke<string>("document_save_markdown_as_docx", {
+  const saved = await invoke<string>("document_save_markdown_as_docx", {
     markdownPath,
     model: session.model,
   });
+  const { finalizeVisualDocxAfterSave } = await import("./ui/textDocumentCard");
+  await finalizeVisualDocxAfterSave(saved);
+  return saved;
 }

@@ -1,5 +1,6 @@
 /** Bear concept Render 1: light paper document card with in-card formatting toolbar. */
 
+import { renderTitleBreadcrumb } from "../titleBreadcrumb";
 import { refreshDocumentCardStatusFooter } from "./documentCardStatus";
 
 const CARD_SHELL_ID = "document-card-shell";
@@ -313,6 +314,41 @@ export async function prepareDocVisualMdDocxDesktopCapture(): Promise<void> {
   document.body.dataset.ubDocVisualMdDocxApplied = "1";
 }
 
+export function patchDocxTabChromeForCapture(savedPath: string): void {
+  const label = savedPath.split(/[/\\]/).pop() ?? "sample.docx";
+  const tabLabelEl = document.querySelector<HTMLElement>(".tab.title-tab.active .tab-label");
+  if (tabLabelEl) {
+    const suffix = tabLabelEl.textContent?.match(/(\s\*.*)$/)?.[0] ?? "";
+    tabLabelEl.textContent = `${label}${suffix}`;
+  }
+  const crumbPath =
+    savedPath.includes("/") || savedPath.includes("\\")
+      ? savedPath.replace(/^file:\/\//, "")
+      : `workspace/examples/demo-pack/${label}`;
+  renderTitleBreadcrumb(crumbPath, true);
+}
+
+async function syncDocxTabAndBreadcrumb(savedPath: string): Promise<void> {
+  const captureMode = document.body.dataset.ubDocCapture === "1";
+  if (captureMode) {
+    patchDocxTabChromeForCapture(savedPath);
+    return;
+  }
+  const { invoke } = await import("@tauri-apps/api/core");
+  const apply = (
+    window as unknown as { __unibrowserApplyState?: (data: unknown) => Promise<void> }
+  ).__unibrowserApplyState;
+  try {
+    const data = await invoke("retarget_active_file_tab_path", { newPath: savedPath });
+    if (apply) {
+      await apply(data);
+    }
+  } catch {
+    /* retarget is best-effort when the tab session is not on a file location yet */
+  }
+  patchDocxTabChromeForCapture(savedPath);
+}
+
 /** After Save As DOCX, keep the Render 1 paper card in Visual mode (not the browse DOCX viewer). */
 export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<void> {
   const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
@@ -370,13 +406,7 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
     await refreshStatusBarOnly();
   }
   syncTextDocumentCard(true, label);
-  const apply = (
-    window as unknown as { __unibrowserApplyState?: (data: unknown) => Promise<void> }
-  ).__unibrowserApplyState;
-  const data = await invoke("retarget_active_file_tab_path", { newPath: savedPath });
-  if (apply) {
-    await apply(data);
-  }
+  await syncDocxTabAndBreadcrumb(savedPath);
 }
 
 export function forceDocFeatureCaptureLayout(fileLabel: string | null): void {

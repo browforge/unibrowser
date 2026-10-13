@@ -3464,6 +3464,8 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
                 "./ui/textDocumentCard"
               );
               await prepareDocVisualMdDocxDesktopCapture();
+              const { patchDocxTabChromeForCapture } = await import("./ui/textDocumentCard");
+              patchDocxTabChromeForCapture("examples/demo-pack/sample.docx");
             } catch (err) {
               reportSubsystemError("doc-visual-md-docx-capture", err);
             }

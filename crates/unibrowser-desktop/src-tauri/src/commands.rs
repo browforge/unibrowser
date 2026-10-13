@@ -4909,6 +4909,10 @@ pub fn retarget_active_file_tab_path(
     let tab = tabs.active_tab_mut().ok_or("no active tab")?;
     if let BrowserLocation::File { path: loc } = &mut tab.location {
         *loc = path.clone();
+    } else if tab.document.is_some() {
+        tab.location = BrowserLocation::File {
+            path: path.clone(),
+        };
     }
     if let Some(doc) = tab.document.as_mut() {
         let path_str = path.to_string_lossy().into_owned();
