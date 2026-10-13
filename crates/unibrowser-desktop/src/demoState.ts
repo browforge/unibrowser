@@ -183,7 +183,7 @@ export async function applyDemoState(raw: string) {
       case "doc-history-panel": {
         await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
         const { setDocumentEditorMode } = await import("./documentEditorModes");
-        setDocumentEditorMode("source", false);
+        setDocumentEditorMode("wysiwyg", false);
         const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
         syncTextDocumentCard(true, "sample.md");
         await new Promise((r) => window.setTimeout(r, 400));
@@ -224,44 +224,43 @@ export async function applyDemoState(raw: string) {
         const mdPath = "demo-pack/sample.md";
         const { isWebPlatform } = await import("./platform/isWeb");
         const markdown =
-          "# Demo markdown\n\n> Render 1 block quotes use a pale blue panel.\n\n**Bold** and _italic_\n";
+          "# Demo markdown\n\nUnibrowser renders Markdown in the document viewer.\n\n> Render 1 block quotes use a pale blue panel.\n\n**Bold** and _italic_ with [Architecture](architecture.md).\n";
+        const editorHost = document.getElementById("text-editor-host");
         if (isWebPlatform()) {
           await invoke("open_text_with_content", { path: mdPath, content: markdown });
         } else {
           await invoke("open_path", { path: "examples/demo-pack/sample.md" }).catch(() => undefined);
-          const editorHost = document.getElementById("text-editor-host");
-          if (editorHost) {
-            const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
-            await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
-          }
-          const { setDocumentEditorMode } = await import("./documentEditorModes");
-          setDocumentEditorMode("wysiwyg", false);
-          const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
-          syncTextDocumentCard(true, "sample.md");
         }
+        if (editorHost) {
+          const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+          await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
+        }
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg", false);
+        const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+        syncTextDocumentCard(true, "sample.md");
         const { parseMarkdownDocument } = await import("./documentModelBridge");
         const { seedDocumentModelSessionForDemo } = await import("./documentEditorHost");
         seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
         const { saveMarkdownVisualAsDocx } = await import("./documentModelBridge");
         const saved = await saveMarkdownVisualAsDocx(mdPath);
-        const opened = await invoke<{ tabs: unknown[] }>("open_path", { path: saved });
+        await invoke("open_path", { path: saved });
+        const refresh = (
+          window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
+        ).__unibrowserRefreshState;
         const apply = (
           window as unknown as {
             __unibrowserApplyState?: (data: unknown) => Promise<void>;
           }
         ).__unibrowserApplyState;
         if (apply) {
+          const opened = await invoke<{ tabs: unknown[] }>("get_browser_state");
           await apply(opened);
-          const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
-          syncTextDocumentCard(false);
-        } else {
-          const refresh = (
-            window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
-          ).__unibrowserRefreshState;
-          if (refresh) {
-            await refresh();
-          }
+        } else if (refresh) {
+          await refresh();
         }
+        const { finalizeVisualDocxAfterSave } = await import("./ui/textDocumentCard");
+        await finalizeVisualDocxAfterSave(saved);
         break;
       }
       case "text-card-render1": {

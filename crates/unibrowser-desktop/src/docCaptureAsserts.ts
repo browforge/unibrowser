@@ -1100,6 +1100,190 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
   };
 }
 
+function rgbTripletMatches(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function colorsMatchCss(a: string, b: string): boolean {
+  if (rgbTripletMatches(a, b)) {
+    return true;
+  }
+  const parsedA = parseRgb(a);
+  const parsedB = parseRgb(b);
+  if (!parsedA || !parsedB) {
+    return false;
+  }
+  return parsedA.r === parsedB.r && parsedA.g === parsedB.g && parsedA.b === parsedB.b;
+}
+
+function footerUsesDocumentCardTokens(footerMain: HTMLElement | null): boolean {
+  if (!footerMain || !document.body.classList.contains("text-document-card")) {
+    return false;
+  }
+  const statusHost = footerMain.closest("#document-card-status");
+  if (!(statusHost instanceof HTMLElement)) {
+    return false;
+  }
+  const footerStyle = getComputedStyle(footerMain);
+  const statusStyle = getComputedStyle(statusHost);
+  const bodyStyle = getComputedStyle(document.body);
+  const mutedToken = bodyStyle.getPropertyValue("--ub-doc-card-muted").trim();
+  const inkToken = bodyStyle.getPropertyValue("--ub-doc-card-ink").trim();
+  const color = footerStyle.color || statusStyle.color;
+  const colorOk =
+    color !== "rgb(0, 0, 0)" &&
+    Boolean(
+      mutedToken &&
+        (colorsMatchCss(color, mutedToken) || colorsMatchCss(color, inkToken)),
+    );
+  const fontOk = statusStyle.fontSize === "12px";
+  const textOk = /\bwords?\b/i.test(footerMain.textContent ?? "");
+  return colorOk && fontOk && textOk;
+}
+
+function editorHostForMode(
+  mode: "wysiwyg" | "source" | "split" | "reading",
+): "monaco" | "rich" | "split" | "none" {
+  const monacoHost = document.getElementById("text-editor-host");
+  const richHost = document.getElementById("rich-text-editor-host");
+  const splitHost = document.getElementById("document-split-preview-host");
+  const monacoVisible = Boolean(
+    monacoHost &&
+      !monacoHost.classList.contains("hidden") &&
+      !monacoHost.classList.contains("document-surface-source-hidden"),
+  );
+  const richVisible = Boolean(
+    richHost &&
+      !richHost.classList.contains("hidden") &&
+      richHost.querySelector(".rich-text-doc"),
+  );
+  const splitVisible = Boolean(
+    splitHost &&
+      !splitHost.classList.contains("hidden") &&
+      splitHost.querySelector(".rich-text-doc"),
+  );
+  if (mode === "split") {
+    return splitVisible && monacoVisible ? "split" : "none";
+  }
+  if (mode === "source") {
+    return monacoVisible && !richVisible ? "monaco" : "none";
+  }
+  if (mode === "wysiwyg" || mode === "reading") {
+    return richVisible && !monacoVisible ? "rich" : "none";
+  }
+  return "none";
+}
+
+export interface DocumentFeatureCaptureDomDiagnostics {
+  visibleDocumentCardCount: number;
+  commandManagerVisible: boolean;
+  footerUsesCardTokens: boolean;
+  activeMode: string;
+  visibleEditorHost: string;
+  modeMatchesVisibleHost: boolean;
+  outsideOverlapCount: number;
+}
+
+export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDiagnostics {
+  const cards = Array.from(
+    document.querySelectorAll<HTMLElement>(".document-card, .document-card-shell"),
+  ).filter(visibleElement);
+  const cm = document.getElementById("command-manager");
+  const commandManagerVisible = Boolean(
+    cm &&
+      visibleElement(cm) &&
+      !document.body.classList.contains("cm-collapsed") &&
+      cm.getBoundingClientRect().height > 44 &&
+      cm.getBoundingClientRect().width > 200,
+  );
+  const footerMain = document.querySelector<HTMLElement>(".document-card-status-main");
+  const footerUsesCardTokens = footerUsesDocumentCardTokens(footerMain);
+  const activeMode = document.body.dataset.documentEditorMode ?? "";
+  const visibleEditorHost = editorHostForMode(
+    (activeMode as "wysiwyg" | "source" | "split" | "reading") || "wysiwyg",
+  );
+  const modeMatchesVisibleHost =
+    (activeMode === "source" && visibleEditorHost === "monaco") ||
+    (activeMode === "split" && visibleEditorHost === "split") ||
+    ((activeMode === "wysiwyg" || activeMode === "reading") && visibleEditorHost === "rich");
+  const bodyMount = document.getElementById("document-card-body-mount");
+  const bodyRect = bodyMount?.getBoundingClientRect();
+  let outsideOverlapCount = 0;
+  if (bodyRect && bodyRect.width > 40 && bodyRect.height > 40) {
+    const shell = document.getElementById("document-card-shell");
+    const sampleYs = [
+      bodyRect.top + 8,
+      bodyRect.top + bodyRect.height * 0.35,
+      bodyRect.top + bodyRect.height * 0.65,
+    ];
+    for (const y of sampleYs) {
+      const x = bodyRect.left + bodyRect.width / 2;
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (!(el instanceof HTMLElement)) {
+          continue;
+        }
+        if (shell?.contains(el) || el === shell || el === bodyMount) {
+          break;
+        }
+        if (el.id === "command-manager" || el.closest("#command-manager")) {
+          outsideOverlapCount += 1;
+          break;
+        }
+        if (
+          el.id === "text-editor-host" &&
+          el.classList.contains("document-surface-source-hidden")
+        ) {
+          outsideOverlapCount += 1;
+          break;
+        }
+        if (el.id === "document-viewer-host" && !el.classList.contains("hidden")) {
+          outsideOverlapCount += 1;
+          break;
+        }
+      }
+    }
+  }
+  return {
+    visibleDocumentCardCount: cards.length,
+    commandManagerVisible,
+    footerUsesCardTokens,
+    activeMode,
+    visibleEditorHost,
+    modeMatchesVisibleHost,
+    outsideOverlapCount,
+  };
+}
+
+export function validateDocumentFeatureCaptureDom(): string | null {
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (
+    !demo.includes("doc-mode-") &&
+    !demo.includes("doc-opaque-card") &&
+    !demo.includes("doc-history-panel") &&
+    !demo.includes("doc-merge-banner") &&
+    !demo.includes("doc-visual-md-docx")
+  ) {
+    return null;
+  }
+  const dom = collectDocumentFeatureCaptureDom();
+  if (dom.visibleDocumentCardCount !== 1) {
+    return `expected exactly one visible document card, found ${dom.visibleDocumentCardCount}`;
+  }
+  if (dom.commandManagerVisible) {
+    return "command manager row visible during doc feature capture";
+  }
+  if (!dom.footerUsesCardTokens) {
+    return "document card footer is not styled by card tokens";
+  }
+  if (!dom.modeMatchesVisibleHost) {
+    return `active mode ${dom.activeMode} does not match visible editor host (${dom.visibleEditorHost})`;
+  }
+  if (dom.outsideOverlapCount > 0) {
+    return `outside chrome overlaps the document card body (${dom.outsideOverlapCount} hits)`;
+  }
+  return null;
+}
+
 /** Doc-feature captures must use the paper card + compact toolbar, not full CM or rail flyouts. */
 export function validateDocumentFeatureCaptureChrome(): string | null {
   const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
@@ -1114,20 +1298,8 @@ export function validateDocumentFeatureCaptureChrome(): string | null {
     return null;
   }
   if (demo.includes("doc-visual-md-docx")) {
-    const viewer = document.getElementById("document-viewer-host");
-    if (viewer && !viewer.classList.contains("hidden")) {
-      const flyout = document.querySelector<HTMLElement>(".rail-side-panel:not(.hidden)");
-      if (flyout && flyout.getBoundingClientRect().width > 8) {
-        return "activity rail flyout visible during doc feature capture";
-      }
-      const cm = document.getElementById("command-manager");
-      if (cm && !document.body.classList.contains("cm-collapsed")) {
-        const rect = cm.getBoundingClientRect();
-        if (rect.height > 44 && rect.width > 200) {
-          return "full command manager row visible during doc feature capture";
-        }
-      }
-      return null;
+    if (!document.body.classList.contains("text-document-card")) {
+      return "doc-visual-md-docx capture requires text-document-card layout";
     }
   }
   if (!document.body.classList.contains("text-document-card")) {

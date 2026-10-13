@@ -175,8 +175,13 @@ mod tests {
         let reopen_value = serde_json::from_str::<serde_json::Value>(&reopen_raw).unwrap();
         let snap = reopen_value.get("value").expect("snapshot");
         assert!(
-            snap.get("document_viewer").is_some(),
-            "expected document_viewer in snapshot: {snap}"
+            snap.get("text_document").is_some(),
+            "expected text_document in snapshot after Save As DOCX: {snap}"
+        );
+        let viewer = snap.get("document_viewer");
+        assert!(
+            viewer.is_none() || viewer.is_some_and(|v| v.is_null()),
+            "virtual DOCX must stay on the visual text tab, not document_viewer: {snap}"
         );
     }
 

@@ -1,0 +1,55 @@
+{
+  "version": "v3",
+  "captures": [
+    {
+      "file": "doc-wysiwyg-blockquote-desktop-v3.png",
+      "md5": "b923603d64d20070f7edc24a68f789a9",
+      "description": "Desktop 1280x800: one cream paper card on a dark frame; tab sample.md; compact toolbar with Heading 2; Visual mode active; pale blue blockquote and embedded gradient image in the rich-text column; footer Markdown word count and Saved."
+    },
+    {
+      "file": "doc-split-apply-banner-desktop-v3.png",
+      "md5": "689276f644bed25ebde5a442263d7827",
+      "description": "Desktop 1280x800: paper card in Split mode; yellow merge-apply banner over the left Monaco source column and rich-text preview on the right; collapsed command manager."
+    },
+    {
+      "file": "doc-opaque-card-desktop-v3.png",
+      "md5": "849a1cb6abc8a60eac9757075f9061d3",
+      "description": "Desktop 1280x800: paper card showing preserved opaque HTML block inside Visual rich text; compact in-card toolbar; footer Markdown status."
+    },
+    {
+      "file": "doc-visual-docx-desktop-v3.png",
+      "md5": "ad32f06bff706207f7ebb2fe8a621e90",
+      "description": "Desktop 1280x800: after Save As DOCX, tab sample.docx on one paper card; compact toolbar; Visual active; Word footer with word count and Saved; blockquote panel and Architecture link in the body."
+    },
+    {
+      "file": "doc-history-panel-desktop-v3.png",
+      "md5": "e9b9ed579b3be6844b758e1af996e665",
+      "description": "Desktop 1280x800: paper card with Visual mode active and History bottom panel listing base-text operations; single rich-text layer without a clipped duplicate line above the heading."
+    },
+    {
+      "file": "doc-wysiwyg-blockquote-web-v3.png",
+      "md5": "8ecbf11183e3ba1f699c7b467806c435",
+      "description": "Web WASM 1280x800: paper card matching desktop Render 1; Heading 2 toolbar; pale blue blockquote and inline image; privacy banner at top; collapsed rail."
+    },
+    {
+      "file": "doc-split-apply-banner-web-v3.png",
+      "md5": "37f68590622589010738abd43e59dd50",
+      "description": "Web WASM 1280x800: Split layout with merge banner and side-by-side source and preview on the paper card."
+    },
+    {
+      "file": "doc-opaque-card-web-v3.png",
+      "md5": "8b178ecc4ef3c3305950d14c137c88fb",
+      "description": "Web WASM 1280x800: opaque custom block preserved in Visual mode on the paper card."
+    },
+    {
+      "file": "doc-visual-docx-web-v3.png",
+      "md5": "0fe4ccc2983121483c0261a88cff37b1",
+      "description": "Web WASM 1280x800: after markdown Save As DOCX, tab sample.docx on one paper card; no browse Command Manager row; Visual active; Word footer; blockquote and bold italic link in the body."
+    },
+    {
+      "file": "doc-history-panel-web-v3.png",
+      "md5": "e054e971880c0b1c20d1d3b7a124f3bd",
+      "description": "Web WASM 1280x800: History panel under the markdown paper card with seeded history rows; Visual mode matches the rich-text body."
+    }
+  ]
+}

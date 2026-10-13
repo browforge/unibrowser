@@ -120,6 +120,10 @@ function mountModeControls(): void {
   }
 }
 
+export function syncDocumentEditorSurfaceVisibility(): void {
+  applySurfaceVisibility(getDocumentEditorMode());
+}
+
 function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) {
   const reading = mode === "reading";
   const wysiwyg = mode === "wysiwyg" || reading;

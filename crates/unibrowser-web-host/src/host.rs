@@ -440,8 +440,19 @@ impl WebHost {
         if self.virtual_docx_bytes.contains_key(path) {
             self.last_unknown_banner = None;
             let loc = BrowserLocation::File {
-                path: path.into(),
+                path: std::path::PathBuf::from(path),
             };
+            if let Some(tab) = self.tabs.active_tab_mut() {
+                if let Some(doc) = tab.document.as_mut() {
+                    if let Some(backend) = base_text::try_text_backend(&mut *doc.backend) {
+                        backend.path = path.to_string();
+                        backend.dirty = false;
+                        tab.location = loc;
+                        self.touch_recent(path);
+                        return Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?);
+                    }
+                }
+            }
             navigate_tabs(&mut self.tabs, loc, None);
             return Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?);
         }

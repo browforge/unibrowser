@@ -159,20 +159,27 @@ export async function ensureDocFeatureCaptureLayout(
 
   const docxShot = demo.includes("doc-visual-md-docx");
   if (docxShot) {
-    const viewerReady = () => {
-      const viewer = document.getElementById("document-viewer-host");
-      return Boolean(
-        viewer &&
-          !viewer.classList.contains("hidden") &&
-          viewer.querySelector(".docx-reader, .viewer-body .docx-view"),
+    const cardReady = () => {
+      const tabLabel =
+        document.querySelector<HTMLElement>(".document-card-tab-label")?.textContent?.trim() ?? "";
+      const footer =
+        document.querySelector<HTMLElement>(".document-card-status-main")?.textContent ?? "";
+      return (
+        tabLabel === "sample.docx" &&
+        footer.includes("Word") &&
+        document.body.classList.contains("text-document-card") &&
+        !document.getElementById(CARD_SHELL_ID)?.classList.contains("hidden") &&
+        Boolean(
+          document.querySelector(
+            "#rich-text-editor-host:not(.hidden) .rich-text-doc, #document-split-preview-host:not(.hidden) .rich-text-doc",
+          ),
+        ) &&
+        !document.querySelector<HTMLElement>("#document-viewer-host:not(.hidden)")
       );
     };
-    if (!viewerReady()) {
-      await deps.applyDemoToken("doc-visual-md-docx");
-    }
+    await deps.applyDemoToken("doc-visual-md-docx");
     for (let attempt = 0; attempt < 180; attempt += 1) {
-      if (viewerReady()) {
-        syncTextDocumentCard(false);
+      if (cardReady()) {
         dismissDocCaptureChrome();
         return;
       }
@@ -200,7 +207,9 @@ export async function ensureDocFeatureCaptureLayout(
 
   if (demo.includes("doc-history-panel")) {
     const { setDocumentEditorMode } = await import("../documentEditorModes");
-    setDocumentEditorMode("source", false);
+    setDocumentEditorMode("wysiwyg", false);
+    const { syncDocumentEditorSurfaceVisibility } = await import("../documentEditorHost");
+    syncDocumentEditorSurfaceVisibility();
     document.getElementById("text-editor-host")?.classList.remove("hidden");
     const { showHistoryPanelTab, refreshHistoryPanel } = await import("../historyPanel");
     showHistoryPanelTab();
@@ -210,12 +219,37 @@ export async function ensureDocFeatureCaptureLayout(
       `examples/demo-pack/${cardLabel ?? "sample.md"}`;
     await refreshHistoryPanel(historyPath);
     forceDocFeatureCaptureLayout(label ?? "sample.md");
+    syncDocumentEditorSurfaceVisibility();
   }
 
   await new Promise((resolve) => window.setTimeout(resolve, 180));
 }
 
 /** Last-resort layout for doc-feature screenshots when demo state did not mount the card. */
+/** After Save As DOCX, keep the Render 1 paper card in Visual mode (not the browse DOCX viewer). */
+export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<void> {
+  const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
+  const { setDocumentEditorMode, bindDocumentPath } = await import("../documentEditorModes");
+  const { syncDocumentEditorSurfaceVisibility } = await import("../documentEditorHost");
+  const { documentViewer } = await import("../documentViewer");
+  const label = savedPath.split(/[/\\]/).pop() ?? "sample.docx";
+  document.body.dataset.activeDocumentPath = savedPath;
+  const viewerHost = document.getElementById("document-viewer-host");
+  if (viewerHost) {
+    documentViewer.hide(viewerHost);
+  }
+  const editorHost = document.getElementById("text-editor-host");
+  editorHost?.classList.remove("hidden");
+  await bindDocumentPath(savedPath);
+  setDocumentEditorMode("wysiwyg", false);
+  syncDocumentEditorSurfaceVisibility();
+  forceDocFeatureCaptureLayout(label);
+  dismissDocCaptureChrome();
+  window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+  const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
+  refreshDocumentCardStatusFooter(false);
+}
+
 export function forceDocFeatureCaptureLayout(fileLabel: string | null): void {
   if (!fileLabel) {
     return;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate doc-feature v2 PNG captures: unique MD5s and no full CM row / rail flyout chrome."""
+"""Gate doc-feature v3 PNG captures: unique MD5s, CM chrome, and DOM layout assertions."""
 from __future__ import annotations
 
 import hashlib
@@ -8,23 +8,17 @@ import sys
 from pathlib import Path
 
 NAMES = [
-    "doc-wysiwyg-blockquote-desktop-v2.png",
-    "doc-split-apply-banner-desktop-v2.png",
-    "doc-opaque-card-desktop-v2.png",
-    "doc-visual-docx-desktop-v2.png",
-    "doc-history-panel-desktop-v2.png",
-    "doc-wysiwyg-blockquote-web-v2.png",
-    "doc-split-apply-banner-web-v2.png",
-    "doc-opaque-card-web-v2.png",
-    "doc-visual-docx-web-v2.png",
-    "doc-history-panel-web-v2.png",
+    "doc-wysiwyg-blockquote-desktop-v3.png",
+    "doc-split-apply-banner-desktop-v3.png",
+    "doc-opaque-card-desktop-v3.png",
+    "doc-visual-docx-desktop-v3.png",
+    "doc-history-panel-desktop-v3.png",
+    "doc-wysiwyg-blockquote-web-v3.png",
+    "doc-split-apply-banner-web-v3.png",
+    "doc-opaque-card-web-v3.png",
+    "doc-visual-docx-web-v3.png",
+    "doc-history-panel-web-v3.png",
 ]
-
-# Shots that open the DOCX viewer instead of the paper card (no in-card CM gate).
-VIEWER_ONLY = {
-    "doc-visual-docx-desktop-v2.png",
-    "doc-visual-docx-web-v2.png",
-}
 
 
 def file_md5(path: Path) -> str:
@@ -39,6 +33,9 @@ def rail_flyout_visible(cm: dict) -> bool:
 
 
 def full_command_manager_row_visible(cm: dict) -> bool:
+    dom = cm.get("dom") or {}
+    if dom.get("commandManagerVisible") is True:
+        return True
     controls = cm.get("controls") or []
     visible = [
         c
@@ -49,6 +46,28 @@ def full_command_manager_row_visible(cm: dict) -> bool:
     ]
     groups_width = (cm.get("pipeline") or {}).get("groupsWidth") or 0
     return len(visible) >= 4 and groups_width > 200
+
+
+def dom_assertions_ok(cm: dict) -> str | None:
+    dom = cm.get("dom")
+    if not isinstance(dom, dict):
+        return "missing dom diagnostics in capture CM JSON"
+    count = dom.get("visibleDocumentCardCount")
+    if count != 1:
+        return f"expected visibleDocumentCardCount=1, got {count!r}"
+    if dom.get("commandManagerVisible") is True:
+        return "commandManagerVisible must be false"
+    if dom.get("footerUsesCardTokens") is not True:
+        return "footerUsesCardTokens must be true"
+    if dom.get("modeMatchesVisibleHost") is False:
+        return (
+            f"modeMatchesVisibleHost false "
+            f"(mode={dom.get('activeMode')!r}, host={dom.get('visibleEditorHost')!r})"
+        )
+    overlap = dom.get("outsideOverlapCount")
+    if isinstance(overlap, int) and overlap > 0:
+        return f"outsideOverlapCount={overlap}"
+    return None
 
 
 def main() -> int:
@@ -81,8 +100,6 @@ def main() -> int:
         seen[digest] = name
 
     for name, path in paths.items():
-        if name in VIEWER_ONLY:
-            continue
         cm_path = path.with_suffix(".cm.json")
         if not cm_path.is_file():
             print(f"missing CM diagnostics for {name}: {cm_path}", file=sys.stderr)
@@ -100,10 +117,14 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
+        dom_err = dom_assertions_ok(cm)
+        if dom_err:
+            print(f"{dom_err} in {name} (see {cm_path.name})", file=sys.stderr)
+            return 1
 
     print(
         "doc-feature capture pixel gate: ok "
-        f"({len(NAMES)} unique files, no full CM row or rail flyout on card captures)"
+        f"({len(NAMES)} unique files, DOM + CM chrome checks passed)"
     )
     for name in NAMES:
         print(f"  {name} md5={digests[name]}")

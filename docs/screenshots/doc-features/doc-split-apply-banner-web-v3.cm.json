@@ -1,0 +1,74 @@
+{
+  "viewportWidth": 1280,
+  "viewportHeight": 800,
+  "railFlyoutWidth": 0,
+  "pipeline": {
+    "groupsWidth": 0
+  },
+  "controls": [
+    {
+      "controlId": "unibrowser.control.history.undo",
+      "width": 0,
+      "height": 0,
+      "labelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "controlId": "unibrowser.control.history.redo",
+      "width": 0,
+      "height": 0,
+      "labelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "controlId": "unibrowser.control.find",
+      "width": 0,
+      "height": 0,
+      "labelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "controlId": "unibrowser.control.proofing",
+      "width": 0,
+      "height": 0,
+      "labelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "controlId": "unibrowser.control.export",
+      "width": 0,
+      "height": 0,
+      "labelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    }
+  ],
+  "dom": {
+    "visibleDocumentCardCount": 1,
+    "commandManagerVisible": false,
+    "footerUsesCardTokens": true,
+    "activeMode": "split",
+    "visibleEditorHost": "split",
+    "modeMatchesVisibleHost": true,
+    "outsideOverlapCount": 0
+  }
+}

@@ -9,13 +9,13 @@ OUT="$ROOT/docs/screenshots/doc-features"
 mkdir -p "$OUT"
 BASE="theme-light,text-card-render1,title-breadcrumb,ai,ai-mockup-composer,rail-collapsed"
 
-capture_vqa "$OUT" "doc-wysiwyg-blockquote-desktop-v2" "${BASE},doc-mode-wysiwyg,txt-apply-h2" "examples/demo-pack/sample.md" || true
-capture_vqa "$OUT" "doc-split-apply-banner-desktop-v2" "${BASE},doc-mode-split,doc-merge-banner" "examples/demo-pack/sample.md" || true
-capture_vqa "$OUT" "doc-opaque-card-desktop-v2" "${BASE},doc-opaque-card" "examples/demo-pack/sample-opaque.md" || true
-capture_vqa "$OUT" "doc-visual-docx-desktop-v2" "${BASE},doc-visual-md-docx" "examples/demo-pack/sample.md" || true
-capture_vqa "$OUT" "doc-history-panel-desktop-v2" "${BASE},doc-history-panel,txt-apply-h2" "examples/demo-pack/sample.md" || true
+capture_vqa "$OUT" "doc-wysiwyg-blockquote-desktop-v3" "${BASE},doc-mode-wysiwyg,txt-apply-h2" "examples/demo-pack/sample.md" || true
+capture_vqa "$OUT" "doc-split-apply-banner-desktop-v3" "${BASE},doc-mode-split,doc-merge-banner" "examples/demo-pack/sample.md" || true
+capture_vqa "$OUT" "doc-opaque-card-desktop-v3" "${BASE},doc-opaque-card" "examples/demo-pack/sample-opaque.md" || true
+capture_vqa "$OUT" "doc-visual-docx-desktop-v3" "${BASE},doc-visual-md-docx" "examples/demo-pack/sample.md" || true
+capture_vqa "$OUT" "doc-history-panel-desktop-v3" "${BASE},doc-history-panel,txt-apply-h2" "examples/demo-pack/sample.md" || true
 
-for f in doc-wysiwyg-blockquote-desktop-v2.png doc-split-apply-banner-desktop-v2.png doc-opaque-card-desktop-v2.png doc-visual-docx-desktop-v2.png doc-history-panel-desktop-v2.png; do
+for f in doc-wysiwyg-blockquote-desktop-v3.png doc-split-apply-banner-desktop-v3.png doc-opaque-card-desktop-v3.png doc-visual-docx-desktop-v3.png doc-history-panel-desktop-v3.png; do
   cp -f "$OUT/$f" "$ART/$f"
   cp -f "$OUT/${f%.png}.cm.json" "$ART/${f%.png}.cm.json" 2>/dev/null || true
 done

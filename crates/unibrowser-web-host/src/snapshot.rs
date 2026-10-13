@@ -189,6 +189,9 @@ pub fn build_snapshot(host: &mut WebHost, prefs: &WebPrefs) -> TabContentDto {
     let status = document_status.unwrap_or(fallback_status);
 
     let document_viewer = tabs.active_tab().and_then(|tab| {
+        if tab.document.is_some() {
+            return None;
+        }
         let BrowserLocation::File { path } = &tab.location else {
             return None;
         };

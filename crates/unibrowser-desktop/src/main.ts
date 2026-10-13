@@ -221,6 +221,8 @@ import {
   validateTextCompactToolbarForCapture,
   validateDocumentCardFooterForCapture,
   validateDocumentFeatureCaptureChrome,
+  validateDocumentFeatureCaptureDom,
+  collectDocumentFeatureCaptureDom,
   validateMarkdownPreviewImageFitsPage,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
@@ -3372,6 +3374,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          const docDomErr = validateDocumentFeatureCaptureDom();
+          if (docDomErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${docDomErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
           const cmErr = validateCommandManagerForCapture();
           if (cmErr) {
             await invoke("abort_doc_capture", {
@@ -3666,6 +3675,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               viewportWidth: window.innerWidth,
               viewportHeight: window.innerHeight,
               railFlyoutWidth,
+              dom: collectDocumentFeatureCaptureDom(),
               ...(blockPickerMetrics ? { blockPicker: blockPickerMetrics } : {}),
             }),
           });

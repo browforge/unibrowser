@@ -64,8 +64,16 @@ export function refreshDocumentCardStatusFooter(dirty: boolean): void {
     return;
   }
   const ctx = document.body.dataset.cmAutoContext ?? "text";
-  const kind =
-    ctx === "office" ? "Word" : ctx === "text" ? "Markdown" : "Plain text";
+  const activePath = (document.body.dataset.activeDocumentPath ?? "").toLowerCase();
+  const officeDoc =
+    activePath.endsWith(".docx") ||
+    activePath.endsWith(".doc") ||
+    activePath.endsWith(".odt");
+  const kind = officeDoc || ctx === "office"
+    ? "Word"
+    : ctx === "text"
+      ? "Markdown"
+      : "Plain text";
   const zoom =
     document.querySelector<HTMLElement>(
       '[data-control-id="unibrowser.control.editor.size"] .cm-cmd-label, [data-control-id="unibrowser.control.text.size"] .cm-cmd-label',
