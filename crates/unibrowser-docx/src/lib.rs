@@ -92,6 +92,15 @@ pub fn scan_original_fidelity(docx_path: &Path) -> Result<Vec<String>, DocxSaveE
     Ok(issues)
 }
 
+/// Save using the shared document model (base-docx serialiser path).
+pub fn save_docx_from_document_model(
+    docx_path: &Path,
+    model: &unibrowser_document_model::DocumentModel,
+) -> Result<DocxSaveReport, DocxSaveError> {
+    let html = unibrowser_document_model::model_to_docx_html(model);
+    save_docx_from_html(docx_path, &html)
+}
+
 /// Replace document body from HTML produced by the Mammoth preview (supported subset only).
 pub fn save_docx_from_html(docx_path: &Path, html: &str) -> Result<DocxSaveReport, DocxSaveError> {
     let mut warnings = Vec::new();

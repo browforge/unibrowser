@@ -41,6 +41,30 @@ impl DocumentEditSession {
         )
     }
 
+    pub fn promote_opaque_block(&mut self, block_id: &str) -> Result<(), String> {
+        let index = self
+            .model
+            .blocks
+            .iter()
+            .position(|b| block_id_of(b) == block_id)
+            .ok_or_else(|| "block not found".to_string())?;
+        let block = &self.model.blocks[index];
+        let raw = match block {
+            Block::Opaque(o) => o.raw.clone(),
+            _ => return Err("not an opaque block".into()),
+        };
+        let parsed = parse_markdown(raw.as_bytes());
+        if parsed.model.blocks.is_empty() {
+            return Err("opaque region did not parse".into());
+        }
+        self.model.blocks.remove(index);
+        for (offset, replacement) in parsed.model.blocks.into_iter().enumerate() {
+            self.model.blocks.insert(index + offset, replacement);
+        }
+        self.mark_block_touched(block_id);
+        Ok(())
+    }
+
     pub fn set_block_style(&mut self, block_id: &str, style: BlockStyle) -> Result<(), String> {
         let index = self
             .model
