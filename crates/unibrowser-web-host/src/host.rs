@@ -165,6 +165,20 @@ impl WebHost {
                     .ok_or("input required")?;
                 self.cmd_navigate(input)
             }
+            "document_parse_markdown" => {
+                let content = args
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .ok_or("content required")?;
+                let parsed = crate::document_model::parse_markdown_content(content)?;
+                Ok(serde_json::to_value(parsed).map_err(|e| e.to_string())?)
+            }
+            "document_serialize_markdown" => {
+                let req: crate::document_model::DocumentSerializeRequest =
+                    serde_json::from_value(args.clone()).map_err(|e| e.to_string())?;
+                let text = crate::document_model::serialize_markdown_request(req)?;
+                Ok(serde_json::json!({ "content": text }))
+            }
             "sync_text_document" => self.cmd_sync_text(args),
             "save_active_document" | "write_document_bytes" => self.cmd_save(args),
             "get_command_manager" => Ok(serde_json::to_value(self.build_cm_dto()).map_err(|e| e.to_string())?),

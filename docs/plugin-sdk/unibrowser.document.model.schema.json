@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unibrowser.document.model",
+  "title": "Unibrowser rich-text document model",
+  "type": "object",
+  "required": ["schema_id", "schema_version", "metadata", "blocks"],
+  "properties": {
+    "schema_id": { "const": "unibrowser.document.model" },
+    "schema_version": { "type": "string" },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "title": { "type": ["string", "null"] },
+        "host_format": { "type": "string" },
+        "serializer_plugin_id": { "type": "string" }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/block" }
+    }
+  },
+  "$defs": {
+    "block": {
+      "oneOf": [
+        { "type": "object", "required": ["type", "id", "inlines"], "properties": { "type": { "const": "paragraph" } } },
+        { "type": "object", "required": ["type", "id", "level", "inlines"], "properties": { "type": { "const": "heading" } } },
+        { "type": "object", "required": ["type", "id", "raw"], "properties": { "type": { "const": "opaque" } } }
+      ]
+    }
+  }
+}

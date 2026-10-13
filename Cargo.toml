@@ -4,6 +4,7 @@ members = [
     "crates/unibrowser-build-info",
     "crates/unibrowser-cli",
     "crates/unibrowser-mod-api",
+    "crates/unibrowser-document-model",
     "crates/unibrowser-mod-sdk",
     "crates/unibrowser-engine",
     "crates/unibrowser-platform",

@@ -13,6 +13,7 @@ import "./styles.css";
 import "./ui/tokens.css";
 import "./ui/compactChrome.css";
 import "./ui/textDocumentCard.css";
+import "./ui/documentEditorModes.css";
 import { exposeTextDocumentCard, syncDocumentCardDirtyFlag } from "./ui/textDocumentCard";
 import { setDocumentCardAutosaveAtMs } from "./ui/documentCardStatus";
 import "./ui/quietUtilityShell.css";

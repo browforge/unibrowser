@@ -147,6 +147,26 @@ export async function applyDemoState(raw: string) {
         }
         break;
       }
+      case "doc-mode-wysiwyg": {
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg");
+        break;
+      }
+      case "doc-mode-source": {
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("source");
+        break;
+      }
+      case "doc-mode-split": {
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("split");
+        break;
+      }
+      case "doc-mode-reading": {
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("reading");
+        break;
+      }
       case "text-card-render1":
         document.body.classList.add("cm-collapsed");
         {

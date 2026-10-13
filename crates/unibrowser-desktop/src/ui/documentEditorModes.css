@@ -1,0 +1,105 @@
+.document-mode-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--ub-border-subtle, #3a4d5c);
+  background: var(--ub-panel-muted, #1e2a34);
+}
+
+.document-mode-strip.hidden {
+  display: none;
+}
+
+.document-mode-strip-btn {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--ub-radius-4, 4px);
+  cursor: pointer;
+}
+
+.document-mode-strip-btn.is-active,
+.document-mode-strip-btn[aria-selected="true"] {
+  background: var(--ub-accent-muted, rgba(90, 160, 220, 0.22));
+}
+
+body.document-mode-reading #text-compact-toolbar-host {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+#text-editor-host.document-surface-source-hidden .monaco-editor,
+#text-editor-host.document-surface-source-hidden .overflow-guard {
+  visibility: hidden;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+#text-editor-host.document-surface-source-hidden {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.rich-text-editor-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 48px 48px;
+}
+
+.rich-text-doc {
+  max-width: 72ch;
+  margin: 0 auto;
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 15px;
+  line-height: 1.55;
+  outline: none;
+}
+
+.rich-text-opaque {
+  border: 1px dashed rgba(28, 40, 52, 0.25);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 12px 0;
+  background: rgba(28, 40, 52, 0.04);
+}
+
+.rich-text-opaque-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+
+.document-editor-split-layout {
+  display: grid;
+  grid-template-columns: var(--document-split-ratio, 0.5fr) 1fr;
+  min-height: 0;
+}
+
+.document-split-preview {
+  overflow: auto;
+  border-left: 1px solid rgba(28, 40, 52, 0.12);
+  padding: 16px 24px;
+}
+
+.text-compact-block-menu.text-compact-block-menu--popover {
+  position: fixed !important;
+  top: var(--ub-block-picker-top, auto) !important;
+  left: var(--ub-block-picker-left, auto) !important;
+  margin-top: 4px;
+}
+
+.text-compact-block-item.is-selected,
+.text-compact-block-item[aria-selected="true"] {
+  background: var(--ub-accent-muted, rgba(90, 160, 220, 0.24));
+  font-weight: 600;
+}

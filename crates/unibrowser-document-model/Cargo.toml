@@ -1,0 +1,16 @@
+[package]
+name = "unibrowser-document-model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Shared rich-text document model and Markdown serialiser (ADR 0035)"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+hex = "0.4"
+thiserror = { workspace = true }
+unibrowser-mod-api = { path = "../unibrowser-mod-api" }

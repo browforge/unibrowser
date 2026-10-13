@@ -72,6 +72,8 @@ pub struct Preferences {
     #[serde(default)]
     pub restore_session_on_launch: bool,
     /// Automatic save for text/SVG (on by default).
+    #[serde(default = "default_document_default_mode")]
+    pub document_default_mode: String,
     #[serde(default = "default_auto_save_enabled")]
     pub auto_save_enabled: bool,
     /// Seconds between auto-save attempts (Factorio-style presets when enabled).
@@ -258,6 +260,10 @@ pub struct PinnedLocation {
     pub location: String,
 }
 
+fn default_document_default_mode() -> String {
+    "wysiwyg".into()
+}
+
 fn default_auto_save_enabled() -> bool {
     true
 }
@@ -352,6 +358,7 @@ impl Default for Preferences {
             ui_locale: default_ui_locale(),
             theme: UiTheme::default(),
             editor_theme_id: default_editor_theme_id(),
+            document_default_mode: default_document_default_mode(),
             recent_files: Vec::new(),
             restore_session_on_launch: true,
             auto_save_enabled: true,

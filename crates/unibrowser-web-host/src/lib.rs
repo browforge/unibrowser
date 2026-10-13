@@ -1,6 +1,7 @@
 #![recursion_limit = "512"]
 
 mod ai_prefs;
+mod document_model;
 mod host;
 mod prefs;
 mod snapshot;

@@ -74,8 +74,12 @@ export function findBlockPickerMenu(): HTMLDivElement | null {
 function positionBlockPickerMenu(trigger: HTMLElement, menu: HTMLElement): void {
   const rect = trigger.getBoundingClientRect();
   menu.style.position = "fixed";
-  menu.style.left = `${Math.max(4, rect.left)}px`;
-  menu.style.top = `${rect.bottom + 4}px`;
+  const left = Math.max(4, rect.left);
+  const top = rect.bottom;
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  menu.style.setProperty("--ub-block-picker-left", `${left}px`);
+  menu.style.setProperty("--ub-block-picker-top", `${top}px`);
   menu.style.minWidth = `${Math.max(180, rect.width)}px`;
   menu.style.maxWidth = "240px";
   menu.style.zIndex = "10050";
@@ -253,6 +257,7 @@ function renderBlockStylePicker(
     row.setAttribute("role", "option");
     if (item.id === activeCommandId) {
       row.setAttribute("aria-selected", "true");
+      row.classList.add("is-selected");
     }
     row.onclick = (e) => {
       e.stopPropagation();
@@ -476,7 +481,9 @@ export function refreshCompactBlockPickerLabel(): void {
       : undefined;
     const activeId = fromLabel ?? inferred.commandId;
     menu.querySelectorAll<HTMLElement>(".text-compact-block-item").forEach((row) => {
-      row.toggleAttribute("aria-selected", row.dataset.commandId === activeId);
+      const selected = row.dataset.commandId === activeId;
+      row.toggleAttribute("aria-selected", selected);
+      row.classList.toggle("is-selected", selected);
     });
   }
 }
@@ -499,7 +506,8 @@ export function openBlockStyleMenuForCapture(host: HTMLElement): void {
     host.querySelector<HTMLDivElement>(".text-compact-block-menu") ??
     findBlockPickerMenu();
   if (trigger && menu && wrap) {
-    openBlockPickerMenuPortal(trigger, menu, wrap, { capturePinned: true });
+    refreshCompactBlockPickerLabel();
+  openBlockPickerMenuPortal(trigger, menu, wrap, { capturePinned: true });
     trigger.blur();
     document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
   }

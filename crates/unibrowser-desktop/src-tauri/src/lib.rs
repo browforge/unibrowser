@@ -54,6 +54,7 @@ mod terminal_host;
 mod web_proxy;
 mod vsix_extension_config;
 mod document_limits;
+mod document_model_api;
 mod content_sniff;
 mod files_listing;
 pub mod file_ops;
@@ -275,6 +276,8 @@ pub fn run() {
             commands::retry_download,
             commands::set_content_bounds,
             commands::read_document_bytes,
+            commands::document_parse_markdown,
+            commands::document_serialize_markdown,
             rhai_host::run_rhai_script,
             commands::sync_pdf_viewer_state,
             commands::sync_pdf_page,

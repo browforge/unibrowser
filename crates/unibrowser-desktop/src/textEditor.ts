@@ -551,6 +551,10 @@ export const textEditor = {
       editor?.layout();
       window.requestAnimationFrame(() => editor?.layout());
     });
+    if (isMarkdownPath(doc.path)) {
+      const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+      await syncDocumentEditorForTextTab(host, doc.path, doc.content);
+    }
     if (doc.reveal_line && doc.reveal_line > 0) {
       const line = doc.reveal_line;
       editor!.revealLineInCenter(line);

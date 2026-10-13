@@ -29,6 +29,7 @@ unibrowser-engine = { path = "../../unibrowser-engine" }
 unibrowser-mod-host = { path = "../../unibrowser-mod-host", features = ["dynamic-mods"] }
 unibrowser-build-info = { path = "../../unibrowser-build-info" }
 unibrowser-mod-api = { path = "../../unibrowser-mod-api" }
+unibrowser-document-model = { path = "../../unibrowser-document-model" }
 base-files = { path = "../../../mods/base-files" }
 base-web = { path = "../../../mods/base-web" }
 base-text = { path = "../../../mods/base-text" }

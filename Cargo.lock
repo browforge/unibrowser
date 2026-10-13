@@ -9492,6 +9492,7 @@ dependencies = [
  "unibrowser-ai-assistant",
  "unibrowser-build-info",
  "unibrowser-diagnostics",
+ "unibrowser-document-model",
  "unibrowser-docx",
  "unibrowser-engine",
  "unibrowser-extension-host",
@@ -9525,6 +9526,18 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "unibrow-checker",
+]
+
+[[package]]
+name = "unibrowser-document-model"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.21",
+ "unibrowser-mod-api",
 ]
 
 [[package]]
@@ -9741,9 +9754,11 @@ name = "unibrowser-web-host"
 version = "0.1.0"
 dependencies = [
  "base-text",
+ "base64 0.22.1",
  "serde",
  "serde_json",
  "toy-markdown",
+ "unibrowser-document-model",
  "unibrowser-engine",
  "unibrowser-mod-api",
  "unibrowser-platform",

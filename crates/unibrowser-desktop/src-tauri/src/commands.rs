@@ -4690,6 +4690,7 @@ pub struct PreferencesDto {
     pub onboarding_checklist_completed: Vec<String>,
     pub theme: String,
     pub editor_theme_id: String,
+    pub document_default_mode: String,
     pub command_manager_dense: bool,
     pub cm_pin_tip_seen: bool,
     pub high_contrast: bool,
@@ -4793,6 +4794,18 @@ pub fn write_document_bytes(path: String, bytes: Vec<u8>, state: State<AppState>
         }
     }
     unibrowser_fs::atomic_write(&p, &bytes).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn document_parse_markdown(content: String) -> Result<crate::document_model_api::DocumentParseResponse, String> {
+    crate::document_model_api::parse_markdown_content(&content)
+}
+
+#[tauri::command]
+pub fn document_serialize_markdown(
+    request: crate::document_model_api::DocumentSerializeRequest,
+) -> Result<String, String> {
+    crate::document_model_api::serialize_markdown_request(request)
 }
 
 #[tauri::command]
@@ -6035,6 +6048,7 @@ fn preferences_dto() -> PreferencesDto {
         onboarding_checklist_completed: p.onboarding_checklist_completed.clone(),
         theme: theme_to_str(&p.theme),
         editor_theme_id: p.editor_theme_id.clone(),
+        document_default_mode: p.document_default_mode.clone(),
         command_manager_dense: p.command_manager_dense,
         cm_pin_tip_seen: p.cm_pin_tip_seen,
         high_contrast: p.high_contrast,
