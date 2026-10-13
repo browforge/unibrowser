@@ -264,6 +264,76 @@ pub struct EditorTextPixelStats {
     pub rows_with_ink: u32,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegionPixelFingerprint {
+    pub mean_r: f64,
+    pub mean_g: f64,
+    pub mean_b: f64,
+    pub ink_pixels: u64,
+    pub sampled_pixels: u64,
+}
+
+pub fn fingerprint_region_pixels(
+    png: &[u8],
+    css_rect: (f64, f64, f64, f64),
+    css_viewport: (f64, f64),
+) -> Result<RegionPixelFingerprint, String> {
+    use image::GenericImageView;
+
+    let img = image::load_from_memory(png).map_err(|e| e.to_string())?;
+    let (png_w, png_h) = img.dimensions();
+    let (viewport_w, viewport_h) = css_viewport;
+    if viewport_w <= 0.0 || viewport_h <= 0.0 {
+        return Err("region fingerprint received an invalid viewport".into());
+    }
+    let scale_x = png_w as f64 / viewport_w;
+    let scale_y = png_h as f64 / viewport_h;
+    let (x, y, width, height) = css_rect;
+    let x0 = (x * scale_x).clamp(0.0, png_w as f64) as u32;
+    let y0 = (y * scale_y).clamp(0.0, png_h as f64) as u32;
+    let x1 = ((x + width) * scale_x).clamp(0.0, png_w as f64) as u32;
+    let y1 = ((y + height) * scale_y).clamp(0.0, png_h as f64) as u32;
+    if x1 <= x0 || y1 <= y0 {
+        return Err("region fingerprint received an empty region".into());
+    }
+
+    let mut sum_r = 0u64;
+    let mut sum_g = 0u64;
+    let mut sum_b = 0u64;
+    let mut sampled = 0u64;
+    let mut ink = 0u64;
+    for py in y0..y1 {
+        for px in x0..x1 {
+            let p = img.get_pixel(px, py);
+            let r = p[0] as u64;
+            let g = p[1] as u64;
+            let b = p[2] as u64;
+            sum_r += r;
+            sum_g += g;
+            sum_b += b;
+            sampled += 1;
+            let dr = p[0] as i32 - 0xff;
+            let dg = p[1] as i32 - 0xff;
+            let db = p[2] as i32 - 0xff;
+            let distance_sq = dr * dr + dg * dg + db * db;
+            if distance_sq >= 28 * 28 * 3 {
+                ink += 1;
+            }
+        }
+    }
+    if sampled == 0 {
+        return Err("region fingerprint sampled zero pixels".into());
+    }
+    Ok(RegionPixelFingerprint {
+        mean_r: sum_r as f64 / sampled as f64,
+        mean_g: sum_g as f64 / sampled as f64,
+        mean_b: sum_b as f64 / sampled as f64,
+        ink_pixels: ink,
+        sampled_pixels: sampled,
+    })
+}
+
 pub fn validate_editor_text_pixels(
     png: &[u8],
     css_rect: (f64, f64, f64, f64),

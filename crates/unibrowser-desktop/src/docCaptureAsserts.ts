@@ -1594,10 +1594,13 @@ export function validateTextCompactToolbarForCapture(
   if (opts.requireDocxEmulatedH1 && pickerText !== "Heading 1") {
     return `block-style picker trigger must show Heading 1 for docx capture, got "${pickerText}"`;
   }
-  const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
+  const menu =
+    document.querySelector<HTMLElement>(
+      "#ub-block-picker-popover-host .text-compact-block-menu:not(.hidden)",
+    ) ?? host.querySelector<HTMLElement>(".text-compact-block-menu:not(.hidden)");
   if (requirePickerOpen) {
     if (!menu || menu.classList.contains("hidden")) {
-      return "block-style picker menu must be open for this capture";
+      return "block-style picker menu must be open for this capture (portal or inline)";
     }
     if (menu.getAttribute("role") !== "listbox") {
       return "block-style picker menu must have role=listbox";
@@ -1630,7 +1633,14 @@ export function validateTextCompactToolbarForCapture(
       if (!mark?.textContent?.includes("≈")) {
         return "docx block-style picker must show emulated Heading 1 (≈) on trigger";
       }
+      const labelRect = pickerLabel.getBoundingClientRect();
       const markRect = mark.getBoundingClientRect();
+      if (captureRectsOverlap(labelRect, markRect)) {
+        return "docx emulation badge must not overlap block-style label bounding box";
+      }
+      if (markRect.left < labelRect.right - 0.5) {
+        return "docx emulation badge must sit after the block-style label";
+      }
       if (markRect.width < 14 || markRect.height < 14) {
         return "docx emulation badge must be legible (min 14×14px)";
       }

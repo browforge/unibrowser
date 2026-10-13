@@ -38,11 +38,11 @@ copy_artifact_retry() {
 }
 
 for pair in \
-  "bear-render-1-markdown-1280.png:bear-render-1-markdown-1280-v2.png" \
-  "bear-render-1-docx-1280.png:bear-render-1-docx-1280-v2.png" \
-  "bear-render-1-markdown-1280.cm.json:bear-render-1-markdown-1280-v2.cm.json" \
-  "bear-render-1-docx-1280.cm.json:bear-render-1-docx-1280-v2.cm.json" \
-  "txt-web-markdown-picker-h2-v2.png:txt-web-markdown-picker-h2-v2.png"; do
+  "bear-render-1-markdown-1280.png:bear-render-1-markdown-1280-v3.png" \
+  "bear-render-1-docx-1280.png:bear-render-1-docx-1280-v3.png" \
+  "bear-render-1-markdown-1280.cm.json:bear-render-1-markdown-1280-v3.cm.json" \
+  "bear-render-1-docx-1280.cm.json:bear-render-1-docx-1280-v3.cm.json" \
+  "txt-web-markdown-picker-h2-v3.png:txt-web-markdown-picker-h2-v3.png"; do
   src="${pair%%:*}"
   dst="${pair##*:}"
   if [[ -f "$OUT/$src" ]]; then

@@ -1,13 +1,15 @@
-import { expect, test } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { expect, test } from "@playwright/test";
 
 const OUT_DIR = path.resolve(
   import.meta.dirname,
   "../../../docs/screenshots/txt-toolbar",
 );
 const ART_DIR = "/opt/cursor/artifacts";
-const SHOT = "txt-web-markdown-picker-h2-v2.png";
+const SHOT = "txt-web-markdown-picker-h2-v3.png";
+const ROOT = path.resolve(import.meta.dirname, "../../..");
 const BLOCK_PICKER_LABELS = [
   "Paragraph",
   "Heading 1",
@@ -62,7 +64,19 @@ test.describe("TXT toolbar web evidence", () => {
     const line3 = page.locator("#text-editor-host .view-lines .view-line").nth(2);
     await line3.click();
     await page.evaluate(() => {
-      const monaco = (window as unknown as { monaco?: { editor: { getEditors: () => { getModel: () => { getLineContent: (n: number) => string }; getLineCount: () => number }; setPosition: (p: { lineNumber: number; column: number }) => void; executeEdits: (s: string, e: unknown[]) => void; revealLineInCenter: (n: number) => void }; Range: new (a: number, b: number, c: number, d: number) => unknown } }).monaco;
+      const monaco = (window as unknown as {
+        monaco?: {
+          editor: {
+            getEditors: () => {
+              getModel: () => { getLineContent: (n: number) => string; getLineCount: () => number };
+              setPosition: (p: { lineNumber: number; column: number }) => void;
+              executeEdits: (s: string, e: unknown[]) => void;
+              revealLineInCenter: (n: number) => void;
+            }[];
+          };
+          Range: new (a: number, b: number, c: number, d: number) => unknown;
+        };
+      }).monaco;
       const editors = monaco?.editor.getEditors() ?? [];
       const ed = editors[0];
       const model = ed?.getModel();
@@ -87,34 +101,52 @@ test.describe("TXT toolbar web evidence", () => {
     await line3.click();
 
     await page.evaluate(() => {
-      const hostEl = document.getElementById("text-compact-toolbar-host");
-      if (!hostEl) {
-        return;
-      }
-      const trigger = hostEl.querySelector<HTMLButtonElement>(".text-compact-block-trigger");
-      const menu = hostEl.querySelector<HTMLDivElement>(".text-compact-block-menu");
-      if (trigger && menu) {
-        menu.classList.remove("hidden");
-        trigger.setAttribute("aria-expanded", "true");
-        trigger.blur();
-      }
+      window.__unibrowserCapture?.closeBlockPickerForCapture();
       document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
       document.activeElement instanceof HTMLElement && document.activeElement.blur();
     });
 
-    const openMenu = host.locator(".text-compact-block-menu:not(.hidden)");
-    await expect(openMenu).toBeVisible({ timeout: 15_000 });
-    await expect(openMenu).toHaveAttribute("role", "listbox");
+    const probe = await page.evaluate(() => {
+      const rect = window.__unibrowserCapture?.blockPickerProbeRect();
+      if (!rect || rect.width <= 0) {
+        throw new Error("block picker probe rect missing");
+      }
+      return rect;
+    });
+    const baselinePath = path.join(OUT_DIR, `.${SHOT}.probe-closed.png`);
+    await page.screenshot({
+      path: baselinePath,
+      clip: {
+        x: probe.x,
+        y: probe.y,
+        width: probe.width,
+        height: probe.height,
+      },
+    });
+
+    await page.evaluate(() => {
+      window.__unibrowserCapture?.openBlockPickerForCapture();
+    });
+
+    const openMenu = page.locator(
+      "#ub-block-picker-popover-host .text-compact-block-menu:not(.hidden), #text-compact-toolbar-host .text-compact-block-menu:not(.hidden)",
+    );
+    await expect(openMenu.first()).toBeVisible({ timeout: 15_000 });
+    await expect(openMenu.first()).toHaveAttribute("role", "listbox");
     for (const label of BLOCK_PICKER_LABELS) {
-      await expect(openMenu.getByRole("option", { name: label })).toBeVisible();
+      await expect(openMenu.first().getByRole("option", { name: label })).toBeVisible();
     }
     await expect(host.locator(".text-compact-block-label")).toHaveText("Heading 2");
     await expect(
-      host.locator('[data-command-id="unibrowser.semantic.block.heading_2"][aria-selected]'),
+      openMenu
+        .first()
+        .locator('[data-command-id="unibrowser.semantic.block.heading_2"][aria-selected]'),
     ).toBeVisible();
 
     const lineText = await page.evaluate(() => {
-      const monaco = (window as unknown as { monaco?: { editor: { getEditors: () => { getModel: () => { getLineContent: (n: number) => string } | null }[] } } }).monaco;
+      const monaco = (window as unknown as {
+        monaco?: { editor: { getEditors: () => { getModel: () => { getLineContent: (n: number) => string } | null }[] } };
+      }).monaco;
       const model = monaco?.editor.getEditors()[0]?.getModel();
       return model?.getLineContent(3) ?? null;
     });
@@ -148,5 +180,31 @@ test.describe("TXT toolbar web evidence", () => {
     } catch {
       // Artifacts dir may be busy in CI; docs/screenshots copy is the source of truth.
     }
+
+    const metrics = await page.evaluate(() => window.__unibrowserCapture!.collectBlockPickerMetrics());
+    const cmPath = path.join(OUT_DIR, `${SHOT}.cm.json`);
+    writeFileSync(
+      cmPath,
+      `${JSON.stringify(
+        {
+          viewportWidth: 1280,
+          viewportHeight: 800,
+          blockPicker: metrics,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    execFileSync(
+      "python3",
+      [
+        path.join(ROOT, "scripts/check-block-picker-open-pixels.py"),
+        outPath,
+        cmPath,
+        "--baseline-png",
+        baselinePath,
+      ],
+      { stdio: "inherit" },
+    );
   });
 });

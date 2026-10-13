@@ -14,6 +14,10 @@ import { controlA11yState } from "./ui/controlA11y";
 import { uiCommandChromeClassList } from "./ui/cmControlClasses";
 import { syncTextDocumentCard } from "./ui/textDocumentCard";
 import { inferSemanticBlockStyleAtCursor } from "./textEditor";
+import {
+  blockPickerProbeBelowTrigger,
+  collectBlockPickerCaptureMetrics,
+} from "./blockPickerCaptureMetrics";
 import type { FloatingBarDto, ManagerTabDto } from "./commandManager";
 
 export const BLOCK_PICKER_MENU_LABELS = [
@@ -41,6 +45,121 @@ const BLOCK_COMMANDS: { id: string; label: string }[] = [
 ];
 
 const BLOCK_STYLE_CONTROL = "unibrowser.control.semantic.block_style";
+const BLOCK_PICKER_POPOVER_HOST_ID = "ub-block-picker-popover-host";
+
+let blockPickerDismissListener: ((ev: MouseEvent) => void) | null = null;
+
+function ensureBlockPickerPopoverHost(): HTMLElement {
+  let popoverHost = document.getElementById(BLOCK_PICKER_POPOVER_HOST_ID);
+  if (!popoverHost) {
+    popoverHost = document.createElement("div");
+    popoverHost.id = BLOCK_PICKER_POPOVER_HOST_ID;
+    popoverHost.setAttribute("aria-hidden", "true");
+    document.body.appendChild(popoverHost);
+  }
+  return popoverHost;
+}
+
+export function findBlockPickerMenu(): HTMLDivElement | null {
+  return (
+    document.querySelector<HTMLDivElement>(
+      `#${BLOCK_PICKER_POPOVER_HOST_ID} .text-compact-block-menu:not(.hidden)`,
+    ) ??
+    document.querySelector<HTMLDivElement>(
+      "#text-compact-toolbar-host .text-compact-block-menu:not(.hidden)",
+    )
+  );
+}
+
+function positionBlockPickerMenu(trigger: HTMLElement, menu: HTMLElement): void {
+  const rect = trigger.getBoundingClientRect();
+  menu.style.position = "fixed";
+  menu.style.left = `${Math.max(4, rect.left)}px`;
+  menu.style.top = `${rect.bottom + 4}px`;
+  menu.style.minWidth = `${Math.max(180, rect.width)}px`;
+  menu.style.maxWidth = "240px";
+  menu.style.zIndex = "10050";
+}
+
+function bindBlockPickerDismiss(trigger: HTMLElement, menu: HTMLElement, wrap: HTMLElement): void {
+  if (blockPickerDismissListener) {
+    document.removeEventListener("click", blockPickerDismissListener, true);
+    blockPickerDismissListener = null;
+  }
+  blockPickerDismissListener = (ev: MouseEvent) => {
+    if (menu.dataset.ubCapturePinned === "1") {
+      return;
+    }
+    const target = ev.target;
+    if (
+      target instanceof Node &&
+      (wrap.contains(target) || menu.contains(target))
+    ) {
+      return;
+    }
+    collapseBlockPickerMenu(trigger, menu, wrap);
+  };
+  window.setTimeout(() => {
+    if (blockPickerDismissListener) {
+      document.addEventListener("click", blockPickerDismissListener, true);
+    }
+  }, 0);
+}
+
+function collapseBlockPickerMenu(
+  trigger: HTMLElement,
+  menu: HTMLElement,
+  wrap: HTMLElement,
+): void {
+  menu.classList.add("hidden");
+  menu.classList.remove("text-compact-block-menu--popover");
+  menu.style.position = "";
+  menu.style.left = "";
+  menu.style.top = "";
+  menu.style.minWidth = "";
+  menu.style.maxWidth = "";
+  menu.style.zIndex = "";
+  delete menu.dataset.ubCapturePinned;
+  if (menu.parentElement?.id === BLOCK_PICKER_POPOVER_HOST_ID) {
+    wrap.appendChild(menu);
+  }
+  document.getElementById(BLOCK_PICKER_POPOVER_HOST_ID)?.setAttribute("aria-hidden", "true");
+  document.documentElement.classList.remove("ub-block-picker-open");
+  trigger.setAttribute("aria-expanded", "false");
+  if (blockPickerDismissListener) {
+    document.removeEventListener("click", blockPickerDismissListener, true);
+    blockPickerDismissListener = null;
+  }
+}
+
+export function openBlockPickerMenuPortal(
+  trigger: HTMLElement,
+  menu: HTMLDivElement,
+  wrap: HTMLElement,
+  options?: { capturePinned?: boolean },
+): void {
+  const popoverHost = ensureBlockPickerPopoverHost();
+  popoverHost.setAttribute("aria-hidden", "false");
+  if (menu.parentElement !== popoverHost) {
+    popoverHost.appendChild(menu);
+  }
+  menu.classList.remove("hidden");
+  menu.classList.add("text-compact-block-menu--popover");
+  if (options?.capturePinned) {
+    menu.dataset.ubCapturePinned = "1";
+  } else {
+    delete menu.dataset.ubCapturePinned;
+  }
+  positionBlockPickerMenu(trigger, menu);
+  document.documentElement.classList.add("ub-block-picker-open");
+  trigger.setAttribute("aria-expanded", "true");
+  bindBlockPickerDismiss(trigger, menu, wrap);
+}
+
+export function resetBlockPickerPopoverHost(): void {
+  document.getElementById(BLOCK_PICKER_POPOVER_HOST_ID)?.replaceChildren();
+  document.documentElement.classList.remove("ub-block-picker-open");
+}
 
 function compactWidthBudget(host: HTMLElement): number {
   const cardMount = document.querySelector<HTMLElement>(".document-card-toolbar-mount");
@@ -104,8 +223,6 @@ function renderBlockStylePicker(
   label.className = "text-compact-block-label";
   label.textContent = displayLabel;
   btn.appendChild(label);
-  const chevron = createLucideIcon("chevron-down", 14, "ub-icon svg-icon text-compact-chevron");
-  btn.appendChild(chevron);
   if (emulated) {
     const reason = capabilityReason(control.capability) ?? "Approximated style";
     const mark = document.createElement("span");
@@ -116,6 +233,8 @@ function renderBlockStylePicker(
     mark.title = reason;
     btn.appendChild(mark);
   }
+  const chevron = createLucideIcon("chevron-down", 14, "ub-icon svg-icon text-compact-chevron");
+  btn.appendChild(chevron);
   bindCommandTooltip(btn, {
     title: "Block style",
     reason: capabilityReason(control.capability),
@@ -137,16 +256,18 @@ function renderBlockStylePicker(
     }
     row.onclick = (e) => {
       e.stopPropagation();
-      menu.classList.add("hidden");
-      btn.setAttribute("aria-expanded", "false");
+      collapseBlockPickerMenu(btn, menu, wrap);
       void onRun(item.id);
     };
     menu.appendChild(row);
   }
   btn.onclick = (e) => {
     e.stopPropagation();
-    const open = menu.classList.toggle("hidden");
-    btn.setAttribute("aria-expanded", open ? "false" : "true");
+    if (menu.classList.contains("hidden")) {
+      openBlockPickerMenuPortal(btn, menu, wrap);
+    } else {
+      collapseBlockPickerMenu(btn, menu, wrap);
+    }
   };
   wrap.append(btn, menu);
   return wrap;
@@ -226,6 +347,7 @@ function renderCompactRow(
   onRun: (commandId: string) => Promise<void>,
   chordByCommand: Map<string, string>,
 ) {
+  resetBlockPickerPopoverHost();
   container.innerHTML = "";
   const groups = familiesToRenderGroups(families);
   const budget = compactWidthBudget(container);
@@ -344,7 +466,9 @@ export function refreshCompactBlockPickerLabel(): void {
   if (label) {
     label.textContent = inferred.label;
   }
-  const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
+  const menu =
+    findBlockPickerMenu() ??
+    host.querySelector<HTMLElement>(".text-compact-block-menu");
   if (menu) {
     const triggerLabel = label?.textContent?.trim();
     const fromLabel = triggerLabel
@@ -357,16 +481,70 @@ export function refreshCompactBlockPickerLabel(): void {
   }
 }
 
+export function closeBlockPickerMenuForCapture(host: HTMLElement): void {
+  const trigger = host.querySelector<HTMLButtonElement>(".text-compact-block-trigger");
+  const wrap = host.querySelector<HTMLElement>(".text-compact-block-picker");
+  const menu =
+    host.querySelector<HTMLDivElement>(".text-compact-block-menu") ?? findBlockPickerMenu();
+  if (trigger && menu && wrap) {
+    collapseBlockPickerMenu(trigger, menu, wrap);
+  }
+}
+
 export function openBlockStyleMenuForCapture(host: HTMLElement): void {
   refreshCompactBlockPickerLabel();
   const trigger = host.querySelector<HTMLButtonElement>(".text-compact-block-trigger");
-  const menu = host.querySelector<HTMLDivElement>(".text-compact-block-menu");
-  if (trigger && menu) {
-    menu.classList.remove("hidden");
-    trigger.setAttribute("aria-expanded", "true");
+  const wrap = host.querySelector<HTMLElement>(".text-compact-block-picker");
+  const menu =
+    host.querySelector<HTMLDivElement>(".text-compact-block-menu") ??
+    findBlockPickerMenu();
+  if (trigger && menu && wrap) {
+    openBlockPickerMenuPortal(trigger, menu, wrap, { capturePinned: true });
     trigger.blur();
     document.getElementById("ub-command-tooltip-host")?.classList.add("hidden");
   }
+}
+
+export function installTextCaptureHarness(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const win = window as Window & {
+    __unibrowserCapture?: {
+      closeBlockPickerForCapture(): void;
+      openBlockPickerForCapture(): void;
+      blockPickerProbeRect(): { x: number; y: number; width: number; height: number };
+      collectBlockPickerMetrics(): ReturnType<typeof collectBlockPickerCaptureMetrics>;
+    };
+  };
+  win.__unibrowserCapture = {
+    closeBlockPickerForCapture() {
+      const host = document.getElementById("text-compact-toolbar-host");
+      if (host) {
+        closeBlockPickerMenuForCapture(host);
+      }
+    },
+    openBlockPickerForCapture() {
+      const host = document.getElementById("text-compact-toolbar-host");
+      if (host) {
+        openBlockStyleMenuForCapture(host);
+      }
+    },
+    blockPickerProbeRect() {
+      const host = document.getElementById("text-compact-toolbar-host");
+      if (!host) {
+        return { x: 0, y: 0, width: 0, height: 0 };
+      }
+      return blockPickerProbeBelowTrigger(host);
+    },
+    collectBlockPickerMetrics() {
+      const host = document.getElementById("text-compact-toolbar-host");
+      if (!host) {
+        throw new Error("text-compact-toolbar-host missing");
+      }
+      return collectBlockPickerCaptureMetrics(host, null);
+    },
+  };
 }
 
 /** Assert compact toolbar icons are mapped (no generic file glyph). */

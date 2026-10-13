@@ -649,5 +649,46 @@
         }
       }
     ]
+  },
+  "blockPicker": {
+    "viewportWidth": 1280,
+    "viewportHeight": 800,
+    "probe": {
+      "x": 219,
+      "y": 126,
+      "width": 180,
+      "height": 140
+    },
+    "trigger": {
+      "x": 219,
+      "y": 94,
+      "width": 130,
+      "height": 28
+    },
+    "menu": {
+      "x": 219,
+      "y": 126,
+      "width": 190,
+      "height": 280
+    },
+    "label": {
+      "x": 225,
+      "y": 99,
+      "width": 61,
+      "height": 18
+    },
+    "badge": {
+      "x": 290,
+      "y": 97,
+      "width": 30,
+      "height": 22
+    },
+    "closedFingerprint": {
+      "meanR": 234.24079365079365,
+      "meanG": 233.64686507936509,
+      "meanB": 232.17781746031747,
+      "inkPixels": 11347,
+      "sampledPixels": 25200
+    }
   }
 }

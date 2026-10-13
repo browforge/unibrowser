@@ -19,6 +19,9 @@ finalise_cm_capture() {
   fi
   mv "$tmp_json" "$final_json"
   python3 "$ROOT/scripts/check-cm-pixels.py" "$outdir/${name}.png" "$final_json"
+  if python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get('blockPicker') else 1)" "$final_json"; then
+    python3 "$ROOT/scripts/check-block-picker-open-pixels.py" "$outdir/${name}.png" "$final_json"
+  fi
 }
 
 capture_vqa() {

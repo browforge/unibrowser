@@ -281,6 +281,25 @@ pub fn write_doc_capture_png(app: &tauri::AppHandle, path: &std::path::Path) -> 
 }
 
 #[tauri::command]
+pub fn doc_capture_region_fingerprint(
+    app: tauri::AppHandle,
+    region: EditorCaptureRegion,
+) -> Result<crate::webview_capture::RegionPixelFingerprint, String> {
+    let window_label = doc_capture_window_label(&app)?;
+    let bytes = if window_label.starts_with("toolbar-") {
+        crate::webview_capture::capture_shell_webview_png_for_label(&app, &window_label)?
+    } else {
+        let window = app.get_window("main").ok_or("main window missing")?;
+        crate::webview_capture::capture_doc_screenshot_png(&app, &window)?
+    };
+    crate::webview_capture::fingerprint_region_pixels(
+        &bytes,
+        (region.x, region.y, region.width, region.height),
+        (region.viewport_width, region.viewport_height),
+    )
+}
+
+#[tauri::command]
 pub fn finish_doc_capture_and_exit(
     app: tauri::AppHandle,
     editor_region: Option<EditorCaptureRegion>,

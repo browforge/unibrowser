@@ -62,6 +62,7 @@ function markUbReadyWhenDomChromePresent() {
 markUbReadyWhenDomChromePresent();
 syncOpenVsxNetworkDataset();
 exposeShellChromeAudit();
+installTextCaptureHarness();
 exposeTextDocumentCard();
 exposeChromeMetrics();
 void invoke<{ scenarios: string[] } | null>("get_self_test_plan").then((plan) => {
@@ -227,6 +228,7 @@ import {
 } from "./shellPaintReady";
 import { renderTitleBreadcrumb } from "./titleBreadcrumb";
 import { exposeShellChromeAudit, runShellChromeAudit } from "./shellChromeAudit";
+import { installTextCaptureHarness } from "./textCompactToolbar";
 import { loadUiLocale } from "./i18n";
 import { openNewProjectDialog } from "./newProjectDialog";
 import { emptyStateBlock } from "./emptyState";
@@ -3295,17 +3297,6 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           }
           const diag = collectDocCaptureDiagnostics();
           const diagJson = formatDiagnosticsForLog(diag);
-          await invoke("write_doc_capture_cm_json", {
-            json: JSON.stringify({
-              ...(diag.commandManager ?? {
-                controlCount: 0,
-                visibleCount: 0,
-                contextLabel: "",
-                controls: [],
-              }),
-              statusBar: diag.statusBar,
-            }),
-          });
           console.error(`[doc-capture] diagnostics ${diagJson}`);
           void invoke("log_shell_ui_event", {
             level: "error",
@@ -3517,6 +3508,8 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             demoAgain?.toLowerCase().includes("ui19-focus-visible") ?? false,
             pickerOpen,
           );
+          let blockPickerMetrics: import("./blockPickerCaptureMetrics").BlockPickerCaptureMetrics | null =
+            null;
           if (pickerOpen) {
             const host = document.getElementById("text-compact-toolbar-host");
             if (host) {
@@ -3531,8 +3524,34 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
                 const { textEditor } = await import("./textEditor");
                 textEditor.setCursorLine(1);
               }
-              const { openBlockStyleMenuForCapture } = await import("./textCompactToolbar");
+              const { blockPickerProbeBelowTrigger, collectBlockPickerCaptureMetrics } =
+                await import("./blockPickerCaptureMetrics");
+              const {
+                closeBlockPickerMenuForCapture,
+                openBlockStyleMenuForCapture,
+              } = await import("./textCompactToolbar");
+              closeBlockPickerMenuForCapture(host);
+              await new Promise((resolve) => window.setTimeout(resolve, 80));
+              const probe = blockPickerProbeBelowTrigger(host);
+              const closedFingerprint = await invoke<{
+                meanR: number;
+                meanG: number;
+                meanB: number;
+                inkPixels: number;
+                sampledPixels: number;
+              }>("doc_capture_region_fingerprint", {
+                region: {
+                  x: probe.x,
+                  y: probe.y,
+                  width: probe.width,
+                  height: probe.height,
+                  viewportWidth: window.innerWidth,
+                  viewportHeight: window.innerHeight,
+                  theme: document.documentElement.dataset.ubTheme ?? "light",
+                },
+              });
               openBlockStyleMenuForCapture(host);
+              blockPickerMetrics = collectBlockPickerCaptureMetrics(host, closedFingerprint);
             }
           }
           const txtCompactErr = validateTextCompactToolbarForCapture({
@@ -3549,6 +3568,20 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          await invoke("write_doc_capture_cm_json", {
+            json: JSON.stringify({
+              ...(diag.commandManager ?? {
+                controlCount: 0,
+                visibleCount: 0,
+                contextLabel: "",
+                controls: [],
+              }),
+              statusBar: diag.statusBar,
+              viewportWidth: window.innerWidth,
+              viewportHeight: window.innerHeight,
+              ...(blockPickerMetrics ? { blockPicker: blockPickerMetrics } : {}),
+            }),
+          });
           await invoke("finish_doc_capture_and_exit", { editorRegion });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);

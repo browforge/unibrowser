@@ -142,15 +142,12 @@ body.text-document-card .document-card-toolbar-mount .text-compact-chevron {
 }
 
 body.text-document-card .document-card-toolbar-mount .text-compact-block-trigger {
-  position: relative;
-  padding-right: 28px;
+  padding-right: 8px;
 }
 
 body.text-document-card .document-card-toolbar-mount .block-emulation-badge {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  transform: translateY(-50%);
+  position: static;
+  transform: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -167,6 +164,17 @@ body.text-document-card .document-card-toolbar-mount .block-emulation-badge {
   box-shadow: 0 1px 2px rgba(28, 40, 52, 0.12);
   pointer-events: auto;
   cursor: help;
+}
+
+body.text-document-card #ub-block-picker-popover-host .text-compact-block-menu {
+  color: var(--ub-doc-card-ink);
+  background: #ffffff;
+  border: 1px solid rgba(28, 40, 52, 0.14);
+  box-shadow: 0 8px 24px rgba(28, 40, 52, 0.14);
+}
+
+body.text-document-card #ub-block-picker-popover-host .text-compact-block-item[aria-selected="true"] {
+  background: rgba(45, 100, 125, 0.12);
 }
 
 body.text-document-card .document-card-body-mount {
