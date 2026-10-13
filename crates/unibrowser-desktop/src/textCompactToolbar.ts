@@ -522,7 +522,11 @@ export function seedDocVisualCompactToolbarFallback(
   picker.appendChild(btn);
   tools.appendChild(picker);
   primaryHost.replaceChildren(tools);
-  syncTextDocumentCard(true, "sample.docx");
+  const tabLabel =
+    document
+      .querySelector<HTMLElement>("#document-card-tab .document-card-tab-label")
+      ?.textContent?.trim() ?? "Untitled";
+  syncTextDocumentCard(true, tabLabel);
 }
 
 export function refreshTextCompactToolbar(

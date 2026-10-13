@@ -642,6 +642,7 @@ function statusItemsForContext(
       tabLabel.endsWith(".docx") ||
       tabLabel.endsWith(".doc") ||
       tabLabel.endsWith(".odt") ||
+      docPath.includes("/assets/document.md") ||
       (document.body.dataset.cmAutoContext ?? "") === "office" ||
       (demoVisualDocx && document.body.classList.contains("text-document-card"));
     const languageLabel = officeDoc
@@ -787,13 +788,14 @@ function refreshStatusBar(
     compactTabLabel.endsWith(".docx") ||
     compactTabLabel.endsWith(".doc") ||
     compactTabLabel.endsWith(".odt") ||
+    compactDocPath.includes("/assets/document.md") ||
     (document.body.dataset.cmAutoContext ?? "") === "office" ||
     (demoVisualDocxCompact && document.body.classList.contains("text-document-card"));
   const language =
-    compact && showText && data.text_document
+    compact && showText && (data.text_document || projectDocument)
       ? compactOfficeDoc
         ? "Word document"
-        : data.text_document.language?.replace("typescript", "TypeScript") ?? "TypeScript"
+        : data.text_document?.language?.replace("typescript", "TypeScript") ?? "TypeScript"
       : undefined;
   let zoomOut = compact ? zoom || lastViewerZoomLabel || "100%" : zoom;
   if (compact && showViewer && viewerKind === "pdf" && lastPdfAnnotationCount > 0) {

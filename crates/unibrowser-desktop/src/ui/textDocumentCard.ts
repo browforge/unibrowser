@@ -131,14 +131,18 @@ export async function ensureProjectOfficeDocumentCard(fileLabel: string): Promis
     await new Promise((resolve) => window.setTimeout(resolve, 60));
   }
   syncTextDocumentCard(true, fileLabel);
-  if (!document.body.classList.contains("text-document-card")) {
-    const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
-    if (compactHost) {
-      const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+  const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
+  if (compactHost) {
+    const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+    if (
+      !compactHost.querySelector(".text-compact-tools") ||
+      !document.body.classList.contains("text-document-card")
+    ) {
       seedDocVisualCompactToolbarFallback(compactHost, true);
     }
-    syncTextDocumentCard(true, fileLabel);
+    compactHost.classList.remove("hidden");
   }
+  syncTextDocumentCard(true, fileLabel);
   forceDocFeatureCaptureLayout(fileLabel);
   const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
   refreshDocumentCardStatusFooter(false);

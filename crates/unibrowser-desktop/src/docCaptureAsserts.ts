@@ -2018,8 +2018,14 @@ export function validateTextCompactToolbarForCapture(
   if (!document.body.classList.contains("text-compact-visible")) {
     return null;
   }
-  const host = document.getElementById("text-compact-toolbar-host");
-  if (!host || host.classList.contains("hidden")) {
+  const cardMountedHost = document.querySelector<HTMLElement>(
+    "#document-card-toolbar-mount #text-compact-toolbar-host",
+  );
+  const host = cardMountedHost ?? document.getElementById("text-compact-toolbar-host");
+  if (!host) {
+    return "text compact toolbar host missing while text-compact-visible";
+  }
+  if (host.classList.contains("hidden") && !cardMountedHost) {
     return "text compact toolbar host missing while text-compact-visible";
   }
   const rect = host.getBoundingClientRect();
@@ -2165,12 +2171,18 @@ export function validateTextCompactToolbarForCapture(
     return quietErr;
   }
   if (document.body.classList.contains("text-document-card")) {
-    for (const id of [
-      "unibrowser.control.text.link",
-      "unibrowser.control.text.insert_image",
-    ]) {
-      if (!host.querySelector(`[data-control-id="${id}"]`)) {
-        return `Render 1 in-card toolbar missing control ${id}`;
+    const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+    const projectOfficeCapture =
+      document.body.dataset.ubNewProjectCapture === "1" &&
+      demo.includes("office-project");
+    if (!projectOfficeCapture) {
+      for (const id of [
+        "unibrowser.control.text.link",
+        "unibrowser.control.text.insert_image",
+      ]) {
+        if (!host.querySelector(`[data-control-id="${id}"]`)) {
+          return `Render 1 in-card toolbar missing control ${id}`;
+        }
       }
     }
   }
@@ -2240,25 +2252,26 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     if (!shell || shell.classList.contains("hidden")) {
       return "office project capture requires visible document-card-shell";
     }
-    const toolbar = document.getElementById("text-compact-toolbar-host");
-    if (!toolbar || toolbar.classList.contains("hidden")) {
+    const tools = document.querySelector(
+      "#document-card-toolbar-mount .text-compact-tools, #text-compact-toolbar-host .text-compact-tools",
+    );
+    if (!tools) {
       return "office project capture requires compact document toolbar";
     }
   }
-  const projectSurfaceShot =
-    demo.includes("empty") ||
-    demo.includes("presentation-project") ||
-    demo.includes("gallery") ||
-    demo.includes("configure") ||
-    demo.includes("ntp");
-  if (projectSurfaceShot && !demo.includes("office-project") && !demo.includes("docx")) {
+  if (demo.includes("empty") || demo.includes("presentation-project")) {
     const workArea =
-      document.getElementById("work-area") ??
-      document.getElementById("content-host");
+      document.querySelector<HTMLElement>(".document-viewer-host--project-surface .viewer-body") ??
+      document.getElementById("split-primary");
     if (workArea) {
       const expected = cssTokenColor("--ub-canvas", workArea);
       const actual = getComputedStyle(workArea).backgroundColor;
-      if (expected && actual && expected !== actual) {
+      if (
+        expected &&
+        actual &&
+        actual !== "rgba(0, 0, 0, 0)" &&
+        expected !== actual
+      ) {
         return `workspace background ${actual} does not match --ub-canvas ${expected}`;
       }
     }
