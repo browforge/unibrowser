@@ -42,6 +42,32 @@ function isAbsoluteUrl(src: string): boolean {
   );
 }
 
+function guessImageMime(path: string): string {
+  const lower = path.toLowerCase();
+  if (lower.endsWith(".png")) {
+    return "image/png";
+  }
+  if (lower.endsWith(".gif")) {
+    return "image/gif";
+  }
+  if (lower.endsWith(".webp")) {
+    return "image/webp";
+  }
+  if (lower.endsWith(".svg")) {
+    return "image/svg+xml";
+  }
+  return "image/jpeg";
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 function joinDocRelative(basePath: string, href: string): string {
   const trimmed = href.trim();
   if (isAbsoluteUrl(trimmed)) {
@@ -173,7 +199,15 @@ async function resolveRichImages(host: HTMLElement, basePath: string): Promise<v
         basePath,
         href: raw,
       });
-      img.src = convertFileSrc(fileUrl.replace(/^file:\/\//i, ""));
+      const filePath = fileUrl.replace(/^file:\/\//i, "");
+      try {
+        const data = await invoke<number[]>("read_document_bytes", { path: filePath });
+        const bytes = new Uint8Array(data);
+        const mime = guessImageMime(filePath);
+        img.src = `data:${mime};base64,${bytesToBase64(bytes)}`;
+      } catch {
+        img.src = convertFileSrc(filePath);
+      }
     } catch {
       img.classList.add("rich-text-img--broken");
     }

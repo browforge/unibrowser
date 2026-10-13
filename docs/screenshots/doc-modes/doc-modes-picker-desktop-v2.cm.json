@@ -673,10 +673,10 @@
     },
     "badge": null,
     "closedFingerprint": {
-      "meanR": 243.00186507936507,
-      "meanG": 242.4100396825397,
-      "meanB": 239.88380952380953,
-      "inkPixels": 1191,
+      "meanR": 242.14464285714286,
+      "meanG": 241.60265873015874,
+      "meanB": 239.13321428571427,
+      "inkPixels": 1198,
       "sampledPixels": 25200
     }
   }

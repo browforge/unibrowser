@@ -113,6 +113,7 @@ body.document-mode-reading #text-compact-toolbar-host {
 #text-editor-host.document-editor-split-layout {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "doc-source doc-preview";
   min-height: 0;
   align-items: stretch;
 }
@@ -122,16 +123,17 @@ body.document-mode-reading #text-compact-toolbar-host {
 }
 
 #text-editor-host.document-editor-split-layout .monaco-editor {
-  grid-column: 1;
-  grid-row: 1;
+  grid-area: doc-source;
   min-width: 0;
   min-height: 0;
+  width: 100% !important;
+  max-width: 100%;
 }
 
 #text-editor-host.document-editor-split-layout > .document-split-preview,
 #text-editor-host.document-editor-split-layout > #document-split-preview-host {
-  grid-column: 2;
-  grid-row: 1;
+  grid-area: doc-preview;
+  min-width: 0;
 }
 
 .document-split-preview {
