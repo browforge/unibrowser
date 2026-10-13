@@ -1,7 +1,10 @@
 //! Per-window tab set and related UI session state (split, undo, compare).
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+
+use unibrowser_document_model::HistoryLogEntry;
 
 use unibrowser_engine::TabManager;
 
@@ -24,6 +27,7 @@ pub struct WindowSession {
     pub file_compare: Mutex<Option<FileCompareState>>,
     pub image_compare: Mutex<Option<ImageCompareState>>,
     pub chrome_notice: Mutex<Option<String>>,
+    pub document_history_redo: Mutex<HashMap<String, Vec<HistoryLogEntry>>>,
 }
 
 impl WindowSession {
@@ -51,6 +55,7 @@ impl WindowSession {
             file_compare: Mutex::new(None),
             image_compare: Mutex::new(None),
             chrome_notice: Mutex::new(None),
+            document_history_redo: Mutex::new(HashMap::new()),
         }
     }
 }

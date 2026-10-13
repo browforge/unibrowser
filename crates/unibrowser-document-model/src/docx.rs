@@ -50,12 +50,10 @@ pub fn model_to_docx_html(model: &DocumentModel) -> String {
                     html_escape(&o.raw)
                 ));
             }
-            Block::Image { alt, src, .. } => {
-                out.push_str(&format!(
-                    "<p><img alt=\"{}\" src=\"{}\"/></p>",
-                    html_escape(alt),
-                    html_escape(src)
-                ));
+            Block::Image { alt, .. } => {
+                out.push_str("<p>");
+                out.push_str(&html_escape(alt));
+                out.push_str("</p>");
             }
             Block::HorizontalRule { .. } => out.push_str("<hr/>"),
             Block::Table { .. } => out.push_str("<p><!-- table --></p>"),

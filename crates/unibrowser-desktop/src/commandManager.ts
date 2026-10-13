@@ -19,6 +19,32 @@ import { commandGroupBudgetFromViewport } from "./ui/commandOverflow";
 import { isWebPlatform } from "./platform/isWeb";
 import { refreshTextCompactToolbar } from "./textCompactToolbar";
 
+function docFeatureCaptureDemoActive(): boolean {
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  return (
+    demo.includes("text-card-render1") &&
+    (demo.includes("doc-opaque-card") ||
+      demo.includes("doc-history-panel") ||
+      demo.includes("doc-visual-md-docx") ||
+      demo.includes("doc-mode-") ||
+      demo.includes("doc-merge-banner"))
+  );
+}
+
+function compactToolbarTabForSnapshot(
+  snapshot: CommandManagerDto,
+  active: ManagerTabDto | undefined,
+): { tab: ManagerTabDto | undefined; autoContext: string } {
+  if (!docFeatureCaptureDemoActive()) {
+    return { tab: active, autoContext: snapshot.auto_context };
+  }
+  const textTab = snapshot.tabs.find((t) => t.id === "text");
+  if (textTab && (textTab.compact_toolbar_families?.length ?? 0) > 0) {
+    return { tab: textTab, autoContext: "text" };
+  }
+  return { tab: active, autoContext: snapshot.auto_context };
+}
+
 function prioritizeWebMarkdownGroups(
   groups: ReturnType<typeof familiesToRenderGroups>,
 ): ReturnType<typeof familiesToRenderGroups> {
@@ -702,11 +728,12 @@ export const commandManager = {
       const compactDocked = snapshot.floating_bars.filter((bar) =>
         bar.id.startsWith("text-toolbar-sample."),
       );
+      const compactPick = compactToolbarTabForSnapshot(snapshot, active);
       refreshTextCompactToolbar(
         compactHost,
         modToolbarHost,
-        active,
-        snapshot.auto_context,
+        compactPick.tab,
+        compactPick.autoContext,
         compactDocked,
         onRun,
         chordByCommand,

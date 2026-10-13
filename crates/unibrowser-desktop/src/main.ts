@@ -220,6 +220,7 @@ import {
   validateFocusRingForCapture,
   validateTextCompactToolbarForCapture,
   validateDocumentCardFooterForCapture,
+  validateDocumentFeatureCaptureChrome,
   validateMarkdownPreviewImageFitsPage,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
@@ -2270,6 +2271,8 @@ async function applyState(data: TabContentDto) {
       textEditor.hide(textEditorHost);
     }
     if (showViewer && data.document_viewer) {
+      const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+      syncTextDocumentCard(false);
       if (data.document_viewer.viewer === "settings") {
         floatingToolbarHost.classList.add("hidden");
         void invoke("dock_all_detached_toolbars").catch(() => undefined);
@@ -2393,6 +2396,13 @@ async function refreshState() {
     showToast(String(err), "error");
   }
 }
+
+const winDemoHooks = window as unknown as {
+  __unibrowserRefreshState?: () => Promise<void>;
+  __unibrowserApplyState?: (data: TabContentDto) => Promise<void>;
+};
+winDemoHooks.__unibrowserRefreshState = refreshState;
+winDemoHooks.__unibrowserApplyState = applyState;
 
 async function selectTab(index: number) {
   await textEditor.flush();
@@ -3178,6 +3188,23 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
         try {
           await refreshCommandManager();
           await applyDeferredTextToolbarDemoTokens(demo);
+          const demoLowerInteractive = demo.toLowerCase();
+          const interactiveDocFeatureShot =
+            demoLowerInteractive.includes("doc-mode-") ||
+            demoLowerInteractive.includes("doc-opaque-card") ||
+            demoLowerInteractive.includes("doc-history-panel") ||
+            demoLowerInteractive.includes("doc-merge-banner") ||
+            demoLowerInteractive.includes("doc-visual-md-docx");
+          if (interactiveDocFeatureShot) {
+            const { ensureDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
+            await ensureDocFeatureCaptureLayout(demo, {
+              refreshState,
+              refreshCommandManager,
+              applyDemoToken: async (token) => {
+                await applyDemoState(token);
+              },
+            });
+          }
           if (demo.toLowerCase().includes("ai")) {
             await refreshAiAssistantChrome();
           }
@@ -3315,6 +3342,35 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               await invoke("abort_doc_capture", { reason: themeErr });
               return;
             }
+          }
+          const docCaptureDemo = demoAgain ?? "";
+          const isDocFeatureShot =
+            docCaptureDemo.toLowerCase().includes("doc-mode-") ||
+            docCaptureDemo.toLowerCase().includes("doc-opaque-card") ||
+            docCaptureDemo.toLowerCase().includes("doc-history-panel") ||
+            docCaptureDemo.toLowerCase().includes("doc-merge-banner") ||
+            docCaptureDemo.toLowerCase().includes("doc-visual-md-docx");
+          if (isDocFeatureShot) {
+            const { ensureDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
+            await ensureDocFeatureCaptureLayout(docCaptureDemo, {
+              refreshState,
+              refreshCommandManager,
+              applyDemoToken: async (token) => {
+                await applyDemoState(token);
+              },
+            });
+          } else {
+            const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
+            dismissDocCaptureChrome();
+            const { setRailMode } = await import("./ui/activityRail");
+            setRailMode("collapsed");
+          }
+          const docChromeErr = validateDocumentFeatureCaptureChrome();
+          if (docChromeErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${docChromeErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
           }
           const cmErr = validateCommandManagerForCapture();
           if (cmErr) {
@@ -3578,7 +3634,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           }
           const txtCompactErr = validateTextCompactToolbarForCapture({
             requirePickerOpen: demoLower.includes("txt-block-picker-open"),
-            requireH2Selected: demoLower.includes("txt-apply-h2"),
+            requireH2Selected:
+              demoLower.includes("txt-apply-h2") &&
+              !demoLower.includes("doc-history-panel"),
             requireDocxEmulatedH1:
               demoLower.includes("txt-apply-h1") &&
               launchPaths.some((p) => /\.docx$/i.test(p)),
@@ -3590,6 +3648,12 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          const flyoutEl = document.querySelector<HTMLElement>(
+            ".rail-side-panel:not(.hidden)",
+          );
+          const railFlyoutWidth = flyoutEl
+            ? flyoutEl.getBoundingClientRect().width
+            : 0;
           await invoke("write_doc_capture_cm_json", {
             json: JSON.stringify({
               ...(diag.commandManager ?? {
@@ -3601,6 +3665,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               statusBar: diag.statusBar,
               viewportWidth: window.innerWidth,
               viewportHeight: window.innerHeight,
+              railFlyoutWidth,
               ...(blockPickerMetrics ? { blockPicker: blockPickerMetrics } : {}),
             }),
           });

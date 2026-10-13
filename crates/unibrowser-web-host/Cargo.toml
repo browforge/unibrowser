@@ -17,6 +17,7 @@ unibrowser-mod-api = { path = "../unibrowser-mod-api" }
 unibrowser-platform = { path = "../unibrowser-platform" }
 base-text = { path = "../../mods/base-text" }
 unibrowser-document-model = { path = "../unibrowser-document-model" }
+unibrowser-docx = { path = "../unibrowser-docx" }
 base64 = "0.22"
 toy-markdown = { path = "../../mods/toy-markdown" }
 

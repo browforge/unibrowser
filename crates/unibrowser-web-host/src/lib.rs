@@ -97,6 +97,90 @@ mod tests {
     }
 
     #[test]
+    fn visual_md_blockquote_save_opens_virtual_docx_tab() {
+        host_init();
+        let markdown =
+            "# Demo markdown\n\n> Render 1 block quotes use a pale blue panel.\n\n**Bold** and _italic_\n";
+        let open_args = serde_json::json!({
+            "path": "demo-pack/sample.md",
+            "content": markdown
+        });
+        let open_raw = host_invoke(
+            "open_text_with_content",
+            &serde_json::to_string(&open_args).unwrap(),
+        );
+        assert!(open_raw.contains("\"ok\":true"), "{open_raw}");
+        let parse_raw = host_invoke(
+            "document_parse_markdown",
+            &serde_json::json!({ "content": markdown }).to_string(),
+        );
+        assert!(parse_raw.contains("\"ok\":true"), "{parse_raw}");
+        let model = serde_json::from_str::<serde_json::Value>(&parse_raw)
+            .unwrap()
+            .get("value")
+            .and_then(|v| v.get("model"))
+            .cloned()
+            .expect("model");
+        let save_raw = host_invoke(
+            "document_save_markdown_as_docx",
+            &serde_json::json!({
+                "markdownPath": "demo-pack/sample.md",
+                "model": model
+            })
+            .to_string(),
+        );
+        assert!(save_raw.contains("\"ok\":true"), "{save_raw}");
+    }
+
+    #[test]
+    fn visual_md_save_opens_virtual_docx_tab() {
+        host_init();
+        let open_args = serde_json::json!({
+            "path": "demo-pack/sample.md",
+            "content": "# Demo\n\n> quote\n\n**Bold** text\n"
+        });
+        let open_raw = host_invoke(
+            "open_text_with_content",
+            &serde_json::to_string(&open_args).unwrap(),
+        );
+        assert!(open_raw.contains("\"ok\":true"), "{open_raw}");
+        let parse_raw = host_invoke(
+            "document_parse_markdown",
+            &serde_json::json!({ "content": "# Demo\n\n> quote\n\n**Bold** text\n" }).to_string(),
+        );
+        assert!(parse_raw.contains("\"ok\":true"), "{parse_raw}");
+        let model = serde_json::from_str::<serde_json::Value>(&parse_raw)
+            .unwrap()
+            .get("value")
+            .and_then(|v| v.get("model"))
+            .cloned()
+            .expect("model");
+        let save_raw = host_invoke(
+            "document_save_markdown_as_docx",
+            &serde_json::json!({
+                "markdownPath": "demo-pack/sample.md",
+                "model": model
+            })
+            .to_string(),
+        );
+        assert!(save_raw.contains("\"ok\":true"), "{save_raw}");
+        let save_value = serde_json::from_str::<serde_json::Value>(&save_raw).unwrap();
+        let saved = save_value
+            .get("value")
+            .and_then(|v| v.as_str())
+            .expect("saved path");
+        let reopen_args = serde_json::json!({ "path": saved }).to_string();
+        let reopen_raw = host_invoke("open_path", &reopen_args);
+        assert!(reopen_raw.contains("\"ok\":true"), "{reopen_raw}");
+        let reopen_value = serde_json::from_str::<serde_json::Value>(&reopen_raw).unwrap();
+        let snap = reopen_value.get("value").expect("snapshot");
+        assert!(
+            snap.get("document_viewer").is_some(),
+            "expected document_viewer in snapshot: {snap}"
+        );
+    }
+
+    #[test]
     fn markdown_tab_exposes_compact_toolbar_families() {
         host_init();
         let open_args = serde_json::json!({

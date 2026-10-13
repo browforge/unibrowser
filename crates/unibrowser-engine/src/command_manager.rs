@@ -43,7 +43,8 @@ pub fn infer_context(
     if is_http {
         return CommandContext::Web;
     }
-    if let (Some(mode), Some(path)) = (backend_mode, doc_path) {
+    if let Some(path) = doc_path {
+        let mode = backend_mode.unwrap_or(unibrowser_mod_api::Mode::Text);
         return CommandContext::from_mode_and_path(mode, path);
     }
     CommandContext::Browse
@@ -64,6 +65,12 @@ mod tests {
     #[test]
     fn text_context_for_plain_txt() {
         let ctx = infer_context(false, false, Some("notes.txt"), Some(Mode::Text));
+        assert_eq!(ctx, CommandContext::Text);
+    }
+
+    #[test]
+    fn text_context_when_document_session_still_loading() {
+        let ctx = infer_context(false, false, Some("demo-pack/sample-opaque.md"), None);
         assert_eq!(ctx, CommandContext::Text);
     }
 

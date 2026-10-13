@@ -282,6 +282,8 @@ pub fn run() {
             commands::document_merge_source,
             commands::document_history_list,
             commands::document_history_append,
+            commands::document_history_append_snapshot,
+            commands::document_save_markdown_as_docx,
             commands::document_save_docx_from_model,
             commands::document_promote_opaque,
             rhai_host::run_rhai_script,

@@ -7,7 +7,7 @@ import { isToolbarOnlyWindow } from "./toolbarOnly";
 
 /** Tokens that need editor/compact toolbar ready (also deferred in doc-capture). */
 export const DEFERRED_DEMO_TOKEN_RE =
-  /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$)/;
+  /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$|doc-visual-md-docx$)/;
 
 export function bootstrapDemoStateTokens(raw: string): string {
   return raw
@@ -176,12 +176,16 @@ export async function applyDemoState(raw: string) {
         await invoke("open_path", { path: "demo-pack/sample-opaque.md" });
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("wysiwyg", false);
+        const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+        syncTextDocumentCard(true, "sample-opaque.md");
         break;
       }
       case "doc-history-panel": {
         await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("source", false);
+        const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+        syncTextDocumentCard(true, "sample.md");
         await new Promise((r) => window.setTimeout(r, 400));
         const docPath = document.body.dataset.activeDocumentPath ?? "demo-pack/sample.md";
         await invoke("document_history_append", {
@@ -207,22 +211,66 @@ export async function applyDemoState(raw: string) {
         const { showHistoryPanelTab, refreshHistoryPanel } = await import("./historyPanel");
         showHistoryPanelTab();
         await refreshHistoryPanel(docPath);
+        await new Promise((r) => window.setTimeout(r, 250));
+        const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
+        dismissDocCaptureChrome();
         break;
       }
       case "doc-visual-docx": {
         await invoke("open_path", { path: "demo-pack/sample-rich.docx" });
         break;
       }
-      case "text-card-render1":
-        document.body.classList.add("cm-collapsed");
-        {
-          const rail = document.getElementById("activity-rail");
-          rail?.querySelectorAll(".rail-destination.active").forEach((el) => {
-            el.classList.remove("active");
-          });
-          rail?.querySelector<HTMLElement>(".rail-side-panel")?.classList.add("hidden");
+      case "doc-visual-md-docx": {
+        const mdPath = "demo-pack/sample.md";
+        const { isWebPlatform } = await import("./platform/isWeb");
+        const markdown =
+          "# Demo markdown\n\n> Render 1 block quotes use a pale blue panel.\n\n**Bold** and _italic_\n";
+        if (isWebPlatform()) {
+          await invoke("open_text_with_content", { path: mdPath, content: markdown });
+        } else {
+          await invoke("open_path", { path: "examples/demo-pack/sample.md" }).catch(() => undefined);
+          const editorHost = document.getElementById("text-editor-host");
+          if (editorHost) {
+            const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+            await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
+          }
+          const { setDocumentEditorMode } = await import("./documentEditorModes");
+          setDocumentEditorMode("wysiwyg", false);
+          const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+          syncTextDocumentCard(true, "sample.md");
+        }
+        const { parseMarkdownDocument } = await import("./documentModelBridge");
+        const { seedDocumentModelSessionForDemo } = await import("./documentEditorHost");
+        seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
+        const { saveMarkdownVisualAsDocx } = await import("./documentModelBridge");
+        const saved = await saveMarkdownVisualAsDocx(mdPath);
+        const opened = await invoke<{ tabs: unknown[] }>("open_path", { path: saved });
+        const apply = (
+          window as unknown as {
+            __unibrowserApplyState?: (data: unknown) => Promise<void>;
+          }
+        ).__unibrowserApplyState;
+        if (apply) {
+          await apply(opened);
+          const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+          syncTextDocumentCard(false);
+        } else {
+          const refresh = (
+            window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
+          ).__unibrowserRefreshState;
+          if (refresh) {
+            await refresh();
+          }
         }
         break;
+      }
+      case "text-card-render1": {
+        const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
+        dismissDocCaptureChrome();
+        const { setRailMode } = await import("./ui/activityRail");
+        setRailMode("collapsed");
+        break;
+      }
       case "txt-mod-toolbar-visible":
         document.documentElement.dataset.ubModToolbarDocked = "1";
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));

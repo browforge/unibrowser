@@ -9532,10 +9532,12 @@ dependencies = [
 name = "unibrowser-document-model"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "hex",
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "thiserror 2.0.21",
  "unibrowser-mod-api",
 ]
@@ -9760,6 +9762,7 @@ dependencies = [
  "serde_json",
  "toy-markdown",
  "unibrowser-document-model",
+ "unibrowser-docx",
  "unibrowser-engine",
  "unibrowser-mod-api",
  "unibrowser-platform",

@@ -150,16 +150,12 @@ async function commitModelToMarkdown(touchedBlockIds: string[]) {
   });
   const { textEditor } = await import("./textEditor");
   await textEditor.setContentFromHost(content);
-  for (const blockId of dirty) {
-    await appendDocumentHistoryOp(documentPath, {
-      op_type: "base-text.text.replace",
-      block_id: blockId,
-      from: 0,
-      to: 0,
-      text: "",
-      marks: [],
-    }).catch(() => undefined);
-  }
+  const { appendDocumentHistorySnapshot } = await import("./documentModelBridge");
+  await appendDocumentHistorySnapshot(documentPath, {
+    model: session.model,
+    source_map: session.source_map,
+    original_base64: session.original_base64,
+  }).catch(() => undefined);
 }
 
 async function renderRich() {
@@ -305,6 +301,8 @@ export async function syncDocumentEditorForTextTab(
   hideLegacyMarkdownPreview();
   applySurfaceVisibility(getDocumentEditorMode());
   await renderRich();
+  const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+  syncTextDocumentCard(true, path.split(/[/\\]/).pop() ?? null);
 }
 
 export async function onMonacoMarkdownContentChanged(content: string) {
@@ -324,6 +322,15 @@ export function getDocumentModelSession(): {
     return null;
   }
   return session;
+}
+
+/** Demo/capture fallback when the editor surface has not finished mounting yet. */
+export function seedDocumentModelSessionForDemo(response: DocumentParseResponse): void {
+  session = {
+    model: response.model,
+    source_map: response.source_map,
+    original_base64: response.original_base64,
+  };
 }
 
 export function teardownDocumentEditor() {

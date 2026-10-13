@@ -86,7 +86,12 @@ function joinDocRelative(basePath: string, href: string): string {
   const dir = slash >= 0 ? normalizedBase.slice(0, slash + 1) : "";
   const joined = `${dir}${trimmed}`.replace(/\/+/g, "/");
   if (isWebPlatform()) {
-    return joined.startsWith("./") || joined.startsWith("/") ? joined : `./${joined}`;
+    const base = import.meta.env.BASE_URL ?? "/";
+    const normalized = joined.replace(/^\.\//, "");
+    if (normalized.startsWith("/") || normalized.startsWith("http")) {
+      return normalized;
+    }
+    return `${base}${normalized}`;
   }
   return joined;
 }
@@ -275,6 +280,8 @@ export async function mountRichTextEditor(
     onModelChange?.(next, touched);
   });
   if (basePath) {
+    await resolveRichImages(host, basePath);
+    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
     await resolveRichImages(host, basePath);
   }
   return host.querySelector("article") ?? host;

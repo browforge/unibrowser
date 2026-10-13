@@ -188,6 +188,26 @@ pub fn build_snapshot(host: &mut WebHost, prefs: &WebPrefs) -> TabContentDto {
     let fallback_status = format!("{} commands (web demo)", command_count);
     let status = document_status.unwrap_or(fallback_status);
 
+    let document_viewer = tabs.active_tab().and_then(|tab| {
+        let BrowserLocation::File { path } = &tab.location else {
+            return None;
+        };
+        let key = path.to_string_lossy().to_string();
+        if !host.virtual_docx_bytes.contains_key(&key) {
+            return None;
+        }
+        let title = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| key.clone());
+        Some(serde_json::json!({
+            "path": key,
+            "viewer": "docx",
+            "title": title,
+            "reader_font_pt": 12.0,
+        }))
+    });
+
     TabContentDto {
         tabs: tabs
             .tabs()
@@ -221,7 +241,7 @@ pub fn build_snapshot(host: &mut WebHost, prefs: &WebPrefs) -> TabContentDto {
         text_document,
         mod_portal: None,
         unknown_file_banner: host.last_unknown_banner.clone(),
-        document_viewer: None,
+        document_viewer,
         show_onboarding,
         show_onboarding_tour,
         recent_files: host

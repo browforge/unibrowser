@@ -88,6 +88,9 @@ fn write_file_atomic(path: &Path, header: &str, ops: &[HistoryLogEntry]) -> Resu
     let tmp = path.with_extension("unibrow-history.part");
     let mut file = fs::File::create(&tmp).map_err(|e| e.to_string())?;
     file.write_all(header.as_bytes()).map_err(|e| e.to_string())?;
+    if !header.ends_with('\n') {
+        file.write_all(b"\n").map_err(|e| e.to_string())?;
+    }
     file.write_all(LOG_MARKER.as_bytes()).map_err(|e| e.to_string())?;
     file.write_all(b"\n").map_err(|e| e.to_string())?;
     for op in ops {
@@ -162,6 +165,23 @@ pub fn ensure_sidecar_exists(authoritative: &Path) -> Result<PathBuf, String> {
         write_file_atomic(&sidecar, &default_header(), &[])?;
     }
     Ok(sidecar)
+}
+
+pub fn pop_last_op(sidecar: &Path) -> Result<Option<HistoryLogEntry>, String> {
+    let (header, mut ops) = read_header_and_ops(sidecar)?;
+    if ops.is_empty() {
+        return Ok(None);
+    }
+    let popped = ops.pop();
+    write_file_atomic(sidecar, &header, &ops)?;
+    Ok(popped)
+}
+
+pub fn push_op_entry(sidecar: &Path, entry: HistoryLogEntry) -> Result<(), String> {
+    let (header, mut ops) = read_header_and_ops(sidecar)?;
+    ops.push(entry);
+    write_file_atomic(sidecar, &header, &ops)?;
+    Ok(())
 }
 
 pub fn touch_sidecar(authoritative: &Path) -> Result<(), String> {

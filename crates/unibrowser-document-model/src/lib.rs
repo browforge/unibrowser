@@ -3,6 +3,7 @@
 pub mod docx;
 pub mod history;
 pub mod history_file;
+pub mod history_undo;
 pub mod markdown;
 pub mod model;
 pub mod reparse;
@@ -16,7 +17,12 @@ pub use model::{
     OpaqueBlock, SourceMap, SourceMapEntry, SCHEMA_ID,
 };
 pub use history_file::{
-    append_document_op, list_ops, load_head, sidecar_path_for_file, HistoryLogEntry,
+    append_document_op, list_ops, load_head, pop_last_op, push_op_entry, sidecar_path_for_file,
+    HistoryLogEntry,
+};
+pub use history_undo::{
+    decode_snapshot_blob, encode_snapshot_blob, serialize_session_state, session_at_history_head,
+    session_state_after_bytes, session_state_after_ops, HistorySessionState,
 };
 pub use reparse::{merge_source_text, mode_switch_preserves_bytes, source_projection, ModeSwitchReport, SourceMergeResult};
 pub use session::DocumentEditSession;

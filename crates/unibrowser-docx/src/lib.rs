@@ -5,7 +5,7 @@
 
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Cursor, Read, Write};
 use std::path::Path;
 
 use docx_rs::{Docx, Paragraph, Run};
@@ -65,7 +65,7 @@ const ORIGINAL_UNSUPPORTED: &[&str] = &[
 
 const HTML_ALLOWED: &[&str] = &[
     "p", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "b", "em", "i", "u", "br", "span", "a",
-    "ul", "ol", "li",
+    "ul", "ol", "li", "blockquote",
 ];
 
 /// Scan `word/document.xml` for OOXML this writer cannot preserve.
@@ -101,8 +101,88 @@ pub fn save_docx_from_document_model(
     save_docx_from_html(docx_path, &html)
 }
 
+/// In-memory DOCX zip for WASM and other hosts without a writable filesystem.
+pub fn save_docx_from_document_model_bytes(
+    model: &unibrowser_document_model::DocumentModel,
+) -> Result<Vec<u8>, DocxSaveError> {
+    let html = unibrowser_document_model::model_to_docx_html(model);
+    let shell = minimal_docx_zip_bytes()?;
+    save_docx_from_html_bytes(&shell, &html)
+}
+
+fn minimal_docx_zip_bytes() -> Result<Vec<u8>, DocxSaveError> {
+    let doc = Docx::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(" ")));
+    let mut buf = Vec::new();
+    doc.build()
+        .pack(Cursor::new(&mut buf))
+        .map_err(|e| DocxSaveError::Msg(e.to_string()))?;
+    Ok(buf)
+}
+
+fn read_zip_entry_bytes(zip_bytes: &[u8], name: &str) -> Result<String, DocxSaveError> {
+    let mut archive = ZipArchive::new(Cursor::new(zip_bytes))?;
+    let mut entry = archive.by_name(name)?;
+    let mut buf = String::new();
+    entry.read_to_string(&mut buf)?;
+    Ok(buf)
+}
+
+fn save_docx_from_html_bytes(shell: &[u8], html: &str) -> Result<Vec<u8>, DocxSaveError> {
+    let blocks = parse_html_blocks(html)?;
+    let blocks = if blocks.is_empty() {
+        vec![Block::Paragraph(Vec::new())]
+    } else {
+        blocks
+    };
+    let sect = extract_sect_pr(&read_zip_entry_bytes(shell, "word/document.xml")?)?;
+    let new_document_xml = build_document_xml(&blocks, sect.as_deref())?;
+    repack_docx_bytes(shell, "word/document.xml", &new_document_xml)
+}
+
+fn repack_docx_bytes(
+    src: &[u8],
+    replace_name: &str,
+    replace_bytes: &[u8],
+) -> Result<Vec<u8>, DocxSaveError> {
+    let mut archive = ZipArchive::new(Cursor::new(src))?;
+    let mut out = Vec::new();
+    let mut writer = ZipWriter::new(Cursor::new(&mut out));
+    let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let name = file.name().to_string();
+        writer.start_file(name.clone(), opts)?;
+        if name == replace_name {
+            writer.write_all(replace_bytes)?;
+        } else {
+            let mut buf = Vec::new();
+            file.read_to_end(&mut buf)?;
+            writer.write_all(&buf)?;
+        }
+    }
+    writer.finish()?;
+    Ok(out)
+}
+
+fn ensure_empty_docx_shell(docx_path: &Path) -> Result<(), DocxSaveError> {
+    if docx_path.exists() {
+        return Ok(());
+    }
+    if let Some(parent) = docx_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let doc = Docx::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(" ")));
+    let mut buf = Vec::new();
+    doc.build()
+        .pack(Cursor::new(&mut buf))
+        .map_err(|e| DocxSaveError::Msg(e.to_string()))?;
+    std::fs::write(docx_path, buf)?;
+    Ok(())
+}
+
 /// Replace document body from HTML produced by the Mammoth preview (supported subset only).
 pub fn save_docx_from_html(docx_path: &Path, html: &str) -> Result<DocxSaveReport, DocxSaveError> {
+    ensure_empty_docx_shell(docx_path)?;
     let mut warnings = Vec::new();
     let original_issues = scan_original_fidelity(docx_path)?;
     if !original_issues.is_empty() {
@@ -197,6 +277,17 @@ fn blocks_from_root(root: ElementRef<'_>) -> Result<Vec<Block>, DocxSaveError> {
                 let li_sel = scraper::Selector::parse("li").unwrap();
                 for li in el.select(&li_sel) {
                     blocks.push(Block::Paragraph(inline_runs_from(li)));
+                }
+            }
+            "blockquote" => {
+                let p_sel = scraper::Selector::parse("p").unwrap();
+                let paragraphs: Vec<_> = el.select(&p_sel).collect();
+                if paragraphs.is_empty() {
+                    blocks.push(Block::Paragraph(inline_runs_from(el)));
+                } else {
+                    for p in paragraphs {
+                        blocks.push(Block::Paragraph(inline_runs_from(p)));
+                    }
                 }
             }
             _ => {
@@ -340,6 +431,132 @@ fn repack_docx(
     Ok(())
 }
 
+/// Reconstruct a document model from a DOCX written by [`save_docx_from_document_model`].
+pub fn document_model_from_docx_path(docx_path: &Path) -> Result<unibrowser_document_model::DocumentModel, DocxSaveError> {
+    use unibrowser_document_model::model::{InlineSpan, SCHEMA_VERSION};
+    use unibrowser_document_model::{Block, DocumentMetadata, DocumentModel, SCHEMA_ID};
+    let xml = read_zip_entry(docx_path, "word/document.xml")?;
+    let mut reader = Reader::from_str(&xml);
+    reader.config_mut().trim_text(true);
+    let mut buf = Vec::new();
+    let mut blocks: Vec<Block> = Vec::new();
+    let mut in_p = false;
+    let mut heading_level: Option<u8> = None;
+    let mut para_text = String::new();
+    let mut block_index = 0usize;
+
+    fn push_block(
+        blocks: &mut Vec<Block>,
+        block_index: &mut usize,
+        heading_level: Option<u8>,
+        para_text: &mut String,
+    ) {
+        let text = para_text.trim().to_string();
+        if text.is_empty() && heading_level.is_none() {
+            para_text.clear();
+            return;
+        }
+        let id = format!("b{}", *block_index + 1);
+        *block_index += 1;
+        let inlines = vec![InlineSpan {
+            text: if text.is_empty() { " ".into() } else { text },
+            marks: vec![],
+        }];
+        if let Some(level) = heading_level {
+            blocks.push(Block::Heading {
+                id,
+                level,
+                inlines,
+            });
+        } else {
+            blocks.push(Block::Paragraph { id, inlines });
+        }
+        para_text.clear();
+    }
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Eof) => break,
+            Ok(Event::Start(e)) => {
+                let name = e.name();
+                if name.as_ref() == b"w:p" {
+                    in_p = true;
+                    heading_level = None;
+                    para_text.clear();
+                } else if in_p && name.as_ref() == b"w:pStyle" {
+                    if let Some(attr) = e
+                        .attributes()
+                        .filter_map(|a| a.ok())
+                        .find(|a| a.key.as_ref() == b"w:val")
+                    {
+                        let style = String::from_utf8_lossy(&attr.value);
+                        if style.starts_with("Heading") {
+                            heading_level = style[7..].parse().ok();
+                        }
+                    }
+                }
+            }
+            Ok(Event::Text(t)) if in_p => {
+                para_text.push_str(&t.unescape().unwrap_or_default());
+            }
+            Ok(Event::End(e)) if e.name().as_ref() == b"w:p" && in_p => {
+                push_block(&mut blocks, &mut block_index, heading_level, &mut para_text);
+                in_p = false;
+                heading_level = None;
+            }
+            Ok(_) => {}
+            Err(e) => return Err(DocxSaveError::Xml(e.to_string())),
+        }
+        buf.clear();
+    }
+
+    if blocks.is_empty() {
+        blocks.push(Block::Paragraph {
+            id: "b1".into(),
+            inlines: vec![InlineSpan {
+                text: " ".into(),
+                marks: vec![],
+            }],
+        });
+    }
+
+    Ok(DocumentModel {
+        schema_id: SCHEMA_ID.into(),
+        schema_version: SCHEMA_VERSION.into(),
+        metadata: DocumentMetadata {
+            title: None,
+            front_matter: None,
+            host_format: "docx".into(),
+            serializer_plugin_id: "base-docx".into(),
+        },
+        blocks,
+    })
+}
+
+fn model_block_text_outline(model: &unibrowser_document_model::DocumentModel) -> Vec<String> {
+    use unibrowser_document_model::Block;
+    model
+        .blocks
+        .iter()
+        .filter_map(|block| {
+            let text = match block {
+                Block::Heading { inlines, .. } | Block::Paragraph { inlines, .. } => inlines
+                    .iter()
+                    .map(|s| s.text.as_str())
+                    .collect::<String>()
+                    .trim()
+                    .to_string(),
+                _ => return None,
+            };
+            if text.is_empty() {
+                None
+            } else {
+                Some(text)
+            }
+        })
+        .collect()
+}
+
 /// Plain text from all `w:t` nodes (tests / verification).
 pub fn extract_plain_text(docx_path: &Path) -> Result<String, DocxSaveError> {
     let xml = read_zip_entry(docx_path, "word/document.xml")?;
@@ -383,6 +600,38 @@ mod tests {
         let path = dir.join("tiny.docx");
         write_minimal_docx(&path, "Hi");
         assert!(path.metadata().unwrap().len() > 100);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn markdown_model_docx_fixture() {
+        let parsed = unibrowser_document_model::parse_markdown(b"# Title\n\nPara with **bold**.\n");
+        let dir = std::env::temp_dir().join("unibrowser-docx-md-model");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("from-model.docx");
+        write_minimal_docx(&path, " ");
+        save_docx_from_document_model(&path, &parsed.model).expect("save from model");
+        let text = extract_plain_text(&path).expect("read");
+        assert!(text.contains("Title"));
+        assert!(text.contains("Para"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn markdown_model_docx_model_roundtrip_equivalence() {
+        let fixture = b"# Roundtrip title\n\nFirst paragraph.\n\nSecond paragraph.\n";
+        let parsed = unibrowser_document_model::parse_markdown(fixture);
+        let before = model_block_text_outline(&parsed.model);
+        let dir = std::env::temp_dir().join("unibrowser-docx-md-roundtrip");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("roundtrip.docx");
+        write_minimal_docx(&path, " ");
+        save_docx_from_document_model(&path, &parsed.model).expect("save");
+        let round = document_model_from_docx_path(&path).expect("read model");
+        let after = model_block_text_outline(&round);
+        assert_eq!(before, after);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

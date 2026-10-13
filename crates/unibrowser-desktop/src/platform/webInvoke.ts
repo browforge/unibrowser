@@ -44,6 +44,12 @@ export async function webInvoke<T>(cmd: string, args?: Record<string, unknown>):
     }
     case "open_path": {
       const path = String(args?.path ?? "");
+      // Virtual/binary demo paths (e.g. Save As DOCX under demo-pack/) live in the WASM host.
+      if (/\.docx$/i.test(path)) {
+        const state = await wasmInvoke<unknown>(cmd, args);
+        notifyBrowserState();
+        return state as T;
+      }
       if (path.startsWith("demo-pack/") || path.includes("/demo-pack/")) {
         const rel = path.replace(/^.*demo-pack\//, "demo-pack/");
         const content = await fetchDemoPack(rel);

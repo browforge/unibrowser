@@ -41,6 +41,8 @@ pub struct WebHost {
     pub pending_save: Option<(String, String)>,
     pub ai_prefs: AiAssistantPrefsWeb,
     pub document_history: HashMap<String, Vec<HistoryLogEntry>>,
+    pub document_history_redo: HashMap<String, Vec<HistoryLogEntry>>,
+    pub virtual_docx_bytes: HashMap<String, Vec<u8>>,
 }
 
 impl WebHost {
@@ -72,6 +74,8 @@ impl WebHost {
             pending_save: None,
             ai_prefs: AiAssistantPrefsWeb::default(),
             document_history: HashMap::new(),
+            document_history_redo: HashMap::new(),
+            virtual_docx_bytes: HashMap::new(),
         }
     }
 
@@ -213,7 +217,69 @@ impl WebHost {
                 let seq = list.last().map(|e| e.seq + 1).unwrap_or(1);
                 let entry = crate::document_model::history_entry_from_op(op, seq)?;
                 list.push(entry);
+                self.document_history_redo.remove(path);
                 Ok(Value::Null)
+            }
+            "document_history_append_snapshot" => {
+                let path = args.get("path").and_then(|v| v.as_str()).ok_or("path required")?;
+                let model: unibrowser_document_model::DocumentModel =
+                    serde_json::from_value(args.get("model").cloned().ok_or("model required")?)
+                        .map_err(|e| e.to_string())?;
+                let source_map: unibrowser_document_model::SourceMap =
+                    serde_json::from_value(args.get("source_map").cloned().ok_or("source_map required")?)
+                        .map_err(|e| e.to_string())?;
+                let original_base64 = args
+                    .get("original_base64")
+                    .and_then(|v| v.as_str())
+                    .ok_or("original_base64 required")?;
+                let blob = unibrowser_document_model::encode_snapshot_blob(&source_map, original_base64);
+                let op = unibrowser_document_model::DocumentHistoryOp::Snapshot {
+                    model,
+                    source_map_blob: blob,
+                };
+                let list = self.document_history.entry(path.to_string()).or_default();
+                let seq = list.last().map(|e| e.seq + 1).unwrap_or(1);
+                let entry = crate::document_model::history_entry_from_op(op, seq)?;
+                list.push(entry);
+                self.document_history_redo.remove(path);
+                Ok(Value::Null)
+            }
+            "document_save_markdown_as_docx" => {
+                let markdown_path = args
+                    .get("markdownPath")
+                    .or_else(|| args.get("markdown_path"))
+                    .and_then(|v| v.as_str())
+                    .ok_or("markdownPath required")?;
+                let model: unibrowser_document_model::DocumentModel =
+                    serde_json::from_value(args.get("model").cloned().ok_or("model required")?)
+                        .map_err(|e| e.to_string())?;
+                let parent = std::path::Path::new(markdown_path);
+                let stem = parent
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "document".into());
+                let out_path = parent
+                    .parent()
+                    .unwrap_or_else(|| std::path::Path::new("."))
+                    .join(format!("{}.docx", stem))
+                    .to_string_lossy()
+                    .to_string();
+                let bytes = unibrowser_docx::save_docx_from_document_model_bytes(&model)
+                    .map_err(|e| e.to_string())?;
+                self.virtual_docx_bytes.insert(out_path.clone(), bytes);
+                Ok(serde_json::to_value(out_path).map_err(|e| e.to_string())?)
+            }
+            "document_undo" => self.cmd_document_undo(),
+            "document_redo" => self.cmd_document_redo(),
+            "read_document_bytes" => {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or("path required")?;
+                if let Some(bytes) = self.virtual_docx_bytes.get(path) {
+                    return Ok(serde_json::to_value(bytes).map_err(|e| e.to_string())?);
+                }
+                Err("read_document_bytes is only available for saved demo DOCX in the web app".into())
             }
             "document_promote_opaque" => {
                 let req: crate::document_model::DocumentPromoteOpaqueRequest =
@@ -370,6 +436,14 @@ impl WebHost {
         let content = args.get("content").and_then(|v| v.as_str());
         if let Some(text) = content {
             return self.open_text_path(path, text);
+        }
+        if self.virtual_docx_bytes.contains_key(path) {
+            self.last_unknown_banner = None;
+            let loc = BrowserLocation::File {
+                path: path.into(),
+            };
+            navigate_tabs(&mut self.tabs, loc, None);
+            return Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?);
         }
         if path.starts_with("demo-pack/") {
             return Err(
@@ -643,6 +717,58 @@ impl WebHost {
             diagnostics: vec!["Web demo: native mods and sidecars are unavailable.".into()],
             shell_contributions: ShellContributionsDto::default(),
         }
+    }
+
+    fn cmd_document_undo(&mut self) -> Result<Value, String> {
+        self.cmd_document_history_step(true)
+    }
+
+    fn cmd_document_redo(&mut self) -> Result<Value, String> {
+        self.cmd_document_history_step(false)
+    }
+
+    fn cmd_document_history_step(&mut self, undo: bool) -> Result<Value, String> {
+        let tab = self.tabs.active_tab_mut().ok_or("no tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        let path = doc.path.clone();
+        if !(path.ends_with(".md") || path.ends_with(".markdown")) {
+            return Err(if undo {
+                "undo not available for this document"
+            } else {
+                "redo not available for this document"
+            }
+            .into());
+        }
+        let backend = base_text::try_text_backend(&mut *doc.backend).ok_or("no text backend")?;
+        let baseline = backend.content.clone();
+        let ops = if undo {
+            let popped = self
+                .document_history
+                .get_mut(&path)
+                .and_then(|list| list.pop())
+                .ok_or("nothing to undo")?;
+            self.document_history_redo
+                .entry(path.clone())
+                .or_default()
+                .push(popped);
+            self.document_history.get(&path).cloned().unwrap_or_default()
+        } else {
+            let entry = self
+                .document_history_redo
+                .get_mut(&path)
+                .and_then(|list| list.pop())
+                .ok_or("nothing to redo")?;
+            self.document_history
+                .entry(path.clone())
+                .or_default()
+                .push(entry);
+            self.document_history.get(&path).cloned().unwrap_or_default()
+        };
+        let state = unibrowser_document_model::session_state_after_bytes(baseline.as_bytes(), &ops)
+            .map_err(|e| e.to_string())?;
+        let text = unibrowser_document_model::serialize_session_state(&state)?;
+        backend.content = text;
+        Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?)
     }
 }
 

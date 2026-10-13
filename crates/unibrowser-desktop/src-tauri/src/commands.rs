@@ -4829,10 +4829,51 @@ pub fn document_history_list(path: String) -> Result<Vec<unibrowser_document_mod
 
 #[tauri::command]
 pub fn document_history_append(
+    window: tauri::Window,
+    state: State<AppState>,
     path: String,
     op: unibrowser_document_model::DocumentHistoryOp,
 ) -> Result<(), String> {
-    crate::document_model_api::history_append_for_path(&path, op)
+    crate::document_model_api::history_append_for_path(&path, op)?;
+    let _sess = ws(&state, &window)?;
+    _sess
+        .document_history_redo
+        .lock()
+        .map_err(|e| e.to_string())?
+        .remove(&path);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn document_history_append_snapshot(
+    window: tauri::Window,
+    state: State<AppState>,
+    path: String,
+    model: unibrowser_document_model::DocumentModel,
+    source_map: unibrowser_document_model::SourceMap,
+    original_base64: String,
+) -> Result<(), String> {
+    crate::document_model_api::history_append_snapshot_for_path(
+        &path,
+        model,
+        source_map,
+        &original_base64,
+    )?;
+    let _sess = ws(&state, &window)?;
+    _sess
+        .document_history_redo
+        .lock()
+        .map_err(|e| e.to_string())?
+        .remove(&path);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn document_save_markdown_as_docx(
+    markdown_path: String,
+    model: unibrowser_document_model::DocumentModel,
+) -> Result<String, String> {
+    crate::document_model_api::save_markdown_as_docx(&markdown_path, &model)
 }
 
 #[tauri::command]
@@ -8091,6 +8132,20 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let tab = tabs.active_tab_mut().ok_or("no tab")?;
         let doc = tab.document.as_mut().ok_or("no document")?;
         let path = doc.path.clone();
+        let markdown_history = path.ends_with(".md") || path.ends_with(".markdown");
+        if markdown_history {
+            let mut redo = _sess_tabs
+                .document_history_redo
+                .lock()
+                .map_err(|e| e.to_string())?;
+            let stack = redo.entry(path.clone()).or_default();
+            if let Some(content) = crate::document_model_api::try_undo_markdown_history(&path, stack)? {
+                if let Some(backend) = try_text_backend(&mut *doc.backend) {
+                    backend.set_content(content);
+                    return snapshot(&state, window.label());
+                }
+            }
+        }
         let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.content.clone()
         } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {
@@ -8131,6 +8186,20 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let tab = tabs.active_tab_mut().ok_or("no tab")?;
         let doc = tab.document.as_mut().ok_or("no document")?;
         let path = doc.path.clone();
+        let markdown_history = path.ends_with(".md") || path.ends_with(".markdown");
+        if markdown_history {
+            let mut redo = _sess_tabs
+                .document_history_redo
+                .lock()
+                .map_err(|e| e.to_string())?;
+            let stack = redo.entry(path.clone()).or_default();
+            if let Some(content) = crate::document_model_api::try_redo_markdown_history(&path, stack)? {
+                if let Some(backend) = try_text_backend(&mut *doc.backend) {
+                    backend.set_content(content);
+                    return snapshot(&state, window.label());
+                }
+            }
+        }
         let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.content.clone()
         } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {

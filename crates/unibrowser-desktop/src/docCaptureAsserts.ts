@@ -1100,6 +1100,61 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
   };
 }
 
+/** Doc-feature captures must use the paper card + compact toolbar, not full CM or rail flyouts. */
+export function validateDocumentFeatureCaptureChrome(): string | null {
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (
+    !demo.includes("doc-mode-") &&
+    !demo.includes("doc-opaque-card") &&
+    !demo.includes("doc-history-panel") &&
+    !demo.includes("doc-merge-banner") &&
+    !demo.includes("doc-visual-docx") &&
+    !demo.includes("doc-visual-md-docx")
+  ) {
+    return null;
+  }
+  if (demo.includes("doc-visual-md-docx")) {
+    const viewer = document.getElementById("document-viewer-host");
+    if (viewer && !viewer.classList.contains("hidden")) {
+      const flyout = document.querySelector<HTMLElement>(".rail-side-panel:not(.hidden)");
+      if (flyout && flyout.getBoundingClientRect().width > 8) {
+        return "activity rail flyout visible during doc feature capture";
+      }
+      const cm = document.getElementById("command-manager");
+      if (cm && !document.body.classList.contains("cm-collapsed")) {
+        const rect = cm.getBoundingClientRect();
+        if (rect.height > 44 && rect.width > 200) {
+          return "full command manager row visible during doc feature capture";
+        }
+      }
+      return null;
+    }
+  }
+  if (!document.body.classList.contains("text-document-card")) {
+    return "document feature capture requires text-document-card layout";
+  }
+  const shell = document.getElementById("document-card-shell");
+  if (!shell || shell.classList.contains("hidden")) {
+    return "document-card-shell hidden during doc feature capture";
+  }
+  const flyout = document.querySelector<HTMLElement>(".rail-side-panel:not(.hidden)");
+  if (flyout && flyout.getBoundingClientRect().width > 8) {
+    return "activity rail flyout visible during doc feature capture";
+  }
+  const cm = document.getElementById("command-manager");
+  if (cm && !document.body.classList.contains("cm-collapsed")) {
+    const rect = cm.getBoundingClientRect();
+    if (rect.height > 44 && rect.width > 200) {
+      return "full command manager row visible during doc feature capture";
+    }
+  }
+  const pinTip = document.querySelector<HTMLElement>(".cm-pin-tip:not(.hidden)");
+  if (pinTip) {
+    return "command manager pin tip visible during doc feature capture";
+  }
+  return null;
+}
+
 /** Returns abort reason or null if CM shows enough visible, contrasting controls. */
 export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6): string | null {
   if (document.body.classList.contains("cm-collapsed")) {

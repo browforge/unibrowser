@@ -108,7 +108,15 @@ const nodes: Record<string, NodeSpec> = {
       return { src: dom.getAttribute("src"), alt: dom.getAttribute("alt") ?? "" };
     } }],
     toDOM(node: PmNode): [string, Record<string, string>] {
-      return ["img", { src: node.attrs.src, alt: node.attrs.alt }] as [string, Record<string, string>];
+      const src = String(node.attrs.src ?? "");
+      return [
+        "img",
+        {
+          src,
+          alt: String(node.attrs.alt ?? ""),
+          "data-doc-src": src,
+        },
+      ] as [string, Record<string, string>];
     },
   },
   opaque: {

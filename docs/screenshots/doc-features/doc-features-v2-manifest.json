@@ -1,0 +1,55 @@
+{
+  "version": "v2",
+  "captures": [
+    {
+      "file": "doc-wysiwyg-blockquote-desktop-v2.png",
+      "md5": "fd056369f85e78a74b765cd8e2b2d982",
+      "description": "Desktop Render 1 paper card: Visual (ProseMirror) markdown with pale blue blockquote panel, demo-pack image resolved in the rich-text column, compact in-card toolbar, collapsed activity rail."
+    },
+    {
+      "file": "doc-split-apply-banner-desktop-v2.png",
+      "md5": "8d922df95c874e3945876e3774078f5e",
+      "description": "Desktop Render 1 paper card: Split mode with merge-apply banner over Monaco source and live rich-text preview column side by side."
+    },
+    {
+      "file": "doc-opaque-card-desktop-v2.png",
+      "md5": "849a1cb6abc8a60eac9757075f9061d3",
+      "description": "Desktop Render 1 paper card: Visual opaque-parse sample showing preserved custom HTML region inside the document card chrome."
+    },
+    {
+      "file": "doc-visual-docx-desktop-v2.png",
+      "md5": "119365727ecf75e7502a67a2fce282bc",
+      "description": "Desktop DOCX viewer after Save As DOCX from markdown Visual mode (sample.md exported to sample.docx and reopened)."
+    },
+    {
+      "file": "doc-history-panel-desktop-v2.png",
+      "md5": "5b10c37526f29fcf71a92271c0303849",
+      "description": "Desktop Render 1 paper card with History bottom panel listing .unibrow-history operations for the active markdown tab."
+    },
+    {
+      "file": "doc-wysiwyg-blockquote-web-v2.png",
+      "md5": "162b805a8a680bc817f3b1434009c564",
+      "description": "Web WASM demo: Visual ProseMirror blockquote and inline image on the paper card layout matching desktop Render 1."
+    },
+    {
+      "file": "doc-split-apply-banner-web-v2.png",
+      "md5": "37f68590622589010738abd43e59dd50",
+      "description": "Web WASM demo: Split editor with merge banner and rich preview column on the paper card."
+    },
+    {
+      "file": "doc-opaque-card-web-v2.png",
+      "md5": "8b178ecc4ef3c3305950d14c137c88fb",
+      "description": "Web WASM demo: Opaque custom block preserved in Visual mode on the paper card."
+    },
+    {
+      "file": "doc-visual-docx-web-v2.png",
+      "md5": "1caf3737c3838377c51bca3ddf7db20b",
+      "description": "Web WASM demo: DOCX reader surface after exporting markdown Visual content to DOCX in the hosted demo."
+    },
+    {
+      "file": "doc-history-panel-web-v2.png",
+      "md5": "346f9050c6ccca30759f86e76626ba8a",
+      "description": "Web WASM demo: History panel visible under the markdown document card with seeded history rows."
+    }
+  ]
+}

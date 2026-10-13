@@ -128,3 +128,27 @@ export async function listDocumentHistory(path: string): Promise<
 export async function saveDocxFromModel(path: string, model: DocumentModelDto): Promise<unknown> {
   return invoke("document_save_docx_from_model", { path, model });
 }
+
+export async function appendDocumentHistorySnapshot(
+  path: string,
+  session: DocumentSessionPayload,
+): Promise<void> {
+  await invoke("document_history_append_snapshot", {
+    path,
+    model: session.model,
+    source_map: session.source_map,
+    original_base64: session.original_base64,
+  });
+}
+
+export async function saveMarkdownVisualAsDocx(markdownPath: string): Promise<string> {
+  const { getDocumentModelSession } = await import("./documentEditorHost");
+  const session = getDocumentModelSession();
+  if (!session) {
+    throw new Error("No document model session");
+  }
+  return invoke<string>("document_save_markdown_as_docx", {
+    markdownPath,
+    model: session.model,
+  });
+}
