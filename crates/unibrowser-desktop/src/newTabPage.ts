@@ -41,8 +41,10 @@ export interface NewTabDeps {
   browsePath: string;
   sections: NtpSectionPrefs;
   onOpenPath: (path: string) => void;
-  onNewProject: () => void;
+  onNewEmpty: () => void;
+  onNewFromTemplate: () => void;
   onPickFolder: () => void;
+  onOpenFile: () => void;
 }
 
 function relativePathSubtitle(path: string): string {
@@ -94,7 +96,10 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
     const lead = document.createElement("p");
     lead.className = "ntp-lead";
     lead.textContent = t("ntp.lead");
-    hero.append(h1, lead);
+    const hint = document.createElement("p");
+    hint.className = "ntp-hint viewer-note";
+    hint.textContent = t("ntp.memoryHint");
+    hero.append(h1, lead, hint);
     inner.appendChild(hero);
   }
 
@@ -105,28 +110,28 @@ export function renderNewTabPage(host: HTMLElement, deps: NewTabDeps) {
 
   if (sections.show_actions) {
     const actions = document.createElement("div");
-    actions.className = "ntp-actions";
+    actions.className = "ntp-actions ntp-actions--create";
+    const newEmpty = document.createElement("button");
+    newEmpty.type = "button";
+    newEmpty.className = "ntp-primary";
+    newEmpty.textContent = t("ntp.new");
+    newEmpty.onclick = () => deps.onNewEmpty();
+    const fromTemplate = document.createElement("button");
+    fromTemplate.type = "button";
+    fromTemplate.className = "ntp-secondary";
+    fromTemplate.textContent = t("ntp.newFromTemplate");
+    fromTemplate.onclick = () => deps.onNewFromTemplate();
     const pickFile = document.createElement("button");
     pickFile.type = "button";
-    pickFile.className = "ntp-primary";
+    pickFile.className = "ntp-tertiary";
     pickFile.textContent = t("ntp.openFile");
-    pickFile.onclick = async () => {
-      const path = await invoke<string | null>("pick_open_file");
-      if (path) {
-        deps.onOpenPath(path);
-      }
-    };
+    pickFile.onclick = () => deps.onOpenFile();
     const pickFolder = document.createElement("button");
     pickFolder.type = "button";
-    pickFolder.className = "ntp-secondary";
+    pickFolder.className = "ntp-tertiary";
     pickFolder.textContent = t("ntp.openFolder");
     pickFolder.onclick = () => deps.onPickFolder();
-    const newProject = document.createElement("button");
-    newProject.type = "button";
-    newProject.className = "ntp-secondary";
-    newProject.textContent = t("ntp.newProject");
-    newProject.onclick = () => deps.onNewProject();
-    actions.append(pickFile, pickFolder, newProject);
+    actions.append(newEmpty, fromTemplate, pickFile, pickFolder);
     inner.appendChild(actions);
   }
 

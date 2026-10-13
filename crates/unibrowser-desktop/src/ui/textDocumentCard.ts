@@ -369,6 +369,14 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   if (refreshStatusBarOnly) {
     await refreshStatusBarOnly();
   }
+  syncTextDocumentCard(true, label);
+  const apply = (
+    window as unknown as { __unibrowserApplyState?: (data: unknown) => Promise<void> }
+  ).__unibrowserApplyState;
+  const data = await invoke("retarget_active_file_tab_path", { newPath: savedPath });
+  if (apply) {
+    await apply(data);
+  }
 }
 
 export function forceDocFeatureCaptureLayout(fileLabel: string | null): void {

@@ -4149,6 +4149,100 @@ select:disabled {
   margin-top: 0.75rem;
 }
 
+.template-gallery-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ub-shell, #141617) 72%, transparent);
+}
+
+.template-gallery-panel {
+  width: min(960px, 96vw);
+  margin: 2rem 0;
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--ub-paper, #faf9f6);
+  color: var(--ub-text, #1b1d1e);
+  border: 1px solid var(--ub-border, #d8d6cf);
+  border-radius: 8px;
+  max-height: calc(100vh - 4rem);
+}
+
+.template-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  overflow: auto;
+}
+
+.template-gallery-tile {
+  text-align: left;
+  padding: 0.75rem;
+  border: 1px solid var(--ub-border, #d8d6cf);
+  border-radius: 6px;
+  background: var(--ub-well, #f1f0ec);
+  cursor: pointer;
+}
+
+.template-gallery-tile.selected,
+.template-gallery-tile:hover {
+  border-color: var(--ub-accent, #3d6f8f);
+}
+
+.template-gallery-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.template-gallery-tag {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ub-accent, #3d6f8f) 12%, transparent);
+}
+
+.template-gallery-needs-mod {
+  color: #9a6700;
+}
+
+.template-gallery-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.template-gallery-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.template-gallery-chip.active {
+  border-color: var(--ub-accent, #3d6f8f);
+}
+
+.ntp-actions--create {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ntp-tertiary {
+  background: transparent;
+  border: none;
+  color: var(--ub-accent, #3d6f8f);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 
 /* UI-15/16 multimodal workshop: one in-flow grid, no stacked live surface. */
 .document-viewer-host .viewer-body:has(.workshop) {

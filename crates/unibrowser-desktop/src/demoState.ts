@@ -469,6 +469,17 @@ export async function applyDemoState(raw: string) {
       case "ntp":
         await invoke("new_tab", {});
         break;
+      case "new-project-ntp":
+      case "new-project-capture-ntp":
+        await invoke("new_tab", {});
+        break;
+      case "new-project-gallery":
+      case "new-project-capture-gallery": {
+        await invoke("new_tab", {});
+        const { openTemplateGallery } = await import("./templateGallery");
+        openTemplateGallery(async () => undefined);
+        break;
+      }
       case "files":
         await invoke("open_path", { path: "~", line: null }).catch(() => undefined);
         break;

@@ -22,8 +22,12 @@ function buildMenus(): MenuDef[] {
       id: "file",
       label: t("menu.file"),
       items: [
+        { label: t("menu.new"), path: "unibrowser://action/new-project" },
+        { label: t("menu.newFromTemplate"), path: "unibrowser://action/new-from-template" },
+        { label: t("menu.openFile"), commandId: "unibrowser.control.start.openFile" },
+        { label: t("menu.openFolder"), commandId: "unibrowser.control.start.openFolder" },
+        { divider: true, label: "" },
         { label: t("menu.newWindow"), commandId: "unibrowser.window.new" },
-        { label: t("menu.newProject"), path: "unibrowser://action/new-project" },
         { divider: true, label: "" },
         { label: t("settings.open"), path: "unibrowser://settings" },
       ],

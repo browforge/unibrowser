@@ -242,7 +242,11 @@ import { renderTitleBreadcrumb } from "./titleBreadcrumb";
 import { exposeShellChromeAudit, runShellChromeAudit } from "./shellChromeAudit";
 import { installTextCaptureHarness } from "./textCompactToolbar";
 import { loadUiLocale } from "./i18n";
-import { openNewProjectDialog } from "./newProjectDialog";
+import { openTemplateGallery } from "./templateGallery";
+import {
+  invokeNewEmptyProject,
+  invokeNewProjectFromTemplate,
+} from "./newProjectActions";
 import { emptyStateBlock } from "./emptyState";
 import {
   clearFilesPanelContext,
@@ -1239,7 +1243,7 @@ function renderModPortal(portal: ModPortalDto | null) {
   const tabs = document.createElement("nav");
   tabs.className = "mod-portal-tabs";
   tabs.setAttribute("aria-label", "Mod Portal sections");
-  ["Installed", "Discover", "Updates"].forEach((label, index) => {
+  ["Installed", "Discover", "Updates", "Templates"].forEach((label, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "mod-portal-tab";
@@ -1441,6 +1445,18 @@ function renderModPortal(portal: ModPortalDto | null) {
   updatesEmpty.textContent = "Installed mods are up to date.";
   updatesSection.append(updatesHeading, updatesEmpty);
   modPortalPanel.appendChild(updatesSection);
+
+  const templatesSection = document.createElement("section");
+  templatesSection.className = "mod-portal-templates-section";
+  templatesSection.dataset.modPortalSection = "3";
+  const templatesHeading = document.createElement("h3");
+  templatesHeading.textContent = "Template packs";
+  const templatesNote = document.createElement("p");
+  templatesNote.className = "viewer-note";
+  templatesNote.textContent =
+    "Install template packs from the catalog (hub). Installed packs appear in New from template under Installed.";
+  templatesSection.append(templatesHeading, templatesNote);
+  modPortalPanel.appendChild(templatesSection);
   setModPortalTab(1);
 
   void refreshInstalledExtensions(nativeList, installedList);
@@ -2029,7 +2045,11 @@ async function processCommandResult(msg: string, commandId?: string) {
     return;
   }
   if (msg === "start-new-project") {
-    document.getElementById("btn-new-project")?.click();
+    void startNewEmptyProject();
+    return;
+  }
+  if (msg === "start-new-template-gallery") {
+    void startNewFromTemplateGallery();
     return;
   }
   if (msg === "start-recent") {
@@ -2281,7 +2301,9 @@ async function applyState(data: TabContentDto) {
       },
       onOpenPath: (path) =>
         invoke<TabContentDto>("open_path", { path }).then((d) => d && applyState(d)),
-      onNewProject: () => document.getElementById("btn-new-project")!.click(),
+      onNewEmpty: () => void startNewEmptyProject(),
+      onNewFromTemplate: () => void startNewFromTemplateGallery(),
+      onOpenFile: () => void processCommandResult("start-open-file"),
       onPickFolder: async () => {
         const folder = await invoke<string | null>("pick_browse_folder");
         if (folder) {
@@ -2559,7 +2581,15 @@ async function confirmInsecureHttpNavigation(input: string): Promise<boolean> {
 }
 
 async function navigateOmnibox() {
-  const input = omnibox.value;
+  const input = omnibox.value.trim();
+  if (input === "unibrowser://action/new-project") {
+    void startNewEmptyProject();
+    return;
+  }
+  if (input === "unibrowser://action/new-from-template") {
+    void startNewFromTemplateGallery();
+    return;
+  }
   if (!(await confirmInsecureHttpNavigation(input))) {
     return;
   }
@@ -2606,19 +2636,25 @@ listen<{ message: string; severity?: string }>("unibrowser-extension-toast", (ev
   showToast(event.payload.message, severity === "error" ? "error" : "info");
 });
 
-async function openNewProjectFromNav() {
-  const choice = await openNewProjectDialog();
-  if (!choice) {
-    return;
-  }
-  const home = await invoke<string>("get_home_dir").catch(() => "/tmp");
-  const data = await invoke<TabContentDto>("create_unibrow_project", {
-    parentDir: home,
-    name: choice.name,
-    template: choice.template,
-  });
-  void applyState(data);
+async function startNewEmptyProject() {
+  const data = await invokeNewEmptyProject();
+  await applyState(data as TabContentDto);
 }
+
+async function startNewFromTemplateGallery() {
+  openTemplateGallery(async (payload) => {
+    const data = await invokeNewProjectFromTemplate(
+      payload.templateId,
+      payload.projectName,
+      payload.location,
+    );
+    await applyState(data as TabContentDto);
+  });
+}
+
+window.addEventListener("unibrowser-open-mod-portal-templates", () => {
+  void invoke<TabContentDto>("open_mod_portal", { ext: null }).then((d) => d && applyState(d));
+});
 
 diffEditorHost.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
@@ -2673,7 +2709,7 @@ function openTitleOverflow(anchor: HTMLElement) {
     },
     {
       label: t("chrome.newProject"),
-      run: () => void openNewProjectFromNav(),
+      run: () => void startNewEmptyProject(),
     },
     {
       label: t("chrome.theme"),
@@ -2915,6 +2951,16 @@ document.addEventListener(
   if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
     e.preventDefault();
     toggleDocumentFind();
+    return;
+  }
+  if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "n") {
+    e.preventDefault();
+    void startNewEmptyProject();
+    return;
+  }
+  if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "n") {
+    e.preventDefault();
+    void startNewFromTemplateGallery();
     return;
   }
   if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "z") {
