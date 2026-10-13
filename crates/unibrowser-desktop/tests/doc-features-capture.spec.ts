@@ -388,7 +388,7 @@ test.describe("Document feature captures", () => {
         ((mode === "wysiwyg" || mode === "reading") && visibleEditorHost === "rich");
       const bodyMount = document.getElementById("document-card-body-mount");
       const bodyRect = bodyMount?.getBoundingClientRect();
-      const visible = (el: HTMLElement) => {
+      const isVisibleEl = (el: HTMLElement) => {
         const rect = el.getBoundingClientRect();
         const style = getComputedStyle(el);
         return (
@@ -424,7 +424,7 @@ test.describe("Document feature captures", () => {
                 reachedRich = true;
                 break;
               }
-              if (!visible(el)) {
+              if (!isVisibleEl(el)) {
                 continue;
               }
               if (

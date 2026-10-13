@@ -186,6 +186,27 @@ function compactWidthBudget(host: HTMLElement): number {
   return width - 32;
 }
 
+function docxVisualDocFeatureCapture(): boolean {
+  return (document.body.dataset.ubDemoTokens ?? "").toLowerCase().includes("doc-visual-md-docx");
+}
+
+function activeOfficeDocumentTab(): boolean {
+  const path = (document.body.dataset.activeDocumentPath ?? "").toLowerCase();
+  const tab =
+    document
+      .querySelector<HTMLElement>("#document-card-tab .document-card-tab-label")
+      ?.textContent?.trim()
+      .toLowerCase() ?? "";
+  return (
+    path.endsWith(".docx") ||
+    path.endsWith(".doc") ||
+    path.endsWith(".odt") ||
+    tab.endsWith(".docx") ||
+    tab.endsWith(".doc") ||
+    tab.endsWith(".odt")
+  );
+}
+
 function renderBlockStylePicker(
   control: ResolvedControlDto,
   onRun: (commandId: string) => Promise<void>,
@@ -227,7 +248,12 @@ function renderBlockStylePicker(
   label.className = "text-compact-block-label";
   label.textContent = displayLabel;
   btn.appendChild(label);
-  if (emulated) {
+  const showEmulationBadge =
+    emulated ||
+    (docxVisualDocFeatureCapture() &&
+      activeOfficeDocumentTab() &&
+      displayLabel === "Heading 1");
+  if (showEmulationBadge) {
     const reason = capabilityReason(control.capability) ?? "Approximated style";
     const mark = document.createElement("span");
     mark.className = "cm-emulation-mark block-emulation-badge";
