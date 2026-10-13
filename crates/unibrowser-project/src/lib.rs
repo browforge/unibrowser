@@ -3,6 +3,16 @@
 mod zip_bundle;
 mod timeline_encode;
 mod layer_transform;
+mod template;
+
+pub use template::{
+    apply_project_json_to_package, apply_template_project, create_memory_package,
+    export_ubtemplate_pack, is_memory_project_root, list_builtin_template_dirs,
+    load_template_pack_dir, load_user_template_index, memory_root_for_session,
+    memory_session_id, save_user_template_index, TemplateManifest, TemplatePack,
+    TemplateRelationships, TemplateSourceKind, UserTemplateIndex, UserTemplateIndexEntry,
+    MEMORY_ROOT_PREFIX,
+};
 
 pub use layer_transform::{blit_rgba_with_transform, LayerTransform, NormalizedCrop};
 
@@ -246,6 +256,9 @@ pub struct ProjectPackage {
 }
 
 pub fn is_unibrow_path(path: &Path) -> bool {
+    if template::is_memory_project_root(path) {
+        return true;
+    }
     if path.is_dir() && path.join(PROJECT_FILE).is_file() {
         return true;
     }
@@ -1020,6 +1033,9 @@ pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
 }
 
 pub fn write_manifest(root: &Path, manifest: &ProjectManifest) -> Result<(), ProjectError> {
+    if template::is_memory_project_root(root) {
+        return Ok(());
+    }
     let mut to_write = manifest.clone();
     to_write.format_version = FORMAT_VERSION;
     if to_write.title.trim().is_empty() {
