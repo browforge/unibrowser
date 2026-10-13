@@ -1460,6 +1460,43 @@ export interface TextCompactToolbarCaptureOptions {
   requireModToolbarDock?: boolean;
 }
 
+/** Quiet Utility: compact row shares CM chrome tokens; no light tiles on controls. */
+function compactToolbarQuietUtilityMismatch(host: HTMLElement): string | null {
+  const cm = document.getElementById("command-manager");
+  if (!cm) {
+    return null;
+  }
+  const hostBg = getComputedStyle(host).backgroundColor;
+  const cmBg = getComputedStyle(cm).backgroundColor;
+  if (hostBg !== cmBg) {
+    return `text compact toolbar background ${hostBg} must match command manager ${cmBg}`;
+  }
+  const hostLum = parseRgbLuminance(hostBg);
+  if (hostLum === null) {
+    return `text compact toolbar background ${hostBg} is not parseable`;
+  }
+  for (const el of host.querySelectorAll<HTMLElement>(".ui-command, button.text-compact-btn")) {
+    const style = getComputedStyle(el);
+    const bgLum = parseRgbLuminance(style.backgroundColor);
+    if (bgLum !== null && bgLum - hostLum > 0.08) {
+      const id = el.dataset.controlId ?? el.dataset.commandId ?? "?";
+      return `compact control ${id} has boxed/light background ${style.backgroundColor}`;
+    }
+    if (style.borderTopWidth && parseFloat(style.borderTopWidth) >= 1) {
+      const borderLum = parseRgbLuminance(style.borderTopColor);
+      if (
+        borderLum !== null &&
+        borderLum - hostLum > 0.15 &&
+        style.borderTopColor !== "rgba(0, 0, 0, 0)"
+      ) {
+        const id = el.dataset.controlId ?? el.dataset.commandId ?? "?";
+        return `compact control ${id} has visible boxed border ${style.borderTopColor}`;
+      }
+    }
+  }
+  return null;
+}
+
 /** TXT-06: compact text toolbar geometry and picker state for doc-capture. */
 export function validateTextCompactToolbarForCapture(
   options: TextCompactToolbarCaptureOptions | boolean = false,
@@ -1563,6 +1600,10 @@ export function validateTextCompactToolbarForCapture(
     }
   } else if (host.querySelector(".text-compact-mod-dock")) {
     return "mod docked toolbar must only appear when txt-mod-toolbar-visible demo is set";
+  }
+  const quietErr = compactToolbarQuietUtilityMismatch(host);
+  if (quietErr) {
+    return quietErr;
   }
   return null;
 }

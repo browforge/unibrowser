@@ -10,6 +10,8 @@ import {
 } from "./ui/commandControls";
 import { createLucideIcon } from "./ui/lucideIcon";
 import { bindCommandTooltip } from "./ui/commandTooltip";
+import { controlA11yState } from "./ui/controlA11y";
+import { uiCommandChromeClassList } from "./ui/cmControlClasses";
 import type { FloatingBarDto, ManagerTabDto } from "./commandManager";
 
 const BLOCK_COMMANDS: { id: string; label: string }[] = [
@@ -47,9 +49,24 @@ function renderBlockStylePicker(
 ): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "text-compact-block-picker";
+  const a11y = controlA11yState(control);
+  const emulated = control.capability.state === "emulated";
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "text-compact-btn text-compact-block-trigger";
+  btn.className = [
+    ...uiCommandChromeClassList({
+      controlType: "button",
+      capabilityState: control.capability.state,
+      actionable: a11y.actionable,
+      emulated,
+      locked: control.capability.state === "locked",
+      mixed: a11y.mixed,
+      modControl: false,
+    }),
+    "split-button",
+    "text-compact-btn",
+    "text-compact-block-trigger",
+  ].join(" ");
   btn.dataset.controlId = control.control_id;
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
@@ -61,7 +78,7 @@ function renderBlockStylePicker(
   btn.appendChild(label);
   const chevron = createLucideIcon("chevron-down", 14, "ub-icon svg-icon text-compact-chevron");
   btn.appendChild(chevron);
-  if (control.capability.state === "emulated") {
+  if (emulated) {
     const mark = document.createElement("span");
     mark.className = "cm-emulation-mark";
     mark.textContent = "≈";
@@ -136,7 +153,7 @@ function appendModDockedSection(
       continue;
     }
     const div = document.createElement("span");
-    div.className = "text-compact-divider";
+    div.className = "cm-divider";
     div.setAttribute("aria-hidden", "true");
     tools.appendChild(div);
     const dock = document.createElement("div");
@@ -149,7 +166,7 @@ function appendModDockedSection(
     for (const cmd of bar.commands) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "text-compact-btn";
+      btn.className = "ui-command cm-mod-control cm-cap-supported text-compact-btn";
       btn.dataset.commandId = cmd.command_id;
       btn.setAttribute("aria-label", cmd.title);
       const iconName = lucideForControlIcon(cmd.icon);
@@ -194,7 +211,7 @@ function renderCompactRow(
     list.forEach((group, index) => {
       if (index > 0 || tools.childElementCount > 0) {
         const div = document.createElement("span");
-        div.className = "text-compact-divider";
+        div.className = "cm-divider";
         div.setAttribute("aria-hidden", "true");
         tools.appendChild(div);
       }
@@ -210,7 +227,7 @@ function renderCompactRow(
   if (overflow.length > 0) {
     const overflowBtn = document.createElement("button");
     overflowBtn.type = "button";
-    overflowBtn.className = "text-compact-btn";
+    overflowBtn.className = "ui-command cm-cap-supported text-compact-btn";
     overflowBtn.setAttribute("aria-label", "More formatting");
     overflowBtn.appendChild(createLucideIcon("ellipsis", 16, "ub-icon svg-icon"));
     overflowBtn.onclick = (e) => {
@@ -293,7 +310,9 @@ export function compactToolbarIconFallbackError(host: HTMLElement | null): strin
   if (!host) {
     return "compact toolbar host missing";
   }
-  for (const svg of host.querySelectorAll<SVGElement>(".text-compact-btn .ub-icon[data-lucide]")) {
+  for (const svg of host.querySelectorAll<SVGElement>(
+    "#text-compact-toolbar-host .text-compact-btn .ub-icon[data-lucide]",
+  )) {
     if (svg.dataset.lucide === "file") {
       return "compact toolbar uses generic file icon fallback";
     }

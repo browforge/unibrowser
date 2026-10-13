@@ -45,4 +45,8 @@ render "multimodal-workshop.html?wide=1&density=large" "cad-command-large-wide.p
 render "command-system-gallery.html" "command-system-gallery-light.png" "1920,1080"
 render "command-system-gallery.html?theme=dark" "command-system-gallery-dark.png" "1920,1080"
 
+# Text compact toolbar chrome (title + 32 px row + CM) for compare-at-1280 captures.
+render "text-toolbar-compact-chrome.html" "text-toolbar-compact-chrome-markdown.png" "1280,112"
+render "text-toolbar-compact-chrome.html?docx=1" "text-toolbar-compact-chrome-docx.png" "1280,112"
+
 echo "Rendered Quiet Utility mockups in $ROOT"

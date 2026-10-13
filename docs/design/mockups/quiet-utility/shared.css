@@ -272,6 +272,63 @@ button {
   white-space: nowrap;
 }
 
+/* Approved 32 px text compact row (ADR 0034) — same chrome plane as Command Manager */
+.text-compact-bar {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  max-height: 32px;
+  padding: 1px 6px;
+  gap: 2px;
+  color: #e9edef;
+  border-bottom: 1px solid #344451;
+  background: #172532;
+}
+
+.text-compact-bar .cm-command.icon-only {
+  min-width: 30px;
+  padding: 0 7px;
+  justify-content: center;
+}
+
+.text-compact-bar .cm-command.icon-only .cm-command-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.text-compact-bar .cm-emulation-mark {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  color: #93a5ae;
+  pointer-events: none;
+}
+
+.chrome-stack-only {
+  display: flex;
+  flex-direction: column;
+  width: 1280px;
+  height: 112px;
+  overflow: hidden;
+}
+
+.chrome-stack-only .titlebar {
+  min-height: 40px;
+  max-height: 40px;
+}
+
+.chrome-stack-only .command-manager {
+  min-height: 40px;
+  max-height: 40px;
+  padding: 5px 6px;
+}
+
 .cm-command:hover:not(:disabled) {
   border-color: #435461;
   background: #20313e;

@@ -19,6 +19,8 @@ capture_vqa "$OUT" "txt-desktop-markdown" "theme-light" "examples/demo-pack/samp
 capture_vqa "$OUT" "txt-docx-emulated-h1" "theme-light,txt-apply-h1,txt-block-picker-open" "examples/demo-pack/sample-rich.docx"
 capture_vqa "$OUT" "txt-sample-mod-toolbar" "theme-light,txt-mod-toolbar-visible" "examples/demo-pack/sample.md"
 
+"$ROOT/scripts/capture-txt-toolbar-compare.sh"
+
 cp -f "$OUT"/*.png "$ART"/
 echo "Copied captures to $ART"
 
@@ -34,6 +36,8 @@ names = [
     "txt-desktop-markdown.png",
     "txt-docx-emulated-h1.png",
     "txt-sample-mod-toolbar.png",
+    "compare-at-1280-markdown.png",
+    "compare-at-1280-docx.png",
 ]
 digests: dict[str, str] = {}
 for name in names:
