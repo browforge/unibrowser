@@ -46,3 +46,85 @@ export async function serializeMarkdownDocument(request: {
   }
   return "";
 }
+
+export type DocumentSessionPayload = {
+  model: DocumentModelDto;
+  source_map: SourceMapDto;
+  original_base64: string;
+  dirty_block_ids?: string[];
+  touched_block_ids?: string[];
+};
+
+function sessionRequest(session: DocumentSessionPayload) {
+  return {
+    model: session.model,
+    source_map: session.source_map,
+    original_base64: session.original_base64,
+    dirty_block_ids: session.dirty_block_ids ?? [],
+    touched_block_ids: session.touched_block_ids ?? [],
+  };
+}
+
+export async function sourceProjectionDocument(session: DocumentSessionPayload): Promise<string> {
+  const res = await invoke<{ content: string }>("document_source_projection", sessionRequest(session));
+  return res.content;
+}
+
+export async function mergeSourceDocument(
+  session: DocumentSessionPayload,
+  newContent: string,
+): Promise<{
+  clean: boolean;
+  conflict_reason?: string | null;
+  model: DocumentModelDto;
+  source_map: SourceMapDto;
+  original_base64: string;
+  dirty_block_ids: string[];
+  touched_block_ids: string[];
+  projectionContent?: string;
+}> {
+  const merged = await invoke<{
+    clean: boolean;
+    conflict_reason?: string | null;
+    model: DocumentModelDto;
+    source_map: SourceMapDto;
+    original_base64: string;
+    dirty_block_ids: string[];
+    touched_block_ids: string[];
+  }>("document_merge_source", {
+    ...sessionRequest(session),
+    new_content: newContent,
+  } as Record<string, unknown>);
+  const projection = merged.clean
+    ? await sourceProjectionDocument({
+        model: merged.model,
+        source_map: merged.source_map,
+        original_base64: merged.original_base64,
+        dirty_block_ids: merged.dirty_block_ids,
+        touched_block_ids: merged.touched_block_ids,
+      })
+    : undefined;
+  return { ...merged, projectionContent: projection };
+}
+
+export async function appendDocumentHistoryOp(
+  path: string,
+  op: { op_type: string; [key: string]: unknown },
+): Promise<void> {
+  await invoke("document_history_append", { path, op });
+}
+
+export async function listDocumentHistory(path: string): Promise<
+  {
+    seq: number;
+    op_type: string;
+    timestamp: string;
+    plugin_id: string;
+  }[]
+> {
+  return invoke("document_history_list", { path });
+}
+
+export async function saveDocxFromModel(path: string, model: DocumentModelDto): Promise<unknown> {
+  return invoke("document_save_docx_from_model", { path, model });
+}

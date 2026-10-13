@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use unibrowser_document_model::{parse_markdown, DocumentEditSession, DocumentModel, SourceMap};
+use unibrowser_document_model::{
+    merge_source_text, parse_markdown, source_projection, DocumentEditSession, DocumentHistoryOp,
+    DocumentModel, SourceMap,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DocumentParseResponse {
@@ -50,4 +53,82 @@ fn base64_decode(text: &str) -> Result<Vec<u8>, String> {
     base64::engine::general_purpose::STANDARD
         .decode(text)
         .map_err(|e| e.to_string())
+}
+
+fn session_from_request(req: &DocumentSerializeRequest) -> Result<DocumentEditSession, String> {
+    let original = base64_decode(&req.original_base64)?;
+    Ok(DocumentEditSession {
+        model: req.model.clone(),
+        source_map: req.source_map.clone(),
+        original_bytes: original,
+        dirty_blocks: req.dirty_block_ids.iter().cloned().collect(),
+        touched_blocks: req.touched_block_ids.iter().cloned().collect(),
+    })
+}
+
+pub fn source_projection_request(req: DocumentSerializeRequest) -> Result<String, String> {
+    let session = session_from_request(&req)?;
+    Ok(source_projection(&session))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DocumentMergeSourceRequest {
+    #[serde(flatten)]
+    pub session: DocumentSerializeRequest,
+    pub new_content: String,
+}
+
+pub fn merge_source_request(req: DocumentMergeSourceRequest) -> Result<serde_json::Value, String> {
+    let session = session_from_request(&req.session)?;
+    let merged = merge_source_text(&session, &req.new_content);
+    Ok(serde_json::json!({
+        "clean": merged.clean,
+        "conflict_reason": merged.conflict_reason,
+        "model": merged.session.model,
+        "source_map": merged.session.source_map,
+        "original_base64": base64_encode(&merged.session.original_bytes),
+        "dirty_block_ids": merged.session.dirty_blocks,
+        "touched_block_ids": merged.session.touched_blocks,
+    }))
+}
+
+pub fn history_entry_from_op(
+    op: DocumentHistoryOp,
+    seq: u64,
+) -> Result<unibrowser_document_model::HistoryLogEntry, String> {
+    let value = serde_json::to_value(&op).map_err(|e| e.to_string())?;
+    let op_type = value
+        .get("op_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    Ok(unibrowser_document_model::HistoryLogEntry {
+        op_id: format!("web-op-{}", seq),
+        seq,
+        parent_seq: seq.saturating_sub(1),
+        timestamp: "0".into(),
+        plugin_id: "base-text".into(),
+        plugin_version: "0.1.0".into(),
+        op_type,
+        op_schema_version: 1,
+        payload: value,
+    })
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DocumentPromoteOpaqueRequest {
+    #[serde(flatten)]
+    pub session: DocumentSerializeRequest,
+    pub block_id: String,
+}
+
+pub fn promote_opaque_request(req: DocumentPromoteOpaqueRequest) -> Result<DocumentParseResponse, String> {
+    let mut session = session_from_request(&req.session)?;
+    session.promote_opaque_block(&req.block_id)?;
+    session.original_bytes = session.serialize();
+    Ok(DocumentParseResponse {
+        model: session.model,
+        source_map: session.source_map,
+        original_base64: base64_encode(&session.original_bytes),
+    })
 }

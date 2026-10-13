@@ -124,6 +124,7 @@ import { initNotificationCenter } from "./notifications";
 import { tryMediaPictureInPicture } from "./mediaPip";
 import { invokeWithToast, showActionToast, showErrorToast, showToast } from "./toast";
 import { initProblemsPanel, toggleProblemsPanel } from "./problemsPanel";
+import { mountHistoryPanel } from "./historyPanel";
 import {
   bindStatusBar,
   patchStatusCursor,
@@ -3081,6 +3082,7 @@ function mountActivityRail() {
 safeSubsystemInit("script-output", () => initScriptOutputPanel());
 safeSubsystemInit("terminal", () => initTerminalPanel());
 safeSubsystemInit("problems", () => initProblemsPanel());
+safeSubsystemInit("history", () => mountHistoryPanel());
 safeSubsystemInit("dock-panel", () => initDockPanel());
 safeSubsystemInit("ai-assistant", () => initAiAssistantPanel());
 safeSubsystemInit("keys-overlay", () => initKeysOverlay());

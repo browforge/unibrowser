@@ -4809,6 +4809,48 @@ pub fn document_serialize_markdown(
 }
 
 #[tauri::command]
+pub fn document_source_projection(
+    request: crate::document_model_api::DocumentSerializeRequest,
+) -> Result<crate::document_model_api::DocumentSourceProjectionResponse, String> {
+    crate::document_model_api::source_projection_request(request)
+}
+
+#[tauri::command]
+pub fn document_merge_source(
+    request: crate::document_model_api::DocumentMergeSourceRequest,
+) -> Result<crate::document_model_api::DocumentMergeSourceResponse, String> {
+    crate::document_model_api::merge_source_request(request)
+}
+
+#[tauri::command]
+pub fn document_history_list(path: String) -> Result<Vec<unibrowser_document_model::HistoryLogEntry>, String> {
+    crate::document_model_api::history_list_for_path(&path)
+}
+
+#[tauri::command]
+pub fn document_history_append(
+    path: String,
+    op: unibrowser_document_model::DocumentHistoryOp,
+) -> Result<(), String> {
+    crate::document_model_api::history_append_for_path(&path, op)
+}
+
+#[tauri::command]
+pub fn document_save_docx_from_model(
+    path: String,
+    model: unibrowser_document_model::DocumentModel,
+) -> Result<unibrowser_docx::DocxSaveReport, String> {
+    crate::document_model_api::save_docx_from_model(&path, model)
+}
+
+#[tauri::command]
+pub fn document_promote_opaque(
+    request: crate::document_model_api::DocumentPromoteOpaqueRequest,
+) -> Result<crate::document_model_api::DocumentParseResponse, String> {
+    crate::document_model_api::promote_opaque_request(request)
+}
+
+#[tauri::command]
 pub async fn pick_save_image_path(window: tauri::Window, 
     app: AppHandle,
     suggested_name: String,
