@@ -43,6 +43,8 @@ pub struct WebHost {
     pub document_history: HashMap<String, Vec<HistoryLogEntry>>,
     pub document_history_redo: HashMap<String, Vec<HistoryLogEntry>>,
     pub virtual_docx_bytes: HashMap<String, Vec<u8>>,
+    pub memory_projects: HashMap<String, unibrowser_project::ProjectPackage>,
+    next_memory_session: u64,
 }
 
 impl WebHost {
@@ -76,6 +78,8 @@ impl WebHost {
             document_history: HashMap::new(),
             document_history_redo: HashMap::new(),
             virtual_docx_bytes: HashMap::new(),
+            memory_projects: HashMap::new(),
+            next_memory_session: 1,
         }
     }
 
@@ -420,6 +424,13 @@ impl WebHost {
             "desktop_download_page_url" => Ok(Value::String(
                 "https://github.com/browforge/unibrowser/releases/latest".into(),
             )),
+            "new_empty_project" => self.cmd_new_empty_project(args),
+            "new_project_from_template" => self.cmd_new_project_from_template(args),
+            "list_project_templates" => Ok(serde_json::to_value(web_template_catalog()).map_err(|e| e.to_string())?),
+            "save_project_as_template" | "remove_user_template" => {
+                Err("Save as template requires the desktop app".into())
+            }
+            "retarget_active_file_tab_path" => self.cmd_retarget_active_path(args),
             other => Ok(serde_json::json!({
                 "web_stub": true,
                 "command": other,
@@ -780,6 +791,159 @@ impl WebHost {
         let text = unibrowser_document_model::serialize_session_state(&state)?;
         backend.content = text;
         Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?)
+    }
+
+    fn cmd_new_empty_project(&mut self, args: &Value) -> Result<Value, String> {
+        let title = args
+            .get("title")
+            .and_then(|v| v.as_str())
+            .filter(|t| !t.trim().is_empty())
+            .unwrap_or("Untitled project");
+        let id = format!("web-{}", self.next_memory_session);
+        self.next_memory_session += 1;
+        let pkg = unibrowser_project::create_memory_package(title, &id);
+        self.memory_projects.insert(id, pkg.clone());
+        let loc = BrowserLocation::File {
+            path: pkg.root.clone(),
+        };
+        self.tabs.open_tab(loc);
+        self.chrome_notice = Some(format!(
+            "{} — in memory until you save (web session)",
+            title
+        ));
+        Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?)
+    }
+
+    fn cmd_new_project_from_template(&mut self, args: &Value) -> Result<Value, String> {
+        let template_id = args
+            .get("templateId")
+            .and_then(|v| v.as_str())
+            .ok_or("templateId required")?;
+        let title = args
+            .get("projectName")
+            .and_then(|v| v.as_str())
+            .filter(|t| !t.trim().is_empty())
+            .unwrap_or("Untitled project");
+        let id = format!("web-{}", self.next_memory_session);
+        self.next_memory_session += 1;
+        let mut pkg = unibrowser_project::create_memory_package(title, &id);
+        if let Some(entry) = web_template_catalog()
+            .into_iter()
+            .find(|t| t.id == template_id)
+        {
+            let project = web_template_project_json(&entry.id);
+            unibrowser_project::apply_project_json_to_package(&mut pkg, &project)
+                .map_err(|e| e.to_string())?;
+            pkg.manifest.title = title.to_string();
+        }
+        self.memory_projects.insert(id, pkg.clone());
+        let loc = BrowserLocation::File {
+            path: pkg.root.clone(),
+        };
+        self.tabs.open_tab(loc);
+        self.chrome_notice = Some(format!("{} — template applied in memory (web)", title));
+        Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?)
+    }
+
+    fn cmd_retarget_active_path(&mut self, args: &Value) -> Result<Value, String> {
+        let new_path = args
+            .get("newPath")
+            .and_then(|v| v.as_str())
+            .ok_or("newPath required")?;
+        if let Some(tab) = self.tabs.active_tab_mut() {
+            tab.location = BrowserLocation::File {
+                path: std::path::PathBuf::from(new_path),
+            };
+            if let Some(doc) = tab.document.as_mut() {
+                doc.path = new_path.to_string();
+                if let Some(backend) = base_text::try_text_backend(&mut *doc.backend) {
+                    backend.path = new_path.to_string();
+                }
+            }
+        }
+        Ok(serde_json::to_value(self.snapshot()).map_err(|e| e.to_string())?)
+    }
+}
+
+#[derive(Serialize, Clone)]
+struct WebTemplateSummary {
+    id: String,
+    version: String,
+    title: String,
+    description: String,
+    categories: Vec<String>,
+    tags: Vec<String>,
+    source: String,
+    default_workspace: Option<String>,
+    relationships: unibrowser_project::TemplateRelationships,
+    needs_mod_ids: Vec<String>,
+    pack_path: Option<String>,
+}
+
+fn web_template_catalog() -> Vec<WebTemplateSummary> {
+    let rel = unibrowser_project::TemplateRelationships::default();
+    [
+        (
+            "unibrowser.template.blank",
+            "Blank",
+            "Empty project graph.",
+            vec!["notes"],
+        ),
+        (
+            "unibrowser.template.document.office",
+            "Office document",
+            "Rich-text starter frame.",
+            vec!["document"],
+        ),
+        (
+            "unibrowser.template.presentation",
+            "Presentation",
+            "Slide board starter.",
+            vec!["presentation"],
+        ),
+        (
+            "unibrowser.template.video.simple",
+            "Simple video",
+            "Timeline starter.",
+            vec!["video"],
+        ),
+        (
+            "unibrowser.template.design.space",
+            "Design space",
+            "Canvas starter.",
+            vec!["design"],
+        ),
+        (
+            "unibrowser.template.notes",
+            "Notes board",
+            "Board with note nodes.",
+            vec!["notes"],
+        ),
+    ]
+    .into_iter()
+    .map(|(id, title, description, categories)| WebTemplateSummary {
+        id: id.into(),
+        version: "1.0.0".into(),
+        title: title.into(),
+        description: description.into(),
+        categories: categories.into_iter().map(String::from).collect(),
+        tags: vec!["starter".into()],
+        source: "builtin".into(),
+        default_workspace: Some("browse".into()),
+        relationships: rel.clone(),
+        needs_mod_ids: vec![],
+        pack_path: None,
+    })
+    .collect()
+}
+
+fn web_template_project_json(id: &str) -> unibrowser_project::ProjectManifest {
+    match id {
+        "unibrowser.template.document.office" => serde_json::from_str(
+            r#"{"format_version":2,"title":"Office document","nodes":[{"id":"frame-1","type":"document","label":"Document","x":48,"y":56}],"timeline":{"clips":[],"transitions":[],"markers":[]}}"#,
+        )
+        .unwrap_or_else(|_| unibrowser_project::ProjectManifest::empty("Office document")),
+        _ => unibrowser_project::ProjectManifest::empty("Untitled project"),
     }
 }
 

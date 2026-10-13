@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { browser, $, $$ } from "@wdio/globals";
 import assert from "node:assert/strict";
@@ -140,15 +141,14 @@ describe("Unibrowser shell (WebdriverIO + tauri-driver)", function () {
     assert.ok(disabled.length > 0);
   });
 
-  it("saves blank .unibrow project with zero timeline clips", async () => {
+  it("opens in-memory empty project without writing disk", async () => {
     const parent = path.join(FIXTURES, "projects");
-    await tauriInvoke("create_unibrow_project", {
-      parentDir: parent,
-      name: `e2e-blank-${Date.now()}`,
-      template: "blank",
-    });
+    const before = await fs.readdir(parent).catch(() => [] as string[]);
+    await tauriInvoke("new_empty_project", { title: "E2E Untitled" });
     await browser.pause(500);
     const dest = await tauriInvoke<string>("autosave_unibrow_active_project");
-    assert.ok(dest.length > 0);
+    assert.equal(dest, "");
+    const after = await fs.readdir(parent).catch(() => [] as string[]);
+    assert.equal(after.length, before.length);
   });
 });

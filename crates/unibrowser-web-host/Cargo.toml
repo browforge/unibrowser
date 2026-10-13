@@ -20,6 +20,7 @@ unibrowser-document-model = { path = "../unibrowser-document-model" }
 unibrowser-docx = { path = "../unibrowser-docx" }
 base64 = "0.22"
 toy-markdown = { path = "../../mods/toy-markdown" }
+unibrowser-project = { path = "../unibrowser-project" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

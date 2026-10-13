@@ -6,9 +6,9 @@ These journeys translate [user stories](user-stories.md) into buildable flows. E
 
 **Goal:** open useful work immediately; explain the unified shell once.
 
-1. App opens a New tab page with two primary actions: **Open** and **New project**.
+1. App opens a New tab page with **New** (empty in-memory `.unibrow` project), **New from template**, **Open file**, and **Open folder** on the paper card ([ADR 0036](../adr/0036-new-project-empty-by-default-and-templates.md)).
 2. Recent files/projects and Downloads appear below only when populated.
-3. A compact, in-page welcome card says: "Files, folders and websites share one tab strip."
+3. A compact welcome line explains that nothing is written to disk until the user edits or saves.
 4. User may choose **Take a 60-second tour** or **Dismiss**.
 5. Dismissal persists. Tour steps point to real controls without blocking them.
 6. Default workspace is **Browse** and Command Manager follows context.
@@ -76,9 +76,9 @@ Current friction:
 
 **Goal:** make a mixed-media project without understanding proxy/raster internals.
 
-1. User chooses **New project** on the New tab page.
-2. Template chooser appears inline: Blank, Video story, Live show.
-3. Video story opens the **Create** workspace: sources left, preview centre, inspector right, timeline bottom.
+1. User chooses **New from template** on the New tab page (or **New** for an empty project).
+2. Template gallery lists built-in starters (for example **Simple video**); user configures name and optional location, then confirms plugin relationships.
+3. Applied template opens in memory; **Simple video** hints the **Create** workspace layout: sources, preview, inspector, timeline.
 4. User drags photos/documents/clips into Sources or chooses **Add**.
 5. **Title** creates a title card at the playhead.
 6. User edits title text in Inspector and drags duration on timeline.

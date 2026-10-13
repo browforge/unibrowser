@@ -9766,6 +9766,7 @@ dependencies = [
  "unibrowser-engine",
  "unibrowser-mod-api",
  "unibrowser-platform",
+ "unibrowser-project",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
