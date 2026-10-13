@@ -238,7 +238,59 @@ export async function ensureDocFeatureCaptureLayout(
   await new Promise((resolve) => window.setTimeout(resolve, 180));
 }
 
-/** Last-resort layout for doc-feature screenshots when demo state did not mount the card. */
+/** Desktop headless doc-capture: markdown → visual DOCX card without Save dialog or full refreshState. */
+export async function prepareDocVisualMdDocxDesktopCapture(): Promise<void> {
+  if (document.body.dataset.ubDocVisualMdDocxApplied === "1") {
+    return;
+  }
+  const savedPath = "examples/demo-pack/sample.docx";
+  const editorHost = document.getElementById("text-editor-host");
+  if (!editorHost) {
+    throw new Error("doc-visual-md-docx capture requires text-editor-host");
+  }
+  const { setDocumentEditorMode } = await import("../documentEditorModes");
+  setDocumentEditorMode("wysiwyg", false);
+  const {
+    refreshVisualDocxRichSurface,
+    syncDocumentEditorSurfaceVisibility,
+  } = await import("../documentEditorHost");
+  const { documentViewer } = await import("../documentViewer");
+  const markdown = await (
+    await import("../demoPackSample")
+  ).readDemoPackSampleMarkdownDesktopCapture();
+  const { parseMarkdownDocument } = await import("../documentModelBridge");
+  const { seedDocumentModelSessionForDemo } = await import("../documentEditorHost");
+  seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
+  document.body.dataset.documentImageBasePath = "examples/demo-pack/sample.md";
+  document.body.dataset.activeDocumentPath = savedPath;
+  document.body.dataset.cmAutoContext = "office";
+  const viewerHost = document.getElementById("document-viewer-host");
+  if (viewerHost) {
+    documentViewer.hide(viewerHost);
+  }
+  editorHost.classList.remove("hidden");
+  syncDocumentEditorSurfaceVisibility();
+  await refreshVisualDocxRichSurface(savedPath, "examples/demo-pack/sample.md");
+  const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
+  dismissDocCaptureChrome();
+  syncTextDocumentCard(true, "sample.docx");
+  forceDocFeatureCaptureLayout("sample.docx");
+  refreshDocumentCardStatusFooter(false);
+  const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
+  if (compactHost) {
+    const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+    seedDocVisualCompactToolbarFallback(compactHost, true);
+  }
+  await (await import("../richTextEditor")).waitForRichCardImagesLoaded(4_000);
+  const refreshStatusBarOnly = (
+    window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+  ).__unibrowserRefreshStatusBarOnly;
+  if (refreshStatusBarOnly) {
+    await refreshStatusBarOnly();
+  }
+  document.body.dataset.ubDocVisualMdDocxApplied = "1";
+}
+
 /** After Save As DOCX, keep the Render 1 paper card in Visual mode (not the browse DOCX viewer). */
 export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<void> {
   const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
@@ -287,15 +339,13 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   forceDocFeatureCaptureLayout(label);
   const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
   refreshDocumentCardStatusFooter(false);
-  const { patchStatusItem } = await import("../statusBar");
-  patchStatusItem("document-language", "Word document");
   const { waitForRichCardImagesLoaded } = await import("../richTextEditor");
   await waitForRichCardImagesLoaded();
-  const refresh = (
-    window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
-  ).__unibrowserRefreshState;
-  if (refresh) {
-    await refresh();
+  const refreshStatusBarOnly = (
+    window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+  ).__unibrowserRefreshStatusBarOnly;
+  if (refreshStatusBarOnly) {
+    await refreshStatusBarOnly();
   }
 }
 

@@ -578,7 +578,7 @@ test.describe("Document feature captures", () => {
         wait: "#bottom-panel-history-pane:not(.hidden)",
       },
       {
-        name: "doc-visual-docx-web-v5.png",
+        name: "doc-visual-docx-web-v6.png",
         demo: "doc-visual-md-docx",
         wait: "#document-card-tab .document-card-tab-label:text-is('sample.docx')",
       },
@@ -597,22 +597,6 @@ test.describe("Document feature captures", () => {
           if (apply) {
             await apply("doc-visual-md-docx");
           }
-          const host = document.getElementById("text-compact-toolbar-host");
-          const seed = (
-            window as unknown as {
-              __seedDocVisualCompactToolbarFallback?: (
-                host: HTMLElement,
-                office?: boolean,
-              ) => void;
-            }
-          ).__seedDocVisualCompactToolbarFallback;
-          if (host && seed) {
-            seed(host, true);
-          }
-          const patch = (
-            window as unknown as { patchStatusItem?: (id: string, text: string) => void }
-          ).patchStatusItem;
-          patch?.("document-language", "Word document");
         });
       }
       if (shot.wait) {

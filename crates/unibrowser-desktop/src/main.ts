@@ -3217,7 +3217,11 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           /* argv open failures surface via toast on next interaction */
         }
       }
-      if (launchPaths.length > 0) {
+      const demoForLaunch = demo?.toLowerCase() ?? "";
+      if (
+        launchPaths.length > 0 &&
+        !(docCapturePath && demoForLaunch.includes("doc-visual-md-docx"))
+      ) {
         await refreshState();
         await new Promise((resolve) => setTimeout(resolve, 350));
         await refreshState();
@@ -3290,18 +3294,21 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       }
       const docCapture = docCapturePath;
       if (docCapture) {
+        document.body.dataset.ubDocCapture = "1";
         const demoAgain = await invoke<string | null>("get_demo_state");
         if (demoAgain?.toLowerCase().includes("cmd-proving-detached")) {
           return;
         }
         if (demoAgain) {
           try {
+            const demoTokens = demoAgain.toLowerCase();
             const bootstrapDemo = bootstrapDemoStateTokens(demoAgain);
             if (bootstrapDemo) {
               await applyDemoState(bootstrapDemo);
-              await refreshState();
+              if (!demoTokens.includes("doc-visual-md-docx")) {
+                await refreshState();
+              }
             }
-            const demoTokens = demoAgain.toLowerCase();
             const proofControl = demoTokens.includes("cmd11-plain-proof")
               ? "unibrowser.control.text.strikethrough"
               : demoTokens.includes("cmd11-markdown-proof")
@@ -3346,6 +3353,15 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             }
           }
           const demoTokens = demoAgain?.toLowerCase() ?? "";
+          const captureBaseName = docCapture.split(/[/\\]/).pop()?.toLowerCase() ?? "";
+          const docVisualMdDocxCaptureShot =
+            demoTokens.includes("doc-visual-md-docx") ||
+            captureBaseName.includes("doc-visual-docx-desktop-v6") ||
+            captureBaseName.includes("doc-visual-docx-web-v6");
+          if (docVisualMdDocxCaptureShot) {
+            const merged = `${demoTokens},doc-visual-md-docx`.replace(/^,/, "");
+            document.body.dataset.ubDemoTokens = merged;
+          }
           if (
             demoTokens.includes("content-kind-md-preview") ||
             demoTokens.includes("content-kind-embedded-image-ui") ||
@@ -3373,7 +3389,21 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               }
             }
           }
-          const painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
+          let painted: boolean;
+          if (docVisualMdDocxCaptureShot && document.body.dataset.ubDocCapture === "1") {
+            try {
+              const { prepareDocVisualMdDocxDesktopCapture } = await import(
+                "./ui/textDocumentCard"
+              );
+              await prepareDocVisualMdDocxDesktopCapture();
+            } catch (err) {
+              reportSubsystemError("doc-visual-md-docx-capture", err);
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, 200));
+            painted = true;
+          } else {
+            painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
+          }
           if (!painted) {
             const timeoutDiag = formatDiagnosticsForLog(collectDocCaptureDiagnostics());
             const editorLengths = {
@@ -3385,44 +3415,8 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
-          if (demoTokens.includes("doc-visual-md-docx")) {
-            try {
-              if (document.body.dataset.ubDocCapture === "1") {
-                document.body.dataset.activeDocumentPath = "examples/demo-pack/sample.docx";
-                document.body.dataset.cmAutoContext = "office";
-                document.body.dataset.documentImageBasePath = "examples/demo-pack/sample.md";
-                const { setDocumentEditorMode } = await import("./documentEditorModes");
-                setDocumentEditorMode("wysiwyg", false);
-                const { syncDocumentEditorSurfaceVisibility } = await import(
-                  "./documentEditorHost"
-                );
-                syncDocumentEditorSurfaceVisibility();
-                const { syncTextDocumentCard, forceDocFeatureCaptureLayout } = await import(
-                  "./ui/textDocumentCard"
-                );
-                syncTextDocumentCard(true, "sample.docx");
-                const { refreshDocumentCardStatusFooter } = await import(
-                  "./ui/documentCardStatus"
-                );
-                refreshDocumentCardStatusFooter(false);
-                const { patchStatusItem } = await import("./statusBar");
-                patchStatusItem("document-language", "Word document");
-                const compactHost = document.getElementById("text-compact-toolbar-host");
-                if (compactHost) {
-                  const { seedDocVisualCompactToolbarFallback } = await import(
-                    "./textCompactToolbar"
-                  );
-                  seedDocVisualCompactToolbarFallback(compactHost, true);
-                }
-                forceDocFeatureCaptureLayout("sample.docx");
-                const { waitForRichCardImagesLoaded } = await import("./richTextEditor");
-                await waitForRichCardImagesLoaded();
-              } else {
-                await applyDemoState("doc-visual-md-docx");
-              }
-            } catch (err) {
-              reportSubsystemError("doc-visual-md-docx-post-paint", err);
-            }
+          if (docVisualMdDocxCaptureShot) {
+            hideSubsystemNoticeForCapture();
           }
           const auditErrors = runShellChromeAudit();
           await invoke("self_test_submit_shell_chrome_audit", { errors: auditErrors });
@@ -3463,11 +3457,11 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             docCaptureDemo.toLowerCase().includes("doc-opaque-card") ||
             docCaptureDemo.toLowerCase().includes("doc-history-panel") ||
             docCaptureDemo.toLowerCase().includes("doc-merge-banner") ||
-            docCaptureDemo.toLowerCase().includes("doc-visual-md-docx");
+            docCaptureDemo.toLowerCase().includes("doc-visual-md-docx") ||
+            docVisualMdDocxCaptureShot;
           if (isDocFeatureShot) {
             const docVisualCapture =
-              document.body.dataset.ubDocCapture === "1" &&
-              docCaptureDemo.toLowerCase().includes("doc-visual-md-docx");
+              document.body.dataset.ubDocCapture === "1" && docVisualMdDocxCaptureShot;
             if (!docVisualCapture) {
               const { ensureDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
               await ensureDocFeatureCaptureLayout(docCaptureDemo, {
@@ -3479,7 +3473,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
                 },
               });
             }
-            if (docCaptureDemo.toLowerCase().includes("doc-visual-md-docx")) {
+            if (docVisualMdDocxCaptureShot) {
               const { waitForRichCardImagesLoaded } = await import("./richTextEditor");
               await waitForRichCardImagesLoaded();
             }

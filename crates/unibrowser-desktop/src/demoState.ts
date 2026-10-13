@@ -221,12 +221,17 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "doc-visual-md-docx": {
+        if (document.body.dataset.ubDocVisualMdDocxApplied === "1") {
+          break;
+        }
         const captureMode = document.body.dataset.ubDocCapture === "1";
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("wysiwyg", false);
-        const { DEMO_PACK_SAMPLE_MD_REL, fetchDemoPackSampleMarkdownWeb } = await import(
-          "./demoPackSample"
-        );
+        const {
+          DEMO_PACK_SAMPLE_MD_REL,
+          fetchDemoPackSampleMarkdownWeb,
+          readDemoPackSampleMarkdownDesktopCapture,
+        } = await import("./demoPackSample");
         const mdPath = DEMO_PACK_SAMPLE_MD_REL;
         const { isWebPlatform } = await import("./platform/isWeb");
         const editorHost = document.getElementById("text-editor-host");
@@ -234,18 +239,12 @@ export async function applyDemoState(raw: string) {
         if (isWebPlatform()) {
           markdown = await fetchDemoPackSampleMarkdownWeb();
           await invoke("open_text_with_content", { path: mdPath, content: markdown });
+        } else if (captureMode) {
+          markdown = await readDemoPackSampleMarkdownDesktopCapture();
         } else {
-          if (!captureMode) {
-            await invoke("open_path", { path: "examples/demo-pack/sample.md" }).catch(() => undefined);
-          }
+          await invoke("open_path", { path: "examples/demo-pack/sample.md" }).catch(() => undefined);
           const { getActiveTextContent } = await import("./textEditor");
           markdown = getActiveTextContent() ?? "";
-          if (!markdown.trim() && captureMode) {
-            const bytes = await invoke<number[]>("read_document_bytes", {
-              path: "examples/demo-pack/sample.md",
-            });
-            markdown = new TextDecoder().decode(Uint8Array.from(bytes));
-          }
           if (!markdown.trim()) {
             throw new Error("examples/demo-pack/sample.md did not load for doc-visual-md-docx");
           }
@@ -254,20 +253,19 @@ export async function applyDemoState(raw: string) {
           "./documentEditorHost"
         );
         let session = getDocumentModelSession();
+        if (!session) {
+          const { parseMarkdownDocument } = await import("./documentModelBridge");
+          seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
+          session = getDocumentModelSession();
+        }
         if (editorHost) {
-          if (!session) {
-            const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
-            await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
-            session = getDocumentModelSession();
-          }
+          const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+          await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
+          session = getDocumentModelSession();
         }
         setDocumentEditorMode("wysiwyg", false);
         const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
         syncTextDocumentCard(true, "sample.md");
-        if (!session) {
-          const { parseMarkdownDocument } = await import("./documentModelBridge");
-          seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
-        }
         const { saveMarkdownVisualAsDocx } = await import("./documentModelBridge");
         let saved: string;
         if (captureMode && !isWebPlatform()) {
@@ -306,10 +304,6 @@ export async function applyDemoState(raw: string) {
           await refreshVisualDocxRichSurface(saved, imageBasePath);
           const { waitForRichCardImagesLoaded } = await import("./richTextEditor");
           await waitForRichCardImagesLoaded();
-          const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
-          refreshDocumentCardStatusFooter(false);
-          const { patchStatusItem } = await import("./statusBar");
-          patchStatusItem("document-language", "Word document");
           const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
           dismissDocCaptureChrome();
           const compactHost = document.getElementById("text-compact-toolbar-host");
@@ -319,10 +313,20 @@ export async function applyDemoState(raw: string) {
           }
           const { forceDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
           forceDocFeatureCaptureLayout("sample.docx");
+          const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
+          refreshDocumentCardStatusFooter(false);
+          const refreshStatusBarOnly = (
+            window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+          ).__unibrowserRefreshStatusBarOnly;
+          if (refreshStatusBarOnly) {
+            await refreshStatusBarOnly();
+          }
+          document.body.dataset.ubDocVisualMdDocxApplied = "1";
           break;
         }
         const { finalizeVisualDocxAfterSave } = await import("./ui/textDocumentCard");
         await finalizeVisualDocxAfterSave(saved);
+        document.body.dataset.ubDocVisualMdDocxApplied = "1";
         break;
       }
       case "text-card-render1": {

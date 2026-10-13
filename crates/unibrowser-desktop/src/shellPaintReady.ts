@@ -412,6 +412,14 @@ function launchPathBasenames(launchPaths: string[]): string[] {
 }
 
 async function syncBrowserStateForCapture(): Promise<void> {
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (
+    document.body.dataset.ubDocCapture === "1" &&
+    (demo.includes("doc-visual-md-docx") ||
+      document.body.dataset.ubDocVisualMdDocxApplied === "1")
+  ) {
+    return;
+  }
   const apply = (
     window as unknown as { __selfTestApplyState?: (data: unknown) => Promise<void> }
   ).__selfTestApplyState;

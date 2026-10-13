@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
-"""Gate doc-feature v5 PNG captures: unique MD5s, CM chrome, and DOM layout assertions."""
+"""Gate doc-feature PNG captures: unique MD5s, CM chrome, DOM layout, and anti-reuse guards."""
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DOC_FEATURES_DIR = ROOT / "docs" / "screenshots" / "doc-features"
+CAPTURE_SPEC = ROOT / "crates" / "unibrowser-desktop" / "tests" / "doc-features-capture.spec.ts"
 
 NAMES = [
     "doc-wysiwyg-blockquote-desktop-v5.png",
     "doc-split-apply-banner-desktop-v5.png",
     "doc-opaque-card-desktop-v5.png",
-    "doc-visual-docx-desktop-v5.png",
+    "doc-visual-docx-desktop-v6.png",
     "doc-history-panel-desktop-v5.png",
     "doc-wysiwyg-blockquote-web-v5.png",
     "doc-split-apply-banner-web-v5.png",
     "doc-opaque-card-web-v5.png",
-    "doc-visual-docx-web-v5.png",
+    "doc-visual-docx-web-v6.png",
     "doc-history-panel-web-v5.png",
 ]
+
+DOC_VISUAL_STEM_RE = re.compile(
+    r"^doc-visual-docx-(desktop|web)-v(\d+)\.png$",
+)
 
 
 def file_md5(path: Path) -> str:
@@ -84,10 +93,57 @@ def dom_assertions_ok(cm: dict, png_name: str) -> str | None:
     return None
 
 
+def check_capture_spec_no_patch_status_item() -> str | None:
+    if not CAPTURE_SPEC.is_file():
+        return f"missing capture spec: {CAPTURE_SPEC}"
+    text = CAPTURE_SPEC.read_text()
+    if "patchStatusItem" in text:
+        return (
+            f"{CAPTURE_SPEC.relative_to(ROOT)} must not call patchStatusItem; "
+            "status bar must come from the app"
+        )
+    return None
+
+
+def check_doc_visual_not_reused(paths: dict[str, Path]) -> str | None:
+    prior_by_platform: dict[str, list[tuple[int, str, Path]]] = {
+        "desktop": [],
+        "web": [],
+    }
+    if DOC_FEATURES_DIR.is_dir():
+        for path in sorted(DOC_FEATURES_DIR.glob("doc-visual-docx-*.png")):
+            match = DOC_VISUAL_STEM_RE.match(path.name)
+            if not match:
+                continue
+            platform, version = match.group(1), int(match.group(2))
+            prior_by_platform[platform].append((version, file_md5(path), path))
+
+    for name, path in paths.items():
+        match = DOC_VISUAL_STEM_RE.match(name)
+        if not match:
+            continue
+        platform, version = match.group(1), int(match.group(2))
+        digest = file_md5(path)
+        for old_version, old_digest, old_path in prior_by_platform[platform]:
+            if old_version >= version:
+                continue
+            if digest == old_digest:
+                return (
+                    f"{name} md5 {digest} matches earlier capture {old_path.name} "
+                    f"(version v{old_version}); recapture required"
+                )
+    return None
+
+
 def main() -> int:
+    spec_err = check_capture_spec_no_patch_status_item()
+    if spec_err:
+        print(spec_err, file=sys.stderr)
+        return 1
+
     roots = [Path(p) for p in sys.argv[1:]] if len(sys.argv) > 1 else [
         Path("/opt/cursor/artifacts"),
-        Path("docs/screenshots/doc-features"),
+        DOC_FEATURES_DIR,
     ]
     paths: dict[str, Path] = {}
     for name in NAMES:
@@ -101,6 +157,11 @@ def main() -> int:
             print(f"missing capture: {name}", file=sys.stderr)
             return 1
         paths[name] = found
+
+    reuse_err = check_doc_visual_not_reused(paths)
+    if reuse_err:
+        print(reuse_err, file=sys.stderr)
+        return 1
 
     digests = {name: file_md5(path) for name, path in paths.items()}
     seen: dict[str, str] = {}
