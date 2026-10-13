@@ -75,6 +75,7 @@ void invoke<string | null>("take_doc_capture_path").then((docCapture) => {
   if (!docCapture) {
     return;
   }
+  document.body.dataset.ubDocCapture = "1";
   const pushAudit = () => {
     void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
     window.setTimeout(pushAudit, 200);
@@ -223,6 +224,7 @@ import {
   validateDocumentFeatureCaptureChrome,
   validateDocumentFeatureCaptureDom,
   collectDocumentFeatureCaptureDom,
+  collectStatusBarDiagnostics,
   validateMarkdownPreviewImageFitsPage,
   clearCaptureHoverAndTooltips,
 } from "./docCaptureAsserts";
@@ -559,18 +561,33 @@ function statusItemsForContext(
     const problemsText =
       document.getElementById("bottom-panel-tab-problems")?.textContent ?? "";
     const problemsCount = problemsText.match(/\d+/)?.[0] ?? "0";
+    const tabLabel =
+      document
+        .querySelector<HTMLElement>("#document-card-tab .document-card-tab-label")
+        ?.textContent?.trim()
+        .toLowerCase() ?? "";
     const docPath = (
       document.body.dataset.activeDocumentPath ??
       data.text_document.path ??
       ""
     ).toLowerCase();
+    const demoVisualDocx = (document.body.dataset.ubDemoTokens ?? "")
+      .toLowerCase()
+      .includes("doc-visual-md-docx");
     const officeDoc =
       docPath.endsWith(".docx") ||
       docPath.endsWith(".doc") ||
       docPath.endsWith(".odt") ||
-      (document.body.dataset.cmAutoContext ?? "") === "office";
+      data.text_document.path.toLowerCase().endsWith(".docx") ||
+      data.text_document.path.toLowerCase().endsWith(".doc") ||
+      data.text_document.path.toLowerCase().endsWith(".odt") ||
+      tabLabel.endsWith(".docx") ||
+      tabLabel.endsWith(".doc") ||
+      tabLabel.endsWith(".odt") ||
+      (document.body.dataset.cmAutoContext ?? "") === "office" ||
+      (demoVisualDocx && document.body.classList.contains("text-document-card"));
     const languageLabel = officeDoc
-      ? "Word"
+      ? "Word document"
       : values.language || data.text_document.language || "Text";
     left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
     left.push(item("document-language", "left", languageLabel, 80));
@@ -688,9 +705,36 @@ function refreshStatusBar(
   if (compact && showViewer && viewerKind === "pdf" && lastPdfAnnotationCount > 0) {
     saved = "Annotations saved";
   }
+  const compactTabLabel =
+    document
+      .querySelector<HTMLElement>("#document-card-tab .document-card-tab-label")
+      ?.textContent?.trim()
+      .toLowerCase() ?? "";
+  const compactDocPath = (
+    document.body.dataset.activeDocumentPath ??
+    data.text_document?.path ??
+    ""
+  ).toLowerCase();
+  const demoVisualDocxCompact = (document.body.dataset.ubDemoTokens ?? "")
+    .toLowerCase()
+    .includes("doc-visual-md-docx");
+  const compactOfficeDoc =
+    compactDocPath.endsWith(".docx") ||
+    compactDocPath.endsWith(".doc") ||
+    compactDocPath.endsWith(".odt") ||
+    data.text_document?.path.toLowerCase().endsWith(".docx") ||
+    data.text_document?.path.toLowerCase().endsWith(".doc") ||
+    data.text_document?.path.toLowerCase().endsWith(".odt") ||
+    compactTabLabel.endsWith(".docx") ||
+    compactTabLabel.endsWith(".doc") ||
+    compactTabLabel.endsWith(".odt") ||
+    (document.body.dataset.cmAutoContext ?? "") === "office" ||
+    (demoVisualDocxCompact && document.body.classList.contains("text-document-card"));
   const language =
     compact && showText && data.text_document
-      ? data.text_document.language?.replace("typescript", "TypeScript") ?? "TypeScript"
+      ? compactOfficeDoc
+        ? "Word document"
+        : data.text_document.language?.replace("typescript", "TypeScript") ?? "TypeScript"
       : undefined;
   let zoomOut = compact ? zoom || lastViewerZoomLabel || "100%" : zoom;
   if (compact && showViewer && viewerKind === "pdf" && lastPdfAnnotationCount > 0) {
@@ -2418,6 +2462,9 @@ const winDemoHooks = window as unknown as {
 };
 winDemoHooks.__unibrowserRefreshState = refreshState;
 winDemoHooks.__unibrowserApplyState = applyState;
+(
+  window as unknown as { __unibrowserApplyDemoState?: (token: string) => Promise<void> }
+).__unibrowserApplyDemoState = applyDemoState;
 
 async function selectTab(index: number) {
   await textEditor.flush();
@@ -3144,6 +3191,9 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
       mountActivityRail();
       const launchPaths = await invoke<string[]>("take_launch_open_paths");
       const docCapturePath = await invoke<string | null>("take_doc_capture_path");
+      if (docCapturePath) {
+        document.body.dataset.ubDocCapture = "1";
+      }
       const demo = await invoke<string | null>("get_demo_state");
       if (demo) {
         document.body.dataset.ubDemoTokens = demo.toLowerCase();
@@ -3227,6 +3277,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
                 );
                 seedDocVisualCompactToolbarFallback(compactHost, true);
               }
+              await refreshState();
             }
           }
           if (demo.toLowerCase().includes("ai")) {
@@ -3334,6 +3385,45 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          if (demoTokens.includes("doc-visual-md-docx")) {
+            try {
+              if (document.body.dataset.ubDocCapture === "1") {
+                document.body.dataset.activeDocumentPath = "examples/demo-pack/sample.docx";
+                document.body.dataset.cmAutoContext = "office";
+                document.body.dataset.documentImageBasePath = "examples/demo-pack/sample.md";
+                const { setDocumentEditorMode } = await import("./documentEditorModes");
+                setDocumentEditorMode("wysiwyg", false);
+                const { syncDocumentEditorSurfaceVisibility } = await import(
+                  "./documentEditorHost"
+                );
+                syncDocumentEditorSurfaceVisibility();
+                const { syncTextDocumentCard, forceDocFeatureCaptureLayout } = await import(
+                  "./ui/textDocumentCard"
+                );
+                syncTextDocumentCard(true, "sample.docx");
+                const { refreshDocumentCardStatusFooter } = await import(
+                  "./ui/documentCardStatus"
+                );
+                refreshDocumentCardStatusFooter(false);
+                const { patchStatusItem } = await import("./statusBar");
+                patchStatusItem("document-language", "Word document");
+                const compactHost = document.getElementById("text-compact-toolbar-host");
+                if (compactHost) {
+                  const { seedDocVisualCompactToolbarFallback } = await import(
+                    "./textCompactToolbar"
+                  );
+                  seedDocVisualCompactToolbarFallback(compactHost, true);
+                }
+                forceDocFeatureCaptureLayout("sample.docx");
+                const { waitForRichCardImagesLoaded } = await import("./richTextEditor");
+                await waitForRichCardImagesLoaded();
+              } else {
+                await applyDemoState("doc-visual-md-docx");
+              }
+            } catch (err) {
+              reportSubsystemError("doc-visual-md-docx-post-paint", err);
+            }
+          }
           const auditErrors = runShellChromeAudit();
           await invoke("self_test_submit_shell_chrome_audit", { errors: auditErrors });
           if (auditErrors.length > 0) {
@@ -3375,14 +3465,31 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             docCaptureDemo.toLowerCase().includes("doc-merge-banner") ||
             docCaptureDemo.toLowerCase().includes("doc-visual-md-docx");
           if (isDocFeatureShot) {
-            const { ensureDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
-            await ensureDocFeatureCaptureLayout(docCaptureDemo, {
-              refreshState,
-              refreshCommandManager,
-              applyDemoToken: async (token) => {
-                await applyDemoState(token);
-              },
-            });
+            const docVisualCapture =
+              document.body.dataset.ubDocCapture === "1" &&
+              docCaptureDemo.toLowerCase().includes("doc-visual-md-docx");
+            if (!docVisualCapture) {
+              const { ensureDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
+              await ensureDocFeatureCaptureLayout(docCaptureDemo, {
+                refreshState,
+                refreshCommandManager,
+                skipDemoApply: true,
+                applyDemoToken: async (token) => {
+                  await applyDemoState(token);
+                },
+              });
+            }
+            if (docCaptureDemo.toLowerCase().includes("doc-visual-md-docx")) {
+              const { waitForRichCardImagesLoaded } = await import("./richTextEditor");
+              await waitForRichCardImagesLoaded();
+            }
+            const docDomAfterLayout = validateDocumentFeatureCaptureDom();
+            if (docDomAfterLayout) {
+              await invoke("abort_doc_capture", {
+                reason: `${docDomAfterLayout}; ${formatDiagnosticsForLog(collectDocCaptureDiagnostics())}`,
+              });
+              return;
+            }
           } else {
             const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
             dismissDocCaptureChrome();
@@ -3396,12 +3503,14 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
-          const docDomErr = validateDocumentFeatureCaptureDom();
-          if (docDomErr) {
-            await invoke("abort_doc_capture", {
-              reason: `${docDomErr}; ${formatDiagnosticsForLog(diag)}`,
-            });
-            return;
+          if (!isDocFeatureShot) {
+            const docDomErr = validateDocumentFeatureCaptureDom();
+            if (docDomErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${docDomErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
           }
           const cmErr = validateCommandManagerForCapture();
           if (cmErr) {
@@ -3693,7 +3802,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
                 contextLabel: "",
                 controls: [],
               }),
-              statusBar: diag.statusBar,
+              statusBar: collectStatusBarDiagnostics(),
               viewportWidth: window.innerWidth,
               viewportHeight: window.innerHeight,
               railFlyoutWidth,

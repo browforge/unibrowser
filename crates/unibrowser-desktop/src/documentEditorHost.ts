@@ -283,6 +283,29 @@ export async function syncDocumentEditorForTextTab(
   document.body.dataset.activeDocumentPath = path;
   installSessionListeners();
   if (!isMarkdownPath(path)) {
+    const demo = await resolveDemoTokens();
+    if (
+      demo.includes("doc-visual-md-docx") &&
+      path.toLowerCase().endsWith(".docx") &&
+      session &&
+      monacoHost
+    ) {
+      document.body.dataset.activeDocumentPath = path;
+      document.body.dataset.cmAutoContext = "office";
+      documentPath = path;
+      mountModeControls();
+      const { setDocumentEditorMode } = await import("./documentEditorModes");
+      setDocumentEditorMode("wysiwyg", false);
+      ensureRichHost(monacoEditorHost);
+      ensureSplitPreview(monacoEditorHost);
+      applySurfaceVisibility(getDocumentEditorMode());
+      await renderRich();
+      const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
+      refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
+      const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+      syncTextDocumentCard(true, path.split(/[/\\]/).pop() ?? null);
+      return;
+    }
     document.getElementById("document-mode-inline-host")?.remove();
     document.getElementById("document-mode-strip-host")?.classList.add("hidden");
     richHost?.classList.add("hidden");
@@ -371,6 +394,24 @@ export function seedDocumentModelSessionForDemo(response: DocumentParseResponse)
     source_map: response.source_map,
     original_base64: response.original_base64,
   };
+}
+
+/** After Save As DOCX, keep the visual model and resolve images from the markdown asset directory. */
+export async function refreshVisualDocxRichSurface(
+  savedDocxPath: string,
+  markdownImageBasePath: string,
+): Promise<void> {
+  if (!monacoHost) {
+    return;
+  }
+  document.body.dataset.documentImageBasePath = markdownImageBasePath;
+  document.body.dataset.activeDocumentPath = savedDocxPath;
+  documentPath = savedDocxPath;
+  if (!session || !richHost) {
+    return;
+  }
+  applySurfaceVisibility(getDocumentEditorMode());
+  await renderRich();
 }
 
 export function teardownDocumentEditor() {

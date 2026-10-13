@@ -196,20 +196,43 @@ export function renderDocumentModelToHtml(model: DocumentModelDto, readonly = fa
   return parts.join("");
 }
 
+function richEditorImageBasePath(basePath: string): string {
+  const override = document.body.dataset.documentImageBasePath?.trim();
+  return override || basePath;
+}
+
+async function loadImageDataUrl(url: string, mimeHint?: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      return null;
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const mime = mimeHint ?? res.headers.get("content-type") ?? guessImageMime(url);
+    return `data:${mime};base64,${bytesToBase64(bytes)}`;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveRichImages(host: HTMLElement, basePath: string): Promise<void> {
+  const resolvedBase = richEditorImageBasePath(basePath);
   const imgs = host.querySelectorAll<HTMLImageElement>("img");
   for (const img of imgs) {
+    img.classList.remove("rich-text-img--broken");
     const raw = img.dataset.docSrc ?? img.getAttribute("src") ?? "";
     if (!raw || isAbsoluteUrl(raw)) {
       continue;
     }
     if (isWebPlatform()) {
-      img.src = joinDocRelative(basePath, raw);
+      const url = joinDocRelative(resolvedBase, raw);
+      const dataUrl = await loadImageDataUrl(url, guessImageMime(raw));
+      img.src = dataUrl ?? url;
       continue;
     }
     try {
       const fileUrl = await invoke<string>("resolve_preview_link", {
-        basePath,
+        basePath: resolvedBase,
         href: raw,
       });
       const filePath = fileUrl.replace(/^file:\/\//i, "");
@@ -290,4 +313,43 @@ export async function mountRichTextEditor(
 export function destroyRichTextEditor() {
   activeHandle?.destroy();
   activeHandle = null;
+}
+
+/** Wait until every image in the document card rich surface has decoded (naturalWidth > 0). */
+export async function waitForRichCardImagesLoaded(timeoutMs = 12_000): Promise<void> {
+  const shell = document.getElementById("document-card-shell");
+  const rich =
+    document.querySelector<HTMLElement>("#rich-text-editor-host:not(.hidden) .rich-text-doc") ??
+    document.querySelector<HTMLElement>(
+      "#document-split-preview-host:not(.hidden) .rich-text-doc",
+    );
+  if (!shell || shell.classList.contains("hidden") || !rich) {
+    return;
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const imgs = Array.from(rich.querySelectorAll<HTMLImageElement>("img"));
+    if (imgs.length === 0) {
+      return;
+    }
+    const pending = imgs.filter((img) => !img.naturalWidth);
+    if (pending.length === 0) {
+      return;
+    }
+    await Promise.all(
+      pending.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete && img.naturalWidth > 0) {
+              resolve();
+              return;
+            }
+            const done = () => resolve();
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          }),
+      ),
+    );
+    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+  }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate doc-feature v4 PNG captures: unique MD5s, CM chrome, and DOM layout assertions."""
+"""Gate doc-feature v5 PNG captures: unique MD5s, CM chrome, and DOM layout assertions."""
 from __future__ import annotations
 
 import hashlib
@@ -8,16 +8,16 @@ import sys
 from pathlib import Path
 
 NAMES = [
-    "doc-wysiwyg-blockquote-desktop-v4.png",
-    "doc-split-apply-banner-desktop-v4.png",
-    "doc-opaque-card-desktop-v4.png",
-    "doc-visual-docx-desktop-v4.png",
-    "doc-history-panel-desktop-v4.png",
-    "doc-wysiwyg-blockquote-web-v4.png",
-    "doc-split-apply-banner-web-v4.png",
-    "doc-opaque-card-web-v4.png",
-    "doc-visual-docx-web-v4.png",
-    "doc-history-panel-web-v4.png",
+    "doc-wysiwyg-blockquote-desktop-v5.png",
+    "doc-split-apply-banner-desktop-v5.png",
+    "doc-opaque-card-desktop-v5.png",
+    "doc-visual-docx-desktop-v5.png",
+    "doc-history-panel-desktop-v5.png",
+    "doc-wysiwyg-blockquote-web-v5.png",
+    "doc-split-apply-banner-web-v5.png",
+    "doc-opaque-card-web-v5.png",
+    "doc-visual-docx-web-v5.png",
+    "doc-history-panel-web-v5.png",
 ]
 
 
@@ -76,6 +76,11 @@ def dom_assertions_ok(cm: dict, png_name: str) -> str | None:
             return "doc-visual-docx capture footer must include Word kind"
         if dom.get("docxEmulationBadgeVisible") is not True:
             return "doc-visual-docx capture must show ≈ emulation badge"
+        if dom.get("cardImageNaturalWidthOk") is not True:
+            return "doc-visual-docx capture requires card images with naturalWidth > 0"
+        status = dom.get("statusBarDocumentLanguage")
+        if isinstance(status, str) and "Word document" not in status:
+            return "doc-visual-docx capture status bar must show Word document"
     return None
 
 

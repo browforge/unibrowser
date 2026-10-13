@@ -149,6 +149,7 @@ export async function ensureDocFeatureCaptureLayout(
     refreshState: () => Promise<void>;
     refreshCommandManager: () => Promise<void>;
     applyDemoToken: (token: string) => Promise<void>;
+    skipDemoApply?: boolean;
   },
 ): Promise<void> {
   const demo = demoRaw.toLowerCase();
@@ -177,14 +178,20 @@ export async function ensureDocFeatureCaptureLayout(
         !document.querySelector<HTMLElement>("#document-viewer-host:not(.hidden)")
       );
     };
-    await deps.applyDemoToken("doc-visual-md-docx");
-    for (let attempt = 0; attempt < 180; attempt += 1) {
-      await deps.refreshCommandManager();
+    if (!cardReady() && !deps.skipDemoApply) {
+      await deps.applyDemoToken("doc-visual-md-docx");
+      await deps.refreshState();
+    }
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if (!deps.skipDemoApply && attempt % 4 === 0) {
+        await deps.refreshCommandManager();
+      }
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
       await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
       window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
-      if (cardReady() && compactToolbarReady()) {
+      const toolbarOk = deps.skipDemoApply || compactToolbarReady();
+      if (cardReady() && toolbarOk) {
         forceDocFeatureCaptureLayout("sample.docx");
         dismissDocCaptureChrome();
         return;
@@ -250,10 +257,15 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   await bindDocumentPath(savedPath);
   setDocumentEditorMode("wysiwyg", false);
   syncDocumentEditorSurfaceVisibility();
+  const imageBase =
+    document.body.dataset.documentImageBasePath?.trim() ||
+    savedPath.replace(/[/\\][^/\\]+$/u, "/sample.md");
+  const { refreshVisualDocxRichSurface } = await import("../documentEditorHost");
+  await refreshVisualDocxRichSurface(savedPath, imageBase);
   forceDocFeatureCaptureLayout(label);
   dismissDocCaptureChrome();
   const { invoke } = await import("@tauri-apps/api/core");
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+  for (let attempt = 0; attempt < 35; attempt += 1) {
     await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
     window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
     if (compactToolbarReady()) {
@@ -275,6 +287,16 @@ export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<vo
   forceDocFeatureCaptureLayout(label);
   const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
   refreshDocumentCardStatusFooter(false);
+  const { patchStatusItem } = await import("../statusBar");
+  patchStatusItem("document-language", "Word document");
+  const { waitForRichCardImagesLoaded } = await import("../richTextEditor");
+  await waitForRichCardImagesLoaded();
+  const refresh = (
+    window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
+  ).__unibrowserRefreshState;
+  if (refresh) {
+    await refresh();
+  }
 }
 
 export function forceDocFeatureCaptureLayout(fileLabel: string | null): void {

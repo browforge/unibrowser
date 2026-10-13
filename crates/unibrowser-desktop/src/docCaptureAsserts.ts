@@ -1252,6 +1252,8 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   richEditorSubtreeViolations: number;
   documentCardFooterText: string;
   docxEmulationBadgeVisible: boolean;
+  cardImageNaturalWidthOk: boolean;
+  statusBarDocumentLanguage: string;
 }
 
 export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDiagnostics {
@@ -1273,6 +1275,21 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     ".block-emulation-badge, .cm-emulation-mark",
   );
   const docxEmulationBadgeVisible = Boolean(approxBadge?.textContent?.includes("≈"));
+  const richSurface =
+    document.querySelector<HTMLElement>("#rich-text-editor-host:not(.hidden) .rich-text-doc") ??
+    document.querySelector<HTMLElement>(
+      "#document-split-preview-host:not(.hidden) .rich-text-doc",
+    );
+  const richImgs = richSurface
+    ? Array.from(richSurface.querySelectorAll<HTMLImageElement>("img"))
+    : [];
+  const cardImageNaturalWidthOk =
+    richImgs.length === 0 || richImgs.every((img) => img.naturalWidth > 0);
+  const statusBarDocumentLanguage = Array.from(
+    document.querySelectorAll<HTMLElement>("#status-bar .status-item"),
+  )
+    .map((el) => el.textContent?.trim() ?? "")
+    .join(" ");
   const activeMode = document.body.dataset.documentEditorMode ?? "";
   const visibleEditorHost = editorHostForMode(
     (activeMode as "wysiwyg" | "source" | "split" | "reading") || "wysiwyg",
@@ -1332,6 +1349,8 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     richEditorSubtreeViolations,
     documentCardFooterText,
     docxEmulationBadgeVisible,
+    cardImageNaturalWidthOk,
+    statusBarDocumentLanguage,
   };
 }
 
@@ -1376,6 +1395,12 @@ export function validateDocumentFeatureCaptureDom(): string | null {
     );
     if (!approx?.textContent?.includes("≈")) {
       return "doc-visual-md-docx capture must show emulated block-style (≈) badge";
+    }
+    if (!dom.cardImageNaturalWidthOk) {
+      return "doc-visual-md-docx capture requires every card image to load (naturalWidth > 0)";
+    }
+    if (!dom.statusBarDocumentLanguage.includes("Word document")) {
+      return "doc-visual-md-docx capture status bar must show Word document";
     }
   }
   return null;

@@ -221,6 +221,9 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "doc-visual-md-docx": {
+        const captureMode = document.body.dataset.ubDocCapture === "1";
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg", false);
         const { DEMO_PACK_SAMPLE_MD_REL, fetchDemoPackSampleMarkdownWeb } = await import(
           "./demoPackSample"
         );
@@ -232,27 +235,50 @@ export async function applyDemoState(raw: string) {
           markdown = await fetchDemoPackSampleMarkdownWeb();
           await invoke("open_text_with_content", { path: mdPath, content: markdown });
         } else {
-          await invoke("open_path", { path: "examples/demo-pack/sample.md" }).catch(() => undefined);
+          if (!captureMode) {
+            await invoke("open_path", { path: "examples/demo-pack/sample.md" }).catch(() => undefined);
+          }
           const { getActiveTextContent } = await import("./textEditor");
           markdown = getActiveTextContent() ?? "";
+          if (!markdown.trim() && captureMode) {
+            const bytes = await invoke<number[]>("read_document_bytes", {
+              path: "examples/demo-pack/sample.md",
+            });
+            markdown = new TextDecoder().decode(Uint8Array.from(bytes));
+          }
           if (!markdown.trim()) {
             throw new Error("examples/demo-pack/sample.md did not load for doc-visual-md-docx");
           }
         }
+        const { getDocumentModelSession, seedDocumentModelSessionForDemo } = await import(
+          "./documentEditorHost"
+        );
+        let session = getDocumentModelSession();
         if (editorHost) {
-          const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
-          await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
+          if (!session) {
+            const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+            await syncDocumentEditorForTextTab(editorHost, mdPath, markdown);
+            session = getDocumentModelSession();
+          }
         }
-        const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("wysiwyg", false);
         const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
         syncTextDocumentCard(true, "sample.md");
-        const { parseMarkdownDocument } = await import("./documentModelBridge");
-        const { seedDocumentModelSessionForDemo } = await import("./documentEditorHost");
-        seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
+        if (!session) {
+          const { parseMarkdownDocument } = await import("./documentModelBridge");
+          seedDocumentModelSessionForDemo(await parseMarkdownDocument(markdown));
+        }
         const { saveMarkdownVisualAsDocx } = await import("./documentModelBridge");
-        const saved = await saveMarkdownVisualAsDocx(mdPath);
-        await invoke("open_path", { path: saved });
+        let saved: string;
+        if (captureMode && !isWebPlatform()) {
+          saved = "examples/demo-pack/sample.docx";
+        } else {
+          saved = await saveMarkdownVisualAsDocx(mdPath);
+        }
+        const imageBasePath = isWebPlatform()
+          ? mdPath
+          : "examples/demo-pack/sample.md";
+        document.body.dataset.documentImageBasePath = imageBasePath;
         const refresh = (
           window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
         ).__unibrowserRefreshState;
@@ -261,19 +287,42 @@ export async function applyDemoState(raw: string) {
             __unibrowserApplyState?: (data: unknown) => Promise<void>;
           }
         ).__unibrowserApplyState;
-        if (apply) {
-          const opened = await invoke<{ tabs: unknown[] }>("get_browser_state");
-          await apply(opened);
-        } else if (refresh) {
-          await refresh();
+        if (isWebPlatform()) {
+          await invoke("open_path", { path: saved });
+          if (apply) {
+            const opened = await invoke<{ tabs: unknown[] }>("get_browser_state");
+            await apply(opened);
+          } else if (refresh) {
+            await refresh();
+          }
+        } else {
+          document.body.dataset.activeDocumentPath = saved;
+          document.body.dataset.cmAutoContext = "office";
+        }
+        if (captureMode && !isWebPlatform()) {
+          const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+          syncTextDocumentCard(true, "sample.docx");
+          const { refreshVisualDocxRichSurface } = await import("./documentEditorHost");
+          await refreshVisualDocxRichSurface(saved, imageBasePath);
+          const { waitForRichCardImagesLoaded } = await import("./richTextEditor");
+          await waitForRichCardImagesLoaded();
+          const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
+          refreshDocumentCardStatusFooter(false);
+          const { patchStatusItem } = await import("./statusBar");
+          patchStatusItem("document-language", "Word document");
+          const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
+          dismissDocCaptureChrome();
+          const compactHost = document.getElementById("text-compact-toolbar-host");
+          if (compactHost) {
+            const { seedDocVisualCompactToolbarFallback } = await import("./textCompactToolbar");
+            seedDocVisualCompactToolbarFallback(compactHost, true);
+          }
+          const { forceDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
+          forceDocFeatureCaptureLayout("sample.docx");
+          break;
         }
         const { finalizeVisualDocxAfterSave } = await import("./ui/textDocumentCard");
         await finalizeVisualDocxAfterSave(saved);
-        const compactHost = document.getElementById("text-compact-toolbar-host");
-        if (compactHost) {
-          const { seedDocVisualCompactToolbarFallback } = await import("./textCompactToolbar");
-          seedDocVisualCompactToolbarFallback(compactHost, true);
-        }
         break;
       }
       case "text-card-render1": {

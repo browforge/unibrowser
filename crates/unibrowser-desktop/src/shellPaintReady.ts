@@ -283,7 +283,8 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     checks.push(markdownPreviewReady);
   } else if (
     tokens.includes("doc-mode-wysiwyg") ||
-    tokens.includes("doc-mode-reading")
+    tokens.includes("doc-mode-reading") ||
+    tokens.includes("doc-visual-md-docx")
   ) {
     checks.push(richTextDocumentReady);
   } else if (tokens.includes("doc-mode-split")) {
