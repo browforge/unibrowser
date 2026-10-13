@@ -279,9 +279,17 @@ body.cm-collapsed #chrome #command-manager.command-manager {
   overflow: hidden !important;
 }
 
-body.cm-collapsed #text-compact-toolbar-host,
 body.cm-collapsed #text-mod-toolbar-host {
   display: none !important;
+}
+
+body.cm-collapsed #text-compact-toolbar-host {
+  display: none !important;
+}
+
+/* Render 1: formatting row lives on the paper card, not in collapsed chrome */
+body.cm-collapsed.text-document-card .document-card-toolbar-mount #text-compact-toolbar-host {
+  display: flex !important;
 }
 
 .text-compact-toolbar,

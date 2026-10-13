@@ -84,6 +84,16 @@ export async function applyDemoState(raw: string) {
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         break;
       }
+      case "text-card-render1":
+        document.body.classList.add("cm-collapsed");
+        {
+          const rail = document.getElementById("activity-rail");
+          rail?.querySelectorAll(".rail-destination.active").forEach((el) => {
+            el.classList.remove("active");
+          });
+          rail?.querySelector<HTMLElement>(".rail-side-panel")?.classList.add("hidden");
+        }
+        break;
       case "txt-mod-toolbar-visible":
         document.documentElement.dataset.ubModToolbarDocked = "1";
         window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
@@ -394,6 +404,7 @@ export async function applyDemoState(raw: string) {
           }
           await new Promise((resolve) => window.setTimeout(resolve, 50));
         }
+        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
         break;
       }
       case "content-kind-embedded-image-ui": {

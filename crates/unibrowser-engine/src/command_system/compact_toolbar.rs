@@ -1,4 +1,4 @@
-//! 32px compact text toolbar families (ADR 0034).
+//! 32px compact text toolbar families (ADR 0034). Visual target: Bear concept Render 1 (in-card row).
 
 use unibrowser_mod_api::{
     commands, control_ids, family_ids, group_ids, ControlType, DensityVariant, OverflowPriority,
@@ -88,17 +88,6 @@ pub fn compact_text_toolbar_families(
                 resolver,
             ),
             control_spec(
-                control_ids::TEXT_STRIKETHROUGH,
-                ControlType::Toggle,
-                commands::TEXT_STRIKETHROUGH,
-                "Strikethrough",
-                "strikethrough",
-                group_ids::TEXT_EMPHASIS,
-                family_ids::TEXT_COMPACT_TOOLBAR,
-                ctx,
-                resolver,
-            ),
-            control_spec(
                 control_ids::TEXT_CODE_INLINE,
                 ControlType::Toggle,
                 commands::TEXT_CODE_INLINE,
@@ -111,9 +100,38 @@ pub fn compact_text_toolbar_families(
             ),
         ],
     };
-    let links = ResolvedGroup {
-        group_id: "unibrowser.group.text.compact.links".into(),
-        label: "Links".into(),
+    let lists = ResolvedGroup {
+        group_id: "unibrowser.group.text.compact.lists".into(),
+        label: "Lists".into(),
+        overflow_priority: OverflowPriority::Primary,
+        controls: vec![
+            control_spec(
+                control_ids::TEXT_LIST,
+                ControlType::Toggle,
+                commands::TEXT_LIST_BULLET,
+                "Bullet list",
+                "list",
+                "unibrowser.group.text.compact.lists",
+                family_ids::TEXT_COMPACT_TOOLBAR,
+                ctx,
+                resolver,
+            ),
+            control_spec(
+                control_ids::TEXT_LIST_NUMBERED,
+                ControlType::Toggle,
+                commands::TEXT_LIST_NUMBERED,
+                "Numbered list",
+                "list-ordered",
+                "unibrowser.group.text.compact.lists",
+                family_ids::TEXT_COMPACT_TOOLBAR,
+                ctx,
+                resolver,
+            ),
+        ],
+    };
+    let insert = ResolvedGroup {
+        group_id: "unibrowser.group.text.compact.insert".into(),
+        label: "Insert".into(),
         overflow_priority: OverflowPriority::Normal,
         controls: vec![
             control_spec(
@@ -122,18 +140,18 @@ pub fn compact_text_toolbar_families(
                 commands::TEXT_LINK,
                 "Link",
                 "link",
-                "unibrowser.group.text.compact.links",
+                "unibrowser.group.text.compact.insert",
                 family_ids::TEXT_COMPACT_TOOLBAR,
                 ctx,
                 resolver,
             ),
             control_spec(
-                control_ids::TEXT_LIST,
-                ControlType::SplitButton,
-                commands::TEXT_LIST_BULLET,
-                "List",
-                "list",
-                "unibrowser.group.text.compact.links",
+                control_ids::TEXT_INSERT_IMAGE,
+                ControlType::Button,
+                commands::TEXT_INSERT_IMAGE,
+                "Insert image",
+                "image",
+                "unibrowser.group.text.compact.insert",
                 family_ids::TEXT_COMPACT_TOOLBAR,
                 ctx,
                 resolver,
@@ -144,44 +162,31 @@ pub fn compact_text_toolbar_families(
         group_id: "unibrowser.group.text.compact.utility".into(),
         label: "Utility".into(),
         overflow_priority: OverflowPriority::Low,
-        controls: vec![
-            control_spec(
-                control_ids::TEXT_CLEAR,
-                ControlType::Button,
-                commands::TEXT_CLEAR,
-                "Clear formatting",
-                "remove-formatting",
-                "unibrowser.group.text.compact.utility",
-                family_ids::TEXT_COMPACT_TOOLBAR,
-                ctx,
-                resolver,
-            ),
-            control_spec(
-                control_ids::TEXT_COMPACT_OVERFLOW,
-                ControlType::MenuButton,
-                commands::TEXT_COMPACT_OVERFLOW,
-                "More formatting",
-                "ellipsis",
-                "unibrowser.group.text.compact.utility",
-                family_ids::TEXT_COMPACT_TOOLBAR,
-                ctx,
-                resolver,
-            ),
-        ],
+        controls: vec![control_spec(
+            control_ids::TEXT_COMPACT_OVERFLOW,
+            ControlType::MenuButton,
+            commands::TEXT_COMPACT_OVERFLOW,
+            "More formatting",
+            "ellipsis",
+            "unibrowser.group.text.compact.utility",
+            family_ids::TEXT_COMPACT_TOOLBAR,
+            ctx,
+            resolver,
+        )],
     };
     vec![ResolvedFamily {
         family_id: family_ids::TEXT_COMPACT_TOOLBAR.into(),
         label: "Compact text".into(),
         overflow_priority: OverflowPriority::Critical,
-        groups: vec![block, emphasis, links, utility],
+        groups: vec![block, emphasis, lists, insert, utility],
     }]
 }
 
 fn block_style_control(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> ResolvedControl {
     let (default_cmd, label) = match ctx.work {
-        WorkContext::PlainText => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Paragraph"),
-        WorkContext::Markdown => (commands::SEMANTIC_BLOCK_HEADING_2, "Heading 2"),
-        WorkContext::RichDocument => (commands::SEMANTIC_BLOCK_HEADING_1, "Heading 1"),
+        WorkContext::PlainText => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Plain text"),
+        WorkContext::Markdown => (commands::SEMANTIC_BLOCK_HEADING_2, "Markdown"),
+        WorkContext::RichDocument => (commands::SEMANTIC_BLOCK_HEADING_1, "Word"),
         _ => (commands::SEMANTIC_BLOCK_PARAGRAPH, "Paragraph"),
     };
     let capability = resolver.resolve_control(
@@ -207,7 +212,7 @@ fn block_style_control(ctx: &ResolutionContext, resolver: &CapabilityResolver) -
         selection: SelectionState::Value,
         value: Some(label.into()),
         label: label.into(),
-        short_label: Some("¶".into()),
+        short_label: Some(label.into()),
         icon: "pilcrow".into(),
         shortcut: None,
         density_variant: DensityVariant::Compact,

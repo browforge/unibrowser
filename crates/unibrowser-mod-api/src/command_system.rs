@@ -90,6 +90,8 @@ pub mod control_ids {
     pub const TEXT_CODE_INLINE: &str = "unibrowser.control.text.code_inline";
     pub const TEXT_LINK: &str = "unibrowser.control.text.link";
     pub const TEXT_LIST: &str = "unibrowser.control.text.list";
+    pub const TEXT_LIST_NUMBERED: &str = "unibrowser.control.text.list_numbered";
+    pub const TEXT_INSERT_IMAGE: &str = "unibrowser.control.text.insert_image";
     pub const TEXT_CLEAR: &str = "unibrowser.control.text.clear";
     pub const TEXT_COMPACT_OVERFLOW: &str = "unibrowser.control.text_compact.overflow";
     pub const EDITOR_FONT: &str = "unibrowser.control.editor.font";

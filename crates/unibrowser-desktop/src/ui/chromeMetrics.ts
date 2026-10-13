@@ -47,6 +47,18 @@ export function validateChromeHeightBudget(heights: ChromeHeights): string[] {
       errors.push(`collapsed chrome ${heights.totalChromePx}px (expected ~40px)`);
     }
   } else if (
+    typeof document !== "undefined" &&
+    document.body.classList.contains("text-document-card")
+  ) {
+    if (heights.textCompactToolbarPx > 2) {
+      errors.push(
+        `text document card mode should mount compact toolbar on card, not chrome (${heights.textCompactToolbarPx}px)`,
+      );
+    }
+    if (heights.totalChromePx < 38 || heights.totalChromePx > 44) {
+      errors.push(`document card chrome ${heights.totalChromePx}px outside ~40px title bar`);
+    }
+  } else if (
     heights.textCompactVisible === true ||
     (typeof document !== "undefined" &&
       document.body.classList.contains("text-compact-visible"))

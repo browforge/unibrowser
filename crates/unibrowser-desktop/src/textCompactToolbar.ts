@@ -12,6 +12,7 @@ import { createLucideIcon } from "./ui/lucideIcon";
 import { bindCommandTooltip } from "./ui/commandTooltip";
 import { controlA11yState } from "./ui/controlA11y";
 import { uiCommandChromeClassList } from "./ui/cmControlClasses";
+import { syncTextDocumentCard } from "./ui/textDocumentCard";
 import type { FloatingBarDto, ManagerTabDto } from "./commandManager";
 
 const BLOCK_COMMANDS: { id: string; label: string }[] = [
@@ -29,6 +30,13 @@ const BLOCK_COMMANDS: { id: string; label: string }[] = [
 const BLOCK_STYLE_CONTROL = "unibrowser.control.semantic.block_style";
 
 function compactWidthBudget(host: HTMLElement): number {
+  const cardMount = document.querySelector<HTMLElement>(".document-card-toolbar-mount");
+  if (document.body.classList.contains("text-document-card") && cardMount) {
+    const mountWidth = cardMount.clientWidth;
+    if (mountWidth > 120) {
+      return mountWidth - 28;
+    }
+  }
   const width = host.clientWidth || window.innerWidth;
   if (width < 400) {
     return Math.max(120, width - 48);
@@ -70,8 +78,11 @@ function renderBlockStylePicker(
   btn.dataset.controlId = control.control_id;
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
-  const icon = createLucideIcon("pilcrow", 16, "ub-icon svg-icon");
-  btn.appendChild(icon);
+  const cardMode = document.body.classList.contains("text-document-card");
+  if (!cardMode) {
+    const icon = createLucideIcon("pilcrow", 16, "ub-icon svg-icon");
+    btn.appendChild(icon);
+  }
   const label = document.createElement("span");
   label.className = "text-compact-block-label";
   label.textContent = control.value ?? control.label;
@@ -202,7 +213,9 @@ function renderCompactRow(
   container.innerHTML = "";
   const groups = familiesToRenderGroups(families);
   const budget = compactWidthBudget(container);
-  let { visible, overflow } = partitionGroupsByAvailableWidth(groups, budget);
+  let { visible, overflow } = document.body.classList.contains("text-document-card")
+    ? { visible: groups, overflow: [] as typeof groups }
+    : partitionGroupsByAvailableWidth(groups, budget);
   const tools = document.createElement("div");
   tools.className = "text-compact-tools";
   tools.setAttribute("role", "toolbar");
@@ -259,6 +272,11 @@ function renderCompactRow(
     tools.appendChild(overflowBtn);
   }
   container.appendChild(tools);
+  const fileLabel =
+    document.querySelector<HTMLElement>(".title-tabs .tab.active .tab-label")?.textContent ??
+    document.querySelector<HTMLElement>("#title-breadcrumb strong")?.textContent ??
+    null;
+  syncTextDocumentCard(true, fileLabel);
 }
 
 export function refreshTextCompactToolbar(
@@ -280,6 +298,7 @@ export function refreshTextCompactToolbar(
   if (!show || !tab) {
     primaryHost.innerHTML = "";
     document.body.classList.remove("text-compact-visible");
+    syncTextDocumentCard(false);
     return;
   }
   document.body.classList.add("text-compact-visible");

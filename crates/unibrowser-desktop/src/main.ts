@@ -10,6 +10,8 @@ import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
 import "./ui/tokens.css";
 import "./ui/compactChrome.css";
+import "./ui/textDocumentCard.css";
+import { exposeTextDocumentCard } from "./ui/textDocumentCard";
 import "./ui/quietUtilityShell.css";
 import { initCommandPalette } from "./ui/commandPalette";
 import { initDockPanel } from "./ui/dockPanel";
@@ -57,6 +59,7 @@ function markUbReadyWhenDomChromePresent() {
 markUbReadyWhenDomChromePresent();
 syncOpenVsxNetworkDataset();
 exposeShellChromeAudit();
+exposeTextDocumentCard();
 exposeChromeMetrics();
 void invoke<{ scenarios: string[] } | null>("get_self_test_plan").then((plan) => {
   if (plan) {

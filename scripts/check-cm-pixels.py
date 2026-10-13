@@ -111,9 +111,13 @@ def main() -> int:
         control["pixelContrast"] = round(sampled, 3)
         control["pixelInkCount"] = ink_count
         control["pixelBounds"] = pixel_bounds
+        width = float(control.get("width") or 0)
+        height = float(control.get("height") or 0)
         supported_enabled = (
             control.get("capabilityState") in ("supported", "emulated")
             and bool(control.get("enabled"))
+            and width >= 4
+            and height >= 4
         )
         if supported_enabled and sampled < 4.5:
             failures.append(

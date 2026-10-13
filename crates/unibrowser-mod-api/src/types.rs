@@ -211,6 +211,8 @@ pub mod commands {
     pub const TEXT_LINK: &str = "unibrowser.text.link";
     pub const TEXT_CLEAR: &str = "unibrowser.text.clear";
     pub const TEXT_LIST_BULLET: &str = "unibrowser.list.bullet";
+    pub const TEXT_LIST_NUMBERED: &str = "unibrowser.list.numbered";
+    pub const TEXT_INSERT_IMAGE: &str = "unibrowser.insert.image";
     pub const TEXT_COMPACT_OVERFLOW: &str = "unibrowser.text.compact.overflow";
     pub const SEMANTIC_BLOCK_PARAGRAPH: &str = "unibrowser.semantic.block.paragraph";
     pub const SEMANTIC_BLOCK_HEADING_1: &str = "unibrowser.semantic.block.heading_1";

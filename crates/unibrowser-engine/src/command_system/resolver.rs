@@ -258,6 +258,8 @@ fn markdown_capability(control_id: &str, inline_html: bool) -> CapabilityState {
         | control_ids::TEXT_CODE_INLINE
         | control_ids::TEXT_LINK
         | control_ids::TEXT_LIST
+        | control_ids::TEXT_LIST_NUMBERED
+        | control_ids::TEXT_INSERT_IMAGE
         | control_ids::TEXT_CLEAR
         | control_ids::TEXT_COMPACT_OVERFLOW => CapabilityState::Supported,
         control_ids::TEXT_FONT => CapabilityState::Unsupported {

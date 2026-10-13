@@ -1112,9 +1112,13 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
   const mediaContext = cm.contextLabel?.toLowerCase() === "audio";
   const sparseContextLimit = mediaContext ? 1 : settingsContext ? 2 : modsContext ? 5 : 4;
   const textCompactContext = document.body.classList.contains("text-compact-visible");
+  const documentCardContext = document.body.classList.contains("text-document-card");
   const sparseContext = startContext || settingsContext || modsContext || mediaContext;
   let requiredVisible = sparseContext ? Math.min(minVisible, sparseContextLimit) : minVisible;
   let requiredContrast = sparseContext ? Math.min(minContrast, sparseContextLimit) : minContrast;
+  if (documentCardContext) {
+    return null;
+  }
   if (textCompactContext) {
     requiredVisible = Math.min(requiredVisible, 5);
     requiredContrast = Math.min(requiredContrast, 5);
@@ -1462,14 +1466,28 @@ export interface TextCompactToolbarCaptureOptions {
 
 /** Quiet Utility: compact row shares CM chrome tokens; no light tiles on controls. */
 function compactToolbarQuietUtilityMismatch(host: HTMLElement): string | null {
-  const cm = document.getElementById("command-manager");
-  if (!cm) {
+  const onCard = document.body.classList.contains("text-document-card");
+  const reference = onCard
+    ? document.querySelector<HTMLElement>(".document-card-toolbar-mount")
+    : document.getElementById("command-manager");
+  if (!reference) {
     return null;
   }
   const hostBg = getComputedStyle(host).backgroundColor;
-  const cmBg = getComputedStyle(cm).backgroundColor;
-  if (hostBg !== cmBg) {
-    return `text compact toolbar background ${hostBg} must match command manager ${cmBg}`;
+  const refBg = getComputedStyle(reference).backgroundColor;
+  if (onCard) {
+    const hostLumCard = parseRgbLuminance(hostBg);
+    const paperLum = parseRgbLuminance(refBg);
+    if (
+      hostLumCard !== null &&
+      paperLum !== null &&
+      hostBg !== "rgba(0, 0, 0, 0)" &&
+      Math.abs(hostLumCard - paperLum) > 0.12
+    ) {
+      return `in-card toolbar background ${hostBg} must sit on paper card ${refBg}`;
+    }
+  } else if (hostBg !== refBg) {
+    return `text compact toolbar background ${hostBg} must match command manager ${refBg}`;
   }
   const hostLum = parseRgbLuminance(hostBg);
   if (hostLum === null) {
@@ -1515,8 +1533,9 @@ export function validateTextCompactToolbarForCapture(
     return "text compact toolbar host missing while text-compact-visible";
   }
   const rect = host.getBoundingClientRect();
-  if (rect.height > 33.5) {
-    return `text compact toolbar height ${rect.height.toFixed(1)}px exceeds 32px row budget`;
+  const maxRow = document.body.classList.contains("text-document-card") ? 38.5 : 33.5;
+  if (rect.height > maxRow) {
+    return `text compact toolbar height ${rect.height.toFixed(1)}px exceeds ${maxRow}px row budget`;
   }
   const tools = host.querySelector<HTMLElement>(".text-compact-tools");
   if (!tools) {
@@ -1604,6 +1623,16 @@ export function validateTextCompactToolbarForCapture(
   const quietErr = compactToolbarQuietUtilityMismatch(host);
   if (quietErr) {
     return quietErr;
+  }
+  if (document.body.classList.contains("text-document-card")) {
+    for (const id of [
+      "unibrowser.control.text.link",
+      "unibrowser.control.text.insert_image",
+    ]) {
+      if (!host.querySelector(`[data-control-id="${id}"]`)) {
+        return `Render 1 in-card toolbar missing control ${id}`;
+      }
+    }
   }
   return null;
 }

@@ -96,6 +96,21 @@ export function runShellChromeAudit(): string[] {
     }
   } else if (
     typeof document !== "undefined" &&
+    document.body.classList.contains("text-document-card")
+  ) {
+    if (heights.textCompactToolbarPx > 4) {
+      errors.push(
+        `document card mode should not keep compact toolbar in chrome (${heights.textCompactToolbarPx}px)`,
+      );
+    }
+    if (heights.commandManagerPx > 2) {
+      errors.push(`document card mode should hide command manager (${heights.commandManagerPx}px)`);
+    }
+    if (heights.totalChromePx < 38 || heights.totalChromePx > 44) {
+      errors.push(`document card chrome ${heights.totalChromePx}px outside ~40px title bar`);
+    }
+  } else if (
+    typeof document !== "undefined" &&
     document.body.classList.contains("text-compact-visible")
   ) {
     if (heights.textCompactToolbarPx > 72) {

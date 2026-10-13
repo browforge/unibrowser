@@ -39,6 +39,7 @@ export const CONTROL_ICON_MAP: Record<string, LucideName> = {
   code: "code",
   link: "link",
   list: "list",
+  "list-ordered": "list-ordered",
   "remove-formatting": "remove-formatting",
   pilcrow: "pilcrow",
   sparkles: "sparkles",
