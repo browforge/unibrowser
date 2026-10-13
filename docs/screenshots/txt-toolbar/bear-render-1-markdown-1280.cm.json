@@ -552,11 +552,11 @@
       },
       {
         "id": "",
-        "label": "Ln 3, Col 55",
+        "label": "Ln 1, Col 1",
         "bounds": {
           "x": 141.09375,
           "y": 777.5,
-          "width": 75.59375,
+          "width": 69.59375,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -564,12 +564,12 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 7.538,
-        "pixelInkCount": 234,
+        "pixelContrast": 7.844,
+        "pixelInkCount": 181,
         "pixelBounds": {
           "x": 141,
           "y": 777,
-          "width": 76,
+          "width": 70,
           "height": 18
         }
       },

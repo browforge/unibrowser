@@ -1,4 +1,4 @@
-import { compactToolbarIconFallbackError } from "./textCompactToolbar";
+import { BLOCK_PICKER_MENU_LABELS, compactToolbarIconFallbackError } from "./textCompactToolbar";
 import { documentWordCount } from "./ui/documentCardStatus";
 
 export interface MonacoCaptureDiagnostics {
@@ -1599,11 +1599,22 @@ export function validateTextCompactToolbarForCapture(
     if (!menu || menu.classList.contains("hidden")) {
       return "block-style picker menu must be open for this capture";
     }
+    if (menu.getAttribute("role") !== "listbox") {
+      return "block-style picker menu must have role=listbox";
+    }
+    const itemLabels = [...menu.querySelectorAll<HTMLElement>(".text-compact-block-item")].map(
+      (row) => row.textContent?.trim() ?? "",
+    );
+    for (const expected of BLOCK_PICKER_MENU_LABELS) {
+      if (!itemLabels.includes(expected)) {
+        return `block-style picker menu missing "${expected}" (have: ${itemLabels.join(", ")})`;
+      }
+    }
     if (requireH2Selected) {
       const h2 = menu.querySelector<HTMLElement>(
         '[data-command-id="unibrowser.semantic.block.heading_2"]',
       );
-      if (!h2?.getAttribute("aria-selected")) {
+      if (!h2?.hasAttribute("aria-selected")) {
         return "block-style picker must show Heading 2 as selected when H2 is applied";
       }
     }
@@ -1620,8 +1631,23 @@ export function validateTextCompactToolbarForCapture(
         return "docx block-style picker must show emulated Heading 1 (≈) on trigger";
       }
       const markRect = mark.getBoundingClientRect();
-      if (markRect.width < 14 || markRect.height < 12) {
-        return "docx emulation badge must be legible (min 14×12px)";
+      if (markRect.width < 14 || markRect.height < 14) {
+        return "docx emulation badge must be legible (min 14×14px)";
+      }
+      const markStyle = getComputedStyle(mark);
+      const fontSize = Number.parseFloat(markStyle.fontSize);
+      if (!Number.isFinite(fontSize) || fontSize < 14) {
+        return `docx emulation badge font must be at least 14px (got ${markStyle.fontSize})`;
+      }
+      const fg = markStyle.color;
+      const bg = markStyle.backgroundColor;
+      const badgeContrast = colourContrastRatio(fg, bg);
+      if (badgeContrast === null || badgeContrast < 4.5) {
+        return `docx emulation badge contrast ${badgeContrast?.toFixed(2) ?? "null"} < 4.5 (${fg} on ${bg})`;
+      }
+      const reason = mark.getAttribute("title")?.trim() || mark.getAttribute("aria-label")?.trim();
+      if (!reason) {
+        return "docx emulation badge must expose a tooltip reason (title or aria-label)";
       }
     }
   }

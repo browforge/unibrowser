@@ -37,8 +37,25 @@ export async function applyDeferredTextToolbarDemoTokens(raw: string): Promise<v
       await applyDemoState(token);
     }
   }
+  if (demoTokens.includes("txt-apply-h2")) {
+    const { textEditor } = await import("./textEditor");
+    textEditor.setCursorLine(3);
+  }
+  if (demoTokens.includes("txt-apply-h1")) {
+    const { textEditor } = await import("./textEditor");
+    textEditor.setCursorLine(1);
+  }
   if (demoTokens.includes("txt-block-picker-open")) {
-    await applyDemoState("txt-block-picker-open");
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await applyDemoState("txt-block-picker-open");
+      const menu = document.querySelector(
+        "#text-compact-toolbar-host .text-compact-block-menu:not(.hidden)",
+      );
+      if (menu) {
+        break;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    }
   }
 }
 
@@ -104,7 +121,10 @@ export async function applyDemoState(raw: string) {
           }
           await new Promise((resolve) => window.setTimeout(resolve, 50));
         }
-        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        {
+          const { refreshCompactBlockPickerLabel } = await import("./textCompactToolbar");
+          refreshCompactBlockPickerLabel();
+        }
         break;
       }
       case "txt-apply-h1": {
@@ -121,7 +141,10 @@ export async function applyDemoState(raw: string) {
           }
           await new Promise((resolve) => window.setTimeout(resolve, 50));
         }
-        window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+        {
+          const { refreshCompactBlockPickerLabel } = await import("./textCompactToolbar");
+          refreshCompactBlockPickerLabel();
+        }
         break;
       }
       case "text-card-render1":

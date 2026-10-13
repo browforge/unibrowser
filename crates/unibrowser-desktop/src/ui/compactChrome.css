@@ -536,10 +536,11 @@ body:not([data-cm-density="large"]) .cm-group-name {
   top: 50%;
   right: 22px;
   transform: translateY(-50%);
-  min-width: 18px;
-  height: 18px;
+  min-width: 20px;
+  min-height: 20px;
   padding: 0 4px;
-  font-size: 11px;
+  font-size: 14px;
+  line-height: 1;
   color: #ffe8a3;
   background: #6b4e16;
   border: 1px solid #c9a227;

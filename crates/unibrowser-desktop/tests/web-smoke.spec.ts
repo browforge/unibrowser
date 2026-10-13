@@ -53,6 +53,7 @@ test.describe("web demo", () => {
     await expect(page.locator("body")).toHaveAttribute("data-ub-ready", "1", {
       timeout: 15_000,
     });
+    await expect(page.locator("#shell-subsystem-notice")).toBeHidden({ timeout: 5_000 });
     const commandManager = page.locator("#command-manager");
     await expect(commandManager).toBeVisible({ timeout: 15_000 });
 

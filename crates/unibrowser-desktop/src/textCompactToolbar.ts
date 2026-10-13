@@ -16,6 +16,18 @@ import { syncTextDocumentCard } from "./ui/textDocumentCard";
 import { inferSemanticBlockStyleAtCursor } from "./textEditor";
 import type { FloatingBarDto, ManagerTabDto } from "./commandManager";
 
+export const BLOCK_PICKER_MENU_LABELS = [
+  "Paragraph",
+  "Heading 1",
+  "Heading 2",
+  "Heading 3",
+  "Heading 4",
+  "Heading 5",
+  "Heading 6",
+  "Block quote",
+  "Code block",
+] as const;
+
 const BLOCK_COMMANDS: { id: string; label: string }[] = [
   { id: "unibrowser.semantic.block.paragraph", label: "Paragraph" },
   { id: "unibrowser.semantic.block.heading_1", label: "Heading 1" },
@@ -334,14 +346,19 @@ export function refreshCompactBlockPickerLabel(): void {
   }
   const menu = host.querySelector<HTMLElement>(".text-compact-block-menu");
   if (menu) {
+    const triggerLabel = label?.textContent?.trim();
+    const fromLabel = triggerLabel
+      ? BLOCK_COMMANDS.find((item) => item.label === triggerLabel)?.id
+      : undefined;
+    const activeId = fromLabel ?? inferred.commandId;
     menu.querySelectorAll<HTMLElement>(".text-compact-block-item").forEach((row) => {
-      const selected = row.dataset.commandId === inferred.commandId;
-      row.toggleAttribute("aria-selected", selected);
+      row.toggleAttribute("aria-selected", row.dataset.commandId === activeId);
     });
   }
 }
 
 export function openBlockStyleMenuForCapture(host: HTMLElement): void {
+  refreshCompactBlockPickerLabel();
   const trigger = host.querySelector<HTMLButtonElement>(".text-compact-block-trigger");
   const menu = host.querySelector<HTMLDivElement>(".text-compact-block-menu");
   if (trigger && menu) {

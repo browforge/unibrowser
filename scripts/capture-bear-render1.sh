@@ -37,14 +37,16 @@ copy_artifact_retry() {
   return 1
 }
 
-for f in \
-  bear-render-1-markdown-1280.png \
-  bear-render-1-docx-1280.png \
-  bear-render-1-markdown-1280.cm.json \
-  bear-render-1-docx-1280.cm.json \
-  txt-web-markdown-picker-h2.png; do
-  if [[ -f "$OUT/$f" ]]; then
-    copy_artifact_retry "$OUT/$f" "$ART/$f" || true
+for pair in \
+  "bear-render-1-markdown-1280.png:bear-render-1-markdown-1280-v2.png" \
+  "bear-render-1-docx-1280.png:bear-render-1-docx-1280-v2.png" \
+  "bear-render-1-markdown-1280.cm.json:bear-render-1-markdown-1280-v2.cm.json" \
+  "bear-render-1-docx-1280.cm.json:bear-render-1-docx-1280-v2.cm.json" \
+  "txt-web-markdown-picker-h2-v2.png:txt-web-markdown-picker-h2-v2.png"; do
+  src="${pair%%:*}"
+  dst="${pair##*:}"
+  if [[ -f "$OUT/$src" ]]; then
+    copy_artifact_retry "$OUT/$src" "$ART/$dst" || true
   fi
 done
 

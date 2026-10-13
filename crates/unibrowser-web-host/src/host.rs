@@ -398,20 +398,38 @@ impl WebHost {
     }
 
     fn cmd_sync_text(&mut self, args: &Value) -> Result<Value, String> {
-        let path = args.get("path").and_then(|v| v.as_str()).ok_or("path")?;
         let content = args.get("content").and_then(|v| v.as_str()).ok_or("content")?;
+        let tab = self.tabs.active_tab_mut().ok_or("no active tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        let path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .map(str::to_string)
+            .or_else(|| base_text::try_text_backend(&mut *doc.backend).map(|b| b.path.clone()))
+            .ok_or("path")?;
+        if doc.path != path {
+            return Err("path mismatch".into());
+        }
         let font = args
             .get("fontSizePt")
             .and_then(|v| v.as_f64())
             .unwrap_or(14.0) as f32;
-        let tab = self.tabs.active_tab_mut().ok_or("no active tab")?;
-        let doc = tab.document.as_mut().ok_or("no document")?;
-        if doc.path != path {
-            return Err("path mismatch".into());
-        }
         if let Some(backend) = base_text::try_text_backend(&mut *doc.backend) {
             backend.set_content(content.into());
             backend.font_size_pt = font;
+            let sel_start = args
+                .get("selectionStart")
+                .or_else(|| args.get("selection_start"))
+                .and_then(|v| v.as_u64())
+                .map(|n| n as usize);
+            let sel_end = args
+                .get("selectionEnd")
+                .or_else(|| args.get("selection_end"))
+                .and_then(|v| v.as_u64())
+                .map(|n| n as usize);
+            if let (Some(start), Some(end)) = (sel_start, sel_end) {
+                backend.set_selection_range(start, end);
+            }
         }
         Ok(Value::Null)
     }

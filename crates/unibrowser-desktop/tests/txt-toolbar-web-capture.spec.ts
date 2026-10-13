@@ -7,7 +7,18 @@ const OUT_DIR = path.resolve(
   "../../../docs/screenshots/txt-toolbar",
 );
 const ART_DIR = "/opt/cursor/artifacts";
-const SHOT = "txt-web-markdown-picker-h2.png";
+const SHOT = "txt-web-markdown-picker-h2-v2.png";
+const BLOCK_PICKER_LABELS = [
+  "Paragraph",
+  "Heading 1",
+  "Heading 2",
+  "Heading 3",
+  "Heading 4",
+  "Heading 5",
+  "Heading 6",
+  "Block quote",
+  "Code block",
+];
 
 test.describe("TXT toolbar web evidence", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -74,9 +85,6 @@ test.describe("TXT toolbar web evidence", () => {
     });
 
     await line3.click();
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
-    });
 
     await page.evaluate(() => {
       const hostEl = document.getElementById("text-compact-toolbar-host");
@@ -96,10 +104,13 @@ test.describe("TXT toolbar web evidence", () => {
 
     const openMenu = host.locator(".text-compact-block-menu:not(.hidden)");
     await expect(openMenu).toBeVisible({ timeout: 15_000 });
-    await expect(openMenu.locator(".text-compact-block-item").first()).toBeVisible();
+    await expect(openMenu).toHaveAttribute("role", "listbox");
+    for (const label of BLOCK_PICKER_LABELS) {
+      await expect(openMenu.getByRole("option", { name: label })).toBeVisible();
+    }
     await expect(host.locator(".text-compact-block-label")).toHaveText("Heading 2");
     await expect(
-      host.locator('[data-command-id="unibrowser.semantic.block.heading_2"]'),
+      host.locator('[data-command-id="unibrowser.semantic.block.heading_2"][aria-selected]'),
     ).toBeVisible();
 
     const lineText = await page.evaluate(() => {

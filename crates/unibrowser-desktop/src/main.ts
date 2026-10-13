@@ -3427,20 +3427,6 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               return;
             }
           }
-          const txtCompactErr = validateTextCompactToolbarForCapture({
-            requirePickerOpen: demoLower.includes("txt-block-picker-open"),
-            requireH2Selected: demoLower.includes("txt-apply-h2"),
-            requireDocxEmulatedH1:
-              demoLower.includes("txt-apply-h1") &&
-              launchPaths.some((p) => /\.docx$/i.test(p)),
-            requireModToolbarDock: demoLower.includes("txt-mod-toolbar-visible"),
-          });
-          if (txtCompactErr) {
-            await invoke("abort_doc_capture", {
-              reason: `${txtCompactErr}; ${formatDiagnosticsForLog(diag)}`,
-            });
-            return;
-          }
           if (document.body.classList.contains("text-document-card")) {
             const cardFooterErr = validateDocumentCardFooterForCapture();
             if (cardFooterErr) {
@@ -3534,9 +3520,34 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           if (pickerOpen) {
             const host = document.getElementById("text-compact-toolbar-host");
             if (host) {
+              if (demoLower.includes("txt-apply-h2")) {
+                const { textEditor } = await import("./textEditor");
+                textEditor.setCursorLine(3);
+              }
+              if (
+                demoLower.includes("txt-apply-h1") &&
+                launchPaths.some((p) => /\.docx$/i.test(p))
+              ) {
+                const { textEditor } = await import("./textEditor");
+                textEditor.setCursorLine(1);
+              }
               const { openBlockStyleMenuForCapture } = await import("./textCompactToolbar");
               openBlockStyleMenuForCapture(host);
             }
+          }
+          const txtCompactErr = validateTextCompactToolbarForCapture({
+            requirePickerOpen: demoLower.includes("txt-block-picker-open"),
+            requireH2Selected: demoLower.includes("txt-apply-h2"),
+            requireDocxEmulatedH1:
+              demoLower.includes("txt-apply-h1") &&
+              launchPaths.some((p) => /\.docx$/i.test(p)),
+            requireModToolbarDock: demoLower.includes("txt-mod-toolbar-visible"),
+          });
+          if (txtCompactErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${txtCompactErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
           }
           await invoke("finish_doc_capture_and_exit", { editorRegion });
         } catch (err) {
