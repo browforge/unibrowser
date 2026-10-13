@@ -31,10 +31,21 @@ function docFeatureCaptureDemoActive(): boolean {
   );
 }
 
+function projectOfficeDocumentVisualActive(): boolean {
+  const path = (document.body.dataset.activeDocumentPath ?? "").toLowerCase();
+  return path.includes("/assets/document.md");
+}
+
 function compactToolbarTabForSnapshot(
   snapshot: CommandManagerDto,
   active: ManagerTabDto | undefined,
 ): { tab: ManagerTabDto | undefined; autoContext: string } {
+  if (projectOfficeDocumentVisualActive()) {
+    const officeTab = snapshot.tabs.find((t) => t.id === "office");
+    if (officeTab && (officeTab.compact_toolbar_families?.length ?? 0) > 0) {
+      return { tab: officeTab, autoContext: "office" };
+    }
+  }
   if (!docFeatureCaptureDemoActive()) {
     return { tab: active, autoContext: snapshot.auto_context };
   }

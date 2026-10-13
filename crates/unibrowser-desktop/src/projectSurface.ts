@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import type { DocumentViewerDto } from "./documentViewer";
 import { t } from "./i18n";
 import { renderWorkshop, type WorkshopViewer } from "./workshop";
@@ -48,7 +47,6 @@ export async function activateProjectDocumentEditor(
 ): Promise<void> {
   const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
   const { setDocumentEditorMode } = await import("./documentEditorModes");
-  const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
   const label = viewer.title?.trim() || "Document";
   const docPath = `${viewer.path.replace(/\/$/, "")}/assets/document.md`;
   const docContent = " ";
@@ -56,10 +54,11 @@ export async function activateProjectDocumentEditor(
   document.body.dataset.activeDocumentPath = docPath;
   setDocumentEditorMode("wysiwyg", false);
   await syncDocumentEditorForTextTab(textEditorHost, docPath, docContent);
-  syncTextDocumentCard(true, label);
-  await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
+  const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
+  await ensureProjectOfficeDocumentCard(label);
   const { refreshCompactBlockPickerLabel } = await import("./textCompactToolbar");
   refreshCompactBlockPickerLabel();
+  window.dispatchEvent(new Event("unibrowser-project-document-ready"));
 }
 
 function renderEmptyProject(root: HTMLElement, viewer: DocumentViewerDto) {
@@ -101,14 +100,45 @@ function renderEmptyProject(root: HTMLElement, viewer: DocumentViewerDto) {
   root.appendChild(card);
 }
 
+type PresentationSlide = {
+  id: string;
+  title: string;
+  subtitle: string;
+  notes: string;
+};
+
 function renderPresentationStudio(root: HTMLElement, viewer: DocumentViewerDto) {
   root.replaceChildren();
   root.className = "project-surface project-surface--presentation";
   const nodes = viewer.project_nodes ?? [];
-  const slides = nodes.filter((n) => n.node_type.toLowerCase().includes("presentation"));
-  const notes = nodes.filter((n) => n.node_type.toLowerCase().includes("note"));
+  const slideNodes = nodes.filter((n) => n.node_type.toLowerCase().includes("presentation"));
+  const initialSlides: PresentationSlide[] =
+    slideNodes.length > 0
+      ? slideNodes.map((node, index) => ({
+          id: node.id ?? `slide-${index + 1}`,
+          title: "",
+          subtitle: "",
+          notes: "",
+        }))
+      : [{ id: "slide-1", title: "", subtitle: "", notes: "" }];
+
+  let slides = initialSlides;
+  let selectedIndex = 0;
+
   const layout = document.createElement("div");
   layout.className = "presentation-studio";
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "presentation-toolbar";
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "quiet-button";
+  addBtn.textContent = t("project.addSlide");
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "quiet-button";
+  deleteBtn.textContent = t("project.deleteSlide");
+
   const rail = document.createElement("aside");
   rail.className = "presentation-slides-rail";
   rail.setAttribute("aria-label", t("project.slidesRail"));
@@ -116,41 +146,139 @@ function renderPresentationStudio(root: HTMLElement, viewer: DocumentViewerDto) 
   railHead.textContent = t("project.slides");
   const slideList = document.createElement("ol");
   slideList.className = "presentation-slide-list";
-  if (slides.length) {
-    slides.forEach((node, index) => {
-      const li = document.createElement("li");
-      li.className = index === 0 ? "selected" : "";
-      li.textContent = node.label || t("project.slideDefault", { n: String(index + 1) });
-      slideList.appendChild(li);
-    });
-  } else {
-    const li = document.createElement("li");
-    li.className = "selected";
-    li.textContent = t("project.slideDefault", { n: "1" });
-    slideList.appendChild(li);
-  }
-  rail.append(railHead, slideList);
+
   const stage = document.createElement("section");
   stage.className = "presentation-stage";
-  const stageTitle = document.createElement("h2");
-  stageTitle.textContent = viewer.title;
-  const canvas = document.createElement("div");
-  canvas.className = "presentation-canvas";
-  canvas.textContent = t("project.presentationCanvasHint");
-  stage.append(stageTitle, canvas);
-  if (notes.length) {
-    const notesPanel = document.createElement("aside");
-    notesPanel.className = "presentation-notes";
-    const notesHead = document.createElement("h3");
-    notesHead.textContent = notes[0]?.label || t("project.speakerNotes");
-    const notesBody = document.createElement("p");
-    notesBody.textContent = t("project.speakerNotesEmpty");
-    notesPanel.append(notesHead, notesBody);
-    layout.append(rail, stage, notesPanel);
-  } else {
-    layout.append(rail, stage);
-  }
+
+  const slideFrame = document.createElement("div");
+  slideFrame.className = "presentation-slide-frame";
+  const titleEl = document.createElement("div");
+  titleEl.className = "presentation-slide-title";
+  titleEl.contentEditable = "true";
+  titleEl.setAttribute("role", "textbox");
+  titleEl.setAttribute("aria-label", t("project.slideTitlePlaceholder"));
+  titleEl.dataset.placeholder = t("project.slideTitlePlaceholder");
+  const subtitleEl = document.createElement("div");
+  subtitleEl.className = "presentation-slide-subtitle";
+  subtitleEl.contentEditable = "true";
+  subtitleEl.setAttribute("role", "textbox");
+  subtitleEl.setAttribute("aria-label", t("project.slideSubtitlePlaceholder"));
+  subtitleEl.dataset.placeholder = t("project.slideSubtitlePlaceholder");
+  slideFrame.append(titleEl, subtitleEl);
+  stage.appendChild(slideFrame);
+
+  const notesPanel = document.createElement("aside");
+  notesPanel.className = "presentation-notes";
+  const notesHead = document.createElement("h3");
+  notesHead.textContent = t("project.speakerNotes");
+  const notesBody = document.createElement("div");
+  notesBody.className = "presentation-notes-body";
+  notesBody.contentEditable = "true";
+  notesBody.setAttribute("role", "textbox");
+  notesBody.setAttribute("aria-label", t("project.speakerNotes"));
+  notesPanel.append(notesHead, notesBody);
+
+  const syncSlideFields = () => {
+    const slide = slides[selectedIndex];
+    if (!slide) {
+      return;
+    }
+    titleEl.textContent = slide.title;
+    subtitleEl.textContent = slide.subtitle;
+    notesBody.textContent = slide.notes;
+    if (!slide.title) {
+      titleEl.dataset.empty = "1";
+    } else {
+      titleEl.removeAttribute("data-empty");
+    }
+    if (!slide.subtitle) {
+      subtitleEl.dataset.empty = "1";
+    } else {
+      subtitleEl.removeAttribute("data-empty");
+    }
+    deleteBtn.disabled = slides.length <= 1;
+    root.dataset.presentationSlideCount = String(slides.length);
+    window.dispatchEvent(new CustomEvent("unibrowser-presentation-slides-changed"));
+  };
+
+  const persistFromDom = () => {
+    const slide = slides[selectedIndex];
+    if (!slide) {
+      return;
+    }
+    slide.title = titleEl.textContent?.trim() ?? "";
+    slide.subtitle = subtitleEl.textContent?.trim() ?? "";
+    slide.notes = notesBody.textContent?.trim() ?? "";
+  };
+
+  const renderRail = () => {
+    slideList.replaceChildren();
+    slides.forEach((_slide, index) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "presentation-slide-thumb";
+      if (index === selectedIndex) {
+        btn.classList.add("selected");
+      }
+      btn.setAttribute("aria-label", t("project.slideDefault", { n: String(index + 1) }));
+      const thumbCanvas = document.createElement("span");
+      thumbCanvas.className = "presentation-slide-thumb-canvas";
+      const num = document.createElement("span");
+      num.className = "presentation-slide-thumb-num";
+      num.textContent = String(index + 1);
+      thumbCanvas.appendChild(num);
+      btn.appendChild(thumbCanvas);
+      btn.onclick = () => {
+        persistFromDom();
+        selectedIndex = index;
+        syncSlideFields();
+        renderRail();
+      };
+      li.appendChild(btn);
+      slideList.appendChild(li);
+    });
+  };
+
+  addBtn.onclick = () => {
+    persistFromDom();
+    const id = `slide-${slides.length + 1}`;
+    slides = [...slides, { id, title: "", subtitle: "", notes: "" }];
+    selectedIndex = slides.length - 1;
+    syncSlideFields();
+    renderRail();
+    titleEl.focus();
+  };
+
+  deleteBtn.onclick = () => {
+    if (slides.length <= 1) {
+      return;
+    }
+    persistFromDom();
+    slides = slides.filter((_, i) => i !== selectedIndex);
+    selectedIndex = Math.min(selectedIndex, slides.length - 1);
+    syncSlideFields();
+    renderRail();
+  };
+
+  titleEl.addEventListener("input", () => {
+    persistFromDom();
+    syncSlideFields();
+  });
+  subtitleEl.addEventListener("input", () => {
+    persistFromDom();
+    syncSlideFields();
+  });
+  notesBody.addEventListener("input", () => {
+    persistFromDom();
+  });
+
+  toolbar.append(addBtn, deleteBtn);
+  rail.append(railHead, slideList);
+  layout.append(toolbar, rail, stage, notesPanel);
   root.appendChild(layout);
+  syncSlideFields();
+  renderRail();
 }
 
 function renderDesignSpace(root: HTMLElement, viewer: DocumentViewerDto) {
@@ -204,6 +332,8 @@ export async function renderProjectSurface(
   if (options?.hideViewerTitle) {
     root.closest(".document-viewer")?.querySelector(".viewer-title")?.classList.add("hidden");
   }
+  const viewerHost = root.closest(".document-viewer-host");
+  viewerHost?.classList.add("document-viewer-host--project-surface");
   switch (kind) {
     case "empty":
       renderEmptyProject(root, viewer);

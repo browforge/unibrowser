@@ -115,6 +115,38 @@ export function exposeTextDocumentCard() {
     syncTextDocumentCard;
 }
 
+/** Memory-project office template: mount paper card + compact toolbar (same as Visual DOCX). */
+export async function ensureProjectOfficeDocumentCard(fileLabel: string): Promise<void> {
+  document.body.dataset.cmAutoContext = "office";
+  document.body.classList.add("cm-collapsed");
+  const { invoke } = await import("@tauri-apps/api/core");
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
+    window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+    if (compactToolbarReady()) {
+      break;
+    }
+    await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
+    window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+    await new Promise((resolve) => window.setTimeout(resolve, 60));
+  }
+  syncTextDocumentCard(true, fileLabel);
+  if (!document.body.classList.contains("text-document-card")) {
+    const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
+    if (compactHost) {
+      const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+      seedDocVisualCompactToolbarFallback(compactHost, true);
+    }
+    syncTextDocumentCard(true, fileLabel);
+  }
+  forceDocFeatureCaptureLayout(fileLabel);
+  const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
+  refreshDocumentCardStatusFooter(false);
+  const editorHost = document.getElementById("text-editor-host");
+  const rich = editorHost?.querySelector<HTMLElement>(".rich-text-doc .ProseMirror");
+  rich?.focus();
+}
+
 function compactToolbarReady(): boolean {
   const toolbar = document.getElementById(COMPACT_TOOLBAR_ID);
   if (!toolbar || toolbar.classList.contains("hidden")) {

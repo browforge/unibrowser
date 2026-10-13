@@ -2213,6 +2213,83 @@ export function validateDocumentCardFooterForCapture(): string | null {
   return null;
 }
 
+function cssTokenColor(tokenName: string, on: HTMLElement): string {
+  const raw = getComputedStyle(on).getPropertyValue(tokenName).trim();
+  if (!raw) {
+    return "";
+  }
+  const probe = document.createElement("span");
+  probe.style.color = raw;
+  document.body.appendChild(probe);
+  const resolved = getComputedStyle(probe).color;
+  probe.remove();
+  return resolved;
+}
+
+/** ADR 0036 new-project captures: office card chrome, project workspace fill, no video status bleed. */
+export function validateNewProjectCaptureDom(demoTokens: string): string | null {
+  if (document.body.dataset.ubNewProjectCapture !== "1") {
+    return null;
+  }
+  const demo = demoTokens.toLowerCase();
+  if (demo.includes("office-project")) {
+    if (!document.body.classList.contains("text-document-card")) {
+      return "office project capture requires text-document-card stylesheet";
+    }
+    const shell = document.getElementById("document-card-shell");
+    if (!shell || shell.classList.contains("hidden")) {
+      return "office project capture requires visible document-card-shell";
+    }
+    const toolbar = document.getElementById("text-compact-toolbar-host");
+    if (!toolbar || toolbar.classList.contains("hidden")) {
+      return "office project capture requires compact document toolbar";
+    }
+  }
+  const projectSurfaceShot =
+    demo.includes("empty") ||
+    demo.includes("presentation-project") ||
+    demo.includes("gallery") ||
+    demo.includes("configure") ||
+    demo.includes("ntp");
+  if (projectSurfaceShot && !demo.includes("office-project") && !demo.includes("docx")) {
+    const workArea =
+      document.getElementById("work-area") ??
+      document.getElementById("content-host");
+    if (workArea) {
+      const expected = cssTokenColor("--ub-canvas", workArea);
+      const actual = getComputedStyle(workArea).backgroundColor;
+      if (expected && actual && expected !== actual) {
+        return `workspace background ${actual} does not match --ub-canvas ${expected}`;
+      }
+    }
+  }
+  if (demo.includes("empty") || demo.includes("presentation-project")) {
+    const statusText =
+      document.getElementById("status-bar")?.textContent?.replace(/\s+/g, " ") ?? "";
+    if (/1080p|48 kHz|00:00:00\.000/.test(statusText)) {
+      return "non-video project capture must not show workshop/video status items";
+    }
+  }
+  if (demo.includes("presentation-project")) {
+    if (!document.querySelector(".presentation-slide-frame")) {
+      return "presentation project capture requires slide editor frame";
+    }
+    if (!document.querySelector(".presentation-slide-thumb")) {
+      return "presentation project capture requires slide thumbnail rail";
+    }
+  }
+  if (demo.includes("configure")) {
+    if (!document.querySelector(".template-gallery-configure-form")) {
+      return "template configure capture requires configure form layout";
+    }
+    const header = document.querySelector(".template-gallery-header");
+    if (header && !header.classList.contains("hidden")) {
+      return "template configure capture must hide gallery search and filters";
+    }
+  }
+  return null;
+}
+
 /** Markdown preview embedded images should not exceed the preview column width. */
 export function validateMarkdownPreviewImageFitsPage(): string | null {
   const shell = document.querySelector<HTMLElement>(".md-preview-shell:not(.hidden)");

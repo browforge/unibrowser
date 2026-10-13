@@ -190,6 +190,11 @@ function docxVisualDocFeatureCapture(): boolean {
   return (document.body.dataset.ubDemoTokens ?? "").toLowerCase().includes("doc-visual-md-docx");
 }
 
+function projectOfficeDocumentVisualActive(): boolean {
+  const path = (document.body.dataset.activeDocumentPath ?? "").toLowerCase();
+  return path.includes("/assets/document.md");
+}
+
 function activeOfficeDocumentTab(): boolean {
   const path = (document.body.dataset.activeDocumentPath ?? "").toLowerCase();
   const tab =
@@ -539,14 +544,19 @@ export function refreshTextCompactToolbar(
   modHost.classList.add("hidden");
   modHost.innerHTML = "";
   if (!show || !tab) {
-    if (docFeatureDocxCapture) {
+    const projectOfficeCard =
+      projectOfficeDocumentVisualActive() &&
+      document.body.classList.contains("text-document-card");
+    if (docFeatureDocxCapture || projectOfficeCard) {
       seedDocVisualCompactToolbarFallback(primaryHost);
       return;
     }
     primaryHost.innerHTML = "";
     document.body.classList.remove("text-compact-visible");
     document.body.classList.remove("cm-collapsed");
-    syncTextDocumentCard(false);
+    if (!projectOfficeDocumentVisualActive()) {
+      syncTextDocumentCard(false);
+    }
     return;
   }
   document.body.classList.add("text-compact-visible");

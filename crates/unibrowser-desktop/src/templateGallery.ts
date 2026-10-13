@@ -3,6 +3,7 @@ import { t } from "./i18n";
 import { confirmTemplateRelationships, type TemplateRelationships } from "./relationshipConsent";
 import { showRelationshipBannerIfNeeded } from "./relationshipBanner";
 import { enhanceSelectsIn } from "./ui/themedSelect";
+import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 
 export type { TemplateRelationships };
 
@@ -64,24 +65,36 @@ type GalleryMountOptions = {
   onCreate?: (payload: TemplateGalleryCreate) => void | Promise<void>;
 };
 
-function templateIcon(tpl: ProjectTemplateSummary): string {
-  const cat = tpl.categories[0]?.toLowerCase() ?? "";
-  if (cat.includes("document")) {
-    return "DOC";
+function templateIconName(tpl: ProjectTemplateSummary): LucideName {
+  const id = tpl.id.toLowerCase();
+  const cat = tpl.categories.join(" ").toLowerCase();
+  if (id.includes("blank") || tpl.title.toLowerCase() === "blank") {
+    return "file";
+  }
+  if (cat.includes("notes") || id.includes("notes")) {
+    return "message-square";
+  }
+  if (cat.includes("document") || id.includes("document") || id.includes("office")) {
+    return "file-text";
   }
   if (cat.includes("presentation")) {
-    return "SLD";
+    return "layout-grid";
   }
   if (cat.includes("video")) {
-    return "VID";
+    return "play";
   }
   if (cat.includes("design")) {
-    return "DSN";
+    return "pen-line";
   }
-  if (cat.includes("notes")) {
-    return "NTE";
-  }
-  return "TMP";
+  return "layout-grid";
+}
+
+function templateIconEl(tpl: ProjectTemplateSummary): HTMLElement {
+  const icon = document.createElement("span");
+  icon.className = "template-gallery-row-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.appendChild(createLucideIcon(templateIconName(tpl), 20, "ub-icon svg-icon"));
+  return icon;
 }
 
 async function mountTemplateGallery(
@@ -259,9 +272,7 @@ async function mountTemplateGallery(
       if (selected?.id === tpl.id) {
         row.classList.add("selected");
       }
-      const icon = document.createElement("span");
-      icon.className = "template-gallery-row-icon";
-      icon.textContent = templateIcon(tpl);
+      const icon = templateIconEl(tpl);
       const copy = document.createElement("div");
       copy.className = "template-gallery-row-copy";
       const h = document.createElement("strong");
@@ -303,20 +314,27 @@ async function mountTemplateGallery(
     }
     heading.textContent = t("templateGallery.configureTitle");
     body.replaceChildren();
-    const sub = document.createElement("p");
-    sub.className = "template-gallery-configure-template";
-    sub.textContent = selected.title;
+    const sub = document.createElement("div");
+    sub.className = "template-gallery-configure-subtitle";
+    sub.append(templateIconEl(selected));
+    const subTitle = document.createElement("span");
+    subTitle.textContent = selected.title;
+    sub.append(subTitle);
     const form = document.createElement("div");
-    form.className = "template-gallery-configure";
-    const nameLabel = document.createElement("label");
-    nameLabel.textContent = t("templateGallery.projectName");
+    form.className = "template-gallery-configure template-gallery-configure-form";
+    const nameField = document.createElement("label");
+    nameField.className = "template-gallery-field";
+    const nameLegend = document.createElement("span");
+    nameLegend.textContent = t("templateGallery.projectName");
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.className = "ub-form-control";
     nameInput.value = selected.title;
-    nameLabel.appendChild(nameInput);
-    const locLabel = document.createElement("label");
-    locLabel.textContent = t("templateGallery.location");
+    nameField.append(nameLegend, nameInput);
+    const locField = document.createElement("label");
+    locField.className = "template-gallery-field";
+    const locLegend = document.createElement("span");
+    locLegend.textContent = t("templateGallery.location");
     const locRow = document.createElement("div");
     locRow.className = "template-gallery-location-row";
     const locInput = document.createElement("input");
@@ -341,7 +359,7 @@ async function mountTemplateGallery(
       };
       locRow.appendChild(browse);
     }
-    locLabel.appendChild(locRow);
+    locField.append(locLegend, locRow);
     const sameLabel = document.createElement("label");
     sameLabel.className = "template-gallery-same-folder";
     const sameCb = document.createElement("input");
@@ -351,7 +369,7 @@ async function mountTemplateGallery(
       sameFolder = sameCb.checked;
     };
     sameLabel.append(sameCb, document.createTextNode(` ${t("templateGallery.sameFolder")}`));
-    form.append(nameLabel, locLabel, sameLabel);
+    form.append(nameField, locField, sameLabel);
     body.append(sub, form);
 
     actions.replaceChildren();
@@ -421,6 +439,10 @@ async function mountTemplateGallery(
   };
 
   const render = () => {
+    const configuring = step === "configure";
+    recentColumn.classList.toggle("hidden", configuring);
+    header.classList.toggle("hidden", configuring);
+    footer.classList.toggle("hidden", configuring);
     if (step === "pick") {
       renderPick();
       renderActionsPick();
@@ -466,7 +488,9 @@ async function mountTemplateGallery(
     const row = panel.querySelector(".template-gallery-row");
     row?.classList.add("selected");
   }
-  search.focus();
+  if (step === "pick") {
+    search.focus();
+  }
 }
 
 /** Doc capture: open gallery frozen on pick or configure (does not create a project). */

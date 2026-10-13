@@ -224,6 +224,7 @@ import {
   validateFocusRingForCapture,
   validateTextCompactToolbarForCapture,
   validateDocumentCardFooterForCapture,
+  validateNewProjectCaptureDom,
   validateDocumentFeatureCaptureChrome,
   validateDocumentFeatureCaptureDom,
   collectDocumentFeatureCaptureDom,
@@ -247,7 +248,11 @@ import {
   invokeNewEmptyProject,
   invokeNewProjectFromTemplate,
 } from "./newProjectActions";
-import { activateProjectDocumentEditor, isProjectDocumentSurface } from "./projectSurface";
+import {
+  activateProjectDocumentEditor,
+  classifyProjectSurface,
+  isProjectDocumentSurface,
+} from "./projectSurface";
 import { emptyStateBlock } from "./emptyState";
 import {
   clearFilesPanelContext,
@@ -508,6 +513,7 @@ function statusItemsForContext(
   active: TabDto | undefined,
   showText: boolean,
   showViewer: boolean,
+  projectDocument: boolean,
   values: {
     cursor: string;
     encoding: string;
@@ -549,11 +555,55 @@ function statusItemsForContext(
     }
     return { context: "pdf", items: [...left, ...right] };
   }
-  if (viewer === "unibrow") {
-    left.push(item("workshop-timecode", "left", "00:00:00.000", 100));
-    left.push(item("workshop-format", "left", "1080p / 30 fps", 80));
-    right.push(item("workshop-audio", "right", "48 kHz / Stereo", 80));
-    return { context: "workshop", items: [...left, ...right] };
+  if (viewer === "unibrow" && data.document_viewer) {
+    const surface = classifyProjectSurface(data.document_viewer);
+    if (surface === "video") {
+      left.push(item("workshop-timecode", "left", "00:00:00.000", 100));
+      left.push(item("workshop-format", "left", "1080p / 30 fps", 80));
+      right.push(item("workshop-audio", "right", "48 kHz / Stereo", 80));
+      return { context: "workshop", items: [...left, ...right] };
+    }
+    if (surface === "presentation") {
+      const domCount = Number(
+        document.querySelector<HTMLElement>(".project-surface--presentation")
+          ?.dataset.presentationSlideCount ?? "",
+      );
+      const nodes = data.document_viewer.project_nodes ?? [];
+      const slides = nodes.filter((n) =>
+        n.node_type.toLowerCase().includes("presentation"),
+      );
+      const count = domCount > 0 ? domCount : slides.length > 0 ? slides.length : 1;
+      left.push(
+        item(
+          "presentation-slides",
+          "left",
+          count === 1 ? "1 slide" : `${count} slides`,
+          100,
+        ),
+      );
+      return { context: "presentation", items: left };
+    }
+    if (surface === "empty") {
+      return { context: "project-empty", items: [] };
+    }
+    if (surface === "design") {
+      left.push(item("design-surface", "left", "Design canvas", 100));
+      return { context: "design", items: left };
+    }
+    if (surface === "notes") {
+      const noteCount = (data.document_viewer.project_nodes ?? []).length;
+      left.push(
+        item(
+          "notes-board",
+          "left",
+          noteCount === 1 ? "1 note" : `${noteCount} notes`,
+          100,
+        ),
+      );
+      return { context: "notes", items: left };
+    }
+    left.push(item("project-kind", "left", data.document_viewer.title || "Project", 80));
+    return { context: "project", items: left };
   }
   if (viewer === "video" || viewer === "audio" || viewer === "midi") {
     left.push(item("media-kind", "left", viewer === "video" ? "Video" : viewer === "audio" ? "Audio" : "MIDI", 100));
@@ -565,7 +615,7 @@ function statusItemsForContext(
     right.push(item("media-audio", "right", active?.muted ? "Muted" : "Audio on", 80));
     return { context: "media", items: [...left, ...right] };
   }
-  if (showText && data.text_document) {
+  if (showText && (data.text_document || projectDocument)) {
     const problemsText =
       document.getElementById("bottom-panel-tab-problems")?.textContent ?? "";
     const problemsCount = problemsText.match(/\d+/)?.[0] ?? "0";
@@ -576,7 +626,7 @@ function statusItemsForContext(
         .toLowerCase() ?? "";
     const docPath = (
       document.body.dataset.activeDocumentPath ??
-      data.text_document.path ??
+      data.text_document?.path ??
       ""
     ).toLowerCase();
     const demoVisualDocx = (document.body.dataset.ubDemoTokens ?? "")
@@ -586,9 +636,9 @@ function statusItemsForContext(
       docPath.endsWith(".docx") ||
       docPath.endsWith(".doc") ||
       docPath.endsWith(".odt") ||
-      data.text_document.path.toLowerCase().endsWith(".docx") ||
-      data.text_document.path.toLowerCase().endsWith(".doc") ||
-      data.text_document.path.toLowerCase().endsWith(".odt") ||
+      (data.text_document?.path ?? "").toLowerCase().endsWith(".docx") ||
+      (data.text_document?.path ?? "").toLowerCase().endsWith(".doc") ||
+      (data.text_document?.path ?? "").toLowerCase().endsWith(".odt") ||
       tabLabel.endsWith(".docx") ||
       tabLabel.endsWith(".doc") ||
       tabLabel.endsWith(".odt") ||
@@ -596,7 +646,7 @@ function statusItemsForContext(
       (demoVisualDocx && document.body.classList.contains("text-document-card"));
     const languageLabel = officeDoc
       ? "Word document"
-      : values.language || data.text_document.language || "Text";
+      : values.language || data.text_document?.language || "Text";
     left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
     left.push(item("document-language", "left", languageLabel, 80));
     left.push(item("document-caret", "left", values.cursor, 80));
@@ -630,6 +680,7 @@ function refreshStatusBar(
   active: TabDto | undefined,
   showText: boolean,
   showViewer: boolean,
+  projectDocument = false,
 ) {
   const path =
     active?.is_http
@@ -780,17 +831,24 @@ function refreshStatusBar(
       : showViewer && viewerKind === "dxf"
         ? ""
         : displayStatus);
-  const statusContribution = statusItemsForContext(data, active, showText, showViewer, {
-    cursor,
-    encoding,
-    language,
-    zoom: zoomOut,
-    reading,
-    dirty,
-    autosave,
-    encode,
-    statusHint,
-  });
+  const statusContribution = statusItemsForContext(
+    data,
+    active,
+    showText,
+    showViewer,
+    projectDocument,
+    {
+      cursor,
+      encoding,
+      language,
+      zoom: zoomOut,
+      reading,
+      dirty,
+      autosave,
+      encode,
+      statusHint,
+    },
+  );
   updateStatusBar({
     path: statusPath,
     pathHint,
@@ -2438,7 +2496,7 @@ async function applyState(data: TabContentDto) {
   if (fontLabel) {
     fontLabel.title = fontResetable ? t("status.fontResetTitle") : "";
   }
-  refreshStatusBar(data, active, showText, showViewer);
+  refreshStatusBar(data, active, showText, showViewer, projectDocument);
   syncDocumentCardDirtyFlag(Boolean(active?.dirty && !active.is_directory));
   const recoveryHost = document.getElementById("recovery-bar-host");
   if (recoveryHost) {
@@ -2473,7 +2531,7 @@ async function applyState(data: TabContentDto) {
     Boolean(data.document_viewer) && !active?.is_http && !projectDocument;
   const showText =
     (Boolean(data.text_document) || projectDocument) && !active?.is_http;
-  refreshStatusBar(data, active, showText, showViewer);
+  refreshStatusBar(data, active, showText, showViewer, projectDocument);
 };
 
 let webBrowserStateRefreshQueued = false;
@@ -3659,6 +3717,27 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               reason: `${timelineErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
+          }
+          const newProjectDomErr = validateNewProjectCaptureDom(demoAgain ?? "");
+          if (newProjectDomErr) {
+            await invoke("abort_doc_capture", {
+              reason: `${newProjectDomErr}; ${formatDiagnosticsForLog(diag)}`,
+            });
+            return;
+          }
+          if (
+            (demoAgain ?? "").toLowerCase().includes("new-project-capture-office-project")
+          ) {
+            const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
+            await ensureProjectOfficeDocumentCard("Office document");
+            await refreshCommandManager();
+            const officeDomRetry = validateNewProjectCaptureDom(demoAgain ?? "");
+            if (officeDomRetry) {
+              await invoke("abort_doc_capture", {
+                reason: `${officeDomRetry}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
           }
           const expectedContext = expectedCaptureContextLabel(launchPaths);
           if (expectedContext) {

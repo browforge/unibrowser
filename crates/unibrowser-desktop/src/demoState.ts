@@ -508,6 +508,16 @@ export async function applyDemoState(raw: string) {
           projectName: "Office document",
           location: "",
         });
+        {
+          const refresh = (
+            window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
+          ).__unibrowserRefreshState;
+          if (refresh) {
+            await refresh();
+          }
+          const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
+          await ensureProjectOfficeDocumentCard("Office document");
+        }
         break;
       }
       case "new-project-capture-presentation-project": {
