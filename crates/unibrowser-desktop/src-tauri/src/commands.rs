@@ -3080,15 +3080,19 @@ pub fn get_command_manager(window: tauri::Window, state: State<AppState>) -> Res
     let mod_runtime = state.mod_runtime.lock().map_err(|e| e.to_string())?;
     let selected = cm.selected_tab.clone();
     let auto_context = cm.auto_context.tab_id().to_string();
-    let label_path_buf = doc_ref.map(|d| d.path.clone()).or_else(|| {
-        active.and_then(|t| match &t.location {
-            BrowserLocation::File { path } => Some(path.to_string_lossy().into_owned()),
-            BrowserLocation::Internal { page } if page.starts_with("mods") => {
-                Some("unibrowser://mods".into())
-            }
-            _ => None,
-        })
-    });
+    let embedded_doc_path = state.embedded_editor_document_path(window.label());
+    let label_path_buf = doc_ref
+        .map(|d| d.path.clone())
+        .or(embedded_doc_path.clone())
+        .or_else(|| {
+            active.and_then(|t| match &t.location {
+                BrowserLocation::File { path } => Some(path.to_string_lossy().into_owned()),
+                BrowserLocation::Internal { page } if page.starts_with("mods") => {
+                    Some("unibrowser://mods".into())
+                }
+                _ => None,
+            })
+        });
     let label_path_ref = label_path_buf.as_deref();
     let mut tab_dtos: Vec<ManagerTabDto> = cm
         .tabs
@@ -3531,6 +3535,22 @@ pub async fn import_workspace_layouts_file(app: AppHandle) -> Result<usize, Stri
 pub fn select_command_manager_tab(window: tauri::Window, tab_id: String, state: State<AppState>) -> Result<(), String> {
     let mut cm = state.command_manager.lock().map_err(|e| e.to_string())?;
     cm.select_tab_manual(&tab_id);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_embedded_editor_document_path(
+    window: tauri::Window,
+    path: Option<String>,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let sess = state.session(window.label())?;
+    let mut slot = sess
+        .embedded_editor_document_path
+        .lock()
+        .map_err(|e| e.to_string())?;
+    *slot = path.filter(|p| !p.trim().is_empty());
+    state.refresh_command_manager_context(window.label());
     Ok(())
 }
 

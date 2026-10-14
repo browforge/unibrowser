@@ -2572,9 +2572,11 @@ async function refreshState() {
 const winDemoHooks = window as unknown as {
   __unibrowserRefreshState?: () => Promise<void>;
   __unibrowserApplyState?: (data: TabContentDto) => Promise<void>;
+  __unibrowserRefreshCommandManager?: () => Promise<void>;
 };
 winDemoHooks.__unibrowserRefreshState = refreshState;
 winDemoHooks.__unibrowserApplyState = applyState;
+winDemoHooks.__unibrowserRefreshCommandManager = refreshCommandManager;
 (
   window as unknown as { __unibrowserApplyDemoState?: (token: string) => Promise<void> }
 ).__unibrowserApplyDemoState = applyDemoState;
@@ -3720,26 +3722,19 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             });
             return;
           }
+          if (
+            (demoAgain ?? "").toLowerCase().includes("new-project-capture-office-project")
+          ) {
+            const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
+            await ensureProjectOfficeDocumentCard("Office document");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+          }
           const newProjectDomErr = validateNewProjectCaptureDom(demoAgain ?? "");
           if (newProjectDomErr) {
             await invoke("abort_doc_capture", {
               reason: `${newProjectDomErr}; ${formatDiagnosticsForLog(diag)}`,
             });
             return;
-          }
-          if (
-            (demoAgain ?? "").toLowerCase().includes("new-project-capture-office-project")
-          ) {
-            const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
-            await ensureProjectOfficeDocumentCard("Office document");
-            await refreshCommandManager();
-            const officeDomRetry = validateNewProjectCaptureDom(demoAgain ?? "");
-            if (officeDomRetry) {
-              await invoke("abort_doc_capture", {
-                reason: `${officeDomRetry}; ${formatDiagnosticsForLog(diag)}`,
-              });
-              return;
-            }
           }
           const expectedContext = expectedCaptureContextLabel(launchPaths);
           if (expectedContext) {

@@ -18,7 +18,7 @@ import {
   blockPickerProbeBelowTrigger,
   collectBlockPickerCaptureMetrics,
 } from "./blockPickerCaptureMetrics";
-import type { FloatingBarDto, ManagerTabDto } from "./commandManager";
+import type { CommandManagerDto, FloatingBarDto, ManagerTabDto } from "./commandManager";
 
 export const BLOCK_PICKER_MENU_LABELS = [
   "Paragraph",
@@ -529,6 +529,46 @@ export function seedDocVisualCompactToolbarFallback(
   syncTextDocumentCard(true, tabLabel);
 }
 
+export async function forceProjectOfficeCompactToolbarRender(): Promise<void> {
+  const host = document.getElementById("text-compact-toolbar-host");
+  const officeVisual =
+    projectOfficeDocumentVisualActive() ||
+    (document.body.dataset.ubNewProjectCapture === "1" &&
+      document.body.classList.contains("text-document-card"));
+  if (!host || !officeVisual) {
+    return;
+  }
+  const { invoke } = await import("@tauri-apps/api/core");
+  const noopRun = async () => {};
+  const chords = new Map<string, string>();
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const snapshot = await invoke<CommandManagerDto>("get_command_manager");
+    const officeTab = snapshot.tabs.find((tab) => tab.id === "office");
+    const textTab = snapshot.tabs.find((tab) => tab.id === "text");
+    const tabForCompact =
+      officeTab && (officeTab.compact_toolbar_families?.length ?? 0) > 0 ? officeTab : textTab;
+    const compactFamilies =
+      tabForCompact?.compact_toolbar_families?.length
+        ? tabForCompact.compact_toolbar_families
+        : (tabForCompact?.families?.filter((family) =>
+            family.family_id.includes("text_compact_toolbar"),
+          ) ?? []);
+    if (tabForCompact && compactFamilies.length > 0) {
+      document.body.classList.add("text-compact-visible", "cm-collapsed");
+      host.classList.remove("hidden");
+      renderCompactRow(host, compactFamilies, [], false, noopRun, chords);
+      const count = host.querySelectorAll<HTMLElement>(
+        ".text-compact-btn[data-control-id], .text-compact-block-trigger[data-control-id]",
+      ).length;
+      if (count >= 6) {
+        return;
+      }
+    }
+    await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
+    await new Promise((resolve) => window.setTimeout(resolve, 80));
+  }
+}
+
 export function refreshTextCompactToolbar(
   primaryHost: HTMLElement,
   modHost: HTMLElement,
@@ -540,26 +580,28 @@ export function refreshTextCompactToolbar(
 ) {
   const docFeatureDocxCapture =
     docxVisualDocFeatureCapture() && document.body.classList.contains("text-document-card");
+  const projectOffice =
+    projectOfficeDocumentVisualActive() &&
+    (tab?.id === "office" || tab?.id === "text");
   const show =
     tab &&
     (tab.compact_toolbar_families?.length ?? 0) > 0 &&
-    (autoContext === "text" || autoContext === "office");
+    (autoContext === "text" || autoContext === "office" || projectOffice);
   primaryHost.classList.toggle("hidden", !show);
   modHost.classList.add("hidden");
   modHost.innerHTML = "";
   if (!show || !tab) {
-    const projectOfficeCard =
-      projectOfficeDocumentVisualActive() &&
-      document.body.classList.contains("text-document-card");
-    if (docFeatureDocxCapture || projectOfficeCard) {
+    if (docFeatureDocxCapture && !projectOfficeDocumentVisualActive()) {
       seedDocVisualCompactToolbarFallback(primaryHost);
       return;
     }
     primaryHost.innerHTML = "";
     document.body.classList.remove("text-compact-visible");
-    document.body.classList.remove("cm-collapsed");
     if (!projectOfficeDocumentVisualActive()) {
+      document.body.classList.remove("cm-collapsed");
       syncTextDocumentCard(false);
+    } else {
+      document.body.classList.add("cm-collapsed");
     }
     return;
   }

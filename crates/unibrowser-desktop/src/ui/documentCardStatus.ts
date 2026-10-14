@@ -74,6 +74,7 @@ export function refreshDocumentCardStatusFooter(dirty: boolean): void {
     activePath.endsWith(".docx") ||
     activePath.endsWith(".doc") ||
     activePath.endsWith(".odt") ||
+    activePath.includes("/assets/document.md") ||
     tabLabel.endsWith(".docx") ||
     tabLabel.endsWith(".doc") ||
     tabLabel.endsWith(".odt");

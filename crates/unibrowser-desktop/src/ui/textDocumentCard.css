@@ -1,5 +1,9 @@
 /* Bear concept Render 1 — paper document card on dark navy frame */
 
+.document-card-shell.hidden {
+  display: none !important;
+}
+
 body.text-document-card {
   --ub-doc-card-paper: #faf9f6;
   --ub-doc-card-ink: #1c2834;

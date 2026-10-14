@@ -1,3 +1,7 @@
+.hidden {
+  display: none !important;
+}
+
 .shell-fallback {
   position: fixed;
   inset: 0;
@@ -387,6 +391,8 @@ button.proving-disabled,
 .pdf-annotations-dock select,
 .svg-inspector select,
 .files-panel select,
+.template-gallery-panel select,
+.template-gallery-panel select.ub-form-control,
 .epub-chapter-select {
   appearance: none;
   -webkit-appearance: none;
@@ -2767,13 +2773,16 @@ body.content-fullscreen::after {
   color: var(--ub-text-1, #1f2326);
 }
 
+.document-viewer-host.document-viewer-host--project-surface,
 [data-theme="light"] .document-viewer-host.document-viewer-host--project-surface,
-[data-theme="light"] .document-viewer-host.document-viewer-host--project-surface .viewer-body {
+[data-theme="dark"] .document-viewer-host.document-viewer-host--project-surface {
   background: var(--ub-canvas, #f3f2ee);
 }
 
-.document-viewer-host.document-viewer-host--project-surface .viewer-body {
-  background: var(--ub-base, #f1f0ec);
+.document-viewer-host.document-viewer-host--project-surface .viewer-body,
+[data-theme="light"] .document-viewer-host.document-viewer-host--project-surface .viewer-body,
+[data-theme="dark"] .document-viewer-host.document-viewer-host--project-surface .viewer-body {
+  background: var(--ub-canvas, #f3f2ee);
 }
 
 #content-host,
@@ -4398,8 +4407,12 @@ select:disabled {
 
 .project-surface--empty {
   display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   justify-content: center;
   padding: 1.5rem 1rem;
+  background: var(--ub-canvas, #f3f2ee);
 }
 
 .project-home-card {
@@ -4439,23 +4452,63 @@ select:disabled {
   gap: 0.5rem;
 }
 
-.presentation-studio {
-  display: grid;
-  grid-template-columns: auto 10rem 1fr 14rem;
-  grid-template-rows: auto 1fr;
-  gap: 0.75rem;
-  min-height: 20rem;
+.project-surface--presentation {
   flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--ub-canvas, #f3f2ee);
+}
+
+.presentation-studio {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  box-sizing: border-box;
+}
+
+.presentation-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
 .presentation-toolbar {
-  grid-column: 1 / -1;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
 }
 
-.presentation-slides-rail,
+.presentation-slides-rail {
+  flex: 0 0 auto;
+  width: 7.5rem;
+  border: 1px solid var(--ub-border, #d8d6cf);
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: var(--ub-well, #f1f0ec);
+  overflow-y: auto;
+}
+
+.presentation-stage-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0;
+}
+
 .presentation-notes {
+  flex: 0 0 auto;
+  max-height: 9rem;
   border: 1px solid var(--ub-border, #d8d6cf);
   border-radius: 6px;
   padding: 0.5rem;
@@ -4471,17 +4524,10 @@ select:disabled {
   font-weight: 600;
 }
 
-.presentation-stage {
-  border: 1px solid var(--ub-border, #d8d6cf);
-  border-radius: 6px;
-  padding: 0.75rem;
-  background: var(--ub-paper, #faf9f6);
-}
-
 .presentation-slide-frame {
   aspect-ratio: 16 / 9;
-  width: 100%;
-  max-width: 52rem;
+  width: min(100%, calc((100vh - 14rem) * 16 / 9));
+  max-width: 56rem;
   margin: 0 auto;
   padding: 2.5rem 2rem;
   border: 1px solid var(--ub-border, #d8d6cf);

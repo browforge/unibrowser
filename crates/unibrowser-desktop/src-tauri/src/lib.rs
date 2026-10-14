@@ -260,6 +260,7 @@ pub fn run() {
             commands::export_command_manager_layout_file,
             commands::import_command_manager_layout_file,
             commands::select_command_manager_tab,
+            commands::set_embedded_editor_document_path,
             commands::pin_command_manager_context,
             commands::clear_command_manager_context_pin,
             commands::execute_command,
