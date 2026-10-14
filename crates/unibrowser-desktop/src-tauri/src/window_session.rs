@@ -28,6 +28,8 @@ pub struct WindowSession {
     pub image_compare: Mutex<Option<ImageCompareState>>,
     pub chrome_notice: Mutex<Option<String>>,
     pub document_history_redo: Mutex<HashMap<String, Vec<HistoryLogEntry>>>,
+    /// In-project embedded editor (e.g. memory project `assets/document.md`) when the tab has no DocumentSession.
+    pub embedded_editor_document_path: Mutex<Option<String>>,
 }
 
 impl WindowSession {
@@ -56,6 +58,7 @@ impl WindowSession {
             image_compare: Mutex::new(None),
             chrome_notice: Mutex::new(None),
             document_history_redo: Mutex::new(HashMap::new()),
+            embedded_editor_document_path: Mutex::new(None),
         }
     }
 }

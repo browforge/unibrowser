@@ -52,6 +52,8 @@ export async function activateProjectDocumentEditor(
   const docContent = " ";
   document.body.dataset.cmAutoContext = "office";
   document.body.dataset.activeDocumentPath = docPath;
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("set_embedded_editor_document_path", { path: docPath }).catch(() => undefined);
   setDocumentEditorMode("wysiwyg", false);
   await syncDocumentEditorForTextTab(textEditorHost, docPath, docContent);
   const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
@@ -128,11 +130,14 @@ function renderPresentationStudio(root: HTMLElement, viewer: DocumentViewerDto) 
   const layout = document.createElement("div");
   layout.className = "presentation-studio";
 
+  const main = document.createElement("div");
+  main.className = "presentation-main";
+
   const toolbar = document.createElement("div");
   toolbar.className = "presentation-toolbar";
   const addBtn = document.createElement("button");
   addBtn.type = "button";
-  addBtn.className = "quiet-button";
+  addBtn.className = "primary";
   addBtn.textContent = t("project.addSlide");
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
@@ -147,8 +152,8 @@ function renderPresentationStudio(root: HTMLElement, viewer: DocumentViewerDto) 
   const slideList = document.createElement("ol");
   slideList.className = "presentation-slide-list";
 
-  const stage = document.createElement("section");
-  stage.className = "presentation-stage";
+  const stageArea = document.createElement("div");
+  stageArea.className = "presentation-stage-area";
 
   const slideFrame = document.createElement("div");
   slideFrame.className = "presentation-slide-frame";
@@ -165,9 +170,9 @@ function renderPresentationStudio(root: HTMLElement, viewer: DocumentViewerDto) 
   subtitleEl.setAttribute("aria-label", t("project.slideSubtitlePlaceholder"));
   subtitleEl.dataset.placeholder = t("project.slideSubtitlePlaceholder");
   slideFrame.append(titleEl, subtitleEl);
-  stage.appendChild(slideFrame);
+  stageArea.appendChild(slideFrame);
 
-  const notesPanel = document.createElement("aside");
+  const notesPanel = document.createElement("section");
   notesPanel.className = "presentation-notes";
   const notesHead = document.createElement("h3");
   notesHead.textContent = t("project.speakerNotes");
@@ -275,7 +280,8 @@ function renderPresentationStudio(root: HTMLElement, viewer: DocumentViewerDto) 
 
   toolbar.append(addBtn, deleteBtn);
   rail.append(railHead, slideList);
-  layout.append(toolbar, rail, stage, notesPanel);
+  main.append(toolbar, stageArea, notesPanel);
+  layout.append(rail, main);
   root.appendChild(layout);
   syncSlideFields();
   renderRail();
@@ -329,6 +335,10 @@ export async function renderProjectSurface(
   options?: { hideViewerTitle?: boolean },
 ): Promise<ProjectSurfaceKind> {
   const kind = classifyProjectSurface(viewer);
+  if (kind !== "document") {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("set_embedded_editor_document_path", { path: null }).catch(() => undefined);
+  }
   if (options?.hideViewerTitle) {
     root.closest(".document-viewer")?.querySelector(".viewer-title")?.classList.add("hidden");
   }

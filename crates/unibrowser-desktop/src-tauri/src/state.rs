@@ -385,8 +385,22 @@ impl AppState {
         let _ = self.refresh_extension_catalog();
     }
 
+    pub fn embedded_editor_document_path(&self, window_label: &str) -> Option<String> {
+        let sess = self.session(window_label).expect("session");
+        let guard = sess
+            .embedded_editor_document_path
+            .lock()
+            .expect("embedded_editor_document_path lock");
+        guard.clone()
+    }
+
     pub fn refresh_command_manager_context(&self, window_label: &str) {
         let sess = self.session(window_label).expect("session");
+        let embedded = sess
+            .embedded_editor_document_path
+            .lock()
+            .expect("embedded_editor_document_path lock")
+            .clone();
         let tabs = sess.tabs.lock().expect("tabs lock");
         let tab = tabs.active_tab();
         let ctx = if let Some(tab) = tab {
@@ -406,7 +420,8 @@ impl AppState {
                         } else {
                             None
                         }
-                    });
+                    })
+                    .or(embedded);
                 let mode = tab.document.as_ref().map(|d| d.backend.mode());
                 infer_context(
                     tab.is_directory,

@@ -25,10 +25,10 @@ test.describe("New project flow (web WASM)", () => {
   async function shot(page: import("@playwright/test").Page, name: string) {
     mkdirSync(OUT, { recursive: true });
     mkdirSync(ART, { recursive: true });
-    const file = path.join(OUT, `${name}-v3-web-1280.png`);
+    const file = path.join(OUT, `${name}-v4-web-1280.png`);
     const bytes = await page.screenshot({ fullPage: false });
     writeFileSync(file, bytes);
-    writeFileSync(path.join(ART, `${name}-v3-web-1280.png`), bytes);
+    writeFileSync(path.join(ART, `${name}-v4-web-1280.png`), bytes);
     const box = await page.viewportSize();
     expect(box).toEqual({ width: 1280, height: 800 });
   }

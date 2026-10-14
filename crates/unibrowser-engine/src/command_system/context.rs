@@ -117,6 +117,9 @@ pub fn infer_work_context(
     path: Option<&str>,
 ) -> WorkContext {
     let path = path.unwrap_or("");
+    if path.contains("/assets/document.md") {
+        return WorkContext::RichDocument;
+    }
     if path.eq_ignore_ascii_case("unibrowser://settings") {
         return WorkContext::Settings;
     }

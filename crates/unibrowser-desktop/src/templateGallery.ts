@@ -156,15 +156,15 @@ async function mountTemplateGallery(
   const filters = document.createElement("div");
   filters.className = "template-gallery-filters";
   const domain = document.createElement("select");
-  domain.className = "ub-form-control";
+  domain.className = "ub-form-control ub-themed-select";
   domain.innerHTML =
     "<option value='all'>Domain: All</option><option value='document'>Document</option><option value='presentation'>Presentation</option><option value='video'>Video</option><option value='design'>Design</option><option value='notes'>Notes</option>";
   const kind = document.createElement("select");
-  kind.className = "ub-form-control";
+  kind.className = "ub-form-control ub-themed-select";
   kind.innerHTML =
     "<option value='all'>Kind: All</option><option value='starter'>Starter</option><option value='tutorial'>Tutorial</option><option value='hub'>Hub</option>";
   const source = document.createElement("select");
-  source.className = "ub-form-control";
+  source.className = "ub-form-control ub-themed-select";
   source.innerHTML =
     "<option value='all'>Source: All</option><option value='builtin'>Built-in</option><option value='user'>My templates</option><option value='installed'>Installed</option>";
   filters.append(domain, kind, source);
@@ -440,9 +440,20 @@ async function mountTemplateGallery(
 
   const render = () => {
     const configuring = step === "configure";
-    recentColumn.classList.toggle("hidden", configuring);
-    header.classList.toggle("hidden", configuring);
-    footer.classList.toggle("hidden", configuring);
+    for (const el of [recentColumn, header, footer, search, filters, more]) {
+      el.classList.toggle("hidden", configuring);
+      if (configuring) {
+        el.setAttribute("hidden", "");
+        if (el instanceof HTMLInputElement) {
+          el.disabled = true;
+        }
+      } else {
+        el.removeAttribute("hidden");
+        if (el instanceof HTMLInputElement) {
+          el.disabled = false;
+        }
+      }
+    }
     if (step === "pick") {
       renderPick();
       renderActionsPick();

@@ -462,6 +462,7 @@ const CAPTURE_SELECT_SCOPES = [
   ".workshop-inspector",
   ".ai-assistant-panel",
   ".settings-category-rail",
+  ".template-gallery-panel",
 ];
 
 export function validateSelectChevronForCapture(): string | null {
@@ -2238,6 +2239,131 @@ function cssTokenColor(tokenName: string, on: HTMLElement): string {
   return resolved;
 }
 
+function isPureWhiteRgb(color: string): boolean {
+  const normalized = color.replace(/\s+/g, "").toLowerCase();
+  return (
+    normalized === "rgb(255,255,255)" ||
+    normalized === "rgba(255,255,255,1)" ||
+    normalized === "#ffffff" ||
+    normalized === "#fff"
+  );
+}
+
+function elementIsVisible(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect();
+  const style = getComputedStyle(el);
+  return (
+    rect.width > 2 &&
+    rect.height > 2 &&
+    style.display !== "none" &&
+    style.visibility !== "hidden" &&
+    style.opacity !== "0"
+  );
+}
+
+function workspaceRootForCapture(): HTMLElement | null {
+  return (
+    document.querySelector<HTMLElement>(".document-viewer-host--project-surface .viewer-body") ??
+    document.querySelector<HTMLElement>("#split-primary:not(.hidden)") ??
+    document.getElementById("split-primary")
+  );
+}
+
+/** Pixel-adjacent layout checks for new-project captures (geometry + computed colors). */
+export function validateNewProjectCapturePixels(demoTokens: string): string | null {
+  if (document.body.dataset.ubNewProjectCapture !== "1") {
+    return null;
+  }
+  const demo = demoTokens.toLowerCase();
+  const needsWorkspaceBandCheck =
+    demo.includes("empty") || demo.includes("presentation-project");
+  const needsOfficeToolbar = demo.includes("office-project");
+  const needsConfigureChrome = demo.includes("configure");
+  if (!needsWorkspaceBandCheck && !needsOfficeToolbar && !needsConfigureChrome) {
+    return null;
+  }
+
+  if (needsOfficeToolbar) {
+    const host =
+      document.querySelector("#document-card-toolbar-mount") ??
+      document.getElementById("text-compact-toolbar-host");
+    const count = host
+      ? host.querySelectorAll<HTMLElement>(
+          ".text-compact-btn[data-control-id], .text-compact-block-trigger[data-control-id]",
+        ).length
+      : 0;
+    if (count < 6) {
+      return `office project capture requires ≥6 compact toolbar controls (found ${count})`;
+    }
+  }
+
+  if (needsConfigureChrome) {
+    const search = document.querySelector<HTMLInputElement>(
+      ".template-gallery-header input[type='search'], .template-gallery-search",
+    );
+    if (search && elementIsVisible(search)) {
+      return "template configure capture must not show gallery search input";
+    }
+  }
+
+  if (!needsWorkspaceBandCheck) {
+    return null;
+  }
+
+  const workspace = workspaceRootForCapture();
+  if (!workspace) {
+    return "new-project pixel check: workspace root missing";
+  }
+  const workRect = workspace.getBoundingClientRect();
+  const workWidth = workRect.width;
+  if (workWidth < 200) {
+    return `new-project pixel check: workspace width ${workWidth.toFixed(0)}px too narrow`;
+  }
+
+  if (demo.includes("presentation-project")) {
+    const frame = document.querySelector<HTMLElement>(".presentation-slide-frame");
+    if (!frame) {
+      return "presentation capture requires slide frame for aspect ratio check";
+    }
+    const rect = frame.getBoundingClientRect();
+    if (rect.width < 80 || rect.height < 40) {
+      return `presentation slide frame too small (${rect.width.toFixed(0)}×${rect.height.toFixed(0)})`;
+    }
+    const ratio = rect.width / rect.height;
+    const target = 16 / 9;
+    if (Math.abs(ratio - target) / target > 0.02) {
+      return `presentation slide aspect ${ratio.toFixed(3)} not within 16:9 ±2%`;
+    }
+  }
+
+  const minBandWidth = workWidth * 0.5;
+  const cardSelectors =
+    ".document-card-shell, .project-home-card, .presentation-slide-frame, .presentation-notes, .presentation-slides-rail, .template-gallery-panel";
+  const candidates = workspace.querySelectorAll<HTMLElement>("*");
+  for (const el of candidates) {
+    if (!elementIsVisible(el)) {
+      continue;
+    }
+    if (el.closest(cardSelectors)) {
+      continue;
+    }
+    const rect = el.getBoundingClientRect();
+    if (rect.width < minBandWidth || rect.height < 6 || rect.height > 220) {
+      continue;
+    }
+    const bg = getComputedStyle(el).backgroundColor;
+    if (!isPureWhiteRgb(bg)) {
+      continue;
+    }
+    const top = rect.top - workRect.top;
+    if (top >= 0 && top < 220) {
+      return `workspace has pure-white band ${rect.width.toFixed(0)}×${rect.height.toFixed(0)}px near top (outside cards)`;
+    }
+  }
+
+  return null;
+}
+
 /** ADR 0036 new-project captures: office card chrome, project workspace fill, no video status bleed. */
 export function validateNewProjectCaptureDom(demoTokens: string): string | null {
   if (document.body.dataset.ubNewProjectCapture !== "1") {
@@ -2252,11 +2378,22 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     if (!shell || shell.classList.contains("hidden")) {
       return "office project capture requires visible document-card-shell";
     }
-    const tools = document.querySelector(
-      "#document-card-toolbar-mount .text-compact-tools, #text-compact-toolbar-host .text-compact-tools",
+    const rich = document.querySelector(
+      "#rich-text-editor-host:not(.hidden) .rich-text-doc, #document-split-preview-host:not(.hidden) .rich-text-doc",
     );
-    if (!tools) {
-      return "office project capture requires compact document toolbar";
+    if (!rich) {
+      return "office project capture requires visual rich-text document surface";
+    }
+    const toolbarHost =
+      document.querySelector("#document-card-toolbar-mount #text-compact-toolbar-host") ??
+      document.getElementById("text-compact-toolbar-host");
+    const controlCount = toolbarHost
+      ? toolbarHost.querySelectorAll<HTMLElement>(
+          ".text-compact-btn[data-control-id], .text-compact-block-trigger[data-control-id]",
+        ).length
+      : 0;
+    if (controlCount < 6) {
+      return `office project capture requires compact document toolbar (found ${controlCount} controls)`;
     }
   }
   if (demo.includes("empty") || demo.includes("presentation-project")) {
@@ -2295,10 +2432,18 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     if (!document.querySelector(".template-gallery-configure-form")) {
       return "template configure capture requires configure form layout";
     }
-    const header = document.querySelector(".template-gallery-header");
-    if (header && !header.classList.contains("hidden")) {
+    const header = document.querySelector<HTMLElement>(".template-gallery-header");
+    if (header && elementIsVisible(header)) {
       return "template configure capture must hide gallery search and filters";
     }
+    const footer = document.querySelector<HTMLElement>(".template-gallery-footer");
+    if (footer && elementIsVisible(footer)) {
+      return "template configure capture must hide gallery footer";
+    }
+  }
+  const pixelErr = validateNewProjectCapturePixels(demoTokens);
+  if (pixelErr) {
+    return pixelErr;
   }
   return null;
 }

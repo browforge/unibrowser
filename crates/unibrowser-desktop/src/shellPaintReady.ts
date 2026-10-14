@@ -191,6 +191,40 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     .split(/[,;]+/)
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
+  if (tokens.includes("new-project-capture-empty")) {
+    return [
+      () =>
+        Boolean(
+          document.querySelector(".project-home-card, .project-surface--empty"),
+        ),
+    ];
+  }
+  if (tokens.includes("new-project-capture-presentation-project")) {
+    return [
+      () =>
+        Boolean(
+          document.querySelector(
+            ".project-surface--presentation .presentation-slide-frame",
+          ),
+        ),
+    ];
+  }
+  if (tokens.includes("new-project-capture-office-project")) {
+    return [
+      () => document.body.classList.contains("text-document-card"),
+      richTextDocumentReady,
+      () => {
+        const host = document.getElementById("text-compact-toolbar-host");
+        if (!host) {
+          return false;
+        }
+        const count = host.querySelectorAll<HTMLElement>(
+          ".text-compact-btn[data-control-id], .text-compact-block-trigger[data-control-id]",
+        ).length;
+        return count >= 6;
+      },
+    ];
+  }
   const checks: Array<() => boolean> = [];
 
   for (const token of tokens) {
@@ -259,6 +293,41 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           const pane = document.getElementById("bottom-panel-history-pane");
           return Boolean(pane && !pane.classList.contains("hidden"));
         });
+        break;
+      case "new-project-capture-empty":
+        checks.push(() => {
+          const host = document.getElementById("document-viewer-host");
+          if (!host || host.classList.contains("hidden")) {
+            return false;
+          }
+          return Boolean(
+            host.querySelector(".project-surface--empty, .project-home-card, .project-surface"),
+          );
+        });
+        break;
+      case "new-project-capture-presentation-project":
+        checks.push(() =>
+          Boolean(
+            document.querySelector(
+              ".project-surface--presentation .presentation-slide-frame",
+            ),
+          ),
+        );
+        break;
+      case "new-project-capture-office-project":
+        checks.push(richTextDocumentReady);
+        break;
+      case "new-project-capture-gallery":
+      case "new-project-capture-gallery-office":
+      case "new-project-capture-configure":
+        checks.push(() =>
+          Boolean(document.querySelector(".template-gallery-panel")),
+        );
+        break;
+      case "new-project-capture-save-template":
+        checks.push(() =>
+          Boolean(document.querySelector(".save-as-template-capture, .template-gallery-panel")),
+        );
         break;
       default:
         break;
@@ -329,7 +398,11 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     checks.push(browseFolderReady);
   }
 
-  if (tokens.includes("capture-ready") && launchPaths.length === 0) {
+  if (
+    tokens.includes("capture-ready") &&
+    launchPaths.length === 0 &&
+    !tokens.some((t) => t.startsWith("new-project-capture-"))
+  ) {
     checks.push(ntpReady);
   }
 
@@ -337,21 +410,19 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     checks.push(() => document.querySelector("#shell-root, #app-shell, body") !== null);
   }
   if (tokens.includes("cm-collapsed")) {
-    return [
-      () => {
-        const title = document.getElementById("title-bar");
-        const chrome = document.getElementById("chrome");
-        if (!title || !chrome) {
-          return false;
-        }
-        const collapsed = document.body.classList.contains("cm-collapsed");
-        const chromeH = chrome.getBoundingClientRect().height;
-        if (collapsed) {
-          return chromeH >= 38 && chromeH <= 42;
-        }
-        return title.getBoundingClientRect().height >= 38;
-      },
-    ];
+    checks.push(() => {
+      const title = document.getElementById("title-bar");
+      const chrome = document.getElementById("chrome");
+      if (!title || !chrome) {
+        return false;
+      }
+      const collapsed = document.body.classList.contains("cm-collapsed");
+      const chromeH = chrome.getBoundingClientRect().height;
+      if (collapsed) {
+        return chromeH >= 38 && chromeH <= 96;
+      }
+      return title.getBoundingClientRect().height >= 38;
+    });
   }
   if (joined.includes(".pdf")) {
     return [

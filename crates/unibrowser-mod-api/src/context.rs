@@ -55,6 +55,9 @@ impl CommandContext {
     }
 
     pub fn from_mode_and_path(mode: Mode, path: &str) -> Self {
+        if path.contains("/assets/document.md") {
+            return CommandContext::Office;
+        }
         match mode {
             Mode::Browse if is_media_path(path) => CommandContext::Audio,
             Mode::Browse => CommandContext::Browse,

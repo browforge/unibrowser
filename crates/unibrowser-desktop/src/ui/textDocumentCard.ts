@@ -115,32 +115,49 @@ export function exposeTextDocumentCard() {
     syncTextDocumentCard;
 }
 
+function officeCompactToolbarControlCount(): number {
+  const host = document.getElementById(COMPACT_TOOLBAR_ID);
+  if (!host) {
+    return 0;
+  }
+  return host.querySelectorAll<HTMLElement>(
+    ".text-compact-btn[data-control-id], .text-compact-block-trigger[data-control-id]",
+  ).length;
+}
+
 /** Memory-project office template: mount paper card + compact toolbar (same as Visual DOCX). */
 export async function ensureProjectOfficeDocumentCard(fileLabel: string): Promise<void> {
   document.body.dataset.cmAutoContext = "office";
-  document.body.classList.add("cm-collapsed");
+  document.body.classList.add("cm-collapsed", "text-document-card");
   const { invoke } = await import("@tauri-apps/api/core");
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
-    window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
-    if (compactToolbarReady()) {
+  const docPath = document.body.dataset.activeDocumentPath;
+  if (docPath) {
+    await invoke("set_embedded_editor_document_path", { path: docPath }).catch(() => undefined);
+  }
+  const refreshCommandManager = (
+    window as unknown as { __unibrowserRefreshCommandManager?: () => Promise<void> }
+  ).__unibrowserRefreshCommandManager;
+  await invoke("select_command_manager_tab", { tabId: "office" }).catch(() => undefined);
+  if (refreshCommandManager) {
+    await refreshCommandManager().catch(() => undefined);
+  }
+  window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    if (officeCompactToolbarControlCount() >= 6) {
       break;
     }
-    await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
     window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
-    await new Promise((resolve) => window.setTimeout(resolve, 60));
+  }
+  if (officeCompactToolbarControlCount() < 6) {
+    const { forceProjectOfficeCompactToolbarRender } = await import("../textCompactToolbar");
+    await forceProjectOfficeCompactToolbarRender();
   }
   syncTextDocumentCard(true, fileLabel);
   const compactHost = document.getElementById(COMPACT_TOOLBAR_ID);
-  if (compactHost) {
-    const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
-    if (
-      !compactHost.querySelector(".text-compact-tools") ||
-      !document.body.classList.contains("text-document-card")
-    ) {
-      seedDocVisualCompactToolbarFallback(compactHost, true);
-    }
-    compactHost.classList.remove("hidden");
+  compactHost?.classList.remove("hidden");
+  if (officeCompactToolbarControlCount() >= 6) {
+    document.body.classList.add("text-compact-visible");
   }
   syncTextDocumentCard(true, fileLabel);
   forceDocFeatureCaptureLayout(fileLabel);
@@ -155,6 +172,10 @@ function compactToolbarReady(): boolean {
   const toolbar = document.getElementById(COMPACT_TOOLBAR_ID);
   if (!toolbar || toolbar.classList.contains("hidden")) {
     return false;
+  }
+  const path = (document.body.dataset.activeDocumentPath ?? "").toLowerCase();
+  if (path.includes("/assets/document.md")) {
+    return officeCompactToolbarControlCount() >= 6;
   }
   const ctx = document.body.dataset.cmAutoContext ?? "";
   return (

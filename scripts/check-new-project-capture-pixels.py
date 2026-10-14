@@ -11,17 +11,17 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs/screenshots/new-project"
 
 EXPECTED = (
-    "new-tab-paper-card-v3-1280.png",
-    "template-gallery-pick-v3-1280.png",
-    "template-gallery-pick-office-v3-1280.png",
-    "template-gallery-configure-v3-1280.png",
-    "empty-project-tab-v3-1280.png",
-    "office-template-project-v3-1280.png",
-    "presentation-template-project-v3-1280.png",
-    "save-as-template-v3-1280.png",
-    "docx-tab-breadcrumb-v3-1280.png",
-    "new-tab-paper-card-v3-web-1280.png",
-    "template-gallery-pick-v3-web-1280.png",
+    "new-tab-paper-card-v4-1280.png",
+    "template-gallery-pick-v4-1280.png",
+    "template-gallery-pick-office-v4-1280.png",
+    "template-gallery-configure-v4-1280.png",
+    "empty-project-tab-v4-1280.png",
+    "office-template-project-v4-1280.png",
+    "presentation-template-project-v4-1280.png",
+    "save-as-template-v4-1280.png",
+    "docx-tab-breadcrumb-v4-1280.png",
+    "new-tab-paper-card-v4-web-1280.png",
+    "template-gallery-pick-v4-web-1280.png",
 )
 
 

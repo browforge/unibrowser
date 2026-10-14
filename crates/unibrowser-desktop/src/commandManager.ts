@@ -45,6 +45,19 @@ function compactToolbarTabForSnapshot(
     if (officeTab && (officeTab.compact_toolbar_families?.length ?? 0) > 0) {
       return { tab: officeTab, autoContext: "office" };
     }
+    const textTab = snapshot.tabs.find((t) => t.id === "text");
+    const textCompactFamilies =
+      textTab?.compact_toolbar_families?.length
+        ? textTab.compact_toolbar_families
+        : (textTab?.families?.filter((family) =>
+            family.family_id.includes("text_compact_toolbar"),
+          ) ?? []);
+    if (textTab && textCompactFamilies.length > 0) {
+      return {
+        tab: { ...textTab, compact_toolbar_families: textCompactFamilies },
+        autoContext: "office",
+      };
+    }
   }
   if (!docFeatureCaptureDemoActive()) {
     return { tab: active, autoContext: snapshot.auto_context };

@@ -499,33 +499,57 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "new-project-capture-empty": {
-        await invoke("new_empty_project", { title: "Untitled project" });
-        break;
-      }
-      case "new-project-capture-office-project": {
-        await invoke("new_project_from_template", {
-          templateId: "unibrowser.template.document.office",
-          projectName: "Office document",
-          location: "",
-        });
-        {
-          const refresh = (
-            window as unknown as { __unibrowserRefreshState?: () => Promise<void> }
-          ).__unibrowserRefreshState;
-          if (refresh) {
-            await refresh();
-          }
-          const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
-          await ensureProjectOfficeDocumentCard("Office document");
+        const opened = await invoke<{ document_viewer?: import("./documentViewer").DocumentViewerDto }>(
+          "new_empty_project",
+          { title: "Untitled project" },
+        );
+        const viewer = opened.document_viewer;
+        const host = document.getElementById("document-viewer-host");
+        if (viewer && host) {
+          document.getElementById("new-tab-page-host")?.classList.add("hidden");
+          document.getElementById("text-editor-host")?.classList.add("hidden");
+          const { documentViewer } = await import("./documentViewer");
+          await documentViewer.apply(viewer, host);
         }
         break;
       }
+      case "new-project-capture-office-project": {
+        const opened = await invoke<{ document_viewer?: import("./documentViewer").DocumentViewerDto }>(
+          "new_project_from_template",
+          {
+            templateId: "unibrowser.template.document.office",
+            projectName: "Office document",
+            location: "",
+          },
+        );
+        const viewer = opened.document_viewer;
+        const textEditorHost = document.getElementById("text-editor-host");
+        if (viewer && textEditorHost) {
+          document.getElementById("new-tab-page-host")?.classList.add("hidden");
+          const { activateProjectDocumentEditor } = await import("./projectSurface");
+          await activateProjectDocumentEditor(viewer, textEditorHost);
+        }
+        const { ensureProjectOfficeDocumentCard } = await import("./ui/textDocumentCard");
+        await ensureProjectOfficeDocumentCard("Office document");
+        break;
+      }
       case "new-project-capture-presentation-project": {
-        await invoke("new_project_from_template", {
-          templateId: "unibrowser.template.presentation",
-          projectName: "Presentation",
-          location: "",
-        });
+        const opened = await invoke<{ document_viewer?: import("./documentViewer").DocumentViewerDto }>(
+          "new_project_from_template",
+          {
+            templateId: "unibrowser.template.presentation",
+            projectName: "Presentation",
+            location: "",
+          },
+        );
+        const viewer = opened.document_viewer;
+        const host = document.getElementById("document-viewer-host");
+        if (viewer && host) {
+          document.getElementById("new-tab-page-host")?.classList.add("hidden");
+          document.getElementById("text-editor-host")?.classList.add("hidden");
+          const { documentViewer } = await import("./documentViewer");
+          await documentViewer.apply(viewer, host);
+        }
         break;
       }
       case "new-project-capture-save-template": {
