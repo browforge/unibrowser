@@ -49,7 +49,8 @@ export async function activateProjectDocumentEditor(
   const { setDocumentEditorMode } = await import("./documentEditorModes");
   const label = viewer.title?.trim() || "Document";
   const docPath = `${viewer.path.replace(/\/$/, "")}/assets/document.md`;
-  const docContent = " ";
+  const docContent =
+    "# Office document\n\nUse the toolbar for headings, lists, and emphasis.";
   document.body.dataset.cmAutoContext = "office";
   document.body.dataset.activeDocumentPath = docPath;
   const { invoke } = await import("@tauri-apps/api/core");

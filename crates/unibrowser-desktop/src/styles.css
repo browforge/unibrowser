@@ -4525,6 +4525,7 @@ select:disabled {
 }
 
 .presentation-slide-frame {
+  box-sizing: border-box;
   aspect-ratio: 16 / 9;
   width: min(100%, calc((100vh - 14rem) * 16 / 9));
   max-width: 56rem;

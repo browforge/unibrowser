@@ -410,7 +410,7 @@ impl AppState {
             ) {
                 unibrowser_mod_api::CommandContext::Start
             } else {
-                let path = tab
+                let tab_path = tab
                     .document
                     .as_ref()
                     .map(|d| d.path.clone())
@@ -420,11 +420,16 @@ impl AppState {
                         } else {
                             None
                         }
-                    })
-                    .or(embedded);
+                    });
+                let project_doc_path = embedded
+                    .as_ref()
+                    .filter(|p| p.contains("/assets/document.md"))
+                    .map(|p| p.to_string());
+                let path = project_doc_path.clone().or(tab_path).or(embedded);
                 let mode = tab.document.as_ref().map(|d| d.backend.mode());
+                let is_directory = tab.is_directory && project_doc_path.is_none();
                 infer_context(
-                    tab.is_directory,
+                    is_directory,
                     matches!(tab.location, BrowserLocation::Http { .. }),
                     path.as_deref(),
                     mode,

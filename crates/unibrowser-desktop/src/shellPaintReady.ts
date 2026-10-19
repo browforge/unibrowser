@@ -49,6 +49,9 @@ function richTextDocumentReady(): boolean {
       "#rich-text-editor-host:not(.hidden) .rich-text-doc",
     ) ??
     document.querySelector<HTMLElement>(
+      "#rich-text-editor-host:not(.hidden) .ProseMirror",
+    ) ??
+    document.querySelector<HTMLElement>(
       "#document-split-preview-host:not(.hidden) .rich-text-doc",
     );
   if (!article || article.getBoundingClientRect().height < 48) {
@@ -326,7 +329,11 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         break;
       case "new-project-capture-save-template":
         checks.push(() =>
-          Boolean(document.querySelector(".save-as-template-capture, .template-gallery-panel")),
+          Boolean(
+            document.querySelector(
+              ".save-template-overlay .save-template-panel, .template-gallery-panel",
+            ),
+          ),
         );
         break;
       default:

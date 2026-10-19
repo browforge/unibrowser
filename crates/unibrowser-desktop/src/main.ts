@@ -3555,6 +3555,17 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             await new Promise((resolve) => window.setTimeout(resolve, 200));
             painted = true;
           } else {
+            if (
+              (demoAgain ?? "")
+                .toLowerCase()
+                .includes("new-project-capture-office-project")
+            ) {
+              const { ensureProjectOfficeDocumentCard } = await import(
+                "./ui/textDocumentCard"
+              );
+              await ensureProjectOfficeDocumentCard("Office document");
+              await new Promise((resolve) => window.setTimeout(resolve, 150));
+            }
             painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
           }
           if (!painted) {
@@ -3932,6 +3943,12 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               openBlockStyleMenuForCapture(host);
               blockPickerMetrics = collectBlockPickerCaptureMetrics(host, closedFingerprint);
             }
+          }
+          if (
+            document.body.dataset.ubNewProjectCapture === "1" &&
+            document.body.classList.contains("text-compact-visible")
+          ) {
+            document.getElementById("command-manager-groups")?.replaceChildren();
           }
           const txtCompactErr = validateTextCompactToolbarForCapture({
             requirePickerOpen: demoLower.includes("txt-block-picker-open"),

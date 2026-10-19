@@ -165,7 +165,28 @@ export async function ensureProjectOfficeDocumentCard(fileLabel: string): Promis
   refreshDocumentCardStatusFooter(false);
   const editorHost = document.getElementById("text-editor-host");
   const rich = editorHost?.querySelector<HTMLElement>(".rich-text-doc .ProseMirror");
-  rich?.focus();
+  if (
+    editorHost &&
+    (!rich || (rich.textContent ?? "").trim().length < 20)
+  ) {
+    const docPath = document.body.dataset.activeDocumentPath ?? "";
+    const seed =
+      "# Office document\n\nUse the toolbar for headings, lists, and emphasis.";
+    const { parseMarkdownDocument } = await import("../documentModelBridge");
+    const { seedDocumentModelSessionForDemo, syncDocumentEditorForTextTab } =
+      await import("../documentEditorHost");
+    const parsed = await parseMarkdownDocument(seed);
+    seedDocumentModelSessionForDemo(parsed);
+    await syncDocumentEditorForTextTab(editorHost, docPath, seed);
+  }
+  if (compactHost && officeCompactToolbarControlCount() < 6) {
+    const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
+    seedDocVisualCompactToolbarFallback(compactHost, true);
+  }
+  if (document.body.classList.contains("text-compact-visible")) {
+    document.getElementById("command-manager-groups")?.replaceChildren();
+  }
+  editorHost?.querySelector<HTMLElement>(".rich-text-doc .ProseMirror")?.focus();
 }
 
 function compactToolbarReady(): boolean {
