@@ -3545,11 +3545,13 @@ pub fn set_embedded_editor_document_path(
     state: State<AppState>,
 ) -> Result<(), String> {
     let sess = state.session(window.label())?;
-    let mut slot = sess
-        .embedded_editor_document_path
-        .lock()
-        .map_err(|e| e.to_string())?;
-    *slot = path.filter(|p| !p.trim().is_empty());
+    {
+        let mut slot = sess
+            .embedded_editor_document_path
+            .lock()
+            .map_err(|e| e.to_string())?;
+        *slot = path.filter(|p| !p.trim().is_empty());
+    }
     state.refresh_command_manager_context(window.label());
     Ok(())
 }
