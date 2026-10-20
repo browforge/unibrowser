@@ -392,7 +392,15 @@ async function mountTemplateGallery(
       create.disabled = true;
     } else {
       create.onclick = async () => {
-        const consent = await confirmTemplateRelationships(selected!.title, selected!.relationships);
+        const mods = await invoke<{ name: string }[]>("list_installed_native_mods").catch(
+          () => [],
+        );
+        const installedModIds = mods.map((m) => m.name);
+        const consent = await confirmTemplateRelationships(
+          selected!.title,
+          selected!.relationships,
+          { installedModIds, enabledModIds: installedModIds },
+        );
         if (consent.cancelled) {
           return;
         }

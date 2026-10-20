@@ -525,6 +525,8 @@ pub struct RecentFileDto {
     pub pinned: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opened_at_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -1167,6 +1169,7 @@ fn recent_files_dto(prefs: &crate::preferences::Preferences) -> Vec<RecentFileDt
             label: e.label.clone(),
             pinned: e.pinned,
             opened_at_ms: (e.opened_at_ms > 0).then_some(e.opened_at_ms),
+            kind: e.kind.clone(),
         })
         .collect();
     entries.sort_by(|a, b| b.pinned.cmp(&a.pinned));
@@ -4107,6 +4110,11 @@ fn execute_command_impl(
             return Err(en.disabled_reason().unwrap_or("disabled").into());
         }
         return Ok("export-print-pdf".into());
+    }
+    if command_id == unibrowser_mod_api::commands::TEXT_SAVE
+        && unibrowser_project::is_memory_project_root(Path::new(&doc.path))
+    {
+        return Ok("memory-project-save-prompt".into());
     }
     let (result, relocate_path) = {
         let relocate_path = if command_id == unibrowser_mod_api::commands::TEXT_SAVE

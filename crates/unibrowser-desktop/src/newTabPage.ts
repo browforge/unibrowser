@@ -14,6 +14,7 @@ export interface RecentFileDto {
   label: string;
   pinned?: boolean;
   opened_at_ms?: number;
+  kind?: string;
 }
 
 export interface DownloadHistoryEntryDto {
@@ -207,7 +208,14 @@ function recentRow(entry: RecentFileDto, onOpen: (path: string) => void): HTMLEl
   const time = document.createElement("span");
   time.className = "ntp-recent-time";
   time.textContent = formatRelativeTime(entry.opened_at_ms);
-  row.append(icon, body, time);
+  if (entry.kind) {
+    const kind = document.createElement("span");
+    kind.className = "ntp-recent-kind";
+    kind.textContent = entry.kind;
+    row.append(icon, body, kind, time);
+  } else {
+    row.append(icon, body, time);
+  }
   row.onclick = () => onOpen(entry.path);
   return row;
 }

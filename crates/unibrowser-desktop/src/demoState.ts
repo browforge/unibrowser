@@ -558,6 +558,17 @@ export async function applyDemoState(raw: string) {
         showSaveAsTemplateCaptureOverlay();
         break;
       }
+      case "new-project-capture-relationship-consent": {
+        const { showRelationshipConsentCaptureOverlay } = await import("./relationshipConsent");
+        showRelationshipConsentCaptureOverlay();
+        break;
+      }
+      case "new-project-capture-first-save": {
+        await invoke("new_empty_project", { title: "Untitled project" });
+        const { showFirstSaveCaptureOverlay } = await import("./firstSaveDialog");
+        showFirstSaveCaptureOverlay("Untitled project");
+        break;
+      }
       case "files":
         await invoke("open_path", { path: "~", line: null }).catch(() => undefined);
         break;

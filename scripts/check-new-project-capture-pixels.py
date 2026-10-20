@@ -24,6 +24,8 @@ EXPECTED = (
     "docx-tab-breadcrumb-v5-1280.png",
     "new-tab-paper-card-v5-web-1280.png",
     "template-gallery-pick-v5-web-1280.png",
+    "relationship-consent-v1-1280.png",
+    "first-save-dialog-v1-1280.png",
 )
 
 FOCUS_CM = {

@@ -33,6 +33,7 @@ pub fn seed_demo_ntp_fixture() -> Result<(), String> {
             label: label.to_string(),
             pinned: false,
             opened_at_ms,
+            kind: None,
         })
         .collect();
     save_preferences(&prefs)?;

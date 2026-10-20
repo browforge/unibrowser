@@ -1,6 +1,6 @@
 use serde::Serialize;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ModSuggestionDto {
@@ -320,6 +320,133 @@ pub fn install_offline_ubmod(ubmod_id: &str) -> Result<OfflineUbmodInstallDto, S
     install_offline_ubmod_to(&root, ubmod_id)
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct HubTemplateCatalogEntryDto {
+    pub id: String,
+    pub title: String,
+    pub version: String,
+    pub blurb: String,
+    pub fixture_id: String,
+    pub signed: bool,
+}
+
+pub fn hub_template_catalog() -> Vec<HubTemplateCatalogEntryDto> {
+    vec![HubTemplateCatalogEntryDto {
+        id: "unibrowser.template.hub.starter".into(),
+        title: "Hub starter board".into(),
+        version: "1.0.0".into(),
+        blurb: "Offline fixture pack (portal Templates tab).".into(),
+        fixture_id: "unibrowser.template.hub.starter".into(),
+        signed: true,
+    }]
+}
+
+fn hub_fixture_pack_dir(fixture_id: &str) -> Result<PathBuf, String> {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../examples/hub-template-fixture")
+        .join(fixture_id);
+    if root.join("template.json").is_file() {
+        Ok(root)
+    } else {
+        Err(format!("hub template fixture missing: {}", fixture_id))
+    }
+}
+
+fn copy_dir_all(src: &Path, dest: &Path) -> Result<(), String> {
+    fs::create_dir_all(dest).map_err(|e| e.to_string())?;
+    for entry in fs::read_dir(src).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let ty = entry.file_type().map_err(|e| e.to_string())?;
+        let dest_path = dest.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_all(&entry.path(), &dest_path)?;
+        } else if ty.is_file() {
+            fs::copy(entry.path(), dest_path).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct InstalledHubTemplateDto {
+    pub id: String,
+    pub version: String,
+    pub title: String,
+    pub path: String,
+}
+
+/// Extract a bundled hub fixture into `cfg_root/templates/installed/<id>/<version>/`.
+pub fn install_hub_template_fixture_to(
+    cfg_root: &Path,
+    fixture_id: &str,
+) -> Result<InstalledHubTemplateDto, String> {
+    let src = hub_fixture_pack_dir(fixture_id)?;
+    let pack = unibrowser_project::load_template_pack_dir(
+        &src,
+        unibrowser_project::TemplateSourceKind::Installed,
+    )
+    .map_err(|e| e.to_string())?;
+    let dest = cfg_root
+        .join("templates/installed")
+        .join(&pack.manifest.id)
+        .join(&pack.manifest.version);
+    if dest.exists() {
+        return Ok(InstalledHubTemplateDto {
+            id: pack.manifest.id.clone(),
+            version: pack.manifest.version.clone(),
+            title: pack.manifest.title.clone(),
+            path: dest.to_string_lossy().into_owned(),
+        });
+    }
+    copy_dir_all(&src, &dest)?;
+    Ok(InstalledHubTemplateDto {
+        id: pack.manifest.id.clone(),
+        version: pack.manifest.version.clone(),
+        title: pack.manifest.title.clone(),
+        path: dest.to_string_lossy().into_owned(),
+    })
+}
+
+/// Extract a bundled hub fixture into the user config dir.
+pub fn install_hub_template_fixture(fixture_id: &str) -> Result<InstalledHubTemplateDto, String> {
+    let cfg = crate::config::config_dir().ok_or("config dir unavailable")?;
+    install_hub_template_fixture_to(&cfg, fixture_id)
+}
+
+pub fn list_installed_hub_templates_in(cfg_root: &Path) -> Result<Vec<InstalledHubTemplateDto>, String> {
+    let installed_root = cfg_root.join("templates/installed");
+    if !installed_root.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    for id_entry in fs::read_dir(&installed_root).map_err(|e| e.to_string())? {
+        let id_entry = id_entry.map_err(|e| e.to_string())?;
+        let id_dir = id_entry.path();
+        if !id_dir.is_dir() {
+            continue;
+        }
+        for ver_dir in unibrowser_project::list_builtin_template_dirs(&id_dir) {
+            if let Ok(pack) = unibrowser_project::load_template_pack_dir(
+                &ver_dir,
+                unibrowser_project::TemplateSourceKind::Installed,
+            ) {
+                out.push(InstalledHubTemplateDto {
+                    id: pack.manifest.id.clone(),
+                    version: pack.manifest.version.clone(),
+                    title: pack.manifest.title.clone(),
+                    path: ver_dir.to_string_lossy().into_owned(),
+                });
+            }
+        }
+    }
+    Ok(out)
+}
+
+pub fn list_installed_hub_templates() -> Result<Vec<InstalledHubTemplateDto>, String> {
+    let cfg = crate::config::config_dir().ok_or("config dir unavailable")?;
+    list_installed_hub_templates_in(&cfg)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -364,5 +491,18 @@ mod tests {
         let listed = unibrowser_mod_host::native::list_installed(&root).expect("list");
         assert!(listed.iter().any(|m| m.name == "unibrowser.base-cad"));
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn hub_template_fixture_installs_offline() {
+        let cfg = std::env::temp_dir().join(format!("ub-hub-tpl-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&cfg);
+        std::fs::create_dir_all(&cfg).expect("cfg");
+        let rec =
+            install_hub_template_fixture_to(&cfg, "unibrowser.template.hub.starter").expect("install");
+        assert_eq!(rec.id, "unibrowser.template.hub.starter");
+        let listed = list_installed_hub_templates_in(&cfg).expect("list");
+        assert!(listed.iter().any(|e| e.id == rec.id));
+        let _ = std::fs::remove_dir_all(&cfg);
     }
 }

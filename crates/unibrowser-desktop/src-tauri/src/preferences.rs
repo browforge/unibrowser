@@ -49,6 +49,9 @@ pub struct RecentFileEntry {
     pub pinned: bool,
     #[serde(default)]
     pub opened_at_ms: u64,
+    /// NTP kind label (e.g. Project, PDF, Text).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -610,6 +613,15 @@ pub fn export_epub_reading_notes_file(epub_path: &str) -> Result<String, String>
 }
 
 pub fn push_recent_file(prefs: &mut Preferences, path: String, label: String) {
+    push_recent_entry(prefs, path, label, None);
+}
+
+pub fn push_recent_entry(
+    prefs: &mut Preferences,
+    path: String,
+    label: String,
+    kind: Option<String>,
+) {
     let pinned = prefs
         .recent_files
         .iter()
@@ -628,6 +640,7 @@ pub fn push_recent_file(prefs: &mut Preferences, path: String, label: String) {
             label,
             pinned,
             opened_at_ms,
+            kind,
         },
     );
     if prefs.recent_files.len() > RECENT_FILES_MAX {

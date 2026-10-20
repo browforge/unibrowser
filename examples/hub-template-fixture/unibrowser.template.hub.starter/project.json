@@ -1,0 +1,18 @@
+{
+  "format_version": 2,
+  "title": "Hub starter board",
+  "nodes": [
+    {
+      "id": "hub-note-1",
+      "type": "note",
+      "label": "Hub note",
+      "x": 64,
+      "y": 72
+    }
+  ],
+  "timeline": {
+    "clips": [],
+    "transitions": [],
+    "markers": []
+  }
+}

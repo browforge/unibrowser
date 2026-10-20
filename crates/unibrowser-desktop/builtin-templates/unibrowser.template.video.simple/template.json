@@ -12,10 +12,18 @@
     "timeline"
   ],
   "relationships": {
-    "requires": {},
-    "recommends": {},
-    "optional": {},
-    "incompatible": {}
+    "requires": {
+      "base-video": "Video timeline and preview handlers."
+    },
+    "recommends": {
+      "base-audio": "Mix audio clips on the timeline."
+    },
+    "optional": {
+      "grammar-harper": "Spellcheck for title cards."
+    },
+    "incompatible": {
+      "legacy-video-flat": "Uses a flat clip model; enable only one video path."
+    }
   },
   "default_workspace": "create"
 }

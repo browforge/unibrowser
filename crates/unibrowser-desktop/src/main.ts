@@ -584,7 +584,19 @@ function statusItemsForContext(
       return { context: "presentation", items: left };
     }
     if (surface === "empty") {
-      return { context: "project-empty", items: [] };
+      const memoryPath = data.document_viewer.path ?? "";
+      if (memoryPath.includes("unibrowser-memory://")) {
+        left.push(
+          item(
+            "project-memory",
+            "left",
+            t("project.statusInMemory"),
+            100,
+            t("project.statusInMemoryTip"),
+          ),
+        );
+      }
+      return { context: "project-empty", items: left };
     }
     if (surface === "design") {
       left.push(item("design-surface", "left", "Design canvas", 100));
@@ -1516,8 +1528,62 @@ function renderModPortal(portal: ModPortalDto | null) {
   templatesNote.className = "viewer-note";
   templatesNote.textContent =
     "Install template packs from the catalog (hub). Installed packs appear in New from template under Installed.";
-  templatesSection.append(templatesHeading, templatesNote);
+  const templatesList = document.createElement("div");
+  templatesList.className = "mod-portal-template-list";
+  templatesSection.append(templatesHeading, templatesNote, templatesList);
+
+  async function refreshTemplatePacks() {
+    templatesList.innerHTML = "";
+    const netPrefs = await invoke<{ offline_mode: boolean }>("get_preferences");
+    const catalog = await invoke<
+      { id: string; title: string; version: string; blurb: string; fixture_id: string; signed: boolean }[]
+    >("list_hub_template_catalog");
+    const installed = await invoke<
+      { id: string; version: string; title: string }[]
+    >("list_installed_hub_template_packs").catch(() => []);
+    const installedIds = new Set(installed.map((e) => e.id));
+    const { hubTemplateInstallPath } = await import("./templateHubInstall");
+    catalog.forEach((entry) => {
+      const card = document.createElement("article");
+      card.className = "mod-result-card";
+      const title = document.createElement("strong");
+      title.textContent = entry.title;
+      const meta = document.createElement("span");
+      meta.className = "mod-result-reason";
+      meta.textContent = `${entry.blurb} · v${entry.version}`;
+      const action = document.createElement("button");
+      action.type = "button";
+      action.className = "mod-card-action";
+      if (installedIds.has(entry.id)) {
+        action.textContent = "Installed";
+        action.disabled = true;
+      } else {
+        action.textContent = "Install";
+        action.onclick = async () => {
+          const path = hubTemplateInstallPath(entry, netPrefs.offline_mode);
+          if (path === "needs-network") {
+            showToast(t("mods.offlineModeActive"), "info");
+            return;
+          }
+          if (!entry.signed) {
+            showToast(t("templateHub.unsignedWarning"), "info");
+          }
+          try {
+            await invoke("install_hub_template_pack", { fixtureId: entry.fixture_id });
+            showToast(t("templateHub.installed", { title: entry.title }), "info");
+            await refreshTemplatePacks();
+          } catch (err) {
+            showToast(String(err), "error");
+          }
+        };
+      }
+      card.append(title, meta, action);
+      templatesList.appendChild(card);
+    });
+  }
+
   modPortalPanel.appendChild(templatesSection);
+  void refreshTemplatePacks();
   setModPortalTab(1);
 
   void refreshInstalledExtensions(nativeList, installedList);
@@ -2102,6 +2168,15 @@ async function processCommandResult(msg: string, commandId?: string) {
       if (data) {
         await applyState(data);
       }
+    }
+    return;
+  }
+  if (msg === "memory-project-save-prompt") {
+    const state = await invoke<{ document_viewer?: { title?: string } }>("get_browser_state");
+    const { runFirstSaveFlow } = await import("./firstSaveDialog");
+    const data = await runFirstSaveFlow(state.document_viewer?.title);
+    if (data) {
+      await applyState(data as TabContentDto);
     }
     return;
   }

@@ -1,21 +1,24 @@
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State, Window};
 use unibrowser_mod_api::BrowserLocation;
 use unibrowser_project::{
-    apply_template_project, create_memory_package, export_ubtemplate_pack, is_memory_project_root,
-    list_builtin_template_dirs, load_template_pack_dir, load_user_template_index,
-    memory_root_for_session, memory_session_id, save_user_template_index, TemplateManifest,
-    TemplatePack, TemplateRelationships, TemplateSourceKind, UserTemplateIndex,
-    UserTemplateIndexEntry, ProjectPackage,
+    apply_template_project, create_memory_package, export_package_to_zip, export_ubtemplate_pack,
+    is_memory_project_root, list_builtin_template_dirs, load_template_pack_dir,
+    load_user_template_index, memory_root_for_session, memory_session_id, save_user_template_index,
+    write_manifest, TemplateManifest, TemplatePack, TemplateRelationships, TemplateSourceKind,
+    UserTemplateIndex, UserTemplateIndexEntry, ProjectPackage, DIR_ASSETS, DIR_DERIVED, DIR_REFS,
 };
 
 use crate::commands::{snapshot, update_content_webview, TabContentDto, ws_label};
 use crate::config;
+use crate::project_backend::{UnibrowBackend, BACKEND_ID};
+use crate::preferences::{load_preferences, push_recent_entry, save_preferences};
 use crate::state::AppState;
 
 static SESSION_COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -349,6 +352,23 @@ pub fn save_project_as_template(
 }
 
 #[tauri::command]
+pub async fn pick_save_unibrow_project_path(
+    _window: Window,
+    app: AppHandle,
+    suggested_name: String,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Save project")
+        .set_file_name(suggested_name)
+        .add_filter("Unibrowser project", &["unibrow"])
+        .blocking_save_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
+#[tauri::command]
 pub async fn pick_save_ubtemplate_path(
     _window: Window,
     app: AppHandle,
@@ -372,4 +392,189 @@ pub fn remove_user_template(template_id: String) -> Result<(), String> {
     index.entries.retain(|e| e.id != template_id);
     save_user_template_index(&cfg, &index).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+fn write_package_tree(
+    package: &ProjectPackage,
+    assets: &HashMap<String, Vec<u8>>,
+    dest_root: &Path,
+) -> Result<(), String> {
+    fs::create_dir_all(dest_root.join(DIR_ASSETS)).map_err(|e| e.to_string())?;
+    fs::create_dir_all(dest_root.join(DIR_REFS)).map_err(|e| e.to_string())?;
+    fs::create_dir_all(dest_root.join(DIR_DERIVED)).map_err(|e| e.to_string())?;
+    write_manifest(dest_root, &package.manifest).map_err(|e| e.to_string())?;
+    for (name, bytes) in assets {
+        fs::write(dest_root.join(DIR_ASSETS).join(name), bytes).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+fn materialize_memory_to_archive(
+    package: &ProjectPackage,
+    assets: &HashMap<String, Vec<u8>>,
+    dest_zip: &Path,
+) -> Result<(), String> {
+    let parent = dest_zip
+        .parent()
+        .ok_or("invalid archive parent directory")?;
+    let staging = parent.join(format!(
+        ".ub-staging-{}",
+        std::process::id()
+    ));
+    if staging.exists() {
+        fs::remove_dir_all(&staging).map_err(|e| e.to_string())?;
+    }
+    write_package_tree(package, assets, &staging)?;
+    if dest_zip.exists() {
+        fs::remove_file(dest_zip).map_err(|e| e.to_string())?;
+    }
+    export_package_to_zip(&staging, dest_zip).map_err(|e| e.to_string())?;
+    let _ = fs::remove_dir_all(&staging);
+    Ok(())
+}
+
+fn materialize_memory_to_folder(
+    package: &ProjectPackage,
+    assets: &HashMap<String, Vec<u8>>,
+    dest_folder: &Path,
+) -> Result<(), String> {
+    if dest_folder.exists() {
+        return Err(format!("destination already exists: {}", dest_folder.display()));
+    }
+    write_package_tree(package, assets, dest_folder)?;
+    Ok(())
+}
+
+fn active_memory_project(
+    state: &AppState,
+    window: &Window,
+) -> Result<(ProjectPackage, HashMap<String, Vec<u8>>, PathBuf), String> {
+    let _sess = ws_label(state, window.label())?;
+    let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+    let doc = tab.document.as_mut().ok_or("no project open")?;
+    if doc.backend.backend_id() != BACKEND_ID {
+        return Err("active tab is not a project".into());
+    }
+    let memory_path = PathBuf::from(&doc.path);
+    if !is_memory_project_root(&memory_path) {
+        return Err("project is already saved to disk".into());
+    }
+    let session_id = memory_session_id(&memory_path).ok_or("invalid memory session")?;
+    let backend = doc
+        .backend
+        .as_any_mut()
+        .downcast_mut::<UnibrowBackend>()
+        .ok_or("project backend unavailable")?;
+    let assets = state
+        .memory_projects
+        .lock()
+        .map_err(|e| e.to_string())?
+        .get(&session_id)
+        .map(|e| e.assets.clone())
+        .unwrap_or_default();
+    if let Some(entry) = state
+        .memory_projects
+        .lock()
+        .map_err(|e| e.to_string())?
+        .get_mut(&session_id)
+    {
+        entry.package = backend.package.clone();
+    }
+    Ok((backend.package.clone(), assets, memory_path))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SaveMemoryProjectInput {
+    pub dest_path: String,
+    /// `archive` (.unibrow file) or `folder` (unpacked package directory).
+    pub mode: String,
+}
+
+#[tauri::command]
+pub fn save_memory_project(
+    window: Window,
+    state: State<AppState>,
+    app: AppHandle,
+    input: SaveMemoryProjectInput,
+) -> Result<TabContentDto, String> {
+    let (package, assets, memory_path) = active_memory_project(state.inner(), &window)?;
+    let session_id = memory_session_id(&memory_path).ok_or("invalid memory session")?;
+    let dest = PathBuf::from(input.dest_path.trim());
+    let saved_path = if input.mode.eq_ignore_ascii_case("folder") {
+        materialize_memory_to_folder(&package, &assets, &dest)?;
+        dest
+    } else {
+        materialize_memory_to_archive(&package, &assets, &dest)?;
+        dest
+    };
+    {
+        let mut map = state.memory_projects.lock().map_err(|e| e.to_string())?;
+        map.remove(&session_id);
+    }
+    let loc = BrowserLocation::File {
+        path: saved_path.clone(),
+    };
+    let doc = state.inner().try_open_unibrow_document(&saved_path)?;
+    let _sess = ws_label(state.inner(), window.label())?;
+    {
+        let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+        if let Some(tab) = tabs.active_tab_mut() {
+            tab.location = loc.clone();
+            tab.document = Some(doc);
+            tab.is_directory = saved_path.is_dir();
+        }
+    }
+    let label = package.manifest.title.clone();
+    let mut prefs = load_preferences();
+    push_recent_entry(
+        &mut prefs,
+        saved_path.to_string_lossy().into_owned(),
+        label,
+        Some("Project".into()),
+    );
+    let _ = save_preferences(&prefs);
+    update_content_webview(&app, window.label(), &loc)?;
+    snapshot(state.inner(), window.label())
+}
+
+#[tauri::command]
+pub fn list_hub_template_catalog() -> Vec<crate::mod_portal::HubTemplateCatalogEntryDto> {
+    crate::mod_portal::hub_template_catalog()
+}
+
+#[tauri::command]
+pub fn install_hub_template_pack(fixture_id: String) -> Result<crate::mod_portal::InstalledHubTemplateDto, String> {
+    crate::mod_portal::install_hub_template_fixture(&fixture_id)
+}
+
+#[tauri::command]
+pub fn list_installed_hub_template_packs(
+) -> Result<Vec<crate::mod_portal::InstalledHubTemplateDto>, String> {
+    crate::mod_portal::list_installed_hub_templates()
+}
+
+#[cfg(test)]
+mod memory_tests {
+    use super::*;
+    use unibrowser_project::create_memory_package;
+
+    #[test]
+    fn empty_memory_package_writes_no_disk_files() {
+        let pkg = create_memory_package("Untitled project", "sess-test");
+        assert!(is_memory_project_root(&pkg.root));
+        assert!(!pkg.root.join("project.json").exists());
+    }
+
+    #[test]
+    fn materialize_archive_round_trip() {
+        let pkg = create_memory_package("Save me", "sess-save");
+        let dir = std::env::temp_dir().join(format!("ub-mem-save-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("dir");
+        let zip = dir.join("Untitled.unibrow");
+        materialize_memory_to_archive(&pkg, &HashMap::new(), &zip).expect("zip");
+        assert!(zip.is_file());
+        let _ = fs::remove_dir_all(&dir);
+    }
 }

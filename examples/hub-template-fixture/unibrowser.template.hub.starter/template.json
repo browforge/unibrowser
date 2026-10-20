@@ -1,0 +1,24 @@
+{
+  "template_schema_version": 1,
+  "id": "unibrowser.template.hub.starter",
+  "version": "1.0.0",
+  "title": "Hub starter board",
+  "description": "Offline hub fixture template pack for portal install tests.",
+  "categories": [
+    "notes"
+  ],
+  "tags": [
+    "hub",
+    "fixture"
+  ],
+  "relationships": {
+    "requires": {},
+    "recommends": {},
+    "optional": {},
+    "incompatible": {}
+  },
+  "hub": {
+    "publisher": "fixture.local",
+    "content_hash": "offline-fixture-v1"
+  }
+}
