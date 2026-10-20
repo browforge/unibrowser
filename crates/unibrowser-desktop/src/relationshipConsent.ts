@@ -126,15 +126,15 @@ export function confirmTemplateRelationships(
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-modal", "true");
 
+    const header = document.createElement("div");
+    header.className = "relationship-consent-header";
     const title = document.createElement("h2");
     title.textContent = `Create “${templateTitle}”`;
-    panel.appendChild(title);
-
     const lead = document.createElement("p");
     lead.className = "viewer-note relationship-consent-lead";
     lead.textContent =
       "This template may enable plugins. Required items stay on; you can uncheck recommendations and optional integrations.";
-    panel.appendChild(lead);
+    header.append(title, lead);
 
     const sections = document.createElement("div");
     sections.className = "relationship-consent-sections";
@@ -180,14 +180,8 @@ export function confirmTemplateRelationships(
       });
     });
 
-    if (!sections.childElementCount) {
-      const empty = document.createElement("p");
-      empty.className = "viewer-note";
-      empty.textContent = "No plugin relationships declared for this template.";
-      panel.appendChild(empty);
-    } else {
-      panel.appendChild(sections);
-    }
+    const footer = document.createElement("div");
+    footer.className = "relationship-consent-footer";
 
     if (missing.length) {
       const callout = document.createElement("div");
@@ -209,7 +203,7 @@ export function confirmTemplateRelationships(
         window.dispatchEvent(new CustomEvent("unibrowser-open-mod-portal-templates"));
       };
       callout.append(icon, copy, install);
-      panel.appendChild(callout);
+      footer.appendChild(callout);
     }
 
     const actions = document.createElement("div");
@@ -257,7 +251,15 @@ export function confirmTemplateRelationships(
       }
     });
     actions.append(cancel, create);
-    panel.appendChild(actions);
+    footer.appendChild(actions);
+
+    if (!sections.childElementCount) {
+      const empty = document.createElement("p");
+      empty.className = "viewer-note";
+      empty.textContent = "No plugin relationships declared for this template.";
+      sections.appendChild(empty);
+    }
+    panel.append(header, sections, footer);
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
     create.focus();

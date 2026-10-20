@@ -338,7 +338,11 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         break;
       case "new-project-capture-relationship-consent":
         checks.push(() =>
-          Boolean(document.querySelector(".relationship-consent-panel .relationship-consent-sections")),
+          Boolean(
+            document.querySelector(
+              ".relationship-consent-panel .relationship-consent-footer .relationship-consent-actions",
+            ),
+          ),
         );
         break;
       case "new-project-capture-first-save":

@@ -55,7 +55,7 @@ capture_desktop "presentation-template-project" "new-project-capture-presentatio
 capture_desktop "save-as-template" "new-project-capture-save-template"
 capture_desktop "docx-tab-breadcrumb" "text-card-render1,title-breadcrumb,rail-collapsed,doc-visual-md-docx" \
   "$ROOT/examples/demo-pack/sample.md"
-capture_desktop "relationship-consent" "new-project-capture-relationship-consent" "" "v3"
+capture_desktop "relationship-consent" "new-project-capture-relationship-consent" "" "v4"
 capture_desktop "first-save-dialog" "new-project-capture-first-save" "" "v3"
 
 (

@@ -1267,6 +1267,8 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   relationshipConsentPanelHeight: number | null;
   relationshipConsentUsesListBullets: boolean;
   relationshipConsentSectionsScrollable: boolean;
+  relationshipConsentPanelScrollable: boolean;
+  relationshipConsentActionsInViewport: boolean;
   dialogPrimaryButtonMatchesAccent: boolean;
   firstSaveCancelButtonPresent: boolean;
 }
@@ -1408,6 +1410,21 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     consentSections &&
       consentSections.scrollHeight > consentSections.clientHeight + 2,
   );
+  const relationshipConsentPanelScrollable = Boolean(
+    consentPanel && consentPanel.scrollHeight > consentPanel.clientHeight + 1,
+  );
+  const consentCancel = consentPanel?.querySelector<HTMLElement>(
+    ".relationship-consent-actions .quiet-button",
+  );
+  const consentCreate = consentPanel?.querySelector<HTMLElement>(
+    ".relationship-consent-actions button.primary",
+  );
+  const relationshipConsentActionsInViewport = Boolean(
+    consentCancel &&
+      consentCreate &&
+      elementFullyInViewport(consentCancel) &&
+      elementFullyInViewport(consentCreate),
+  );
   const dialogPrimaryButtonMatchesAccent =
     dialogPrimaryButtonUsesAccent(consentPanel) ||
     dialogPrimaryButtonUsesAccent(firstSavePanel);
@@ -1433,6 +1450,8 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     relationshipConsentPanelHeight,
     relationshipConsentUsesListBullets,
     relationshipConsentSectionsScrollable,
+    relationshipConsentPanelScrollable,
+    relationshipConsentActionsInViewport,
     dialogPrimaryButtonMatchesAccent,
     firstSaveCancelButtonPresent,
   };
@@ -2336,6 +2355,16 @@ function rgbColorsMatch(a: string, b: string): boolean {
   return norm(a) === norm(b);
 }
 
+function elementFullyInViewport(el: HTMLElement, pad = 1): boolean {
+  const r = el.getBoundingClientRect();
+  return (
+    r.top >= pad &&
+    r.left >= pad &&
+    r.bottom <= window.innerHeight - pad &&
+    r.right <= window.innerWidth - pad
+  );
+}
+
 function dialogPrimaryButtonUsesAccent(panel: HTMLElement | null): boolean {
   const btn = panel?.querySelector<HTMLButtonElement>("button.primary");
   if (!btn || !panel) {
@@ -2611,8 +2640,14 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     if (dom.relationshipConsentUsesListBullets) {
       return "relationship consent capture must not use list-style bullets";
     }
+    if (dom.relationshipConsentPanelScrollable) {
+      return "relationship consent panel must not show a scrollbar at capture viewport";
+    }
     if (dom.relationshipConsentSectionsScrollable) {
       return "relationship consent sections must not scroll when content fits in panel";
+    }
+    if (!dom.relationshipConsentActionsInViewport) {
+      return "relationship consent Cancel and Create must be fully visible in the viewport";
     }
     if (!dom.dialogPrimaryButtonMatchesAccent) {
       return "relationship consent Create button must use accent primary fill";

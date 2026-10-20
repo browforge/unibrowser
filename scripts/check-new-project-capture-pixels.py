@@ -24,7 +24,7 @@ EXPECTED = (
     "docx-tab-breadcrumb-v5-1280.png",
     "new-tab-paper-card-v5-web-1280.png",
     "template-gallery-pick-v5-web-1280.png",
-    "relationship-consent-v3-1280.png",
+    "relationship-consent-v4-1280.png",
     "first-save-dialog-v3-1280.png",
 )
 
@@ -32,7 +32,7 @@ FOCUS_CM = {
     "office-template-project-v5-1280.png": "office",
     "empty-project-tab-v6-1280.png": "empty",
     "presentation-template-project-v5-1280.png": "presentation",
-    "relationship-consent-v3-1280.png": "consent",
+    "relationship-consent-v4-1280.png": "consent",
     "first-save-dialog-v3-1280.png": "first_save",
 }
 
@@ -82,8 +82,12 @@ def dom_gate_ok(cm: dict, kind: str) -> str | None:
             return f"relationship consent panel height {panel_h}px must be < 70% of viewport"
         if dom.get("relationshipConsentUsesListBullets") is True:
             return "relationship consent capture must not use list-style bullets"
+        if dom.get("relationshipConsentPanelScrollable") is True:
+            return "relationship consent panel must not show a scrollbar"
         if dom.get("relationshipConsentSectionsScrollable") is True:
             return "relationship consent sections must not scroll when content fits"
+        if dom.get("relationshipConsentActionsInViewport") is not True:
+            return "relationship consent Cancel and Create must be fully in viewport"
         if dom.get("dialogPrimaryButtonMatchesAccent") is not True:
             return "dialog primary button background must match --ub-accent"
     if kind == "first_save":
