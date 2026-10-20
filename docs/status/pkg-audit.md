@@ -14,8 +14,8 @@ Baseline commit audited: `c391334`. PKG-01/PKG-02 implemented on branch through 
 | PKG-04 | missing | `pkgStorageAudit.test.mjs` (no history path status copy); status bar has document editor modes only |
 | PKG-05 | partial | `pkg05_pack_from_directory_does_not_touch_sibling_plain_folder`, `zip_export_and_materialize` (lib export/import); no UI unpack/pack (`pkgStorageAudit.test.mjs`) |
 | PKG-06 | missing | `pkgStorageAudit.test.mjs` (no threshold settings keys) |
-| PKG-07 | missing | no archive edit journal or atomic in-zip save pipeline in `unibrowser-project` |
-| PKG-08 | partial | `pkg08_refs_directory_exists_but_no_collect_api`; assets are content-addressed on embed (`add_asset_copy`) but Collect API still absent |
+| PKG-07 | done | `pkg07_archive_save_is_atomic_and_readable`, `pkg07_folder_save_recovers_after_interrupted_journal`, `package_save::{save_archive_package,save_folder_package,set_save_fault_hook}` |
+| PKG-08 | done | `pkg08_collect_api_embeds_linked_media`, `pkg08_gc_retains_hashes_referenced_in_history`, `pkg08_gc_drops_unreferenced_hashes_not_in_history`, `refs_collect::{add_media_ref,collect_all_media_refs,gc_content_addressed_assets,list_referenced_package_parts}` |
 
 ## PKG-01: OPC archive layout and compression
 
@@ -76,17 +76,27 @@ Baseline commit audited: `c391334`. PKG-01/PKG-02 implemented on branch through 
 
 ## PKG-07: Archive edit journal and atomic save
 
-**Gaps**
+**Works today**
 
-- No sidecar journal beside `.unibrow`, no fold-into-zip on save, no crash recovery banner for archives.
-- Project autosave copies `project.json` to `derived/project-autosave.json` only for directory bundles.
+- Archive save writes `*.unibrow.part` beside the package, fsyncs, then renames over the archive (`save_archive_package`).
+- Folder save journals `save_begin` / `save_part` / `save_commit` ops in `.unibrow-history` before part writes; backups under `derived/save-journal/`; `recover_incomplete_folder_save` on `open_package` rolls back and appends `save_abort`.
+- Fault injection hook `set_save_fault_hook` proves no torn zip and folder recovery (`pkg07_*` tests).
+
+**Gaps (UI / later)**
+
+- No sidecar journal beside `.unibrow` for in-session edits before fold (ADR §5 cache path); library fold is save-time only.
+- No crash recovery banner in the desktop shell.
 
 ## PKG-08: Referenced media and Collect into project
 
-**Gaps**
+**Works today**
 
-- `refs/` directory is created empty; no graph refs or Collect command (`pkg08_refs_directory_exists_but_no_collect_api`).
-- Embed path uses content hashes; Collect and relink still unimplemented.
+- `refs/<id>.json` records linked paths (`add_media_ref`); `collect_media_ref` / `collect_all_media_refs` embed into `assets/<sha256>` and add nodes.
+- `list_referenced_package_parts` / `list_referenced_content_hashes` union manifest + history snapshot hashes; `gc_content_addressed_assets` on folder save drops unreferenced hashes while retaining history-referenced blobs.
+
+**Gaps (UI / later)**
+
+- No Relink banner or Command Manager **Collect into project** entry; library API only.
 
 ## Commands run
 

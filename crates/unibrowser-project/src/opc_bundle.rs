@@ -257,6 +257,14 @@ pub fn migrate_assets_to_content_hashes(
     root: &Path,
     manifest: &mut ProjectManifest,
 ) -> Result<(), ProjectError> {
+    migrate_assets_to_content_hashes_with_hook(root, manifest, None)
+}
+
+pub fn migrate_assets_to_content_hashes_with_hook(
+    root: &Path,
+    manifest: &mut ProjectManifest,
+    before_part_write: Option<&dyn Fn(&str)>,
+) -> Result<(), ProjectError> {
     let assets_dir = root.join(DIR_ASSETS);
     if !assets_dir.is_dir() {
         return Ok(());
@@ -275,6 +283,9 @@ pub fn migrate_assets_to_content_hashes(
         let hash = content_hash_hex(&bytes);
         let dest = assets_dir.join(&hash);
         if !dest.is_file() {
+            if let Some(hook) = before_part_write {
+                hook(&format!("assets/{}", hash));
+            }
             fs::write(&dest, &bytes)?;
         }
         if name != &hash {

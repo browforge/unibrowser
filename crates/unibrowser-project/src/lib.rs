@@ -1,6 +1,8 @@
 //! Minimal `.unibrow` directory bundle ([ADR 0015](../../docs/adr/0015-native-project-format.md)).
 
 mod opc_bundle;
+mod package_save;
+mod refs_collect;
 mod zip_bundle;
 mod timeline_encode;
 mod layer_transform;
@@ -10,6 +12,19 @@ pub use opc_bundle::{
     content_hash_hex, ensure_package_history_file, ensure_unpacked_package_layout,
     is_content_hash_asset_name, is_legacy_unibrow_zip, is_opc_unibrow_zip, opc_part_bytes_equal,
     opc_part_map, PackageContainerManifest, write_legacy_plain_zip,
+};
+
+pub use package_save::{
+    archive_part_path, archive_zip_is_readable, pending_folder_save_id,
+    recover_incomplete_archive_save, recover_incomplete_folder_save, save_archive_package,
+    save_folder_package, set_save_fault_hook, SaveFaultPoint,
+};
+
+pub use refs_collect::{
+    add_media_ref, collect_all_media_refs, collect_media_ref, gc_content_addressed_assets,
+    list_media_refs, list_referenced_content_hashes, list_referenced_package_parts,
+    referenced_asset_hashes_from_history, referenced_asset_hashes_from_manifest, CollectResult,
+    MediaRefRecord,
 };
 
 pub use template::{
@@ -1037,6 +1052,7 @@ pub fn set_node_board_position(
 }
 
 pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
+    let _ = package_save::recover_incomplete_folder_save(root)?;
     let manifest_path = root.join(PROJECT_FILE);
     if !manifest_path.is_file() {
         return Err(ProjectError::NotPackage(PROJECT_FILE.into()));

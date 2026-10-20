@@ -8,11 +8,14 @@ use zip::read::ZipArchive;
 use zip::CompressionMethod;
 
 use unibrowser_project::{
-    add_asset_copy, content_hash_hex, create_package, export_package_to_zip,
+    add_asset_copy, add_media_ref, archive_zip_is_readable, collect_all_media_refs,
+    content_hash_hex, create_package, export_package_to_zip, gc_content_addressed_assets,
     import_share_package_zip, is_legacy_unibrow_zip, is_opc_unibrow_zip, is_unibrow_path,
-    is_unpacked_native_package, list_zip_archive_entries, materialize_zip_package, open_package,
-    opc_part_bytes_equal, resolve_package_root, write_legacy_plain_zip, write_manifest,
-    DIR_ASSETS, HISTORY_FILE, MANIFEST_FILE, PROJECT_FILE,
+    is_unpacked_native_package, list_media_refs, list_referenced_package_parts,
+    list_zip_archive_entries, materialize_zip_package, open_package, opc_part_bytes_equal,
+    pending_folder_save_id, recover_incomplete_folder_save, resolve_package_root,
+    save_archive_package, save_folder_package, set_save_fault_hook, write_legacy_plain_zip,
+    write_manifest, SaveFaultPoint, DIR_ASSETS, HISTORY_FILE, MANIFEST_FILE, PROJECT_FILE,
 };
 
 fn zip_compression_for(path: &Path, entry_name: &str) -> CompressionMethod {
@@ -307,14 +310,112 @@ fn pkg05_pack_from_directory_does_not_touch_sibling_plain_folder() {
     let _ = fs::remove_dir_all(&dir);
 }
 
-// --- PKG-08: Referenced media ---
+// --- PKG-07: Atomic journalled save ---
 
 #[test]
-fn pkg08_refs_directory_exists_but_no_collect_api() {
+fn pkg07_archive_save_is_atomic_and_readable() {
+    let dir = temp_root("arc-save");
+    let _ = fs::remove_dir_all(&dir);
+    let pkg_dir = dir.join("bundle");
+    let _pkg = create_package(&pkg_dir, "Arc").expect("create");
+    let zip_path = dir.join("pkg.unibrow");
+    save_archive_package(&zip_path, &pkg_dir).expect("save");
+    assert!(archive_zip_is_readable(&zip_path));
+    let before = fs::read(&zip_path).expect("read");
+    set_save_fault_hook(Some(Box::new(|p| p == SaveFaultPoint::BeforeArchiveRename)));
+    let mut pkg = open_package(&pkg_dir).expect("open");
+    pkg.manifest.title = "New".into();
+    unibrowser_project::write_manifest(&pkg_dir, &pkg.manifest).expect("write");
+    assert!(save_archive_package(&zip_path, &pkg_dir).is_err());
+    set_save_fault_hook(None);
+    assert_eq!(fs::read(&zip_path).expect("read"), before);
+    assert!(archive_zip_is_readable(&zip_path));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn pkg07_folder_save_recovers_after_interrupted_journal() {
+    let dir = temp_root("fold-recover");
+    let _ = fs::remove_dir_all(&dir);
+    let mut pkg = create_package(&dir, "Fold").expect("create");
+    set_save_fault_hook(Some(Box::new(|p| p == SaveFaultPoint::BeforeSaveCommitJournal)));
+    pkg.manifest.title = "Broken".into();
+    assert!(save_folder_package(&pkg).is_err());
+    set_save_fault_hook(None);
+    assert!(pending_folder_save_id(&dir).expect("pending").is_some());
+    recover_incomplete_folder_save(&dir).expect("recover");
+    let again = open_package(&dir).expect("open");
+    assert_eq!(again.manifest.title, "Fold");
+    let _ = fs::remove_dir_all(&dir);
+}
+
+// --- PKG-08: Referenced media and Collect ---
+
+#[test]
+fn pkg08_collect_api_embeds_linked_media() {
     let dir = temp_root("refs");
     let _ = fs::remove_dir_all(&dir);
-    let pkg = create_package(&dir, "Refs").expect("create");
-    assert!(pkg.root.join("refs").is_dir());
-    assert!(fs::read_dir(pkg.root.join("refs")).expect("read").next().is_none());
+    let mut pkg = create_package(&dir, "Refs").expect("create");
+    let external = dir.join("clip.bin");
+    fs::write(&external, b"linked-bytes").expect("write");
+    add_media_ref(&mut pkg, &external, "Clip").expect("ref");
+    assert_eq!(list_media_refs(&dir).expect("list").len(), 1);
+    let result = collect_all_media_refs(&mut pkg).expect("collect");
+    assert_eq!(result.embedded_hashes.len(), 1);
+    assert!(list_media_refs(&dir).expect("list").is_empty());
+    let parts = list_referenced_package_parts(&dir, &pkg.manifest);
+    assert!(parts.iter().any(|p| p.starts_with("assets/")));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn pkg08_gc_retains_hashes_referenced_in_history() {
+    let dir = temp_root("gc-hist");
+    let _ = fs::remove_dir_all(&dir);
+    let mut pkg = create_package(&dir, "Hist").expect("create");
+    let src = dir.join("keep.bin");
+    fs::write(&src, b"keep-me").expect("write");
+    add_asset_copy(&mut pkg, &src, "file", "Keep").expect("asset");
+    let hash = pkg.manifest.nodes[0].asset.clone().expect("hash");
+    pkg.manifest.nodes.clear();
+    write_manifest(&dir, &pkg.manifest).expect("clear nodes");
+    let hist_path = dir.join(HISTORY_FILE);
+    let (_, ops) =
+        unibrowser_document_model::history_file::read_header_and_ops(&hist_path).expect("read");
+    let entry = unibrowser_document_model::history_file::HistoryLogEntry {
+        op_id: "snap-1".into(),
+        seq: ops.last().map(|o| o.seq + 1).unwrap_or(1),
+        parent_seq: ops.last().map(|o| o.seq).unwrap_or(0),
+        timestamp: unibrowser_document_model::history_file::now_rfc3339(),
+        plugin_id: "unibrowser-core".into(),
+        plugin_version: "0.1.0".into(),
+        op_type: "unibrowser.history.snapshot".into(),
+        op_schema_version: 1,
+        payload: serde_json::json!({ "asset_hash": hash }),
+    };
+    unibrowser_document_model::history_file::push_op_entry(&hist_path, entry).expect("push");
+    let removed = gc_content_addressed_assets(&dir, &pkg.manifest, None).expect("gc");
+    assert!(!removed.contains(&hash));
+    assert!(dir.join(DIR_ASSETS).join(&hash).is_file());
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn pkg08_gc_drops_unreferenced_hashes_not_in_history() {
+    let dir = temp_root("gc");
+    let _ = fs::remove_dir_all(&dir);
+    let mut pkg = create_package(&dir, "Gc").expect("create");
+    let src = dir.join("a.bin");
+    fs::write(&src, b"a").expect("write");
+    add_asset_copy(&mut pkg, &src, "file", "A").expect("asset");
+    let hash = pkg.manifest.nodes[0].asset.clone().expect("hash");
+    pkg.manifest.nodes.clear();
+    write_manifest(&dir, &pkg.manifest).expect("write");
+    let orphan = "1111111111111111111111111111111111111111111111111111111111111111";
+    fs::write(dir.join(DIR_ASSETS).join(orphan), b"orphan").expect("orphan");
+    let removed = gc_content_addressed_assets(&dir, &pkg.manifest, None).expect("gc");
+    assert!(removed.contains(&hash));
+    assert!(removed.contains(&orphan.to_string()));
+    assert!(dir.join(HISTORY_FILE).is_file());
     let _ = fs::remove_dir_all(&dir);
 }
