@@ -4834,7 +4834,8 @@ button.quiet-button:disabled,
   height: auto;
   flex: 0 0 auto;
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   align-self: center;
 }
 
@@ -4846,9 +4847,7 @@ button.quiet-button:disabled,
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  flex: 0 1 auto;
-  max-height: min(300px, 48vh);
-  overflow-y: auto;
+  overflow: visible;
   padding-right: 0.15rem;
 }
 
@@ -4944,6 +4943,73 @@ button.quiet-button:disabled,
 
 .relationship-consent-actions {
   margin-top: 0.25rem;
+}
+
+/* Paper dialogs: filled primary + themed fields (not raw browser chrome). */
+.first-save-panel button.primary,
+.relationship-consent-panel button.primary,
+.save-template-panel button.primary,
+.template-gallery-panel button.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--ub-radius-6, 6px);
+  border: 1px solid var(--ub-accent, #2d647d);
+  background: var(--ub-accent, #2d647d);
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.first-save-panel button.primary:hover:not(:disabled),
+.relationship-consent-panel button.primary:hover:not(:disabled),
+.save-template-panel button.primary:hover:not(:disabled),
+.template-gallery-panel button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ub-accent, #2d647d) 88%, #000);
+  border-color: color-mix(in srgb, var(--ub-accent, #2d647d) 88%, #000);
+}
+
+.first-save-panel button.primary:disabled,
+.relationship-consent-panel button.primary:disabled,
+.save-template-panel button.primary:disabled,
+.template-gallery-panel button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.first-save-panel input.ub-form-control,
+.save-template-panel input.ub-form-control,
+.relationship-consent-panel input.ub-form-control,
+.template-gallery-panel input.ub-form-control,
+.template-gallery-panel textarea.ub-form-control {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  border: 1px solid var(--ub-border-strong, #89939d);
+  border-radius: var(--ub-radius-6, 6px);
+  background-color: var(--ub-paper, #faf9f6);
+  color: var(--ub-text, #1b1d1e);
+  box-shadow: none;
+}
+
+[data-theme="light"] .first-save-panel input.ub-form-control,
+[data-theme="light"] .save-template-panel input.ub-form-control,
+[data-theme="light"] .relationship-consent-panel input.ub-form-control,
+[data-theme="light"] .template-gallery-panel input.ub-form-control {
+  background-color: #fff;
+  border-color: #c8c4bc;
+  color: var(--ub-text, #1b1d1e);
 }
 
 .first-save-field {

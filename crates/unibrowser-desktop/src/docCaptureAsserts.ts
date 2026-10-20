@@ -1266,6 +1266,8 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   presentationToolbarThemed: boolean;
   relationshipConsentPanelHeight: number | null;
   relationshipConsentUsesListBullets: boolean;
+  relationshipConsentSectionsScrollable: boolean;
+  dialogPrimaryButtonMatchesAccent: boolean;
   firstSaveCancelButtonPresent: boolean;
 }
 
@@ -1399,6 +1401,16 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
   const firstSaveCancelButtonPresent = Boolean(
     firstSavePanel?.querySelector(".first-save-actions .quiet-button"),
   );
+  const consentSections = consentPanel?.querySelector<HTMLElement>(
+    ".relationship-consent-sections",
+  );
+  const relationshipConsentSectionsScrollable = Boolean(
+    consentSections &&
+      consentSections.scrollHeight > consentSections.clientHeight + 2,
+  );
+  const dialogPrimaryButtonMatchesAccent =
+    dialogPrimaryButtonUsesAccent(consentPanel) ||
+    dialogPrimaryButtonUsesAccent(firstSavePanel);
 
   return {
     visibleDocumentCardCount: cards.length,
@@ -1420,6 +1432,8 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     presentationToolbarThemed,
     relationshipConsentPanelHeight,
     relationshipConsentUsesListBullets,
+    relationshipConsentSectionsScrollable,
+    dialogPrimaryButtonMatchesAccent,
     firstSaveCancelButtonPresent,
   };
 }
@@ -2304,6 +2318,34 @@ function cssTokenColor(tokenName: string, on: HTMLElement): string {
   return resolved;
 }
 
+function cssTokenBackground(tokenName: string, on: HTMLElement): string {
+  const raw = getComputedStyle(on).getPropertyValue(tokenName).trim();
+  if (!raw) {
+    return "";
+  }
+  const probe = document.createElement("span");
+  probe.style.backgroundColor = raw;
+  document.body.appendChild(probe);
+  const resolved = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return resolved;
+}
+
+function rgbColorsMatch(a: string, b: string): boolean {
+  const norm = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+  return norm(a) === norm(b);
+}
+
+function dialogPrimaryButtonUsesAccent(panel: HTMLElement | null): boolean {
+  const btn = panel?.querySelector<HTMLButtonElement>("button.primary");
+  if (!btn || !panel) {
+    return false;
+  }
+  const accent = cssTokenBackground("--ub-accent", panel);
+  const bg = getComputedStyle(btn).backgroundColor;
+  return Boolean(accent && bg && rgbColorsMatch(accent, bg));
+}
+
 function isPureWhiteRgb(color: string): boolean {
   const normalized = color.replace(/\s+/g, "").toLowerCase();
   return (
@@ -2569,6 +2611,12 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     if (dom.relationshipConsentUsesListBullets) {
       return "relationship consent capture must not use list-style bullets";
     }
+    if (dom.relationshipConsentSectionsScrollable) {
+      return "relationship consent sections must not scroll when content fits in panel";
+    }
+    if (!dom.dialogPrimaryButtonMatchesAccent) {
+      return "relationship consent Create button must use accent primary fill";
+    }
   }
   if (demo.includes("first-save")) {
     const dom = collectDocumentFeatureCaptureDom();
@@ -2577,6 +2625,9 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     }
     if (!document.querySelector(".first-save-path-preview")?.textContent?.trim()) {
       return "first-save capture requires path preview";
+    }
+    if (!dom.dialogPrimaryButtonMatchesAccent) {
+      return "first-save Save button must use accent primary fill";
     }
   }
   if (demo.includes("office-project")) {
