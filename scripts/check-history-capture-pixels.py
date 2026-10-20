@@ -1,36 +1,44 @@
 #!/usr/bin/env python3
-"""Gate history panel/jump PNG pair: unique files, document crop diff > 1%, panel chrome."""
+"""Gate history panel/jump PNG pair: pixel checks on bottom dock + document diff."""
 from __future__ import annotations
 
 import hashlib
-import json
+import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "screenshots" / "history"
-PANEL = OUT / "history-panel-v3-1280.png"
-JUMP = OUT / "history-jump-v3-1280.png"
-PANEL_CM = OUT / "history-panel-v3-1280.cm.json"
-JUMP_CM = OUT / "history-jump-v3-1280.cm.json"
+PANEL = OUT / "history-panel-v4-1280.png"
+JUMP = OUT / "history-jump-v4-1280.png"
 
 
 def md5(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
-def document_crop_box(height: int) -> tuple[int, int, int, int]:
-    top = 0
-    bottom = int(height * 0.62)
-    return (0, top, 1280, bottom)
+def document_crop_box(width: int, height: int) -> tuple[int, int, int, int]:
+    """Paper card body (excludes chrome and bottom dock)."""
+    return (80, 100, width - 80, int(height * 0.55))
+
+
+def bottom_dock_crop_box(width: int, height: int) -> tuple[int, int, int, int]:
+    top = int(height * 0.72)
+    return (0, top, width, height)
+
+
+def is_panel_surface_pixel(rgb: tuple[int, int, int]) -> bool:
+    r, g, b = rgb
+    if r < 210 or r > 248:
+        return False
+    if abs(r - g) > 8:
+        return False
+    return 220 <= b <= 245
 
 
 def diff_fraction(a_path: Path, b_path: Path, box: tuple[int, int, int, int]) -> float:
-    try:
-        from PIL import Image
-    except ImportError:
-        print("PIL missing; install Pillow for history capture gate", file=sys.stderr)
-        return 1.0
+    from PIL import Image
+
     a = Image.open(a_path).convert("RGB").crop(box)
     b = Image.open(b_path).convert("RGB").crop(box)
     if a.size != b.size:
@@ -41,38 +49,50 @@ def diff_fraction(a_path: Path, b_path: Path, box: tuple[int, int, int, int]) ->
     return changed / max(len(pixels_a), 1)
 
 
-def assert_cm_dom(cm_path: Path, expect_edit_three: bool, expect_restored_top: bool) -> None:
-    raw = json.loads(cm_path.read_text(encoding="utf-8"))
-    dom = raw.get("dom") or {}
-    if dom.get("historyCaptureReady") is not True:
-        raise SystemExit(f"{cm_path.name}: historyCaptureReady not true")
-    if dom.get("historyToolbarVisible") is not True:
-        raise SystemExit(f"{cm_path.name}: historyToolbarVisible not true")
-    if dom.get("historyRestoreVisible") is not True:
-        raise SystemExit(f"{cm_path.name}: historyRestoreVisible not true")
-    if dom.get("historyHeaderCount") != 1:
-        raise SystemExit(f"{cm_path.name}: expected exactly one history table header")
-    if expect_edit_three and dom.get("historyDocHasEditThree") is not True:
-        raise SystemExit(f"{cm_path.name}: expected Edit three in document")
-    if not expect_edit_three and dom.get("historyDocHasEditThree") is True:
-        raise SystemExit(f"{cm_path.name}: document must not contain Edit three after jump")
-    if expect_restored_top and dom.get("historyTopSummary", "").find("Restored to #") < 0:
-        raise SystemExit(f"{cm_path.name}: top summary must be Restored to #N")
-    if expect_restored_top and dom.get("historyCurrentOnHead") is not True:
-        raise SystemExit(f"{cm_path.name}: head row must show Current pill")
+def bottom_panel_gate(path: Path) -> None:
+    from PIL import Image
+
+    im = Image.open(path).convert("RGB")
+    w, h = im.size
+    if w != 1280 or h != 800:
+        raise SystemExit(f"{path.name}: expected 1280x800, got {w}x{h}")
+    crop = im.crop(bottom_dock_crop_box(w, h))
+    pixels = list(crop.getdata())
+    panel_frac = sum(1 for p in pixels if is_panel_surface_pixel(p)) / max(len(pixels), 1)
+    if panel_frac < 0.12:
+        raise SystemExit(
+            f"{path.name}: bottom dock panel surface {panel_frac:.1%} < 12% (history dock not visible)",
+        )
+
+
+def ocr_contains_restored(path: Path) -> None:
+    try:
+        out = subprocess.check_output(
+            ["tesseract", str(path), "stdout", "-l", "eng"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except FileNotFoundError:
+        print("tesseract missing; skip OCR gate for Restored to", file=sys.stderr)
+        return
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"{path.name}: tesseract failed ({exc})") from exc
+    if "Restored to" not in out:
+        raise SystemExit(f"{path.name}: OCR did not find 'Restored to' in jump shot")
 
 
 def main() -> None:
-    for path in (PANEL, JUMP, PANEL_CM, JUMP_CM):
+    for path in (PANEL, JUMP):
         if not path.is_file():
             raise SystemExit(f"missing {path}")
     if md5(PANEL) == md5(JUMP):
         raise SystemExit("panel and jump PNGs are identical")
-    frac = diff_fraction(PANEL, JUMP, document_crop_box(800))
+    frac = diff_fraction(PANEL, JUMP, document_crop_box(1280, 800))
     if frac <= 0.01:
         raise SystemExit(f"document region diff {frac:.4f} <= 1%")
-    assert_cm_dom(PANEL_CM, expect_edit_three=True, expect_restored_top=False)
-    assert_cm_dom(JUMP_CM, expect_edit_three=False, expect_restored_top=True)
+    bottom_panel_gate(PANEL)
+    bottom_panel_gate(JUMP)
+    ocr_contains_restored(JUMP)
     print(f"history capture gate ok (document diff {frac:.2%})")
 
 

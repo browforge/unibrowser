@@ -88,7 +88,7 @@ export function syncTextDocumentCard(active: boolean, fileLabel?: string | null)
     });
   }
 
-  const name = fileLabel?.trim() || "Untitled";
+  const name = (fileLabel?.trim() || "Untitled").replace(/\s+\*+\s*$/u, "");
   if (tab) {
     tab.innerHTML = "";
     const label = document.createElement("span");
@@ -281,9 +281,12 @@ export async function ensureDocFeatureCaptureLayout(
     return;
   }
 
+  const historyCapture = demo.includes("doc-history-");
   const { invoke } = await import("@tauri-apps/api/core");
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    await deps.refreshState();
+    if (!historyCapture) {
+      await deps.refreshState();
+    }
     await deps.refreshCommandManager();
     if (compactToolbarReady()) {
       break;
@@ -302,6 +305,10 @@ export async function ensureDocFeatureCaptureLayout(
       ? "doc-history-jump"
       : "doc-history-panel";
     await deps.applyDemoToken(historyToken);
+  }
+  if (demo.includes("doc-history-")) {
+    const { finalizeHistoryCaptureForScreenshot } = await import("../historyDemoCapture");
+    await finalizeHistoryCaptureForScreenshot();
   }
 
   await new Promise((resolve) => window.setTimeout(resolve, 180));

@@ -224,6 +224,7 @@ import {
   validateFocusRingForCapture,
   validateTextCompactToolbarForCapture,
   validateDocumentCardFooterForCapture,
+  validateHistoryCaptureBottomPanelVisible,
   validateNewProjectCaptureDom,
   validateDocumentFeatureCaptureChrome,
   validateDocumentFeatureCaptureDom,
@@ -3904,6 +3905,17 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             if (cardFooterErr) {
               await invoke("abort_doc_capture", {
                 reason: `${cardFooterErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          }
+          if (demoLower.includes("doc-history-")) {
+            const { finalizeHistoryCaptureForScreenshot } = await import("./historyDemoCapture");
+            await finalizeHistoryCaptureForScreenshot();
+            const historyPanelErr = validateHistoryCaptureBottomPanelVisible();
+            if (historyPanelErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${historyPanelErr}; ${formatDiagnosticsForLog(diag)}`,
               });
               return;
             }

@@ -1756,6 +1756,39 @@ export function validateRichTextDocumentForCapture(): string | null {
   return null;
 }
 
+/** History captures must show the docked bottom panel in the viewport (not only in DOM). */
+export function validateHistoryCaptureBottomPanelVisible(): string | null {
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (!demo.includes("doc-history-")) {
+    return null;
+  }
+  const panel = document.getElementById("script-output-panel");
+  if (!panel || panel.classList.contains("hidden")) {
+    return "history capture requires visible script-output-panel";
+  }
+  const pane = document.getElementById("bottom-panel-history-pane");
+  if (!pane || pane.classList.contains("hidden")) {
+    return "history capture requires visible bottom-panel-history-pane";
+  }
+  const rect = panel.getBoundingClientRect();
+  const minHeight = window.innerHeight * 0.2;
+  if (rect.height < minHeight) {
+    return `history bottom panel height ${rect.height.toFixed(0)} < ${minHeight.toFixed(0)}`;
+  }
+  if (rect.bottom > window.innerHeight + 2) {
+    return "history bottom panel is below the viewport";
+  }
+  const table = document.querySelector(".history-panel-table");
+  if (!table) {
+    return "history capture missing history table";
+  }
+  const tableRect = table.getBoundingClientRect();
+  if (tableRect.height < 40 || tableRect.bottom > window.innerHeight + 2) {
+    return "history table is not painted inside the viewport";
+  }
+  return null;
+}
+
 /** Returns abort reason or null if editor area looks painted. */
 export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
   const richDoc = document.querySelector(".rich-text-doc");

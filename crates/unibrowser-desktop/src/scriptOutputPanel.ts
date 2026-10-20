@@ -16,7 +16,12 @@ export function syncBottomPanelEmptyState() {
     terminalPane &&
     !terminalPane.classList.contains("hidden") &&
     !panel.classList.contains("hidden");
-  if (!hasOutput && problemRows === 0 && !terminalOpen) {
+  const historyPane = document.getElementById("bottom-panel-history-pane");
+  const historyOpen =
+    historyPane &&
+    !historyPane.classList.contains("hidden") &&
+    !panel.classList.contains("hidden");
+  if (!hasOutput && problemRows === 0 && !terminalOpen && !historyOpen) {
     panel.classList.add("hidden");
   }
 }

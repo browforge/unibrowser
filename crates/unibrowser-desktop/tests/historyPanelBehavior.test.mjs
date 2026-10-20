@@ -20,3 +20,9 @@ test("HIST-04 panel wires jump, labels, toolbar, and restore action", () => {
   assert.match(source, /history-restore-btn/);
   assert.match(source, /history-action-trim/);
 });
+
+test("bottom panel empty-state keeps History tab open", () => {
+  const panelSource = readFileSync(join(root, "scriptOutputPanel.ts"), "utf8");
+  assert.match(panelSource, /bottom-panel-history-pane/);
+  assert.match(panelSource, /historyOpen/);
+});

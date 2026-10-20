@@ -285,6 +285,7 @@ pub fn run() {
             commands::document_history_reset,
             commands::document_history_head_session,
             commands::document_history_seed_capture_demo,
+            commands::document_history_mark_saved_for_capture,
             commands::document_history_list,
             commands::document_history_append,
             commands::document_history_append_snapshot,

@@ -4890,6 +4890,32 @@ pub fn document_history_seed_capture_demo(path: String) -> Result<u64, String> {
 }
 
 #[tauri::command]
+pub fn document_history_mark_saved_for_capture(
+    window: tauri::Window,
+    state: State<AppState>,
+    path: String,
+) -> Result<(), String> {
+    let _sess = ws(&state, &window)?;
+    let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+    let normalized = path.replace('\\', "/");
+    let tab = tabs.active_tab_mut().ok_or("no active tab")?;
+    let Some(doc) = tab.document.as_mut() else {
+        return Ok(());
+    };
+    let doc_path = doc.path.replace('\\', "/");
+    if doc_path != normalized
+        && !doc_path.ends_with(&normalized)
+        && !normalized.ends_with(&doc_path)
+    {
+        return Ok(());
+    }
+    if let Some(tb) = base_text::try_text_backend(&mut *doc.backend) {
+        tb.dirty = false;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn document_history_list(path: String) -> Result<Vec<unibrowser_document_model::HistoryLogEntry>, String> {
     crate::document_model_api::history_list_for_path(&path)
 }

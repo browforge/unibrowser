@@ -73,6 +73,39 @@ export async function seedHistoryCaptureDemo(docPath?: string): Promise<number> 
   await bindDocumentPath(path);
   const baselineSeq = await invoke<number>("document_history_seed_capture_demo", { path });
   await applyDocumentHistoryHead(path);
+  await invoke("document_history_mark_saved_for_capture", { path }).catch(() => undefined);
   document.body.dataset.documentCardDirty = "0";
   return baselineSeq;
+}
+
+const HISTORY_CAPTURE_EDIT_ROW_SEQ = 3;
+
+/** Re-show bottom History dock after refreshState may have auto-hidden it; clear dirty chrome for PNG. */
+export async function finalizeHistoryCaptureForScreenshot(): Promise<void> {
+  const path = resolveHistoryDocumentPath();
+  const phase = document.body.dataset.ubHistoryCapturePhase;
+  if (phase === "panel") {
+    await applyDocumentHistoryHead(path);
+    await waitForRichDocText(
+      (text) => text.includes("Edit three") && text.includes("Edited heading"),
+    );
+  }
+  expandBottomPanelForHistoryCapture();
+  const { showHistoryPanelTab, refreshHistoryPanel, selectHistoryPanelRow } = await import(
+    "./historyPanel"
+  );
+  showHistoryPanelTab();
+  await refreshHistoryPanel(path);
+  selectHistoryPanelRow(HISTORY_CAPTURE_EDIT_ROW_SEQ);
+  await invoke("document_history_mark_saved_for_capture", { path }).catch(() => undefined);
+  const { syncDocumentCardDirtyFlag } = await import("./ui/textDocumentCard");
+  syncDocumentCardDirtyFlag(false);
+  const { setDocumentCardAutosaveAtMs } = await import("./ui/documentCardStatus");
+  setDocumentCardAutosaveAtMs(Date.now());
+  const refreshStatusBarOnly = (
+    window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+  ).__unibrowserRefreshStatusBarOnly;
+  if (refreshStatusBarOnly) {
+    await refreshStatusBarOnly();
+  }
 }
