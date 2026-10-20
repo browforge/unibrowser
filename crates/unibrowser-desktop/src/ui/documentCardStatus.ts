@@ -10,7 +10,33 @@ export function setDocumentCardAutosaveAtMs(ms: number): void {
   lastAutosaveAtMs = ms > 0 ? ms : 0;
 }
 
+function visibleRichTextPlainText(): string {
+  const prose =
+    document.querySelector<HTMLElement>(
+      "#rich-text-editor-host:not(.hidden) .rich-text-doc .ProseMirror",
+    ) ??
+    document.querySelector<HTMLElement>(
+      "#document-split-preview-host:not(.hidden) .rich-text-doc .ProseMirror",
+    );
+  if (prose) {
+    return prose.innerText || prose.textContent || "";
+  }
+  const rich =
+    document.querySelector<HTMLElement>("#rich-text-editor-host:not(.hidden) .rich-text-doc") ??
+    document.querySelector<HTMLElement>(
+      "#document-split-preview-host:not(.hidden) .rich-text-doc",
+    );
+  if (rich) {
+    return rich.innerText || rich.textContent || "";
+  }
+  return "";
+}
+
 export function documentTextForWordCount(): string {
+  const richText = visibleRichTextPlainText();
+  if (richText.trim().length > 0) {
+    return richText;
+  }
   const editorText = getActiveTextContent();
   if (editorText !== null) {
     return editorText;

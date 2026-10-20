@@ -161,8 +161,6 @@ export async function ensureProjectOfficeDocumentCard(fileLabel: string): Promis
   }
   syncTextDocumentCard(true, fileLabel);
   forceDocFeatureCaptureLayout(fileLabel);
-  const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
-  refreshDocumentCardStatusFooter(false);
   const editorHost = document.getElementById("text-editor-host");
   const rich = editorHost?.querySelector<HTMLElement>(".rich-text-doc .ProseMirror");
   if (
@@ -179,6 +177,8 @@ export async function ensureProjectOfficeDocumentCard(fileLabel: string): Promis
     seedDocumentModelSessionForDemo(parsed);
     await syncDocumentEditorForTextTab(editorHost, docPath, seed);
   }
+  const { refreshDocumentCardStatusFooter } = await import("./documentCardStatus");
+  refreshDocumentCardStatusFooter(false);
   if (compactHost && officeCompactToolbarControlCount() < 6) {
     const { seedDocVisualCompactToolbarFallback } = await import("../textCompactToolbar");
     seedDocVisualCompactToolbarFallback(compactHost, true);

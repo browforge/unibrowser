@@ -1,6 +1,23 @@
 import type { DocumentViewerDto } from "./documentViewer";
 import { t } from "./i18n";
+import { createLucideIcon, type LucideName } from "./ui/lucideIcon";
 import { renderWorkshop, type WorkshopViewer } from "./workshop";
+
+function createProjectToolbarButton(
+  label: string,
+  icon: LucideName,
+  variant: "primary" | "quiet",
+): HTMLButtonElement {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = `presentation-toolbar-btn presentation-toolbar-btn--${variant}`;
+  btn.append(createLucideIcon(icon, 16, "ub-icon svg-icon"));
+  const text = document.createElement("span");
+  text.className = "presentation-toolbar-btn-label";
+  text.textContent = label;
+  btn.append(text);
+  return btn;
+}
 
 export type ProjectSurfaceKind =
   | "empty"
@@ -84,17 +101,15 @@ function renderEmptyProject(root: HTMLElement, viewer: DocumentViewerDto) {
   list.appendChild(emptyRow);
   const actions = document.createElement("div");
   actions.className = "project-home-actions";
-  const add = document.createElement("button");
-  add.type = "button";
-  add.className = "primary";
-  add.textContent = t("project.addContent");
+  const add = createProjectToolbarButton(t("project.addContent"), "plus", "primary");
   add.onclick = () => {
     window.dispatchEvent(new CustomEvent("unibrowser-project-add-content"));
   };
-  const template = document.createElement("button");
-  template.type = "button";
-  template.className = "quiet-button";
-  template.textContent = t("project.newFromTemplate");
+  const template = createProjectToolbarButton(
+    t("project.newFromTemplate"),
+    "layout-grid",
+    "quiet",
+  );
   template.onclick = () => {
     window.dispatchEvent(new CustomEvent("unibrowser-project-new-from-template"));
   };
@@ -136,14 +151,8 @@ function renderPresentationStudio(root: HTMLElement, viewer: DocumentViewerDto) 
 
   const toolbar = document.createElement("div");
   toolbar.className = "presentation-toolbar";
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.className = "primary";
-  addBtn.textContent = t("project.addSlide");
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "quiet-button";
-  deleteBtn.textContent = t("project.deleteSlide");
+  const addBtn = createProjectToolbarButton(t("project.addSlide"), "plus", "primary");
+  const deleteBtn = createProjectToolbarButton(t("project.deleteSlide"), "trash-2", "quiet");
 
   const rail = document.createElement("aside");
   rail.className = "presentation-slides-rail";

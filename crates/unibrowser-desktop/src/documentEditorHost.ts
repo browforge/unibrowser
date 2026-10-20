@@ -215,6 +215,9 @@ async function renderRich() {
           }
           session = { ...session, model: nextModel };
           void commitModelToMarkdown(touched);
+          void import("./ui/documentCardStatus").then(({ refreshDocumentCardStatusFooter }) => {
+            refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
+          });
         },
       });
     }
@@ -324,8 +327,6 @@ export async function syncDocumentEditorForTextTab(
     return;
   }
   mountModeControls();
-  const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
-  refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
   const demo = await resolveDemoTokens();
   await bindDocumentPath(path);
   if (demo.includes("doc-mode-wysiwyg")) {
@@ -368,6 +369,8 @@ export async function syncDocumentEditorForTextTab(
   hideLegacyMarkdownPreview();
   applySurfaceVisibility(getDocumentEditorMode());
   await renderRich();
+  const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
+  refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
   const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
   syncTextDocumentCard(true, path.split(/[/\\]/).pop() ?? null);
 }

@@ -11,6 +11,7 @@ source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/new-project"
 ART="/opt/cursor/artifacts"
 mkdir -p "$OUT" "$ART"
+rm -f "$OUT"/*-v5-1280.png "$OUT"/*-v5-web-1280.png
 rm -f "$OUT"/*-v4-1280.png "$OUT"/*-v4-web-1280.png
 rm -f "$OUT"/*-v3-1280.png "$OUT"/*-v3-web-1280.png
 rm -f "$OUT"/*-v2-1280.png "$OUT"/*-v2-web-1280.png
@@ -36,9 +37,9 @@ capture_desktop() {
     UNIBROWSER_DEMO_STATE="$demo_full" \
     "$BIN" "${open_args[@]}" --doc-capture "$tmp"
   capture_config_cleanup
-  mv "$tmp" "$OUT/${name}-v4-1280.png"
-  cp "$OUT/${name}-v4-1280.png" "$ART/${name}-v4-1280.png" || true
-  [[ "$(identify -format '%wx%h' "$OUT/${name}-v4-1280.png")" == "1280x800" ]]
+  mv "$tmp" "$OUT/${name}-v5-1280.png"
+  cp "$OUT/${name}-v5-1280.png" "$ART/${name}-v5-1280.png" || true
+  [[ "$(identify -format '%wx%h' "$OUT/${name}-v5-1280.png")" == "1280x800" ]]
 }
 
 capture_desktop "new-tab-paper-card" "new-project-capture-ntp"
