@@ -4878,6 +4878,18 @@ pub fn document_history_reset(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn document_history_head_session(
+    path: String,
+) -> Result<crate::document_model_api::DocumentParseResponse, String> {
+    crate::document_model_api::history_head_session_for_path(&path)
+}
+
+#[tauri::command]
+pub fn document_history_seed_capture_demo(path: String) -> Result<u64, String> {
+    crate::document_model_api::history_seed_capture_demo_for_path(&path)
+}
+
+#[tauri::command]
 pub fn document_history_list(path: String) -> Result<Vec<unibrowser_document_model::HistoryLogEntry>, String> {
     crate::document_model_api::history_list_for_path(&path)
 }

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { DocumentParseResponse } from "./documentModelBridge";
 import { showInlineConfirm } from "./inlineUi";
 
 export const HISTORY_TRIM_BEFORE_ID = "unibrowser.history.trimBefore";
@@ -23,16 +24,16 @@ function activeDocumentPath(): string | null {
   return document.body.dataset.activeDocumentPath ?? null;
 }
 
-async function applyJumpContent(content: string) {
-  const { textEditor } = await import("./textEditor");
-  await textEditor.setContentFromHost(content);
-  const { syncDocumentModelFromMarkdown } = await import("./documentEditorHost");
-  await syncDocumentModelFromMarkdown(content);
+export async function applyDocumentHistoryHead(path: string): Promise<void> {
+  const session = await invoke<DocumentParseResponse>("document_history_head_session", { path });
+  const { applyDocumentHistorySession } = await import("./documentEditorHost");
+  await applyDocumentHistorySession(session, path);
+  document.body.dataset.documentCardDirty = "0";
 }
 
 export async function jumpHistoryToSeq(path: string, seq: number): Promise<void> {
-  const content = await invoke<string>("document_history_jump_to_seq", { path, seq });
-  await applyJumpContent(content);
+  await invoke("document_history_jump_to_seq", { path, seq });
+  await applyDocumentHistoryHead(path);
 }
 
 export async function runHistoryCommand(commandId: string): Promise<boolean> {

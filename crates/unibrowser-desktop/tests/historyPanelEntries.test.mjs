@@ -32,8 +32,31 @@ test("HIST-04 groups rapid text.replace on same block", () => {
   ];
   const grouped = groupHistoryRows(rows);
   assert.equal(grouped.length, 2);
-  assert.equal(grouped[0].label, "Set style: heading_2");
+  assert.equal(grouped[0].label, "Set style: Heading 2");
   assert.match(grouped[1].label, /Typed \(2 edits\)/);
+});
+
+test("HIST-04 labels heading and typed edits", () => {
+  assert.equal(
+    historyEntryLabel({
+      seq: 2,
+      op_type: "base-text.text.replace",
+      timestamp: "1Z",
+      plugin_id: "base-text",
+      payload: { text: "Edited heading" },
+    }),
+    "Changed heading text",
+  );
+  assert.equal(
+    historyEntryLabel({
+      seq: 3,
+      op_type: "base-text.text.replace",
+      timestamp: "2Z",
+      plugin_id: "base-text",
+      payload: { text: "Edit three\n\n" },
+    }),
+    "Typed 'Edit three'",
+  );
 });
 
 test("HIST-04 labels restore_at with target seq", () => {

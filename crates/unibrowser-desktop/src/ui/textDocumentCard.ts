@@ -297,28 +297,11 @@ export async function ensureDocFeatureCaptureLayout(
   const label = cardLabel ?? activePath.split(/[/\\]/).pop() ?? null;
   forceDocFeatureCaptureLayout(label);
 
-  if (demo.includes("doc-history-")) {
-    if (!deps.skipDemoApply) {
-      const historyToken = demo.includes("doc-history-jump")
-        ? "doc-history-jump"
-        : "doc-history-panel";
-      await deps.applyDemoToken(historyToken);
-    } else {
-      const { setDocumentEditorMode } = await import("../documentEditorModes");
-      setDocumentEditorMode("wysiwyg", false);
-      const { syncDocumentEditorSurfaceVisibility } = await import("../documentEditorHost");
-      syncDocumentEditorSurfaceVisibility();
-      document.getElementById("text-editor-host")?.classList.remove("hidden");
-      const { showHistoryPanelTab, refreshHistoryPanel } = await import("../historyPanel");
-      showHistoryPanelTab();
-      const historyPath =
-        document.body.dataset.activeDocumentPath ||
-        activePath ||
-        `examples/demo-pack/${cardLabel ?? "sample.md"}`;
-      await refreshHistoryPanel(historyPath);
-      forceDocFeatureCaptureLayout(label ?? "sample.md");
-      syncDocumentEditorSurfaceVisibility();
-    }
+  if (demo.includes("doc-history-") && !deps.skipDemoApply) {
+    const historyToken = demo.includes("doc-history-jump")
+      ? "doc-history-jump"
+      : "doc-history-panel";
+    await deps.applyDemoToken(historyToken);
   }
 
   await new Promise((resolve) => window.setTimeout(resolve, 180));

@@ -37,7 +37,9 @@ export async function serializeMarkdownDocument(request: {
   dirty_block_ids: string[];
   touched_block_ids: string[];
 }): Promise<string> {
-  const result = await invoke<unknown>("document_serialize_markdown", request);
+  const result = await invoke<unknown>("document_serialize_markdown", {
+    request: sessionRequest(request),
+  });
   if (typeof result === "string") {
     return result;
   }

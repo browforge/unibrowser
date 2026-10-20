@@ -203,14 +203,12 @@ export async function applyDemoState(raw: string) {
         const baselineSeq = await seedHistoryCaptureDemo(docPath);
         await waitForRichDocText((text) => text.includes("Edit three"));
         expandBottomPanelForHistoryCapture();
-        const {
-          showHistoryPanelTab,
-          refreshHistoryPanel,
-          selectHistoryPanelRow,
-          selectHistoryPanelFirstRow,
-        } = await import("./historyPanel");
+        const { showHistoryPanelTab, refreshHistoryPanel, selectHistoryPanelRow } = await import(
+          "./historyPanel"
+        );
         showHistoryPanelTab();
         await refreshHistoryPanel(docPath);
+        const captureEditRowSeq = 3;
         if (token === "doc-history-jump") {
           const { jumpHistoryToSeq } = await import("./historyCommands");
           await jumpHistoryToSeq(docPath, baselineSeq);
@@ -218,11 +216,11 @@ export async function applyDemoState(raw: string) {
             (text) => text.includes("Demo markdown") && !text.includes("Edit three"),
           );
           await refreshHistoryPanel(docPath);
-          selectHistoryPanelFirstRow();
+          selectHistoryPanelRow(captureEditRowSeq);
           document.body.dataset.ubHistoryJumpCapture = "1";
           document.body.dataset.ubHistoryCapturePhase = "jump";
         } else {
-          selectHistoryPanelRow(baselineSeq);
+          selectHistoryPanelRow(captureEditRowSeq);
           document.body.dataset.ubHistoryCapturePhase = "panel";
         }
         document.body.dataset.ubHistoryCaptureReady = "1";

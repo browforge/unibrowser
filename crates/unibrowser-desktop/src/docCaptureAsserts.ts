@@ -1438,6 +1438,7 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
   const historyTopSummary =
     document.querySelector(".history-panel-table tbody tr:first-child .col-summary")
       ?.textContent?.trim() ?? "";
+  const historyHeaderCount = document.querySelectorAll(".history-panel-table thead").length;
   const historyDemo = (document.body.dataset.ubDemoTokens ?? "").includes("doc-history-");
 
   return {
@@ -1471,6 +1472,12 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
           historyToolbarVisible: Boolean(document.getElementById("history-action-trim")),
           historyRestoreVisible: Boolean(
             document.querySelector(".history-panel-table tr.is-selected .history-restore-btn"),
+          ),
+          historyHeaderCount,
+          historyCurrentOnHead: Boolean(
+            document.querySelector(
+              ".history-panel-table tbody tr:first-child .history-current-pill",
+            ),
           ),
           historyDocHasEditThree: richDocText.includes("Edit three"),
           historyTopSummary,

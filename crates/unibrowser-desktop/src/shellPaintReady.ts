@@ -301,21 +301,37 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           if (document.body.dataset.ubHistoryCaptureReady !== "1") {
             return false;
           }
-          const restoreVisible = Boolean(
-            document.querySelector(".history-panel-table tr.is-selected .history-restore-btn"),
-          );
+          const headerCount = document.querySelectorAll(".history-panel-table thead").length;
+          if (headerCount !== 1) {
+            return false;
+          }
+          const selected = document.querySelector(
+            ".history-panel-table tr.is-selected",
+          ) as HTMLElement | null;
+          const restoreVisible = Boolean(selected?.querySelector(".history-restore-btn"));
           const toolbar = document.getElementById("history-action-trim");
           if (!restoreVisible || !toolbar) {
             return false;
           }
+          if (selected?.dataset.isHead === "1") {
+            return false;
+          }
+          const topRow = document.querySelector(
+            ".history-panel-table tbody tr:first-child",
+          ) as HTMLElement | null;
+          const topIsCurrent = Boolean(topRow?.querySelector(".history-current-pill"));
           if (token === "doc-history-jump") {
             const topSummary = document.querySelector(
               ".history-panel-table tbody tr:first-child .col-summary",
             );
             return (
               document.body.dataset.ubHistoryJumpCapture === "1" &&
+              topIsCurrent &&
               (topSummary?.textContent?.includes("Restored to #") ?? false)
             );
+          }
+          if (!topIsCurrent) {
+            return false;
           }
           const docText = document.querySelector(".rich-text-doc")?.textContent ?? "";
           return docText.includes("Edit three") && docText.includes("Edited heading");

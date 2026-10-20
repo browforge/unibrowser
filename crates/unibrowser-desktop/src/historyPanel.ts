@@ -14,6 +14,8 @@ import {
 
 let mounted = false;
 let selectedSeq: number | null = null;
+let refreshInFlight: Promise<void> | null = null;
+let refreshEpoch = 0;
 
 function renderConfirmStrip(
   parent: HTMLElement,
@@ -77,92 +79,146 @@ export function selectHistoryPanelRow(seq: number) {
   selectRow(body as HTMLElement, tr, { seq, endSeq });
 }
 
-export async function refreshHistoryPanel(path: string | null) {
-  const list = document.getElementById("history-panel-list");
-  if (!list) {
+export function selectHistoryPanelRowByEndSeq(endSeq: number) {
+  const body = document.querySelector("#history-panel-list tbody");
+  if (!body) {
     return;
   }
-  list.innerHTML = "";
-  if (!path) {
-    const empty = document.createElement("p");
-    empty.className = "history-panel-empty";
-    empty.textContent = "No document open.";
-    list.appendChild(empty);
+  const tr = body.querySelector<HTMLTableRowElement>(`tr[data-end-seq="${endSeq}"]`);
+  if (!tr) {
     return;
   }
-  let rows: HistoryRow[] = [];
-  try {
-    rows = (await listDocumentHistory(path)) as HistoryRow[];
-  } catch {
-    const empty = document.createElement("p");
-    empty.className = "history-panel-empty";
-    empty.textContent =
-      "Edits in this session are not recorded to disk yet. Save to enable .unibrow-history.";
-    list.appendChild(empty);
-    return;
+  const seq = Number.parseInt(tr.dataset.seq ?? "0", 10);
+  selectRow(body as HTMLElement, tr, { seq, endSeq });
+}
+
+export async function refreshHistoryPanel(path: string | null): Promise<void> {
+  if (refreshInFlight) {
+    await refreshInFlight;
   }
-  if (!rows.length) {
-    const empty = document.createElement("p");
-    empty.className = "history-panel-empty";
-    empty.textContent = "No committed document ops yet.";
-    list.appendChild(empty);
-    return;
-  }
-  const grouped = groupHistoryRows(rows);
-  const table = document.createElement("table");
-  table.className = "history-panel-table";
-  table.innerHTML =
-    "<thead><tr><th class=\"col-seq\">Seq</th><th class=\"col-time\">Time</th><th class=\"col-source\">Source</th><th class=\"col-summary\">Summary</th><th class=\"col-actions\"></th></tr></thead>";
-  const body = document.createElement("tbody");
-  for (const entry of grouped) {
-    const tr = document.createElement("tr");
-    tr.dataset.seq = String(entry.seq);
-    tr.dataset.endSeq = String(entry.endSeq);
-    tr.tabIndex = 0;
-    if (selectedSeq === entry.seq) {
-      tr.classList.add("is-selected");
+  const epoch = ++refreshEpoch;
+  refreshInFlight = (async () => {
+    const list = document.getElementById("history-panel-list");
+    if (!list) {
+      return;
     }
-    const seqLabel = entry.opCount > 1 ? `${entry.seq}–${entry.endSeq}` : String(entry.seq);
-    const time = formatHistoryTimestamp(entry.timestamp);
-    const source = document.createElement("span");
-    source.className = "history-source-pill";
-    source.textContent = entry.plugin_id;
-    tr.innerHTML = `<td class="col-seq">${seqLabel}</td><td class="col-time" title=""></td><td class="col-source"></td><td class="col-summary">${entry.label}</td><td class="col-actions"></td>`;
-    const timeCell = tr.querySelector(".col-time") as HTMLElement;
-    timeCell.textContent = time.display;
-    timeCell.title = time.title;
-    tr.querySelector(".col-source")?.appendChild(source);
-    const restore = document.createElement("button");
-    restore.type = "button";
-    restore.className = "history-restore-btn";
-    restore.textContent = "Restore";
-    restore.onclick = (ev) => {
-      ev.stopPropagation();
-      renderConfirmStrip(
-        list,
-        `Restore document to seq ${entry.endSeq}? A new entry is appended; later log entries stay on disk.`,
-        "Restore",
-        () => {
-          void jumpHistoryToSeq(path, entry.endSeq).then(() => refreshHistoryPanel(path));
-        },
-      );
-    };
-    tr.querySelector(".col-actions")?.appendChild(restore);
-    tr.addEventListener("click", () => selectRow(body, tr, entry));
-    tr.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter") {
-        ev.preventDefault();
-        restore.click();
+    list.replaceChildren();
+    if (!path) {
+      const empty = document.createElement("p");
+      empty.className = "history-panel-empty";
+      empty.textContent = "No document open.";
+      list.appendChild(empty);
+      return;
+    }
+    let rows: HistoryRow[] = [];
+    try {
+      rows = (await listDocumentHistory(path)) as HistoryRow[];
+    } catch {
+      const empty = document.createElement("p");
+      empty.className = "history-panel-empty";
+      empty.textContent =
+        "Edits in this session are not recorded to disk yet. Save to enable .unibrow-history.";
+      list.appendChild(empty);
+      return;
+    }
+    if (epoch !== refreshEpoch) {
+      return;
+    }
+    if (!rows.length) {
+      const empty = document.createElement("p");
+      empty.className = "history-panel-empty";
+      empty.textContent = "No committed document ops yet.";
+      list.appendChild(empty);
+      return;
+    }
+    const grouped = groupHistoryRows(rows);
+    const headEndSeq = grouped[0]?.endSeq ?? 0;
+    const table = document.createElement("table");
+    table.className = "history-panel-table";
+    table.innerHTML =
+      "<thead><tr><th class=\"col-seq\">Seq</th><th class=\"col-time\">Time</th><th class=\"col-source\">Source</th><th class=\"col-summary\">Summary</th><th class=\"col-actions\"></th></tr></thead>";
+    const body = document.createElement("tbody");
+    for (const entry of grouped) {
+      const tr = document.createElement("tr");
+      tr.dataset.seq = String(entry.seq);
+      tr.dataset.endSeq = String(entry.endSeq);
+      tr.tabIndex = 0;
+      const isHead = entry.endSeq === headEndSeq;
+      tr.dataset.isHead = isHead ? "1" : "0";
+      if (selectedSeq === entry.seq) {
+        tr.classList.add("is-selected");
       }
-    });
-    body.appendChild(tr);
-  }
-  table.appendChild(body);
-  list.appendChild(table);
-  if (selectedSeq == null && grouped[0]) {
-    selectRow(body, body.querySelector("tr")!, grouped[0]);
-  } else if (selectedSeq != null) {
-    selectHistoryPanelRow(selectedSeq);
+      const seqLabel = entry.opCount > 1 ? `${entry.seq}–${entry.endSeq}` : String(entry.seq);
+      const time = formatHistoryTimestamp(entry.timestamp);
+      const source = document.createElement("span");
+      source.className = "history-source-pill";
+      source.textContent = entry.plugin_id;
+      const summaryCell = document.createElement("td");
+      summaryCell.className = "col-summary";
+      summaryCell.textContent = entry.label;
+      if (isHead) {
+        const pill = document.createElement("span");
+        pill.className = "history-current-pill";
+        pill.textContent = "Current";
+        summaryCell.appendChild(document.createTextNode(" "));
+        summaryCell.appendChild(pill);
+      }
+      tr.innerHTML = `<td class="col-seq">${seqLabel}</td><td class="col-time" title=""></td><td class="col-source"></td><td class="col-actions"></td>`;
+      tr.insertBefore(summaryCell, tr.querySelector(".col-actions"));
+      const timeCell = tr.querySelector(".col-time") as HTMLElement;
+      timeCell.textContent = time.display;
+      timeCell.title = time.title;
+      tr.querySelector(".col-source")?.appendChild(source);
+      if (!isHead) {
+        const restore = document.createElement("button");
+        restore.type = "button";
+        restore.className = "history-restore-btn";
+        restore.textContent = "Restore";
+        restore.onclick = (ev) => {
+          ev.stopPropagation();
+          renderConfirmStrip(
+            list,
+            `Restore document to seq ${entry.endSeq}? A new entry is appended; later log entries stay on disk.`,
+            "Restore",
+            () => {
+              void jumpHistoryToSeq(path, entry.endSeq).then(() => refreshHistoryPanel(path));
+            },
+          );
+        };
+        tr.querySelector(".col-actions")?.appendChild(restore);
+        tr.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") {
+            ev.preventDefault();
+            restore.click();
+          }
+        });
+      }
+      tr.addEventListener("click", () => selectRow(body, tr, entry));
+      body.appendChild(tr);
+    }
+    if (epoch !== refreshEpoch) {
+      return;
+    }
+    table.appendChild(body);
+    list.replaceChildren(table);
+    document.body.dataset.ubHistoryTableCount = String(
+      list.querySelectorAll(".history-panel-table").length,
+    );
+    document.body.dataset.ubHistoryHeaderCount = String(
+      list.querySelectorAll(".history-panel-table thead").length,
+    );
+    if (selectedSeq == null && grouped[0] && grouped[0].endSeq !== headEndSeq) {
+      selectRow(body, body.querySelector("tr")!, grouped[0]);
+    } else if (selectedSeq == null && grouped[1]) {
+      selectRow(body, body.querySelectorAll("tr")[1] as HTMLTableRowElement, grouped[1]);
+    } else if (selectedSeq != null) {
+      selectHistoryPanelRow(selectedSeq);
+    }
+  })();
+  try {
+    await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
   }
 }
 
@@ -183,15 +239,18 @@ export function mountHistoryPanel() {
   const tab = document.getElementById("bottom-panel-tab-history");
   const pane = document.getElementById("bottom-panel-history-pane");
   if (!tab || !pane) {
+    mounted = false;
     return;
   }
-  pane.innerHTML = `<div class="history-panel-shell">
-    <div class="history-panel-toolbar" role="toolbar" aria-label="History actions">
+  pane.replaceChildren();
+  const shell = document.createElement("div");
+  shell.className = "history-panel-shell";
+  shell.innerHTML = `<div class="history-panel-toolbar" role="toolbar" aria-label="History actions">
       <button type="button" id="history-action-trim" class="history-panel-action">Trim before here</button>
       <button type="button" id="history-action-squash" class="history-panel-action">Squash selection</button>
     </div>
-    <div id="history-panel-list" class="history-panel-list" role="log" aria-live="polite"></div>
-  </div>`;
+    <div id="history-panel-list" class="history-panel-list" role="log" aria-live="polite"></div>`;
+  pane.appendChild(shell);
   wireToolbarActions();
   tab.addEventListener("click", () => {
     document.querySelectorAll(".bottom-panel-tab").forEach((el) => {
@@ -209,5 +268,17 @@ export function mountHistoryPanel() {
 
 export function showHistoryPanelTab() {
   document.getElementById("script-output-panel")?.classList.remove("hidden");
-  document.getElementById("bottom-panel-tab-history")?.click();
+  const tab = document.getElementById("bottom-panel-tab-history");
+  const pane = document.getElementById("bottom-panel-history-pane");
+  if (!tab || !pane) {
+    return;
+  }
+  document.querySelectorAll(".bottom-panel-tab").forEach((el) => {
+    el.classList.remove("is-active");
+    el.setAttribute("aria-selected", "false");
+  });
+  tab.classList.add("is-active");
+  tab.setAttribute("aria-selected", "true");
+  document.querySelectorAll(".bottom-panel-pane").forEach((el) => el.classList.add("hidden"));
+  pane.classList.remove("hidden");
 }

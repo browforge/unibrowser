@@ -1,8 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import {
-  appendDocumentHistorySnapshot,
-  parseMarkdownDocument,
-} from "./documentModelBridge";
+import { applyDocumentHistoryHead } from "./historyCommands";
 
 export const HISTORY_CAPTURE_BASELINE_MD = `# Demo markdown
 
@@ -49,15 +46,6 @@ export function expandBottomPanelForHistoryCapture() {
   panel.classList.remove("hidden");
 }
 
-async function appendSnapshotFromMarkdown(docPath: string, markdown: string) {
-  const parsed = await parseMarkdownDocument(markdown);
-  await appendDocumentHistorySnapshot(docPath, {
-    model: parsed.model,
-    source_map: parsed.source_map,
-    original_base64: parsed.original_base64,
-  });
-}
-
 export async function waitForRichDocText(match: (text: string) => boolean): Promise<void> {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const text = document.querySelector(".rich-text-doc")?.textContent ?? "";
@@ -77,17 +65,14 @@ export function resolveHistoryDocumentPath(fallback?: string): string {
   );
 }
 
+/** Baseline checkpoint seq (always 1 after rust seed). */
 export async function seedHistoryCaptureDemo(docPath?: string): Promise<number> {
   const path = resolveHistoryDocumentPath(docPath);
   document.body.dataset.activeDocumentPath = path;
   const { bindDocumentPath } = await import("./documentEditorModes");
   await bindDocumentPath(path);
-  await invoke("document_history_reset", { path });
-  await appendSnapshotFromMarkdown(path, HISTORY_CAPTURE_BASELINE_MD);
-  const { syncDocumentModelFromMarkdown } = await import("./documentEditorHost");
-  const { textEditor } = await import("./textEditor");
-  await textEditor.setContentFromHost(HISTORY_CAPTURE_EDITED_MD);
-  await syncDocumentModelFromMarkdown(HISTORY_CAPTURE_EDITED_MD, path);
-  await appendSnapshotFromMarkdown(path, HISTORY_CAPTURE_EDITED_MD);
-  return 1;
+  const baselineSeq = await invoke<number>("document_history_seed_capture_demo", { path });
+  await applyDocumentHistoryHead(path);
+  document.body.dataset.documentCardDirty = "0";
+  return baselineSeq;
 }

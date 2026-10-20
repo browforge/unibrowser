@@ -403,6 +403,41 @@ export function seedDocumentModelSessionForDemo(response: DocumentParseResponse)
   };
 }
 
+export async function applyDocumentHistorySession(
+  response: DocumentParseResponse,
+  path: string,
+): Promise<void> {
+  documentPath = path;
+  document.body.dataset.activeDocumentPath = path;
+  session = {
+    model: response.model,
+    source_map: response.source_map,
+    original_base64: response.original_base64,
+  };
+  const mode = getDocumentEditorMode();
+  if (!richHost) {
+    const host = monacoHost ?? document.getElementById("text-editor-host");
+    if (host) {
+      monacoHost = host;
+      ensureRichHost(host);
+      applySurfaceVisibility(mode);
+    }
+  }
+  const content = await serializeMarkdownDocument({
+    model: session.model,
+    source_map: session.source_map,
+    original_base64: session.original_base64,
+    dirty_block_ids: [],
+    touched_block_ids: [],
+  });
+  const { textEditor } = await import("./textEditor");
+  await textEditor.setContentFromHost(content);
+  if (mode === "wysiwyg" || mode === "reading") {
+    destroyRichTextEditor();
+    await renderRich();
+  }
+}
+
 export async function syncDocumentModelFromMarkdown(
   content: string,
   path?: string | null,

@@ -9,10 +9,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "screenshots" / "history"
-PANEL = OUT / "history-panel-v2-1280.png"
-JUMP = OUT / "history-jump-v2-1280.png"
-PANEL_CM = OUT / "history-panel-v2-1280.cm.json"
-JUMP_CM = OUT / "history-jump-v2-1280.cm.json"
+PANEL = OUT / "history-panel-v3-1280.png"
+JUMP = OUT / "history-jump-v3-1280.png"
+PANEL_CM = OUT / "history-panel-v3-1280.cm.json"
+JUMP_CM = OUT / "history-jump-v3-1280.cm.json"
 
 
 def md5(path: Path) -> str:
@@ -20,7 +20,6 @@ def md5(path: Path) -> str:
 
 
 def document_crop_box(height: int) -> tuple[int, int, int, int]:
-    # Document area above ~35% bottom dock on 1280x800 captures.
     top = 0
     bottom = int(height * 0.62)
     return (0, top, 1280, bottom)
@@ -51,12 +50,16 @@ def assert_cm_dom(cm_path: Path, expect_edit_three: bool, expect_restored_top: b
         raise SystemExit(f"{cm_path.name}: historyToolbarVisible not true")
     if dom.get("historyRestoreVisible") is not True:
         raise SystemExit(f"{cm_path.name}: historyRestoreVisible not true")
+    if dom.get("historyHeaderCount") != 1:
+        raise SystemExit(f"{cm_path.name}: expected exactly one history table header")
     if expect_edit_three and dom.get("historyDocHasEditThree") is not True:
         raise SystemExit(f"{cm_path.name}: expected Edit three in document")
     if not expect_edit_three and dom.get("historyDocHasEditThree") is True:
         raise SystemExit(f"{cm_path.name}: document must not contain Edit three after jump")
     if expect_restored_top and dom.get("historyTopSummary", "").find("Restored to #") < 0:
         raise SystemExit(f"{cm_path.name}: top summary must be Restored to #N")
+    if expect_restored_top and dom.get("historyCurrentOnHead") is not True:
+        raise SystemExit(f"{cm_path.name}: head row must show Current pill")
 
 
 def main() -> None:

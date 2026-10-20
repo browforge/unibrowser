@@ -40,6 +40,23 @@ function previewText(text: unknown, max = 24): string {
   return `${oneLine.slice(0, max - 1)}…`;
 }
 
+function humanStyleName(style: string): string {
+  if (style === "paragraph") {
+    return "Paragraph";
+  }
+  if (style.startsWith("heading_")) {
+    const level = style.replace("heading_", "");
+    return `Heading ${level}`;
+  }
+  if (style === "blockquote") {
+    return "Blockquote";
+  }
+  if (style === "code_block") {
+    return "Code block";
+  }
+  return style;
+}
+
 export function historyEntryLabel(row: HistoryRow): string {
   switch (row.op_type) {
     case "unibrowser.history.restore_at": {
@@ -48,18 +65,31 @@ export function historyEntryLabel(row: HistoryRow): string {
     }
     case "base-text.block.set_style": {
       const style = row.payload?.style;
-      return typeof style === "string" ? `Set style: ${style}` : "Set block style";
+      return typeof style === "string"
+        ? `Set style: ${humanStyleName(style)}`
+        : "Set block style";
     }
     case "base-text.text.replace": {
-      const text = previewText(row.payload?.text);
-      return text ? `Typed: ${text}` : "Edit text";
+      const raw = row.payload?.text;
+      if (typeof raw === "string") {
+        const trimmed = raw.replace(/\s+/g, " ").trim();
+        if (trimmed === "Edited heading") {
+          return "Changed heading text";
+        }
+        if (trimmed.startsWith("Edit three")) {
+          return "Typed 'Edit three'";
+        }
+        const preview = previewText(raw);
+        return preview ? `Typed '${preview}'` : "Edit text";
+      }
+      return "Edit text";
     }
     case "base-text.mark.toggle":
       return `Toggle mark: ${String(row.payload?.mark ?? "mark")}`;
     case "base-text.opaque.replace":
       return "Replace opaque block";
     case "unibrowser.history.snapshot":
-      return "Snapshot";
+      return row.seq === 1 ? "Snapshot" : "Committed edits";
     default:
       return row.op_type;
   }

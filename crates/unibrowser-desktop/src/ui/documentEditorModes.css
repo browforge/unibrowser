@@ -291,6 +291,19 @@ body.text-document-card.document-mode-reading .md-preview-shell {
   opacity: 0;
 }
 
+.history-current-pill {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ub-text-muted, #62686a);
+  background: var(--ub-surface-muted, #e7e5df);
+}
+
 .history-panel-table tr:hover .history-restore-btn,
 .history-panel-table tr.is-selected .history-restore-btn {
   opacity: 1;

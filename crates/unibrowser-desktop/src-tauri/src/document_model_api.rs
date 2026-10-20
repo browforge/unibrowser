@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 use unibrowser_document_model::{
     append_document_op, encode_snapshot_blob, jump_to_seq, list_ops, merge_source_text,
     parse_markdown, pop_last_op, push_op_entry, serialize_session_state, session_at_history_head,
-    sidecar_path_for_file, source_projection, squash_op_range, trim_history_before,
-    DocumentEditSession, DocumentHistoryOp, DocumentModel, HistoryLogEntry, SourceMap,
+    sidecar_path_for_file, source_projection, squash_op_range,
+    trim_history_before, Block, DocumentEditSession, DocumentHistoryOp, DocumentModel,
+    HistoryLogEntry, SourceMap,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -171,6 +172,164 @@ pub fn history_jump_for_path(path: &str, seq: u64) -> Result<String, String> {
     let p = Path::new(path);
     let state = jump_to_seq(p, seq, "0.1.0")?;
     serialize_session_state(&state)
+}
+
+pub fn history_head_session_for_path(path: &str) -> Result<DocumentParseResponse, String> {
+    let p = Path::new(path);
+    let state = session_at_history_head(p)?.ok_or_else(|| "history head missing".to_string())?;
+    Ok(DocumentParseResponse {
+        model: state.model,
+        source_map: state.source_map,
+        original_base64: base64_encode(&state.original_bytes),
+    })
+}
+
+const CAPTURE_BASELINE_MD: &str = "# Demo markdown
+
+Unibrowser renders Markdown in the document viewer.
+
+> Render 1 block quotes use a pale blue panel and a left accent bar on the paper card.
+
+![Demo pack image](sample.png)
+
+- **Bold** and _italic_
+- [Architecture](../../docs/architecture.md) (link may not resolve in preview; open from repo)
+
+## Next steps
+
+Open `sample.unibrow` for the native project format.
+";
+
+const CAPTURE_EDITED_MD: &str = "# Edited heading
+
+Unibrowser renders Markdown in the document viewer.
+
+Edit three
+
+> Render 1 block quotes use a pale blue panel and a left accent bar on the paper card.
+
+![Demo pack image](sample.png)
+
+- **Bold** and _italic_
+- [Architecture](../../docs/architecture.md) (link may not resolve in preview; open from repo)
+
+## Next steps
+
+Open `sample.unibrow` for the native project format.
+";
+
+fn block_id_of(block: &Block) -> String {
+    match block {
+        Block::Paragraph { id, .. } => id.clone(),
+        Block::Heading { id, .. } => id.clone(),
+        Block::Blockquote { id, .. } => id.clone(),
+        Block::CodeBlock { id, .. } => id.clone(),
+        Block::BulletList { id, .. } => id.clone(),
+        Block::OrderedList { id, .. } => id.clone(),
+        Block::HorizontalRule { id } => id.clone(),
+        Block::Image { id, .. } => id.clone(),
+        Block::Opaque(o) => o.id.clone(),
+        Block::Table { id, .. } => id.clone(),
+    }
+}
+
+fn block_plain(block: &Block) -> String {
+    use unibrowser_document_model::model::InlineSpan;
+    let inlines: &[InlineSpan] = match block {
+        Block::Paragraph { inlines, .. } | Block::Heading { inlines, .. } | Block::Blockquote { inlines, .. } => {
+            inlines
+        }
+        _ => return String::new(),
+    };
+    inlines.iter().map(|s| s.text.as_str()).collect()
+}
+
+fn first_paragraph_id(model: &DocumentModel) -> Option<String> {
+    model
+        .blocks
+        .iter()
+        .find(|b| matches!(b, Block::Paragraph { .. }))
+        .map(block_id_of)
+}
+
+fn append_snapshot(path: &Path, markdown: &str) -> Result<(), String> {
+    let parsed = parse_markdown(markdown.as_bytes());
+    let blob = encode_snapshot_blob(&parsed.source_map, &base64_encode(markdown.as_bytes()));
+    append_document_op(
+        path,
+        &DocumentHistoryOp::Snapshot {
+            model: parsed.model,
+            source_map_blob: blob,
+        },
+        "0.1.0",
+    )?;
+    Ok(())
+}
+
+/// Seed history capture demo: checkpoint + granular ops (not all snapshots).
+pub fn history_seed_capture_demo_for_path(path: &str) -> Result<u64, String> {
+    let p = Path::new(path);
+    std::fs::write(p, CAPTURE_BASELINE_MD).map_err(|e| e.to_string())?;
+    history_reset_for_path(path)?;
+    append_snapshot(p, CAPTURE_BASELINE_MD)?;
+
+    let baseline = parse_markdown(CAPTURE_BASELINE_MD.as_bytes());
+    let heading_id = baseline
+        .model
+        .blocks
+        .iter()
+        .find(|b| matches!(b, Block::Heading { .. }))
+        .map(block_id_of)
+        .ok_or_else(|| "capture baseline missing heading".to_string())?;
+    let heading_text = block_plain(
+        baseline
+            .model
+            .blocks
+            .iter()
+            .find(|b| matches!(b, Block::Heading { .. }))
+            .expect("heading"),
+    );
+    append_document_op(
+        p,
+        &DocumentHistoryOp::TextReplace {
+            block_id: heading_id,
+            from: 0,
+            to: heading_text.len(),
+            text: "Edited heading".into(),
+            marks: vec![],
+        },
+        "0.1.0",
+    )?;
+
+    let head = session_at_history_head(p)?.ok_or_else(|| "head missing after heading op".to_string())?;
+    let para_id = first_paragraph_id(&head.model).ok_or_else(|| "paragraph missing".to_string())?;
+    append_document_op(
+        p,
+        &DocumentHistoryOp::TextReplace {
+            block_id: para_id,
+            from: 0,
+            to: 0,
+            text: "Edit three\n\n".into(),
+            marks: vec![],
+        },
+        "0.1.0",
+    )?;
+
+    let edited = parse_markdown(CAPTURE_EDITED_MD.as_bytes());
+    let edited_blob = encode_snapshot_blob(
+        &edited.source_map,
+        &base64_encode(CAPTURE_EDITED_MD.as_bytes()),
+    );
+    append_document_op(
+        p,
+        &DocumentHistoryOp::Snapshot {
+            model: edited.model,
+            source_map_blob: edited_blob,
+        },
+        "0.1.0",
+    )?;
+
+    Ok(1)
 }
 
 pub fn history_trim_before_for_path(path: &str, keep_from_seq: u64) -> Result<(), String> {
