@@ -298,10 +298,27 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           if (!pane || pane.classList.contains("hidden")) {
             return false;
           }
-          if (token === "doc-history-jump") {
-            return document.body.dataset.ubHistoryJumpCapture === "1";
+          if (document.body.dataset.ubHistoryCaptureReady !== "1") {
+            return false;
           }
-          return true;
+          const restoreVisible = Boolean(
+            document.querySelector(".history-panel-table tr.is-selected .history-restore-btn"),
+          );
+          const toolbar = document.getElementById("history-action-trim");
+          if (!restoreVisible || !toolbar) {
+            return false;
+          }
+          if (token === "doc-history-jump") {
+            const topSummary = document.querySelector(
+              ".history-panel-table tbody tr:first-child .col-summary",
+            );
+            return (
+              document.body.dataset.ubHistoryJumpCapture === "1" &&
+              (topSummary?.textContent?.includes("Restored to #") ?? false)
+            );
+          }
+          const docText = document.querySelector(".rich-text-doc")?.textContent ?? "";
+          return docText.includes("Edit three") && docText.includes("Edited heading");
         });
         break;
       case "new-project-capture-empty":

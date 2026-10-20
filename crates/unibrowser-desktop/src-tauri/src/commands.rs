@@ -4873,6 +4873,11 @@ pub fn document_merge_source(
 }
 
 #[tauri::command]
+pub fn document_history_reset(path: String) -> Result<(), String> {
+    crate::document_model_api::history_reset_for_path(&path)
+}
+
+#[tauri::command]
 pub fn document_history_list(path: String) -> Result<Vec<unibrowser_document_model::HistoryLogEntry>, String> {
     crate::document_model_api::history_list_for_path(&path)
 }

@@ -282,6 +282,7 @@ pub fn run() {
             commands::document_serialize_markdown,
             commands::document_source_projection,
             commands::document_merge_source,
+            commands::document_history_reset,
             commands::document_history_list,
             commands::document_history_append,
             commands::document_history_append_snapshot,

@@ -153,8 +153,8 @@ export async function appendDocumentHistorySnapshot(
   await invoke("document_history_append_snapshot", {
     path,
     model: session.model,
-    source_map: session.source_map,
-    original_base64: session.original_base64,
+    sourceMap: session.source_map,
+    originalBase64: session.original_base64,
   });
 }
 

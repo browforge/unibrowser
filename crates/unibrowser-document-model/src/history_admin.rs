@@ -33,7 +33,8 @@ pub fn jump_to_seq(
     use base64::Engine;
     let original_base64 = base64::engine::general_purpose::STANDARD.encode(&state.original_bytes);
     let blob = encode_snapshot_blob(&state.source_map, &original_base64);
-    let op = DocumentHistoryOp::Snapshot {
+    let op = DocumentHistoryOp::RestoreAt {
+        target_seq,
         model: state.model.clone(),
         source_map_blob: blob,
     };

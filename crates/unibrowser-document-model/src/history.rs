@@ -32,6 +32,12 @@ pub enum DocumentHistoryOp {
         model: DocumentModel,
         source_map_blob: String,
     },
+    #[serde(rename = "unibrowser.history.restore_at")]
+    RestoreAt {
+        target_seq: u64,
+        model: DocumentModel,
+        source_map_blob: String,
+    },
 }
 
 pub fn apply_history_op(model: &mut DocumentModel, op: &DocumentHistoryOp) -> Result<(), String> {
@@ -125,6 +131,10 @@ pub fn apply_history_op(model: &mut DocumentModel, op: &DocumentHistoryOp) -> Re
             *model = snap.clone();
             Ok(())
         }
+        DocumentHistoryOp::RestoreAt { model: snap, .. } => {
+            *model = snap.clone();
+            Ok(())
+        }
     }
 }
 
@@ -195,7 +205,7 @@ pub fn invert_history_op(model: &DocumentModel, op: &DocumentHistoryOp) -> Optio
             }
             None
         }
-        DocumentHistoryOp::Snapshot { .. } => None,
+        DocumentHistoryOp::Snapshot { .. } | DocumentHistoryOp::RestoreAt { .. } => None,
     }
 }
 

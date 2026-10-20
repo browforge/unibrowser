@@ -140,6 +140,7 @@ fn hist02_jump_appends_snapshot_preserving_prior_ops() {
     jump_to_seq(&md, 1, "0.1.0").expect("jump");
     let ops = list_ops(&sidecar_path_for_file(&md)).expect("list");
     assert_eq!(ops.len(), 3, "jump must not delete tail ops");
+    assert_eq!(ops[2].op_type, "unibrowser.history.restore_at");
     let head = session_at_history_head(&md).expect("head").expect("state");
     let md_out = serialize_session_state(&head).expect("serialize");
     assert!(md_out.contains("World."));

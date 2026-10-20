@@ -12,6 +12,10 @@ export function initDockPanel() {
   if (saved) {
     panel.style.setProperty("--ub-bottom-panel-height", saved);
     panel.style.height = saved;
+  } else {
+    const defaultHeight = `${Math.round(window.innerHeight * 0.35)}px`;
+    panel.style.setProperty("--ub-bottom-panel-height", defaultHeight);
+    panel.style.height = defaultHeight;
   }
 
   const grip = document.getElementById("bottom-panel-resize-grip");

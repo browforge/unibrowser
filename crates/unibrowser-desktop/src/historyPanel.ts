@@ -6,7 +6,10 @@ import {
 } from "./historyPanelEntries";
 import {
   jumpHistoryToSeq,
+  runHistoryCommand,
   setHistoryPanelSelection,
+  HISTORY_SQUASH_SELECTION_ID,
+  HISTORY_TRIM_BEFORE_ID,
 } from "./historyCommands";
 
 let mounted = false;
@@ -38,6 +41,40 @@ function renderConfirmStrip(
   actions.appendChild(cancel);
   actions.appendChild(ok);
   parent.prepend(strip);
+}
+
+function selectRow(body: HTMLElement, tr: HTMLTableRowElement, entry: { seq: number; endSeq: number }) {
+  selectedSeq = entry.seq;
+  setHistoryPanelSelection(entry.seq, entry.endSeq);
+  body.querySelectorAll("tr.is-selected").forEach((r) => r.classList.remove("is-selected"));
+  tr.classList.add("is-selected");
+  document.body.dataset.ubHistorySelectedSeq = String(entry.seq);
+}
+
+export function selectHistoryPanelFirstRow() {
+  selectedSeq = null;
+  const body = document.querySelector("#history-panel-list tbody");
+  const tr = body?.querySelector<HTMLTableRowElement>("tr");
+  if (!body || !tr) {
+    return;
+  }
+  const seq = Number.parseInt(tr.dataset.seq ?? "0", 10);
+  const endSeq = Number.parseInt(tr.dataset.endSeq ?? String(seq), 10);
+  selectRow(body as HTMLElement, tr, { seq, endSeq });
+}
+
+export function selectHistoryPanelRow(seq: number) {
+  selectedSeq = seq;
+  const body = document.querySelector("#history-panel-list tbody");
+  if (!body) {
+    return;
+  }
+  const tr = body.querySelector<HTMLTableRowElement>(`tr[data-seq="${seq}"]`);
+  if (!tr) {
+    return;
+  }
+  const endSeq = Number.parseInt(tr.dataset.endSeq ?? String(seq), 10);
+  selectRow(body as HTMLElement, tr, { seq, endSeq });
 }
 
 export async function refreshHistoryPanel(path: string | null) {
@@ -75,7 +112,7 @@ export async function refreshHistoryPanel(path: string | null) {
   const table = document.createElement("table");
   table.className = "history-panel-table";
   table.innerHTML =
-    "<thead><tr><th>Seq</th><th>Time</th><th>Source</th><th>Summary</th></tr></thead>";
+    "<thead><tr><th class=\"col-seq\">Seq</th><th class=\"col-time\">Time</th><th class=\"col-source\">Source</th><th class=\"col-summary\">Summary</th><th class=\"col-actions\"></th></tr></thead>";
   const body = document.createElement("tbody");
   for (const entry of grouped) {
     const tr = document.createElement("tr");
@@ -86,27 +123,36 @@ export async function refreshHistoryPanel(path: string | null) {
       tr.classList.add("is-selected");
     }
     const seqLabel = entry.opCount > 1 ? `${entry.seq}–${entry.endSeq}` : String(entry.seq);
-    tr.innerHTML = `<td>${seqLabel}</td><td>${formatHistoryTimestamp(entry.timestamp)}</td><td>${entry.plugin_id}</td><td>${entry.label}</td>`;
-    tr.addEventListener("click", () => {
-      selectedSeq = entry.seq;
-      setHistoryPanelSelection(entry.seq, entry.endSeq);
-      body.querySelectorAll("tr.is-selected").forEach((r) => r.classList.remove("is-selected"));
-      tr.classList.add("is-selected");
-    });
-    tr.addEventListener("dblclick", () => {
-      void jumpHistoryToSeq(path, entry.endSeq);
-    });
+    const time = formatHistoryTimestamp(entry.timestamp);
+    const source = document.createElement("span");
+    source.className = "history-source-pill";
+    source.textContent = entry.plugin_id;
+    tr.innerHTML = `<td class="col-seq">${seqLabel}</td><td class="col-time" title=""></td><td class="col-source"></td><td class="col-summary">${entry.label}</td><td class="col-actions"></td>`;
+    const timeCell = tr.querySelector(".col-time") as HTMLElement;
+    timeCell.textContent = time.display;
+    timeCell.title = time.title;
+    tr.querySelector(".col-source")?.appendChild(source);
+    const restore = document.createElement("button");
+    restore.type = "button";
+    restore.className = "history-restore-btn";
+    restore.textContent = "Restore";
+    restore.onclick = (ev) => {
+      ev.stopPropagation();
+      renderConfirmStrip(
+        list,
+        `Restore document to seq ${entry.endSeq}? A new entry is appended; later log entries stay on disk.`,
+        "Restore",
+        () => {
+          void jumpHistoryToSeq(path, entry.endSeq).then(() => refreshHistoryPanel(path));
+        },
+      );
+    };
+    tr.querySelector(".col-actions")?.appendChild(restore);
+    tr.addEventListener("click", () => selectRow(body, tr, entry));
     tr.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter") {
         ev.preventDefault();
-        renderConfirmStrip(
-          list,
-          `Restore document to seq ${entry.endSeq}? A new snapshot is appended; later log entries stay on disk.`,
-          "Jump to here",
-          () => {
-            void jumpHistoryToSeq(path, entry.endSeq).then(() => refreshHistoryPanel(path));
-          },
-        );
+        restore.click();
       }
     });
     body.appendChild(tr);
@@ -114,10 +160,19 @@ export async function refreshHistoryPanel(path: string | null) {
   table.appendChild(body);
   list.appendChild(table);
   if (selectedSeq == null && grouped[0]) {
-    setHistoryPanelSelection(grouped[0].seq, grouped[0].endSeq);
-    selectedSeq = grouped[0].seq;
-    body.querySelector("tr")?.classList.add("is-selected");
+    selectRow(body, body.querySelector("tr")!, grouped[0]);
+  } else if (selectedSeq != null) {
+    selectHistoryPanelRow(selectedSeq);
   }
+}
+
+function wireToolbarActions() {
+  document.getElementById("history-action-trim")?.addEventListener("click", () => {
+    void runHistoryCommand(HISTORY_TRIM_BEFORE_ID);
+  });
+  document.getElementById("history-action-squash")?.addEventListener("click", () => {
+    void runHistoryCommand(HISTORY_SQUASH_SELECTION_ID);
+  });
 }
 
 export function mountHistoryPanel() {
@@ -130,7 +185,14 @@ export function mountHistoryPanel() {
   if (!tab || !pane) {
     return;
   }
-  pane.innerHTML = `<div id="history-panel-list" class="history-panel-list" role="log" aria-live="polite"></div>`;
+  pane.innerHTML = `<div class="history-panel-shell">
+    <div class="history-panel-toolbar" role="toolbar" aria-label="History actions">
+      <button type="button" id="history-action-trim" class="history-panel-action">Trim before here</button>
+      <button type="button" id="history-action-squash" class="history-panel-action">Squash selection</button>
+    </div>
+    <div id="history-panel-list" class="history-panel-list" role="log" aria-live="polite"></div>
+  </div>`;
+  wireToolbarActions();
   tab.addEventListener("click", () => {
     document.querySelectorAll(".bottom-panel-tab").forEach((el) => {
       el.classList.remove("is-active");

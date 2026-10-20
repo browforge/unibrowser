@@ -7,7 +7,7 @@ import { isToolbarOnlyWindow } from "./toolbarOnly";
 
 /** Tokens that need editor/compact toolbar ready (also deferred in doc-capture). */
 export const DEFERRED_DEMO_TOKEN_RE =
-  /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$|doc-visual-md-docx$)/;
+  /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$|doc-visual-md-docx$|doc-history-)/;
 
 export function bootstrapDemoStateTokens(raw: string): string {
   return raw
@@ -185,53 +185,47 @@ export async function applyDemoState(raw: string) {
       }
       case "doc-history-panel":
       case "doc-history-jump": {
-        await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
+        if (document.body.dataset.ubDocCapture !== "1") {
+          await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
+        }
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("wysiwyg", false);
         const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
         syncTextDocumentCard(true, "sample.md");
         await new Promise((r) => window.setTimeout(r, 400));
-        const docPath = document.body.dataset.activeDocumentPath ?? "demo-pack/sample.md";
-        await invoke("document_history_append", {
-          path: docPath,
-          op: {
-            op_type: "base-text.block.set_style",
-            block_id: "b2",
-            style: "heading_2",
-            emulation_note: null,
-          },
-        }).catch(() => undefined);
-        for (const text of ["Al", "Alp", "Alpha"]) {
-          await invoke("document_history_append", {
-            path: docPath,
-            op: {
-              op_type: "base-text.text.replace",
-              block_id: "b2",
-              from: 0,
-              to: 4,
-              text,
-              marks: [],
-            },
-          }).catch(() => undefined);
-        }
-        await invoke("document_history_append", {
-          path: docPath,
-          op: {
-            op_type: "base-text.block.set_style",
-            block_id: "b3",
-            style: "blockquote",
-            emulation_note: null,
-          },
-        }).catch(() => undefined);
-        const { showHistoryPanelTab, refreshHistoryPanel } = await import("./historyPanel");
+        const {
+          expandBottomPanelForHistoryCapture,
+          resolveHistoryDocumentPath,
+          seedHistoryCaptureDemo,
+          waitForRichDocText,
+        } = await import("./historyDemoCapture");
+        const docPath = resolveHistoryDocumentPath();
+        const baselineSeq = await seedHistoryCaptureDemo(docPath);
+        await waitForRichDocText((text) => text.includes("Edit three"));
+        expandBottomPanelForHistoryCapture();
+        const {
+          showHistoryPanelTab,
+          refreshHistoryPanel,
+          selectHistoryPanelRow,
+          selectHistoryPanelFirstRow,
+        } = await import("./historyPanel");
         showHistoryPanelTab();
         await refreshHistoryPanel(docPath);
         if (token === "doc-history-jump") {
           const { jumpHistoryToSeq } = await import("./historyCommands");
-          await jumpHistoryToSeq(docPath, 1);
+          await jumpHistoryToSeq(docPath, baselineSeq);
+          await waitForRichDocText(
+            (text) => text.includes("Demo markdown") && !text.includes("Edit three"),
+          );
           await refreshHistoryPanel(docPath);
+          selectHistoryPanelFirstRow();
           document.body.dataset.ubHistoryJumpCapture = "1";
+          document.body.dataset.ubHistoryCapturePhase = "jump";
+        } else {
+          selectHistoryPanelRow(baselineSeq);
+          document.body.dataset.ubHistoryCapturePhase = "panel";
         }
+        document.body.dataset.ubHistoryCaptureReady = "1";
         await new Promise((r) => window.setTimeout(r, 250));
         const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
         dismissDocCaptureChrome();

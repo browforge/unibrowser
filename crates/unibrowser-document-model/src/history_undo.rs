@@ -50,7 +50,12 @@ pub fn session_state_after_bytes(bytes: &[u8], ops: &[HistoryLogEntry]) -> Resul
     let mut original_bytes = bytes.to_vec();
     for entry in ops {
         let op = op_from_entry(entry)?;
-        if let DocumentHistoryOp::Snapshot { source_map_blob, .. } = &op {
+        let blob = match &op {
+            DocumentHistoryOp::Snapshot { source_map_blob, .. } => Some(source_map_blob.as_str()),
+            DocumentHistoryOp::RestoreAt { source_map_blob, .. } => Some(source_map_blob.as_str()),
+            _ => None,
+        };
+        if let Some(source_map_blob) = blob {
             if !source_map_blob.is_empty() {
                 let (sm, ob) = decode_snapshot_blob(source_map_blob)?;
                 source_map = sm;

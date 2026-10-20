@@ -23,6 +23,12 @@ function parseEpochSeconds(timestamp: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function intlLocale(): string {
+  const lang =
+    typeof document !== "undefined" ? document.documentElement.lang?.trim() : "";
+  return lang === "en-US" ? "en-US" : "en-NZ";
+}
+
 function previewText(text: unknown, max = 24): string {
   if (typeof text !== "string") {
     return "";
@@ -36,6 +42,10 @@ function previewText(text: unknown, max = 24): string {
 
 export function historyEntryLabel(row: HistoryRow): string {
   switch (row.op_type) {
+    case "unibrowser.history.restore_at": {
+      const target = row.payload?.target_seq;
+      return typeof target === "number" ? `Restored to #${target}` : "Restored";
+    }
     case "base-text.block.set_style": {
       const style = row.payload?.style;
       return typeof style === "string" ? `Set style: ${style}` : "Set block style";
@@ -55,12 +65,62 @@ export function historyEntryLabel(row: HistoryRow): string {
   }
 }
 
-export function formatHistoryTimestamp(timestamp: string): string {
+function startOfLocalDay(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function relativeLabelForToday(dateMs: number, nowMs: number): string | null {
+  if (dateMs < startOfLocalDay(nowMs)) {
+    return null;
+  }
+  const diffMin = Math.floor((nowMs - dateMs) / 60_000);
+  if (diffMin < 1) {
+    return "Just now";
+  }
+  if (diffMin < 60) {
+    return `${diffMin} min ago`;
+  }
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hr ago`;
+  }
+  return null;
+}
+
+export function formatHistoryTimestamp(
+  timestamp: string,
+  nowMs = Date.now(),
+): { display: string; title: string } {
   const secs = parseEpochSeconds(timestamp);
   if (!secs) {
-    return timestamp;
+    return { display: timestamp, title: timestamp };
   }
-  return new Date(secs * 1000).toLocaleString();
+  const dateMs = secs * 1000;
+  const locale = intlLocale();
+  const title = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(dateMs);
+  const relative = relativeLabelForToday(dateMs, nowMs);
+  if (relative) {
+    return { display: relative, title };
+  }
+  const parts = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(dateMs);
+  const day = parts.find((p) => p.type === "day")?.value ?? "";
+  const month = parts.find((p) => p.type === "month")?.value ?? "";
+  const hour = parts.find((p) => p.type === "hour")?.value ?? "";
+  const minute = parts.find((p) => p.type === "minute")?.value ?? "";
+  const dayPeriod = parts.find((p) => p.type === "dayPeriod")?.value?.toLowerCase() ?? "";
+  const display = `${day} ${month}, ${hour}:${minute} ${dayPeriod}`.trim();
+  return { display, title };
 }
 
 function isTypingRow(row: HistoryRow): boolean {
@@ -89,10 +149,7 @@ export function groupHistoryRows(rows: HistoryRow[]): HistoryDisplayEntry[] {
       end = next;
       count += 1;
     }
-    const label =
-      count > 1
-        ? `Typed (${count} edits)`
-        : historyEntryLabel(end);
+    const label = count > 1 ? `Typed (${count} edits)` : historyEntryLabel(end);
     out.push({
       seq: start.seq,
       endSeq: end.seq,

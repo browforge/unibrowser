@@ -1271,6 +1271,11 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   relationshipConsentActionsInViewport: boolean;
   dialogPrimaryButtonMatchesAccent: boolean;
   firstSaveCancelButtonPresent: boolean;
+  historyCaptureReady?: boolean;
+  historyToolbarVisible?: boolean;
+  historyRestoreVisible?: boolean;
+  historyDocHasEditThree?: boolean;
+  historyTopSummary?: string;
 }
 
 export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDiagnostics {
@@ -1429,6 +1434,12 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     dialogPrimaryButtonUsesAccent(consentPanel) ||
     dialogPrimaryButtonUsesAccent(firstSavePanel);
 
+  const richDocText = document.querySelector(".rich-text-doc")?.textContent ?? "";
+  const historyTopSummary =
+    document.querySelector(".history-panel-table tbody tr:first-child .col-summary")
+      ?.textContent?.trim() ?? "";
+  const historyDemo = (document.body.dataset.ubDemoTokens ?? "").includes("doc-history-");
+
   return {
     visibleDocumentCardCount: cards.length,
     commandManagerVisible,
@@ -1454,6 +1465,17 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     relationshipConsentActionsInViewport,
     dialogPrimaryButtonMatchesAccent,
     firstSaveCancelButtonPresent,
+    ...(historyDemo
+      ? {
+          historyCaptureReady: document.body.dataset.ubHistoryCaptureReady === "1",
+          historyToolbarVisible: Boolean(document.getElementById("history-action-trim")),
+          historyRestoreVisible: Boolean(
+            document.querySelector(".history-panel-table tr.is-selected .history-restore-btn"),
+          ),
+          historyDocHasEditThree: richDocText.includes("Edit three"),
+          historyTopSummary,
+        }
+      : {}),
   };
 }
 

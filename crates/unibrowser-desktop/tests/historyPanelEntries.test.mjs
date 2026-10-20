@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { groupHistoryRows, historyEntryLabel } from "../src/historyPanelEntries.ts";
+import {
+  groupHistoryRows,
+  historyEntryLabel,
+  formatHistoryTimestamp,
+} from "../src/historyPanelEntries.ts";
 
 test("HIST-04 groups rapid text.replace on same block", () => {
   const rows = [
@@ -32,13 +36,21 @@ test("HIST-04 groups rapid text.replace on same block", () => {
   assert.match(grouped[1].label, /Typed \(2 edits\)/);
 });
 
-test("HIST-04 labels include plugin op summary", () => {
+test("HIST-04 labels restore_at with target seq", () => {
   const label = historyEntryLabel({
-    seq: 1,
-    op_type: "base-text.text.replace",
+    seq: 3,
+    op_type: "unibrowser.history.restore_at",
     timestamp: "1Z",
     plugin_id: "base-text",
-    payload: { text: "Hello" },
+    payload: { target_seq: 1 },
   });
-  assert.equal(label, "Typed: Hello");
+  assert.equal(label, "Restored to #1");
+});
+
+test("HIST-04 timestamp uses relative label for today", () => {
+  const now = Date.UTC(2026, 9, 20, 2, 0, 0);
+  const ts = String(Math.floor((now - 120_000) / 1000));
+  const formatted = formatHistoryTimestamp(`${ts}Z`, now);
+  assert.match(formatted.display, /ago|Just now/i);
+  assert.ok(formatted.title.length > 8);
 });

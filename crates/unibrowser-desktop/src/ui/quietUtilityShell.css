@@ -129,8 +129,8 @@ body {
   right: auto;
   bottom: auto;
   flex: 0 0 auto;
-  height: var(--ub-bottom-panel-height, 10rem);
-  max-height: 50vh;
+  height: var(--ub-bottom-panel-height, 35vh);
+  max-height: 55vh;
   z-index: 1;
   background: var(--ub-panel);
   border-top: var(--ub-border-width) solid var(--ub-border);

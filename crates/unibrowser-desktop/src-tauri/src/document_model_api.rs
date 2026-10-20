@@ -114,6 +114,14 @@ pub fn merge_source_request(req: DocumentMergeSourceRequest) -> Result<DocumentM
     })
 }
 
+pub fn history_reset_for_path(path: &str) -> Result<(), String> {
+    let sidecar = sidecar_path_for_file(Path::new(path));
+    if sidecar.is_file() {
+        std::fs::remove_file(&sidecar).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 pub fn history_list_for_path(path: &str) -> Result<Vec<unibrowser_document_model::HistoryLogEntry>, String> {
     let p = Path::new(path);
     list_ops(&unibrowser_document_model::sidecar_path_for_file(p))

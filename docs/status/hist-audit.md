@@ -86,8 +86,8 @@ Scope: `.unibrow-history` op log, undo/redo from disk head, History panel, folde
 
 ## Screenshots
 
-- `docs/screenshots/history/history-panel-v1-1280.png`
-- `docs/screenshots/history/history-jump-v1-1280.png`
+- `docs/screenshots/history/history-panel-v2-1280.png`
+- `docs/screenshots/history/history-jump-v2-1280.png`
 
 ## How to re-run evidence
 

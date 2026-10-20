@@ -16,8 +16,7 @@ test("HIST-06 trim and squash command ids are defined", () => {
   assert.match(commands, /document_history_squash_range/);
 });
 
-test("HIST-04 jump uses append API and inline confirm", () => {
+test("HIST-04 jump uses append API and restore button", () => {
   assert.match(panel, /jumpHistoryToSeq/);
-  assert.match(panel, /history-panel-confirm/);
-  assert.match(panel, /document_history_jump_to_seq|jumpHistoryToSeq/);
+  assert.match(panel, /history-restore-btn/);
 });

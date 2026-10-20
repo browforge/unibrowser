@@ -3620,6 +3620,13 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               }
             }
           }
+          if (demoTokens.includes("doc-history-jump")) {
+            await applyDemoState("doc-history-jump");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+          } else if (demoTokens.includes("doc-history-panel")) {
+            await applyDemoState("doc-history-panel");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+          }
           let painted: boolean;
           if (docVisualMdDocxCaptureShot && document.body.dataset.ubDocCapture === "1") {
             try {
