@@ -166,10 +166,37 @@ fn map_hit(ext: ExtensionEntry) -> Option<OpenVsxHitDto> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    use crate::preferences::{Preferences, save_preferences};
+
+    static PERM_CONFIG_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
-    fn rejects_without_opt_in() {
+    fn perm03_rejects_without_opt_in() {
         let err = search_open_vsx("markdown", false).unwrap_err();
-        assert!(err.contains("opt-in"));
+        assert!(err.to_lowercase().contains("opt-in"));
+    }
+
+    #[test]
+    fn perm03_offline_mode_blocks_catalog() {
+        let _guard = PERM_CONFIG_LOCK.lock().expect("perm config lock");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let prev = std::env::var("XDG_CONFIG_HOME").ok();
+        std::env::set_var("XDG_CONFIG_HOME", dir.path());
+        let mut prefs = Preferences::default();
+        prefs.offline_mode = true;
+        save_preferences(&prefs).expect("save prefs");
+        let err = search_open_vsx("markdown", true).unwrap_err();
+        if let Some(p) = prev {
+            std::env::set_var("XDG_CONFIG_HOME", p);
+        } else {
+            std::env::remove_var("XDG_CONFIG_HOME");
+        }
+        assert!(
+            err.to_lowercase().contains("offline"),
+            "unexpected: {}",
+            err
+        );
     }
 }
