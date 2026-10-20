@@ -1259,6 +1259,9 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   docxEmulationBadgeVisible: boolean;
   cardImageNaturalWidthOk: boolean;
   statusBarDocumentLanguage: string;
+  projectHomeCardHeight: number | null;
+  horizontalOverflow: boolean;
+  presentationToolbarThemed: boolean;
 }
 
 export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDiagnostics {
@@ -1343,6 +1346,19 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
       }
     }
   }
+  const homeCard = document.querySelector<HTMLElement>(".project-home-card");
+  const projectHomeCardHeight = homeCard ? homeCard.getBoundingClientRect().height : null;
+  const horizontalOverflow =
+    document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
+  const presentationToolbar = document.querySelector(".presentation-toolbar");
+  const presentationToolbarThemed =
+    !presentationToolbar ||
+    Array.from(presentationToolbar.querySelectorAll<HTMLButtonElement>("button")).every(
+      (btn) =>
+        btn.classList.contains("presentation-toolbar-btn") &&
+        Boolean(btn.querySelector(".ub-icon[data-lucide]")),
+    );
+
   return {
     visibleDocumentCardCount: cards.length,
     commandManagerVisible,
@@ -1356,6 +1372,9 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     docxEmulationBadgeVisible,
     cardImageNaturalWidthOk,
     statusBarDocumentLanguage,
+    projectHomeCardHeight,
+    horizontalOverflow,
+    presentationToolbarThemed,
   };
 }
 
@@ -2269,6 +2288,46 @@ function workspaceRootForCapture(): HTMLElement | null {
   );
 }
 
+export function validatePresentationToolbarButtons(): string | null {
+  const toolbar = document.querySelector(".presentation-toolbar");
+  if (!toolbar) {
+    return null;
+  }
+  const buttons = toolbar.querySelectorAll<HTMLButtonElement>("button");
+  if (buttons.length === 0) {
+    return "presentation toolbar missing action buttons";
+  }
+  for (const btn of buttons) {
+    if (!btn.classList.contains("presentation-toolbar-btn")) {
+      return "presentation toolbar uses unstyled raw button";
+    }
+    if (!btn.querySelector(".ub-icon[data-lucide]")) {
+      return "presentation toolbar button missing Lucide icon";
+    }
+    const label = btn.querySelector(".presentation-toolbar-btn-label")?.textContent?.trim() ?? "";
+    if (!label) {
+      return "presentation toolbar button missing visible label";
+    }
+  }
+  return null;
+}
+
+export function validateEmptyProjectHomeCardLayout(): string | null {
+  const card = document.querySelector<HTMLElement>(".project-home-card");
+  if (!card || !elementIsVisible(card)) {
+    return null;
+  }
+  const rect = card.getBoundingClientRect();
+  if (rect.height >= 300) {
+    return `empty project home card too tall (${rect.height.toFixed(0)}px)`;
+  }
+  const root = document.documentElement;
+  if (root.scrollWidth > root.clientWidth + 1) {
+    return `horizontal overflow on capture viewport (scrollWidth ${root.scrollWidth} > ${root.clientWidth})`;
+  }
+  return null;
+}
+
 /** Pixel-adjacent layout checks for new-project captures (geometry + computed colors). */
 export function validateNewProjectCapturePixels(demoTokens: string): string | null {
   if (document.body.dataset.ubNewProjectCapture !== "1") {
@@ -2426,6 +2485,26 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     }
     if (!document.querySelector(".presentation-slide-thumb")) {
       return "presentation project capture requires slide thumbnail rail";
+    }
+    const toolbarErr = validatePresentationToolbarButtons();
+    if (toolbarErr) {
+      return toolbarErr;
+    }
+  }
+  if (demo.includes("new-project-capture-empty") || demo.includes("capture-empty")) {
+    const emptyLayoutErr = validateEmptyProjectHomeCardLayout();
+    if (emptyLayoutErr) {
+      return emptyLayoutErr;
+    }
+  }
+  if (demo.includes("office-project")) {
+    const footerErr = validateDocumentCardFooterForCapture();
+    if (footerErr) {
+      return footerErr;
+    }
+    const words = documentWordCount();
+    if (words <= 0) {
+      return `office project capture requires seeded document word count > 0 (got ${words})`;
     }
   }
   if (demo.includes("configure")) {

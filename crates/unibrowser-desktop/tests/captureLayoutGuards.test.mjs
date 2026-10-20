@@ -14,7 +14,17 @@ import {
   timelineEndpointClearsScrollbar,
   grayscalePreviewControlCaptureError,
   provingFloatingToolbarScanError,
+  validateEmptyProjectHomeCardLayout,
+  validatePresentationToolbarButtons,
 } from "../src/docCaptureAsserts.ts";
+
+test("presentation toolbar guard requires Lucide-themed buttons", () => {
+  assert.equal(validatePresentationToolbarButtons(), null);
+});
+
+test("empty project card guard is inert without DOM", () => {
+  assert.equal(validateEmptyProjectHomeCardLayout(), null);
+});
 
 test("fresh capture profile has no proving floating toolbar helpers", () => {
   assert.equal(provingFloatingToolbarScanError([], []), null);

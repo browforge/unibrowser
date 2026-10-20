@@ -4410,13 +4410,27 @@ select:disabled {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  justify-content: center;
+  max-width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  align-items: center;
+  overflow-x: clip;
   padding: 1.5rem 1rem;
   background: var(--ub-canvas, #f3f2ee);
 }
 
+.document-viewer-host.document-viewer-host--project-surface .viewer-body:has(
+    .project-surface--empty
+  ) {
+  overflow-x: clip;
+}
+
 .project-home-card {
+  flex: 0 0 auto;
+  align-self: center;
   width: min(40rem, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 1.25rem 1.5rem;
   border: 1px solid var(--ub-border, #d8d6cf);
   border-radius: 8px;
@@ -4467,8 +4481,10 @@ select:disabled {
   min-height: 0;
   gap: 0.75rem;
   width: 100%;
+  max-width: 100%;
   padding: 0.75rem;
   box-sizing: border-box;
+  overflow-x: clip;
 }
 
 .presentation-main {
@@ -4485,6 +4501,40 @@ select:disabled {
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
+}
+
+.presentation-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--ub-border, #c8c4bc);
+  background: var(--ub-paper, #faf9f6);
+  color: var(--ub-text-1, #1f2326);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.presentation-toolbar-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ub-accent, #2d647d) 8%, var(--ub-paper, #faf9f6));
+  border-color: color-mix(in srgb, var(--ub-accent, #2d647d) 35%, var(--ub-border, #c8c4bc));
+}
+
+.presentation-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.presentation-toolbar-btn--primary {
+  border-color: color-mix(in srgb, var(--ub-accent, #2d647d) 55%, var(--ub-border, #c8c4bc));
+  background: color-mix(in srgb, var(--ub-accent, #2d647d) 12%, var(--ub-paper, #faf9f6));
+}
+
+.presentation-toolbar-btn .ub-icon {
+  flex-shrink: 0;
 }
 
 .presentation-slides-rail {

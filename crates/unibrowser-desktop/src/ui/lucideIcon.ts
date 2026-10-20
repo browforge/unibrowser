@@ -73,7 +73,8 @@ export type LucideName =
   | "circle-dot"
   | "move"
   | "arrow-up-down"
-  | "arrow-down-up";
+  | "arrow-down-up"
+  | "trash-2";
 
 const PATHS: Record<LucideName, string> = {
   "arrow-left": '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
@@ -174,6 +175,8 @@ const PATHS: Record<LucideName, string> = {
   move: '<path d="M12 2v20"/><path d="m15 19-3 3-3-3"/><path d="m19 9 3 3-3 3"/><path d="M2 12h20"/><path d="m5 9-3 3 3 3"/><path d="m9 5 3-3 3 3"/>',
   "arrow-up-down": '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
   "arrow-down-up": '<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>',
+  "trash-2":
+    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>',
   "redo-2":
