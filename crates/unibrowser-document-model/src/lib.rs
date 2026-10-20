@@ -18,7 +18,7 @@ pub use model::{
 };
 pub use history_file::{
     append_document_op, list_ops, load_head, pop_last_op, push_op_entry, sidecar_path_for_file,
-    HistoryLogEntry,
+    truncate_head, HistoryLogEntry, LOG_MARKER,
 };
 pub use history_undo::{
     decode_snapshot_blob, encode_snapshot_blob, serialize_session_state, session_at_history_head,

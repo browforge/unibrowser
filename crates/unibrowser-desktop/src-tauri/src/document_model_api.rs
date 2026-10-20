@@ -223,3 +223,63 @@ pub fn promote_opaque_request(req: DocumentPromoteOpaqueRequest) -> Result<Docum
         original_base64: base64_encode(&session.original_bytes),
     })
 }
+
+#[cfg(test)]
+mod hist_audit_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+    use unibrowser_document_model::{append_document_op, encode_snapshot_blob, parse_markdown, DocumentHistoryOp};
+
+    #[test]
+    fn hist02_host_undo_redo_matches_disk_head() {
+        let dir = tempdir().expect("tempdir");
+        let md = dir.path().join("note.md");
+        fs::write(&md, "# Hello\n\nWorld.\n").expect("write");
+        let parsed_b = parse_markdown(b"# Hello\n\nEdited.\n");
+        let blob_b = encode_snapshot_blob(
+            &parsed_b.source_map,
+            &base64_encode(b"# Hello\n\nEdited.\n"),
+        );
+        append_document_op(
+            &md,
+            &DocumentHistoryOp::Snapshot {
+                model: parsed_b.model,
+                source_map_blob: blob_b,
+            },
+            "0.1.0",
+        )
+        .expect("append");
+
+        let mut redo = Vec::new();
+        let undone = try_undo_markdown_history(md.to_str().unwrap(), &mut redo)
+            .expect("undo")
+            .expect("content");
+        assert!(undone.contains("World."));
+        assert!(!undone.contains("Edited."));
+
+        let redone = try_redo_markdown_history(md.to_str().unwrap(), &mut redo)
+            .expect("redo")
+            .expect("content");
+        assert!(redone.contains("Edited."));
+    }
+
+    #[test]
+    fn hist02_history_list_reads_sidecar() {
+        let dir = tempdir().expect("tempdir");
+        let md = dir.path().join("x.md");
+        fs::write(&md, "a\n").expect("write");
+        let parsed = parse_markdown(b"a\n");
+        append_document_op(
+            &md,
+            &DocumentHistoryOp::Snapshot {
+                model: parsed.model,
+                source_map_blob: String::new(),
+            },
+            "0.1.0",
+        )
+        .expect("append");
+        let rows = history_list_for_path(md.to_str().unwrap()).expect("list");
+        assert_eq!(rows.len(), 1);
+    }
+}
