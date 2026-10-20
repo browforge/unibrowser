@@ -4405,8 +4405,38 @@ select:disabled {
   gap: 0.5rem;
 }
 
+button.quiet-button,
+.quiet-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--ub-border, #c8c4bc);
+  background: var(--ub-paper, #faf9f6);
+  color: var(--ub-text-1, #1f2326);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+button.quiet-button:hover:not(:disabled),
+.quiet-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ub-accent, #2d647d) 8%, var(--ub-paper, #faf9f6));
+  border-color: color-mix(in srgb, var(--ub-accent, #2d647d) 35%, var(--ub-border, #c8c4bc));
+}
+
+button.quiet-button:disabled,
+.quiet-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .project-surface--empty {
   display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -4415,7 +4445,7 @@ select:disabled {
   justify-content: flex-start;
   align-items: center;
   overflow-x: clip;
-  padding: 1.5rem 1rem;
+  padding: 1.5rem 1rem 1rem;
   background: var(--ub-canvas, #f3f2ee);
 }
 
@@ -4427,7 +4457,6 @@ select:disabled {
 
 .project-home-card {
   flex: 0 0 auto;
-  align-self: center;
   width: min(40rem, 100%);
   max-width: 100%;
   box-sizing: border-box;

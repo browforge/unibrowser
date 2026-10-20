@@ -11,6 +11,8 @@ source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/new-project"
 ART="/opt/cursor/artifacts"
 mkdir -p "$OUT" "$ART"
+rm -f "$OUT"/empty-project-tab-v6-1280.png
+rm -f "$OUT"/empty-project-tab-v5-1280.png
 rm -f "$OUT"/*-v5-1280.png "$OUT"/*-v5-web-1280.png
 rm -f "$OUT"/*-v4-1280.png "$OUT"/*-v4-web-1280.png
 rm -f "$OUT"/*-v3-1280.png "$OUT"/*-v3-web-1280.png
@@ -21,6 +23,7 @@ capture_desktop() {
   local name="$1"
   local demo="$2"
   local open_path="${3:-}"
+  local version="${4:-v5}"
   local tmp="$OUT/.${name}.png"
   local demo_full="capture-ready,rail-collapsed,theme-light,standard-contrast,scale-100,cm-collapsed,${demo}"
   capture_config_prepare
@@ -37,16 +40,16 @@ capture_desktop() {
     UNIBROWSER_DEMO_STATE="$demo_full" \
     "$BIN" "${open_args[@]}" --doc-capture "$tmp"
   capture_config_cleanup
-  mv "$tmp" "$OUT/${name}-v5-1280.png"
-  cp "$OUT/${name}-v5-1280.png" "$ART/${name}-v5-1280.png" || true
-  [[ "$(identify -format '%wx%h' "$OUT/${name}-v5-1280.png")" == "1280x800" ]]
+  mv "$tmp" "$OUT/${name}-${version}-1280.png"
+  cp "$OUT/${name}-${version}-1280.png" "$ART/${name}-${version}-1280.png" || true
+  [[ "$(identify -format '%wx%h' "$OUT/${name}-${version}-1280.png")" == "1280x800" ]]
 }
 
 capture_desktop "new-tab-paper-card" "new-project-capture-ntp"
 capture_desktop "template-gallery-pick" "new-project-capture-gallery"
 capture_desktop "template-gallery-pick-office" "new-project-capture-gallery-office"
 capture_desktop "template-gallery-configure" "new-project-capture-configure"
-capture_desktop "empty-project-tab" "new-project-capture-empty"
+capture_desktop "empty-project-tab" "new-project-capture-empty" "" "v6"
 capture_desktop "office-template-project" "new-project-capture-office-project,text-card-render1"
 capture_desktop "presentation-template-project" "new-project-capture-presentation-project"
 capture_desktop "save-as-template" "new-project-capture-save-template"

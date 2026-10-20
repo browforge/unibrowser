@@ -17,7 +17,7 @@ EXPECTED = (
     "template-gallery-pick-v5-1280.png",
     "template-gallery-pick-office-v5-1280.png",
     "template-gallery-configure-v5-1280.png",
-    "empty-project-tab-v5-1280.png",
+    "empty-project-tab-v6-1280.png",
     "office-template-project-v5-1280.png",
     "presentation-template-project-v5-1280.png",
     "save-as-template-v5-1280.png",
@@ -28,7 +28,7 @@ EXPECTED = (
 
 FOCUS_CM = {
     "office-template-project-v5-1280.png": "office",
-    "empty-project-tab-v5-1280.png": "empty",
+    "empty-project-tab-v6-1280.png": "empty",
     "presentation-template-project-v5-1280.png": "presentation",
 }
 
@@ -63,6 +63,12 @@ def dom_gate_ok(cm: dict, kind: str) -> str | None:
             return f"empty project card height {card_h}px must be < 300"
         if dom.get("horizontalOverflow") is True:
             return "empty project capture has horizontal overflow"
+        center_delta = dom.get("projectHomeCardCenterDeltaX")
+        if center_delta is not None and float(center_delta) > 8:
+            return f"empty project card center delta {center_delta}px must be <= 8"
+        top_rel = dom.get("projectHomeCardTopRelative")
+        if top_rel is not None and float(top_rel) >= 80:
+            return f"empty project card top {top_rel}px must be < 80"
     return None
 
 
@@ -94,7 +100,8 @@ def main() -> int:
             seen[digest] = name
 
         if name in FOCUS_CM:
-            cm_path = OUT / f".{name.replace('-v5-1280.png', '')}.cm.json"
+            stem = re.sub(r"-v\d+-1280\.png$", "", name)
+            cm_path = OUT / f".{stem}.cm.json"
             alt_cm = path.with_suffix(".cm.json")
             cm_file = cm_path if cm_path.is_file() else alt_cm
             if not cm_file.is_file():
