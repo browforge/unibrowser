@@ -4919,6 +4919,33 @@ pub fn document_history_append_snapshot(
 }
 
 #[tauri::command]
+pub fn document_history_jump_to_seq(
+    window: tauri::Window,
+    state: State<AppState>,
+    path: String,
+    seq: u64,
+) -> Result<String, String> {
+    let content = crate::document_model_api::history_jump_for_path(&path, seq)?;
+    let _sess = ws(&state, &window)?;
+    _sess
+        .document_history_redo
+        .lock()
+        .map_err(|e| e.to_string())?
+        .remove(&path);
+    Ok(content)
+}
+
+#[tauri::command]
+pub fn document_history_trim_before(path: String, keep_from_seq: u64) -> Result<(), String> {
+    crate::document_model_api::history_trim_before_for_path(&path, keep_from_seq)
+}
+
+#[tauri::command]
+pub fn document_history_squash_range(path: String, from_seq: u64, to_seq: u64) -> Result<(), String> {
+    crate::document_model_api::history_squash_range_for_path(&path, from_seq, to_seq)
+}
+
+#[tauri::command]
 pub fn document_save_markdown_as_docx(
     markdown_path: String,
     model: unibrowser_document_model::DocumentModel,

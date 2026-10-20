@@ -12,7 +12,9 @@ test("HIST-04 panel lists ops from document_history_list", () => {
   assert.match(source, /history-panel-table/);
 });
 
-test("HIST-04 rollback and squash entry points are not wired in panel yet", () => {
-  assert.doesNotMatch(source, /rollback|truncate_head|squash|clean before sharing/i);
-  assert.doesNotMatch(source, /addEventListener\([^)]*click[^)]*seq/i);
+test("HIST-04 panel wires jump, labels, and grouping", () => {
+  assert.match(source, /groupHistoryRows/);
+  assert.match(source, /formatHistoryTimestamp/);
+  assert.match(source, /jumpHistoryToSeq/);
+  assert.match(source, /history-panel-confirm/);
 });

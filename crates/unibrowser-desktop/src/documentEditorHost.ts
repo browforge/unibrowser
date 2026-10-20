@@ -349,7 +349,7 @@ export async function syncDocumentEditorForTextTab(
     demo.includes("doc-mode-wysiwyg") ||
     demo.includes("doc-mode-reading") ||
     demo.includes("doc-mode-split") ||
-    demo.includes("doc-history-panel") ||
+    demo.includes("doc-history-") ||
     demo.includes("doc-visual-md-docx") ||
     demo.includes("doc-opaque-card") ||
     projectDocumentVisual;
@@ -401,6 +401,13 @@ export function seedDocumentModelSessionForDemo(response: DocumentParseResponse)
     source_map: response.source_map,
     original_base64: response.original_base64,
   };
+}
+
+export async function syncDocumentModelFromMarkdown(content: string): Promise<void> {
+  session = await parseMarkdownDocument(content);
+  if (getDocumentEditorMode() === "wysiwyg" || getDocumentEditorMode() === "reading") {
+    await renderRich();
+  }
 }
 
 /** After Save As DOCX, keep the visual model and resolve images from the markdown asset directory. */

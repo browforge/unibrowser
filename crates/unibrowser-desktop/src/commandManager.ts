@@ -24,7 +24,7 @@ function docFeatureCaptureDemoActive(): boolean {
   return (
     demo.includes("text-card-render1") &&
     (demo.includes("doc-opaque-card") ||
-      demo.includes("doc-history-panel") ||
+      demo.includes("doc-history-") ||
       demo.includes("doc-visual-md-docx") ||
       demo.includes("doc-mode-") ||
       demo.includes("doc-merge-banner"))

@@ -2,6 +2,7 @@
 
 pub mod docx;
 pub mod history;
+pub mod history_admin;
 pub mod history_file;
 pub mod history_undo;
 pub mod markdown;
@@ -19,6 +20,9 @@ pub use model::{
 pub use history_file::{
     append_document_op, list_ops, load_head, pop_last_op, push_op_entry, sidecar_path_for_file,
     truncate_head, HistoryLogEntry, LOG_MARKER,
+};
+pub use history_admin::{
+    jump_to_seq, session_state_at_seq, squash_op_range, trim_history_before,
 };
 pub use history_undo::{
     decode_snapshot_blob, encode_snapshot_blob, serialize_session_state, session_at_history_head,

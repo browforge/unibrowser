@@ -2278,6 +2278,11 @@ async function runUiCommand(commandId: string) {
     await refreshCommandManager();
     return;
   }
+  const { runHistoryCommand } = await import("./historyCommands");
+  if (await runHistoryCommand(commandId)) {
+    await refreshCommandManager();
+    return;
+  }
   await textEditor.flush();
   const msg = await invoke<string>("execute_command", { commandId });
   await processCommandResult(msg, commandId);
@@ -3487,7 +3492,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           const interactiveDocFeatureShot =
             demoLowerInteractive.includes("doc-mode-") ||
             demoLowerInteractive.includes("doc-opaque-card") ||
-            demoLowerInteractive.includes("doc-history-panel") ||
+            demoLowerInteractive.includes("doc-history-") ||
             demoLowerInteractive.includes("doc-merge-banner") ||
             demoLowerInteractive.includes("doc-visual-md-docx");
           if (interactiveDocFeatureShot) {
@@ -3694,7 +3699,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           const isDocFeatureShot =
             docCaptureDemo.toLowerCase().includes("doc-mode-") ||
             docCaptureDemo.toLowerCase().includes("doc-opaque-card") ||
-            docCaptureDemo.toLowerCase().includes("doc-history-panel") ||
+            docCaptureDemo.toLowerCase().includes("doc-history-") ||
             docCaptureDemo.toLowerCase().includes("doc-merge-banner") ||
             docCaptureDemo.toLowerCase().includes("doc-visual-md-docx") ||
             docVisualMdDocxCaptureShot;
@@ -4029,7 +4034,7 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
             requirePickerOpen: demoLower.includes("txt-block-picker-open"),
             requireH2Selected:
               demoLower.includes("txt-apply-h2") &&
-              !demoLower.includes("doc-history-panel"),
+              !demoLower.includes("doc-history-"),
             requireDocxEmulatedH1:
               demoLower.includes("txt-apply-h1") &&
               launchPaths.some((p) => /\.docx$/i.test(p)),

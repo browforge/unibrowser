@@ -2,10 +2,10 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use unibrowser_document_model::{
-    append_document_op, encode_snapshot_blob, list_ops, merge_source_text, parse_markdown,
-    pop_last_op, push_op_entry, serialize_session_state, session_at_history_head,
-    sidecar_path_for_file, source_projection, DocumentEditSession, DocumentHistoryOp,
-    DocumentModel, HistoryLogEntry, SourceMap,
+    append_document_op, encode_snapshot_blob, jump_to_seq, list_ops, merge_source_text,
+    parse_markdown, pop_last_op, push_op_entry, serialize_session_state, session_at_history_head,
+    sidecar_path_for_file, source_projection, squash_op_range, trim_history_before,
+    DocumentEditSession, DocumentHistoryOp, DocumentModel, HistoryLogEntry, SourceMap,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -159,6 +159,20 @@ pub fn try_undo_markdown_history(
     Ok(Some(serialize_session_state(&state)?))
 }
 
+pub fn history_jump_for_path(path: &str, seq: u64) -> Result<String, String> {
+    let p = Path::new(path);
+    let state = jump_to_seq(p, seq, "0.1.0")?;
+    serialize_session_state(&state)
+}
+
+pub fn history_trim_before_for_path(path: &str, keep_from_seq: u64) -> Result<(), String> {
+    trim_history_before(Path::new(path), keep_from_seq)
+}
+
+pub fn history_squash_range_for_path(path: &str, from_seq: u64, to_seq: u64) -> Result<(), String> {
+    squash_op_range(Path::new(path), from_seq, to_seq, "0.1.0")
+}
+
 pub fn try_redo_markdown_history(
     path: &str,
     redo: &mut Vec<HistoryLogEntry>,
@@ -262,6 +276,42 @@ mod hist_audit_tests {
             .expect("redo")
             .expect("content");
         assert!(redone.contains("Edited."));
+    }
+
+    #[test]
+    fn hist02_history_jump_returns_restored_markdown() {
+        let dir = tempdir().expect("tempdir");
+        let md = dir.path().join("note.md");
+        fs::write(&md, "# Hello\n\nWorld.\n").expect("write");
+        let parsed_a = parse_markdown(b"# Hello\n\nWorld.\n");
+        append_document_op(
+            &md,
+            &DocumentHistoryOp::Snapshot {
+                model: parsed_a.model,
+                source_map_blob: String::new(),
+            },
+            "0.1.0",
+        )
+        .expect("append a");
+        let parsed_b = parse_markdown(b"# Hello\n\nEdited.\n");
+        let blob_b = encode_snapshot_blob(
+            &parsed_b.source_map,
+            &base64_encode(b"# Hello\n\nEdited.\n"),
+        );
+        append_document_op(
+            &md,
+            &DocumentHistoryOp::Snapshot {
+                model: parsed_b.model,
+                source_map_blob: blob_b,
+            },
+            "0.1.0",
+        )
+        .expect("append b");
+        let jumped = history_jump_for_path(md.to_str().unwrap(), 1).expect("jump");
+        assert!(jumped.contains("World."));
+        assert!(!jumped.contains("Edited."));
+        let rows = history_list_for_path(md.to_str().unwrap()).expect("list");
+        assert_eq!(rows.len(), 3);
     }
 
     #[test]

@@ -109,6 +109,8 @@ pub mod commands {
     pub const FIND_IN_DOCUMENT: &str = "unibrowser.find.inDocument";
     pub const DOCUMENT_UNDO: &str = "unibrowser.document.undo";
     pub const DOCUMENT_REDO: &str = "unibrowser.document.redo";
+    pub const HISTORY_TRIM_BEFORE: &str = "unibrowser.history.trimBefore";
+    pub const HISTORY_SQUASH_SELECTION: &str = "unibrowser.history.squashSelection";
     pub const FORMAT_DOCUMENT: &str = "unibrowser.editor.formatDocument";
     pub const EXPORT_PRINT_PDF: &str = "unibrowser.export.printPdf";
     pub const PRINT_SELECTION: &str = "unibrowser.export.printSelection";

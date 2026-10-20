@@ -37,7 +37,7 @@ pub fn sidecar_path_for_file(authoritative: &Path) -> PathBuf {
         .join(format!("{}.unibrow-history", name))
 }
 
-fn now_rfc3339() -> String {
+pub fn now_rfc3339() -> String {
     let secs = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -45,7 +45,7 @@ fn now_rfc3339() -> String {
     format!("{}Z", secs)
 }
 
-fn read_header_and_ops(path: &Path) -> Result<(String, Vec<HistoryLogEntry>), String> {
+pub fn read_header_and_ops(path: &Path) -> Result<(String, Vec<HistoryLogEntry>), String> {
     if !path.is_file() {
         return Ok((default_header(), Vec::new()));
     }
@@ -85,7 +85,7 @@ fn default_header() -> String {
         .to_string()
 }
 
-fn write_file_atomic(path: &Path, header: &str, ops: &[HistoryLogEntry]) -> Result<(), String> {
+pub fn write_file_atomic(path: &Path, header: &str, ops: &[HistoryLogEntry]) -> Result<(), String> {
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     let tmp = path.with_extension("unibrow-history.part");

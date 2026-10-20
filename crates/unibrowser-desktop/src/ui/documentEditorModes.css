@@ -216,6 +216,24 @@ body.text-document-card.document-mode-reading .md-preview-shell {
   border-collapse: collapse;
 }
 
+.history-panel-table tr.is-selected td {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.history-panel-confirm {
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--surface-elevated);
+}
+
+.history-panel-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
 .history-panel-table th,
 .history-panel-table td {
   text-align: left;

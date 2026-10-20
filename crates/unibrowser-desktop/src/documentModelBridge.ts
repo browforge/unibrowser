@@ -120,9 +120,26 @@ export async function listDocumentHistory(path: string): Promise<
     op_type: string;
     timestamp: string;
     plugin_id: string;
+    payload?: Record<string, unknown>;
   }[]
 > {
   return invoke("document_history_list", { path });
+}
+
+export async function jumpDocumentHistory(path: string, seq: number): Promise<string> {
+  return invoke("document_history_jump_to_seq", { path, seq });
+}
+
+export async function trimDocumentHistoryBefore(path: string, keepFromSeq: number): Promise<void> {
+  await invoke("document_history_trim_before", { path, keepFromSeq });
+}
+
+export async function squashDocumentHistoryRange(
+  path: string,
+  fromSeq: number,
+  toSeq: number,
+): Promise<void> {
+  await invoke("document_history_squash_range", { path, fromSeq, toSeq });
 }
 
 export async function saveDocxFromModel(path: string, model: DocumentModelDto): Promise<unknown> {

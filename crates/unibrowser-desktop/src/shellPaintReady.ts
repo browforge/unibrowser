@@ -292,9 +292,16 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         checks.push(() => Boolean(document.querySelector(".rich-text-opaque-parse")));
         break;
       case "doc-history-panel":
+      case "doc-history-jump":
         checks.push(() => {
           const pane = document.getElementById("bottom-panel-history-pane");
-          return Boolean(pane && !pane.classList.contains("hidden"));
+          if (!pane || pane.classList.contains("hidden")) {
+            return false;
+          }
+          if (token === "doc-history-jump") {
+            return document.body.dataset.ubHistoryJumpCapture === "1";
+          }
+          return true;
         });
         break;
       case "new-project-capture-empty":
@@ -386,7 +393,7 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     checks.push(richTextSplitPreviewReady);
   } else if (
     !tokens.includes("doc-opaque-card") &&
-    !tokens.includes("doc-history-panel") &&
+    !tokens.some((t) => t.startsWith("doc-history-")) &&
     (joined.includes(".txt") ||
       joined.includes(".md") ||
       joined.includes(".markdown") ||

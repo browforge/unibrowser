@@ -1462,7 +1462,7 @@ export function validateDocumentFeatureCaptureDom(): string | null {
   if (
     !demo.includes("doc-mode-") &&
     !demo.includes("doc-opaque-card") &&
-    !demo.includes("doc-history-panel") &&
+    !demo.includes("doc-history-") &&
     !demo.includes("doc-merge-banner") &&
     !demo.includes("doc-visual-md-docx")
   ) {
@@ -1526,7 +1526,7 @@ export function validateDocumentFeatureCaptureChrome(): string | null {
   if (
     !demo.includes("doc-mode-") &&
     !demo.includes("doc-opaque-card") &&
-    !demo.includes("doc-history-panel") &&
+    !demo.includes("doc-history-") &&
     !demo.includes("doc-merge-banner") &&
     !demo.includes("doc-visual-docx") &&
     !demo.includes("doc-visual-md-docx")
@@ -1572,7 +1572,7 @@ export function validateCommandManagerForCapture(minVisible = 6, minContrast = 6
     return null;
   }
   const demoTokens = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
-  if (demoTokens.includes("doc-opaque-card") || demoTokens.includes("doc-history-panel")) {
+  if (demoTokens.includes("doc-opaque-card") || demoTokens.includes("doc-history-")) {
     return null;
   }
   const cm = collectCommandManagerDiagnostics();

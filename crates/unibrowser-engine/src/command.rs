@@ -284,6 +284,20 @@ impl CommandRegistry {
             aliases: &["repeat change"],
         });
         reg.register_command(CommandMeta {
+            id: commands::HISTORY_TRIM_BEFORE,
+            title: "Trim history before here",
+            icon: "history",
+            default_keybinding: None,
+            aliases: &["clean history before", "drop older edits"],
+        });
+        reg.register_command(CommandMeta {
+            id: commands::HISTORY_SQUASH_SELECTION,
+            title: "Squash selection",
+            icon: "history",
+            default_keybinding: None,
+            aliases: &["squash history", "collapse history range"],
+        });
+        reg.register_command(CommandMeta {
             id: commands::EXPORT_PRINT_PDF,
             title: "Export",
             icon: "export",

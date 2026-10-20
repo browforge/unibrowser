@@ -211,7 +211,7 @@ function docFeatureCardLabel(demoRaw: string): string | null {
     return "sample-opaque.md";
   }
   if (
-    demo.includes("doc-history-panel") ||
+    demo.includes("doc-history-") ||
     demo.includes("doc-visual-md-docx") ||
     demo.includes("doc-mode-") ||
     demo.includes("doc-merge-banner")
@@ -297,7 +297,7 @@ export async function ensureDocFeatureCaptureLayout(
   const label = cardLabel ?? activePath.split(/[/\\]/).pop() ?? null;
   forceDocFeatureCaptureLayout(label);
 
-  if (demo.includes("doc-history-panel")) {
+  if (demo.includes("doc-history-")) {
     const { setDocumentEditorMode } = await import("../documentEditorModes");
     setDocumentEditorMode("wysiwyg", false);
     const { syncDocumentEditorSurfaceVisibility } = await import("../documentEditorHost");

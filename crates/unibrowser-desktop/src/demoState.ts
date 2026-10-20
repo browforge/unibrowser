@@ -183,7 +183,8 @@ export async function applyDemoState(raw: string) {
         syncTextDocumentCard(true, "sample-opaque.md");
         break;
       }
-      case "doc-history-panel": {
+      case "doc-history-panel":
+      case "doc-history-jump": {
         await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("wysiwyg", false);
@@ -200,20 +201,37 @@ export async function applyDemoState(raw: string) {
             emulation_note: null,
           },
         }).catch(() => undefined);
+        for (const text of ["Al", "Alp", "Alpha"]) {
+          await invoke("document_history_append", {
+            path: docPath,
+            op: {
+              op_type: "base-text.text.replace",
+              block_id: "b2",
+              from: 0,
+              to: 4,
+              text,
+              marks: [],
+            },
+          }).catch(() => undefined);
+        }
         await invoke("document_history_append", {
           path: docPath,
           op: {
-            op_type: "base-text.text.replace",
-            block_id: "b2",
-            from: 0,
-            to: 4,
-            text: "Demo",
-            marks: [],
+            op_type: "base-text.block.set_style",
+            block_id: "b3",
+            style: "blockquote",
+            emulation_note: null,
           },
         }).catch(() => undefined);
         const { showHistoryPanelTab, refreshHistoryPanel } = await import("./historyPanel");
         showHistoryPanelTab();
         await refreshHistoryPanel(docPath);
+        if (token === "doc-history-jump") {
+          const { jumpHistoryToSeq } = await import("./historyCommands");
+          await jumpHistoryToSeq(docPath, 1);
+          await refreshHistoryPanel(docPath);
+          document.body.dataset.ubHistoryJumpCapture = "1";
+        }
         await new Promise((r) => window.setTimeout(r, 250));
         const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
         dismissDocCaptureChrome();
