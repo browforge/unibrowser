@@ -24,14 +24,16 @@ EXPECTED = (
     "docx-tab-breadcrumb-v5-1280.png",
     "new-tab-paper-card-v5-web-1280.png",
     "template-gallery-pick-v5-web-1280.png",
-    "relationship-consent-v1-1280.png",
-    "first-save-dialog-v1-1280.png",
+    "relationship-consent-v2-1280.png",
+    "first-save-dialog-v2-1280.png",
 )
 
 FOCUS_CM = {
     "office-template-project-v5-1280.png": "office",
     "empty-project-tab-v6-1280.png": "empty",
     "presentation-template-project-v5-1280.png": "presentation",
+    "relationship-consent-v2-1280.png": "consent",
+    "first-save-dialog-v2-1280.png": "first_save",
 }
 
 
@@ -71,6 +73,18 @@ def dom_gate_ok(cm: dict, kind: str) -> str | None:
         top_rel = dom.get("projectHomeCardTopRelative")
         if top_rel is not None and float(top_rel) >= 80:
             return f"empty project card top {top_rel}px must be < 80"
+    if kind == "consent":
+        panel_h = dom.get("relationshipConsentPanelHeight")
+        vh = float(cm.get("viewportHeight") or 800)
+        if panel_h is None:
+            return "relationship consent capture missing panel height diagnostic"
+        if float(panel_h) / vh >= 0.7:
+            return f"relationship consent panel height {panel_h}px must be < 70% of viewport"
+        if dom.get("relationshipConsentUsesListBullets") is True:
+            return "relationship consent capture must not use list-style bullets"
+    if kind == "first_save":
+        if dom.get("firstSaveCancelButtonPresent") is not True:
+            return "first-save capture must include Cancel button"
     return None
 
 

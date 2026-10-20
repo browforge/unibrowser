@@ -1264,6 +1264,9 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   projectHomeCardCenterDeltaX: number | null;
   horizontalOverflow: boolean;
   presentationToolbarThemed: boolean;
+  relationshipConsentPanelHeight: number | null;
+  relationshipConsentUsesListBullets: boolean;
+  firstSaveCancelButtonPresent: boolean;
 }
 
 export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDiagnostics {
@@ -1372,6 +1375,31 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
         Boolean(btn.querySelector(".ub-icon[data-lucide]")),
     );
 
+  const consentPanel = document.querySelector<HTMLElement>(".relationship-consent-panel");
+  const consentRect = consentPanel?.getBoundingClientRect();
+  const relationshipConsentPanelHeight = consentRect ? consentRect.height : null;
+  let relationshipConsentUsesListBullets = false;
+  if (consentPanel) {
+    for (const list of consentPanel.querySelectorAll("ul, ol")) {
+      const style = getComputedStyle(list);
+      if (style.listStyleType !== "none" && style.listStyleType !== "") {
+        relationshipConsentUsesListBullets = true;
+        break;
+      }
+      if (list.querySelector("li") && style.listStylePosition !== "inside") {
+        const liStyle = getComputedStyle(list.querySelector("li")!);
+        if (liStyle.display === "list-item") {
+          relationshipConsentUsesListBullets = true;
+          break;
+        }
+      }
+    }
+  }
+  const firstSavePanel = document.querySelector<HTMLElement>(".first-save-panel");
+  const firstSaveCancelButtonPresent = Boolean(
+    firstSavePanel?.querySelector(".first-save-actions .quiet-button"),
+  );
+
   return {
     visibleDocumentCardCount: cards.length,
     commandManagerVisible,
@@ -1390,6 +1418,9 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     projectHomeCardCenterDeltaX,
     horizontalOverflow,
     presentationToolbarThemed,
+    relationshipConsentPanelHeight,
+    relationshipConsentUsesListBullets,
+    firstSaveCancelButtonPresent,
   };
 }
 
@@ -2524,6 +2555,28 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     const emptyLayoutErr = validateEmptyProjectHomeCardLayout();
     if (emptyLayoutErr) {
       return emptyLayoutErr;
+    }
+  }
+  if (demo.includes("relationship-consent")) {
+    const dom = collectDocumentFeatureCaptureDom();
+    const panelH = dom.relationshipConsentPanelHeight;
+    if (panelH === null) {
+      return "relationship consent capture requires consent panel";
+    }
+    if (panelH / window.innerHeight >= 0.7) {
+      return `relationship consent panel height ${panelH.toFixed(0)}px must be < 70% of viewport`;
+    }
+    if (dom.relationshipConsentUsesListBullets) {
+      return "relationship consent capture must not use list-style bullets";
+    }
+  }
+  if (demo.includes("first-save")) {
+    const dom = collectDocumentFeatureCaptureDom();
+    if (!dom.firstSaveCancelButtonPresent) {
+      return "first-save capture requires Cancel button in dialog actions";
+    }
+    if (!document.querySelector(".first-save-path-preview")?.textContent?.trim()) {
+      return "first-save capture requires path preview";
     }
   }
   if (demo.includes("office-project")) {

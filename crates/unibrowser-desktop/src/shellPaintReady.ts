@@ -336,6 +336,20 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           ),
         );
         break;
+      case "new-project-capture-relationship-consent":
+        checks.push(() =>
+          Boolean(document.querySelector(".relationship-consent-panel .relationship-consent-sections")),
+        );
+        break;
+      case "new-project-capture-first-save":
+        checks.push(() =>
+          Boolean(
+            document.querySelector(
+              ".first-save-panel .first-save-path-preview, .first-save-panel .first-save-actions .quiet-button",
+            ),
+          ),
+        );
+        break;
       default:
         break;
     }

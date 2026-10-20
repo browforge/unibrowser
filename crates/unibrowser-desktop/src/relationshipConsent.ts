@@ -1,3 +1,5 @@
+import { createLucideIcon } from "./ui/lucideIcon";
+import { t } from "./i18n";
 import {
   conflictingEnabledIds,
   isRelationshipCreateBlocked,
@@ -22,6 +24,83 @@ export interface RelationshipConsentResult {
   enabledRecommends: string[];
   enabledOptional: string[];
   cancelled: boolean;
+}
+
+function formatPluginLabel(id: string): string {
+  return id
+    .split(/[-_.]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function appendPluginRow(
+  container: HTMLElement,
+  id: string,
+  description: string,
+  kind: "required" | "recommend" | "optional" | "incompatible",
+): void {
+  const row = document.createElement("div");
+  row.className = `relationship-consent-row relationship-consent-row--${kind}`;
+  const control = document.createElement("div");
+  control.className = "relationship-consent-row-control";
+  if (kind === "required") {
+    control.appendChild(createLucideIcon("lock", 16, "ub-icon svg-icon"));
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = true;
+    cb.disabled = true;
+    cb.dataset.pluginId = id;
+    cb.setAttribute("aria-label", formatPluginLabel(id));
+    control.appendChild(cb);
+  } else if (kind === "incompatible") {
+    control.appendChild(createLucideIcon("triangle-alert", 16, "ub-icon svg-icon"));
+  } else {
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = kind === "recommend";
+    cb.dataset.pluginId = id;
+    cb.className = kind === "recommend" ? "consent-recommend" : "consent-optional";
+    control.appendChild(cb);
+  }
+  const body = document.createElement("div");
+  body.className = "relationship-consent-row-body";
+  const name = document.createElement("div");
+  name.className = "relationship-consent-row-name";
+  name.textContent = formatPluginLabel(id);
+  const desc = document.createElement("div");
+  desc.className = "relationship-consent-row-desc";
+  desc.textContent = description;
+  body.append(name, desc);
+  if (kind === "incompatible") {
+    row.append(control, body);
+  } else {
+    const label = document.createElement("label");
+    label.className = "relationship-consent-row-label";
+    label.append(control, body);
+    row.appendChild(label);
+  }
+  container.appendChild(row);
+}
+
+function appendSection(
+  parent: HTMLElement,
+  heading: string,
+  build: (rows: HTMLElement) => void,
+): void {
+  const section = document.createElement("section");
+  section.className = "relationship-consent-section";
+  const h = document.createElement("h3");
+  h.className = "relationship-consent-section-heading";
+  h.textContent = heading;
+  const rows = document.createElement("div");
+  rows.className = "relationship-consent-rows";
+  build(rows);
+  if (!rows.childElementCount) {
+    return;
+  }
+  section.append(h, rows);
+  parent.appendChild(section);
 }
 
 /** ADR 0037 relationship consent sheet before template Create. */
@@ -52,95 +131,92 @@ export function confirmTemplateRelationships(
     panel.appendChild(title);
 
     const lead = document.createElement("p");
-    lead.className = "viewer-note";
+    lead.className = "viewer-note relationship-consent-lead";
     lead.textContent =
       "This template may enable plugins. Required items stay on; you can uncheck recommendations and optional integrations.";
     panel.appendChild(lead);
 
-    const list = document.createElement("ul");
-    list.className = "relationship-consent-list";
-    requires.forEach((id) => {
-      const li = document.createElement("li");
-      li.className = "relationship-consent-required";
-      const label = document.createElement("label");
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = true;
-      cb.disabled = true;
-      cb.dataset.pluginId = id;
-      const reason = relationshipReason(
-        relationships.requires[id],
-        "Required for this template.",
-      );
-      label.append(
-        cb,
-        document.createTextNode(` Required: ${id} — ${reason}`),
-      );
-      li.appendChild(label);
-      list.appendChild(li);
-    });
-    recommends.forEach((id) => {
-      const li = document.createElement("li");
-      const label = document.createElement("label");
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = true;
-      cb.dataset.pluginId = id;
-      cb.className = "consent-recommend";
-      const reason = relationshipReason(
-        relationships.recommends[id],
-        "Recommended companion plugin.",
-      );
-      label.append(cb, document.createTextNode(` Recommended: ${id} — ${reason}`));
-      li.appendChild(label);
-      list.appendChild(li);
-    });
-    optional.forEach((id) => {
-      const li = document.createElement("li");
-      const label = document.createElement("label");
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = false;
-      cb.dataset.pluginId = id;
-      cb.className = "consent-optional";
-      const reason = relationshipReason(
-        relationships.optional[id],
-        "Optional integration.",
-      );
-      label.append(cb, document.createTextNode(` Optional: ${id} — ${reason}`));
-      li.appendChild(label);
-      list.appendChild(li);
-    });
-    if (conflicts.length) {
-      const li = document.createElement("li");
-      li.className = "relationship-consent-incompatible";
-      conflicts.forEach((id) => {
-        const reason = relationshipReason(
-          relationships.incompatible[id],
-          "Cannot run with this template.",
+    const sections = document.createElement("div");
+    sections.className = "relationship-consent-sections";
+
+    appendSection(sections, "Required", (rows) => {
+      requires.forEach((id) => {
+        appendPluginRow(
+          rows,
+          id,
+          relationshipReason(relationships.requires[id], "Required for this template."),
+          "required",
         );
-        li.appendChild(document.createTextNode(` Incompatible: ${id} — ${reason}`));
       });
-      list.appendChild(li);
+    });
+    appendSection(sections, "Recommended", (rows) => {
+      recommends.forEach((id) => {
+        appendPluginRow(
+          rows,
+          id,
+          relationshipReason(relationships.recommends[id], "Recommended companion plugin."),
+          "recommend",
+        );
+      });
+    });
+    appendSection(sections, "Optional", (rows) => {
+      optional.forEach((id) => {
+        appendPluginRow(
+          rows,
+          id,
+          relationshipReason(relationships.optional[id], "Optional integration."),
+          "optional",
+        );
+      });
+    });
+    appendSection(sections, "Incompatible", (rows) => {
+      conflicts.forEach((id) => {
+        appendPluginRow(
+          rows,
+          id,
+          relationshipReason(relationships.incompatible[id], "Cannot run with this template."),
+          "incompatible",
+        );
+      });
+    });
+
+    if (!sections.childElementCount) {
+      const empty = document.createElement("p");
+      empty.className = "viewer-note";
+      empty.textContent = "No plugin relationships declared for this template.";
+      panel.appendChild(empty);
+    } else {
+      panel.appendChild(sections);
     }
-    if (!requires.length && !recommends.length && !optional.length && !conflicts.length) {
-      const li = document.createElement("li");
-      li.textContent = "No plugin relationships declared for this template.";
-      list.appendChild(li);
-    }
-    panel.appendChild(list);
 
     if (missing.length) {
-      const note = document.createElement("p");
-      note.className = "relationship-consent-missing viewer-note";
-      note.textContent = `Install missing plugins before creating: ${missing.join(", ")}`;
-      panel.appendChild(note);
+      const callout = document.createElement("div");
+      callout.className = "relationship-consent-callout";
+      callout.setAttribute("role", "note");
+      const icon = createLucideIcon("info", 18, "ub-icon svg-icon");
+      const copy = document.createElement("div");
+      copy.className = "relationship-consent-callout-copy";
+      const calloutLead = document.createElement("p");
+      calloutLead.textContent = t("relationshipConsent.missingLead", {
+        plugins: missing.map(formatPluginLabel).join(", "),
+      });
+      copy.appendChild(calloutLead);
+      const install = document.createElement("button");
+      install.type = "button";
+      install.className = "primary";
+      install.textContent = t("relationshipConsent.install");
+      install.onclick = () => {
+        window.dispatchEvent(new CustomEvent("unibrowser-open-mod-portal-templates"));
+      };
+      callout.append(icon, copy, install);
+      panel.appendChild(callout);
     }
 
     const actions = document.createElement("div");
-    actions.className = "template-gallery-actions";
+    actions.className = "template-gallery-actions relationship-consent-actions";
     const cancel = document.createElement("button");
     cancel.type = "button";
+    cancel.className = "quiet-button";
     cancel.textContent = "Cancel";
     const create = document.createElement("button");
     create.type = "button";
