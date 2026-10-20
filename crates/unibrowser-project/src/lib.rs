@@ -1,9 +1,16 @@
 //! Minimal `.unibrow` directory bundle ([ADR 0015](../../docs/adr/0015-native-project-format.md)).
 
+mod opc_bundle;
 mod zip_bundle;
 mod timeline_encode;
 mod layer_transform;
 mod template;
+
+pub use opc_bundle::{
+    content_hash_hex, ensure_package_history_file, ensure_unpacked_package_layout,
+    is_content_hash_asset_name, is_legacy_unibrow_zip, is_opc_unibrow_zip, opc_part_bytes_equal,
+    opc_part_map, PackageContainerManifest, write_legacy_plain_zip,
+};
 
 pub use template::{
     apply_project_json_to_package, apply_template_project, create_memory_package,
@@ -29,6 +36,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub const PROJECT_FILE: &str = "project.json";
+pub const MANIFEST_FILE: &str = "manifest.json";
+pub const HISTORY_FILE: &str = ".unibrow-history";
+pub const CONTAINER_FORMAT_VERSION: u32 = 1;
 pub const DIR_ASSETS: &str = "assets";
 pub const DIR_REFS: &str = "refs";
 pub const DIR_DERIVED: &str = "derived";
@@ -262,6 +272,12 @@ pub fn is_unibrow_path(path: &Path) -> bool {
     if path.is_dir() && path.join(PROJECT_FILE).is_file() {
         return true;
     }
+    if path.is_dir()
+        && path.join(MANIFEST_FILE).is_file()
+        && path.join(PROJECT_FILE).is_file()
+    {
+        return true;
+    }
     zip_bundle::is_unibrow_zip_file(path)
 }
 
@@ -348,6 +364,8 @@ pub fn create_package(root: &Path, title: &str) -> Result<ProjectPackage, Projec
     fs::create_dir_all(root.join(DIR_REFS))?;
     fs::create_dir_all(root.join(DIR_DERIVED))?;
     let manifest = ProjectManifest::empty(title);
+    opc_bundle::write_container_manifest(root, &manifest)?;
+    opc_bundle::ensure_package_history_file(root)?;
     write_manifest(root, &manifest)?;
     Ok(ProjectPackage {
         root: root.to_path_buf(),
@@ -1026,10 +1044,21 @@ pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
     let data = fs::read_to_string(&manifest_path)?;
     let manifest: ProjectManifest = serde_json::from_str(&data)?;
     validate_manifest(&manifest)?;
+    if root.join(MANIFEST_FILE).is_file() {
+        let container_data = fs::read_to_string(root.join(MANIFEST_FILE))?;
+        let _container: PackageContainerManifest = serde_json::from_str(&container_data)?;
+    }
     Ok(ProjectPackage {
         root: root.to_path_buf(),
         manifest,
     })
+}
+
+/// Unpacked native package (ADR 0032 §2b): `manifest.json` + `project.json` at the root.
+pub fn is_unpacked_native_package(root: &Path) -> bool {
+    root.is_dir()
+        && root.join(MANIFEST_FILE).is_file()
+        && root.join(PROJECT_FILE).is_file()
 }
 
 pub fn write_manifest(root: &Path, manifest: &ProjectManifest) -> Result<(), ProjectError> {
@@ -1042,6 +1071,9 @@ pub fn write_manifest(root: &Path, manifest: &ProjectManifest) -> Result<(), Pro
         to_write.title = "Untitled project".into();
     }
     validate_manifest_for_save(&to_write)?;
+    opc_bundle::migrate_assets_to_content_hashes(root, &mut to_write)?;
+    opc_bundle::write_container_manifest(root, &to_write)?;
+    opc_bundle::ensure_package_history_file(root)?;
     let data = serde_json::to_string_pretty(&to_write)?;
     let dest = root.join(PROJECT_FILE);
     unibrowser_fs::atomic_write(&dest, data.as_bytes()).map_err(|e| ProjectError::Msg(e.to_string()))?;
@@ -1236,13 +1268,12 @@ pub fn add_asset_copy(
         return Err(ProjectError::Msg("source is not a file".into()));
     }
     let id = format!("node-{}", package.manifest.nodes.len() + 1);
-    let original_name = source
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "asset".into());
-    let file_name = unique_asset_file_name(package, &original_name);
+    let bytes = fs::read(source)?;
+    let file_name = content_hash_hex(&bytes);
     let dest = package.root.join(DIR_ASSETS).join(&file_name);
-    fs::copy(source, &dest)?;
+    if !dest.is_file() {
+        fs::write(&dest, &bytes)?;
+    }
     let (x, y) = default_board_position(package.manifest.nodes.len());
     let node = ProjectNode {
         id,
@@ -1328,9 +1359,16 @@ pub fn remove_node(package: &mut ProjectPackage, node_id: &str) -> Result<(), Pr
         .ok_or_else(|| ProjectError::Msg(format!("unknown node {}", node_id)))?;
     let node = package.manifest.nodes.remove(idx);
     if let Some(asset) = node.asset {
-        let path = package.root.join(DIR_ASSETS).join(asset);
-        if path.is_file() {
-            let _ = fs::remove_file(path);
+        let still_used = package
+            .manifest
+            .nodes
+            .iter()
+            .any(|n| n.asset.as_deref() == Some(asset.as_str()));
+        if !still_used {
+            let path = package.root.join(DIR_ASSETS).join(asset);
+            if path.is_file() {
+                let _ = fs::remove_file(path);
+            }
         }
     }
     write_manifest(&package.root, &package.manifest)?;
@@ -1355,6 +1393,12 @@ pub fn rename_node_label(
     let old_name = package.manifest.nodes[idx].asset.clone();
     let mut new_asset = old_name.clone();
     if let Some(ref old_name) = old_name {
+        if is_content_hash_asset_name(old_name) {
+            let node = &mut package.manifest.nodes[idx];
+            node.label = label.to_string();
+            write_manifest(&package.root, &package.manifest)?;
+            return Ok(());
+        }
         let assets_dir = package.root.join(DIR_ASSETS);
         let old_path = assets_dir.join(old_name);
         if old_path.is_file() {
@@ -1476,7 +1520,10 @@ mod tests {
         let second = incoming.join("photo.png");
         fs::write(&second, b"2").unwrap();
         let node = add_asset_copy(&mut pkg, &second, "image", "second").expect("dup");
-        assert_eq!(node.asset.as_deref(), Some("photo-2.png"));
+        let first_hash = pkg.manifest.nodes[0].asset.clone().unwrap();
+        let second_hash = node.asset.clone().unwrap();
+        assert_ne!(first_hash, second_hash);
+        assert!(is_content_hash_asset_name(&first_hash));
         let _ = fs::remove_dir_all(&dir);
     }
 
@@ -1511,7 +1558,7 @@ mod tests {
         let id = node.id.clone();
         remove_node(&mut pkg, &id).expect("remove");
         assert!(pkg.manifest.nodes.is_empty());
-        assert!(!dir.join(DIR_ASSETS).join("x.txt").is_file());
+        assert!(fs::read_dir(dir.join(DIR_ASSETS)).unwrap().count() == 0);
         let _ = fs::remove_dir_all(&dir);
     }
 
@@ -1526,9 +1573,9 @@ mod tests {
         let id = node.id.clone();
         rename_node_label(&mut pkg, &id, "My Asset").expect("rename");
         assert_eq!(pkg.manifest.nodes[0].label, "My Asset");
-        assert_eq!(pkg.manifest.nodes[0].asset.as_deref(), Some("my-asset.txt"));
-        assert!(dir.join(DIR_ASSETS).join("my-asset.txt").is_file());
-        assert!(!dir.join(DIR_ASSETS).join("incoming.txt").is_file());
+        let hash = pkg.manifest.nodes[0].asset.clone().unwrap();
+        assert!(is_content_hash_asset_name(&hash));
+        assert!(dir.join(DIR_ASSETS).join(hash).is_file());
         let _ = fs::remove_dir_all(&dir);
     }
 

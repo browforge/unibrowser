@@ -10,7 +10,7 @@ use zip::{ZipWriter, write::FileOptions};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ProjectError, PROJECT_FILE, DIR_DERIVED};
+use crate::{opc_bundle, ProjectError, PROJECT_FILE, DIR_DERIVED};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ZipEntrySummary {
@@ -167,21 +167,6 @@ mod tests {
     }
 }
 
-fn zip_has_root_manifest(path: &Path) -> Result<bool, ProjectError> {
-    let file = File::open(path)?;
-    let mut archive = ZipArchive::new(file)?;
-    for i in 0..archive.len() {
-        let entry = archive
-            .by_index(i)
-            .map_err(|e| ProjectError::Msg(e.to_string()))?;
-        let norm = entry.name().replace('\\', "/");
-        if norm == PROJECT_FILE || norm.ends_with(&format!("/{}", PROJECT_FILE)) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
 pub fn is_unibrow_zip_file(path: &Path) -> bool {
     if !path.is_file() {
         return false;
@@ -193,7 +178,7 @@ pub fn is_unibrow_zip_file(path: &Path) -> bool {
     if !ext.eq_ignore_ascii_case("unibrow") {
         return false;
     }
-    zip_has_root_manifest(path).unwrap_or(false)
+    opc_bundle::is_opc_unibrow_zip(path) || opc_bundle::is_legacy_unibrow_zip(path)
 }
 
 pub fn export_directory_to_zip(root: &Path, dest_zip: &Path) -> Result<(), ProjectError> {
@@ -210,19 +195,7 @@ fn export_directory_to_zip_filtered(
     dest_zip: &Path,
     skip_derived: bool,
 ) -> Result<(), ProjectError> {
-    if !root.is_dir() || !root.join(PROJECT_FILE).is_file() {
-        return Err(ProjectError::NotPackage(PROJECT_FILE.into()));
-    }
-    if let Some(parent) = dest_zip.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let file = File::create(dest_zip)?;
-    let mut zip = ZipWriter::new(file);
-    let options: FileOptions<'_, ()> = SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
-    walk_export(root, root, &mut zip, options, skip_derived)?;
-    zip.finish().map_err(|e| ProjectError::Msg(e.to_string()))?;
-    Ok(())
+    opc_bundle::write_opc_zip_from_root(root, dest_zip, skip_derived)
 }
 
 /// Import a share zip into `parent_dir/{name}.unibrow/` (directory bundle).
@@ -271,6 +244,11 @@ pub fn import_share_zip_into_parent(
     if !dest.join(PROJECT_FILE).is_file() {
         let _ = fs::remove_dir_all(&dest);
         return Err(ProjectError::NotPackage(PROJECT_FILE.into()));
+    }
+    if let Ok(data) = fs::read_to_string(dest.join(PROJECT_FILE)) {
+        if let Ok(mut manifest) = serde_json::from_str::<crate::ProjectManifest>(&data) {
+            let _ = opc_bundle::ensure_unpacked_package_layout(&dest, &mut manifest);
+        }
     }
     Ok(dest)
 }
@@ -321,26 +299,7 @@ pub fn materialize_zip_package(zip_path: &Path, cache_dir: &Path) -> Result<Path
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "package".into());
     let dest = cache_dir.join(stem);
-    if dest.exists() {
-        fs::remove_dir_all(&dest)?;
-    }
-    fs::create_dir_all(&dest)?;
-    let file = File::open(zip_path)?;
-    let mut archive = ZipArchive::new(file)?;
-    for i in 0..archive.len() {
-        let mut entry = archive.by_index(i).map_err(|e| ProjectError::Msg(e.to_string()))?;
-        let name = entry.name().replace('\\', "/");
-        if name.ends_with('/') {
-            fs::create_dir_all(dest.join(&name))?;
-            continue;
-        }
-        let out_path = dest.join(&name);
-        if let Some(parent) = out_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let mut out = File::create(&out_path)?;
-        std::io::copy(&mut entry, &mut out)?;
-    }
+    opc_bundle::materialize_zip_to_dir(zip_path, &dest)?;
     if !dest.join(PROJECT_FILE).is_file() {
         return Err(ProjectError::NotPackage(PROJECT_FILE.into()));
     }

@@ -6,9 +6,12 @@ license.workspace = true
 description = "Native .unibrow project package (ADR 0015)"
 
 [dependencies]
+unibrowser-document-model = { path = "../unibrowser-document-model" }
 unibrowser-fs = { path = "../unibrowser-fs" }
+hex = "0.4"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sha2 = "0.10"
 thiserror = { workspace = true }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 

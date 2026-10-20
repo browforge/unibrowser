@@ -1,15 +1,18 @@
-//! PKG-01..08 audit probes (ADR 0032). Tests document current behaviour on main.
+//! PKG-01..08 audit probes (ADR 0032).
 
 use std::fs::{self, File};
 use std::path::Path;
+use std::process::Command;
 
 use zip::read::ZipArchive;
 use zip::CompressionMethod;
 
 use unibrowser_project::{
-    add_asset_copy, create_package, export_package_to_zip, import_share_package_zip,
-    is_unibrow_path, list_zip_archive_entries, materialize_zip_package, open_package,
-    resolve_package_root, DIR_ASSETS, DIR_REFS, PROJECT_FILE,
+    add_asset_copy, content_hash_hex, create_package, export_package_to_zip,
+    import_share_package_zip, is_legacy_unibrow_zip, is_opc_unibrow_zip, is_unibrow_path,
+    is_unpacked_native_package, list_zip_archive_entries, materialize_zip_package, open_package,
+    opc_part_bytes_equal, resolve_package_root, write_legacy_plain_zip, write_manifest,
+    DIR_ASSETS, HISTORY_FILE, MANIFEST_FILE, PROJECT_FILE,
 };
 
 fn zip_compression_for(path: &Path, entry_name: &str) -> CompressionMethod {
@@ -32,44 +35,36 @@ fn temp_root(label: &str) -> std::path::PathBuf {
 // --- PKG-01: OPC archive layout and compression policy ---
 
 #[test]
-fn pkg01_exported_zip_lacks_opc_content_types() {
+fn pkg01_exported_zip_has_opc_content_types_and_rels() {
     let dir = temp_root("opc");
     let _ = fs::remove_dir_all(&dir);
     let _pkg = create_package(&dir, "Opc").expect("create");
     let zip_path = dir.with_extension("unibrow");
     export_package_to_zip(&dir, &zip_path).expect("export");
+    assert!(is_opc_unibrow_zip(&zip_path));
     let listed = list_zip_archive_entries(&zip_path, 200).expect("list");
-    assert!(
-        !listed.iter().any(|e| e.path == "[Content_Types].xml"),
-        "ADR 0032 OPC part missing today"
-    );
-    assert!(
-        !listed.iter().any(|e| e.path.starts_with("_rels/")),
-        "OPC relationships missing today"
-    );
+    assert!(listed.iter().any(|e| e.path == "[Content_Types].xml"));
+    assert!(listed.iter().any(|e| e.path == "_rels/.rels"));
     let _ = fs::remove_dir_all(&dir);
     let _ = fs::remove_file(&zip_path);
 }
 
 #[test]
-fn pkg01_export_has_project_json_not_manifest_json() {
+fn pkg01_export_has_manifest_and_project_json() {
     let dir = temp_root("manifest");
     let _ = fs::remove_dir_all(&dir);
     let _pkg = create_package(&dir, "M").expect("create");
     let zip_path = dir.with_extension("unibrow");
     export_package_to_zip(&dir, &zip_path).expect("export");
     let listed = list_zip_archive_entries(&zip_path, 200).expect("list");
-    assert!(listed.iter().any(|e| e.path == "project.json" || e.path.ends_with("project.json")));
-    assert!(
-        !listed.iter().any(|e| e.path == "manifest.json"),
-        "ADR 0032 root manifest.json not implemented"
-    );
+    assert!(listed.iter().any(|e| e.path == "project.json"));
+    assert!(listed.iter().any(|e| e.path == "manifest.json"));
     let _ = fs::remove_dir_all(&dir);
     let _ = fs::remove_file(&zip_path);
 }
 
 #[test]
-fn pkg01_png_in_zip_uses_deflate_not_store() {
+fn pkg01_png_in_zip_uses_store_not_deflate() {
     let dir = temp_root("compress");
     let _ = fs::remove_dir_all(&dir);
     let mut pkg = create_package(&dir, "Media").expect("create");
@@ -78,18 +73,15 @@ fn pkg01_png_in_zip_uses_deflate_not_store() {
     add_asset_copy(&mut pkg, &png, "image", "frame").expect("asset");
     let zip_path = dir.with_extension("unibrow");
     export_package_to_zip(&dir, &zip_path).expect("export");
-    let method = zip_compression_for(&zip_path, "assets/frame.png");
-    assert_eq!(
-        method,
-        CompressionMethod::Deflated,
-        "ADR 0032 expects STORED for PNG; export uses DEFLATE for all parts"
-    );
+    let hash = pkg.manifest.nodes[0].asset.clone().unwrap();
+    let method = zip_compression_for(&zip_path, &format!("assets/{}", hash));
+    assert_eq!(method, CompressionMethod::Stored);
     let _ = fs::remove_dir_all(&dir);
     let _ = fs::remove_file(&zip_path);
 }
 
 #[test]
-fn pkg01_identical_asset_bytes_are_not_content_hash_deduped() {
+fn pkg01_identical_asset_bytes_are_content_hash_deduped() {
     let dir = temp_root("dedup");
     let _ = fs::remove_dir_all(&dir);
     let mut pkg = create_package(&dir, "Dedup").expect("create");
@@ -100,31 +92,48 @@ fn pkg01_identical_asset_bytes_are_not_content_hash_deduped() {
     fs::write(&b, bytes).expect("b");
     add_asset_copy(&mut pkg, &a, "file", "A").expect("a");
     add_asset_copy(&mut pkg, &b, "file", "B").expect("b");
+    let hash = content_hash_hex(bytes);
+    assert_eq!(pkg.manifest.nodes[0].asset.as_deref(), Some(hash.as_str()));
+    assert_eq!(pkg.manifest.nodes[1].asset.as_deref(), Some(hash.as_str()));
     let assets: Vec<_> = fs::read_dir(dir.join(DIR_ASSETS))
         .expect("assets dir")
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .collect();
-    assert_eq!(assets.len(), 2, "content-hash dedupe not implemented");
-    assert!(
-        !assets.iter().any(|n| n.len() == 64 && n.chars().all(|c| c.is_ascii_hexdigit())),
-        "assets use original filenames, not assets/<hash>"
-    );
+    assert_eq!(assets.len(), 1);
     let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
-fn pkg01_zip_has_no_unibrow_history_part() {
+fn pkg01_zip_has_unibrow_history_part() {
     let dir = temp_root("hist-part");
     let _ = fs::remove_dir_all(&dir);
     let _pkg = create_package(&dir, "H").expect("create");
     let zip_path = dir.with_extension("unibrow");
     export_package_to_zip(&dir, &zip_path).expect("export");
     let listed = list_zip_archive_entries(&zip_path, 200).expect("list");
-    assert!(
-        !listed.iter().any(|e| e.path.contains(".unibrow-history")),
-        "archive history part not serialised yet"
-    );
+    assert!(listed.iter().any(|e| e.path == HISTORY_FILE));
+    let _ = fs::remove_dir_all(&dir);
+    let _ = fs::remove_file(&zip_path);
+}
+
+#[test]
+fn pkg01_zip_opens_in_python_zipfile() {
+    let dir = temp_root("pyzip");
+    let _ = fs::remove_dir_all(&dir);
+    let _pkg = create_package(&dir, "Py").expect("create");
+    let zip_path = dir.with_extension("unibrow");
+    export_package_to_zip(&dir, &zip_path).expect("export");
+    let out = Command::new("python3")
+        .args([
+            "-c",
+            "import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); print('[Content_Types].xml' in z.namelist())",
+        ])
+        .arg(&zip_path)
+        .output()
+        .expect("python");
+    assert!(out.status.success());
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "True");
     let _ = fs::remove_dir_all(&dir);
     let _ = fs::remove_file(&zip_path);
 }
@@ -135,7 +144,7 @@ fn pkg01_zip_roundtrip_preserves_project_json() {
     let _ = fs::remove_dir_all(&dir);
     let mut pkg = create_package(&dir, "Round").expect("create");
     pkg.manifest.title = "Round trip".into();
-    unibrowser_project::write_manifest(&dir, &pkg.manifest).expect("write");
+    write_manifest(&dir, &pkg.manifest).expect("write");
     let zip_path = dir.with_extension("unibrow");
     export_package_to_zip(&dir, &zip_path).expect("export");
     let cache = dir.join("cache");
@@ -149,15 +158,54 @@ fn pkg01_zip_roundtrip_preserves_project_json() {
     let _ = fs::remove_file(&zip_path);
 }
 
+#[test]
+fn pkg01_archive_folder_archive_parts_lossless() {
+    let dir = temp_root("lossless");
+    let _ = fs::remove_dir_all(&dir);
+    let mut pkg = create_package(&dir, "Lossless").expect("create");
+    let png = dir.join("x.png");
+    fs::write(&png, b"\x89PNG\r\n\x1a\n").expect("png");
+    add_asset_copy(&mut pkg, &png, "image", "x").expect("asset");
+    let zip_a = dir.with_extension("unibrow");
+    export_package_to_zip(&dir, &zip_a).expect("export a");
+    let folder = dir.join("unpacked");
+    let materialized = materialize_zip_package(&zip_a, &folder).expect("materialize");
+    let zip_b = dir.join("repacked.unibrow");
+    export_package_to_zip(&materialized, &zip_b).expect("export b");
+    assert!(opc_part_bytes_equal(&zip_a, &zip_b).expect("map"));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn pkg01_legacy_plain_zip_opens_and_upgrades_on_save() {
+    let dir = temp_root("legacy");
+    let _ = fs::remove_dir_all(&dir);
+    let _pkg = create_package(&dir, "Legacy").expect("create");
+    let legacy_zip = dir.with_extension("legacy.unibrow");
+    write_legacy_plain_zip(&dir, &legacy_zip).expect("legacy zip");
+    assert!(is_legacy_unibrow_zip(&legacy_zip));
+    assert!(!is_opc_unibrow_zip(&legacy_zip));
+    let cache = dir.join("cache");
+    let root = materialize_zip_package(&legacy_zip, &cache).expect("open legacy");
+    let pkg = open_package(&root).expect("package");
+    write_manifest(&root, &pkg.manifest).expect("save upgrade");
+    let upgraded = dir.join("upgraded.unibrow");
+    export_package_to_zip(&root, &upgraded).expect("export opc");
+    assert!(is_opc_unibrow_zip(&upgraded));
+    let _ = fs::remove_dir_all(&dir);
+}
+
 // --- PKG-02: Folder mode on-disk IO ---
 
 #[test]
-fn pkg02_unpacked_bundle_uses_project_json_at_root() {
+fn pkg02_unpacked_bundle_has_manifest_and_project_json() {
     let dir = temp_root("folder-unpacked");
     let _ = fs::remove_dir_all(&dir);
     let _pkg = create_package(&dir, "Folder").expect("create");
     assert!(dir.join(PROJECT_FILE).is_file());
-    assert!(!dir.join("manifest.json").exists());
+    assert!(dir.join(MANIFEST_FILE).is_file());
+    assert!(dir.join(HISTORY_FILE).is_file());
+    assert!(is_unpacked_native_package(&dir));
     assert!(dir.join(DIR_ASSETS).is_dir());
     let _ = fs::remove_dir_all(&dir);
 }
@@ -170,17 +218,19 @@ fn pkg02_plain_directory_without_project_json_is_not_a_package() {
     fs::create_dir_all(&show).expect("mkdir");
     fs::write(show.join("clip.mp4"), b"fake").expect("media");
     assert!(open_package(&show).is_err());
-    assert!(!show.join(".unibrow-history").exists());
+    assert!(!show.join(HISTORY_FILE).exists());
     let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
-fn pkg02_create_package_scaffolds_full_tree_not_plain_folder() {
+fn pkg02_create_package_writes_unpacked_layout_not_plain_scaffold_only() {
     let dir = temp_root("scaffold");
     let _ = fs::remove_dir_all(&dir);
     let _pkg = create_package(&dir, "Scaffold").expect("create");
-    assert!(dir.join(PROJECT_FILE).exists(), "ADR 2a defers project.json until unpack/collect");
-    assert!(dir.join(DIR_REFS).exists());
+    assert!(dir.join(PROJECT_FILE).exists());
+    assert!(dir.join(MANIFEST_FILE).exists());
+    assert!(dir.join(HISTORY_FILE).exists());
+    assert!(dir.join("refs").exists());
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -196,7 +246,27 @@ fn pkg02_share_import_writes_unpacked_layout() {
     fs::create_dir_all(&parent).expect("parent");
     let unpacked = import_share_package_zip(&zip_path, &parent, "Imported").expect("import");
     assert!(unpacked.join(PROJECT_FILE).is_file());
-    assert!(!unpacked.join("manifest.json").exists());
+    assert!(unpacked.join(MANIFEST_FILE).is_file());
+    assert!(unpacked.join(HISTORY_FILE).is_file());
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn pkg02_native_package_uses_root_history_not_per_file_sidecar() {
+    let dir = temp_root("pkg-hist");
+    let _ = fs::remove_dir_all(&dir);
+    let pkg_dir = dir.join("Pkg");
+    let _pkg = create_package(&pkg_dir, "Pkg").expect("create");
+    let note = pkg_dir.join("notes.md");
+    fs::write(&note, "# note\n").expect("write");
+    let parsed = unibrowser_document_model::parse_markdown(b"# note\n");
+    let op = unibrowser_document_model::DocumentHistoryOp::Snapshot {
+        model: parsed.model,
+        source_map_blob: String::new(),
+    };
+    unibrowser_document_model::append_document_op(&note, &op, "0.1.0").expect("append");
+    assert!(pkg_dir.join(HISTORY_FILE).is_file());
+    assert!(!unibrowser_document_model::sidecar_path_for_file(&note).exists());
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -231,7 +301,7 @@ fn pkg05_pack_from_directory_does_not_touch_sibling_plain_folder() {
     let _pkg = create_package(&pkg_dir, "Pkg").expect("create");
     let out = dir.join("out.unibrow");
     export_package_to_zip(&pkg_dir, &out).expect("pack");
-    assert!(!plain.join("manifest.json").exists());
+    assert!(!plain.join(MANIFEST_FILE).exists());
     assert!(!plain.join(PROJECT_FILE).exists());
     assert!(is_unibrow_path(&out));
     let _ = fs::remove_dir_all(&dir);
@@ -244,7 +314,7 @@ fn pkg08_refs_directory_exists_but_no_collect_api() {
     let dir = temp_root("refs");
     let _ = fs::remove_dir_all(&dir);
     let pkg = create_package(&dir, "Refs").expect("create");
-    assert!(pkg.root.join(DIR_REFS).is_dir());
-    assert!(fs::read_dir(pkg.root.join(DIR_REFS)).expect("read").next().is_none());
+    assert!(pkg.root.join("refs").is_dir());
+    assert!(fs::read_dir(pkg.root.join("refs")).expect("read").next().is_none());
     let _ = fs::remove_dir_all(&dir);
 }

@@ -20,8 +20,9 @@ pub use model::{
     OpaqueBlock, SourceMap, SourceMapEntry, SCHEMA_ID,
 };
 pub use history_file::{
-    append_document_op, list_ops, load_head, pop_last_op, push_op_entry, sidecar_path_for_file,
-    truncate_head, HistoryLogEntry, LOG_MARKER,
+    append_document_op, history_storage_path, list_ops, load_head, locate_native_package_root,
+    package_history_path, pop_last_op, push_op_entry, sidecar_path_for_file, truncate_head,
+    HistoryLogEntry, LOG_MARKER,
 };
 pub use history_admin::{
     jump_to_seq, session_state_at_seq, squash_op_range, trim_history_before,

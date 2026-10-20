@@ -9675,10 +9675,13 @@ dependencies = [
 name = "unibrowser-project"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "proptest",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.21",
+ "unibrowser-document-model",
  "unibrowser-fs",
  "zip 2.4.2",
 ]

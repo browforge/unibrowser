@@ -37,6 +37,36 @@ pub fn sidecar_path_for_file(authoritative: &Path) -> PathBuf {
         .join(format!("{}.unibrow-history", name))
 }
 
+pub fn package_history_path(package_root: &Path) -> PathBuf {
+    package_root.join(".unibrow-history")
+}
+
+/// Native unpacked or archive-backed project: one history file at the package root.
+pub fn locate_native_package_root(authoritative: &Path) -> Option<PathBuf> {
+    let mut cur = if authoritative.is_file() {
+        authoritative.parent()
+    } else {
+        Some(authoritative)
+    };
+    while let Some(dir) = cur {
+        if dir.join("manifest.json").is_file() && dir.join("project.json").is_file() {
+            return Some(dir.to_path_buf());
+        }
+        if dir.join("project.json").is_file() && dir.join("assets").is_dir() {
+            return Some(dir.to_path_buf());
+        }
+        cur = dir.parent();
+    }
+    None
+}
+
+pub fn history_storage_path(authoritative: &Path) -> PathBuf {
+    if let Some(root) = locate_native_package_root(authoritative) {
+        return package_history_path(&root);
+    }
+    sidecar_path_for_file(authoritative)
+}
+
 pub fn now_rfc3339() -> String {
     let secs = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -125,7 +155,7 @@ pub fn append_document_op(
     op: &DocumentHistoryOp,
     plugin_version: &str,
 ) -> Result<HistoryLogEntry, String> {
-    let sidecar = sidecar_path_for_file(authoritative);
+    let sidecar = history_storage_path(authoritative);
     let (header, mut ops) = read_header_and_ops(&sidecar)?;
     let parent_seq = ops.last().map(|o| o.seq).unwrap_or(0);
     let seq = parent_seq + 1;
