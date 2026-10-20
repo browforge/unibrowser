@@ -10,6 +10,8 @@ pub mod contributes;
 pub mod context;
 pub mod handlers;
 pub mod manifest;
+pub mod permission_grants;
+pub mod permissions;
 pub mod navigation;
 pub mod projections;
 pub mod runtime;
@@ -36,6 +38,13 @@ pub use contributes::{
 };
 pub use context::CommandContext;
 pub use manifest::ModManifest;
+pub use permission_grants::{
+    GrantChoice, GrantRecord, GrantStoreFile, PermissionGrantStore, PluginGrantState,
+};
+pub use permissions::{
+    permissions_fingerprint, validate_network_host_entry, validate_permissions, ModPermissionsBlock,
+    NetworkPermissions, PERMISSION_SCHEMA_VERSION,
+};
 pub use projections::{RasterProjection, RasterProjectionSource, TextProjection};
 pub use navigation::{BrowserLocation, DownloadDisposition, TabId};
 pub use runtime::{

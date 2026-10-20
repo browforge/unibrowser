@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 
 use crate::capability_surface::CapabilityProvideEntry;
 use crate::contributes::ModContributes;
+use crate::permissions::ModPermissionsBlock;
 
 /// Factorio-style mod manifest (`info.json`).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -42,4 +43,7 @@ pub struct ModManifest {
     pub capability_provides: Vec<CapabilityProvideEntry>,
     #[serde(default)]
     pub contributes: Option<ModContributes>,
+    /// ADR 0029 capability declarations (`permission_schema`).
+    #[serde(default)]
+    pub permissions: Option<ModPermissionsBlock>,
 }

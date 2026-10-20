@@ -30,6 +30,7 @@ fn manifests_ab() -> (unibrowser_mod_api::ModManifest, unibrowser_mod_api::ModMa
         capabilities: vec![],
         capability_provides: vec![],
         contributes: None,
+        permissions: None,
     };
     let mut b = a.clone();
     b.name = "api-proving-b".into();

@@ -1,11 +1,19 @@
 //! PERM-02..07 audit probes for desktop host (ADR 0029).
 
+use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
+
+use unibrowser_mod_api::{
+    permissions_fingerprint, GrantChoice, ModPermissionsBlock, NetworkPermissions,
+    PermissionGrantStore, PERMISSION_SCHEMA_VERSION,
+};
+
 #[test]
-fn perm02_no_permission_grants_persistence_path() {
+fn perm02_permission_grants_persistence_path() {
     let config = include_str!("../src/config.rs");
     assert!(
-        !config.contains("permission-grants"),
-        "PERM-02 grant store file not wired in config"
+        config.contains("permission-grants"),
+        "PERM-02 grant store file must be wired in config"
     );
 }
 
@@ -35,13 +43,55 @@ fn perm10_vsix_trust_still_separate_from_grant_store() {
         "VSIX trust list should exist until PERM-10 aligns with grants"
     );
     let config = include_str!("../src/config.rs");
-    assert!(!config.contains("permission-grants"));
+    assert!(config.contains("permission-grants"));
 }
 
 #[test]
-#[ignore = "PERM-02: revoke Always grant must take effect without restart"]
 fn perm02_revoke_always_grant_without_restart() {
-    let _ = ();
+    let path = std::env::temp_dir().join(format!(
+        "ub-perm02-revoke-{}-{}.json",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    let _ = std::fs::remove_file(&path);
+
+    static TEST_STORE: OnceLock<Mutex<PermissionGrantStore>> = OnceLock::new();
+    let store = TEST_STORE.get_or_init(|| {
+        Mutex::new(PermissionGrantStore::load(path.clone()).expect("open grant store"))
+    });
+
+    let perms = ModPermissionsBlock {
+        permission_schema: PERMISSION_SCHEMA_VERSION.into(),
+        network: Some(NetworkPermissions {
+            domains: vec!["api.example.com".into()],
+            reason: "fixture".into(),
+            disclosure: vec!["bytes".into()],
+        }),
+        ..Default::default()
+    };
+    let fp = permissions_fingerprint(&perms);
+
+    {
+        let mut guard = store.lock().expect("lock");
+        guard
+            .record_grant("fixture-mod", "network", "api.example.com", GrantChoice::Always, &fp)
+            .expect("grant");
+        assert!(guard.is_allowed("fixture-mod", "network", "api.example.com"));
+        guard
+            .revoke_always("fixture-mod", "network", "api.example.com")
+            .expect("revoke");
+        assert!(!guard.is_allowed("fixture-mod", "network", "api.example.com"));
+    }
+
+    {
+        let guard = store.lock().expect("lock");
+        assert!(!guard.is_allowed("fixture-mod", "network", "api.example.com"));
+    }
+
+    let _ = std::fs::remove_file(&path);
 }
 
 #[test]

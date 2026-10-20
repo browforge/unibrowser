@@ -174,7 +174,18 @@ mod tests {
 
     #[test]
     fn perm03_rejects_without_opt_in() {
+        let _guard = PERM_CONFIG_LOCK.lock().expect("perm config lock");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let prev = std::env::var("XDG_CONFIG_HOME").ok();
+        std::env::set_var("XDG_CONFIG_HOME", dir.path());
+        let prefs = Preferences::default();
+        save_preferences(&prefs).expect("save prefs");
         let err = search_open_vsx("markdown", false).unwrap_err();
+        if let Some(p) = prev {
+            std::env::set_var("XDG_CONFIG_HOME", p);
+        } else {
+            std::env::remove_var("XDG_CONFIG_HOME");
+        }
         assert!(err.to_lowercase().contains("opt-in"));
     }
 

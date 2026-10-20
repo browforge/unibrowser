@@ -1,18 +1,24 @@
 //! PERM-01 audit: ADR 0029 `permissions` manifest block (see docs/status/perm-audit.md).
 
-use unibrowser_mod_api::ModManifest;
+use unibrowser_mod_api::{
+    validate_permissions, ModManifest, ModPermissionsBlock, NetworkPermissions,
+    PERMISSION_SCHEMA_VERSION,
+};
 
 #[test]
-fn perm01_mod_manifest_type_has_no_permissions_field() {
+fn perm01_mod_manifest_has_permissions_field_and_validation() {
     let src = include_str!("../src/manifest.rs");
     assert!(
-        !src.contains("permission_schema") && !src.contains("network.domains"),
-        "ModManifest should gain ADR 0029 permissions fields under PERM-01"
+        src.contains("permissions") && src.contains("ModPermissionsBlock"),
+        "ModManifest should declare ADR 0029 permissions"
     );
+    let perm_src = include_str!("../src/permissions.rs");
+    assert!(perm_src.contains("permission_schema"));
+    assert!(perm_src.contains("validate_network_host_entry"));
 }
 
 #[test]
-fn perm01_loader_ignores_permissions_json_without_validation() {
+fn perm01_loader_validates_permissions_json() {
     let json = r#"{
         "name": "perm-fixture",
         "version": "1.0.0",
@@ -21,18 +27,32 @@ fn perm01_loader_ignores_permissions_json_without_validation() {
         "permissions": {
             "permission_schema": "1",
             "network": {
-                "domains": ["https://evil.example"],
+                "domains": ["api.example.com"],
                 "reason": "test",
                 "disclosure": ["payload"]
             }
         }
     }"#;
     let manifest: ModManifest = serde_json::from_str(json).expect("parse");
-    assert_eq!(manifest.name, "perm-fixture");
+    validate_permissions(&manifest.name, manifest.permissions.as_ref().unwrap())
+        .expect("valid fixture");
 }
 
 #[test]
-#[ignore = "PERM-01: host must reject manifests with undeclared capability use at load"]
 fn perm01_invalid_wildcard_domain_fails_load() {
-    let _ = ();
+    let block = ModPermissionsBlock {
+        permission_schema: PERMISSION_SCHEMA_VERSION.into(),
+        network: Some(NetworkPermissions {
+            domains: vec!["*".into()],
+            reason: "test".into(),
+            disclosure: vec!["payload".into()],
+        }),
+        ..Default::default()
+    };
+    let err = validate_permissions("perm-fixture", &block).unwrap_err();
+    assert!(
+        err.contains("broad") || err.contains("wildcard") || err.contains("invalid"),
+        "unexpected error: {}",
+        err
+    );
 }

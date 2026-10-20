@@ -187,6 +187,7 @@ mod tests {
                 content_kinds: vec![],
             }],
             contributes: None,
+            permissions: None,
         }
     }
 

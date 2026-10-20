@@ -166,6 +166,7 @@ mod tests {
             capabilities: Vec::new(),
             capability_provides: provides,
             contributes: None,
+            permissions: None,
         }
     }
 

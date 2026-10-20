@@ -19,6 +19,7 @@ mod mod_portal;
 mod open_vsx;
 pub mod path_security;
 pub mod preferences;
+pub mod permission_grants;
 mod project_backend;
 mod package_storage_session;
 mod package_storage_commands;

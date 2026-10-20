@@ -50,6 +50,21 @@ pub fn list_installed(root: &Path) -> Result<Vec<InstalledNativeMod>, ModHostErr
         let text = fs::read_to_string(&info)?;
         let manifest: ModManifest = serde_json::from_str(&text)?;
         check_api_version(&manifest)?;
+        if let Some(perms) = &manifest.permissions {
+            if let Err(e) = unibrowser_mod_api::validate_permissions(&manifest.name, perms) {
+                out.push(InstalledNativeMod {
+                    name: manifest.name.clone(),
+                    title: manifest.title.clone(),
+                    version: manifest.version.clone(),
+                    install_dir: path,
+                    enabled: false,
+                    library_path: None,
+                    signature_ok: false,
+                    load_block_reason: Some(format!("permissions: {}", e)),
+                });
+                continue;
+            }
+        }
         let state = read_state(&path);
         let library_path = resolve_library_path(&path, &manifest);
         let (signature_ok, load_block_reason) = signature_status(&path);

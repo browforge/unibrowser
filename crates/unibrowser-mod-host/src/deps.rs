@@ -256,6 +256,7 @@ mod tests {
             capabilities: vec![],
             capability_provides: vec![],
             contributes: None,
+            permissions: None,
         }
     }
 

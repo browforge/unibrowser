@@ -16,6 +16,12 @@ pub fn preferences_file_path() -> Option<PathBuf> {
     Some(base.join("preferences.json"))
 }
 
+/// ADR 0029 plugin permission grants (`permission-grants.json`).
+pub fn permission_grants_file_path() -> Option<PathBuf> {
+    let base = config_dir()?;
+    Some(base.join("permission-grants.json"))
+}
+
 pub fn vsix_extensions_dir() -> Option<PathBuf> {
     config_dir().map(|d| d.join("vsix-extensions"))
 }

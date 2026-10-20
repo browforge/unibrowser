@@ -72,6 +72,16 @@ impl ModHost {
                 let text = fs::read_to_string(&info)?;
                 let manifest: ModManifest = serde_json::from_str(&text)?;
                 check_api_version(&manifest)?;
+                if let Some(perms) = &manifest.permissions {
+                    if let Err(e) = unibrowser_mod_api::validate_permissions(&manifest.name, perms) {
+                        contribution_notes.push(format!(
+                            "mod {} permissions: {} (mod not loaded)",
+                            manifest.name,
+                            e
+                        ));
+                        continue;
+                    }
+                }
                 if let Some(contrib) = &manifest.contributes {
                     let errs = unibrowser_mod_api::validate_contributes(&manifest.name, contrib);
                     for err in errs {
