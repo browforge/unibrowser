@@ -99,10 +99,16 @@ export function syncPackageHistoryNotice(
   dismissPackageHistoryToast();
   historyToastTab = projectPath;
   const message = t("pkg.storage.historyWillBeSaved", { path: session.history_path });
-  showActionToast(message, t("onboarding.dismiss"), () => {
-    dismissPackageHistoryToast();
-    void invoke("dismiss_package_history_notice", { projectPath });
-  }, "info");
+  showActionToast(
+    message,
+    t("onboarding.dismiss"),
+    () => {
+      dismissPackageHistoryToast();
+      void invoke("dismiss_package_history_notice", { projectPath });
+    },
+    "info",
+    { recordInHistory: false },
+  );
   const host = document.getElementById("toast-host");
   host?.setAttribute("data-pkg-history-toast", "1");
 }
@@ -196,6 +202,24 @@ export async function runPackToUnibrow(projectPath: string): Promise<void> {
     projectPath,
     destZip: dest,
   });
+}
+
+export async function applyPkgArchiveCaptureSession(): Promise<void> {
+  if (document.body.dataset.ubDocCapture === "1") {
+    const path = await invoke<string>("pkg_capture_fixture_archive_path_cmd");
+    const { applyPkgArchiveDocCaptureUi } = await import("./pkgCaptureFixture");
+    await applyPkgArchiveDocCaptureUi(path);
+    return;
+  }
+  const data = await invoke<Record<string, unknown>>("pkg_capture_seed_archive_session");
+  const apply = (
+    window as unknown as {
+      __selfTestApplyState?: (d: Record<string, unknown>) => Promise<void>;
+    }
+  ).__selfTestApplyState;
+  if (apply) {
+    await apply(data);
+  }
 }
 
 export async function showHistoryNoticeCapture(): Promise<void> {

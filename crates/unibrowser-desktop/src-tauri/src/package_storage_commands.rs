@@ -68,7 +68,9 @@ pub fn open_unibrow_with_storage_mode(
         tabs.navigate_active(loc.clone(), false, Some(doc));
     }
     touch_recent_file(&file_path);
-    update_content_webview(&app, window.label(), &loc)?;
+    if !crate::launch_args::is_doc_capture_mode() {
+        update_content_webview(&app, window.label(), &loc)?;
+    }
     snapshot(state.inner(), window.label())
 }
 

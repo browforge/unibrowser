@@ -366,6 +366,13 @@ export const SHELL_DENSITY_TOKEN_PAIRS: Array<{
     minRatio: 4.5,
   },
   {
+    theme: "light",
+    id: "toast-info-message",
+    foreground: "rgb(32, 34, 35)",
+    background: "rgb(255, 255, 255)",
+    minRatio: 4.5,
+  },
+  {
     theme: "dark",
     id: "workshop-heading",
     foreground: "rgb(233, 237, 239)",

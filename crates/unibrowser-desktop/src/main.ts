@@ -2405,6 +2405,14 @@ function renderExtensionTip(tip: TabContentDto["extension_tip"]) {
 
 async function applyState(data: TabContentDto) {
   if (data.unibrow_open_prompt) {
+    if (document.body.dataset.ubDocCapture === "1") {
+      const { mountPackageOpenModeDialog } = await import("./packageOpenModeDialog");
+      void mountPackageOpenModeDialog({
+        estimate: data.unibrow_open_prompt,
+        captureOnly: true,
+      });
+      return;
+    }
     const { mountPackageOpenModeDialog } = await import("./packageOpenModeDialog");
     const choice = await mountPackageOpenModeDialog({
       estimate: data.unibrow_open_prompt,
@@ -3495,12 +3503,18 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
     const docCaptureEarly = await invoke<string | null>("take_doc_capture_path");
     const demoEarly = await invoke<string | null>("get_demo_state");
     if (docCaptureEarly && demoEarly) {
-      const { isPkgV2DocCapture, runPkgV2DocCapture } = await import("./pkgDocCapture");
-      if (isPkgV2DocCapture(demoEarly)) {
+      const { isPkgDocCapture, runPkgDocCapture } = await import("./pkgDocCapture");
+      if (isPkgDocCapture(demoEarly)) {
         try {
-          await runPkgV2DocCapture(demoEarly, () => navigateOmnibox(), (id) =>
-            runKeybindingCommand(id),
-          );
+          await runPkgDocCapture(demoEarly, {
+            navigateOmnibox: () => navigateOmnibox(),
+            runKeybindingCommand: (id) => runKeybindingCommand(id),
+            runUiCommand,
+            refreshState,
+            refreshCommandManager,
+            applyState: (data) => applyState(data as unknown as TabContentDto),
+            openTitleOverflow,
+          });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           await invoke("abort_doc_capture", { reason: msg }).catch(() => undefined);
@@ -3508,7 +3522,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
         return;
       }
     }
-    void refreshState().then(async () => {
+    const runShellBootstrap = async () => {
       await loadThemePreference();
       mountActivityRail();
       const launchPaths = await invoke<string[]>("take_launch_open_paths");
@@ -3721,39 +3735,53 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             await applyDemoState("doc-history-panel");
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           } else if (
+            demoTokens.includes("pkg-v3-open-mode") ||
             demoTokens.includes("pkg-v1-open-mode") ||
             demoTokens.includes("pkg-v2-open-mode")
           ) {
-            await applyDemoState(
-              demoTokens.includes("pkg-v2-open-mode") ? "pkg-v2-open-mode" : "pkg-v1-open-mode",
-            );
+            if (!demoTokens.includes("pkg-v3-open-mode")) {
+              await applyDemoState(
+                demoTokens.includes("pkg-v2-open-mode") ? "pkg-v2-open-mode" : "pkg-v1-open-mode",
+              );
+            }
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           } else if (
+            demoTokens.includes("pkg-v3-history-notice") ||
             demoTokens.includes("pkg-v1-history-notice") ||
             demoTokens.includes("pkg-v2-history-notice")
           ) {
             await applyDemoState(
-              demoTokens.includes("pkg-v2-history-notice")
-                ? "pkg-v2-history-notice"
-                : "pkg-v1-history-notice",
+              demoTokens.includes("pkg-v3-history-notice")
+                ? "pkg-v3-history-notice"
+                : demoTokens.includes("pkg-v2-history-notice")
+                  ? "pkg-v2-history-notice"
+                  : "pkg-v1-history-notice",
             );
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           } else if (
+            demoTokens.includes("pkg-v3-unpack-progress") ||
             demoTokens.includes("pkg-v1-unpack-progress") ||
             demoTokens.includes("pkg-v2-unpack-progress")
           ) {
             await applyDemoState(
-              demoTokens.includes("pkg-v2-unpack-progress")
-                ? "pkg-v2-unpack-progress"
-                : "pkg-v1-unpack-progress",
+              demoTokens.includes("pkg-v3-unpack-progress")
+                ? "pkg-v3-unpack-progress"
+                : demoTokens.includes("pkg-v2-unpack-progress")
+                  ? "pkg-v2-unpack-progress"
+                  : "pkg-v1-unpack-progress",
             );
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           } else if (
+            demoTokens.includes("pkg-v3-file-menu") ||
             demoTokens.includes("pkg-v1-file-menu") ||
             demoTokens.includes("pkg-v2-file-menu")
           ) {
             await applyDemoState(
-              demoTokens.includes("pkg-v2-file-menu") ? "pkg-v2-file-menu" : "pkg-v1-file-menu",
+              demoTokens.includes("pkg-v3-file-menu")
+                ? "pkg-v3-file-menu"
+                : demoTokens.includes("pkg-v2-file-menu")
+                  ? "pkg-v2-file-menu"
+                  : "pkg-v1-file-menu",
             );
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           }
@@ -3783,18 +3811,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               await ensureProjectOfficeDocumentCard("Office document");
               await new Promise((resolve) => window.setTimeout(resolve, 150));
             }
-            const pkgCapture =
-              demoTokens.includes("pkg-v1-open-mode") ||
-              demoTokens.includes("pkg-v1-history-notice") ||
-              demoTokens.includes("pkg-v1-unpack-progress") ||
-              demoTokens.includes("pkg-v1-file-menu") ||
-              demoTokens.includes("pkg-v2-open-mode") ||
-              demoTokens.includes("pkg-v2-history-notice") ||
-              demoTokens.includes("pkg-v2-unpack-progress") ||
-              demoTokens.includes("pkg-v2-file-menu");
-            painted = pkgCapture
-              ? true
-              : await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
+            painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
           }
           if (!painted) {
             const timeoutDiag = formatDiagnosticsForLog(collectDocCaptureDiagnostics());
@@ -4245,12 +4262,16 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
       void maybePromptProjectRecovery((data) => {
         void applyState(data as TabContentDto);
       });
-    });
+    };
+    void refreshState().then(runShellBootstrap);
   }
   if (toolbarOnly) {
     return;
   }
   deferNonCriticalInit(() => {
+  if (document.body.dataset.ubCompactTitleBar === "1") {
+    return;
+  }
   initCompactTitleBar({
     runCommand: (commandId) => runKeybindingCommand(commandId),
     openTitleOverflow,

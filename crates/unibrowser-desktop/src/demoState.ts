@@ -646,6 +646,41 @@ export async function applyDemoState(raw: string) {
         fileBtn?.click();
         break;
       }
+      case "pkg-v3-open-mode":
+        break;
+      case "pkg-v3-history-notice": {
+        const { applyPkgArchiveCaptureSession, showHistoryNoticeCapture } = await import(
+          "./packageStorageUi"
+        );
+        await applyPkgArchiveCaptureSession();
+        await showHistoryNoticeCapture();
+        break;
+      }
+      case "pkg-v3-unpack-progress": {
+        const { applyPkgArchiveCaptureSession, showUnpackProgressCapture } = await import(
+          "./packageStorageUi",
+        );
+        await applyPkgArchiveCaptureSession();
+        await showUnpackProgressCapture();
+        break;
+      }
+      case "pkg-v3-file-menu": {
+        const { applyPkgArchiveCaptureSession } = await import("./packageStorageUi");
+        await applyPkgArchiveCaptureSession();
+        const anchor =
+          document.getElementById("title-menu-btn") ??
+          document.querySelector<HTMLButtonElement>("#app-menu-bar .app-menu-trigger");
+        anchor?.click();
+        const fileRoot = await waitForElement<HTMLButtonElement>(".app-menu-root-item");
+        const fileBtn = fileRoot
+          ? [...document.querySelectorAll<HTMLButtonElement>(".app-menu-root-item")].find((el) =>
+              /^file$/i.test(el.textContent?.trim() ?? ""),
+            )
+          : null;
+        fileBtn?.click();
+        await waitForElement(".app-menu-dropdown .app-menu-item");
+        break;
+      }
       case "files":
         await invoke("open_path", { path: "~", line: null }).catch(() => undefined);
         break;

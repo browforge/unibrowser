@@ -47,8 +47,11 @@ export function showActionToast(
   actionLabel: string,
   onAction: () => void,
   kind: "error" | "info" | "success" = "info",
+  options?: { recordInHistory?: boolean },
 ) {
-  pushNotification(message, kind === "success" ? "info" : kind);
+  if (options?.recordInHistory !== false) {
+    pushNotification(message, kind === "success" ? "info" : kind);
+  }
   const host = document.getElementById("toast-host");
   if (!host) {
     return;

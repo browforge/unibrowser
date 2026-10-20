@@ -97,6 +97,18 @@ function unibrowBoardReady(): boolean {
   return Boolean(board);
 }
 
+function unibrowProjectSurfaceReady(): boolean {
+  const host = document.querySelector("#document-viewer-host");
+  if (!host || host.classList.contains("hidden")) {
+    return false;
+  }
+  return Boolean(
+    host.querySelector(
+      ".project-surface, .workshop-stage-frame, .presentation-slide-frame, .project-home-card",
+    ),
+  );
+}
+
 function liveBadgeReady(): boolean {
   const state = document.querySelector(".workshop-state");
   if (state) {
@@ -410,6 +422,30 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           ),
         );
         break;
+      case "pkg-v2-open-mode":
+      case "pkg-v3-open-mode":
+        checks.push(() => Boolean(document.querySelector(".pkg-open-mode-overlay")));
+        break;
+      case "pkg-v1-history-notice":
+      case "pkg-v2-history-notice":
+      case "pkg-v3-history-notice":
+        checks.push(unibrowProjectSurfaceReady);
+        checks.push(() => Boolean(document.querySelector("[data-pkg-history-toast]")));
+        break;
+      case "pkg-v1-unpack-progress":
+      case "pkg-v2-unpack-progress":
+      case "pkg-v3-unpack-progress":
+        checks.push(unibrowProjectSurfaceReady);
+        checks.push(() => Boolean(document.querySelector("[data-pkg-unpack-progress]")));
+        break;
+      case "pkg-v1-file-menu":
+      case "pkg-v2-file-menu":
+      case "pkg-v3-file-menu":
+        checks.push(unibrowProjectSurfaceReady);
+        checks.push(
+          () => document.querySelectorAll(".app-menu-dropdown .app-menu-item").length >= 4,
+        );
+        break;
       default:
         break;
     }
@@ -419,7 +455,7 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   if (tokens.includes("settings")) {
     return [settingsReady];
   }
-  if (joined.includes(".unibrow")) {
+  if (joined.includes(".unibrow") && !tokens.includes("pkg-v3-open-mode")) {
     checks.push(unibrowBoardReady);
     if (tokens.some((t) => t === "live" || t === "live-preview")) {
       checks.push(liveBadgeReady);
@@ -482,7 +518,8 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   if (
     tokens.includes("capture-ready") &&
     launchPaths.length === 0 &&
-    !tokens.some((t) => t.startsWith("new-project-capture-"))
+    !tokens.some((t) => t.startsWith("new-project-capture-")) &&
+    !tokens.some((t) => t.startsWith("pkg-v"))
   ) {
     checks.push(ntpReady);
   }

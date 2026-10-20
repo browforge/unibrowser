@@ -326,6 +326,15 @@ body {
 .toast-host.toast-info,
 .toast-host.toast-success {
   border-color: var(--ub-border);
+  color: var(--ub-text-1);
+}
+
+.toast-host.ub-toast-layer .toast-message {
+  color: var(--ub-text-1);
+}
+
+.toast-host.ub-toast-layer .toast-action {
+  color: var(--ub-text-2);
 }
 
 .toast-host.toast-success {

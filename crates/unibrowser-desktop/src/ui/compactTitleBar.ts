@@ -97,6 +97,7 @@ export function initCompactTitleBar(deps: CompactTitleBarDeps) {
       deps.openTitleOverflow(anchor);
     }
   };
+  document.body.dataset.ubCompactTitleBar = "1";
 }
 
 export function updateTitleBarNavVisibility(tab: TitleBarTabHint | null | undefined) {
