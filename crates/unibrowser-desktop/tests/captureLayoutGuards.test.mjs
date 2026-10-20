@@ -14,7 +14,7 @@ import {
   timelineEndpointClearsScrollbar,
   grayscalePreviewControlCaptureError,
   provingFloatingToolbarScanError,
-} from "../src/docCaptureAsserts.ts";
+} from "../src/docCaptureGuardMath.ts";
 
 test("fresh capture profile has no proving floating toolbar helpers", () => {
   assert.equal(provingFloatingToolbarScanError([], []), null);

@@ -1260,6 +1260,8 @@ export interface DocumentFeatureCaptureDomDiagnostics {
   cardImageNaturalWidthOk: boolean;
   statusBarDocumentLanguage: string;
   projectHomeCardHeight: number | null;
+  projectHomeCardTopRelative: number | null;
+  projectHomeCardCenterDeltaX: number | null;
   horizontalOverflow: boolean;
   presentationToolbarThemed: boolean;
 }
@@ -1347,7 +1349,18 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     }
   }
   const homeCard = document.querySelector<HTMLElement>(".project-home-card");
-  const projectHomeCardHeight = homeCard ? homeCard.getBoundingClientRect().height : null;
+  const homeRect = homeCard?.getBoundingClientRect();
+  const projectHomeCardHeight = homeRect ? homeRect.height : null;
+  const workspaceEl = workspaceRootForCapture();
+  const workRect = workspaceEl?.getBoundingClientRect();
+  let projectHomeCardTopRelative: number | null = null;
+  let projectHomeCardCenterDeltaX: number | null = null;
+  if (homeRect && workRect && workRect.width > 40) {
+    projectHomeCardTopRelative = homeRect.top - workRect.top;
+    const cardCenterX = (homeRect.left + homeRect.right) / 2;
+    const workCenterX = (workRect.left + workRect.right) / 2;
+    projectHomeCardCenterDeltaX = Math.abs(cardCenterX - workCenterX);
+  }
   const horizontalOverflow =
     document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
   const presentationToolbar = document.querySelector(".presentation-toolbar");
@@ -1373,6 +1386,8 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     cardImageNaturalWidthOk,
     statusBarDocumentLanguage,
     projectHomeCardHeight,
+    projectHomeCardTopRelative,
+    projectHomeCardCenterDeltaX,
     horizontalOverflow,
     presentationToolbarThemed,
   };
@@ -2320,6 +2335,20 @@ export function validateEmptyProjectHomeCardLayout(): string | null {
   const rect = card.getBoundingClientRect();
   if (rect.height >= 300) {
     return `empty project home card too tall (${rect.height.toFixed(0)}px)`;
+  }
+  const workspace = workspaceRootForCapture();
+  const workRect = workspace?.getBoundingClientRect();
+  if (workRect && workRect.width > 40) {
+    const cardCenterX = (rect.left + rect.right) / 2;
+    const workCenterX = (workRect.left + workRect.right) / 2;
+    const deltaX = Math.abs(cardCenterX - workCenterX);
+    if (deltaX > 8) {
+      return `empty project card horizontal center off by ${deltaX.toFixed(1)}px (max 8px)`;
+    }
+    const topRelative = rect.top - workRect.top;
+    if (topRelative >= 80) {
+      return `empty project card top ${topRelative.toFixed(0)}px must be < 80px`;
+    }
   }
   const root = document.documentElement;
   if (root.scrollWidth > root.clientWidth + 1) {
