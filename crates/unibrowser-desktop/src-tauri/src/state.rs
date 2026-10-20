@@ -41,6 +41,7 @@ pub struct AppState {
     pub registry: Mutex<CommandRegistry>,
     pub sessions: Mutex<HashMap<String, SharedWindowSession>>,
     pub memory_projects: Mutex<HashMap<String, crate::project_templates::MemoryProjectEntry>>,
+    pub package_storage: crate::package_storage_session::PackageStorageStore,
     pub cwd: PathBuf,
     mods_loaded: RwLock<String>,
     #[cfg(feature = "dynamic-mods")]
@@ -334,6 +335,7 @@ impl AppState {
             registry: Mutex::new(built.registry),
             sessions,
             memory_projects: Mutex::new(HashMap::new()),
+            package_storage: crate::package_storage_session::PackageStorageStore::new(),
             cwd,
             mods_loaded: RwLock::new(built.mods_line),
             keybindings,

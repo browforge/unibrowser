@@ -139,6 +139,8 @@ import {
   updateStatusBar,
 } from "./statusBar";
 import type { StatusItem } from "./statusBar";
+import { packageStorageStatusItems } from "./packageStorageUi";
+import type { PackageStorageSessionDto } from "./packageStorageUi";
 import { getEncodeProgress, setEncodeProgress } from "./encodeProgress";
 import { runExportPrintPdf, runPrintSelection } from "./exportPdf";
 import {
@@ -413,6 +415,12 @@ interface TabContentDto {
     mod_id: string;
     mod_title: string;
   } | null;
+  package_storage?: PackageStorageSessionDto | null;
+  unibrow_open_prompt?: {
+    archive_path: string;
+    unpacked_bytes: number;
+    suggest_folder: boolean;
+  } | null;
   ntp_sections: {
     show_hero: boolean;
     show_actions: boolean;
@@ -558,6 +566,12 @@ function statusItemsForContext(
     return { context: "pdf", items: [...left, ...right] };
   }
   if (viewer === "unibrow" && data.document_viewer) {
+    if (data.package_storage) {
+      const pkgItems = packageStorageStatusItems(data.package_storage);
+      if (pkgItems.length) {
+        return { context: "unibrow-package", items: pkgItems };
+      }
+    }
     const surface = classifyProjectSurface(data.document_viewer);
     if (surface === "video") {
       left.push(item("workshop-timecode", "left", "00:00:00.000", 100));
@@ -2186,6 +2200,16 @@ async function processCommandResult(msg: string, commandId?: string) {
     void startNewEmptyProject();
     return;
   }
+  if (msg === "pkg-unpack") {
+    omnibox.value = "unibrowser://action/pkg-unpack";
+    void navigateOmnibox();
+    return;
+  }
+  if (msg === "pkg-pack") {
+    omnibox.value = "unibrowser://action/pkg-pack";
+    void navigateOmnibox();
+    return;
+  }
   if (msg === "start-new-template-gallery") {
     void startNewFromTemplateGallery();
     return;
@@ -2377,6 +2401,21 @@ function renderExtensionTip(tip: TabContentDto["extension_tip"]) {
 }
 
 async function applyState(data: TabContentDto) {
+  if (data.unibrow_open_prompt) {
+    const { mountPackageOpenModeDialog } = await import("./packageOpenModeDialog");
+    const choice = await mountPackageOpenModeDialog({
+      estimate: data.unibrow_open_prompt,
+    });
+    if (choice) {
+      const opened = await invoke<TabContentDto>("open_unibrow_with_storage_mode", {
+        path: data.unibrow_open_prompt.archive_path,
+        mode: choice.mode,
+        folderDest: choice.folderDest ?? null,
+      });
+      await applyState(opened);
+      return;
+    }
+  }
   if (data.chrome_notice) {
     showToast(data.chrome_notice, "info");
   }
@@ -2751,6 +2790,28 @@ async function navigateOmnibox() {
   }
   if (input === "unibrowser://action/new-from-template") {
     void startNewFromTemplateGallery();
+    return;
+  }
+  if (input === "unibrowser://action/pkg-unpack") {
+    const state = await invoke<TabContentDto>("get_browser_state");
+    const path = state.document_viewer?.path;
+    if (path) {
+      const { runUnpackToFolder } = await import("./packageStorageUi");
+      const data = await invoke<TabContentDto>("get_browser_state");
+      await runUnpackToFolder(path);
+      if (data) {
+        await applyState(await invoke<TabContentDto>("get_browser_state"));
+      }
+    }
+    return;
+  }
+  if (input === "unibrowser://action/pkg-pack") {
+    const state = await invoke<TabContentDto>("get_browser_state");
+    const path = state.document_viewer?.path;
+    if (path) {
+      const { runPackToUnibrow } = await import("./packageStorageUi");
+      await runPackToUnibrow(path);
+    }
     return;
   }
   if (!(await confirmInsecureHttpNavigation(input))) {
@@ -3631,6 +3692,18 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           } else if (demoTokens.includes("doc-history-panel")) {
             await applyDemoState("doc-history-panel");
             await new Promise((resolve) => window.setTimeout(resolve, 150));
+          } else if (demoTokens.includes("pkg-v1-open-mode")) {
+            await applyDemoState("pkg-v1-open-mode");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+          } else if (demoTokens.includes("pkg-v1-history-notice")) {
+            await applyDemoState("pkg-v1-history-notice");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+          } else if (demoTokens.includes("pkg-v1-unpack-progress")) {
+            await applyDemoState("pkg-v1-unpack-progress");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+          } else if (demoTokens.includes("pkg-v1-file-menu")) {
+            await applyDemoState("pkg-v1-file-menu");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
           }
           let painted: boolean;
           if (docVisualMdDocxCaptureShot && document.body.dataset.ubDocCapture === "1") {
@@ -3658,7 +3731,14 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               await ensureProjectOfficeDocumentCard("Office document");
               await new Promise((resolve) => window.setTimeout(resolve, 150));
             }
-            painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
+            const pkgCapture =
+              demoTokens.includes("pkg-v1-open-mode") ||
+              demoTokens.includes("pkg-v1-history-notice") ||
+              demoTokens.includes("pkg-v1-unpack-progress") ||
+              demoTokens.includes("pkg-v1-file-menu");
+            painted = pkgCapture
+              ? true
+              : await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
           }
           if (!painted) {
             const timeoutDiag = formatDiagnosticsForLog(collectDocCaptureDiagnostics());

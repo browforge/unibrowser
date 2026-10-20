@@ -103,6 +103,9 @@ pub struct Preferences {
     pub project_autosave_enabled: bool,
     #[serde(default = "default_auto_save_interval")]
     pub project_autosave_interval_secs: u32,
+    /// Suggest folder mode when unpacked archive size exceeds this (0 = off). Default 500 MiB.
+    #[serde(default = "default_project_folder_hint_bytes")]
+    pub project_folder_hint_bytes: u64,
     /// Backup dirty text/SVG buffers under config dir (off by default).
     #[serde(default)]
     pub crash_recovery_enabled: bool,
@@ -271,6 +274,10 @@ fn default_auto_save_enabled() -> bool {
     true
 }
 
+fn default_project_folder_hint_bytes() -> u64 {
+    unibrowser_project::DEFAULT_FOLDER_HINT_BYTES
+}
+
 fn default_auto_save_interval() -> u32 {
     300
 }
@@ -374,6 +381,7 @@ impl Default for Preferences {
             fluidsynth_soundfont_path: None,
             project_autosave_enabled: false,
             project_autosave_interval_secs: default_auto_save_interval(),
+            project_folder_hint_bytes: default_project_folder_hint_bytes(),
             crash_recovery_enabled: false,
             ntp_sections: NtpSectionPrefs::default(),
             advanced_webview_devtools: false,

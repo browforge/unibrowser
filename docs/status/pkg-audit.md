@@ -10,10 +10,10 @@ Baseline commit audited: `c391334`. PKG-01/PKG-02 implemented on branch through 
 |--------|--------|----------|
 | PKG-01 | done | `pkg01_exported_zip_has_opc_content_types_and_rels`, `pkg01_export_has_manifest_and_project_json`, `pkg01_png_in_zip_uses_store_not_deflate`, `pkg01_identical_asset_bytes_are_content_hash_deduped`, `pkg01_zip_has_unibrow_history_part`, `pkg01_zip_opens_in_python_zipfile`, `pkg01_archive_folder_archive_parts_lossless`, `pkg01_legacy_plain_zip_opens_and_upgrades_on_save`, `pkg01_zip_roundtrip_preserves_project_json` |
 | PKG-02 | done | `pkg02_unpacked_bundle_has_manifest_and_project_json`, `pkg02_create_package_writes_unpacked_layout_not_plain_scaffold_only`, `pkg02_share_import_writes_unpacked_layout`, `pkg02_native_package_uses_root_history_not_per_file_sidecar`; `folder_project_uses_per_file_sidecar_not_package_root` (loose foreign files) |
-| PKG-03 | missing | `pkg03_opening_zip_materialises_cache_on_disk`, `pkgStorageAudit.test.mjs` (no View only / Archive / Folder session mode) |
-| PKG-04 | missing | `pkgStorageAudit.test.mjs` (no history path status copy); status bar has document editor modes only |
-| PKG-05 | partial | `pkg05_pack_from_directory_does_not_touch_sibling_plain_folder`, `zip_export_and_materialize` (lib export/import); no UI unpack/pack (`pkgStorageAudit.test.mjs`) |
-| PKG-06 | missing | `pkgStorageAudit.test.mjs` (no threshold settings keys) |
+| PKG-03 | done | `pkg03_view_only_open_writes_zero_bytes`, `pkg03_archive_unedited_open_writes_zero_bytes`, `package_storage.rs`, `packageOpenModeDialog.ts`, `open_unibrow_with_storage_mode` |
+| PKG-04 | done | `pkg.storage.historyWillBeSaved`, status items via `packageStorageUi.ts`, dismissible notice |
+| PKG-05 | done | File menu + CM `Unpack to folder` / `Pack as .unibrow`, `unpack_unibrow_to_folder`, `pack_unibrow_to_archive` |
+| PKG-06 | done | `settings.projectFolderHint`, `project_folder_hint_bytes`, large-project status hint |
 | PKG-07 | done | `pkg07_archive_save_is_atomic_and_readable`, `pkg07_folder_save_recovers_after_interrupted_journal`, `package_save::{save_archive_package,save_folder_package,set_save_fault_hook}` |
 | PKG-08 | done | `pkg08_collect_api_embeds_linked_media`, `pkg08_gc_retains_hashes_referenced_in_history`, `pkg08_gc_drops_unreferenced_hashes_not_in_history`, `refs_collect::{add_media_ref,collect_all_media_refs,gc_content_addressed_assets,list_referenced_package_parts}` |
 

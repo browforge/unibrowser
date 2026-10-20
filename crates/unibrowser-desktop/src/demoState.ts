@@ -612,6 +612,33 @@ export async function applyDemoState(raw: string) {
         showFirstSaveCaptureOverlay("Untitled project");
         break;
       }
+      case "pkg-v1-open-mode": {
+        const { showPackageOpenModeCapture } = await import("./packageOpenModeDialog");
+        showPackageOpenModeCapture();
+        break;
+      }
+      case "pkg-v1-history-notice": {
+        const { showHistoryNoticeCapture } = await import("./packageStorageUi");
+        showHistoryNoticeCapture();
+        break;
+      }
+      case "pkg-v1-unpack-progress": {
+        const { showUnpackProgressCapture } = await import("./packageStorageUi");
+        showUnpackProgressCapture();
+        break;
+      }
+      case "pkg-v1-file-menu": {
+        const fileBtn = document.querySelector<HTMLButtonElement>(
+          "#app-menu-bar .app-menu-trigger",
+        );
+        if (fileBtn) {
+          fileBtn.click();
+        } else {
+          const { showFileMenuCapturePanel } = await import("./appMenu");
+          showFileMenuCapturePanel();
+        }
+        break;
+      }
       case "files":
         await invoke("open_path", { path: "~", line: null }).catch(() => undefined);
         break;

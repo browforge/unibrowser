@@ -2,6 +2,7 @@
 
 mod opc_bundle;
 mod package_save;
+mod package_storage;
 mod refs_collect;
 mod zip_bundle;
 mod timeline_encode;
@@ -18,6 +19,13 @@ pub use package_save::{
     archive_part_path, archive_zip_is_readable, pending_folder_save_id,
     recover_incomplete_archive_save, recover_incomplete_folder_save, save_archive_package,
     save_folder_package, set_save_fault_hook, SaveFaultPoint,
+};
+
+pub use package_storage::{
+    dir_tree_byte_size, estimate_archive_unpacked_bytes, is_memory_storage_session,
+    materialize_archive_bundle, open_archive_package_in_memory, pack_folder_to_archive,
+    read_archive_project_manifest, unpack_archive_to_folder, unibrow_open_estimate,
+    PackageStorageMode, UnibrowOpenEstimate, DEFAULT_FOLDER_HINT_BYTES,
 };
 
 pub use refs_collect::{

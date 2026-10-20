@@ -393,6 +393,10 @@ pub struct TabContentDto {
     pub surface_capability_diagnostics: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub surface_provider_conflicts: Vec<SurfaceProviderConflictDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub package_storage: Option<crate::package_storage_session::PackageStorageSessionDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unibrow_open_prompt: Option<unibrowser_project::UnibrowOpenEstimate>,
 }
 
 #[derive(Serialize)]
@@ -1453,6 +1457,11 @@ pub(crate) fn snapshot(state: &AppState, window_label: &str) -> Result<TabConten
                 mod_names: c.mod_names.clone(),
             })
             .collect(),
+        package_storage: crate::package_storage_commands::active_package_storage_dto(
+            state,
+            window_label,
+        ),
+        unibrow_open_prompt: None,
     })
 }
 
@@ -1537,7 +1546,7 @@ fn active_document_path(state: &AppState, window: &tauri::Window) -> Result<Stri
     Ok(doc.path.clone())
 }
 
-fn touch_recent_file(path: &Path) {
+pub(crate) fn touch_recent_file(path: &Path) {
     if !path.is_file() {
         return;
     }
@@ -2157,6 +2166,22 @@ pub fn open_path(
 ) -> Result<TabContentDto, String> {
     crate::problems_store::clear_mock_problems_lock();
     let file_path = resolve_open_path(&path, &state.cwd)?;
+    if file_path.is_file() && unibrowser_project::is_unibrow_path(&file_path) {
+        let key = file_path.to_string_lossy().into_owned();
+        if state.inner().package_storage.get(&key).is_none() {
+            let prefs = load_preferences();
+            let prompt = unibrowser_project::unibrow_open_estimate(
+                &file_path,
+                prefs.project_folder_hint_bytes,
+            )
+            .map_err(|e| e.to_string())?;
+            let dto = snapshot(&state, window.label())?;
+            return Ok(TabContentDto {
+                unibrow_open_prompt: Some(prompt),
+                ..dto
+            });
+        }
+    }
     if unibrowser_project::is_unibrow_path(&file_path) {
         allow_asset_protocol_file(&app, &file_path);
         let doc = state.inner().try_open_unibrow_document(&file_path)?;
@@ -3830,6 +3855,12 @@ fn execute_command_impl(
     if command_id == unibrowser_mod_api::commands::START_NEW_PROJECT {
         return Ok("start-new-project".into());
     }
+    if command_id == "unibrowser.project.unpack" {
+        return Ok("pkg-unpack".into());
+    }
+    if command_id == "unibrowser.project.pack" {
+        return Ok("pkg-pack".into());
+    }
     if command_id == "unibrowser.start.newFromTemplate" {
         return Ok("start-new-template-gallery".into());
     }
@@ -4757,6 +4788,7 @@ pub struct PreferencesDto {
     pub fluidsynth_soundfont_path: Option<String>,
     pub project_autosave_enabled: bool,
     pub project_autosave_interval_secs: u32,
+    pub project_folder_hint_megabytes: u32,
     pub crash_recovery_enabled: bool,
     pub ntp_sections: NtpSectionsDto,
     pub advanced_webview_devtools: bool,
@@ -6295,7 +6327,7 @@ pub fn get_build_info(state: State<AppState>) -> BuildInfoDto {
 }
 
 #[tauri::command]
-fn preferences_dto() -> PreferencesDto {
+pub(crate) fn preferences_dto() -> PreferencesDto {
     let p = load_preferences();
     PreferencesDto {
         onboarding_dismissed: p.onboarding_dismissed,
@@ -6321,6 +6353,11 @@ fn preferences_dto() -> PreferencesDto {
         fluidsynth_soundfont_path: p.fluidsynth_soundfont_path.clone(),
         project_autosave_enabled: p.project_autosave_enabled,
         project_autosave_interval_secs: p.project_autosave_interval_secs,
+        project_folder_hint_megabytes: if p.project_folder_hint_bytes == 0 {
+            0
+        } else {
+            (p.project_folder_hint_bytes / (1024 * 1024)) as u32
+        },
         crash_recovery_enabled: p.crash_recovery_enabled,
         ntp_sections: ntp_sections_dto(&p),
         advanced_webview_devtools: p.advanced_webview_devtools,

@@ -241,13 +241,29 @@ fn project_family(ctx: &ResolutionContext, resolver: &CapabilityResolver) -> Res
                 "unibrowser.group.project.output",
                 "Output",
                 OverflowPriority::Primary,
-                vec![control(
-                    "unibrowser.control.project.export",
-                    "unibrowser.project.export",
-                    "Export",
-                    "download",
-                    "unibrowser.group.project.output",
-                )],
+                vec![
+                    control(
+                        "unibrowser.control.project.export",
+                        "unibrowser.project.export",
+                        "Export",
+                        "download",
+                        "unibrowser.group.project.output",
+                    ),
+                    control(
+                        "unibrowser.control.project.unpack",
+                        "unibrowser.project.unpack",
+                        "Unpack to folder",
+                        "folder",
+                        "unibrowser.group.project.output",
+                    ),
+                    control(
+                        "unibrowser.control.project.pack",
+                        "unibrowser.project.pack",
+                        "Pack as .unibrow",
+                        "package-open",
+                        "unibrowser.group.project.output",
+                    ),
+                ],
             ),
         ],
     }

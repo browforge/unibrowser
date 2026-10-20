@@ -13,7 +13,7 @@ use unibrowser_project::{
     import_share_package_zip, is_legacy_unibrow_zip, is_opc_unibrow_zip, is_unibrow_path,
     is_unpacked_native_package, list_media_refs, list_referenced_package_parts,
     list_zip_archive_entries, materialize_zip_package, open_package, opc_part_bytes_equal,
-    pending_folder_save_id, recover_incomplete_folder_save, resolve_package_root,
+    pending_folder_save_id, recover_incomplete_folder_save,
     save_archive_package, save_folder_package, set_save_fault_hook, write_legacy_plain_zip,
     write_manifest, SaveFaultPoint, DIR_ASSETS, HISTORY_FILE, MANIFEST_FILE, PROJECT_FILE,
 };
@@ -276,19 +276,41 @@ fn pkg02_native_package_uses_root_history_not_per_file_sidecar() {
 // --- PKG-03: Storage mode state ---
 
 #[test]
-fn pkg03_opening_zip_materialises_cache_on_disk() {
-    let dir = temp_root("materialize");
+fn pkg03_view_only_open_writes_zero_bytes() {
+    use unibrowser_project::{dir_tree_byte_size, open_archive_package_in_memory};
+    let dir = temp_root("view-only");
     let _ = fs::remove_dir_all(&dir);
-    let _pkg = create_package(&dir, "Cache").expect("create");
-    let zip_path = dir.with_extension("unibrow");
+    let _pkg = create_package(&dir, "View").expect("create");
+    let zip_path = dir.join("pkg.unibrow");
     export_package_to_zip(&dir, &zip_path).expect("export");
     let cache = dir.join("zip-cache");
     let _ = fs::remove_dir_all(&cache);
-    let root = resolve_package_root(&zip_path, &cache).expect("resolve");
-    assert!(root.join(PROJECT_FILE).is_file());
-    assert!(cache.exists(), "view-only open still extracts archive to cache today");
+    fs::create_dir_all(&cache).expect("cache dir");
+    let before = dir_tree_byte_size(&cache);
+    let _mem = open_archive_package_in_memory(&zip_path, "view-test").expect("view open");
+    let after = dir_tree_byte_size(&cache);
+    assert_eq!(before, after, "view-only open must not write under cache");
+    assert_eq!(after, 0);
     let _ = fs::remove_dir_all(&dir);
-    let _ = fs::remove_file(&zip_path);
+}
+
+#[test]
+fn pkg03_archive_unedited_open_writes_zero_bytes() {
+    use unibrowser_project::{dir_tree_byte_size, open_archive_package_in_memory};
+    let dir = temp_root("arc-mem");
+    let _ = fs::remove_dir_all(&dir);
+    let _pkg = create_package(&dir, "Arc").expect("create");
+    let zip_path = dir.join("pkg.unibrow");
+    export_package_to_zip(&dir, &zip_path).expect("export");
+    let cache = dir.join("zip-cache");
+    let _ = fs::remove_dir_all(&cache);
+    fs::create_dir_all(&cache).expect("cache dir");
+    let before = dir_tree_byte_size(&cache);
+    let _mem = open_archive_package_in_memory(&zip_path, "arc-test").expect("archive memory open");
+    let after = dir_tree_byte_size(&cache);
+    assert_eq!(before, after);
+    assert_eq!(after, 0);
+    let _ = fs::remove_dir_all(&dir);
 }
 
 // --- PKG-05: Unpack / Pack (library-level zip only) ---

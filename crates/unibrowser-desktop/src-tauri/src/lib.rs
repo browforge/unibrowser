@@ -20,6 +20,8 @@ mod open_vsx;
 pub mod path_security;
 pub mod preferences;
 mod project_backend;
+mod package_storage_session;
+mod package_storage_commands;
 mod project_templates;
 mod live_host;
 mod ai_assistant_host;
@@ -469,6 +471,12 @@ pub fn run() {
             commands::import_unibrow_share_package,
             commands::autosave_unibrow_active_project,
             commands::set_project_autosave_settings,
+            package_storage_commands::query_unibrow_open_cmd,
+            package_storage_commands::open_unibrow_with_storage_mode,
+            package_storage_commands::dismiss_package_history_notice,
+            package_storage_commands::unpack_unibrow_to_folder,
+            package_storage_commands::pack_unibrow_to_archive,
+            package_storage_commands::set_project_folder_hint_settings,
             commands::dismiss_onboarding,
             commands::skip_onboarding_tour_forever,
             commands::set_ui_locale,

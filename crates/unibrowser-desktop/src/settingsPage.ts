@@ -67,6 +67,7 @@ interface PrefsDto {
   fluidsynth_soundfont_path: string | null;
   project_autosave_enabled: boolean;
   project_autosave_interval_secs: number;
+  project_folder_hint_megabytes: number;
   crash_recovery_enabled: boolean;
   ntp_sections: NtpSectionsDto;
   advanced_webview_devtools: boolean;
@@ -666,6 +667,23 @@ export async function renderSettings(root: HTMLElement) {
   projectAutoRow.appendChild(projectAutoLabel);
   projectAutoRow.appendChild(projectAutoInterval);
   boardSection.appendChild(projectAutoRow);
+  const folderHintRow = document.createElement("div");
+  folderHintRow.className = "settings-row";
+  const folderHintLabel = document.createElement("label");
+  folderHintLabel.textContent = t("settings.projectFolderHint");
+  const folderHintInput = document.createElement("input");
+  folderHintInput.type = "number";
+  folderHintInput.min = "0";
+  folderHintInput.step = "50";
+  folderHintInput.className = "ub-form-control";
+  folderHintInput.value = String(prefs.project_folder_hint_megabytes ?? 500);
+  folderHintInput.onchange = () => {
+    void invoke<PrefsDto>("set_project_folder_hint_settings", {
+      megabytes: Number.parseInt(folderHintInput.value, 10) || 0,
+    });
+  };
+  folderHintRow.append(folderHintLabel, folderHintInput);
+  boardSection.appendChild(folderHintRow);
   root.appendChild(boardSection);
 
   const mediaSection = document.createElement("section");
