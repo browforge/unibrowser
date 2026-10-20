@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "./i18n";
+import { isWebPlatform } from "./platform/isWeb";
 import { createLucideIcon } from "./ui/lucideIcon";
 
 export type PackageOpenMode = "view_only" | "archive" | "folder";
@@ -61,7 +62,7 @@ export function mountPackageOpenModeDialog(
       id: PackageOpenMode;
       label: string;
       hint: string;
-      icon: "eye" | "package-open" | "folder";
+      icon: "eye" | "archive" | "folder";
     }[] = [
       {
         id: "view_only",
@@ -73,7 +74,7 @@ export function mountPackageOpenModeDialog(
         id: "archive",
         label: t("pkg.storage.archive"),
         hint: t("pkg.openMode.archiveHint"),
-        icon: "package-open",
+        icon: "archive",
       },
       {
         id: "folder",
@@ -82,7 +83,10 @@ export function mountPackageOpenModeDialog(
         icon: "folder",
       },
     ];
-    modes.forEach((entry) => {
+    const modesForPlatform = isWebPlatform()
+      ? modes.filter((m) => m.id === "view_only")
+      : modes;
+    modesForPlatform.forEach((entry) => {
       const row = document.createElement("label");
       row.className = "first-save-mode-card";
       if (entry.id === mode) {
@@ -189,4 +193,10 @@ export function showPackageOpenModeCapture(estimate?: UnibrowOpenEstimate): void
     },
     captureOnly: true,
   });
+}
+
+export async function showPackageOpenModeCaptureFromFixture(): Promise<void> {
+  const path = await invoke<string>("pkg_capture_fixture_archive_path_cmd");
+  const estimate = await invoke<UnibrowOpenEstimate>("query_unibrow_open_cmd", { path });
+  showPackageOpenModeCapture(estimate);
 }

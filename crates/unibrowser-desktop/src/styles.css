@@ -5136,6 +5136,12 @@ button.quiet-button:disabled,
   min-width: min(420px, 92vw);
 }
 
+.pkg-unpack-dest {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
 .pkg-unpack-progress-bar {
   height: 8px;
   border-radius: 4px;

@@ -316,6 +316,37 @@ fn pkg03_archive_unedited_open_writes_zero_bytes() {
 // --- PKG-05: Unpack / Pack (library-level zip only) ---
 
 #[test]
+fn pkg05_unpack_cancel_removes_partial_output() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use unibrowser_project::{
+        remove_unpack_destination, unpack_archive_to_folder_cancellable,
+    };
+    let dir = temp_root("unpack-cancel");
+    let _ = fs::remove_dir_all(&dir);
+    let pkg_dir = dir.join("bundle");
+    let _pkg = create_package(&pkg_dir, "Pkg").expect("create");
+    fs::write(pkg_dir.join("notes.md"), b"# one\n").expect("note");
+    fs::write(pkg_dir.join("extra.md"), b"# two\n").expect("extra");
+    let zip_path = dir.join("pkg.unibrow");
+    export_package_to_zip(&pkg_dir, &zip_path).expect("export");
+    let dest = dir.join("unpacked");
+    let seen = AtomicUsize::new(0);
+    let err = unpack_archive_to_folder_cancellable(&zip_path, &dest, &|| {
+        let n = seen.fetch_add(1, Ordering::Relaxed);
+        n >= 1
+    })
+        .expect_err("should cancel");
+    assert!(
+        err.to_string().to_lowercase().contains("cancel"),
+        "unexpected error: {}",
+        err
+    );
+    assert!(!dest.exists(), "partial unpack dir must be removed");
+    remove_unpack_destination(&dest);
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn pkg05_pack_from_directory_does_not_touch_sibling_plain_folder() {
     let dir = temp_root("pack");
     let _ = fs::remove_dir_all(&dir);

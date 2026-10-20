@@ -139,7 +139,7 @@ import {
   updateStatusBar,
 } from "./statusBar";
 import type { StatusItem } from "./statusBar";
-import { packageStorageStatusItems } from "./packageStorageUi";
+import { packageStorageStatusItems, syncPackageHistoryNotice } from "./packageStorageUi";
 import type { PackageStorageSessionDto } from "./packageStorageUi";
 import { getEncodeProgress, setEncodeProgress } from "./encodeProgress";
 import { runExportPrintPdf, runPrintSelection } from "./exportPdf";
@@ -567,7 +567,10 @@ function statusItemsForContext(
   }
   if (viewer === "unibrow" && data.document_viewer) {
     if (data.package_storage) {
-      const pkgItems = packageStorageStatusItems(data.package_storage);
+      const pkgSave = data.package_storage.edited
+        ? values.dirty || values.autosave || "Saved"
+        : values.dirty || t("status.unsaved");
+      const pkgItems = packageStorageStatusItems(data.package_storage, pkgSave);
       if (pkgItems.length) {
         return { context: "unibrow-package", items: pkgItems };
       }
@@ -2620,6 +2623,9 @@ async function applyState(data: TabContentDto) {
     fontLabel.title = fontResetable ? t("status.fontResetTitle") : "";
   }
   refreshStatusBar(data, active, showText, showViewer, projectDocument);
+  if (data.package_storage && data.document_viewer?.path) {
+    syncPackageHistoryNotice(data.package_storage, data.document_viewer.path);
+  }
   syncDocumentCardDirtyFlag(Boolean(active?.dirty && !active.is_directory));
   const recoveryHost = document.getElementById("recovery-bar-host");
   if (recoveryHost) {
@@ -2791,6 +2797,12 @@ async function navigateOmnibox() {
   if (input === "unibrowser://action/new-from-template") {
     void startNewFromTemplateGallery();
     return;
+  }
+  if (input === "unibrowser://action/pkg-unpack" || input === "unibrowser://action/pkg-pack") {
+    if (isWebPlatform()) {
+      showToast(t("pkg.web.diskUnavailable"), "info");
+      return;
+    }
   }
   if (input === "unibrowser://action/pkg-unpack") {
     const state = await invoke<TabContentDto>("get_browser_state");
@@ -3477,9 +3489,25 @@ window.addEventListener("focus", () => {
   void invoke("reload_keybindings").then(() => loadKeybindingHints());
 });
 
-void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
+void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
   if (!toolbarOnly) {
     hideShellFallback();
+    const docCaptureEarly = await invoke<string | null>("take_doc_capture_path");
+    const demoEarly = await invoke<string | null>("get_demo_state");
+    if (docCaptureEarly && demoEarly) {
+      const { isPkgV2DocCapture, runPkgV2DocCapture } = await import("./pkgDocCapture");
+      if (isPkgV2DocCapture(demoEarly)) {
+        try {
+          await runPkgV2DocCapture(demoEarly, () => navigateOmnibox(), (id) =>
+            runKeybindingCommand(id),
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          await invoke("abort_doc_capture", { reason: msg }).catch(() => undefined);
+        }
+        return;
+      }
+    }
     void refreshState().then(async () => {
       await loadThemePreference();
       mountActivityRail();
@@ -3692,17 +3720,41 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
           } else if (demoTokens.includes("doc-history-panel")) {
             await applyDemoState("doc-history-panel");
             await new Promise((resolve) => window.setTimeout(resolve, 150));
-          } else if (demoTokens.includes("pkg-v1-open-mode")) {
-            await applyDemoState("pkg-v1-open-mode");
+          } else if (
+            demoTokens.includes("pkg-v1-open-mode") ||
+            demoTokens.includes("pkg-v2-open-mode")
+          ) {
+            await applyDemoState(
+              demoTokens.includes("pkg-v2-open-mode") ? "pkg-v2-open-mode" : "pkg-v1-open-mode",
+            );
             await new Promise((resolve) => window.setTimeout(resolve, 150));
-          } else if (demoTokens.includes("pkg-v1-history-notice")) {
-            await applyDemoState("pkg-v1-history-notice");
+          } else if (
+            demoTokens.includes("pkg-v1-history-notice") ||
+            demoTokens.includes("pkg-v2-history-notice")
+          ) {
+            await applyDemoState(
+              demoTokens.includes("pkg-v2-history-notice")
+                ? "pkg-v2-history-notice"
+                : "pkg-v1-history-notice",
+            );
             await new Promise((resolve) => window.setTimeout(resolve, 150));
-          } else if (demoTokens.includes("pkg-v1-unpack-progress")) {
-            await applyDemoState("pkg-v1-unpack-progress");
+          } else if (
+            demoTokens.includes("pkg-v1-unpack-progress") ||
+            demoTokens.includes("pkg-v2-unpack-progress")
+          ) {
+            await applyDemoState(
+              demoTokens.includes("pkg-v2-unpack-progress")
+                ? "pkg-v2-unpack-progress"
+                : "pkg-v1-unpack-progress",
+            );
             await new Promise((resolve) => window.setTimeout(resolve, 150));
-          } else if (demoTokens.includes("pkg-v1-file-menu")) {
-            await applyDemoState("pkg-v1-file-menu");
+          } else if (
+            demoTokens.includes("pkg-v1-file-menu") ||
+            demoTokens.includes("pkg-v2-file-menu")
+          ) {
+            await applyDemoState(
+              demoTokens.includes("pkg-v2-file-menu") ? "pkg-v2-file-menu" : "pkg-v1-file-menu",
+            );
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           }
           let painted: boolean;
@@ -3735,7 +3787,11 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               demoTokens.includes("pkg-v1-open-mode") ||
               demoTokens.includes("pkg-v1-history-notice") ||
               demoTokens.includes("pkg-v1-unpack-progress") ||
-              demoTokens.includes("pkg-v1-file-menu");
+              demoTokens.includes("pkg-v1-file-menu") ||
+              demoTokens.includes("pkg-v2-open-mode") ||
+              demoTokens.includes("pkg-v2-history-notice") ||
+              demoTokens.includes("pkg-v2-unpack-progress") ||
+              demoTokens.includes("pkg-v2-file-menu");
             painted = pkgCapture
               ? true
               : await waitForShellPaintReady(demoAgain, launchPaths, 90_000);

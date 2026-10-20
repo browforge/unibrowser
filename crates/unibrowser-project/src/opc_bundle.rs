@@ -228,6 +228,14 @@ pub fn write_opc_zip_from_root(
 }
 
 pub fn materialize_zip_to_dir(zip_path: &Path, dest: &Path) -> Result<(), ProjectError> {
+    materialize_zip_to_dir_cancellable(zip_path, dest, &|| false)
+}
+
+pub fn materialize_zip_to_dir_cancellable(
+    zip_path: &Path,
+    dest: &Path,
+    should_cancel: &dyn Fn() -> bool,
+) -> Result<(), ProjectError> {
     if dest.exists() {
         fs::remove_dir_all(dest)?;
     }
@@ -235,6 +243,10 @@ pub fn materialize_zip_to_dir(zip_path: &Path, dest: &Path) -> Result<(), Projec
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
     for i in 0..archive.len() {
+        if should_cancel() {
+            let _ = fs::remove_dir_all(dest);
+            return Err(ProjectError::Msg("unpack cancelled".into()));
+        }
         let mut entry = archive
             .by_index(i)
             .map_err(|e| ProjectError::Msg(e.to_string()))?;

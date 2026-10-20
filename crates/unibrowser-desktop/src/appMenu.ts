@@ -1,4 +1,5 @@
 import { t } from "./i18n";
+import { isWebPlatform } from "./platform/isWeb";
 
 export type MenuRun = (commandId: string) => void | Promise<void>;
 export type MenuOpenPath = (path: string) => void | Promise<void>;
@@ -16,24 +17,36 @@ interface MenuDef {
   items: MenuAction[];
 }
 
+function fileMenuItems(): MenuAction[] {
+  const items: MenuAction[] = [
+    { label: t("menu.new"), path: "unibrowser://action/new-project" },
+    { label: t("menu.newFromTemplate"), path: "unibrowser://action/new-from-template" },
+    { label: t("menu.openFile"), commandId: "unibrowser.control.start.openFile" },
+    { label: t("menu.openFolder"), commandId: "unibrowser.control.start.openFolder" },
+    { label: t("menu.saveAsTemplate"), path: "unibrowser://action/save-as-template" },
+  ];
+  if (!isWebPlatform()) {
+    items.push(
+      { divider: true, label: "" },
+      { label: t("pkg.menu.unpack"), path: "unibrowser://action/pkg-unpack" },
+      { label: t("pkg.menu.pack"), path: "unibrowser://action/pkg-pack" },
+    );
+  }
+  items.push(
+    { divider: true, label: "" },
+    { label: t("menu.newWindow"), commandId: "unibrowser.window.new" },
+    { divider: true, label: "" },
+    { label: t("settings.open"), path: "unibrowser://settings" },
+  );
+  return items;
+}
+
 function buildMenus(): MenuDef[] {
   return [
     {
       id: "file",
       label: t("menu.file"),
-      items: [
-        { label: t("menu.new"), path: "unibrowser://action/new-project" },
-        { label: t("menu.newFromTemplate"), path: "unibrowser://action/new-from-template" },
-        { label: t("menu.openFile"), commandId: "unibrowser.control.start.openFile" },
-        { label: t("menu.openFolder"), commandId: "unibrowser.control.start.openFolder" },
-        { label: t("menu.saveAsTemplate"), path: "unibrowser://action/save-as-template" },
-        { label: t("pkg.menu.unpack"), path: "unibrowser://action/pkg-unpack" },
-        { label: t("pkg.menu.pack"), path: "unibrowser://action/pkg-pack" },
-        { divider: true, label: "" },
-        { label: t("menu.newWindow"), commandId: "unibrowser.window.new" },
-        { divider: true, label: "" },
-        { label: t("settings.open"), path: "unibrowser://settings" },
-      ],
+      items: fileMenuItems(),
     },
     {
       id: "edit",
@@ -154,24 +167,14 @@ export function openAppMenuFromButton(
   openMenuPanelAt(anchor, panel);
 }
 
-/** Doc-capture / web WASM: File menu with pack/unpack rows when native menu bar is absent. */
+/** @deprecated Desktop captures use the real File menu (#app-menu-bar). */
 export function showFileMenuCapturePanel(): void {
-  document.querySelector(".app-menu-dropdown--capture")?.remove();
-  const panel = document.createElement("div");
-  panel.className = "app-menu-dropdown app-menu-dropdown--capture";
-  panel.setAttribute("role", "menu");
-  for (const label of [t("pkg.menu.unpack"), t("pkg.menu.pack")]) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "app-menu-item";
-    btn.textContent = label;
-    btn.setAttribute("role", "menuitem");
-    panel.appendChild(btn);
+  const fileTrigger = document.querySelector<HTMLButtonElement>(
+    "#app-menu-bar .app-menu-trigger",
+  );
+  if (fileTrigger) {
+    fileTrigger.click();
   }
-  panel.style.position = "fixed";
-  panel.style.left = "12px";
-  panel.style.top = "36px";
-  document.body.appendChild(panel);
 }
 
 export function initAppMenu(

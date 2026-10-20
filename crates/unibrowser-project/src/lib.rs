@@ -24,7 +24,8 @@ pub use package_save::{
 pub use package_storage::{
     dir_tree_byte_size, estimate_archive_unpacked_bytes, is_memory_storage_session,
     materialize_archive_bundle, open_archive_package_in_memory, pack_folder_to_archive,
-    read_archive_project_manifest, unpack_archive_to_folder, unibrow_open_estimate,
+    read_archive_project_manifest, remove_unpack_destination, unpack_archive_to_folder,
+    unpack_archive_to_folder_cancellable, unibrow_open_estimate,
     PackageStorageMode, UnibrowOpenEstimate, DEFAULT_FOLDER_HINT_BYTES,
 };
 

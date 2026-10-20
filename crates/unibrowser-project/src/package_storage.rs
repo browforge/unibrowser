@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use zip::read::ZipArchive;
 
-use crate::opc_bundle::materialize_zip_to_dir;
+use crate::opc_bundle::{materialize_zip_to_dir, materialize_zip_to_dir_cancellable};
 use crate::template::{memory_root_for_session, MEMORY_ROOT_PREFIX};
 use crate::{
     open_package, export_package_to_zip, validate_manifest, ProjectError, ProjectManifest,
@@ -103,7 +103,21 @@ pub fn materialize_archive_bundle(zip_path: &Path, dest: &Path) -> Result<PathBu
     Ok(root)
 }
 
+pub fn remove_unpack_destination(dest: &Path) {
+    if dest.exists() {
+        let _ = fs::remove_dir_all(dest);
+    }
+}
+
 pub fn unpack_archive_to_folder(zip_path: &Path, dest_folder: &Path) -> Result<PathBuf, ProjectError> {
+    unpack_archive_to_folder_cancellable(zip_path, dest_folder, &|| false)
+}
+
+pub fn unpack_archive_to_folder_cancellable(
+    zip_path: &Path,
+    dest_folder: &Path,
+    should_cancel: &dyn Fn() -> bool,
+) -> Result<PathBuf, ProjectError> {
     if dest_folder.exists() {
         let mut empty = true;
         if dest_folder.is_dir() {
@@ -123,7 +137,10 @@ pub fn unpack_archive_to_folder(zip_path: &Path, dest_folder: &Path) -> Result<P
             )));
         }
     }
-    materialize_archive_bundle(zip_path, dest_folder)
+    materialize_zip_to_dir_cancellable(zip_path, dest_folder, should_cancel)?;
+    let root = dest_folder.to_path_buf();
+    open_package(&root)?;
+    Ok(root)
 }
 
 pub fn pack_folder_to_archive(bundle_root: &Path, dest_zip: &Path) -> Result<(), ProjectError> {

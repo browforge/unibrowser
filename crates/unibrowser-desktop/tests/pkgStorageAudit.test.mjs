@@ -51,9 +51,9 @@ test("package open mode dialog source defines capture helper", () => {
   assert.match(src, /pkg-open-mode-overlay/);
 });
 
-test("history notice markup uses dismissible quiet button", () => {
+test("history notice uses status toast with dismiss", () => {
   const src = readFileSync(join(here, "../src/packageStorageUi.ts"), "utf8");
-  assert.match(src, /pkg-history-notice/);
-  assert.match(src, /quiet-button/);
+  assert.match(src, /data-pkg-history-toast/);
+  assert.match(src, /showActionToast/);
   assert.match(src, /pkg\.storage\.historyWillBeSaved/);
 });

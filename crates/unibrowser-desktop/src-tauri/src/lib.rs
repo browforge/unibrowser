@@ -171,14 +171,16 @@ pub fn run() {
                     {
                         eprintln!("dock detached toolbars for settings: {}", error);
                     }
-                } else if let Err(error) =
-                    toolbar_windows::restore_detached_toolbars(app.handle(), state.inner())
-                {
-                    eprintln!("detached toolbar restore: {}", error);
-                    crate::diagnostic_log::record_error(
-                        "detached-toolbar-restore",
-                        Some(error),
-                    );
+                } else if !doc_capture {
+                    if let Err(error) =
+                        toolbar_windows::restore_detached_toolbars(app.handle(), state.inner())
+                    {
+                        eprintln!("detached toolbar restore: {}", error);
+                        crate::diagnostic_log::record_error(
+                            "detached-toolbar-restore",
+                            Some(error),
+                        );
+                    }
                 }
             }
             let _ = unibrowser_media::warm_sidecar_pool();
@@ -475,6 +477,10 @@ pub fn run() {
             package_storage_commands::open_unibrow_with_storage_mode,
             package_storage_commands::dismiss_package_history_notice,
             package_storage_commands::unpack_unibrow_to_folder,
+            package_storage_commands::cancel_unpack_unibrow,
+            package_storage_commands::pkg_capture_fixture_archive_path_cmd,
+            package_storage_commands::pkg_capture_unpack_dest_path_cmd,
+            package_storage_commands::pkg_capture_seed_archive_session,
             package_storage_commands::pack_unibrow_to_archive,
             package_storage_commands::set_project_folder_hint_settings,
             commands::dismiss_onboarding,

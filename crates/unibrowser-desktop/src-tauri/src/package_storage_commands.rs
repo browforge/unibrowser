@@ -9,7 +9,9 @@ use crate::commands::{
     allow_asset_protocol_file, snapshot, touch_recent_file, update_content_webview, ws, TabContentDto,
 };
 use crate::package_storage_session::{
-    open_with_storage_mode, query_unibrow_open, run_pack_active, run_unpack_active, session_to_dto,
+    cancel_unpack_active, open_with_storage_mode, pkg_capture_fixture_archive_path,
+    pkg_capture_unpack_dest_path, query_unibrow_open, run_pack_active, run_unpack_active,
+    session_to_dto,
 };
 use crate::preferences::{load_preferences, save_preferences};
 use crate::state::AppState;
@@ -80,6 +82,41 @@ pub fn dismiss_package_history_notice(
         .package_storage
         .update(&project_path, |s| s.history_notice_dismissed = true);
     snapshot(state.inner(), window.label())
+}
+
+#[tauri::command]
+pub fn cancel_unpack_unibrow(
+    state: State<AppState>,
+    project_path: String,
+) -> Result<(), String> {
+    cancel_unpack_active(state.inner(), &project_path)
+}
+
+#[tauri::command]
+pub fn pkg_capture_fixture_archive_path_cmd(state: State<AppState>) -> Result<String, String> {
+    pkg_capture_fixture_archive_path(state.inner())
+}
+
+#[tauri::command]
+pub fn pkg_capture_unpack_dest_path_cmd(state: State<AppState>) -> Result<String, String> {
+    pkg_capture_unpack_dest_path(state.inner())
+}
+
+#[tauri::command]
+pub fn pkg_capture_seed_archive_session(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let path = pkg_capture_fixture_archive_path(state.inner())?;
+    open_unibrow_with_storage_mode(
+        window,
+        app,
+        state,
+        path,
+        "archive".into(),
+        None,
+    )
 }
 
 #[tauri::command]

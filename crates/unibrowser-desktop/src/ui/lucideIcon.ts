@@ -29,6 +29,7 @@ export type LucideName =
   | "panel-bottom"
   | "panels-top-left"
   | "package-open"
+  | "archive"
   | "grip-horizontal"
   | "menu"
   | "undo-2"
@@ -114,7 +115,9 @@ const PATHS: Record<LucideName, string> = {
   "panels-top-left":
     '<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/>',
   "package-open":
-    '<path d="M12 22a2 2 0 0 0 2-2V7l-5-3-5 3v13a2 2 0 0 0 2 2Z"/><path d="M12 22v-5"/><path d="m2.5 10.5 9.5-5 9.5 5"/><path d="M7 12.5V17"/><path d="M17 12.5V17"/>',
+    '<path d="M12 22a2 2 0 0 0 2-2V7l-5-3-5 3v13a2 2 2 0 0 0 2 2Z"/><path d="M12 22v-5"/><path d="m2.5 10.5 9.5-5 9.5 5"/><path d="M7 12.5V17"/><path d="M17 12.5V17"/>',
+  archive:
+    '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
   "grip-horizontal": '<circle cx="12" cy="9" r="1"/><circle cx="19" cy="9" r="1"/><circle cx="5" cy="9" r="1"/>',
   "spell-check":
     '<path d="m4 16 6-12 6 12"/><path d="M6 12h8"/><path d="m16 19 2 2 4-4"/>',

@@ -2,12 +2,14 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use unibrowser_project::{
     is_memory_storage_session, materialize_archive_bundle, open_archive_package_in_memory,
-    open_package, pack_folder_to_archive, unpack_archive_to_folder, PackageStorageMode,
+    open_package, pack_folder_to_archive, remove_unpack_destination,
+    unpack_archive_to_folder, unpack_archive_to_folder_cancellable, PackageStorageMode,
     UnibrowOpenEstimate,
 };
 
@@ -42,14 +44,22 @@ pub struct PackageStorageSession {
     pub unpack_progress: u8,
 }
 
+#[derive(Clone)]
+struct UnpackInFlight {
+    cancel: Arc<AtomicBool>,
+    dest: PathBuf,
+}
+
 pub struct PackageStorageStore {
     by_tab: Mutex<HashMap<String, PackageStorageSession>>,
+    unpack: Mutex<HashMap<String, UnpackInFlight>>,
 }
 
 impl PackageStorageStore {
     pub fn new() -> Self {
         Self {
             by_tab: Mutex::new(HashMap::new()),
+            unpack: Mutex::new(HashMap::new()),
         }
     }
 
@@ -253,11 +263,44 @@ pub fn run_unpack_active(
         .archive_path
         .as_ref()
         .ok_or("not an archive tab")?;
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut map = state
+            .package_storage
+            .unpack
+            .lock()
+            .expect("package_storage unpack");
+        map.insert(
+            tab_path.to_string(),
+            UnpackInFlight {
+                cancel: cancel.clone(),
+                dest: dest.to_path_buf(),
+            },
+        );
+    }
     state.package_storage.update(tab_path, |s| {
         s.unpack_in_progress = true;
         s.unpack_progress = 10;
     });
-    let root = unpack_archive_to_folder(archive, dest).map_err(|e| e.to_string())?;
+    let cancel_cb = || cancel.load(Ordering::Relaxed);
+    let unpack_result =
+        unpack_archive_to_folder_cancellable(archive, dest, &cancel_cb).map_err(|e| e.to_string());
+    state
+        .package_storage
+        .unpack
+        .lock()
+        .expect("package_storage unpack")
+        .remove(tab_path);
+    let root = match unpack_result {
+        Ok(root) => root,
+        Err(e) => {
+            state.package_storage.update(tab_path, |s| {
+                s.unpack_in_progress = false;
+                s.unpack_progress = 0;
+            });
+            return Err(e);
+        }
+    };
     state.package_storage.update(tab_path, |s| {
         s.mode = PackageStorageMode::Folder;
         s.bundle_root = root.clone();
@@ -266,6 +309,40 @@ pub fn run_unpack_active(
         s.archive_path = None;
     });
     Ok(root)
+}
+
+pub fn cancel_unpack_active(state: &AppState, tab_path: &str) -> Result<(), String> {
+    let job = state
+        .package_storage
+        .unpack
+        .lock()
+        .expect("package_storage unpack")
+        .get(tab_path)
+        .cloned();
+    if let Some(job) = job {
+        job.cancel.store(true, Ordering::Relaxed);
+        remove_unpack_destination(&job.dest);
+    }
+    Ok(())
+}
+
+pub fn pkg_capture_fixture_archive_path(state: &AppState) -> Result<String, String> {
+    let root = std::env::var("UNIBROWSER_REPO_ROOT")
+        .map(PathBuf::from)
+        .or_else(|_| std::env::current_dir())
+        .map_err(|e| e.to_string())?;
+    let path = root.join("examples/demo-pack/pkg-capture.unibrow");
+    if !path.is_file() {
+        return Err(format!("capture fixture missing: {}", path.display()));
+    }
+    crate::path_security::resolve_open_path(&path.to_string_lossy(), &state.cwd)
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+pub fn pkg_capture_unpack_dest_path(state: &AppState) -> Result<String, String> {
+    let home = dirs::home_dir().ok_or("home dir unavailable")?;
+    let dest = home.join("Projects").join("UnibrowUnpack");
+    Ok(dest.to_string_lossy().into_owned())
 }
 
 pub fn run_pack_active(

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "./i18n";
 import type { StatusItem } from "./statusBar";
+import { showActionToast } from "./toast";
 
 export type PackageStorageSessionDto = {
   archive_path?: string | null;
@@ -15,8 +16,11 @@ export type PackageStorageSessionDto = {
   unpack_progress: number;
 };
 
+let historyToastTab: string | null = null;
+
 export function packageStorageStatusItems(
   session: PackageStorageSessionDto | null | undefined,
+  saveLabel?: string,
 ): StatusItem[] {
   if (!session) {
     return [];
@@ -42,12 +46,12 @@ export function packageStorageStatusItems(
     title: modeTip,
     priority: 120,
   });
-  if (session.mode !== "view_only" && !session.history_notice_dismissed) {
+  if (saveLabel) {
     left.push({
-      id: "pkg-history-path",
+      id: "pkg-document-save",
       slot: "left",
-      text: t("pkg.storage.historyWillBeSaved", { path: session.history_path }),
-      priority: 110,
+      text: saveLabel,
+      priority: 115,
     });
   }
   if (session.suggest_folder && session.mode === "archive" && !session.unpack_in_progress) {
@@ -71,31 +75,43 @@ export function packageStorageStatusItems(
   return [...left, ...right];
 }
 
-export function mountHistoryLocationNotice(
-  session: PackageStorageSessionDto,
-  onDismiss: () => void,
-): HTMLElement | null {
-  if (session.mode === "view_only" || session.history_notice_dismissed) {
-    return null;
-  }
-  const bar = document.createElement("div");
-  bar.className = "pkg-history-notice";
-  bar.dataset.pkgHistoryNotice = "1";
-  const text = document.createElement("span");
-  text.textContent = t("pkg.storage.historyWillBeSaved", { path: session.history_path });
-  const dismiss = document.createElement("button");
-  dismiss.type = "button";
-  dismiss.className = "quiet-button";
-  dismiss.textContent = t("onboarding.dismiss");
-  dismiss.addEventListener("click", () => {
-    bar.remove();
-    void onDismiss();
-  });
-  bar.append(text, dismiss);
-  return bar;
+function dismissPackageHistoryToast(): void {
+  historyToastTab = null;
+  document.querySelector("[data-pkg-history-toast]")?.remove();
 }
 
-export function showUnpackProgressCapture(): void {
+export function syncPackageHistoryNotice(
+  session: PackageStorageSessionDto | null | undefined,
+  projectPath: string,
+): void {
+  if (
+    !session ||
+    session.mode === "view_only" ||
+    session.history_notice_dismissed ||
+    session.edited
+  ) {
+    dismissPackageHistoryToast();
+    return;
+  }
+  if (historyToastTab === projectPath && document.querySelector("[data-pkg-history-toast]")) {
+    return;
+  }
+  dismissPackageHistoryToast();
+  historyToastTab = projectPath;
+  const message = t("pkg.storage.historyWillBeSaved", { path: session.history_path });
+  showActionToast(message, t("onboarding.dismiss"), () => {
+    dismissPackageHistoryToast();
+    void invoke("dismiss_package_history_notice", { projectPath });
+  }, "info");
+  const host = document.getElementById("toast-host");
+  host?.setAttribute("data-pkg-history-toast", "1");
+}
+
+export function mountUnpackProgressOverlay(
+  destinationDir: string,
+  onCancel: () => void,
+  percent = 65,
+): HTMLElement {
   document.querySelector(".pkg-unpack-progress-overlay")?.remove();
   const overlay = document.createElement("div");
   overlay.className = "pkg-unpack-progress-overlay";
@@ -104,20 +120,47 @@ export function showUnpackProgressCapture(): void {
   panel.className = "first-save-panel pkg-unpack-progress-panel";
   const title = document.createElement("h2");
   title.textContent = t("pkg.unpack.title");
+  const dest = document.createElement("p");
+  dest.className = "pkg-unpack-dest viewer-note";
+  dest.textContent = t("pkg.unpack.destination", { path: destinationDir });
   const bar = document.createElement("div");
   bar.className = "pkg-unpack-progress-bar";
   bar.setAttribute("role", "progressbar");
-  bar.setAttribute("aria-valuenow", "65");
+  bar.setAttribute("aria-valuenow", String(percent));
   const fill = document.createElement("div");
   fill.className = "pkg-unpack-progress-fill";
-  fill.style.width = "65%";
+  fill.style.width = `${percent}%`;
   bar.appendChild(fill);
   const label = document.createElement("p");
   label.className = "viewer-note";
-  label.textContent = t("pkg.unpack.progress", { percent: 65 });
-  panel.append(title, bar, label);
+  label.textContent = t("pkg.unpack.progress", { percent });
+  const actions = document.createElement("div");
+  actions.className = "first-save-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "quiet-button";
+  cancel.textContent = t("pkg.unpack.cancel");
+  cancel.addEventListener("click", () => {
+    overlay.remove();
+    onCancel();
+  });
+  actions.appendChild(cancel);
+  panel.append(title, dest, bar, label, actions);
   overlay.append(panel);
   document.body.appendChild(overlay);
+  return overlay;
+}
+
+export async function showUnpackProgressCapture(destinationDir?: string): Promise<void> {
+  let dest = destinationDir;
+  if (!dest) {
+    try {
+      dest = await invoke<string>("pkg_capture_unpack_dest_path_cmd");
+    } catch {
+      dest = "~/Projects/UnibrowUnpack";
+    }
+  }
+  mountUnpackProgressOverlay(dest, () => undefined, 65);
 }
 
 export async function runUnpackToFolder(projectPath: string): Promise<void> {
@@ -125,10 +168,23 @@ export async function runUnpackToFolder(projectPath: string): Promise<void> {
   if (!dest) {
     return;
   }
-  await invoke("unpack_unibrow_to_folder", {
-    projectPath,
-    destinationDir: dest,
+  let cancelled = false;
+  const overlay = mountUnpackProgressOverlay(dest, () => {
+    cancelled = true;
+    void invoke("cancel_unpack_unibrow", { projectPath });
   });
+  try {
+    await invoke("unpack_unibrow_to_folder", {
+      projectPath,
+      destinationDir: dest,
+    });
+  } catch (err) {
+    if (!cancelled) {
+      throw err;
+    }
+  } finally {
+    overlay.remove();
+  }
 }
 
 export async function runPackToUnibrow(projectPath: string): Promise<void> {
@@ -142,13 +198,16 @@ export async function runPackToUnibrow(projectPath: string): Promise<void> {
   });
 }
 
-export function showHistoryNoticeCapture(): void {
-  document.querySelector("[data-pkg-history-notice]")?.remove();
-  const notice = mountHistoryLocationNotice(
+export async function showHistoryNoticeCapture(): Promise<void> {
+  dismissPackageHistoryToast();
+  const historyPath = await invoke<string>("pkg_capture_fixture_archive_path_cmd").catch(
+    () => "~/Demo.unibrow",
+  );
+  syncPackageHistoryNotice(
     {
       bundle_root: "/tmp",
       mode: "archive",
-      history_path: "/home/me/Projects/Demo.unibrow",
+      history_path: historyPath,
       edited: false,
       history_notice_dismissed: false,
       unpacked_bytes: 0,
@@ -156,9 +215,6 @@ export function showHistoryNoticeCapture(): void {
       unpack_in_progress: false,
       unpack_progress: 0,
     },
-    () => undefined,
+    historyPath,
   );
-  if (notice) {
-    document.body.prepend(notice);
-  }
 }
