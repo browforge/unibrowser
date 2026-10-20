@@ -16,6 +16,7 @@
     "test:ui19": "node --experimental-strip-types --test tests/ui19Multiscale.test.mjs",
     "test:chrome": "node --experimental-strip-types --test tests/chromeMetrics.test.mjs",
     "test:capability": "node --experimental-strip-types --test tests/capabilityProvider.test.mjs tests/contentKindTraversal.test.mjs tests/kindHostResolver.test.mjs",
+    "test:perm-audit": "node --experimental-strip-types --test tests/permAudit.test.mjs",
     "preview": "vite preview",
     "dev:web": "vite --mode web",
     "prepare:web-public": "node scripts/prepare-web-public.mjs",
