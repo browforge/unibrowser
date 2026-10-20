@@ -664,21 +664,40 @@ export async function applyDemoState(raw: string) {
         await showUnpackProgressCapture();
         break;
       }
-      case "pkg-v3-file-menu": {
+      case "pkg-v3-file-menu":
+      case "pkg-v4-file-menu": {
         const { applyPkgArchiveCaptureSession } = await import("./packageStorageUi");
+        const { openCompactFileMenuDropdown } = await import("./appMenu");
         await applyPkgArchiveCaptureSession();
-        const anchor =
-          document.getElementById("title-menu-btn") ??
-          document.querySelector<HTMLButtonElement>("#app-menu-bar .app-menu-trigger");
-        anchor?.click();
-        const fileRoot = await waitForElement<HTMLButtonElement>(".app-menu-root-item");
-        const fileBtn = fileRoot
-          ? [...document.querySelectorAll<HTMLButtonElement>(".app-menu-root-item")].find((el) =>
-              /^file$/i.test(el.textContent?.trim() ?? ""),
-            )
-          : null;
-        fileBtn?.click();
+        const anchor = document.getElementById("title-menu-btn");
+        if (anchor) {
+          openCompactFileMenuDropdown(
+            anchor,
+            (commandId) => invoke("execute_command", { commandId }),
+            (path) => {
+              void invoke("open_path", { path, line: null }).catch(() => undefined);
+            },
+          );
+        }
         await waitForElement(".app-menu-dropdown .app-menu-item");
+        break;
+      }
+      case "pkg-v4-open-mode":
+        break;
+      case "pkg-v4-history-notice": {
+        const { applyPkgArchiveCaptureSession, showHistoryNoticeCapture } = await import(
+          "./packageStorageUi"
+        );
+        await applyPkgArchiveCaptureSession();
+        await showHistoryNoticeCapture();
+        break;
+      }
+      case "pkg-v4-unpack-progress": {
+        const { applyPkgArchiveCaptureSession, showUnpackProgressCapture } = await import(
+          "./packageStorageUi",
+        );
+        await applyPkgArchiveCaptureSession();
+        await showUnpackProgressCapture();
         break;
       }
       case "files":

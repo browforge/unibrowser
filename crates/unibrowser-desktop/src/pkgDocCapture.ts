@@ -19,6 +19,10 @@ const PKG_CAPTURE_TOKENS = [
   "pkg-v3-history-notice",
   "pkg-v3-unpack-progress",
   "pkg-v3-file-menu",
+  "pkg-v4-open-mode",
+  "pkg-v4-history-notice",
+  "pkg-v4-unpack-progress",
+  "pkg-v4-file-menu",
 ] as const;
 
 export function isPkgDocCapture(demo: string | null | undefined): boolean {
@@ -120,13 +124,20 @@ export async function runPkgDocCapture(demo: string, deps: PkgDocCaptureDeps): P
   void deps.refreshCommandManager();
 
   const launchPaths = await invoke<string[]>("take_launch_open_paths");
-  if (demo.toLowerCase().includes("pkg-v3-open-mode")) {
+  const lower = demo.toLowerCase();
+  const wantsOpenMode =
+    lower.includes("pkg-v3-open-mode") || lower.includes("pkg-v4-open-mode");
+  if (wantsOpenMode) {
+    const { applyPkgArchiveCaptureSession } = await import("./packageStorageUi");
     const { showPackageOpenModeCapture } = await import("./packageOpenModeDialog");
-    showPackageOpenModeCapture({
-      archive_path: "examples/demo-pack/pkg-capture.unibrow",
-      unpacked_bytes: 120_000_000,
-      suggest_folder: true,
-    });
+    await applyPkgArchiveCaptureSession();
+    const path = await invoke<string>("pkg_capture_fixture_archive_path_cmd");
+    const estimate = await invoke<{
+      archive_path: string;
+      unpacked_bytes: number;
+      suggest_folder: boolean;
+    }>("query_unibrow_open_cmd", { path });
+    showPackageOpenModeCapture(estimate);
   } else {
     await applyPkgCaptureToken(demo);
   }

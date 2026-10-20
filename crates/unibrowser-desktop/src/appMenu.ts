@@ -100,11 +100,26 @@ function buildMenus(): MenuDef[] {
 
 let closeOpenMenu: (() => void) | null = null;
 
+function compactMenuAnchorPosition(anchor: HTMLElement): { left: number; top: number } {
+  const anchorRect = anchor.getBoundingClientRect();
+  const titleBar = document.getElementById("title-bar");
+  const barRect = titleBar?.getBoundingClientRect();
+  const top =
+    barRect && barRect.height > 0 ? barRect.bottom : Math.max(anchorRect.bottom, 32);
+  const left = anchorRect.width > 0 && anchorRect.left >= 0 ? anchorRect.left : 4;
+  return { left, top };
+}
+
+function positionDropdownPanel(anchor: HTMLElement, panel: HTMLElement) {
+  const { left, top } = compactMenuAnchorPosition(anchor);
+  panel.style.position = "fixed";
+  panel.style.left = `${left}px`;
+  panel.style.top = `${top}px`;
+}
+
 function openMenuPanelAt(anchor: HTMLElement, panel: HTMLElement) {
   closeOpenMenu?.();
-  const rect = anchor.getBoundingClientRect();
-  panel.style.left = `${rect.left}px`;
-  panel.style.top = `${rect.bottom}px`;
+  positionDropdownPanel(anchor, panel);
   document.body.appendChild(panel);
   closeOpenMenu = () => {
     panel.remove();
@@ -157,14 +172,53 @@ export function openAppMenuFromButton(
         });
         sub.appendChild(action);
       }
-      const rect = btn.getBoundingClientRect();
-      sub.style.left = `${rect.left}px`;
-      sub.style.top = `${rect.bottom}px`;
+      positionDropdownPanel(anchor, sub);
       document.body.appendChild(sub);
     });
     panel.appendChild(btn);
   }
   openMenuPanelAt(anchor, panel);
+}
+
+/** Compact title bar: File menu only, anchored below the hamburger button. */
+export function openCompactFileMenuDropdown(
+  anchor: HTMLElement,
+  run: MenuRun,
+  openPath: MenuOpenPath,
+) {
+  closeOpenMenu?.();
+  const panel = document.createElement("div");
+  panel.className = "app-menu-dropdown";
+  panel.setAttribute("role", "menu");
+  for (const item of fileMenuItems()) {
+    if (item.divider) {
+      const hr = document.createElement("hr");
+      hr.className = "app-menu-divider";
+      panel.appendChild(hr);
+      continue;
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "app-menu-item";
+    btn.textContent = item.label;
+    btn.setAttribute("role", "menuitem");
+    btn.addEventListener("click", () => {
+      closeOpenMenu?.();
+      if (item.path) {
+        void openPath(item.path);
+      } else if (item.commandId) {
+        void run(item.commandId);
+      }
+    });
+    panel.appendChild(btn);
+  }
+  positionDropdownPanel(anchor, panel);
+  document.body.appendChild(panel);
+  closeOpenMenu = () => {
+    panel.remove();
+    closeOpenMenu = null;
+  };
+  panel.querySelector<HTMLButtonElement>(".app-menu-item")?.focus();
 }
 
 /** @deprecated Desktop captures use the real File menu (#app-menu-bar). */
@@ -236,9 +290,7 @@ export function initAppMenu(
         });
         panel.appendChild(btn);
       }
-      const rect = trigger.getBoundingClientRect();
-      panel.style.left = `${rect.left}px`;
-      panel.style.top = `${rect.bottom}px`;
+      positionDropdownPanel(trigger, panel);
       document.body.appendChild(panel);
       openMenu = panel;
       const first = panel.querySelector<HTMLButtonElement>(".app-menu-item");

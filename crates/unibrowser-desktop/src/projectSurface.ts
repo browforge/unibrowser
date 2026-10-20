@@ -34,6 +34,13 @@ export function classifyProjectSurface(viewer: DocumentViewerDto): ProjectSurfac
     return "empty";
   }
   const types = nodes.map((n) => n.node_type.toLowerCase());
+  if (
+    clips.length === 0 &&
+    !types.some((ty) => ty.includes("video")) &&
+    !types.some((ty) => ty.includes("presentation"))
+  ) {
+    return "empty";
+  }
   if (clips.length > 0 || types.some((ty) => ty.includes("video"))) {
     return "video";
   }
@@ -95,10 +102,21 @@ function renderEmptyProject(root: HTMLElement, viewer: DocumentViewerDto) {
   const list = document.createElement("div");
   list.className = "project-content-list";
   list.setAttribute("aria-label", t("project.contentListLabel"));
-  const emptyRow = document.createElement("p");
-  emptyRow.className = "project-content-empty";
-  emptyRow.textContent = t("project.contentEmpty");
-  list.appendChild(emptyRow);
+  const nodes = viewer.project_nodes ?? [];
+  if (nodes.length === 0) {
+    const emptyRow = document.createElement("p");
+    emptyRow.className = "project-content-empty";
+    emptyRow.textContent = t("project.contentEmpty");
+    list.appendChild(emptyRow);
+  } else {
+    for (const node of nodes) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "project-content-item";
+      row.textContent = node.label;
+      list.appendChild(row);
+    }
+  }
   const actions = document.createElement("div");
   actions.className = "project-home-actions";
   const add = createProjectToolbarButton(t("project.addContent"), "plus", "primary");

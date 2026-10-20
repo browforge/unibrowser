@@ -4489,6 +4489,24 @@ button.quiet-button:disabled,
   color: var(--ub-text-2, #4a4d50);
 }
 
+.project-content-item {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.35rem;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border: none;
+  border-radius: 4px;
+  background: var(--ub-panel, #fff);
+  color: var(--ub-text-1, #202223);
+  font-size: 13px;
+  cursor: default;
+}
+
+.project-content-item:last-child {
+  margin-bottom: 0;
+}
+
 .project-home-actions {
   display: flex;
   flex-wrap: wrap;

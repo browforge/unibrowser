@@ -104,7 +104,7 @@ function unibrowProjectSurfaceReady(): boolean {
   }
   return Boolean(
     host.querySelector(
-      ".project-surface, .workshop-stage-frame, .presentation-slide-frame, .project-home-card",
+      ".project-surface, .workshop-stage-frame, .presentation-slide-frame, .project-home-card, .project-content-item",
     ),
   );
 }
@@ -426,21 +426,29 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
       case "pkg-v3-open-mode":
         checks.push(() => Boolean(document.querySelector(".pkg-open-mode-overlay")));
         break;
+      case "pkg-v4-open-mode":
+        checks.push(unibrowProjectSurfaceReady);
+        checks.push(() => document.querySelectorAll(".title-tab").length >= 1);
+        checks.push(() => Boolean(document.querySelector(".pkg-open-mode-overlay")));
+        break;
       case "pkg-v1-history-notice":
       case "pkg-v2-history-notice":
       case "pkg-v3-history-notice":
+      case "pkg-v4-history-notice":
         checks.push(unibrowProjectSurfaceReady);
         checks.push(() => Boolean(document.querySelector("[data-pkg-history-toast]")));
         break;
       case "pkg-v1-unpack-progress":
       case "pkg-v2-unpack-progress":
       case "pkg-v3-unpack-progress":
+      case "pkg-v4-unpack-progress":
         checks.push(unibrowProjectSurfaceReady);
         checks.push(() => Boolean(document.querySelector("[data-pkg-unpack-progress]")));
         break;
       case "pkg-v1-file-menu":
       case "pkg-v2-file-menu":
       case "pkg-v3-file-menu":
+      case "pkg-v4-file-menu":
         checks.push(unibrowProjectSurfaceReady);
         checks.push(
           () => document.querySelectorAll(".app-menu-dropdown .app-menu-item").length >= 4,
@@ -455,7 +463,11 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   if (tokens.includes("settings")) {
     return [settingsReady];
   }
-  if (joined.includes(".unibrow") && !tokens.includes("pkg-v3-open-mode")) {
+  if (
+    joined.includes(".unibrow") &&
+    !tokens.includes("pkg-v3-open-mode") &&
+    !tokens.includes("pkg-v4-open-mode")
+  ) {
     checks.push(unibrowBoardReady);
     if (tokens.some((t) => t === "live" || t === "live-preview")) {
       checks.push(liveBadgeReady);

@@ -35,7 +35,24 @@ export async function applyPkgArchiveDocCaptureUi(archivePath: string): Promise<
     path: archivePath,
     viewer: "unibrow",
     title: label.replace(/\.unibrow$/i, "") || "Demo",
-    project_nodes: [],
+    project_nodes: [
+      {
+        id: "doc-1",
+        node_type: "document",
+        label: "Field guide",
+        asset: "document.md",
+        x: 40,
+        y: 48,
+      },
+      {
+        id: "img-1",
+        node_type: "image",
+        label: "Logo",
+        asset: "logo.svg",
+        x: 200,
+        y: 48,
+      },
+    ],
     project_clips: [],
   };
   const packageStorage: PackageStorageSessionDto = {
