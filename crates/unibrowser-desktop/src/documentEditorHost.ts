@@ -327,8 +327,6 @@ export async function syncDocumentEditorForTextTab(
     return;
   }
   mountModeControls();
-  const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
-  refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
   const demo = await resolveDemoTokens();
   await bindDocumentPath(path);
   if (demo.includes("doc-mode-wysiwyg")) {
