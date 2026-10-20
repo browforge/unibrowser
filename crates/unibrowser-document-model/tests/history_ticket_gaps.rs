@@ -32,40 +32,6 @@ fn hist06_truncate_head_keeps_ops_up_to_seq() {
 }
 
 #[test]
-fn hist03_pin_header_not_rewritten_for_new_plugin_version() {
-    let dir = tempdir().expect("tempdir");
-    let md = dir.path().join("note.md");
-    fs::write(&md, "a\n").expect("write");
-    let parsed = parse_markdown(b"a\n");
-    append_document_op(
-        &md,
-        &DocumentHistoryOp::Snapshot {
-            model: parsed.model.clone(),
-            source_map_blob: String::new(),
-        },
-        "0.1.0",
-    )
-    .expect("append");
-    append_document_op(
-        &md,
-        &DocumentHistoryOp::Snapshot {
-            model: parsed.model.clone(),
-            source_map_blob: String::new(),
-        },
-        "9.9.9",
-    )
-    .expect("append v2");
-
-    let raw = fs::read_to_string(sidecar_path_for_file(&md)).expect("read");
-    assert!(
-        raw.contains("base-text@0.1.0"),
-        "header still shows default pin; op carries 9.9.9 in log only"
-    );
-    let ops = list_ops(&sidecar_path_for_file(&md)).expect("list");
-    assert_eq!(ops[1].plugin_version, "9.9.9");
-}
-
-#[test]
 fn hist06_trim_before_keeps_from_seq_onward() {
     let dir = tempdir().expect("tempdir");
     let md = dir.path().join("note.md");

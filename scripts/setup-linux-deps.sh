@@ -30,9 +30,18 @@ apt-get install -y \
   xvfb \
   imagemagick \
   python3-pil \
-  fuse \
   libfuse2 \
   patchelf
+
+# fuse metapackage is not on all Ubuntu releases (exit 100); AppImage tooling only.
+if apt-cache show fuse3 >/dev/null 2>&1; then
+  apt-get install -y fuse3 2>/dev/null || echo "fuse3 optional (AppImage); skipped"
+elif apt-cache show fuse >/dev/null 2>&1; then
+  apt-get install -y fuse 2>/dev/null || echo "fuse optional (AppImage); skipped"
+else
+  echo "No fuse/fuse3 package; AppImage mount may be unavailable on this image"
+fi
+dpkg --configure -a 2>/dev/null || true
 
 if command -v rustup >/dev/null 2>&1; then
   if [[ -n "${SUDO_USER:-}" ]]; then
@@ -42,6 +51,25 @@ if command -v rustup >/dev/null 2>&1; then
   fi
 else
   echo "rustup not found; install Rust (see rust-toolchain.toml) then run: rustup target add wasm32-unknown-unknown"
+fi
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+build_wasm_as() {
+  if [[ -n "${SUDO_USER:-}" ]]; then
+    su - "$SUDO_USER" -c "cd '$REPO_ROOT' && $*"
+  else
+    (cd "$REPO_ROOT" && eval "$*")
+  fi
+}
+
+if command -v cargo >/dev/null 2>&1; then
+  echo "Building example WASM mod (unibrowser-mod-host tests)..."
+  build_wasm_as "cargo build -p ub-mod-wasm --target wasm32-unknown-unknown" || true
+  echo "Building unibrowser-media sidecar binary (media crate tests)..."
+  build_wasm_as "cargo build -p unibrowser-media --bin unibrowser-media-sidecar" || true
+  build_wasm_as "cargo build -p unibrowser-media --bin unibrowser-media-sidecar --release" || true
+else
+  echo "cargo not found; wasm/media sidecar builds skipped"
 fi
 
 echo "Linux desktop dependencies installed."

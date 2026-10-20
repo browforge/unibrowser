@@ -80,7 +80,7 @@ pub fn read_header_and_ops(path: &Path) -> Result<(String, Vec<HistoryLogEntry>)
     Ok((header, ops))
 }
 
-fn default_header() -> String {
+pub fn default_header() -> String {
     "historyFormat: 1\nplugins:\n  base-text@0.1.0:\n    op_types:\n      block.set_style: 1\n      text.replace: 1\n      opaque.replace: 1\n"
         .to_string()
 }
@@ -141,6 +141,7 @@ pub fn append_document_op(
         op_schema_version: 1,
         payload,
     };
+    let header = crate::history_pins::upsert_pin_from_entry(&header, &entry);
     ops.push(entry.clone());
     write_file_atomic(&sidecar, &header, &ops)?;
     Ok(entry)
@@ -182,6 +183,7 @@ pub fn pop_last_op(sidecar: &Path) -> Result<Option<HistoryLogEntry>, String> {
 
 pub fn push_op_entry(sidecar: &Path, entry: HistoryLogEntry) -> Result<(), String> {
     let (header, mut ops) = read_header_and_ops(sidecar)?;
+    let header = crate::history_pins::upsert_pin_from_entry(&header, &entry);
     ops.push(entry);
     write_file_atomic(sidecar, &header, &ops)?;
     Ok(())

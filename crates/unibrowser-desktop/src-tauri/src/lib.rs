@@ -284,6 +284,8 @@ pub fn run() {
             commands::document_merge_source,
             commands::document_history_reset,
             commands::document_history_head_session,
+            commands::document_history_replay_status,
+            commands::document_history_seed_missing_plugin_capture,
             commands::document_history_seed_capture_demo,
             commands::document_history_mark_saved_for_capture,
             commands::document_history_list,

@@ -225,6 +225,7 @@ import {
   validateTextCompactToolbarForCapture,
   validateDocumentCardFooterForCapture,
   validateHistoryCaptureBottomPanelVisible,
+  validateHistoryPluginBannerForCapture,
   validateNewProjectCaptureDom,
   validateDocumentFeatureCaptureChrome,
   validateDocumentFeatureCaptureDom,
@@ -3621,7 +3622,10 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               }
             }
           }
-          if (demoTokens.includes("doc-history-jump")) {
+          if (demoTokens.includes("doc-history-missing-plugin")) {
+            await applyDemoState("doc-history-missing-plugin");
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+          } else if (demoTokens.includes("doc-history-jump")) {
             await applyDemoState("doc-history-jump");
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           } else if (demoTokens.includes("doc-history-panel")) {
@@ -3909,7 +3913,15 @@ void initToolbarOnlyShell(refreshCommandManager).then((toolbarOnly) => {
               return;
             }
           }
-          if (demoLower.includes("doc-history-")) {
+          if (demoLower.includes("doc-history-missing-plugin")) {
+            const bannerErr = validateHistoryPluginBannerForCapture();
+            if (bannerErr) {
+              await invoke("abort_doc_capture", {
+                reason: `${bannerErr}; ${formatDiagnosticsForLog(diag)}`,
+              });
+              return;
+            }
+          } else if (demoLower.includes("doc-history-")) {
             const { finalizeHistoryCaptureForScreenshot } = await import("./historyDemoCapture");
             await finalizeHistoryCaptureForScreenshot();
             const historyPanelErr = validateHistoryCaptureBottomPanelVisible();

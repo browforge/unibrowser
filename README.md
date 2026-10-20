@@ -94,10 +94,20 @@ cargo run -p unibrowser-cli -- --version
 
 ## Tests
 
+On a fresh Linux VM, install desktop and test prerequisites once (GTK/WebKit, xvfb, wasm target, example WASM mod, media sidecar):
+
+```bash
+sudo scripts/setup-linux-deps.sh
+```
+
+Then from the repo root:
+
 ```bash
 cargo test --workspace
 cargo build -p ub-mod-cdylib-stub   # optional: Linux dynamic mod smoke
 ```
+
+`setup-linux-deps.sh` adds the `wasm32-unknown-unknown` Rust target and builds `examples/ub-mod-wasm` plus `unibrowser-media-sidecar` so `unibrowser-mod-host` WASM tests and media sidecar ping tests pass without extra steps. The `fuse` package is optional (AppImage); the script uses `fuse3` or `libfuse2` when available.
 
 ## Windows
 

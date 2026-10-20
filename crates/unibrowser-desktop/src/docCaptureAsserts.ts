@@ -1723,6 +1723,14 @@ export function validateSplitDocumentForCapture(): string | null {
 }
 
 export function validateRichTextDocumentForCapture(): string | null {
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (demo.includes("doc-history-missing-plugin")) {
+    const banner = document.querySelector(".history-plugin-banner:not(.hidden)");
+    if (!banner) {
+      return "missing-plugin capture needs history plugin banner";
+    }
+    return null;
+  }
   const article = document.querySelector<HTMLElement>(
     "#rich-text-editor-host:not(.hidden) .rich-text-doc, #document-split-preview-host:not(.hidden) .rich-text-doc",
   );
@@ -1756,10 +1764,32 @@ export function validateRichTextDocumentForCapture(): string | null {
   return null;
 }
 
+export function validateHistoryPluginBannerForCapture(): string | null {
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (!demo.includes("doc-history-missing-plugin")) {
+    return null;
+  }
+  const banner = document.querySelector(".history-plugin-banner:not(.hidden)");
+  if (!banner) {
+    return "missing-plugin capture requires visible history-plugin-banner";
+  }
+  const text = banner.querySelector(".history-plugin-banner-text")?.textContent ?? "";
+  if (!text.includes("base-text") || !text.includes("99.0.0")) {
+    return "history plugin banner must name base-text version 99.0.0";
+  }
+  if (!banner.querySelector(".history-plugin-banner-install")) {
+    return "history plugin banner missing install action";
+  }
+  if (!banner.querySelector(".history-plugin-banner-continue")) {
+    return "history plugin banner missing continue read-only action";
+  }
+  return null;
+}
+
 /** History captures must show the docked bottom panel in the viewport (not only in DOM). */
 export function validateHistoryCaptureBottomPanelVisible(): string | null {
   const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
-  if (!demo.includes("doc-history-")) {
+  if (!demo.includes("doc-history-") || demo.includes("doc-history-missing-plugin")) {
     return null;
   }
   const panel = document.getElementById("script-output-panel");

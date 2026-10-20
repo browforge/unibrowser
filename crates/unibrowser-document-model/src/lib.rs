@@ -4,6 +4,8 @@ pub mod docx;
 pub mod history;
 pub mod history_admin;
 pub mod history_file;
+pub mod history_pins;
+pub mod history_replay;
 pub mod history_undo;
 pub mod markdown;
 pub mod model;
@@ -23,6 +25,11 @@ pub use history_file::{
 };
 pub use history_admin::{
     jump_to_seq, session_state_at_seq, squash_op_range, trim_history_before,
+};
+pub use history_pins::{format_pin_header, parse_pin_header, upsert_pin_from_entry};
+pub use history_replay::{
+    copy_history_sidecar, header_pin_mismatch, replay_session_with_catalog, HistoryReplayBlock,
+    HistoryReplayReport,
 };
 pub use history_undo::{
     decode_snapshot_blob, encode_snapshot_blob, serialize_session_state, session_at_history_head,

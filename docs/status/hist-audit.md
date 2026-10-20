@@ -8,9 +8,9 @@ Scope: `.unibrow-history` op log, undo/redo from disk head, History panel, folde
 |--------|--------|----------|
 | HIST-01 | done (markdown sidecar scope) | `foreign_markdown_sidecar_name_and_log_marker`, `append_increments_seq_and_survives_reopen`, `truncated_tail_line_is_ignored_on_open`, `folder_project_uses_per_file_sidecar_not_package_root`, `hist01_text_replace_replays_from_log` |
 | HIST-02 | done (markdown host) | `undo_after_reopen_restores_prior_snapshot`, `redo_after_undo_from_history_head_restores_latest`, `hist02_host_undo_redo_matches_disk_head`, `hist02_history_list_reads_sidecar`, `hist02_invert_text_replace_roundtrip`, `hist02_jump_appends_snapshot_preserving_prior_ops`, `hist02_history_jump_returns_restored_markdown` |
-| HIST-03 | missing | `hist03_pin_header_not_rewritten_for_new_plugin_version`; no missing-plugin banner in desktop UI |
+| HIST-03 | done | `hist03_header_updates_on_new_plugin_version`, `hist03_replay_stops_when_plugin_version_missing`, `historyPluginBanner.test.mjs`, `document_history_replay_status`, `hist-missing-plugin-v1-1280.png` |
 | HIST-04 | done | `historyPanelBehavior.test.mjs`, `historyPanelEntries.test.mjs`, `doc-history-panel` / `doc-history-jump` capture; jump-to-seq appends snapshot; grouped typing rows; labels and timestamps |
-| HIST-05 | missing | `hist05_docx_sidecar_path_is_nested_extension`; no export-without-history or docx save sidecar wiring |
+| HIST-05 | done | `hist05_docx_sidecar_path_is_nested_extension`, `hist05_copy_sidecar_to_docx_path`, `hist05_save_docx_copies_history_sidecar`; `save_markdown_as_docx` copies `*.unibrow-history` to nested `*.docx.unibrow-history` |
 | HIST-06 | done | `hist06_truncate_head_keeps_ops_up_to_seq`, `hist06_trim_before_keeps_from_seq_onward`, `hist06_squash_range_replaces_span_with_snapshot`, `historyCommands.test.mjs`; palette commands `unibrowser.history.trimBefore`, `unibrowser.history.squashSelection` with inline confirm |
 
 ## HIST-01: History file layout and atomic append
@@ -45,10 +45,15 @@ Scope: `.unibrow-history` op log, undo/redo from disk head, History panel, folde
 
 ## HIST-03: Pin header and missing-plugin banner
 
-**Gaps**
+**Works today**
 
-- Header is static `default_header()`; plugin version on ops does not rewrite pins (`hist03_pin_header_not_rewritten_for_new_plugin_version`).
-- No open-time replay failure banner or read-only mode for unknown plugins.
+- Pin header rewrites on append when a new `plugin_id@version` or `op_type` schema appears (`history_pins.rs`, `append_document_op`).
+- Open replay stops at the first op whose `plugin_version` is not installed (`replay_session_with_catalog`).
+- Non-blocking banner names plugin + required version with **Install plugin** (mod portal) and **Continue read-only** (`historyPluginBanner.ts`, `document_history_replay_status`).
+
+**Gaps (deferred)**
+
+- Per-op plugin migrations and portal deep link to an exact version artefact.
 
 ## HIST-04: History panel UI
 
@@ -67,11 +72,11 @@ Scope: `.unibrow-history` op log, undo/redo from disk head, History panel, folde
 **Works today**
 
 - Sidecar naming helper: `report.docx` → `report.docx.unibrow-history`.
+- `save_markdown_as_docx` copies the markdown sidecar beside the new `.docx` (`copy_history_sidecar`); reopen lists the same ops from `report.docx.unibrow-history`.
 
-**Gaps**
+**Gaps (deferred)**
 
-- `document_save_markdown_as_docx` writes `.docx` only; no sidecar creation or preference.
-- No "Omit edit history" on export/save copy.
+- Workspace preference and **Omit edit history** checkbox on export/save copy.
 
 ## HIST-06: Squash and clean-before-sharing
 
@@ -88,14 +93,16 @@ Scope: `.unibrow-history` op log, undo/redo from disk head, History panel, folde
 
 - `docs/screenshots/history/history-panel-v4-1280.png`
 - `docs/screenshots/history/history-jump-v4-1280.png`
+- `docs/screenshots/history/hist-missing-plugin-v1-1280.png`
 
 ## How to re-run evidence
 
 ```bash
 cargo test -p unibrowser-document-model history_
 cargo test -p unibrowser-desktop hist_audit
-cd crates/unibrowser-desktop && node --experimental-strip-types --test tests/historyPanelBehavior.test.mjs tests/historyPanelEntries.test.mjs tests/historyCommands.test.mjs
+cd crates/unibrowser-desktop && node --experimental-strip-types --test tests/historyPanelBehavior.test.mjs tests/historyPanelEntries.test.mjs tests/historyCommands.test.mjs tests/historyPluginBanner.test.mjs
 ./scripts/capture-history-panel.sh
+./scripts/capture-history-missing-plugin.sh
 ```
 
 Full workspace: `cargo test --workspace` and project `scripts/check-workspace.sh` as usual.

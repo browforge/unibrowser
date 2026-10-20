@@ -183,6 +183,39 @@ export async function applyDemoState(raw: string) {
         syncTextDocumentCard(true, "sample-opaque.md");
         break;
       }
+      case "doc-history-missing-plugin": {
+        if (document.body.dataset.ubDocCapture !== "1") {
+          await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
+        }
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg", false);
+        const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+        syncTextDocumentCard(true, "sample.md");
+        await new Promise((r) => window.setTimeout(r, 300));
+        const { resolveHistoryDocumentPath } = await import("./historyDemoCapture");
+        const docPath = resolveHistoryDocumentPath();
+        await invoke("document_history_seed_missing_plugin_capture", { path: docPath });
+        const editorHost = document.getElementById("text-editor-host");
+        if (editorHost) {
+          const content = await invoke<string>("read_text_file", { path: docPath }).catch(
+            () => "# Missing plugin demo\n",
+          );
+          const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+          await syncDocumentEditorForTextTab(editorHost, docPath, content);
+        }
+        const { refreshHistoryPluginBanner } = await import("./historyPluginBanner");
+        const bannerHost =
+          document.getElementById("document-card-body-mount") ??
+          editorHost?.parentElement ??
+          editorHost;
+        await refreshHistoryPluginBanner(bannerHost, docPath);
+        document.body.dataset.ubHistoryMissingPluginCapture = "1";
+        document.body.dataset.ubHistoryCaptureReady = "1";
+        await new Promise((r) => window.setTimeout(r, 600));
+        const { dismissDocCaptureChrome } = await import("./docCaptureDismiss");
+        dismissDocCaptureChrome();
+        break;
+      }
       case "doc-history-panel":
       case "doc-history-jump": {
         if (document.body.dataset.ubDocCapture !== "1") {

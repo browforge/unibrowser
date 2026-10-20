@@ -189,6 +189,37 @@ body.text-document-card.document-mode-reading .md-preview-shell {
   display: none;
 }
 
+.history-plugin-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(180, 70, 70, 0.14);
+  border-bottom: 1px solid rgba(180, 70, 70, 0.35);
+  font-size: 13px;
+}
+
+.history-plugin-banner.hidden {
+  display: none;
+}
+
+.history-plugin-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.history-plugin-banner-install,
+.history-plugin-banner-continue {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(28, 40, 52, 0.2);
+  background: #fff;
+  cursor: pointer;
+}
+
 .document-source-merge-banner-actions {
   display: flex;
   gap: 8px;

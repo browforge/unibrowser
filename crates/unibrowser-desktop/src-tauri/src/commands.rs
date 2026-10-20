@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -4877,11 +4878,36 @@ pub fn document_history_reset(path: String) -> Result<(), String> {
     crate::document_model_api::history_reset_for_path(&path)
 }
 
+fn plugin_version_catalog(state: &AppState) -> HashMap<String, String> {
+    state
+        ._mod_host
+        .mods
+        .iter()
+        .map(|loaded| (loaded.manifest.name.clone(), loaded.manifest.version.clone()))
+        .collect()
+}
+
 #[tauri::command]
 pub fn document_history_head_session(
     path: String,
+    state: State<AppState>,
 ) -> Result<crate::document_model_api::DocumentParseResponse, String> {
-    crate::document_model_api::history_head_session_for_path(&path)
+    let catalog = plugin_version_catalog(&state);
+    crate::document_model_api::history_head_session_for_path(&path, &catalog)
+}
+
+#[tauri::command]
+pub fn document_history_replay_status(
+    path: String,
+    state: State<AppState>,
+) -> Result<crate::document_model_api::HistoryReplayStatusDto, String> {
+    let catalog = plugin_version_catalog(&state);
+    crate::document_model_api::history_replay_status_for_path(&path, &catalog)
+}
+
+#[tauri::command]
+pub fn document_history_seed_missing_plugin_capture(path: String) -> Result<(), String> {
+    crate::document_model_api::history_seed_missing_plugin_capture_for_path(&path)
 }
 
 #[tauri::command]

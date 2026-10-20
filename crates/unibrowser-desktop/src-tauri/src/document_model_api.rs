@@ -1,12 +1,14 @@
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
 use unibrowser_document_model::{
-    append_document_op, encode_snapshot_blob, jump_to_seq, list_ops, merge_source_text,
-    parse_markdown, pop_last_op, push_op_entry, serialize_session_state, session_at_history_head,
-    sidecar_path_for_file, source_projection, squash_op_range,
-    trim_history_before, Block, DocumentEditSession, DocumentHistoryOp, DocumentModel,
-    HistoryLogEntry, SourceMap,
+    append_document_op, copy_history_sidecar, encode_snapshot_blob, jump_to_seq, list_ops,
+    merge_source_text, parse_markdown, pop_last_op, push_op_entry, replay_session_with_catalog,
+    serialize_session_state, session_at_history_head, sidecar_path_for_file, source_projection,
+    squash_op_range, trim_history_before, Block, DocumentEditSession, DocumentHistoryOp,
+    DocumentModel, HistoryLogEntry, SourceMap,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -174,13 +176,52 @@ pub fn history_jump_for_path(path: &str, seq: u64) -> Result<String, String> {
     serialize_session_state(&state)
 }
 
-pub fn history_head_session_for_path(path: &str) -> Result<DocumentParseResponse, String> {
-    let p = Path::new(path);
-    let state = session_at_history_head(p)?.ok_or_else(|| "history head missing".to_string())?;
+#[derive(Debug, Serialize)]
+pub struct HistoryReplayStatusDto {
+    pub blocked: bool,
+    pub read_only: bool,
+    pub applied_seq: u64,
+    pub plugin_id: Option<String>,
+    pub required_version: Option<String>,
+    pub installed_version: Option<String>,
+}
+
+pub fn history_replay_status_for_path(
+    path: &str,
+    catalog: &HashMap<String, String>,
+) -> Result<HistoryReplayStatusDto, String> {
+    let p = resolve_markdown_path_for_io(path)?;
+    let report = replay_session_with_catalog(&p, catalog)?;
+    if let Some(block) = report.blocked {
+        return Ok(HistoryReplayStatusDto {
+            blocked: true,
+            read_only: true,
+            applied_seq: report.applied_seq,
+            plugin_id: Some(block.plugin_id),
+            required_version: Some(block.required_version),
+            installed_version: block.installed_version,
+        });
+    }
+    Ok(HistoryReplayStatusDto {
+        blocked: false,
+        read_only: false,
+        applied_seq: report.applied_seq,
+        plugin_id: None,
+        required_version: None,
+        installed_version: None,
+    })
+}
+
+pub fn history_head_session_for_path(
+    path: &str,
+    catalog: &HashMap<String, String>,
+) -> Result<DocumentParseResponse, String> {
+    let p = resolve_markdown_path_for_io(path)?;
+    let report = replay_session_with_catalog(&p, catalog)?;
     Ok(DocumentParseResponse {
-        model: state.model,
-        source_map: state.source_map,
-        original_base64: base64_encode(&state.original_bytes),
+        model: report.state.model,
+        source_map: report.state.source_map,
+        original_base64: base64_encode(&report.state.original_bytes),
     })
 }
 
@@ -332,6 +373,24 @@ pub fn history_seed_capture_demo_for_path(path: &str) -> Result<u64, String> {
     Ok(1)
 }
 
+/// Sidecar pins base-text@99.0.0 with one good op and one blocked op for banner capture.
+pub fn history_seed_missing_plugin_capture_for_path(path: &str) -> Result<(), String> {
+    let p = resolve_markdown_path_for_io(path)?;
+    std::fs::write(&p, CAPTURE_BASELINE_MD).map_err(|e| e.to_string())?;
+    history_reset_for_path(path)?;
+    append_snapshot(&p, CAPTURE_BASELINE_MD)?;
+    let parsed = parse_markdown(b"# Missing plugin demo\n\nNeeds newer plugin.\n");
+    append_document_op(
+        &p,
+        &DocumentHistoryOp::Snapshot {
+            model: parsed.model,
+            source_map_blob: String::new(),
+        },
+        "99.0.0",
+    )?;
+    Ok(())
+}
+
 pub fn history_trim_before_for_path(path: &str, keep_from_seq: u64) -> Result<(), String> {
     trim_history_before(Path::new(path), keep_from_seq)
 }
@@ -379,6 +438,7 @@ pub fn save_markdown_as_docx(markdown_path: &str, model: &DocumentModel) -> Resu
     let out = parent.join(format!("{}.docx", stem));
     unibrowser_docx::save_docx_from_document_model_with_assets(&out, model, Some(parent))
         .map_err(|e| e.to_string())?;
+    copy_history_sidecar(&p, &out)?;
     Ok(out.to_string_lossy().into_owned())
 }
 
@@ -482,6 +542,27 @@ mod hist_audit_tests {
     }
 
     #[test]
+    fn hist05_save_docx_copies_history_sidecar() {
+        let dir = tempdir().expect("tempdir");
+        let md = dir.path().join("report.md");
+        fs::write(&md, "# Title\n").expect("write");
+        let parsed = parse_markdown(b"# Title\n");
+        append_document_op(
+            &md,
+            &DocumentHistoryOp::Snapshot {
+                model: parsed.model.clone(),
+                source_map_blob: String::new(),
+            },
+            "0.1.0",
+        )
+        .expect("append");
+        let saved = save_markdown_as_docx(md.to_str().unwrap(), &parsed.model).expect("save docx");
+        let docx = PathBuf::from(saved);
+        let ops = list_ops(&sidecar_path_for_file(&docx)).expect("list docx sidecar");
+        assert_eq!(ops.len(), 1);
+        assert_eq!(ops[0].plugin_id, "base-text");
+    }
+
     fn hist02_history_list_reads_sidecar() {
         let dir = tempdir().expect("tempdir");
         let md = dir.path().join("x.md");

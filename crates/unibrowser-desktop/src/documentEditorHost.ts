@@ -350,6 +350,7 @@ export async function syncDocumentEditorForTextTab(
     demo.includes("doc-mode-reading") ||
     demo.includes("doc-mode-split") ||
     demo.includes("doc-history-") ||
+    demo.includes("doc-history-missing-plugin") ||
     demo.includes("doc-visual-md-docx") ||
     demo.includes("doc-opaque-card") ||
     projectDocumentVisual;
@@ -369,6 +370,8 @@ export async function syncDocumentEditorForTextTab(
   hideLegacyMarkdownPreview();
   applySurfaceVisibility(getDocumentEditorMode());
   await renderRich();
+  const { refreshHistoryPluginBanner } = await import("./historyPluginBanner");
+  await refreshHistoryPluginBanner(monacoEditorHost.parentElement ?? monacoEditorHost, path);
   const { refreshDocumentCardStatusFooter } = await import("./ui/documentCardStatus");
   refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
   const { syncTextDocumentCard } = await import("./ui/textDocumentCard");

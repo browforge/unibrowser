@@ -291,6 +291,22 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         checks.push(richTextDocumentReady);
         checks.push(() => Boolean(document.querySelector(".rich-text-opaque-parse")));
         break;
+      case "doc-history-missing-plugin":
+        checks.push(() => {
+          if (document.body.dataset.ubHistoryMissingPluginCapture !== "1") {
+            return false;
+          }
+          const banner = document.querySelector(".history-plugin-banner:not(.hidden)");
+          const text = banner?.querySelector(".history-plugin-banner-text")?.textContent ?? "";
+          return (
+            Boolean(banner) &&
+            text.includes("base-text") &&
+            text.includes("99.0.0") &&
+            Boolean(banner?.querySelector(".history-plugin-banner-install")) &&
+            Boolean(banner?.querySelector(".history-plugin-banner-continue"))
+          );
+        });
+        break;
       case "doc-history-panel":
       case "doc-history-jump":
         checks.push(() => {
