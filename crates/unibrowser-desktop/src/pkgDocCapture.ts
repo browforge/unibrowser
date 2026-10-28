@@ -9,6 +9,8 @@ import { applyThemeFromDemoState, loadThemePreference } from "./theme";
 import { initAppMenu } from "./appMenu";
 import { initActivityRail } from "./ui/activityRail";
 import { initCompactTitleBar } from "./ui/compactTitleBar";
+import { renderRecoveryBar } from "./recoveryBar";
+import { textEditor, type TextDocumentDto } from "./textEditor";
 
 const PKG_CAPTURE_TOKENS = [
   "pkg-v2-open-mode",
@@ -23,6 +25,8 @@ const PKG_CAPTURE_TOKENS = [
   "pkg-v4-history-notice",
   "pkg-v4-unpack-progress",
   "pkg-v4-file-menu",
+  "rec-capture-banner",
+  "rec-capture-restored",
 ] as const;
 
 export function isPkgDocCapture(demo: string | null | undefined): boolean {
@@ -101,7 +105,11 @@ function initCaptureChrome(deps: PkgDocCaptureDeps) {
   );
 }
 
-async function applyPkgCaptureToken(demo: string): Promise<void> {
+async function applyPkgCaptureToken(
+  demo: string,
+  _deps: PkgDocCaptureDeps,
+  _launchPaths: string[],
+): Promise<void> {
   const lower = demo.toLowerCase();
   for (const token of PKG_CAPTURE_TOKENS) {
     if (lower.includes(token)) {
@@ -127,7 +135,40 @@ export async function runPkgDocCapture(demo: string, deps: PkgDocCaptureDeps): P
   const lower = demo.toLowerCase();
   const wantsOpenMode =
     lower.includes("pkg-v3-open-mode") || lower.includes("pkg-v4-open-mode");
-  if (wantsOpenMode) {
+  const wantsRec =
+    lower.includes("rec-capture-banner") || lower.includes("rec-capture-restored");
+  if (wantsRec) {
+    const recoveryHost = document.getElementById("recovery-bar-host");
+    if (recoveryHost && lower.includes("rec-capture-banner")) {
+      renderRecoveryBar(
+        recoveryHost,
+        [
+          {
+            backup_id: "0000000000000001",
+            path: "e2e/fixtures/spell-test.txt",
+            backend_id: "base-text",
+          },
+        ],
+        () => {
+          void deps.refreshState();
+        },
+      );
+    }
+    if (lower.includes("rec-capture-restored")) {
+      const doc = await invoke<TextDocumentDto>("rec_capture_restored_text_document", {
+        path: "e2e/fixtures/spell-test.txt",
+      });
+      const textHost = document.getElementById("text-editor-host");
+      if (textHost) {
+        textHost.classList.remove("hidden");
+        await textEditor.apply(doc, textHost);
+      }
+      const omnibox = document.getElementById("omnibox") as HTMLInputElement | null;
+      if (omnibox) {
+        omnibox.value = "e2e/fixtures/spell-test.txt";
+      }
+    }
+  } else if (wantsOpenMode) {
     const { applyPkgArchiveCaptureSession } = await import("./packageStorageUi");
     const { showPackageOpenModeCapture } = await import("./packageOpenModeDialog");
     await applyPkgArchiveCaptureSession();
@@ -139,7 +180,7 @@ export async function runPkgDocCapture(demo: string, deps: PkgDocCaptureDeps): P
     }>("query_unibrow_open_cmd", { path });
     showPackageOpenModeCapture(estimate);
   } else {
-    await applyPkgCaptureToken(demo);
+    await applyPkgCaptureToken(demo, deps, launchPaths);
   }
 
   await new Promise((resolve) => window.setTimeout(resolve, 200));

@@ -454,6 +454,12 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           () => document.querySelectorAll(".app-menu-dropdown .app-menu-item").length >= 4,
         );
         break;
+      case "rec-capture-banner":
+        checks.push(() => Boolean(document.querySelector(".recovery-bar-row")));
+        break;
+      case "rec-capture-restored":
+        checks.push(monacoReady);
+        break;
       default:
         break;
     }
@@ -531,7 +537,8 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     tokens.includes("capture-ready") &&
     launchPaths.length === 0 &&
     !tokens.some((t) => t.startsWith("new-project-capture-")) &&
-    !tokens.some((t) => t.startsWith("pkg-v"))
+    !tokens.some((t) => t.startsWith("pkg-v")) &&
+    !tokens.some((t) => t.startsWith("rec-capture"))
   ) {
     checks.push(ntpReady);
   }
