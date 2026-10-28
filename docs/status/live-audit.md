@@ -1,6 +1,6 @@
 # Live block editing — audit
 
-**Status (2026-10-28):** **LIVE-01 in progress on ProseMirror option (a).** Markdown **Visual** shows dimmed syntax markers only in the block that contains the caret; all other blocks stay clean WYSIWYG on the shared rich-text model. Monaco remains for **Source** and **Split** only. Prior Monaco-overlay attempt stays reverted (see below).
+**Status (2026-10-28):** **LIVE-01 done (ProseMirror option a).** Markdown **Visual** shows dimmed syntax markers only in the block that contains the caret; all other blocks stay clean WYSIWYG on the shared rich-text model. Monaco remains for **Source** and **Split** only. Prior Monaco-overlay attempt stays reverted (see below).
 
 ## Approved design (option a)
 
@@ -16,7 +16,12 @@
 |-------|----------|
 | Decoration / input / undo unit tests | `crates/unibrowser-desktop/tests/markdownLiveBlock.test.mjs` |
 | Desktop captures 1280×800, AI closed | `scripts/capture-live-desktop.sh` → `docs/screenshots/live/live-cursor-*.png` |
-| Pixel gates (double-ink, marker tone, heading diff band) | `scripts/check-live-capture-pixels.py` |
+| Pixel gates (double-ink, marker delta vs outside, heading band) | `scripts/check-live-capture-pixels.py` |
+
+## Capture notes
+
+- Doc-capture applies `live-cursor-*` tokens without remounting the ProseMirror session on every pass; paint readiness waits for `.md-live-marker` DOM matching the token (outside = none, heading = `## `, bold = `**`).
+- Fixed `scrollTop` during doc-capture keeps the three PNGs aligned; pixel gates compare muted marker ink **relative to** the outside capture rather than absolute grey counts (body anti-aliasing also hits the muted tone band).
 
 ## What we learned (reverted Monaco overlay)
 

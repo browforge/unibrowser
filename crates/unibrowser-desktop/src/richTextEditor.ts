@@ -358,8 +358,7 @@ export async function mountRichTextEditor(
   }
 
   activeHandle?.destroy();
-  const liveEnabled = () =>
-    markdownLiveBlock && !readonly && document.body.dataset.markdownLiveBlock === "1";
+  const liveEnabled = () => markdownLiveBlock && !readonly;
   activeHandle = mountProseMirrorEditor(
     host,
     model,

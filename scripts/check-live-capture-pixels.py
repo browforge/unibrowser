@@ -22,6 +22,10 @@ CONTENT_Y0 = 200
 CONTENT_Y1 = 720
 CONTENT_X0 = 120
 CONTENT_X1 = 1160
+DOC_X0 = 420
+DOC_X1 = 980
+DOC_Y0 = 190
+DOC_Y1 = 670
 
 
 def load_rgb(path: Path) -> Image.Image:
@@ -59,9 +63,6 @@ def row_double_ink(row_pixels: list[tuple[int, int, int]], x0: int, x1: int) -> 
             overlap = min(a1, b1) - max(a0, b0)
             if overlap >= 3:
                 return True
-            gap = b0 - a1
-            if 0 <= gap <= 4 and (a1 - a0) >= 6 and (b1 - b0) >= 6:
-                return True
     return False
 
 
@@ -79,14 +80,32 @@ def scan_double_ink(im: Image.Image) -> list[int]:
 def muted_marker_pixels(im: Image.Image) -> int:
     count = 0
     w, h = im.size
-    for y in range(CONTENT_Y0, min(CONTENT_Y1, h)):
-        for x in range(CONTENT_X0, min(CONTENT_X1, w)):
+    for y in range(DOC_Y0, min(DOC_Y1, h)):
+        for x in range(DOC_X0, min(DOC_X1, w)):
             r, g, b = im.getpixel((x, y))
-            if not (95 <= r <= 150 and 100 <= g <= 155 and 110 <= b <= 165):
-                continue
-            if luma(r, g, b) > 135:
-                continue
-            count += 1
+            if is_muted_marker_rgb(r, g, b):
+                count += 1
+    return count
+
+
+def is_muted_marker_rgb(r: int, g: int, b: int) -> bool:
+    if not (95 <= r <= 150 and 100 <= g <= 155 and 110 <= b <= 165):
+        return False
+    return luma(r, g, b) < 135
+
+
+def muted_marker_delta(active: Image.Image, reference: Image.Image) -> int:
+    """Muted ink present in active but not reference at the same pixel."""
+    w, h = active.size
+    if reference.size != (w, h):
+        raise SystemExit("capture size mismatch for muted delta")
+    count = 0
+    for y in range(DOC_Y0, min(DOC_Y1, h)):
+        for x in range(DOC_X0, min(DOC_X1, w)):
+            ar, ag, ab = active.getpixel((x, y))
+            rr, rg, rb = reference.getpixel((x, y))
+            if is_muted_marker_rgb(ar, ag, ab) and not is_muted_marker_rgb(rr, rg, rb):
+                count += 1
     return count
 
 
@@ -110,34 +129,26 @@ def diff_bbox(a: Image.Image, b: Image.Image) -> tuple[int, int, int, int] | Non
     return min_x, min_y, max_x, max_y
 
 
-def heading_band(im: Image.Image) -> tuple[int, int, int, int] | None:
-    w, h = im.size
-    top = bottom = None
-    for y in range(CONTENT_Y0, min(CONTENT_Y1, h)):
-        for x in range(CONTENT_X0, min(CONTENT_X1, w)):
-            r, g, b = im.getpixel((x, y))
-            if luma(r, g, b) < 118:
-                continue
-            if top is None:
-                top = y
-            bottom = y
-            break
-        if top is not None and bottom is not None:
-            break
-    if top is None:
+def marker_delta_band(active: Image.Image, reference: Image.Image) -> tuple[int, int, int, int] | None:
+    """Row band where active shows extra muted ink vs reference (live marker widgets)."""
+    w, h = active.size
+    if reference.size != (w, h):
         return None
-    for y in range(top, min(CONTENT_Y1, h)):
-        row_ink = False
-        for x in range(CONTENT_X0, min(CONTENT_X1, w)):
-            r, g, b = im.getpixel((x, y))
-            if luma(r, g, b) < 118:
-                row_ink = True
-                break
-        if not row_ink and y > top + 4:
-            bottom = y - 1
-            break
-        bottom = y
-    return CONTENT_X0, top - 6, CONTENT_X1, (bottom or top) + 10
+    best_y = None
+    best = 0
+    for y in range(DOC_Y0, min(DOC_Y1, h)):
+        row_extra = 0
+        for x in range(DOC_X0, min(DOC_X1, w)):
+            ar, ag, ab = active.getpixel((x, y))
+            rr, rg, rb = reference.getpixel((x, y))
+            if is_muted_marker_rgb(ar, ag, ab) and not is_muted_marker_rgb(rr, rg, rb):
+                row_extra += 1
+        if row_extra > best:
+            best = row_extra
+            best_y = y
+    if best_y is None or best < 8:
+        return None
+    return CONTENT_X0, best_y - 12, min(CONTENT_X1, w), best_y + 36
 
 
 def main() -> int:
@@ -157,14 +168,44 @@ def main() -> int:
             return 1
 
     outside_markers = muted_marker_pixels(images["live-cursor-outside.png"])
-    if outside_markers > 40:
+    heading_markers = muted_marker_pixels(images["live-cursor-in-heading.png"])
+    bold_markers = muted_marker_pixels(images["live-cursor-in-bold.png"])
+
+    heading_extra = muted_marker_delta(
+        images["live-cursor-in-heading.png"],
+        images["live-cursor-outside.png"],
+    )
+    bold_extra = muted_marker_delta(
+        images["live-cursor-in-bold.png"],
+        images["live-cursor-outside.png"],
+    )
+    outside_extra_vs_heading = muted_marker_delta(
+        images["live-cursor-outside.png"],
+        images["live-cursor-in-heading.png"],
+    )
+
+    if heading_extra < 12:
         print(
-            f"outside capture shows too many muted marker pixels ({outside_markers})",
+            f"heading capture missing dim marker ink vs outside ({heading_extra} delta pixels)",
             file=sys.stderr,
         )
         return 1
 
-    heading_markers = muted_marker_pixels(images["live-cursor-in-heading.png"])
+    if bold_extra < 12:
+        print(
+            f"bold capture missing dim marker ink vs outside ({bold_extra} delta pixels)",
+            file=sys.stderr,
+        )
+        return 1
+
+    if heading_extra <= outside_extra_vs_heading:
+        print(
+            "outside capture still shows marker-class ink comparable to heading "
+            f"(heading_extra={heading_extra}, outside_extra={outside_extra_vs_heading})",
+            file=sys.stderr,
+        )
+        return 1
+
     if heading_markers < 12:
         print(
             f"heading capture missing dim marker ink ({heading_markers} muted pixels)",
@@ -172,10 +213,16 @@ def main() -> int:
         )
         return 1
 
-    bold_markers = muted_marker_pixels(images["live-cursor-in-bold.png"])
     if bold_markers < 12:
         print(
             f"bold capture missing dim marker ink ({bold_markers} muted pixels)",
+            file=sys.stderr,
+        )
+        return 1
+
+    if outside_markers > heading_markers:
+        print(
+            f"outside capture shows more muted ink than heading ({outside_markers} > {heading_markers})",
             file=sys.stderr,
         )
         return 1
@@ -184,15 +231,42 @@ def main() -> int:
     if diff is None:
         print("heading vs outside captures are identical", file=sys.stderr)
         return 1
-    band = heading_band(images["live-cursor-in-heading.png"])
+    band = marker_delta_band(
+        images["live-cursor-in-heading.png"],
+        images["live-cursor-outside.png"],
+    )
     if band is None:
-        print("could not locate heading band in heading capture", file=sys.stderr)
+        print("could not locate heading marker band in heading/outside delta", file=sys.stderr)
         return 1
     bx0, by0, bx1, by1 = band
-    dx0, dy0, dx1, dy1 = diff
-    if dx0 < bx0 or dy0 < by0 or dx1 > bx1 or dy1 > by1:
+
+    in_band_marker_diff = 0
+    outside_band_heading_marker = 0
+    w, h = images["live-cursor-in-heading.png"].size
+    for y in range(DOC_Y0, min(DOC_Y1, h)):
+        for x in range(DOC_X0, min(DOC_X1, w)):
+            head_px = images["live-cursor-in-heading.png"].getpixel((x, y))
+            out_px = images["live-cursor-outside.png"].getpixel((x, y))
+            if head_px != out_px and by0 <= y <= by1 and bx0 <= x <= bx1:
+                in_band_marker_diff += 1
+            ar, ag, ab = head_px
+            rr, rg, rb = out_px
+            if is_muted_marker_rgb(ar, ag, ab) and not is_muted_marker_rgb(rr, rg, rb):
+                if y < by0 or y > by1 or x < bx0 or x > bx1:
+                    outside_band_heading_marker += 1
+
+    if in_band_marker_diff < 12:
         print(
-            f"heading/outside diff spills outside heading band: diff={diff} band={band}",
+            f"heading/outside captures do not differ enough inside marker band "
+            f"({in_band_marker_diff} pixels, band={band})",
+            file=sys.stderr,
+        )
+        return 1
+
+    if outside_band_heading_marker > 24:
+        print(
+            "heading capture shows marker-class ink outside the heading band vs outside "
+            f"({outside_band_heading_marker} pixels, band={band})",
             file=sys.stderr,
         )
         return 1

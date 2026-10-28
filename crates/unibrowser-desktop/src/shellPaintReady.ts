@@ -1,3 +1,5 @@
+import { liveCaptureCursorFromDemo, liveCaptureMarkersMatchDom } from "./markdownLiveBlock";
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -509,7 +511,10 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
       case "live-cursor-in-heading":
       case "live-cursor-in-bold":
         checks.push(richTextDocumentReady);
-        checks.push(() => document.body.dataset.liveCaptureReady === "1");
+        checks.push(() => {
+          const kind = liveCaptureCursorFromDemo(demoRaw ?? "");
+          return kind !== null && liveCaptureMarkersMatchDom(kind);
+        });
         break;
       default:
         break;

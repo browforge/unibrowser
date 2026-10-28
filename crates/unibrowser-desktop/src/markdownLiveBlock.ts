@@ -348,6 +348,38 @@ export function findEmptyTrailingParagraphPos(doc: PmNode): number | null {
 export type LiveCaptureCursor = "outside" | "heading" | "bold";
 
 export function selectionForLiveCapture(doc: PmNode, kind: LiveCaptureCursor): number | null {
+  if (kind === "heading") {
+    let pos: number | null = null;
+    doc.descendants((node, nodePos) => {
+      if (pos !== null) {
+        return false;
+      }
+      if (node.type.name === "heading" && Number(node.attrs.level) === 2) {
+        pos = nodePos + 1 + Math.min(4, node.textContent.length);
+        return false;
+      }
+      return true;
+    });
+    return pos;
+  }
+  if (kind === "bold") {
+    let pos: number | null = null;
+    doc.descendants((node, nodePos) => {
+      if (pos !== null || !node.isTextblock) {
+        return pos === null;
+      }
+      node.forEach((child, offset) => {
+        if (pos !== null || !child.isText) {
+          return;
+        }
+        if (child.marks.some((mark) => mark.type.name === "bold")) {
+          pos = nodePos + 1 + offset + Math.min(1, (child.text?.length ?? 1) - 1);
+        }
+      });
+      return pos === null;
+    });
+    return pos;
+  }
   if (kind === "outside") {
     const trailing = findEmptyTrailingParagraphPos(doc);
     if (trailing !== null) {
@@ -355,12 +387,7 @@ export function selectionForLiveCapture(doc: PmNode, kind: LiveCaptureCursor): n
     }
     return doc.content.size - 1;
   }
-  if (kind === "heading") {
-    const pos = findDocTextPos(doc, "Active heading sample");
-    return pos !== null ? pos + 3 : null;
-  }
-  const bold = findDocTextPos(doc, "bold");
-  return bold !== null ? bold + 2 : null;
+  return null;
 }
 
 export function applyLiveCaptureSelection(view: EditorView, kind: LiveCaptureCursor): boolean {
@@ -379,8 +406,82 @@ export function applyLiveCaptureSelection(view: EditorView, kind: LiveCaptureCur
   const tr = view.state.tr.setSelection(TextSelection.create(view.state.doc, pos));
   view.dispatch(tr);
   view.focus();
-  document.body.dataset.liveCaptureReady = "1";
+  try {
+    const host = view.dom.parentElement;
+    if (host) {
+      if (document.body.dataset.ubDocCapture === "1") {
+        host.scrollTop = 0;
+      } else {
+        const coords = view.coordsAtPos(pos);
+        if (coords) {
+          host.scrollTop = Math.max(0, coords.top - host.getBoundingClientRect().top - 80);
+        }
+      }
+    }
+  } catch {
+    /* coords unavailable for some positions */
+  }
   return true;
+}
+
+export function liveCaptureCursorFromDemo(demoRaw: string): LiveCaptureCursor | null {
+  const demo = demoRaw.toLowerCase();
+  if (demo.includes("live-cursor-in-heading")) {
+    return "heading";
+  }
+  if (demo.includes("live-cursor-in-bold")) {
+    return "bold";
+  }
+  if (demo.includes("live-cursor-outside")) {
+    return "outside";
+  }
+  return null;
+}
+
+function visibleLiveMarkerElements(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "#rich-text-editor-host:not(.hidden) .rich-text-doc .md-live-marker",
+    ),
+  );
+}
+
+/** Pixel gates read marker widgets; this mirrors what must be painted before doc-capture. */
+export function liveCaptureMarkersMatchDom(kind: LiveCaptureCursor): boolean {
+  const markers = visibleLiveMarkerElements();
+  if (kind === "outside") {
+    return markers.length === 0;
+  }
+  if (kind === "heading") {
+    return markers.some((el) => (el.textContent ?? "").startsWith("## "));
+  }
+  if (kind === "bold") {
+    return markers.filter((el) => el.textContent === "**").length >= 2;
+  }
+  return false;
+}
+
+export async function ensureLiveCaptureCursorPainted(
+  kind: LiveCaptureCursor,
+  maxAttempts = 120,
+): Promise<boolean> {
+  const { getActiveRichTextView } = await import("./richTextEditor");
+  delete document.body.dataset.liveCaptureReady;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const view = getActiveRichTextView();
+    if (view && applyLiveCaptureSelection(view, kind)) {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      if (liveCaptureMarkersMatchDom(kind)) {
+        document.body.dataset.liveCaptureReady = "1";
+        return true;
+      }
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+  }
+  delete document.body.dataset.liveCaptureReady;
+  return false;
 }
 
 export function createMinimalLiveDoc(schema: Schema = richTextSchema): PmNode {

@@ -180,6 +180,7 @@ import { initAiAssistantPanel, refreshAiAssistantChrome, setAiPanelVisible } fro
 import { syncContextDockPolicy } from "./contextDock";
 import {
   applyDeferredTextToolbarDemoTokens,
+  applyDeferredLiveBlockDemoTokens,
   applyDemoState,
   bootstrapDemoStateTokens,
 } from "./demoState";
@@ -3620,13 +3621,15 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
         try {
           await refreshCommandManager();
           await applyDeferredTextToolbarDemoTokens(demo);
+          await applyDeferredLiveBlockDemoTokens(demo);
           const demoLowerInteractive = demo.toLowerCase();
           const interactiveDocFeatureShot =
             demoLowerInteractive.includes("doc-mode-") ||
             demoLowerInteractive.includes("doc-opaque-card") ||
             demoLowerInteractive.includes("doc-history-") ||
             demoLowerInteractive.includes("doc-merge-banner") ||
-            demoLowerInteractive.includes("doc-visual-md-docx");
+            demoLowerInteractive.includes("doc-visual-md-docx") ||
+            demoLowerInteractive.includes("live-block-capture");
           if (interactiveDocFeatureShot) {
             const { ensureDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
             await ensureDocFeatureCaptureLayout(demo, {
@@ -3849,6 +3852,10 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
                 await applyDemoState("feedback-demo");
               }
             }
+            if ((demoAgain ?? "").toLowerCase().includes("live-block-capture")) {
+              await applyDeferredLiveBlockDemoTokens(demoAgain ?? "");
+              await new Promise((resolve) => window.setTimeout(resolve, 200));
+            }
             painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
             const demoLowerRec = (demoAgain ?? "").toLowerCase();
             if (
@@ -3900,10 +3907,21 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             demoTokens.includes("txt-apply-h2") ||
             demoTokens.includes("txt-apply-h1") ||
             demoTokens.includes("txt-block-picker-open") ||
-            demoTokens.includes("txt-mod-toolbar-visible")
+            demoTokens.includes("txt-mod-toolbar-visible") ||
+            demoTokens.includes("live-block-capture")
           ) {
             await refreshCommandManager();
-            await applyDeferredTextToolbarDemoTokens(demoAgain ?? "");
+            if (
+              demoTokens.includes("txt-apply-h2") ||
+              demoTokens.includes("txt-apply-h1") ||
+              demoTokens.includes("txt-block-picker-open") ||
+              demoTokens.includes("txt-mod-toolbar-visible")
+            ) {
+              await applyDeferredTextToolbarDemoTokens(demoAgain ?? "");
+            }
+            if (demoTokens.includes("live-block-capture")) {
+              await applyDeferredLiveBlockDemoTokens(demoAgain ?? "", { mountEditor: false });
+            }
             await new Promise((resolve) => window.setTimeout(resolve, 100));
           }
           const diag = collectDocCaptureDiagnostics();
@@ -3930,7 +3948,8 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             docCaptureDemo.toLowerCase().includes("doc-history-") ||
             docCaptureDemo.toLowerCase().includes("doc-merge-banner") ||
             docCaptureDemo.toLowerCase().includes("doc-visual-md-docx") ||
-            docVisualMdDocxCaptureShot;
+            docCaptureDemo.toLowerCase().includes("live-block-capture") ||
+            docCaptureDemo.toLowerCase().includes("live-cursor-");
           if (isDocFeatureShot) {
             const docVisualCapture =
               document.body.dataset.ubDocCapture === "1" && docVisualMdDocxCaptureShot;
@@ -4342,6 +4361,23 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           if (recShowChangesCapture) {
             const { diffInsertLineCaptureRegion } = await import("./diffEditor");
             diffLine4Region = diffInsertLineCaptureRegion(4);
+          }
+          if (demoTokens.includes("live-block-capture")) {
+            const { liveCaptureCursorFromDemo, ensureLiveCaptureCursorPainted } = await import(
+              "./markdownLiveBlock"
+            );
+            await applyDeferredLiveBlockDemoTokens(demoAgain ?? "", { mountEditor: false });
+            const kind = liveCaptureCursorFromDemo(demoAgain ?? "");
+            if (kind) {
+              const painted = await ensureLiveCaptureCursorPainted(kind, 80);
+              if (!painted) {
+                await invoke("abort_doc_capture", {
+                  reason: `live block capture markers not painted for ${kind}`,
+                });
+                return;
+              }
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
           }
           await invoke("write_doc_capture_cm_json", {
             json: JSON.stringify({

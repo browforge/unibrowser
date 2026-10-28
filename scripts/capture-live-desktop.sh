@@ -8,7 +8,7 @@ npm run build --prefix "$ROOT/crates/unibrowser-desktop"
 source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/live"
 mkdir -p "$OUT"
-BASE="capture-ready,rail-collapsed,theme-light,standard-contrast,scale-100,cm-collapsed,text-card-render1,doc-mode-wysiwyg"
+BASE="capture-ready,rail-collapsed,theme-light,standard-contrast,scale-100,cm-collapsed,text-card-render1,doc-mode-wysiwyg,live-block-capture"
 SAMPLE="examples/demo-pack/live-block-sample.md"
 
 node --experimental-strip-types --test "$ROOT/crates/unibrowser-desktop/tests/markdownLiveBlock.test.mjs"

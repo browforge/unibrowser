@@ -472,7 +472,7 @@ mod rec_capture_proofing_tests {
             .join("../../../e2e/fixtures/spell-test.txt");
         let text = std::fs::read_to_string(&fixture).expect("spell-test fixture");
         let recovered = format!(
-            "{}\n\nRecovered unsaved paragraph for REC capture.\n",
+            "{}\n\nRecovered unsaved paragraph for recovery capture.\n",
             text.trim_end()
         );
         let h = host().expect("host");
