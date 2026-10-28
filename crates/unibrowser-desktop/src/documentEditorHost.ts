@@ -309,13 +309,21 @@ export async function syncDocumentEditorForTextTab(
       syncTextDocumentCard(true, path.split(/[/\\]/).pop() ?? null);
       return;
     }
+    const { setDocumentEditorMode } = await import("./documentEditorModes");
+    setDocumentEditorMode("source", false);
     document.getElementById("document-mode-inline-host")?.remove();
     document.getElementById("document-mode-strip-host")?.classList.add("hidden");
     richHost?.classList.add("hidden");
     splitPreviewHost?.classList.add("hidden");
     monacoHost.classList.remove("document-surface-source-hidden", "document-editor-split-layout");
+    monacoHost.querySelectorAll<HTMLElement>(".monaco-editor").forEach((node) => {
+      node.style.visibility = "";
+      node.style.pointerEvents = "";
+    });
     session = null;
-    documentPath = null;
+    documentPath = path;
+    document.body.dataset.activeDocumentPath = path;
+    applySurfaceVisibility(getDocumentEditorMode());
     return;
   }
   try {

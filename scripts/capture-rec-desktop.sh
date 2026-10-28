@@ -9,6 +9,7 @@ source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/rec"
 ART="/opt/cursor/artifacts"
 mkdir -p "$OUT" "$ART"
+rm -f "$ROOT/.unibrowser/proofing-added.txt"
 rm -f "$OUT"/rec-*.png "$OUT"/rec-*.cm.json "$OUT"/.rec-*.png "$OUT"/.rec-*.cm.json
 
 BASE="capture-ready,rail-collapsed,theme-light,standard-contrast,scale-100,cm-collapsed"

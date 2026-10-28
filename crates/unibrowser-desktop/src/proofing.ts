@@ -30,6 +30,14 @@ export function isProofingEnabled(): boolean {
   return squigglesEnabled;
 }
 
+export function proofingHasSpellingDiagnostic(): boolean {
+  return lastDiagnostics.some((d) => d.kind === "spelling");
+}
+
+export function getProofingSpellingCount(): number {
+  return lastDiagnostics.filter((d) => d.kind === "spelling").length;
+}
+
 export async function setProofingSquigglesEnabled(enabled: boolean): Promise<void> {
   await invoke("set_proofing_squiggles_enabled", { enabled });
   squigglesEnabled = enabled;
@@ -56,6 +64,10 @@ export function scheduleEditorProofing(
   debounceTimer = setTimeout(() => {
     void runEditorProofing(monaco, editor, surface, codeLanguage);
   }, 400);
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (demo.includes("rec-capture")) {
+    void runEditorProofing(monaco, editor, surface, codeLanguage);
+  }
 }
 
 export function clearEditorMarkers(
@@ -71,7 +83,7 @@ export function clearEditorMarkers(
   problemIndex = 0;
 }
 
-async function runEditorProofing(
+export async function runEditorProofing(
   monaco: typeof import("monaco-editor"),
   editor: import("monaco-editor").editor.IStandaloneCodeEditor,
   surface: "plaintext" | "markdown" | "code",
@@ -87,7 +99,10 @@ async function runEditorProofing(
       req: {
         text,
         surface,
-        code_language: codeLanguage ?? model.getLanguageId(),
+        language: "en-NZ",
+        ...(surface === "code"
+          ? { code_language: codeLanguage ?? model.getLanguageId() }
+          : {}),
         grammar_enabled: null,
       },
     });
@@ -100,7 +115,7 @@ async function runEditorProofing(
         severity:
           d.kind === "grammar"
             ? monaco.MarkerSeverity.Warning
-            : monaco.MarkerSeverity.Info,
+            : monaco.MarkerSeverity.Error,
         message: d.message,
         startLineNumber: start.lineNumber,
         startColumn: start.column,

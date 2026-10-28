@@ -600,7 +600,7 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 6,
+    "segmentCount": 5,
     "segments": [
       {
         "id": "",
@@ -675,7 +675,7 @@
         "id": "",
         "label": "Problems 0",
         "bounds": {
-          "x": 1128.53125,
+          "x": 1162.53125,
           "y": 777.5,
           "width": 66.6875,
           "height": 17
@@ -688,7 +688,7 @@
         "pixelContrast": 6.038,
         "pixelInkCount": 269,
         "pixelBounds": {
-          "x": 1128,
+          "x": 1162,
           "y": 777,
           "width": 68,
           "height": 18
@@ -698,7 +698,7 @@
         "id": "",
         "label": "UTF-8",
         "bounds": {
-          "x": 1195.21875,
+          "x": 1229.21875,
           "y": 777.5,
           "width": 38.796875,
           "height": 17
@@ -711,48 +711,36 @@
         "pixelContrast": 6.947,
         "pixelInkCount": 127,
         "pixelBounds": {
-          "x": 1195,
+          "x": 1229,
           "y": 777,
           "width": 40,
           "height": 18
         }
-      },
-      {
-        "id": "status-ai-visibility",
-        "label": "AI",
-        "bounds": {
-          "x": 1246.015625,
-          "y": 775.203125,
-          "width": 22,
-          "height": 21.59375
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.128,
-        "pixelInkCount": 63,
-        "pixelBounds": {
-          "x": 1246,
-          "y": 775,
-          "width": 23,
-          "height": 22
-        }
       }
     ]
   },
+  "problems": {
+    "tabText": "Problems",
+    "rowCount": 0,
+    "visibleRowCount": 0,
+    "emptyVisible": false,
+    "panelHeight": 0,
+    "tableHeight": 0
+  },
+  "spellHits": 1,
+  "documentCardFooter": "Plain text \u00b7 9 words \u00b7 Saved",
+  "diffChangeCount": 0,
   "railFlyoutWidth": 0,
   "dom": {
     "visibleDocumentCardCount": 1,
     "commandManagerVisible": false,
     "footerUsesCardTokens": true,
-    "activeMode": "",
-    "visibleEditorHost": "none",
-    "modeMatchesVisibleHost": false,
+    "activeMode": "source",
+    "visibleEditorHost": "monaco",
+    "modeMatchesVisibleHost": true,
     "outsideOverlapCount": 0,
     "richEditorSubtreeViolations": 0,
-    "documentCardFooterText": "Markdown \u00b7 9 words \u00b7 Saved",
+    "documentCardFooterText": "Plain text \u00b7 9 words \u00b7 Saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
     "statusBarDocumentLanguage": "Saved plaintext Ln 1, Col 1 Problems 0 UTF-8",

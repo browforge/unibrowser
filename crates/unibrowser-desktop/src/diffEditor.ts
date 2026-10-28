@@ -70,13 +70,53 @@ export const diffEditorView = {
       body.className = "diff-monaco-host";
       host.appendChild(toolbar);
       host.appendChild(body);
+      if (!document.getElementById("rec-diff-insert-style")) {
+        const style = document.createElement("style");
+        style.id = "rec-diff-insert-style";
+        style.textContent = `
+.monaco-diff-editor .line-insert,
+.monaco-diff-editor .char-insert,
+.monaco-diff-editor .insert-sign {
+  background-color: rgba(88, 124, 14, 0.28) !important;
+}
+.monaco-diff-editor .line-delete,
+.monaco-diff-editor .char-delete,
+.monaco-diff-editor .delete-sign {
+  background-color: rgba(161, 38, 13, 0.22) !important;
+}
+`;
+        document.head.appendChild(style);
+      }
       const theme =
         document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
+      const diffThemeId = "unibrowser-rec-diff";
+      api.editor.defineTheme(diffThemeId, {
+        base: theme,
+        inherit: true,
+        rules: [],
+        colors: {
+          "diffEditor.insertedTextBackground": "#587c0e33",
+          "diffEditor.insertedLineBackground": "#587c0e40",
+          "diffEditor.removedTextBackground": "#a1260d33",
+          "diffEditor.removedLineBackground": "#a1260d40",
+          "editor.background": theme === "vs" ? "#faf9f6" : "#1e1e24",
+        },
+      });
       diffEditor = api.editor.createDiffEditor(body, {
-        theme,
+        theme: diffThemeId,
         automaticLayout: true,
         readOnly: true,
         renderSideBySide: true,
+        renderOverviewRuler: false,
+        renderIndicators: true,
+        renderMarginRevertIcon: false,
+        ignoreTrimWhitespace: false,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        overviewRulerLanes: 0,
+        hideUnchangedRegions: { enabled: false },
+        diffAlgorithm: "advanced",
+        useInlineViewWhenSpaceIsLimited: false,
       });
     }
     const titleEl = host.querySelector(".diff-title");
@@ -96,7 +136,23 @@ export const diffEditorView = {
     diffEditor!.updateOptions({ renderSideBySide: sideBySide });
     const left = api.editor.createModel(view.left_content, view.language);
     const right = api.editor.createModel(view.right_content, view.language);
+    const leftLines = view.left_content.replace(/\r\n/g, "\n").split("\n");
+    const rightLines = view.right_content.replace(/\r\n/g, "\n").split("\n");
+    let changedRows = 0;
+    for (let i = 0; i < Math.max(leftLines.length, rightLines.length); i += 1) {
+      if ((leftLines[i] ?? "") !== (rightLines[i] ?? "")) {
+        changedRows += 1;
+      }
+    }
     diffEditor!.setModel({ original: left, modified: right });
+    diffEditor!.layout();
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    const monacoChanges = diffEditor!.getLineChanges()?.length ?? 0;
+    host.dataset.diffChangeCount = String(Math.max(changedRows, monacoChanges));
+    window.requestAnimationFrame(() => {
+      diffEditor?.layout();
+      window.requestAnimationFrame(() => diffEditor?.layout());
+    });
   },
 
   toggleLayout(host: HTMLElement) {

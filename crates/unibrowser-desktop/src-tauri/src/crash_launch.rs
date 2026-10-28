@@ -86,11 +86,25 @@ pub fn restore_recovery_item(
 ) -> Result<(), String> {
     if backup_id.len() == 16 && backup_id.chars().all(|c| c.is_ascii_hexdigit()) {
         if let Ok(rec) = edit_recovery::load_recovered(backup_id) {
-            return apply_recovered_edit(state, window_label, app, &rec);
+            apply_recovered_edit(state, window_label, app, &rec)?;
+            dismiss_recovery_item(backup_id)?;
+            if let Ok(sess) = ws_label(state, window_label) {
+                if let Ok(mut bar) = sess.recovery_bar.lock() {
+                    bar.items.retain(|i| i.backup_id != backup_id);
+                }
+            }
+            return Ok(());
         }
     }
     let record = crate::crash_recovery::load_backup(backup_id)?;
-    apply_backup_record(state, window_label, app, &record)
+    apply_backup_record(state, window_label, app, &record)?;
+    dismiss_recovery_item(backup_id)?;
+    if let Ok(sess) = ws_label(state, window_label) {
+        if let Ok(mut bar) = sess.recovery_bar.lock() {
+            bar.items.retain(|i| i.backup_id != backup_id);
+        }
+    }
+    Ok(())
 }
 
 fn apply_recovered_edit(

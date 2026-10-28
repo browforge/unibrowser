@@ -642,7 +642,7 @@ function statusItemsForContext(
     right.push(item("media-audio", "right", active?.muted ? "Muted" : "Audio on", 80));
     return { context: "media", items: [...left, ...right] };
   }
-  if (showText && (data.text_document || projectDocument)) {
+  if (showText && (data.text_document || projectDocument || data.diff_view)) {
     const problemsText =
       document.getElementById("bottom-panel-tab-problems")?.textContent ?? "";
     const problemsCount = problemsText.match(/\d+/)?.[0] ?? "0";
@@ -674,7 +674,10 @@ function statusItemsForContext(
       (demoVisualDocx && document.body.classList.contains("text-document-card"));
     const languageLabel = officeDoc
       ? "Word document"
-      : values.language || data.text_document?.language || "Text";
+      : values.language ||
+        data.text_document?.language ||
+        data.diff_view?.language ||
+        "Text";
     left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
     left.push(item("document-language", "left", languageLabel, 80));
     left.push(item("document-caret", "left", values.cursor, 80));
@@ -714,11 +717,20 @@ function refreshStatusBar(
     active?.is_http
       ? data.omnibox
       : data.text_document?.path ??
+        data.diff_view?.left_path ??
         data.document_viewer?.path ??
         (data.show_new_tab_page ? data.browse_folder_path : data.omnibox.replace(/^file:\/\//, ""));
-  const encoding = showText && data.text_document ? data.text_document.encoding : "";
+  const encoding =
+    showText && data.text_document
+      ? data.text_document.encoding
+      : showText && data.diff_view
+        ? "UTF-8"
+        : "";
   const viewerKind = data.document_viewer?.viewer;
   let cursor = showText && data.text_document ? `Ln ${editorLine}, Col ${editorCol}` : "";
+  if (!cursor && showText && data.diff_view) {
+    cursor = "Ln 1, Col 1";
+  }
   if (!cursor && showViewer && viewerKind === "image") {
     const sample = getImagePixelSample();
     cursor = sample;
@@ -2442,8 +2454,10 @@ async function applyState(data: TabContentDto) {
   );
   const showViewer =
     Boolean(data.document_viewer) && !active?.is_http && !projectDocument;
+  const showDiff = Boolean(data.diff_view);
   const showText =
-    (Boolean(data.text_document) || projectDocument) && !active?.is_http;
+    (Boolean(data.text_document) || projectDocument || showDiff) &&
+    !active?.is_http;
   const showHome = data.show_new_tab_page && !active?.is_http;
   renderTabs(data);
   const activeTabForNav = data.tabs[data.active_index];
@@ -2461,7 +2475,6 @@ async function applyState(data: TabContentDto) {
     data.bookmark_bar_pins ?? [],
     data.bookmark_quick_links ?? [],
   );
-  const showDiff = Boolean(data.diff_view);
   const showImageCompare = Boolean(data.image_compare_view);
   if (showImageCompare && data.image_compare_view) {
     diffEditorView.hide(diffEditorHost);
@@ -2662,8 +2675,10 @@ async function applyState(data: TabContentDto) {
   );
   const showViewer =
     Boolean(data.document_viewer) && !active?.is_http && !projectDocument;
+  const showDiff = Boolean(data.diff_view);
   const showText =
-    (Boolean(data.text_document) || projectDocument) && !active?.is_http;
+    (Boolean(data.text_document) || projectDocument || showDiff) &&
+    !active?.is_http;
   refreshStatusBar(data, active, showText, showViewer, projectDocument);
 };
 
@@ -3829,12 +3844,32 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               const demoTokensLower = (demoAgain ?? "").toLowerCase();
               if (
                 demoTokensLower.includes("rec-capture-banner") &&
-                !document.querySelector(".recovery-bar-host:not(.hidden) .recovery-bar-row")
+                !document.querySelector("#recovery-bar-host:not(.hidden) .recovery-bar-row")
               ) {
                 await applyDemoState("feedback-demo");
               }
             }
             painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
+            const demoLowerRec = (demoAgain ?? "").toLowerCase();
+            if (
+              painted &&
+              demoLowerRec.includes("rec-capture") &&
+              !demoLowerRec.includes("rec-capture-show-changes")
+            ) {
+              const { textEditor } = await import("./textEditor");
+              await textEditor.ensureProofingApplied();
+              const { proofingHasSpellingDiagnostic } = await import("./proofing");
+              if (!proofingHasSpellingDiagnostic()) {
+                await invoke("abort_doc_capture", {
+                  reason: "REC capture requires a spelling squiggle on 'teh'",
+                });
+                return;
+              }
+              await (
+                window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+              ).__unibrowserRefreshStatusBarOnly?.();
+              await new Promise((resolve) => window.setTimeout(resolve, 300));
+            }
           }
           if (!painted) {
             const timeoutDiag = formatDiagnosticsForLog(collectDocCaptureDiagnostics());
@@ -3869,6 +3904,8 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             await new Promise((resolve) => window.setTimeout(resolve, 100));
           }
           const diag = collectDocCaptureDiagnostics();
+          const { getProofingSpellingCount } = await import("./proofing");
+          const spellHits = getProofingSpellingCount();
           const diagJson = formatDiagnosticsForLog(diag);
           console.error(`[doc-capture] diagnostics ${diagJson}`);
           void invoke("log_shell_ui_event", {
@@ -4287,6 +4324,14 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
                 controls: [],
               }),
               statusBar: collectStatusBarDiagnostics(),
+              problems: diag.problems,
+              spellHits,
+              documentCardFooter:
+                document.querySelector<HTMLElement>(".document-card-status-main")?.textContent?.trim() ??
+                "",
+              diffChangeCount: Number(
+                document.getElementById("diff-editor-host")?.dataset.diffChangeCount ?? "0",
+              ),
               viewportWidth: window.innerWidth,
               viewportHeight: window.innerHeight,
               railFlyoutWidth,

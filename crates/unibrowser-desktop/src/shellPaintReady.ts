@@ -43,6 +43,19 @@ function recCaptureMonacoReady(): boolean {
   return editorReadyForCapture(35);
 }
 
+function recCaptureRecoveryBannerVisible(): boolean {
+  const host = document.getElementById("recovery-bar-host");
+  return Boolean(
+    host &&
+      !host.classList.contains("hidden") &&
+      host.querySelector(".recovery-bar-row"),
+  );
+}
+
+function recCaptureRecoveryBannerHidden(): boolean {
+  return !recCaptureRecoveryBannerVisible();
+}
+
 function monacoReady(): boolean {
   return editorReadyForCapture(80);
 }
@@ -460,14 +473,7 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         break;
       case "rec-capture-banner":
         checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
-        checks.push(() => {
-          const host = document.getElementById("recovery-bar-host");
-          return Boolean(
-            host &&
-              !host.classList.contains("hidden") &&
-              host.querySelector(".recovery-bar-row"),
-          );
-        });
+        checks.push(recCaptureRecoveryBannerVisible);
         checks.push(recCaptureMonacoReady);
         checks.push(recCaptureStatusBarReady);
         break;
@@ -477,14 +483,21 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           const tab = document.querySelector(".title-tabs .tab");
           return Boolean(tab?.textContent?.includes("*"));
         });
+        checks.push(recCaptureRecoveryBannerHidden);
         checks.push(recCaptureMonacoReady);
         checks.push(recCaptureStatusBarReady);
         break;
       case "rec-capture-show-changes":
         checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
+        checks.push(recCaptureRecoveryBannerVisible);
         checks.push(() => {
           const host = document.getElementById("diff-editor-host");
           return Boolean(host && !host.classList.contains("hidden"));
+        });
+        checks.push(() => {
+          const host = document.getElementById("diff-editor-host");
+          const lines = host?.querySelectorAll(".monaco-diff-editor .view-lines");
+          return Boolean(lines && lines.length >= 2);
         });
         checks.push(recCaptureStatusBarReady);
         break;
@@ -772,7 +785,16 @@ function recCaptureStatusBarReady(): boolean {
     return false;
   }
   const text = (bar.textContent ?? "").replace(/\s+/g, " ").trim();
-  return text.length >= 6;
+  if (text.length < 12) {
+    return false;
+  }
+  return (
+    /\bUTF-8\b/i.test(text) ||
+    /\bplaintext\b/i.test(text) ||
+    /\bLn\s+\d+/i.test(text) ||
+    /spell-test\.txt/i.test(text) ||
+    /\bPlain text\b/i.test(text)
+  );
 }
 
 /** Wait for shell/webview paint before doc-capture screenshots. */
@@ -784,12 +806,23 @@ export async function waitForShellPaintReady(
   const checks = checksForDemo(demoRaw, launchPaths);
   const deadline = Date.now() + timeoutMs;
   const preferDocumentViewer = launchPathsNeedDocumentViewer(launchPaths);
+  const demoLower = (demoRaw ?? "").toLowerCase();
+  const recNeedsSpell =
+    demoLower.includes("rec-capture") && !demoLower.includes("rec-capture-show-changes");
   while (Date.now() < deadline) {
     await ensureDocumentTabActiveForCapture(launchPaths);
     if (!preferDocumentViewer) {
       await ensureTextTabActiveForCapture(launchPaths);
     }
     await nudgeEditorLayout();
+    if (recNeedsSpell) {
+      try {
+        const { textEditor } = await import("./textEditor");
+        await textEditor.ensureProofingApplied();
+      } catch {
+        /* editor not mounted yet */
+      }
+    }
     if (checks.every((fn) => fn())) {
       await nudgeEditorLayout();
       await sleep(200);
