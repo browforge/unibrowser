@@ -82,6 +82,7 @@ mod bundled_dict_tests {
         let checker = SpellEnNzChecker::with_bundled().expect("bundled dictionary");
         let mut dict = checker.dictionary.clone();
         assert!(dict.check("quick"));
+        assert!(dict.check("paragraph"));
         assert!(!dict.check("teh"));
     }
 }

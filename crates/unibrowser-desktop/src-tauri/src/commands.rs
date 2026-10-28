@@ -6673,6 +6673,9 @@ pub fn set_proofing_squiggles_enabled(enabled: bool) -> Result<PreferencesDto, S
     let mut p = load_preferences();
     p.proofing_squiggles_enabled = enabled;
     save_preferences(&p)?;
+    if !enabled {
+        crate::problems_store::set_problems_from_proofing(Vec::new());
+    }
     Ok(preferences_dto())
 }
 

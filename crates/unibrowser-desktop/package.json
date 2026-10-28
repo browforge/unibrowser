@@ -17,7 +17,7 @@
     "test:chrome": "node --experimental-strip-types --test tests/chromeMetrics.test.mjs",
     "test:capability": "node --experimental-strip-types --test tests/capabilityProvider.test.mjs tests/contentKindTraversal.test.mjs tests/kindHostResolver.test.mjs",
     "test:perm-audit": "node --experimental-strip-types --test tests/permAudit.test.mjs",
-    "test:live-block": "node --experimental-strip-types --test tests/markdownLiveMapping.test.mjs",
+    "test:live-block": "node --experimental-strip-types --test tests/markdownLiveMapping.test.mjs tests/documentModeHistory.test.mjs",
     "preview": "vite preview",
     "dev:web": "vite --mode web",
     "prepare:web-public": "node scripts/prepare-web-public.mjs",

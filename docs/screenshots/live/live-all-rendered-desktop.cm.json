@@ -575,11 +575,11 @@
       },
       {
         "id": "",
-        "label": "Problems 26",
+        "label": "Problems 0",
         "bounds": {
-          "x": 1122.53125,
+          "x": 1128.53125,
           "y": 777.5,
-          "width": 72.6875,
+          "width": 66.6875,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -588,11 +588,11 @@
         "opacity": "1",
         "filter": "none",
         "pixelContrast": 6.038,
-        "pixelInkCount": 298,
+        "pixelInkCount": 269,
         "pixelBounds": {
-          "x": 1122,
+          "x": 1128,
           "y": 777,
-          "width": 74,
+          "width": 68,
           "height": 18
         }
       },
@@ -645,14 +645,14 @@
     ]
   },
   "problems": {
-    "tabText": "Problems 26",
+    "tabText": "Problems",
     "rowCount": 0,
     "visibleRowCount": 0,
     "emptyVisible": false,
     "panelHeight": 0,
     "tableHeight": 0
   },
-  "spellHits": 26,
+  "spellHits": 0,
   "documentCardFooter": "Markdown \u00b7 35 words \u00b7 Saved",
   "diffChangeCount": 0,
   "spellTehRegion": null,
@@ -662,7 +662,7 @@
     "visibleDocumentCardCount": 1,
     "commandManagerVisible": false,
     "footerUsesCardTokens": true,
-    "activeMode": "live",
+    "activeMode": "wysiwyg",
     "visibleEditorHost": "monaco",
     "modeMatchesVisibleHost": true,
     "outsideOverlapCount": 0,
@@ -670,7 +670,7 @@
     "documentCardFooterText": "Markdown \u00b7 35 words \u00b7 Saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Saved markdown Ln 2, Col 1 Problems 26 UTF-8",
+    "statusBarDocumentLanguage": "Saved markdown Ln 2, Col 1 Problems 0 UTF-8",
     "projectHomeCardHeight": null,
     "projectHomeCardTopRelative": null,
     "projectHomeCardCenterDeltaX": null,
@@ -685,10 +685,10 @@
     "firstSaveCancelButtonPresent": false
   },
   "liveBlock": {
-    "mode": "live",
+    "mode": "wysiwyg",
     "activeBlockIndex": -1,
     "markerElementCount": 0,
-    "hiddenLineDecorationCount": 5,
+    "hiddenLineDecorationCount": 0,
     "renderZoneCount": 5,
     "markerSamples": [],
     "inactiveBoldMarkerVisible": true

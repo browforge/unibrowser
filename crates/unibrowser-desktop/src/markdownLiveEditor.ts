@@ -15,11 +15,12 @@ type Model = import("monaco-editor").editor.ITextModel;
 let attached = false;
 let composing = false;
 let decorationIds: string[] = [];
-let zoneIds: string[] = [];
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let monacoRef: MonacoApi | null = null;
 let editorRef: Editor | null = null;
 let disposables: import("monaco-editor").IDisposable[] = [];
+let overlayLayer: HTMLElement | null = null;
+let overlayNodes: HTMLElement[] = [];
 
 function offsetToPosition(model: Model, offset: number): import("monaco-editor").Position {
   return model.getPositionAt(offset);
@@ -42,13 +43,48 @@ function scheduleRefresh() {
   }, 16);
 }
 
-function clearZones(editor: Editor) {
-  editor.changeViewZones((accessor) => {
-    for (const id of zoneIds) {
-      accessor.removeZone(id);
-    }
-  });
-  zoneIds = [];
+function ensureOverlayLayer(editor: Editor): HTMLElement | null {
+  const slot = editor.getDomNode()?.closest(".document-monaco-slot") as HTMLElement | null;
+  if (!slot) {
+    return null;
+  }
+  if (!overlayLayer || overlayLayer.parentElement !== slot) {
+    overlayLayer?.remove();
+    overlayLayer = document.createElement("div");
+    overlayLayer.className = "md-live-overlay-layer";
+    overlayLayer.setAttribute("aria-hidden", "true");
+    slot.appendChild(overlayLayer);
+  }
+  return overlayLayer;
+}
+
+function clearOverlays() {
+  for (const node of overlayNodes) {
+    node.remove();
+  }
+  overlayNodes = [];
+}
+
+function layoutOverlayNode(
+  editor: Editor,
+  monaco: MonacoApi,
+  model: Model,
+  block: LiveBlock,
+  dom: HTMLElement,
+) {
+  const startPos = offsetToPosition(model, block.start);
+  const endPos = offsetToPosition(model, Math.max(block.start, block.end - 1));
+  const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
+  const top = editor.getTopForLineNumber(startPos.lineNumber);
+  const bottom =
+    editor.getTopForLineNumber(endPos.lineNumber) +
+    lineHeight * (endPos.lineNumber - startPos.lineNumber + 1);
+  const layout = editor.getLayoutInfo();
+  const scrollTop = editor.getScrollTop();
+  dom.style.top = `${top - scrollTop}px`;
+  dom.style.left = `${layout.contentLeft}px`;
+  dom.style.width = `${layout.width - layout.contentLeft - layout.verticalScrollbarWidth}px`;
+  dom.style.minHeight = `${Math.max(lineHeight, bottom - top)}px`;
 }
 
 function refreshLiveSurface() {
@@ -59,6 +95,10 @@ function refreshLiveSurface() {
   }
   const model = editor.getModel();
   if (!model) {
+    return;
+  }
+  const layer = ensureOverlayLayer(editor);
+  if (!layer) {
     return;
   }
   const source = model.getValue();
@@ -84,7 +124,7 @@ function refreshLiveSurface() {
         ),
         options: {
           isWholeLine: true,
-          className: "md-live-line-hidden",
+          className: "md-live-source-hidden",
           stickiness: monaco.editor.TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges,
         },
       });
@@ -112,51 +152,37 @@ function refreshLiveSurface() {
   }
   decorationIds = editor.deltaDecorations(decorationIds, decorations);
 
-  clearZones(editor);
-  editor.changeViewZones((accessor) => {
-    for (let i = 0; i < blocks.length; i += 1) {
-      if (i === activeIndex) {
-        continue;
-      }
-      const block = blocks[i]!;
-      if (block.kind === "unsupported") {
-        continue;
-      }
-      const html = renderLiveBlockHtml(block);
-      if (!html) {
-        continue;
-      }
-      const startPos = offsetToPosition(model, block.start);
-      const endPos = offsetToPosition(model, Math.max(block.start, block.end - 1));
-      const dom = document.createElement("div");
-      dom.className = "md-live-render-zone";
-      dom.innerHTML = html;
-      dom.dataset.liveBlockIndex = String(i);
-      dom.addEventListener("mousedown", (ev) => {
-        ev.preventDefault();
-        const textNode = findTextNodeAtPoint(dom, ev.clientX, ev.clientY);
-        const renderOffset = textOffsetInElement(dom, textNode, ev.clientX);
-        const sourceOffset = sourceOffsetFromRenderClick(block, renderOffset);
-        const pos = offsetToPosition(model, sourceOffset);
-        editor.focus();
-        editor.setPosition(pos);
-        scheduleRefresh();
-      });
-      const lineSpan = endPos.lineNumber - startPos.lineNumber + 1;
-      const zoneId = accessor.addZone({
-        afterLineNumber: Math.max(0, startPos.lineNumber - 1),
-        heightInLines: Math.max(lineSpan, estimateLines(html)),
-        domNode: dom,
-        suppressMouseDown: false,
-      });
-      zoneIds.push(zoneId);
+  clearOverlays();
+  for (let i = 0; i < blocks.length; i += 1) {
+    if (i === activeIndex) {
+      continue;
     }
-  });
-}
-
-function estimateLines(html: string): number {
-  const plain = html.replace(/<[^>]+>/g, " ");
-  return Math.max(1, Math.ceil(plain.length / 72));
+    const block = blocks[i]!;
+    if (block.kind === "unsupported") {
+      continue;
+    }
+    const html = renderLiveBlockHtml(block);
+    if (!html) {
+      continue;
+    }
+    const dom = document.createElement("div");
+    dom.className = "md-live-render-zone";
+    dom.innerHTML = html;
+    dom.dataset.liveBlockIndex = String(i);
+    dom.addEventListener("mousedown", (ev) => {
+      ev.preventDefault();
+      const textNode = findTextNodeAtPoint(dom, ev.clientX, ev.clientY);
+      const renderOffset = textOffsetInElement(dom, textNode, ev.clientX);
+      const sourceOffset = sourceOffsetFromRenderClick(block, renderOffset);
+      const pos = offsetToPosition(model, sourceOffset);
+      editor.focus();
+      editor.setPosition(pos);
+      scheduleRefresh();
+    });
+    layoutOverlayNode(editor, monaco, model, block, dom);
+    layer.appendChild(dom);
+    overlayNodes.push(dom);
+  }
 }
 
 function findTextNodeAtPoint(root: HTMLElement, x: number, y: number): Text | null {
@@ -229,11 +255,13 @@ export function attachMarkdownLiveEditor(monaco: MonacoApi, editor: Editor): voi
   attached = true;
   monacoRef = monaco;
   editorRef = editor;
-  editor.getDomNode()?.closest("#text-editor-host")?.classList.add("document-mode-live-active");
+  editor.getDomNode()?.closest("#text-editor-host")?.classList.add("document-md-live-active");
 
   disposables.push(
     editor.onDidChangeModelContent(() => scheduleRefresh()),
     editor.onDidChangeCursorPosition(() => scheduleRefresh()),
+    editor.onDidScrollChange(() => scheduleRefresh()),
+    editor.onDidLayoutChange(() => scheduleRefresh()),
     editor.onDidCompositionStart(() => {
       composing = true;
     }),
@@ -262,14 +290,16 @@ export function detachMarkdownLiveEditor(): void {
   }
   const editor = editorRef;
   if (editor) {
-    clearZones(editor);
     decorationIds = editor.deltaDecorations(decorationIds, []);
   }
+  clearOverlays();
+  overlayLayer?.remove();
+  overlayLayer = null;
   for (const d of disposables) {
     d.dispose();
   }
   disposables = [];
-  document.querySelector("#text-editor-host")?.classList.remove("document-mode-live-active");
+  document.querySelector("#text-editor-host")?.classList.remove("document-md-live-active");
   editorRef = null;
   monacoRef = null;
 }

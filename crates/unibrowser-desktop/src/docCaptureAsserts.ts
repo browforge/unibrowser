@@ -1146,8 +1146,17 @@ function footerUsesDocumentCardTokens(footerMain: HTMLElement | null): boolean {
   return colorOk && fontOk && textOk;
 }
 
+function markdownLiveVisualHostExpected(): boolean {
+  const path = document.body.dataset.activeDocumentPath?.toLowerCase() ?? "";
+  const mode = document.body.dataset.documentEditorMode ?? "";
+  if (!path.endsWith(".md") && !path.endsWith(".markdown")) {
+    return false;
+  }
+  return mode === "wysiwyg" || mode === "reading";
+}
+
 function editorHostForMode(
-  mode: "wysiwyg" | "live" | "source" | "split" | "reading",
+  mode: "wysiwyg" | "source" | "split" | "reading",
 ): "monaco" | "rich" | "split" | "none" {
   const monacoHost = document.getElementById("text-editor-host");
   const richHost = document.getElementById("rich-text-editor-host");
@@ -1170,10 +1179,16 @@ function editorHostForMode(
   if (mode === "split") {
     return splitVisible && monacoVisible ? "split" : "none";
   }
-  if (mode === "source" || mode === "live") {
+  if (mode === "source") {
     return monacoVisible && !richVisible ? "monaco" : "none";
   }
   if (mode === "wysiwyg" || mode === "reading") {
+    if (
+      monacoVisible &&
+      (monacoHost?.classList.contains("document-md-live-active") || markdownLiveVisualHostExpected())
+    ) {
+      return "monaco";
+    }
     return richVisible && !monacoVisible ? "rich" : "none";
   }
   return "none";
@@ -1187,6 +1202,13 @@ function richEditorSubtreeViolationCount(
   mode: string,
 ): number {
   if (mode !== "wysiwyg" && mode !== "reading") {
+    return 0;
+  }
+  const monacoHost = document.getElementById("text-editor-host");
+  if (
+    monacoHost?.classList.contains("document-md-live-active") ||
+    markdownLiveVisualHostExpected()
+  ) {
     return 0;
   }
   const richRoot = document.getElementById("rich-text-editor-host");
@@ -1314,12 +1336,15 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     .join(" ");
   const activeMode = document.body.dataset.documentEditorMode ?? "";
   const visibleEditorHost = editorHostForMode(
-    (activeMode as "wysiwyg" | "live" | "source" | "split" | "reading") || "wysiwyg",
+    (activeMode as "wysiwyg" | "source" | "split" | "reading") || "wysiwyg",
   );
+  const mdLiveVisual = markdownLiveVisualHostExpected();
   const modeMatchesVisibleHost =
-    ((activeMode === "source" || activeMode === "live") && visibleEditorHost === "monaco") ||
+    ((activeMode === "source" || mdLiveVisual) && visibleEditorHost === "monaco") ||
     (activeMode === "split" && visibleEditorHost === "split") ||
-    ((activeMode === "wysiwyg" || activeMode === "reading") && visibleEditorHost === "rich");
+    ((activeMode === "wysiwyg" || activeMode === "reading") &&
+      !mdLiveVisual &&
+      visibleEditorHost === "rich");
   const bodyMount = document.getElementById("document-card-body-mount");
   const bodyRect = bodyMount?.getBoundingClientRect();
   const richEditorSubtreeViolations = bodyMount
