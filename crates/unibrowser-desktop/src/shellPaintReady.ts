@@ -45,18 +45,6 @@ function recCaptureMonacoReady(): boolean {
   return editorReadyForCapture(35);
 }
 
-function recCaptureSpellReady(): boolean {
-  if (proofingHasSpellingDiagnostic()) {
-    return true;
-  }
-  const host = document.getElementById("text-editor-host");
-  if (!host || host.classList.contains("hidden")) {
-    return false;
-  }
-  const squiggles = host.querySelectorAll(".squiggly-error, .squiggly-warning, .squiggly-info");
-  return squiggles.length >= 1;
-}
-
 function recCaptureRecoveryBannerVisible(): boolean {
   const host = document.getElementById("recovery-bar-host");
   return Boolean(
