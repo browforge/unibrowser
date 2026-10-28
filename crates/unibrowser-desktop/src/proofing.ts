@@ -30,6 +30,10 @@ export function isProofingEnabled(): boolean {
   return squigglesEnabled;
 }
 
+export function proofingHasSpellingDiagnostic(): boolean {
+  return lastDiagnostics.some((d) => d.kind === "spelling");
+}
+
 export async function setProofingSquigglesEnabled(enabled: boolean): Promise<void> {
   await invoke("set_proofing_squiggles_enabled", { enabled });
   squigglesEnabled = enabled;
@@ -71,7 +75,7 @@ export function clearEditorMarkers(
   problemIndex = 0;
 }
 
-async function runEditorProofing(
+export async function runEditorProofing(
   monaco: typeof import("monaco-editor"),
   editor: import("monaco-editor").editor.IStandaloneCodeEditor,
   surface: "plaintext" | "markdown" | "code",
@@ -100,7 +104,7 @@ async function runEditorProofing(
         severity:
           d.kind === "grammar"
             ? monaco.MarkerSeverity.Warning
-            : monaco.MarkerSeverity.Info,
+            : monaco.MarkerSeverity.Error,
         message: d.message,
         startLineNumber: start.lineNumber,
         startColumn: start.column,

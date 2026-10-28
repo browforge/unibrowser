@@ -1,3 +1,5 @@
+import { proofingHasSpellingDiagnostic } from "./proofing";
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -41,6 +43,31 @@ export function editorReadyForCapture(minChars = 80): boolean {
 
 function recCaptureMonacoReady(): boolean {
   return editorReadyForCapture(35);
+}
+
+function recCaptureSpellReady(): boolean {
+  if (proofingHasSpellingDiagnostic()) {
+    return true;
+  }
+  const host = document.getElementById("text-editor-host");
+  if (!host || host.classList.contains("hidden")) {
+    return false;
+  }
+  const squiggles = host.querySelectorAll(".squiggly-error, .squiggly-warning, .squiggly-info");
+  return squiggles.length >= 1;
+}
+
+function recCaptureRecoveryBannerVisible(): boolean {
+  const host = document.getElementById("recovery-bar-host");
+  return Boolean(
+    host &&
+      !host.classList.contains("hidden") &&
+      host.querySelector(".recovery-bar-row"),
+  );
+}
+
+function recCaptureRecoveryBannerHidden(): boolean {
+  return !recCaptureRecoveryBannerVisible();
 }
 
 function monacoReady(): boolean {
@@ -460,15 +487,9 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         break;
       case "rec-capture-banner":
         checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
-        checks.push(() => {
-          const host = document.getElementById("recovery-bar-host");
-          return Boolean(
-            host &&
-              !host.classList.contains("hidden") &&
-              host.querySelector(".recovery-bar-row"),
-          );
-        });
+        checks.push(recCaptureRecoveryBannerVisible);
         checks.push(recCaptureMonacoReady);
+        checks.push(recCaptureSpellReady);
         checks.push(recCaptureStatusBarReady);
         break;
       case "rec-capture-restored":
@@ -477,11 +498,14 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           const tab = document.querySelector(".title-tabs .tab");
           return Boolean(tab?.textContent?.includes("*"));
         });
+        checks.push(recCaptureRecoveryBannerHidden);
         checks.push(recCaptureMonacoReady);
+        checks.push(recCaptureSpellReady);
         checks.push(recCaptureStatusBarReady);
         break;
       case "rec-capture-show-changes":
         checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
+        checks.push(recCaptureRecoveryBannerVisible);
         checks.push(() => {
           const host = document.getElementById("diff-editor-host");
           return Boolean(host && !host.classList.contains("hidden"));
@@ -772,7 +796,16 @@ function recCaptureStatusBarReady(): boolean {
     return false;
   }
   const text = (bar.textContent ?? "").replace(/\s+/g, " ").trim();
-  return text.length >= 6;
+  if (text.length < 12) {
+    return false;
+  }
+  return (
+    /\bUTF-8\b/i.test(text) ||
+    /\bplaintext\b/i.test(text) ||
+    /\bLn\s+\d+/i.test(text) ||
+    /spell-test\.txt/i.test(text) ||
+    /\bPlain text\b/i.test(text)
+  );
 }
 
 /** Wait for shell/webview paint before doc-capture screenshots. */

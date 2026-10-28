@@ -104,11 +104,19 @@ export function refreshDocumentCardStatusFooter(dirty: boolean): void {
     tabLabel.endsWith(".docx") ||
     tabLabel.endsWith(".doc") ||
     tabLabel.endsWith(".odt");
-  const kind = officeDoc || ctx === "office"
-    ? "Word"
-    : ctx === "text"
-      ? "Markdown"
-      : "Plain text";
+  const kind =
+    officeDoc || ctx === "office"
+      ? "Word"
+      : activePath.endsWith(".md") ||
+          activePath.endsWith(".markdown") ||
+          tabLabel.endsWith(".md") ||
+          tabLabel.endsWith(".markdown")
+        ? "Markdown"
+        : activePath.endsWith(".txt") || tabLabel.endsWith(".txt")
+          ? "Plain text"
+          : ctx === "text"
+            ? "Plain text"
+            : "Plain text";
   const zoom =
     document.querySelector<HTMLElement>(
       '[data-control-id="unibrowser.control.editor.size"] .cm-cmd-label, [data-control-id="unibrowser.control.text.size"] .cm-cmd-label',

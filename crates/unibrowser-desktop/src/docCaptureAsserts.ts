@@ -2417,6 +2417,19 @@ export function validateDocumentCardFooterForCapture(): string | null {
   if (!dirty && text.includes("Not saved")) {
     return `document card footer must not show Not saved when document is clean`;
   }
+  const docPath = (
+    document.body.dataset.activeDocumentPath ??
+    document.querySelector<HTMLElement>("#document-card-tab .document-card-tab-label")?.textContent ??
+    ""
+  ).toLowerCase();
+  if (docPath.includes("spell-test.txt") || docPath.endsWith(".txt")) {
+    if (text.includes("Markdown")) {
+      return `document card footer must not label .txt as Markdown; got "${text}"`;
+    }
+    if (!text.includes("Plain text")) {
+      return `document card footer must show Plain text for .txt; got "${text}"`;
+    }
+  }
   return null;
 }
 

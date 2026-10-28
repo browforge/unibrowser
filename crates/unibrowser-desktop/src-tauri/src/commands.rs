@@ -2359,7 +2359,7 @@ fn apply_rec_capture_demo_if_requested(
     let id = crate::edit_recovery::backup_id_for_path(&doc_path);
     if wants_restored {
         crate::crash_launch::restore_recovery_item(state, window_label, app, &id)?;
-    } else     if wants_show {
+    } else if wants_show {
         let preview = crate::edit_recovery::write_recovery_preview(&id)?;
         let right = preview.to_string_lossy().into_owned();
         let _sess_cmp = ws_label(state, window_label)?;
@@ -2369,7 +2369,9 @@ fn apply_rec_capture_demo_if_requested(
             right_path: right,
         });
     }
-    let _ = crate::crash_launch::discover_recovery_bar_items(state, window_label)?;
+    if wants_banner || wants_show {
+        let _ = crate::crash_launch::discover_recovery_bar_items(state, window_label)?;
+    }
     Ok(())
 }
 

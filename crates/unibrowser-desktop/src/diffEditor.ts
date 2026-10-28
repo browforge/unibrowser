@@ -77,6 +77,16 @@ export const diffEditorView = {
         automaticLayout: true,
         readOnly: true,
         renderSideBySide: true,
+        renderOverviewRuler: false,
+        renderIndicators: true,
+        renderMarginRevertIcon: false,
+        ignoreTrimWhitespace: false,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        overviewRulerLanes: 0,
+        hideUnchangedRegions: { enabled: false },
+        diffAlgorithm: "advanced",
+        useInlineViewWhenSpaceIsLimited: false,
       });
     }
     const titleEl = host.querySelector(".diff-title");
@@ -97,6 +107,8 @@ export const diffEditorView = {
     const left = api.editor.createModel(view.left_content, view.language);
     const right = api.editor.createModel(view.right_content, view.language);
     diffEditor!.setModel({ original: left, modified: right });
+    diffEditor!.layout();
+    window.requestAnimationFrame(() => diffEditor?.layout());
   },
 
   toggleLayout(host: HTMLElement) {

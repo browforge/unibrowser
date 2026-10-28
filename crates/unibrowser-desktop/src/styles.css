@@ -212,6 +212,25 @@ body {
   color: #23272d;
 }
 
+[data-theme="light"] .diff-editor-host {
+  inset: 0;
+  border-radius: 0;
+  border-color: var(--ub-border, #c8c4bc);
+  background: var(--ub-base, #f1f0ec);
+}
+
+[data-theme="light"] .diff-toolbar {
+  background: var(--ub-chrome-subtle, #e8e8ec);
+  border-bottom-color: var(--ub-border, #c8c4bc);
+  color: var(--ub-text, #23272d);
+}
+
+[data-theme="light"] .diff-toolbar button {
+  background: #f1f0ec;
+  border-color: #c8c4bc;
+  color: #23272d;
+}
+
 .diff-editor-host {
   position: absolute;
   inset: 0.5rem;

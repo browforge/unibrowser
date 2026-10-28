@@ -15,6 +15,7 @@ import {
   focusNextProofingProblem,
   focusPreviousProofingProblem,
   isProofingEnabled,
+  runEditorProofing,
   scheduleEditorProofing,
 } from "./proofing";
 import { applyMonacoEditorTheme, resolveEditorThemeId } from "./monacoEditorTheme";
@@ -577,10 +578,8 @@ export const textEditor = {
       editor?.layout();
       window.requestAnimationFrame(() => editor?.layout());
     });
-    if (isMarkdownPath(doc.path)) {
-      const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
-      await syncDocumentEditorForTextTab(host, doc.path, doc.content);
-    }
+    const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+    await syncDocumentEditorForTextTab(host, doc.path, doc.content);
     if (doc.reveal_line && doc.reveal_line > 0) {
       const line = doc.reveal_line;
       editor!.revealLineInCenter(line);
@@ -609,6 +608,18 @@ export const textEditor = {
         scheduleEditorProofing(monacoApi, editor, surface, model.getLanguageId());
       }
     }
+  },
+
+  async ensureProofingApplied(): Promise<void> {
+    if (!isProofingEnabled() || !editor || !monacoApi) {
+      return;
+    }
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+    const surface = proofingSurfaceForPath(loadedPath, model.getLanguageId());
+    await runEditorProofing(monacoApi, editor, surface, model.getLanguageId());
   },
 
   focusNextProofingInEditor() {
