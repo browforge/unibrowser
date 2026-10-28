@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/scripts/capture-vqa-common.sh"
 OUT="$ROOT/docs/screenshots/live"
 mkdir -p "$OUT"
-BASE="theme-light,text-card-render1,title-breadcrumb,rail-collapsed,no-ai-sidebar,doc-mode-wysiwyg"
+BASE="theme-light,text-card-render1,title-breadcrumb,ai,ai-mockup-composer,rail-collapsed,doc-mode-live"
 SAMPLE="examples/demo-pack/live-block-sample.md"
 
 capture_vqa "$OUT" "live-all-rendered-desktop" "${BASE},live-caret-outside" "$SAMPLE" || true

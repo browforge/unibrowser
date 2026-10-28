@@ -429,95 +429,44 @@ body.text-document-card.document-mode-reading .md-preview-shell {
   font-weight: 600;
 }
 
-body.document-mode-wysiwyg #text-editor-host.document-md-live-active .document-monaco-slot,
-body.document-mode-reading #text-editor-host.document-md-live-active .document-monaco-slot {
+body.document-mode-live #text-editor-host.document-mode-live-active .document-monaco-slot {
   flex: 1;
   min-height: 0;
 }
 
-.document-monaco-slot {
-  position: relative;
-}
-
-#text-editor-host.document-md-live-active .monaco-editor .view-lines {
-  position: relative;
-  z-index: 1;
-}
-
-#text-editor-host.document-md-live-active .md-live-overlay-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 12;
-}
-
-#text-editor-host.document-md-live-active .view-line.md-live-source-hidden {
-  visibility: hidden !important;
-}
-
-#text-editor-host.document-md-live-active .md-live-source-hidden,
-#text-editor-host.document-md-live-active .view-line.md-live-source-hidden {
+#text-editor-host.document-mode-live-active .md-live-line-hidden {
   opacity: 0 !important;
   color: transparent !important;
-  text-decoration: none !important;
   caret-color: auto;
 }
 
-#text-editor-host.document-md-live-active .view-line.md-live-source-hidden span,
-#text-editor-host.document-md-live-active .view-line.md-live-source-hidden .mtk1,
-#text-editor-host.document-md-live-active .view-line.md-live-source-hidden .mtk9 {
-  color: transparent !important;
-  opacity: 0 !important;
-  text-decoration: none !important;
-}
-
-#text-editor-host.document-md-live-active .md-live-source-hidden .ub-proofing-spell-squiggle,
-#text-editor-host.document-md-live-active .md-live-source-hidden .ub-proofing-grammar-squiggle {
-  text-decoration: none !important;
-}
-
-#text-editor-host.document-md-live-active .md-live-marker {
+#text-editor-host.document-mode-live-active .md-live-marker {
   opacity: 0.42;
   color: var(--vscode-editor-foreground, #5a6b7a);
 }
 
-#text-editor-host.document-md-live-active .md-live-render-zone {
+#text-editor-host.document-mode-live-active .md-live-render-zone {
   padding: 0 0 0.35em;
   color: var(--ub-doc-card-ink, #1c2834);
   font-family: var(--ub-doc-serif, "Source Serif 4", Georgia, serif);
   font-size: 15px;
   line-height: 1.55;
   pointer-events: auto;
-  position: absolute;
-  box-sizing: border-box;
 }
 
-#text-editor-host.document-md-live-active .md-live-render-zone h1 {
-  font-size: 2.25em !important;
-  line-height: 1.12 !important;
-  font-weight: 700;
-  margin: 0.15em 0 0.2em;
+#text-editor-host.document-mode-live-active .md-live-render-zone h1,
+#text-editor-host.document-mode-live-active .md-live-render-zone h2,
+#text-editor-host.document-mode-live-active .md-live-render-zone h3 {
+  font-family: inherit;
+  margin: 0.35em 0 0.2em;
 }
 
-#text-editor-host.document-md-live-active .md-live-render-zone h2 {
-  font-size: 1.65em !important;
-  line-height: 1.15 !important;
-  font-weight: 700;
-  margin: 0.3em 0 0.2em;
-}
-
-#text-editor-host.document-md-live-active .md-live-render-zone h3 {
-  font-size: 1.15em;
-  font-weight: 700;
-}
-
-#text-editor-host.document-md-live-active .md-live-render-zone blockquote {
+#text-editor-host.document-mode-live-active .md-live-render-zone blockquote {
   margin: 0.35em 0;
   padding-left: 0.75em;
   border-left: 3px solid rgba(45, 100, 125, 0.45);
 }
 
-#text-editor-host.document-md-live-active .md-live-render-zone strong {
+#text-editor-host.document-mode-live-active .md-live-render-zone strong {
   font-weight: 700;
 }

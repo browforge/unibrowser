@@ -226,17 +226,16 @@ export async function applyDemoState(raw: string) {
         setDocumentEditorMode("reading");
         break;
       }
-      case "doc-mode-live":
-      case "doc-mode-wysiwyg-live": {
+      case "doc-mode-live": {
         const { setDocumentEditorMode } = await import("./documentEditorModes");
-        setDocumentEditorMode("wysiwyg", false);
+        setDocumentEditorMode("live", false);
         break;
       }
       case "live-caret-outside":
       case "live-caret-heading":
       case "live-caret-bold": {
         const { setDocumentEditorMode } = await import("./documentEditorModes");
-        setDocumentEditorMode("wysiwyg", false);
+        setDocumentEditorMode("live", false);
         const { getActiveTextContent, setMonacoDocumentOffset, syncMarkdownLiveEditorMode } =
           await import("./textEditor");
         const { storeLiveCaptureCursorOffset } = await import("./markdownLiveCapture");
@@ -260,7 +259,6 @@ export async function applyDemoState(raw: string) {
           if (setMonacoDocumentOffset(offset)) {
             storeLiveCaptureCursorOffset(offset);
             void syncMarkdownLiveEditorMode(true);
-            await setAiPanelVisible(false);
             break;
           }
           await new Promise((resolve) => window.setTimeout(resolve, 50));
@@ -512,16 +510,6 @@ export async function applyDemoState(raw: string) {
           language: "en-NZ",
         }).catch(() => undefined);
         await showProblemsBottomPanel();
-        break;
-      }
-      case "proofing-quiet":
-      case "proofing-off": {
-        const { setProofingSquigglesEnabled } = await import("./proofing");
-        await setProofingSquigglesEnabled(false);
-        break;
-      }
-      case "no-ai-sidebar": {
-        await setAiPanelVisible(false);
         break;
       }
       case "ai":

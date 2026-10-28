@@ -11,23 +11,6 @@ function hasVisibleText(selector: string, minLen = 1): boolean {
   return text.length >= minLen;
 }
 
-function markdownLiveVisualReady(host: HTMLElement, minChars: number): boolean {
-  if (!host.classList.contains("document-md-live-active")) {
-    return false;
-  }
-  const zones = host.querySelectorAll(".md-live-render-zone");
-  if (zones.length < 1) {
-    return false;
-  }
-  let rendered = 0;
-  zones.forEach((zone) => {
-    rendered += (zone.textContent ?? "").trim().length;
-  });
-  const lines = host.querySelector(".view-lines");
-  const sourceLen = (lines?.textContent ?? "").trim().length;
-  return rendered >= Math.min(40, minChars / 2) && sourceLen >= minChars;
-}
-
 export function editorReadyForCapture(minChars = 80): boolean {
   const historyPane = document.getElementById("bottom-panel-history-pane");
   if (historyPane && !historyPane.classList.contains("hidden")) {
@@ -41,12 +24,7 @@ export function editorReadyForCapture(minChars = 80): boolean {
     return false;
   }
   const mode = document.body.dataset.documentEditorMode;
-  const path = document.body.dataset.activeDocumentPath ?? null;
-  void path;
   if (mode === "wysiwyg" || mode === "reading") {
-    if (host.classList.contains("document-md-live-active")) {
-      return markdownLiveVisualReady(host, minChars);
-    }
     return richTextDocumentReady();
   }
   const monacoRoot = host.querySelector(".monaco-editor") as HTMLElement | null;
@@ -557,22 +535,7 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
     tokens.includes("doc-mode-reading") ||
     tokens.includes("doc-visual-md-docx")
   ) {
-    if (
-      (joined.includes(".md") || joined.includes(".markdown")) &&
-      !tokens.includes("doc-visual-md-docx")
-    ) {
-      checks.push(() => {
-        const host = document.getElementById("text-editor-host");
-        return host ? markdownLiveVisualReady(host, 80) : false;
-      });
-    } else {
-      checks.push(richTextDocumentReady);
-    }
-  } else if (tokens.some((t) => t.startsWith("live-caret-"))) {
-    checks.push(() => {
-      const host = document.getElementById("text-editor-host");
-      return host ? markdownLiveVisualReady(host, 80) : false;
-    });
+    checks.push(richTextDocumentReady);
   } else if (tokens.includes("doc-mode-split")) {
     checks.push(monacoReady);
     checks.push(richTextSplitPreviewReady);

@@ -199,7 +199,6 @@ import {
   setOpenVsxNetworkEnabled,
   syncOpenVsxNetworkDataset,
 } from "./modsOpenVsx";
-import { markdownUsesMonacoLiveVisual } from "./documentModeHistory";
 import {
   assertLightThemeForCapture,
   collectDocCaptureDiagnostics,
@@ -4095,13 +4094,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             }
           } else if (captureUsesEditor) {
             const docMode = document.body.dataset.documentEditorMode ?? "";
-            const docPath = document.body.dataset.activeDocumentPath ?? null;
-            const richMode =
-              (docMode === "wysiwyg" || docMode === "reading") &&
-              !markdownUsesMonacoLiveVisual(
-                docMode as "wysiwyg" | "source" | "split" | "reading",
-                docPath,
-              );
+            const richMode = docMode === "wysiwyg" || docMode === "reading";
             const recShowChanges =
               recCapture && demoLower.includes("rec-capture-show-changes");
             const editorErr = richMode

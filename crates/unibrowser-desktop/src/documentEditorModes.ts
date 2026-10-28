@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type DocumentEditorMode = "wysiwyg" | "source" | "split" | "reading";
+export type DocumentEditorMode = "wysiwyg" | "live" | "source" | "split" | "reading";
 
 const MODE_STORAGE_KEY = "unibrowser.document.mode.byPath";
 const LAST_EDIT_MODE_KEY = "unibrowser.document.lastEditMode";
@@ -14,15 +14,10 @@ let listeners: ((mode: DocumentEditorMode) => void)[] = [];
 
 function readModeMap(): Record<string, DocumentEditorMode> {
   try {
-    const raw = JSON.parse(localStorage.getItem(MODE_STORAGE_KEY) ?? "{}") as Record<
+    return JSON.parse(localStorage.getItem(MODE_STORAGE_KEY) ?? "{}") as Record<
       string,
-      DocumentEditorMode | "live"
+      DocumentEditorMode
     >;
-    const out: Record<string, DocumentEditorMode> = {};
-    for (const [path, mode] of Object.entries(raw)) {
-      out[path] = mode === "live" ? "wysiwyg" : mode;
-    }
-    return out;
   } catch {
     return {};
   }
@@ -38,7 +33,7 @@ export async function defaultModeForNewProfiles(): Promise<DocumentEditorMode> {
   try {
     const prefs = await invoke<{ document_default_mode?: string }>("get_preferences");
     const raw = prefs.document_default_mode?.toLowerCase() ?? "wysiwyg";
-    if (raw === "source" || raw === "split" || raw === "reading") {
+    if (raw === "live" || raw === "source" || raw === "split" || raw === "reading") {
       return raw;
     }
     return "wysiwyg";
@@ -82,6 +77,8 @@ function modeLabel(mode: DocumentEditorMode): string {
   switch (mode) {
     case "wysiwyg":
       return "Visual";
+    case "live":
+      return "Live";
     case "source":
       return "Source";
     case "split":
@@ -105,6 +102,7 @@ export function setDocumentEditorMode(mode: DocumentEditorMode, persist = true) 
   document.body.classList.toggle("document-mode-reading", mode === "reading");
   document.body.classList.toggle("document-mode-split", mode === "split");
   document.body.classList.toggle("document-mode-wysiwyg", mode === "wysiwyg");
+  document.body.classList.toggle("document-mode-live", mode === "live");
   document.body.classList.toggle("document-mode-source", mode === "source");
   notifyMode();
 }
@@ -147,6 +145,7 @@ export function mountDocumentModeStrip(
   }
   const modes: { id: DocumentEditorMode; label: string }[] = [
     { id: "wysiwyg", label: "Visual" },
+    { id: "live", label: "Live" },
     { id: "source", label: "Source" },
     { id: "split", label: "Split" },
     { id: "reading", label: "Read" },

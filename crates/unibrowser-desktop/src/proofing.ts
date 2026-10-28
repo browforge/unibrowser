@@ -121,13 +121,7 @@ export function getProofingSpellingCount(): number {
 export async function setProofingSquigglesEnabled(enabled: boolean): Promise<void> {
   await invoke("set_proofing_squiggles_enabled", { enabled });
   squigglesEnabled = enabled;
-  if (!enabled) {
-    lastDiagnostics = [];
-    problemIndex = 0;
-    decorationsPainted = false;
-  }
   window.dispatchEvent(new CustomEvent("unibrowser-proofing-pref"));
-  void import("./problemsPanel").then((m) => m.syncProblemsStatusBar());
 }
 
 export async function toggleProofingSquiggles(): Promise<void> {

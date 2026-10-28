@@ -14,11 +14,6 @@ import {
 } from "./documentEditorModes";
 import { destroyRichTextEditor, mountRichTextEditor } from "./richTextEditor";
 import { hideSourceMergeBanner, seedDemoMergeBanner } from "./documentSourceMerge";
-import {
-  isMarkdownFilePath,
-  markdownKeepsMonacoEditor,
-  markdownUsesMonacoLiveVisual,
-} from "./documentModeHistory";
 
 const RICH_HOST_ID = "rich-text-editor-host";
 const SPLIT_PREVIEW_ID = "document-split-preview-host";
@@ -48,7 +43,8 @@ async function resolveDemoTokens(): Promise<string> {
 }
 
 function isMarkdownPath(path: string): boolean {
-  return isMarkdownFilePath(path);
+  const lower = path.toLowerCase();
+  return lower.endsWith(".md") || lower.endsWith(".markdown");
 }
 
 function hideLegacyMarkdownPreview(): void {
@@ -130,13 +126,13 @@ export function syncDocumentEditorSurfaceVisibility(): void {
 
 function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) {
   const reading = mode === "reading";
-  const mdLiveVisual = markdownUsesMonacoLiveVisual(mode, documentPath);
-  const wysiwygRich = (mode === "wysiwyg" || reading) && !mdLiveVisual;
-  const source = markdownKeepsMonacoEditor(mode, documentPath);
+  const wysiwyg = mode === "wysiwyg" || reading;
+  const live = mode === "live";
+  const source = mode === "source" || mode === "split" || live;
   const split = mode === "split";
   monacoHost?.classList.toggle("document-surface-source-hidden", !source);
   monacoHost?.classList.toggle("document-editor-split-layout", split);
-  richHost?.classList.toggle("hidden", !wysiwygRich || split);
+  richHost?.classList.toggle("hidden", !wysiwyg || split);
   splitPreviewHost?.classList.toggle("hidden", !split);
   if (!split && splitPreviewHost) {
     splitPreviewHost.classList.add("hidden");
@@ -162,19 +158,19 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
       }
     });
   }
-  if (wysiwygRich && monacoHost) {
+  if (wysiwyg && monacoHost) {
     const host = monacoHost;
     void import("./textEditor").then(({ setMarkdownPreviewMode }) => {
       void setMarkdownPreviewMode(false, host);
     });
   }
-  if (richHost && wysiwygRich && !split && monacoHost) {
+  if (richHost && wysiwyg && !split && monacoHost) {
     richHost.style.position = "relative";
     richHost.style.zIndex = "2";
     monacoHost.appendChild(richHost);
   }
   void import("./textEditor").then(({ relayoutTextEditor, syncMarkdownLiveEditorMode }) => {
-    void syncMarkdownLiveEditorMode(mdLiveVisual);
+    void syncMarkdownLiveEditorMode(live);
     window.requestAnimationFrame(() => relayoutTextEditor());
   });
 }
@@ -208,12 +204,11 @@ async function renderRich() {
   const mode = getDocumentEditorMode();
   const readonly = mode === "reading";
   const split = mode === "split";
-  const mdLiveVisual = markdownUsesMonacoLiveVisual(mode, documentPath);
 
   if (!split) {
-    if (readonly && !mdLiveVisual) {
+    if (readonly) {
       await mountRichTextEditor(richHost, session.model, true, { basePath: documentPath });
-    } else if (mode === "wysiwyg" && !mdLiveVisual) {
+    } else if (mode === "wysiwyg") {
       await mountRichTextEditor(richHost, session.model, false, {
         basePath: documentPath,
         onModelChange: (nextModel, touched) => {
@@ -358,7 +353,7 @@ export async function syncDocumentEditorForTextTab(
     setDocumentEditorMode("reading", false);
   } else if (demo.includes("doc-mode-live") || demo.includes("live-caret-")) {
     const { setDocumentEditorMode } = await import("./documentEditorModes");
-    setDocumentEditorMode("wysiwyg", false);
+    setDocumentEditorMode("live", false);
   }
   const projectDocumentVisual =
     document.body.dataset.cmAutoContext === "office" &&
@@ -402,10 +397,8 @@ export async function onMonacoMarkdownContentChanged(content: string) {
     return;
   }
   const mode = getDocumentEditorMode();
-  if (mode === "wysiwyg" || mode === "source" || mode === "split") {
-    if (isMarkdownFilePath(documentPath)) {
-      void syncDocumentModelFromMarkdown(content, documentPath);
-    }
+  if (mode === "live") {
+    void syncDocumentModelFromMarkdown(content, documentPath);
   }
   const { checkSourceBuffer } = await import("./documentSourceMerge");
   await checkSourceBuffer(monacoHost.parentElement, content);

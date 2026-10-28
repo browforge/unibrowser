@@ -258,7 +258,6 @@ pub fn proofing_check(
 ) -> Result<Vec<DiagnosticDto>, String> {
     let prefs = load_preferences();
     if !prefs.proofing_squiggles_enabled {
-        crate::problems_store::set_problems_from_proofing(Vec::new());
         return Ok(Vec::new());
     }
     let h = host()?;
@@ -272,14 +271,11 @@ pub fn proofing_check(
     };
     let grammar_on = req
         .grammar_enabled
-        .unwrap_or(prefs.proofing_grammar_enabled)
-        && req.surface != "markdown";
-    let markdown_mode = req.surface == "markdown";
+        .unwrap_or(prefs.proofing_grammar_enabled);
     let ctx = TextCheckContext {
         language_id,
         grammar_enabled: grammar_on,
         code_mode,
-        markdown_mode,
     };
     let doc_uri = format!("unibrowser://proofing/{}", req.surface);
     let mut problems = h.check_text_document(&doc_uri, &req.text, &ctx);
@@ -484,7 +480,6 @@ mod rec_capture_proofing_tests {
             language_id: "en-NZ".into(),
             grammar_enabled: false,
             code_mode: false,
-            markdown_mode: false,
         };
         let problems = h.check_text_document("doc", &recovered, &ctx);
         let spell_hits: Vec<String> = problems
@@ -507,36 +502,6 @@ mod rec_capture_proofing_tests {
     }
 
     #[test]
-    fn live_block_sample_markdown_proofing_stays_quiet() {
-        let sample = include_str!("../../../../examples/demo-pack/live-block-sample.md");
-        let h = host().expect("host");
-        let mut h = h.lock().expect("lock");
-        h.set_dictionary(DictionarySnapshot::default());
-        let ctx = TextCheckContext {
-            language_id: "en-NZ".into(),
-            grammar_enabled: false,
-            code_mode: false,
-            markdown_mode: true,
-        };
-        let raw = h.check_text_document("doc.md", sample, &ctx);
-        let merged = super::merge_overlapping_problems(raw);
-        assert_eq!(
-            merged.len(),
-            0,
-            "capture sample should not spell-check prose markers or fenced code: {:?}",
-            merged.iter().map(|p| p.message.as_str()).collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn live_block_sample_markdown_skips_fenced_rust_in_prose_ranges() {
-        let sample = include_str!("../../../../examples/demo-pack/live-block-sample.md");
-        let ranges = unibrowser_diagnostics::markdown_prose_ranges(sample);
-        assert!(!ranges.iter().any(|(s, e)| sample[*s as usize..*e as usize].contains("fn main")));
-        assert!(ranges.iter().any(|(s, e)| sample[*s as usize..*e as usize].contains("paragraph")));
-    }
-
-    #[test]
     fn rec_capture_banner_merges_spell_and_grammar_overlap_with_all_suggestions() {
         let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../e2e/fixtures/spell-test.txt");
@@ -548,7 +513,6 @@ mod rec_capture_proofing_tests {
             language_id: "en-NZ".into(),
             grammar_enabled: true,
             code_mode: false,
-            markdown_mode: false,
         };
         let raw = h.check_text_document("doc", &banner, &ctx);
         assert!(

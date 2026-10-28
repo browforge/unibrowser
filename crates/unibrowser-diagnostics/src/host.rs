@@ -1,5 +1,4 @@
 use crate::code_regions::{code_check_segments, CodeSegmentKind};
-use crate::markdown_prose::markdown_prose_ranges;
 use crate::dictionary::DictionarySnapshot;
 use crate::locator::Locator;
 use crate::native::NativeDiagnosticsChecker;
@@ -10,7 +9,6 @@ pub struct TextCheckContext {
     pub language_id: String,
     pub grammar_enabled: bool,
     pub code_mode: bool,
-    pub markdown_mode: bool,
 }
 
 pub struct DiagnosticsHost {
@@ -56,13 +54,11 @@ impl DiagnosticsHost {
                     ranges.push((s.start, s.end));
                 }
             }
-        } else if ctx.markdown_mode {
-            ranges = markdown_prose_ranges(text);
         }
         let mut out = Vec::new();
         for checker in &self.checkers {
             let mut batch = checker.check_text(doc_uri, text, ctx, &self.dictionary);
-            if (ctx.code_mode || ctx.markdown_mode) && !ranges.is_empty() {
+            if ctx.code_mode && !ranges.is_empty() {
                 batch.retain(|p| {
                     if let Locator::TextRange { start_byte, end_byte, .. } = p.locator {
                         ranges.iter().any(|(s, e)| start_byte >= *s && end_byte <= *e)
