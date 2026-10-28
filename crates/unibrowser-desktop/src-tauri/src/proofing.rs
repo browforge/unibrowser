@@ -272,10 +272,12 @@ pub fn proofing_check(
     let grammar_on = req
         .grammar_enabled
         .unwrap_or(prefs.proofing_grammar_enabled);
+    let markdown_mode = req.surface == "markdown";
     let ctx = TextCheckContext {
         language_id,
         grammar_enabled: grammar_on,
         code_mode,
+        markdown_mode,
     };
     let doc_uri = format!("unibrowser://proofing/{}", req.surface);
     let mut problems = h.check_text_document(&doc_uri, &req.text, &ctx);
@@ -480,6 +482,7 @@ mod rec_capture_proofing_tests {
             language_id: "en-NZ".into(),
             grammar_enabled: false,
             code_mode: false,
+            markdown_mode: false,
         };
         let problems = h.check_text_document("doc", &recovered, &ctx);
         let spell_hits: Vec<String> = problems
@@ -502,6 +505,36 @@ mod rec_capture_proofing_tests {
     }
 
     #[test]
+    fn markdown_surface_spell_skips_fenced_identifiers() {
+        let md = "# Title\n\nBody word\n\n```rust\nfn main() {}\n```\n";
+        let h = host().expect("host");
+        let mut h = h.lock().expect("lock");
+        h.set_dictionary(DictionarySnapshot::default());
+        let ctx = TextCheckContext {
+            language_id: "en-NZ".into(),
+            grammar_enabled: false,
+            code_mode: false,
+            markdown_mode: true,
+        };
+        let problems = h.check_text_document("doc.md", md, &ctx);
+        let tokens: Vec<String> = problems
+            .iter()
+            .filter_map(|p| {
+                if let Locator::TextRange { start_byte, end_byte, .. } = p.locator {
+                    Some(md[start_byte as usize..end_byte as usize].to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert!(
+            !tokens.iter().any(|t| t == "fn" || t == "main"),
+            "fenced code leaked into markdown prose spell check: {:?}",
+            tokens
+        );
+    }
+
+    #[test]
     fn rec_capture_banner_merges_spell_and_grammar_overlap_with_all_suggestions() {
         let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../e2e/fixtures/spell-test.txt");
@@ -513,6 +546,7 @@ mod rec_capture_proofing_tests {
             language_id: "en-NZ".into(),
             grammar_enabled: true,
             code_mode: false,
+            markdown_mode: false,
         };
         let raw = h.check_text_document("doc", &banner, &ctx);
         assert!(

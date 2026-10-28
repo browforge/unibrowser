@@ -75,6 +75,7 @@ mod tests {
             language_id: "en-NZ".into(),
             grammar_enabled: false,
             code_mode: false,
+            markdown_mode: false,
         };
         let problems =
             checker.check_text("doc", "This are wrong.", &ctx, &DictionarySnapshot::default());
