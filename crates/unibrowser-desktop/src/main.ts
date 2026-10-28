@@ -3844,7 +3844,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               const demoTokensLower = (demoAgain ?? "").toLowerCase();
               if (
                 demoTokensLower.includes("rec-capture-banner") &&
-                !document.querySelector(".recovery-bar-host:not(.hidden) .recovery-bar-row")
+                !document.querySelector("#recovery-bar-host:not(.hidden) .recovery-bar-row")
               ) {
                 await applyDemoState("feedback-demo");
               }
