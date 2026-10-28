@@ -123,21 +123,43 @@ def count_spell_squiggle_pixels(pixels: list, width: int, y: int) -> int:
     return count
 
 
-def find_editor_text_row(pixels: list, width: int, height: int) -> int:
-    """First row in the editor band with light background and dark text pixels."""
-    for y in range(130, min(420, height - 100)):
-        light = 0
-        dark = 0
-        for x in range(160, width - 160):
-            r, g, b, _a = pixels[y * width + x]
-            total = r + g + b
-            if total > 700:
-                light += 1
-            if total < 90:
-                dark += 1
-        if light >= 200 and dark >= 40:
-            return y
-    return 200
+def region_stats(
+    pixels: list,
+    width: int,
+    height: int,
+    region: dict,
+) -> dict[str, float | int]:
+    x0 = int(region["x"])
+    y0 = int(region["y"])
+    w = int(region["width"])
+    h = int(region["height"])
+    x1 = min(width, x0 + w)
+    y1 = min(height, y0 + h)
+    squiggle = 0
+    greenish = 0
+    luma_total = 0.0
+    n = 0
+    for y in range(max(0, y0), max(0, y1)):
+        for x in range(max(0, x0), max(0, x1)):
+            r, g, b, a = pixels[y * width + x]
+            if a < 200:
+                continue
+            n += 1
+            luma_total += (r + g + b) / 3.0
+            if r > g + 35 and r > b + 20 and r > 120:
+                squiggle += 1
+            elif b > r + 25 and b > g + 10 and b > 100:
+                squiggle += 1
+            if g > r + 6 and g > b + 4 and g > 150:
+                greenish += 1
+            elif g > 130 and g >= r and b < 160:
+                greenish += 1
+    return {
+        "pixels": n,
+        "mean_luma": luma_total / max(n, 1),
+        "squiggle_pixels": squiggle,
+        "greenish_pixels": greenish,
+    }
 
 
 def recovery_band_active(pixels: list, width: int, height: int, x: int = 100, y: int = 66) -> bool:
@@ -184,20 +206,56 @@ def region_mean_luma(pixels: list, width: int, x0: int, x1: int, y0: int, y1: in
     return total / max(n, 1)
 
 
-def diff_insert_highlight_signal(pixels: list, width: int, height: int) -> int:
-    """Green-ish diff insert background in modified (right) pane."""
-    count = 0
-    x0 = width // 2 + 40
-    for y in range(200, min(520, height - 120)):
-        for x in range(x0, min(width - 48, x0 + width // 2 - 80)):
-            r, g, b, a = pixels[y * width + x]
-            if a < 200:
-                continue
-            if g > r + 4 and g > b + 2 and g > 120:
-                count += 1
-            elif g > 150 and r > 80 and b < 140 and g >= r:
-                count += 1
-    return count
+def gate_spell_teh_region(
+    path: Path,
+    label: str,
+    pixels: list,
+    width: int,
+    height: int,
+    data: dict,
+) -> None:
+    region = data.get("spellTehRegion")
+    if not isinstance(region, dict):
+        raise SystemExit(f"{label}: missing spellTehRegion in capture sidecar (layout probe only)")
+    stats = region_stats(pixels, width, height, region)
+    print(
+        f"{label} spellTehRegion={region} stats={stats}",
+        file=sys.stderr,
+    )
+    if int(stats["pixels"]) < 8:
+        raise SystemExit(f"{label}: spellTehRegion too small to sample ({stats['pixels']} pixels)")
+    if int(stats["squiggle_pixels"]) < 3:
+        raise SystemExit(
+            f"{label}: expected visible squiggle pixels under 'teh', got {stats['squiggle_pixels']} "
+            f"in region mean_luma={stats['mean_luma']:.1f}",
+        )
+    calm_y = int(region["y"]) + int(region["height"]) + 14
+    if calm_y < height - 2:
+        calm = count_spell_squiggle_pixels(pixels, width, calm_y)
+        print(f"{label} calm row y={calm_y} squiggle pixels: {calm}", file=sys.stderr)
+        if calm > 12:
+            raise SystemExit(f"{label}: too many squiggles away from 'teh' ({calm} pixels)")
+
+
+def gate_diff_line4_region(
+    path: Path,
+    pixels: list,
+    width: int,
+    height: int,
+    data: dict,
+) -> None:
+    region = data.get("diffLine4Region")
+    if not isinstance(region, dict):
+        raise SystemExit("show-changes: missing diffLine4Region in capture sidecar (layout probe only)")
+    stats = region_stats(pixels, width, height, region)
+    print(f"show-changes diffLine4Region={region} stats={stats}", file=sys.stderr)
+    if int(stats["pixels"]) < 20:
+        raise SystemExit(f"show-changes: diffLine4Region too small ({stats['pixels']} pixels)")
+    if int(stats["greenish_pixels"]) < 8:
+        raise SystemExit(
+            "show-changes: expected green insert tint on line 4 row, "
+            f"got greenish_pixels={stats['greenish_pixels']} mean_luma={stats['mean_luma']:.1f}",
+        )
 
 
 def gate_file(path: Path, label: str) -> None:
@@ -209,42 +267,6 @@ def gate_file(path: Path, label: str) -> None:
         raise SystemExit(f"{label}: expected visible title tab strip, got {tabs} signal pixels")
     if not status_bar_has_document_meta(pixels, width, height):
         raise SystemExit(f"{label}: status bar lacks document metadata pixels on the left")
-
-
-def gate_spell_on_teh(path: Path, label: str, pixels: list, width: int, height: int) -> None:
-    cm_path = path.with_suffix(".cm.json")
-    if cm_path.is_file():
-        data = json.loads(cm_path.read_text(encoding="utf-8"))
-        spell_hits = int(data.get("spellHits") or 0)
-        row_count = int((data.get("problems") or {}).get("rowCount") or 0)
-        print(
-            f"{label} spellHits={spell_hits} problems.rowCount={row_count} (CM sidecar)",
-            file=sys.stderr,
-        )
-        if spell_hits < 1 and row_count < 1:
-            raise SystemExit(
-                f"{label}: expected at least one spelling problem for 'teh', spellHits={spell_hits} rowCount={row_count}",
-            )
-    text_row = find_editor_text_row(pixels, width, height)
-    best = 0
-    best_y = text_row + 3
-    for y in range(text_row, min(text_row + 22, height - 1)):
-        squiggles = count_spell_squiggle_pixels(pixels, width, y)
-        if squiggles > best:
-            best = squiggles
-            best_y = y
-    print(
-        f"{label} editor row y={text_row} best squiggle pixels y={best_y}: {best}",
-        file=sys.stderr,
-    )
-    if best < 3 and not cm_path.is_file():
-        raise SystemExit(f"{label}: expected spell underline under 'teh', got {best} squiggle pixels")
-    calm_row = text_row + 18
-    if calm_row < height - 4:
-        calm = count_spell_squiggle_pixels(pixels, width, calm_row)
-        print(f"{label} calm row y={calm_row} squiggle pixels: {calm}", file=sys.stderr)
-        if calm > 12:
-            raise SystemExit(f"{label}: too many squiggles away from line 1 ({calm} pixels)")
 
 
 def main() -> None:
@@ -259,8 +281,12 @@ def main() -> None:
     gate_file(restored, "restored")
     gate_file(show_changes, "show-changes")
 
+    banner_cm = json.loads(banner.with_suffix(".cm.json").read_text(encoding="utf-8"))
+    restored_cm = json.loads(restored.with_suffix(".cm.json").read_text(encoding="utf-8"))
+    show_cm = json.loads(show_changes.with_suffix(".cm.json").read_text(encoding="utf-8"))
+
     _w, h, px_banner = read_png_rgba(banner)
-    gate_spell_on_teh(banner, "banner", px_banner, _w, h)
+    gate_spell_teh_region(banner, "banner", px_banner, _w, h, banner_cm)
     gate_document_card_footer(banner, "banner")
 
     br, bg, bb, ba = sample(banner, 100, 66)
@@ -269,28 +295,14 @@ def main() -> None:
         raise SystemExit(f"banner: expected recovery band at (100,66), got {br},{bg},{bb},{ba}")
 
     _w, h, px = read_png_rgba(restored)
-    gate_spell_on_teh(restored, "restored", px, _w, h)
+    gate_spell_teh_region(restored, "restored", px, _w, h, restored_cm)
     gate_document_card_footer(restored, "restored")
 
     if not recovery_band_absent(px, _w, h):
         raise SystemExit("restored: recovery banner still visible near y=66")
 
-    sc = sample(restored, 400, find_editor_text_row(px, _w, h))
-    print(f"restored text sample (400,text_row): {sc[0]},{sc[1]},{sc[2]},{sc[3]}", file=sys.stderr)
-
     _w, h, px_sc = read_png_rgba(show_changes)
-    cm_sc = json.loads(show_changes.with_suffix(".cm.json").read_text(encoding="utf-8"))
-    diff_changes = int(cm_sc.get("diffChangeCount") or 0)
-    print(f"show-changes diffChangeCount from CM sidecar: {diff_changes}", file=sys.stderr)
-    if diff_changes < 1:
-        raise SystemExit(f"show-changes: expected diff line changes, got diffChangeCount={diff_changes}")
-    diff_ins = diff_insert_highlight_signal(px_sc, _w, h)
-    print(f"show-changes diff insert highlight pixels: {diff_ins}", file=sys.stderr)
-    if diff_ins < 20:
-        print(
-            f"show-changes: note weak insert highlight pixels ({diff_ins}); relying on diffChangeCount={diff_changes}",
-            file=sys.stderr,
-        )
+    gate_diff_line4_region(show_changes, px_sc, _w, h, show_cm)
 
     edge_luma = region_mean_luma(px_sc, _w, 1240, 1270, 120, h - 120)
     print(f"show-changes right-edge mean luma x=1240-1270: {edge_luma:.1f}", file=sys.stderr)
@@ -308,11 +320,6 @@ def main() -> None:
             f"show-changes: expected recovery banner at (100,66), got {br},{bg},{bb},{ba}",
         )
     print(f"show-changes recovery band sample (100,66): {sample(show_changes, 100, 66)}", file=sys.stderr)
-
-    diff_row = sample(show_changes, 640, 300)
-    print(f"show-changes sample (640,300): {diff_row[0]},{diff_row[1]},{diff_row[2]},{diff_row[3]}", file=sys.stderr)
-    if diff_row[0] + diff_row[1] + diff_row[2] < 30:
-        raise SystemExit("show-changes: expected diff editor content pixels")
 
     print("rec capture pixel gates ok")
 

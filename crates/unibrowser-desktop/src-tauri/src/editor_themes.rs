@@ -48,6 +48,8 @@ fn quiet_utility_light() -> MonacoThemeDto {
                 "#E7E5DF".into(),
             ),
             ("editorCursor.foreground".into(), "#1F2326".into()),
+            ("editorError.foreground".into(), "#C72E2E".into()),
+            ("editorWarning.foreground".into(), "#BF8803".into()),
         ]),
     }
 }
@@ -75,6 +77,8 @@ fn quiet_utility_dark() -> MonacoThemeDto {
                 "#2D3031".into(),
             ),
             ("editorCursor.foreground".into(), "#F0EFEB".into()),
+            ("editorError.foreground".into(), "#F48771".into()),
+            ("editorWarning.foreground".into(), "#E1B466".into()),
         ]),
     }
 }

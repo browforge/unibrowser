@@ -3858,10 +3858,13 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             ) {
               const { textEditor } = await import("./textEditor");
               await textEditor.ensureProofingApplied();
-              const { proofingHasSpellingDiagnostic } = await import("./proofing");
-              if (!proofingHasSpellingDiagnostic()) {
+              const {
+                proofingHasSpellingDiagnostic,
+                proofingDecorationsArePainted,
+              } = await import("./proofing");
+              if (!proofingHasSpellingDiagnostic() || !proofingDecorationsArePainted()) {
                 await invoke("abort_doc_capture", {
-                  reason: "REC capture requires a spelling squiggle on 'teh'",
+                  reason: "REC capture requires a visible spelling squiggle on 'teh'",
                 });
                 return;
               }
@@ -4193,6 +4196,16 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           }
           const recShowChangesCapture =
             recCapture && demoLower.includes("rec-capture-show-changes");
+          if (recShowChangesCapture) {
+            const { waitForDiffHighlightPainted } = await import("./diffEditor");
+            const diffReady = await waitForDiffHighlightPainted();
+            if (!diffReady) {
+              await invoke("abort_doc_capture", {
+                reason: "REC show-changes capture requires visible diff insert highlights",
+              });
+              return;
+            }
+          }
           if (
             captureUsesEditor &&
             !captureUsesMarkdownPreview &&
@@ -4315,6 +4328,18 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           const railFlyoutWidth = flyoutEl
             ? flyoutEl.getBoundingClientRect().width
             : 0;
+          let spellTehRegion: { x: number; y: number; width: number; height: number } | null =
+            null;
+          if (recCapture && !recShowChangesCapture) {
+            const { textEditor: te } = await import("./textEditor");
+            spellTehRegion = te.getProofingWordCaptureRegion("teh");
+          }
+          let diffLine4Region: { x: number; y: number; width: number; height: number } | null =
+            null;
+          if (recShowChangesCapture) {
+            const { diffInsertLineCaptureRegion } = await import("./diffEditor");
+            diffLine4Region = diffInsertLineCaptureRegion(4);
+          }
           await invoke("write_doc_capture_cm_json", {
             json: JSON.stringify({
               ...(diag.commandManager ?? {
@@ -4332,6 +4357,8 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               diffChangeCount: Number(
                 document.getElementById("diff-editor-host")?.dataset.diffChangeCount ?? "0",
               ),
+              spellTehRegion,
+              diffLine4Region,
               viewportWidth: window.innerWidth,
               viewportHeight: window.innerHeight,
               railFlyoutWidth,

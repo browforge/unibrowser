@@ -9,11 +9,17 @@ export type ProofingDiagnostic = {
 };
 
 const MARKER_OWNER = "unibrowser-proofing";
+const SPELL_INLINE_CLASS = "ub-proofing-spell-squiggle";
+const GRAMMAR_INLINE_CLASS = "ub-proofing-grammar-squiggle";
 
 let squigglesEnabled = true;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let lastDiagnostics: ProofingDiagnostic[] = [];
 let problemIndex = 0;
+let inlineDecorationIds: string[] = [];
+let decorationsPainted = false;
+let activeProofingEditor: import("monaco-editor").editor.IStandaloneCodeEditor | null =
+  null;
 
 export async function loadProofingPrefs(): Promise<void> {
   try {
@@ -32,6 +38,82 @@ export function isProofingEnabled(): boolean {
 
 export function proofingHasSpellingDiagnostic(): boolean {
   return lastDiagnostics.some((d) => d.kind === "spelling");
+}
+
+export function proofingDecorationsArePainted(): boolean {
+  if (!decorationsPainted) {
+    return false;
+  }
+  const host = document.getElementById("text-editor-host");
+  if (!host) {
+    return false;
+  }
+  return Boolean(
+    host.querySelector(
+      `.${SPELL_INLINE_CLASS}, .${GRAMMAR_INLINE_CLASS}, .squiggly-error, .squiggly-warning`,
+    ),
+  );
+}
+
+export async function waitForProofingDecorationsPainted(
+  editor: import("monaco-editor").editor.IStandaloneCodeEditor,
+  surface: "plaintext" | "markdown" | "code",
+  codeLanguage?: string,
+  timeoutMs = 8_000,
+): Promise<boolean> {
+  const monaco = (await import("monaco-editor")) as typeof import("monaco-editor");
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (proofingHasSpellingDiagnostic() && proofingDecorationsArePainted()) {
+      return true;
+    }
+    await runEditorProofing(monaco, editor, surface, codeLanguage);
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
+  }
+  return proofingHasSpellingDiagnostic() && proofingDecorationsArePainted();
+}
+
+export function getProofingWordCaptureRegion(
+  editor: import("monaco-editor").editor.IStandaloneCodeEditor,
+  needle: string,
+): { x: number; y: number; width: number; height: number } | null {
+  const model = editor.getModel();
+  if (!model) {
+    return null;
+  }
+  const hit = lastDiagnostics.find((d) => {
+    const slice = model.getValue().slice(d.start, d.end);
+    return slice.toLowerCase() === needle.toLowerCase();
+  });
+  if (!hit) {
+    return null;
+  }
+  const start = model.getPositionAt(hit.start);
+  const end = model.getPositionAt(hit.end);
+  const domNode = editor.getDomNode();
+  if (!domNode) {
+    return null;
+  }
+  const startPx = editor.getScrolledVisiblePosition(start);
+  const endPx = editor.getScrolledVisiblePosition(end);
+  if (!startPx || !endPx) {
+    return null;
+  }
+  const editorRect = domNode.getBoundingClientRect();
+  const x = editorRect.left + Math.min(startPx.left, endPx.left);
+  const y = editorRect.top + startPx.top;
+  const width = Math.max(8, Math.abs(endPx.left - startPx.left) + 10);
+  const height = Math.max(14, startPx.height || 18);
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.round(width),
+    height: Math.round(height),
+  };
 }
 
 export function getProofingSpellingCount(): number {
@@ -79,8 +161,45 @@ export function clearEditorMarkers(
     return;
   }
   monaco.editor.setModelMarkers(model, MARKER_OWNER, []);
+  inlineDecorationIds = editor.deltaDecorations(inlineDecorationIds, []);
   lastDiagnostics = [];
   problemIndex = 0;
+  decorationsPainted = false;
+  activeProofingEditor = null;
+}
+
+function applyInlineProofingDecorations(
+  monaco: typeof import("monaco-editor"),
+  editor: import("monaco-editor").editor.IStandaloneCodeEditor,
+  diags: ProofingDiagnostic[],
+): void {
+  const model = editor.getModel();
+  if (!model) {
+    inlineDecorationIds = editor.deltaDecorations(inlineDecorationIds, []);
+    decorationsPainted = false;
+    return;
+  }
+  const decorations = diags.map((d) => {
+    const start = model.getPositionAt(d.start);
+    const end = model.getPositionAt(d.end);
+    return {
+      range: new monaco.Range(
+        start.lineNumber,
+        start.column,
+        end.lineNumber,
+        end.column,
+      ),
+      options: {
+        inlineClassName:
+          d.kind === "grammar" ? GRAMMAR_INLINE_CLASS : SPELL_INLINE_CLASS,
+        stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+      },
+    };
+  });
+  inlineDecorationIds = editor.deltaDecorations(inlineDecorationIds, decorations);
+  activeProofingEditor = editor;
+  decorationsPainted = decorations.length > 0;
+  window.dispatchEvent(new CustomEvent("unibrowser-proofing-decorations-applied"));
 }
 
 export async function runEditorProofing(
@@ -107,7 +226,7 @@ export async function runEditorProofing(
       },
     });
     lastDiagnostics = diags;
-    void import("./problemsPanel").then((m) => m.refreshProblemsPanel());
+    void import("./problemsPanel").then((m) => m.syncProblemsStatusBar());
     const markers = diags.map((d) => {
       const start = model.getPositionAt(d.start);
       const end = model.getPositionAt(d.end);
@@ -124,6 +243,7 @@ export async function runEditorProofing(
       };
     });
     monaco.editor.setModelMarkers(model, MARKER_OWNER, markers);
+    applyInlineProofingDecorations(monaco, editor, diags);
   } catch {
     clearEditorMarkers(monaco, editor);
   }
