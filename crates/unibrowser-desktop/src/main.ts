@@ -3397,6 +3397,23 @@ setCursorStatusListener((pos) => {
   editorCol = pos.column;
   patchStatusCursor(`Ln ${editorLine}, Col ${editorCol}`);
 });
+(
+  window as unknown as {
+    __unibrowserPatchStatusCursor?: (label: string) => void;
+    __unibrowserSetEditorCursor?: (line: number, column: number) => void;
+  }
+).__unibrowserPatchStatusCursor = patchStatusCursor;
+(
+  window as unknown as {
+    __unibrowserSetEditorCursor?: (line: number, column: number) => void;
+  }
+).__unibrowserSetEditorCursor = (line, column) => {
+  editorLine = line;
+  editorCol = column;
+  void (
+    window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+  ).__unibrowserRefreshStatusBarOnly?.();
+};
 setReadingStatsListener((label) => patchStatusReading(label));
 setViewerZoomListener((_scale, label) => {
   lastViewerZoomLabel = label;
@@ -4363,20 +4380,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             diffLine4Region = diffInsertLineCaptureRegion(4);
           }
           if (demoTokens.includes("live-block-capture")) {
-            const { liveCaptureCursorFromDemo, ensureLiveCaptureCursorPainted } = await import(
-              "./markdownLiveBlock"
-            );
             await applyDeferredLiveBlockDemoTokens(demoAgain ?? "", { mountEditor: false });
-            const kind = liveCaptureCursorFromDemo(demoAgain ?? "");
-            if (kind) {
-              const painted = await ensureLiveCaptureCursorPainted(kind, 80);
-              if (!painted) {
-                await invoke("abort_doc_capture", {
-                  reason: `live block capture markers not painted for ${kind}`,
-                });
-                return;
-              }
-            }
             await new Promise((resolve) => window.setTimeout(resolve, 150));
           }
           await invoke("write_doc_capture_cm_json", {

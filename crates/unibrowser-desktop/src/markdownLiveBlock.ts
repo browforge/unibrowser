@@ -2,6 +2,7 @@ import { type Node as PmNode, type Schema, type MarkType } from "prosemirror-mod
 import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from "prosemirror-state";
 import { Decoration, DecorationSet, type EditorView } from "prosemirror-view";
 import { richTextSchema } from "./richTextProseMirror.ts";
+import type { InferredBlockStyle } from "./semanticBlockStyle";
 
 export const markdownLiveBlockKey = new PluginKey("markdownLiveBlock");
 
@@ -87,7 +88,13 @@ function inlineMarkDecorations(
         continue;
       }
       const open = markOpen(mark.type.name);
+      if (!open) {
+        continue;
+      }
       const close = markClose(mark.type.name);
+      if (!close) {
+        continue;
+      }
       const from = blockPos + 1 + offset;
       const to = from + (child.text?.length ?? 0);
       decos.push(
@@ -101,15 +108,79 @@ function inlineMarkDecorations(
   return decos;
 }
 
-function markOpen(name: string): string {
+function markOpen(name: string): string | null {
   if (name === "bold") return "**";
   if (name === "italic") return "*";
   if (name === "code") return "`";
-  return "";
+  return null;
 }
 
-function markClose(name: string): string {
+function markClose(name: string): string | null {
   return markOpen(name);
+}
+
+const HEADING_BLOCK_STYLES: InferredBlockStyle[] = [
+  { commandId: "unibrowser.semantic.block.heading_1", label: "Heading 1" },
+  { commandId: "unibrowser.semantic.block.heading_2", label: "Heading 2" },
+  { commandId: "unibrowser.semantic.block.heading_3", label: "Heading 3" },
+  { commandId: "unibrowser.semantic.block.heading_4", label: "Heading 4" },
+  { commandId: "unibrowser.semantic.block.heading_5", label: "Heading 5" },
+  { commandId: "unibrowser.semantic.block.heading_6", label: "Heading 6" },
+];
+
+export function inferBlockStyleFromLiveTarget(target: LiveBlockTarget | null): InferredBlockStyle {
+  if (!target) {
+    return {
+      commandId: "unibrowser.semantic.block.paragraph",
+      label: "Paragraph",
+    };
+  }
+  switch (target.kind) {
+    case "heading": {
+      const entry = HEADING_BLOCK_STYLES[Math.min(6, Math.max(1, target.level)) - 1];
+      return entry ?? HEADING_BLOCK_STYLES[0]!;
+    }
+    case "blockquote":
+      return {
+        commandId: "unibrowser.semantic.block.blockquote",
+        label: "Block quote",
+      };
+    case "code_block":
+      return {
+        commandId: "unibrowser.semantic.block.code_block",
+        label: "Code block",
+      };
+    case "list_item":
+      return {
+        commandId: "unibrowser.semantic.block.paragraph",
+        label: "Paragraph",
+      };
+    case "paragraph":
+    default:
+      return {
+        commandId: "unibrowser.semantic.block.paragraph",
+        label: "Paragraph",
+      };
+  }
+}
+
+export function blockStyleAtProseMirrorPos(doc: PmNode, pos: number): InferredBlockStyle {
+  const target = liveBlockTargetAtSelection(doc, pos);
+  if (target) {
+    return inferBlockStyleFromLiveTarget(target);
+  }
+  const $pos = doc.resolve(Math.max(1, Math.min(pos, doc.content.size - 1)));
+  for (let depth = $pos.depth; depth > 0; depth -= 1) {
+    const node = $pos.node(depth);
+    if (node.type.name === "paragraph" && node.textContent.length === 0) {
+      return inferBlockStyleFromLiveTarget({
+        kind: "paragraph",
+        pos: $pos.before(depth),
+        node,
+      });
+    }
+  }
+  return inferBlockStyleFromLiveTarget(null);
 }
 
 export function buildLiveBlockDecorations(
@@ -407,21 +478,38 @@ export function applyLiveCaptureSelection(view: EditorView, kind: LiveCaptureCur
   view.dispatch(tr);
   view.focus();
   try {
+    const coords = view.coordsAtPos(pos);
     const host = view.dom.parentElement;
-    if (host) {
-      if (document.body.dataset.ubDocCapture === "1") {
-        host.scrollTop = 0;
-      } else {
-        const coords = view.coordsAtPos(pos);
-        if (coords) {
-          host.scrollTop = Math.max(0, coords.top - host.getBoundingClientRect().top - 80);
-        }
-      }
+    if (host && coords) {
+      host.scrollTop = Math.max(0, coords.top - host.getBoundingClientRect().top - 80);
     }
   } catch {
     /* coords unavailable for some positions */
   }
+  void import("./richTextVisualChrome").then(({ syncVisualChromeFromProseMirror }) => {
+    syncVisualChromeFromProseMirror(view);
+  });
   return true;
+}
+
+export async function applyLiveCaptureCursorWithRetry(
+  kind: LiveCaptureCursor,
+  maxAttempts = 120,
+): Promise<boolean> {
+  const { getActiveRichTextView } = await import("./richTextEditor");
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const view = getActiveRichTextView();
+    if (view && applyLiveCaptureSelection(view, kind)) {
+      const { syncVisualChromeFromProseMirror } = await import("./richTextVisualChrome");
+      syncVisualChromeFromProseMirror(view);
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      return true;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+  }
+  return false;
 }
 
 export function liveCaptureCursorFromDemo(demoRaw: string): LiveCaptureCursor | null {
@@ -436,52 +524,6 @@ export function liveCaptureCursorFromDemo(demoRaw: string): LiveCaptureCursor | 
     return "outside";
   }
   return null;
-}
-
-function visibleLiveMarkerElements(): HTMLElement[] {
-  return Array.from(
-    document.querySelectorAll<HTMLElement>(
-      "#rich-text-editor-host:not(.hidden) .rich-text-doc .md-live-marker",
-    ),
-  );
-}
-
-/** Pixel gates read marker widgets; this mirrors what must be painted before doc-capture. */
-export function liveCaptureMarkersMatchDom(kind: LiveCaptureCursor): boolean {
-  const markers = visibleLiveMarkerElements();
-  if (kind === "outside") {
-    return markers.length === 0;
-  }
-  if (kind === "heading") {
-    return markers.some((el) => (el.textContent ?? "").startsWith("## "));
-  }
-  if (kind === "bold") {
-    return markers.filter((el) => el.textContent === "**").length >= 2;
-  }
-  return false;
-}
-
-export async function ensureLiveCaptureCursorPainted(
-  kind: LiveCaptureCursor,
-  maxAttempts = 120,
-): Promise<boolean> {
-  const { getActiveRichTextView } = await import("./richTextEditor");
-  delete document.body.dataset.liveCaptureReady;
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const view = getActiveRichTextView();
-    if (view && applyLiveCaptureSelection(view, kind)) {
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-      if (liveCaptureMarkersMatchDom(kind)) {
-        document.body.dataset.liveCaptureReady = "1";
-        return true;
-      }
-    }
-    await new Promise((resolve) => window.setTimeout(resolve, 50));
-  }
-  delete document.body.dataset.liveCaptureReady;
-  return false;
 }
 
 export function createMinimalLiveDoc(schema: Schema = richTextSchema): PmNode {

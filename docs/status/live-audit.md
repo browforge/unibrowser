@@ -20,8 +20,9 @@
 
 ## Capture notes
 
-- Doc-capture applies `live-cursor-*` tokens without remounting the ProseMirror session on every pass; paint readiness waits for `.md-live-marker` DOM matching the token (outside = none, heading = `## `, bold = `**`).
-- Fixed `scrollTop` during doc-capture keeps the three PNGs aligned; pixel gates compare muted marker ink **relative to** the outside capture rather than absolute grey counts (body anti-aliasing also hits the muted tone band).
+- Doc-capture places the caret via normal ProseMirror selection (`applyLiveCaptureSelection`); paint readiness is `richTextDocumentReady` only (pixel gates enforce marker deltas).
+- Visual chrome (compact block-style label, status **Ln/Col**, word count) follows the ProseMirror selection and document model, not stale Monaco caret line 1.
+- Pixel gates compare toolbar block label and status **Ln/Col** regions between heading vs outside captures, and require identical document footer word-count bands across all three shots.
 
 ## What we learned (reverted Monaco overlay)
 

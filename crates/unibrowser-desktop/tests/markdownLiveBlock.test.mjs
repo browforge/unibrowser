@@ -57,6 +57,22 @@ test("heading marker input rule and undo share one history stack", () => {
   assert.match(state.doc.firstChild?.textContent ?? "", /^## Title/);
 });
 
+test("link marks do not emit live marker widgets", () => {
+  const link = richTextSchema.marks.link.create({ href: "https://example.com" });
+  const bold = richTextSchema.marks.bold.create();
+  const doc = richTextSchema.node("doc", null, [
+    richTextSchema.node("paragraph", { blockId: "p" }, [
+      richTextSchema.text("See "),
+      richTextSchema.text("docs", [link]),
+      richTextSchema.text(" after "),
+      richTextSchema.text("bold", [bold]),
+    ]),
+  ]);
+  const boldPos = doc.content.size - 3;
+  const decos = buildLiveBlockDecorations(doc, { from: boldPos, to: boldPos }, true);
+  assert.equal(markerCount(decos), 2);
+});
+
 test("bold marker input rule converts trailing ** pair", () => {
   let state = EditorState.create({
     doc: richTextSchema.node("doc", null, [

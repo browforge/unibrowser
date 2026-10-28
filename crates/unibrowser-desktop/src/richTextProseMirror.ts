@@ -147,18 +147,21 @@ const nodes: Record<string, NodeSpec> = {
 
 const marks: Record<string, MarkSpec> = {
   bold: {
+    inclusive: false,
     parseDOM: [{ tag: "strong" }, { tag: "b" }],
     toDOM() {
       return ["strong", 0];
     },
   },
   italic: {
+    inclusive: false,
     parseDOM: [{ tag: "em" }, { tag: "i" }],
     toDOM() {
       return ["em", 0];
     },
   },
   code: {
+    inclusive: false,
     parseDOM: [{ tag: "code" }],
     toDOM() {
       return ["code", 0];
@@ -383,6 +386,11 @@ export function mountProseMirrorEditor(
     dispatchTransaction(tr: Transaction) {
       const next = view.state.apply(tr);
       view.updateState(next);
+      if (tr.selectionSet) {
+        void import("./richTextVisualChrome").then(({ syncVisualChromeFromProseMirror }) => {
+          syncVisualChromeFromProseMirror(view);
+        });
+      }
       if (!tr.docChanged) {
         return;
       }

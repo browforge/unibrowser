@@ -20,6 +20,8 @@ import {
 } from "./proofing";
 import { applyMonacoEditorTheme, resolveEditorThemeId } from "./monacoEditorTheme";
 import { refreshVsixTextmateGrammars } from "./monacoTextmate";
+import { getDocumentEditorMode } from "./documentEditorModes";
+import { inferVisualBlockStyleAtCursor } from "./richTextEditor";
 
 type Monaco = typeof import("monaco-editor");
 type MonacoEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
@@ -132,6 +134,17 @@ export function getActiveTextContent(): string | null {
 
 /** Block-style picker trigger label from the cursor line (markdown/plain); docx uses demo dataset when set. */
 export function inferSemanticBlockStyleAtCursor(): { commandId: string; label: string } {
+  const mode = getDocumentEditorMode();
+  if (mode === "wysiwyg" || mode === "reading") {
+    const visual = inferVisualBlockStyleAtCursor();
+    if (visual) {
+      return visual;
+    }
+    return {
+      commandId: "unibrowser.semantic.block.paragraph",
+      label: "Paragraph",
+    };
+  }
   if (!editor || !loadedPath) {
     return inferFromLine(() => null, 1, false);
   }
@@ -162,6 +175,10 @@ export function appendActiveEditorText(chunk: string): boolean {
 
 function emitCursorStatus() {
   if (!editor || !cursorListener) {
+    return;
+  }
+  const mode = getDocumentEditorMode();
+  if (mode === "wysiwyg" || mode === "reading") {
     return;
   }
   const pos = editor.getPosition();

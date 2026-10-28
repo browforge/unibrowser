@@ -27,6 +27,24 @@ DOC_X1 = 980
 DOC_Y0 = 190
 DOC_Y1 = 670
 
+# Document card compact toolbar block-style trigger (1280×800 capture-ready layout).
+TOOLBAR_BLOCK_LABEL = (430, 98, 620, 118)
+STATUS_LN_COL = (118, 774, 215, 792)
+CARD_FOOTER_WORDS = (820, 678, 970, 702)
+
+
+def region_diff(a: Image.Image, b: Image.Image, region: tuple[int, int, int, int]) -> int:
+    x0, y0, x1, y1 = region
+    w, h = a.size
+    if b.size != (w, h):
+        raise SystemExit("capture size mismatch for region diff")
+    count = 0
+    for y in range(y0, min(y1, h)):
+        for x in range(x0, min(x1, w)):
+            if a.getpixel((x, y)) != b.getpixel((x, y)):
+                count += 1
+    return count
+
 
 def load_rgb(path: Path) -> Image.Image:
     return Image.open(path).convert("RGB")
@@ -270,6 +288,44 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    toolbar_diff = region_diff(
+        images["live-cursor-in-heading.png"],
+        images["live-cursor-outside.png"],
+        TOOLBAR_BLOCK_LABEL,
+    )
+    if toolbar_diff < 20:
+        print(
+            f"toolbar block label region unchanged between heading and outside ({toolbar_diff} pixels)",
+            file=sys.stderr,
+        )
+        return 1
+
+    status_diff = region_diff(
+        images["live-cursor-in-heading.png"],
+        images["live-cursor-outside.png"],
+        STATUS_LN_COL,
+    )
+    if status_diff < 20:
+        print(
+            f"status Ln/Col region unchanged between heading and outside ({status_diff} pixels)",
+            file=sys.stderr,
+        )
+        return 1
+
+    for a_name, b_name in (
+        ("live-cursor-in-heading.png", "live-cursor-outside.png"),
+        ("live-cursor-in-heading.png", "live-cursor-in-bold.png"),
+        ("live-cursor-outside.png", "live-cursor-in-bold.png"),
+    ):
+        footer_diff = region_diff(images[a_name], images[b_name], CARD_FOOTER_WORDS)
+        if footer_diff > 12:
+            print(
+                f"document footer word-count band differs between {a_name} and {b_name} "
+                f"({footer_diff} pixels)",
+                file=sys.stderr,
+            )
+            return 1
 
     print("live capture pixel gate: ok")
     return 0

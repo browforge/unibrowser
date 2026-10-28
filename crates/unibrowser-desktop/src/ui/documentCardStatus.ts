@@ -1,6 +1,8 @@
 import { documentViewer } from "../documentViewer";
 import { getActiveTextContent } from "../textEditor";
 import { textReadingStats } from "../textStats";
+import { getDocumentModelSession } from "../documentEditorHost";
+import { documentModelWordCount } from "../documentModelWordCount";
 
 const CARD_STATUS_ID = "document-card-status";
 
@@ -54,6 +56,13 @@ export function documentTextForWordCount(): string {
 }
 
 export function documentWordCount(): number {
+  const session = getDocumentModelSession();
+  if (session?.model) {
+    const fromModel = documentModelWordCount(session.model);
+    if (fromModel !== null) {
+      return fromModel;
+    }
+  }
   return textReadingStats(documentTextForWordCount()).words;
 }
 

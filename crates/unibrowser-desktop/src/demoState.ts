@@ -71,12 +71,12 @@ export async function applyDeferredLiveBlockDemoTokens(
   if (options?.mountEditor !== false) {
     await applyDemoState("live-block-capture");
   }
-  const { liveCaptureCursorFromDemo, ensureLiveCaptureCursorPainted } = await import(
+  const { liveCaptureCursorFromDemo, applyLiveCaptureCursorWithRetry } = await import(
     "./markdownLiveBlock"
   );
   const kind = liveCaptureCursorFromDemo(demo);
   if (kind) {
-    await ensureLiveCaptureCursorPainted(kind);
+    await applyLiveCaptureCursorWithRetry(kind);
   }
 }
 
@@ -259,8 +259,8 @@ export async function applyDemoState(raw: string) {
             : token === "live-cursor-in-bold"
               ? "bold"
               : "outside";
-        const { ensureLiveCaptureCursorPainted } = await import("./markdownLiveBlock");
-        await ensureLiveCaptureCursorPainted(kind);
+        const { applyLiveCaptureCursorWithRetry } = await import("./markdownLiveBlock");
+        await applyLiveCaptureCursorWithRetry(kind);
         break;
       }
       case "live-block-capture": {

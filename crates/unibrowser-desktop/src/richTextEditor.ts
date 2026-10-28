@@ -3,6 +3,8 @@ import type { DocumentModelDto } from "./documentModelBridge";
 import { isWebPlatform } from "./platform/isWeb";
 import { mountProseMirrorEditor, type RichTextEditorHandle } from "./richTextProseMirror";
 import { markdownLiveBlockPlugins } from "./markdownLiveBlock";
+import { blockStyleAtProseMirrorPos } from "./markdownLiveBlock";
+import type { InferredBlockStyle } from "./semanticBlockStyle";
 
 type BlockDto = {
   type: string;
@@ -383,6 +385,14 @@ export function destroyRichTextEditor() {
 
 export function getActiveRichTextView() {
   return activeHandle?.view ?? null;
+}
+
+export function inferVisualBlockStyleAtCursor(): InferredBlockStyle | null {
+  const view = activeHandle?.view;
+  if (!view) {
+    return null;
+  }
+  return blockStyleAtProseMirrorPos(view.state.doc, view.state.selection.from);
 }
 
 /** Wait until every image in the document card rich surface has decoded (naturalWidth > 0). */
