@@ -673,7 +673,7 @@
       },
       {
         "id": "",
-        "label": "Problems 3",
+        "label": "Problems 1",
         "bounds": {
           "x": 1162.53125,
           "y": 777.5,
@@ -685,8 +685,8 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 5.816,
-        "pixelInkCount": 268,
+        "pixelContrast": 6.038,
+        "pixelInkCount": 259,
         "pixelBounds": {
           "x": 1162,
           "y": 777,
@@ -720,7 +720,7 @@
     ]
   },
   "problems": {
-    "tabText": "Problems 3",
+    "tabText": "Problems 1",
     "rowCount": 0,
     "visibleRowCount": 0,
     "emptyVisible": false,
@@ -750,7 +750,7 @@
     "documentCardFooterText": "Plain text \u00b7 15 words \u00b7 Not saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Unsaved plaintext Ln 1, Col 1 Problems 3 UTF-8",
+    "statusBarDocumentLanguage": "Unsaved plaintext Ln 1, Col 1 Problems 1 UTF-8",
     "projectHomeCardHeight": null,
     "projectHomeCardTopRelative": null,
     "projectHomeCardCenterDeltaX": null,
