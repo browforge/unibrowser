@@ -620,6 +620,11 @@ export const textEditor = {
     }
     const surface = proofingSurfaceForPath(loadedPath, model.getLanguageId());
     await runEditorProofing(monacoApi, editor, surface, model.getLanguageId());
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
   },
 
   focusNextProofingInEditor() {

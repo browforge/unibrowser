@@ -3858,6 +3858,13 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             ) {
               const { textEditor } = await import("./textEditor");
               await textEditor.ensureProofingApplied();
+              const { proofingHasSpellingDiagnostic } = await import("./proofing");
+              if (!proofingHasSpellingDiagnostic()) {
+                await invoke("abort_doc_capture", {
+                  reason: "REC capture requires a spelling squiggle on 'teh'",
+                });
+                return;
+              }
               await new Promise((resolve) => window.setTimeout(resolve, 200));
             }
           }

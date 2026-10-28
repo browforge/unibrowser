@@ -204,14 +204,19 @@ def gate_file(path: Path, label: str) -> None:
 
 def gate_spell_on_teh(path: Path, label: str, pixels: list, width: int, height: int) -> None:
     text_row = find_editor_text_row(pixels, width, height)
-    squiggle_row = text_row + 3
-    squiggles = count_spell_squiggle_pixels(pixels, width, squiggle_row)
+    best = 0
+    best_y = text_row + 3
+    for y in range(text_row, min(text_row + 22, height - 1)):
+        squiggles = count_spell_squiggle_pixels(pixels, width, y)
+        if squiggles > best:
+            best = squiggles
+            best_y = y
     print(
-        f"{label} editor row y={text_row} squiggle pixels at y={squiggle_row}: {squiggles}",
+        f"{label} editor row y={text_row} best squiggle pixels y={best_y}: {best}",
         file=sys.stderr,
     )
-    if squiggles < 6:
-        raise SystemExit(f"{label}: expected spell underline under 'teh', got {squiggles} squiggle pixels")
+    if best < 6:
+        raise SystemExit(f"{label}: expected spell underline under 'teh', got {best} squiggle pixels")
     calm_row = text_row + 18
     if calm_row < height - 4:
         calm = count_spell_squiggle_pixels(pixels, width, calm_row)

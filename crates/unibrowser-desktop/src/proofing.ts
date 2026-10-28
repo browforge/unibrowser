@@ -60,6 +60,10 @@ export function scheduleEditorProofing(
   debounceTimer = setTimeout(() => {
     void runEditorProofing(monaco, editor, surface, codeLanguage);
   }, 400);
+  const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
+  if (demo.includes("rec-capture")) {
+    void runEditorProofing(monaco, editor, surface, codeLanguage);
+  }
 }
 
 export function clearEditorMarkers(
