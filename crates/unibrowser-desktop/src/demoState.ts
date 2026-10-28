@@ -226,6 +226,30 @@ export async function applyDemoState(raw: string) {
         setDocumentEditorMode("reading");
         break;
       }
+      case "live-cursor-outside":
+      case "live-cursor-in-heading":
+      case "live-cursor-in-bold": {
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg", false);
+        document.body.dataset.markdownLiveBlock = "1";
+        delete document.body.dataset.liveCaptureReady;
+        const kind =
+          token === "live-cursor-in-heading"
+            ? "heading"
+            : token === "live-cursor-in-bold"
+              ? "bold"
+              : "outside";
+        for (let attempt = 0; attempt < 120; attempt += 1) {
+          const { getActiveRichTextView } = await import("./richTextEditor");
+          const { applyLiveCaptureSelection } = await import("./markdownLiveBlock");
+          const view = getActiveRichTextView();
+          if (view && applyLiveCaptureSelection(view, kind)) {
+            break;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 50));
+        }
+        break;
+      }
       case "doc-merge-banner": {
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("split", false);

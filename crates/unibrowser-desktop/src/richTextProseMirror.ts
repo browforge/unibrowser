@@ -5,6 +5,7 @@ import { keymap } from "prosemirror-keymap";
 import { baseKeymap } from "prosemirror-commands";
 import { history, undo, redo } from "prosemirror-history";
 import type { DocumentModelDto } from "./documentModelBridge";
+import type { Plugin } from "prosemirror-state";
 
 type BlockDto = {
   type: string;
@@ -344,11 +345,16 @@ export type RichTextEditorHandle = {
   destroy: () => void;
 };
 
+export type MountProseMirrorOptions = {
+  extraPlugins?: Plugin[];
+};
+
 export function mountProseMirrorEditor(
   host: HTMLElement,
   model: DocumentModelDto,
   readonly: boolean,
   onModelChange: (next: DocumentModelDto, touchedBlockIds: string[]) => void,
+  options?: MountProseMirrorOptions,
 ): RichTextEditorHandle {
   host.innerHTML = "";
   host.classList.add("rich-text-editor-host");
@@ -367,6 +373,7 @@ export function mountProseMirrorEditor(
       history(),
       keymap({ "Mod-z": undo, "Mod-y": redo, "Mod-Shift-z": redo }),
       keymap(baseKeymap),
+      ...(options?.extraPlugins ?? []),
     ],
   });
 

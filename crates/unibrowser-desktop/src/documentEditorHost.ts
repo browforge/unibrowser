@@ -205,10 +205,15 @@ async function renderRich() {
 
   if (!split) {
     if (readonly) {
+      document.body.dataset.markdownLiveBlock = "0";
       await mountRichTextEditor(richHost, session.model, true, { basePath: documentPath });
     } else if (mode === "wysiwyg") {
+      const markdownLive =
+        isMarkdownPath(documentPath) && getDocumentEditorMode() === "wysiwyg";
+      document.body.dataset.markdownLiveBlock = markdownLive ? "1" : "0";
       await mountRichTextEditor(richHost, session.model, false, {
         basePath: documentPath,
+        markdownLiveBlock: markdownLive,
         onModelChange: (nextModel, touched) => {
           if (!session) {
             return;
@@ -361,6 +366,7 @@ export async function syncDocumentEditorForTextTab(
     demo.includes("doc-history-missing-plugin") ||
     demo.includes("doc-visual-md-docx") ||
     demo.includes("doc-opaque-card") ||
+    demo.includes("live-cursor-") ||
     projectDocumentVisual;
   const toolbarCapture =
     demo.includes("txt-apply-h2") || demo.includes("txt-block-picker-open");
