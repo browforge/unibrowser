@@ -1,6 +1,7 @@
 //! Canonical document model and format serialisers (ADR 0035).
 
 pub mod docx;
+pub mod edit_recovery;
 pub mod history;
 pub mod history_admin;
 pub mod history_file;
@@ -13,6 +14,10 @@ pub mod reparse;
 pub mod session;
 
 pub use docx::{model_to_docx_html, parse_docx_to_model};
+pub use edit_recovery::{
+    append_checkpoint, begin_journal, clear_journal, journal_id_for_path, list_pending_journals,
+    recover_from_journal, JournalHeader, PendingJournal, RecoveredEdit,
+};
 pub use history::{apply_history_op, invert_history_op, DocumentHistoryOp};
 pub use markdown::{parse_markdown, serialize_markdown, MarkdownParseResult};
 pub use model::{
