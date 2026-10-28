@@ -246,6 +246,8 @@
   "autosave.noSlots": "No autosave slots for this document.",
   "autosave.pickSlot": "Restore from autosave slot",
   "recoveryBar.message": "Recovered unsaved changes — {path}",
+  "recoveryBar.restore": "Restore",
+  "recoveryBar.showChanges": "Show changes",
   "recoveryBar.viewOriginal": "View original",
   "recoveryBar.discard": "Discard",
   "tabs.pinnedNoClose": "Unpin tab before middle-click close",

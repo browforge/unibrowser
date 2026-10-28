@@ -112,6 +112,9 @@ pub struct ProjectNode {
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asset: Option<String>,
+    /// Content-addressed `assets/<sha256>` reference ([REC-02]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset_hash: Option<String>,
     /// Board X in document space (infinite-canvas precursor).
     #[serde(default)]
     pub x: f32,
@@ -409,6 +412,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
             node_type: "file".into(),
             label: "Notes".into(),
             asset: Some("notes.txt".into()),
+            asset_hash: None,
             x: 48.0,
             y: 56.0,
             color: None,
@@ -418,6 +422,7 @@ pub fn seed_board_sketch(package: &mut ProjectPackage) -> Result<(), ProjectErro
             node_type: "file".into(),
             label: "References".into(),
             asset: Some("refs.txt".into()),
+            asset_hash: None,
             x: 280.0,
             y: 160.0,
             color: None,
@@ -482,6 +487,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
             node_type: "video".into(),
             label: "Intro".into(),
             asset: Some("intro-slot.txt".into()),
+            asset_hash: None,
             x: 40.0,
             y: 48.0,
             color: Some("blue".into()),
@@ -491,6 +497,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
             node_type: "video".into(),
             label: "B-roll".into(),
             asset: Some("broll-slot.txt".into()),
+            asset_hash: None,
             x: 260.0,
             y: 120.0,
             color: Some("amber".into()),
@@ -500,6 +507,7 @@ pub fn seed_video_mix(package: &mut ProjectPackage) -> Result<(), ProjectError> 
             node_type: "video".into(),
             label: "Outro".into(),
             asset: Some("outro-slot.txt".into()),
+            asset_hash: None,
             x: 480.0,
             y: 200.0,
             color: Some("violet".into()),
@@ -1067,7 +1075,8 @@ pub fn open_package(root: &Path) -> Result<ProjectPackage, ProjectError> {
         return Err(ProjectError::NotPackage(PROJECT_FILE.into()));
     }
     let data = fs::read_to_string(&manifest_path)?;
-    let manifest: ProjectManifest = serde_json::from_str(&data)?;
+    let mut manifest: ProjectManifest = serde_json::from_str(&data)?;
+    migrate_asset_hash_fields(&mut manifest);
     validate_manifest(&manifest)?;
     if root.join(MANIFEST_FILE).is_file() {
         let container_data = fs::read_to_string(root.join(MANIFEST_FILE))?;
@@ -1084,6 +1093,20 @@ pub fn is_unpacked_native_package(root: &Path) -> bool {
     root.is_dir()
         && root.join(MANIFEST_FILE).is_file()
         && root.join(PROJECT_FILE).is_file()
+}
+
+/// Backfill `asset_hash` from legacy `asset` content-hash filenames ([REC-02]).
+pub fn migrate_asset_hash_fields(manifest: &mut ProjectManifest) {
+    for node in &mut manifest.nodes {
+        if node.asset_hash.is_some() {
+            continue;
+        }
+        if let Some(asset) = &node.asset {
+            if crate::opc_bundle::is_content_hash_asset_name(asset) {
+                node.asset_hash = Some(asset.clone());
+            }
+        }
+    }
 }
 
 pub fn write_manifest(root: &Path, manifest: &ProjectManifest) -> Result<(), ProjectError> {
@@ -1190,11 +1213,16 @@ pub fn insert_project_node(
 ) -> Result<ProjectNode, ProjectError> {
     let id = format!("node-{}", package.manifest.nodes.len() + 1);
     let (x, y) = default_board_position(package.manifest.nodes.len());
+    let asset_hash = asset
+        .as_ref()
+        .filter(|a| crate::opc_bundle::is_content_hash_asset_name(a))
+        .cloned();
     let node = ProjectNode {
         id,
         node_type: node_type.into(),
         label: label.into(),
         asset,
+        asset_hash,
         x,
         y,
         color: None,
@@ -1304,7 +1332,8 @@ pub fn add_asset_copy(
         id,
         node_type: node_type.into(),
         label: label.into(),
-        asset: Some(file_name),
+        asset: Some(file_name.clone()),
+        asset_hash: Some(file_name),
         x,
         y,
         color: None,
@@ -1513,6 +1542,7 @@ mod tests {
                     node_type: "note".into(),
                     label: "A".into(),
                     asset: None,
+                    asset_hash: None,
                     x: 0.0,
                     y: 0.0,
                     color: None,
@@ -1522,6 +1552,7 @@ mod tests {
                     node_type: "note".into(),
                     label: "B".into(),
                     asset: None,
+                    asset_hash: None,
                     x: 0.0,
                     y: 0.0,
                     color: None,
@@ -1666,6 +1697,7 @@ mod tests {
             node_type: "video".into(),
             label: "Take".into(),
             asset: Some("take.mp4".into()),
+            asset_hash: None,
             x: 0.0,
             y: 0.0,
             color: None,

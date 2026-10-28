@@ -19,6 +19,7 @@ proptest! {
                 node_type: "note".into(),
                 label: "n".into(),
                 asset: None,
+                asset_hash: None,
                 x: 0.0,
                 y: 0.0,
                 color: None,

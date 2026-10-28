@@ -179,6 +179,13 @@ pub fn get_demo_state() -> Option<String> {
     demo_state_slot().lock().ok().and_then(|d| d.clone())
 }
 
+pub fn demo_state_contains(fragment: &str) -> bool {
+    let needle = fragment.to_ascii_lowercase();
+    get_demo_state()
+        .map(|d| d.to_ascii_lowercase().contains(&needle))
+        .unwrap_or(false)
+}
+
 #[tauri::command]
 pub fn take_doc_capture_path() -> Option<String> {
     doc_capture_slot()

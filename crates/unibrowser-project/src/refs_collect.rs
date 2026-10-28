@@ -1,4 +1,4 @@
-//! External media refs, Collect into project, referenced-part index ([PKG-08]).
+//! External media refs, Collect into project, referenced-part index ([PKG-08], [REC-02]).
 
 use std::collections::HashSet;
 use std::fs;
@@ -18,6 +18,8 @@ pub struct MediaRefRecord {
     pub path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset_hash: Option<String>,
     pub label: String,
 }
 
@@ -41,7 +43,10 @@ pub fn list_media_refs(root: &Path) -> Result<Vec<MediaRefRecord>, ProjectError>
             continue;
         }
         let data = fs::read_to_string(&path)?;
-        let rec: MediaRefRecord = serde_json::from_str(&data)?;
+        let mut rec: MediaRefRecord = serde_json::from_str(&data)?;
+        if rec.asset_hash.is_none() {
+            rec.asset_hash = rec.content_hash.clone();
+        }
         out.push(rec);
     }
     out.sort_by(|a, b| a.id.cmp(&b.id));
@@ -70,10 +75,12 @@ pub fn add_media_ref(
         list_media_refs(&package.root)?.len() + 1
     );
     let bytes = fs::read(source)?;
+    let hash = content_hash_hex(&bytes);
     let rec = MediaRefRecord {
         id,
         path: source.to_string_lossy().to_string(),
-        content_hash: Some(content_hash_hex(&bytes)),
+        content_hash: Some(hash.clone()),
+        asset_hash: Some(hash),
         label: label.into(),
     };
     write_media_ref(&package.root, &rec)?;
@@ -100,7 +107,11 @@ pub fn collect_media_ref(
     }
     ensure_unpacked_package_layout(&package.root, &mut package.manifest)?;
     let bytes = fs::read(source)?;
-    let hash = content_hash_hex(&bytes);
+    let hash = rec
+        .asset_hash
+        .clone()
+        .or_else(|| rec.content_hash.clone())
+        .unwrap_or_else(|| content_hash_hex(&bytes));
     let dest = package.root.join(DIR_ASSETS).join(&hash);
     if !dest.is_file() {
         fs::write(&dest, &bytes)?;
@@ -111,6 +122,7 @@ pub fn collect_media_ref(
         node_type: crate::guess_asset_node_type(source).into(),
         label: rec.label.clone(),
         asset: Some(hash.clone()),
+        asset_hash: Some(hash.clone()),
         x: 0.0,
         y: 0.0,
         color: None,
@@ -142,48 +154,50 @@ pub fn collect_all_media_refs(package: &mut ProjectPackage) -> Result<CollectRes
     })
 }
 
-/// Content hashes referenced by `project.json` node assets.
+/// Content hashes referenced explicitly on `project.json` nodes.
 pub fn referenced_asset_hashes_from_manifest(manifest: &ProjectManifest) -> HashSet<String> {
-    manifest
-        .nodes
-        .iter()
-        .filter_map(|n| n.asset.as_ref())
-        .filter(|a| is_content_hash_asset_name(a))
-        .cloned()
-        .collect()
+    let mut out = HashSet::new();
+    for node in &manifest.nodes {
+        if let Some(hash) = &node.asset_hash {
+            if is_content_hash_asset_name(hash) {
+                out.insert(hash.clone());
+            }
+        }
+    }
+    out
 }
 
-fn hashes_from_history_payload(value: &serde_json::Value, out: &mut HashSet<String>) {
+fn explicit_asset_hash_from_value(value: &serde_json::Value) -> Option<String> {
     match value {
-        serde_json::Value::String(s) => {
-            if is_content_hash_asset_name(s) {
-                out.insert(s.clone());
+        serde_json::Value::String(s) if is_content_hash_asset_name(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+fn collect_asset_hashes_from_payload(value: &serde_json::Value, out: &mut HashSet<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            if let Some(v) = map.get("asset_hash") {
+                if let Some(h) = explicit_asset_hash_from_value(v) {
+                    out.insert(h);
+                }
             }
-            if let Some(rest) = s.strip_prefix("assets/") {
-                if is_content_hash_asset_name(rest) {
-                    out.insert(rest.to_string());
+            for (k, v) in map {
+                if k != "asset_hash" {
+                    collect_asset_hashes_from_payload(v, out);
                 }
             }
         }
         serde_json::Value::Array(arr) => {
             for v in arr {
-                hashes_from_history_payload(v, out);
-            }
-        }
-        serde_json::Value::Object(map) => {
-            for (k, v) in map {
-                if k == "asset_hash" || k == "content_hash" || k == "hash" {
-                    hashes_from_history_payload(v, out);
-                } else {
-                    hashes_from_history_payload(v, out);
-                }
+                collect_asset_hashes_from_payload(v, out);
             }
         }
         _ => {}
     }
 }
 
-/// Asset hashes still needed by `.unibrow-history` ops (retention-aware).
+/// Asset hashes referenced by explicit `asset_hash` fields in `.unibrow-history` ops.
 pub fn referenced_asset_hashes_from_history(
     root: &Path,
     retain_from_seq: Option<u64>,
@@ -199,10 +213,7 @@ pub fn referenced_asset_hashes_from_history(
         if retain_from_seq.is_some_and(|min| op.seq < min) {
             continue;
         }
-        if op.op_type == "unibrowser.history.snapshot" {
-            hashes_from_history_payload(&op.payload, &mut out);
-        }
-        hashes_from_history_payload(&op.payload, &mut out);
+        collect_asset_hashes_from_payload(&op.payload, &mut out);
     }
     Ok(out)
 }
@@ -268,7 +279,7 @@ pub fn gc_content_addressed_assets(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{add_media_ref, create_package, save_folder_package};
+    use crate::{add_asset_copy, add_media_ref, create_package};
 
     fn temp_root(label: &str) -> PathBuf {
         std::env::temp_dir().join(format!("ub-refs-{}-{}", label, std::process::id()))
@@ -297,6 +308,56 @@ mod tests {
         let orphan_name = orphan.file_name().unwrap().to_string_lossy().to_string();
         assert!(removed.contains(&orphan_name));
         assert!(!dir.join(DIR_ASSETS).join(&hash).is_file());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn rec02_gc_keeps_explicit_asset_hash_not_decoy_string() {
+        let dir = temp_root("decoy");
+        let _ = fs::remove_dir_all(&dir);
+        let mut pkg = create_package(&dir, "Decoy").expect("create");
+        let src = dir.join("keep.bin");
+        fs::write(&src, b"keep-me").expect("write");
+        add_asset_copy(&mut pkg, &src, "file", "Keep").expect("asset");
+        let hash = pkg.manifest.nodes[0].asset_hash.clone().expect("hash");
+        pkg.manifest.nodes.clear();
+        write_manifest(&dir, &pkg.manifest).expect("clear nodes");
+        let decoy = "1111111111111111111111111111111111111111111111111111111111111111";
+        let hist_path = dir.join(HISTORY_FILE);
+        let (_, ops) =
+            unibrowser_document_model::history_file::read_header_and_ops(&hist_path).expect("read");
+        let entry = unibrowser_document_model::history_file::HistoryLogEntry {
+            op_id: "note-1".into(),
+            seq: ops.last().map(|o| o.seq + 1).unwrap_or(1),
+            parent_seq: ops.last().map(|o| o.seq).unwrap_or(0),
+            timestamp: unibrowser_document_model::history_file::now_rfc3339(),
+            plugin_id: "base-text".into(),
+            plugin_version: "0.1.0".into(),
+            op_type: "base-text.text.replace".into(),
+            op_schema_version: 1,
+            payload: serde_json::json!({
+                "text": decoy,
+                "note": "hash-like string must not pin assets"
+            }),
+        };
+        unibrowser_document_model::history_file::push_op_entry(&hist_path, entry).expect("push");
+        let keep_entry = unibrowser_document_model::history_file::HistoryLogEntry {
+            op_id: "snap-1".into(),
+            seq: ops.last().map(|o| o.seq + 2).unwrap_or(2),
+            parent_seq: ops.last().map(|o| o.seq + 1).unwrap_or(1),
+            timestamp: unibrowser_document_model::history_file::now_rfc3339(),
+            plugin_id: "unibrowser-core".into(),
+            plugin_version: "0.1.0".into(),
+            op_type: "unibrowser.history.snapshot".into(),
+            op_schema_version: 1,
+            payload: serde_json::json!({ "asset_hash": hash }),
+        };
+        unibrowser_document_model::history_file::push_op_entry(&hist_path, keep_entry).expect("push");
+        fs::write(dir.join(DIR_ASSETS).join(decoy), b"orphan").expect("orphan");
+        let removed = gc_content_addressed_assets(&dir, &pkg.manifest, None).expect("gc");
+        assert!(removed.contains(&decoy.to_string()));
+        assert!(!removed.contains(&hash));
+        assert!(dir.join(DIR_ASSETS).join(&hash).is_file());
         let _ = fs::remove_dir_all(&dir);
     }
 }

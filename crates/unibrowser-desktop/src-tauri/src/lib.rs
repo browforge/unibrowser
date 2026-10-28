@@ -46,6 +46,7 @@ mod web_zoom_prefs;
 mod web_reader_prefs;
 pub mod autosave;
 mod crash_recovery;
+mod edit_recovery;
 mod crash_log;
 mod process_status;
 mod project_recovery;
@@ -159,6 +160,15 @@ pub fn run() {
                 }
             }
             if let Some(state) = app.try_state::<AppState>() {
+                if doc_capture {
+                    if launch_args::demo_state_contains("rec-capture-banner") {
+                        if let Err(error) =
+                            commands::prime_rec_doc_capture_for_launch(app.handle(), state.inner())
+                        {
+                            eprintln!("rec doc-capture prime: {}", error);
+                        }
+                    }
+                }
                 if !e2e && !self_test && !doc_capture {
                     commands::restore_session_on_launch(state.inner(), app.handle())?;
                 }
@@ -229,6 +239,10 @@ pub fn run() {
             commands::undo_close_tab,
             commands::reload_active_tab_from_disk,
             commands::dismiss_recovery_bar_item,
+            commands::restore_recovery_bar_item,
+            commands::show_recovery_changes,
+            commands::edit_recovery_seed_capture_demo,
+            commands::rec_capture_restored_text_document,
             commands::search_open_tabs,
             commands::activate_tab_in_window,
             commands::open_crash_logs_folder,

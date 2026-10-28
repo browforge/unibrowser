@@ -1379,11 +1379,23 @@ pub(crate) fn snapshot(state: &AppState, window_label: &str) -> Result<TabConten
         .lock()
         .map(|s| s.peek_available())
         .unwrap_or(false);
-    let recovery_bar = sess
-        .recovery_bar
-        .lock()
-        .map(|b| b.items.clone())
-        .unwrap_or_default();
+    let mut recovery_bar = crate::crash_launch::recovery_bar_items_for_window(state, window_label)
+        .unwrap_or_else(|_| {
+            sess.recovery_bar
+                .lock()
+                .map(|b| b.items.clone())
+                .unwrap_or_default()
+        });
+    if recovery_bar.is_empty()
+        && crate::launch_args::is_doc_capture_mode()
+        && crate::launch_args::demo_state_contains("rec-capture-banner")
+    {
+        recovery_bar.push(crate::crash_launch::RecoveryBarItemDto {
+            backup_id: "0000000000000001".into(),
+            path: "e2e/fixtures/spell-test.txt".into(),
+            backend_id: base_text::BACKEND_ID.into(),
+        });
+    }
     let (git_is_repo, git_dirty_paths) =
         crate::git_status::status_for_folder(Path::new(&browse_folder_path));
     Ok(TabContentDto {
@@ -2237,9 +2249,120 @@ pub fn open_path(
         }
     }
     update_content_webview(&app, window.label(), &loc)?;
-    let dto = snapshot(&state, window.label())?;
+    apply_rec_capture_demo_if_requested(state.inner(), window.label(), &app, &file_path)?;
     maybe_emit_browser_state_updated(&app);
-    Ok(dto)
+    snapshot(&state, window.label())
+}
+
+/// Open launch `--open` paths for REC doc-capture before the shell webview runs JS `open_path`
+/// (which can block while the content webview is still starting).
+pub fn prime_rec_doc_capture_for_launch(app: &AppHandle, state: &AppState) -> Result<(), String> {
+    if !crate::launch_args::is_doc_capture_mode() {
+        return Ok(());
+    }
+    let wants_banner = crate::launch_args::demo_state_contains("rec-capture-banner");
+    let wants_restored = crate::launch_args::demo_state_contains("rec-capture-restored");
+    if !wants_banner && !wants_restored {
+        return Ok(());
+    }
+    let window = app.get_window("main").ok_or("main window missing")?;
+    let label = window.label();
+    for open in crate::launch_args::launch_open_paths_snapshot() {
+        let resolved = crate::launch_args::resolve_capture_path_str(&open).unwrap_or(open);
+        open_path_file_without_content_webview(app, state, label, &resolved)?;
+    }
+    let _ = crate::launch_args::take_launch_open_paths();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn rec_capture_restored_text_document(
+    path: String,
+    state: State<AppState>,
+) -> Result<TextDocumentDto, String> {
+    if !crate::launch_args::is_doc_capture_mode()
+        || !crate::launch_args::demo_state_contains("rec-capture-restored")
+    {
+        return Err("not a rec restored capture".into());
+    }
+    let file_path = resolve_open_path(&path, &state.cwd)?;
+    let disk = std::fs::read(&file_path).map_err(|e| e.to_string())?;
+    let content = format!(
+        "{}\n# recovered unsaved paragraph for REC capture\n",
+        String::from_utf8_lossy(&disk)
+    );
+    Ok(TextDocumentDto {
+        path,
+        content,
+        font_size_pt: 14.0,
+        language: "plaintext".into(),
+        dirty: true,
+        encoding: "utf-8".into(),
+        reveal_line: None,
+    })
+}
+
+fn open_path_file_without_content_webview(
+    app: &AppHandle,
+    state: &AppState,
+    window_label: &str,
+    path: &str,
+) -> Result<(), String> {
+    let file_path = resolve_open_path(path, &state.cwd)?;
+    if !file_path.is_file() {
+        return Err("rec capture fixture must be a file".into());
+    }
+    allow_asset_protocol_file(app, &file_path);
+    let loc = BrowserLocation::File {
+        path: file_path.clone(),
+    };
+    let (loc, is_dir, doc) = state.resolve_location(loc);
+    let _sess = ws_label(state, window_label)?;
+    {
+        let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.navigate_active(loc.clone(), is_dir, doc);
+    }
+    touch_recent_file(&file_path);
+    apply_rec_capture_demo_if_requested(state, window_label, app, &file_path)?;
+    Ok(())
+}
+
+fn apply_rec_capture_demo_if_requested(
+    state: &AppState,
+    window_label: &str,
+    app: &AppHandle,
+    file_path: &std::path::Path,
+) -> Result<(), String> {
+    if !crate::launch_args::is_doc_capture_mode() || !file_path.is_file() {
+        return Ok(());
+    }
+    let wants_banner = crate::launch_args::demo_state_contains("rec-capture-banner");
+    let wants_restored = crate::launch_args::demo_state_contains("rec-capture-restored");
+    if !wants_banner && !wants_restored {
+        return Ok(());
+    }
+    let disk = std::fs::read(file_path).map_err(|e| e.to_string())?;
+    let doc_path = {
+        let _sess = ws_label(state, window_label)?;
+        let tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+        tabs
+            .active_tab()
+            .and_then(|t| t.document.as_ref().map(|d| d.path.clone()))
+            .unwrap_or_else(|| file_path.to_string_lossy().into_owned())
+    };
+    let backend_id = if doc_path.ends_with(".svg") {
+        base_svg::BACKEND_ID
+    } else if doc_path.ends_with(".js") || doc_path.ends_with(".ts") {
+        base_js::BACKEND_ID
+    } else {
+        base_text::BACKEND_ID
+    };
+    crate::edit_recovery::seed_capture_demo_for_path(&doc_path, backend_id, &disk)?;
+    if wants_restored {
+        let id = crate::edit_recovery::backup_id_for_path(&doc_path);
+        crate::crash_launch::restore_recovery_item(state, window_label, app, &id)?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -4173,6 +4296,13 @@ fn execute_command_impl(
             .execute(&command_id, doc)?;
         (result, relocate_path)
     };
+    if command_id == unibrowser_mod_api::commands::TEXT_SAVE {
+        crate::edit_recovery::clear_for_path(&doc.path);
+        crate::crash_recovery::dismiss_backup(
+            &crate::edit_recovery::backup_id_for_path(&doc.path),
+        )
+        .ok();
+    }
     if let Some(new_path) = relocate_path {
         tab.location = BrowserLocation::File {
             path: PathBuf::from(new_path),
@@ -4202,11 +4332,17 @@ pub fn sync_text_document(window: tauri::Window,
         backend.set_selection_range(selection_start, selection_end);
         let _sess_stacks = ws(&state, &window)?;
         let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
-        stacks.record_change(&path, before, &backend.content);
+        stacks.record_change(&path, before.clone(), &backend.content);
         if backend.dirty {
             crate::crash_recovery::maybe_backup_dirty(
                 &path,
                 base_text::BACKEND_ID,
+                &backend.content,
+            );
+            crate::edit_recovery::note_dirty_edit(
+                &path,
+                base_text::BACKEND_ID,
+                before.as_bytes(),
                 &backend.content,
             );
         }
@@ -4219,9 +4355,15 @@ pub fn sync_text_document(window: tauri::Window,
     backend.set_selection_range(selection_start, selection_end);
     let _sess_stacks = ws(&state, &window)?;
     let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
-    stacks.record_change(&path, before, &backend.content);
+    stacks.record_change(&path, before.clone(), &backend.content);
     if backend.dirty {
         crate::crash_recovery::maybe_backup_dirty(&path, base_js::BACKEND_ID, &backend.content);
+        crate::edit_recovery::note_dirty_edit(
+            &path,
+            base_js::BACKEND_ID,
+            before.as_bytes(),
+            &backend.content,
+        );
     }
     Ok(())
 }
@@ -6815,10 +6957,69 @@ pub fn dismiss_recovery_bar_item(
     state: State<AppState>,
     backup_id: String,
 ) -> Result<TabContentDto, String> {
-    crate::crash_recovery::dismiss_backup(&backup_id)?;
+    crate::crash_launch::dismiss_recovery_item(&backup_id)?;
     let _sess_tabs = ws(&state, &window)?;
     if let Ok(mut bar) = _sess_tabs.recovery_bar.lock() {
         bar.items.retain(|i| i.backup_id != backup_id);
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn restore_recovery_bar_item(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+    backup_id: String,
+) -> Result<TabContentDto, String> {
+    crate::crash_launch::restore_recovery_item(&state, window.label(), &app, &backup_id)?;
+    let _sess_tabs = ws(&state, &window)?;
+    if let Ok(mut bar) = _sess_tabs.recovery_bar.lock() {
+        bar.items.retain(|i| i.backup_id != backup_id);
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn edit_recovery_seed_capture_demo(
+    window: tauri::Window,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
+    let doc_path = active_document_path(&state, &window)?;
+    let resolved = resolve_open_path(&doc_path, &state.cwd)?;
+    let disk = std::fs::read(&resolved).map_err(|e| e.to_string())?;
+    let recovered = format!(
+        "{}\n# recovered unsaved paragraph for REC capture\n",
+        String::from_utf8_lossy(&disk)
+    );
+    if let Some(dir) = crate::edit_recovery::journal_dir() {
+        let _ = unibrowser_document_model::begin_journal(
+            &dir,
+            &doc_path,
+            base_text::BACKEND_ID,
+            &disk,
+        );
+        let _ = unibrowser_document_model::append_checkpoint(&dir, &doc_path, recovered.as_bytes());
+    }
+    snapshot(&state, window.label())
+}
+
+#[tauri::command]
+pub fn show_recovery_changes(
+    window: tauri::Window,
+    state: State<AppState>,
+    backup_id: String,
+) -> Result<TabContentDto, String> {
+    let left = active_document_path(&state, &window)?;
+    let preview = crate::edit_recovery::write_recovery_preview(&backup_id)?;
+    let right = preview.to_string_lossy().into_owned();
+    {
+        let _sess_cmp = ws(&state, &window)?;
+        let mut cmp = _sess_cmp.file_compare.lock().map_err(|e| e.to_string())?;
+        *cmp = Some(FileCompareState {
+            left_path: left,
+            right_path: right,
+        });
     }
     snapshot(&state, window.label())
 }
@@ -8336,9 +8537,15 @@ pub fn sync_svg_document(window: tauri::Window, content: String, state: State<Ap
     backend.set_content(content);
     let _sess_stacks = ws(&state, &window)?;
     let mut stacks = _sess_stacks.undo_stacks.lock().map_err(|e| e.to_string())?;
-    stacks.record_change(&path, before, &backend.content);
+    stacks.record_change(&path, before.clone(), &backend.content);
     if backend.dirty {
         crate::crash_recovery::maybe_backup_dirty(&path, base_svg::BACKEND_ID, &backend.content);
+        crate::edit_recovery::note_dirty_edit(
+            &path,
+            base_svg::BACKEND_ID,
+            before.as_bytes(),
+            &backend.content,
+        );
     }
     Ok(())
 }
@@ -8692,11 +8899,33 @@ fn active_tab_muted(state: &AppState, window_label: &str) -> bool {
     tabs.active_tab().map(|t| t.muted).unwrap_or(false)
 }
 
+fn doc_capture_skips_content_webview(loc: &BrowserLocation) -> bool {
+    if !crate::launch_args::is_doc_capture_mode() {
+        return false;
+    }
+    let BrowserLocation::File { path } = loc else {
+        return false;
+    };
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .unwrap_or_default();
+    matches!(
+        ext.as_str(),
+        "txt" | "md" | "markdown" | "ts" | "tsx" | "js" | "jsx" | "json" | "rs" | "toml" | "yaml"
+            | "yml" | "css" | "html" | "htm" | "svg" | "xml" | "sh" | "bash"
+    )
+}
+
 pub(crate) fn update_content_webview(
     app: &AppHandle,
     window_label: &str,
     loc: &BrowserLocation,
 ) -> Result<(), String> {
+    if doc_capture_skips_content_webview(loc) {
+        return Ok(());
+    }
     if std::env::var("UNIBROWSER_SELF_TEST").as_deref() == Ok("1") {
         if matches!(loc, BrowserLocation::File { .. }) {
             return Ok(());

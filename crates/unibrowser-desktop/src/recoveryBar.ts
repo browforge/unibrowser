@@ -24,12 +24,18 @@ export function renderRecoveryBar(
     const label = document.createElement("span");
     label.textContent = t("recoveryBar.message", { path: item.path });
     row.appendChild(label);
-    const view = document.createElement("button");
-    view.type = "button";
-    view.textContent = t("recoveryBar.viewOriginal");
-    view.onclick = async () => {
-      await invoke("reload_active_tab_from_disk");
-      await invoke("dismiss_recovery_bar_item", { backupId: item.backup_id });
+    const restore = document.createElement("button");
+    restore.type = "button";
+    restore.textContent = t("recoveryBar.restore");
+    restore.onclick = async () => {
+      await invoke("restore_recovery_bar_item", { backupId: item.backup_id });
+      onRefresh();
+    };
+    const show = document.createElement("button");
+    show.type = "button";
+    show.textContent = t("recoveryBar.showChanges");
+    show.onclick = async () => {
+      await invoke("show_recovery_changes", { backupId: item.backup_id });
       onRefresh();
     };
     const discard = document.createElement("button");
@@ -39,7 +45,8 @@ export function renderRecoveryBar(
       await invoke("dismiss_recovery_bar_item", { backupId: item.backup_id });
       onRefresh();
     };
-    row.appendChild(view);
+    row.appendChild(restore);
+    row.appendChild(show);
     row.appendChild(discard);
     host.appendChild(row);
   }
