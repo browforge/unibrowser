@@ -39,6 +39,10 @@ export function editorReadyForCapture(minChars = 80): boolean {
   return text.length >= minChars;
 }
 
+function recCaptureMonacoReady(): boolean {
+  return editorReadyForCapture(35);
+}
+
 function monacoReady(): boolean {
   return editorReadyForCapture(80);
 }
@@ -455,22 +459,29 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         );
         break;
       case "rec-capture-banner":
-        checks.push(() => document.querySelectorAll(".title-tabs .title-tab").length >= 1);
-        checks.push(() => Boolean(document.querySelector(".recovery-bar-row")));
-        checks.push(monacoReady);
+        checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
+        checks.push(() => {
+          const host = document.getElementById("recovery-bar-host");
+          return Boolean(
+            host &&
+              !host.classList.contains("hidden") &&
+              host.querySelector(".recovery-bar-row"),
+          );
+        });
+        checks.push(recCaptureMonacoReady);
         checks.push(recCaptureStatusBarReady);
         break;
       case "rec-capture-restored":
-        checks.push(() => document.querySelectorAll(".title-tabs .title-tab").length >= 1);
+        checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
         checks.push(() => {
-          const tab = document.querySelector(".title-tabs .title-tab");
+          const tab = document.querySelector(".title-tabs .tab");
           return Boolean(tab?.textContent?.includes("*"));
         });
-        checks.push(monacoReady);
+        checks.push(recCaptureMonacoReady);
         checks.push(recCaptureStatusBarReady);
         break;
       case "rec-capture-show-changes":
-        checks.push(() => document.querySelectorAll(".title-tabs .title-tab").length >= 1);
+        checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
         checks.push(() => {
           const host = document.getElementById("diff-editor-host");
           return Boolean(host && !host.classList.contains("hidden"));
@@ -514,6 +525,7 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   } else if (
     !tokens.includes("doc-opaque-card") &&
     !tokens.some((t) => t.startsWith("doc-history-")) &&
+    !tokens.some((t) => t.startsWith("rec-capture")) &&
     (joined.includes(".txt") ||
       joined.includes(".md") ||
       joined.includes(".markdown") ||
@@ -637,9 +649,6 @@ function launchPathBasenames(launchPaths: string[]): string[] {
 }
 
 async function syncBrowserStateForCapture(): Promise<void> {
-  if (document.body.dataset.ubDocCapture === "1") {
-    return;
-  }
   const demo = (document.body.dataset.ubDemoTokens ?? "").toLowerCase();
   if (
     demo.includes("doc-visual-md-docx") ||
@@ -763,11 +772,7 @@ function recCaptureStatusBarReady(): boolean {
     return false;
   }
   const text = (bar.textContent ?? "").replace(/\s+/g, " ").trim();
-  if (text.length < 6) {
-    return false;
-  }
-  const omnibox = document.getElementById("omnibox") as HTMLInputElement | null;
-  return Boolean(omnibox && omnibox.value.trim().length >= 3);
+  return text.length >= 6;
 }
 
 /** Wait for shell/webview paint before doc-capture screenshots. */

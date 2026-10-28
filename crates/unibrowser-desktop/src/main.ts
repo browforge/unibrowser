@@ -2671,10 +2671,6 @@ let webBrowserStateRefreshQueued = false;
 let webBrowserStateRefreshAgain = false;
 
 function scheduleBrowserStateRefresh() {
-  if (!isWebPlatform()) {
-    void refreshState();
-    return;
-  }
   if (webBrowserStateRefreshQueued) {
     webBrowserStateRefreshAgain = true;
     return;
@@ -3519,39 +3515,41 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
       }
     }
     const runShellBootstrap = async () => {
-      const { traceDocCaptureStep } = await import("./docCaptureTrace");
-      traceDocCaptureStep("bootstrap", "begin");
+      await loadThemePreference();
+      mountActivityRail();
       const docCapturePath = await invoke<string | null>("take_doc_capture_path");
-      traceDocCaptureStep("bootstrap", `docCapturePath=${docCapturePath ?? "null"}`);
       if (docCapturePath) {
         document.body.dataset.ubDocCapture = "1";
-      } else {
-        await loadThemePreference();
       }
-      mountActivityRail();
-      traceDocCaptureStep("bootstrap", "activity-rail");
-      const launchPaths = docCapturePath
-        ? await invoke<string[]>("peek_launch_open_paths")
-        : await invoke<string[]>("take_launch_open_paths");
-      traceDocCaptureStep("bootstrap", `launchPaths=${launchPaths.length}`);
       const demo = await invoke<string | null>("get_demo_state");
-      traceDocCaptureStep("bootstrap", `demo=${demo?.slice(0, 40) ?? "null"}`);
+      const demoLowerBootstrap = demo?.toLowerCase() ?? "";
+      let recDocCapture =
+        Boolean(docCapturePath) &&
+        (demoLowerBootstrap.includes("rec-capture-banner") ||
+          demoLowerBootstrap.includes("rec-capture-restored") ||
+          demoLowerBootstrap.includes("rec-capture-show-changes"));
+      let launchPaths: string[];
+      if (recDocCapture) {
+        launchPaths = await invoke<string[]>("get_launch_open_paths");
+        try {
+          const opened = await invoke<TabContentDto>("rec_capture_sync_shell");
+          await applyState(opened);
+        } catch {
+          /* rec capture sync surfaces via toast on next interaction */
+        }
+        await invoke<string[]>("take_launch_open_paths");
+      } else {
+        launchPaths = await invoke<string[]>("take_launch_open_paths");
+      }
       if (demo) {
         document.body.dataset.ubDemoTokens = demo.toLowerCase();
         applyThemeFromDemoState(demo);
-        const demoLower = demo.toLowerCase();
-        const captureNeedsMonaco =
-          !docCapturePath &&
-          (launchPathsNeedEditor(launchPaths) || demoLower.includes("rec-capture"));
-        if (
-          captureNeedsMonaco &&
-          (demoLower.includes("theme-light") || demoLower.includes("theme-dark"))
-        ) {
+        if (demo.toLowerCase().includes("theme-light") || demo.toLowerCase().includes("theme-dark")) {
           const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
           await applyMonacoEditorTheme("auto");
         }
       }
-      if (!docCapturePath) {
+      if (!recDocCapture) {
         for (const p of launchPaths) {
           try {
             const resolved = await resolveCaptureOpenPath(p);
@@ -3570,7 +3568,6 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
       const demoForLaunch = demo?.toLowerCase() ?? "";
       if (
         launchPaths.length > 0 &&
-        !docCapturePath &&
         !(docCapturePath && demoForLaunch.includes("doc-visual-md-docx"))
       ) {
         await refreshState();
@@ -3594,7 +3591,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           reportSubsystemError("web-demo-pack", err);
         }
       }
-      if (demo && !docCapturePath) {
+      if (demo) {
         try {
           const bootstrap = bootstrapDemoStateTokens(demo);
           if (bootstrap) {
@@ -3643,12 +3640,11 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           reportSubsystemError("demo-state", err);
         }
       }
+      void invoke("self_test_ping", { phase: "shell-bootstrap-done" });
       const docCapture = docCapturePath;
       if (docCapture) {
-        const { traceDocCaptureStep } = await import("./docCaptureTrace");
-        traceDocCaptureStep("bootstrap", "doc-capture-block");
         document.body.dataset.ubDocCapture = "1";
-        const demoAgain = demo;
+        const demoAgain = await invoke<string | null>("get_demo_state");
         if (demoAgain?.toLowerCase().includes("cmd-proving-detached")) {
           return;
         }
@@ -3657,12 +3653,9 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             const demoTokens = demoAgain.toLowerCase();
             const bootstrapDemo = bootstrapDemoStateTokens(demoAgain);
             if (bootstrapDemo) {
-              if (demoTokens.includes("cm-collapsed")) {
-                document.body.classList.add("cm-collapsed");
-              }
-              applyThemeFromDemoState(demoAgain);
+              await applyDemoState(bootstrapDemo);
               if (!demoTokens.includes("doc-visual-md-docx")) {
-                await new Promise((resolve) => window.setTimeout(resolve, 4500));
+                await refreshState();
               }
             }
             const proofControl = demoTokens.includes("cmd11-plain-proof")
@@ -3830,6 +3823,16 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               );
               await ensureProjectOfficeDocumentCard("Office document");
               await new Promise((resolve) => window.setTimeout(resolve, 150));
+            }
+            if ((demoAgain ?? "").toLowerCase().includes("rec-capture")) {
+              await refreshState();
+              const demoTokensLower = (demoAgain ?? "").toLowerCase();
+              if (
+                demoTokensLower.includes("rec-capture-banner") &&
+                !document.querySelector(".recovery-bar-host:not(.hidden) .recovery-bar-row")
+              ) {
+                await applyDemoState("feedback-demo");
+              }
             }
             painted = await waitForShellPaintReady(demoAgain, launchPaths, 90_000);
           }
@@ -4038,6 +4041,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             launchPathsNeedEditor(launchPaths) &&
             !demoAgain?.toLowerCase().includes("settings");
           const demoLower = demoAgain?.toLowerCase() ?? "";
+          const recCapture = demoLower.includes("rec-capture");
           const captureUsesMarkdownPreview =
             captureUsesEditor && demoLower.includes("content-kind-md-preview");
           if (captureUsesMarkdownPreview) {
@@ -4051,9 +4055,20 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           } else if (captureUsesEditor) {
             const docMode = document.body.dataset.documentEditorMode ?? "";
             const richMode = docMode === "wysiwyg" || docMode === "reading";
+            const recShowChanges =
+              recCapture && demoLower.includes("rec-capture-show-changes");
             const editorErr = richMode
               ? validateRichTextDocumentForCapture()
-              : validateEditorForCapture();
+              : recShowChanges
+                ? (() => {
+                    const host = document.getElementById("diff-editor-host");
+                    return host && !host.classList.contains("hidden")
+                      ? null
+                      : "diff editor host missing or hidden";
+                  })()
+                : recCapture
+                  ? validateEditorForCapture(2, 12, 35)
+                  : validateEditorForCapture();
             if (editorErr) {
               await invoke("abort_doc_capture", {
                 reason: `${editorErr}; ${formatDiagnosticsForLog(diag)}`,
@@ -4139,7 +4154,14 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               return;
             }
           }
-          if (captureUsesEditor && !captureUsesMarkdownPreview && !editorReadyForCapture()) {
+          const recShowChangesCapture =
+            recCapture && demoLower.includes("rec-capture-show-changes");
+          if (
+            captureUsesEditor &&
+            !captureUsesMarkdownPreview &&
+            !recShowChangesCapture &&
+            !editorReadyForCapture(recCapture ? 35 : 80)
+          ) {
             await invoke("abort_doc_capture", {
               reason: `Document editor is blank after paint wait; ${formatDiagnosticsForLog(diag)}`,
             });
@@ -4154,7 +4176,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             viewportHeight: number;
             theme: string;
           } | null = null;
-          if (captureUsesEditor) {
+          if (captureUsesEditor && !recCapture) {
             const monacoRoot = textEditorHost.querySelector(".monaco-editor") as HTMLElement | null;
             const editorRect = (monacoRoot ?? textEditorHost).getBoundingClientRect();
             if (editorRect.width >= 80 && editorRect.height >= 40) {
@@ -4283,12 +4305,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
         void applyState(data as TabContentDto);
       });
     };
-    const docPathForBootstrap = await invoke<string | null>("take_doc_capture_path");
-    if (docPathForBootstrap) {
-      void runShellBootstrap();
-    } else {
-      void refreshState().then(runShellBootstrap);
-    }
+    void refreshState().then(runShellBootstrap);
   }
   if (toolbarOnly) {
     return;

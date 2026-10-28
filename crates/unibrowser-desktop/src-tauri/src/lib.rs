@@ -161,10 +161,11 @@ pub fn run() {
             }
             if let Some(state) = app.try_state::<AppState>() {
                 if doc_capture {
-                    if let Err(error) = doc_capture::prepare_doc_capture_session(app.handle(), state.inner()) {
+                    if let Err(error) =
+                        doc_capture::prepare_doc_capture_session(app.handle(), state.inner())
+                    {
                         eprintln!("doc capture session prep: {}", error);
                     }
-                    doc_capture::schedule_shell_state_sync(app.handle().clone());
                 }
                 if !e2e && !self_test && !doc_capture {
                     commands::restore_session_on_launch(state.inner(), app.handle())?;
@@ -550,7 +551,7 @@ pub fn run() {
             commands::get_csv_preview,
             commands::search_open_vsx_catalog,
             rhai_host::describe_rhai_script,
-            launch_args::peek_launch_open_paths,
+            launch_args::get_launch_open_paths,
             launch_args::take_launch_open_paths,
             launch_args::resolve_capture_path,
             launch_args::get_demo_state,

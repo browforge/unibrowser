@@ -1820,7 +1820,11 @@ export function validateHistoryCaptureBottomPanelVisible(): string | null {
 }
 
 /** Returns abort reason or null if editor area looks painted. */
-export function validateEditorForCapture(minLines = 6, minVariance = 12): string | null {
+export function validateEditorForCapture(
+  minLines = 6,
+  minVariance = 12,
+  minTextLength = 80,
+): string | null {
   const richDoc = document.querySelector(".rich-text-doc");
   const mergeBanner = document.querySelector(
     ".document-source-merge-banner:not(.hidden)",
@@ -1853,8 +1857,8 @@ export function validateEditorForCapture(minLines = 6, minVariance = 12): string
   if (m.viewLineCount < minLines) {
     return `monaco view-line count ${m.viewLineCount} < ${minLines}`;
   }
-  if (m.viewTextLength < 80) {
-    return `monaco text length ${m.viewTextLength} < 80`;
+  if (m.viewTextLength < minTextLength) {
+    return `monaco text length ${m.viewTextLength} < ${minTextLength}`;
   }
   if (
     m.hostHeight > 120 &&

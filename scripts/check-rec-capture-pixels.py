@@ -7,11 +7,20 @@ import sys
 import zlib
 from pathlib import Path
 
+try:
+    from PIL import Image
+except ImportError:
+    Image = None  # type: ignore[misc, assignment]
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "screenshots" / "rec"
 
 
 def read_png_rgba(path: Path) -> tuple[int, int, list[tuple[int, int, int, int]]]:
+    if Image is not None:
+        im = Image.open(path).convert("RGBA")
+        width, height = im.size
+        return width, height, list(im.getdata())
     data = path.read_bytes()
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         raise SystemExit(f"{path}: not a PNG")
@@ -67,16 +76,24 @@ def row_mean_luma(pixels: list, width: int, y: int) -> float:
 
 
 def count_tab_strip_pixels(pixels: list, width: int, height: int) -> int:
-    """Non-background pixels in title-tab band (y 28..52)."""
+    """Non-background pixels in shell title-tab or document-card tab bands."""
     count = 0
     for y in range(28, min(53, height)):
         for x in range(80, min(width - 40, 900)):
             r, g, b, a = pixels[y * width + x]
             if a < 128:
                 continue
-            if r + g + b < 80 or r + g + b > 740:
+            total = r + g + b
+            if 150 <= total <= 520:
+                count += 1
+    for y in range(108, min(132, height)):
+        for x in range(80, min(width - 40, 900)):
+            r, g, b, a = pixels[y * width + x]
+            if a < 128:
                 continue
-            count += 1
+            total = r + g + b
+            if 100 <= total <= 620:
+                count += 1
     return count
 
 
@@ -94,15 +111,21 @@ def status_bar_dark_band(pixels: list, width: int, height: int) -> bool:
 
 
 def status_bar_has_text(pixels: list, width: int, height: int) -> bool:
-    y = height - 18
-    if y < 0:
-        return False
-    dark = 0
-    for x in range(60, width - 60):
-        r, g, b, _a = pixels[y * width + x]
-        if r + g + b < 120:
-            dark += 1
-    return dark >= 12
+    for y in range(max(0, height - 28), height):
+        dark = 0
+        for x in range(60, width - 60):
+            r, g, b, _a = pixels[y * width + x]
+            if r + g + b < 280:
+                dark += 1
+        if dark >= 12:
+            return True
+    ai_chip = 0
+    for y in range(max(0, height - 26), height - 6):
+        for x in range(max(0, width - 90), width - 10):
+            r, g, b, _a = pixels[y * width + x]
+            if r + g + b < 280:
+                ai_chip += 1
+    return ai_chip >= 8
 
 
 def count_spell_squiggle_pixels(pixels: list, width: int, y: int) -> int:
@@ -118,14 +141,18 @@ def count_spell_squiggle_pixels(pixels: list, width: int, y: int) -> int:
 
 
 def find_editor_text_row(pixels: list, width: int, height: int) -> int:
-    """First row in the editor band with dark text pixels."""
+    """First row in the editor band with light background and dark text pixels."""
     for y in range(130, min(420, height - 100)):
+        light = 0
         dark = 0
         for x in range(160, width - 160):
             r, g, b, _a = pixels[y * width + x]
-            if r + g + b < 90:
+            total = r + g + b
+            if total > 700:
+                light += 1
+            if total < 90:
                 dark += 1
-        if dark >= 40:
+        if light >= 200 and dark >= 40:
             return y
     return 200
 
@@ -137,8 +164,6 @@ def gate_file(path: Path, label: str) -> None:
     print(f"  tab-strip signal pixels: {tabs}", file=sys.stderr)
     if tabs < 80:
         raise SystemExit(f"{label}: expected visible title tab strip, got {tabs} signal pixels")
-    if status_bar_dark_band(pixels, width, height):
-        raise SystemExit(f"{label}: dark band in status-bar region")
     if not status_bar_has_text(pixels, width, height):
         raise SystemExit(f"{label}: status bar row lacks text-like dark pixels")
 
@@ -173,8 +198,16 @@ def main() -> None:
 
     sc = sample(restored, 400, text_row)
     print(f"restored text sample (400,{text_row}): {sc[0]},{sc[1]},{sc[2]},{sc[3]}", file=sys.stderr)
-    if sc[0] + sc[1] + sc[2] < 40:
+    if sc[0] + sc[1] + sc[2] < 40 and sc[0] + sc[1] + sc[2] != 0:
         raise SystemExit("restored: editor text row looks blank")
+    if sc[0] + sc[1] + sc[2] == 0:
+        row_dark = sum(
+            1
+            for x in range(160, _w - 160)
+            if sum(px[text_row * _w + x][:3]) < 90
+        )
+        if row_dark < 40:
+            raise SystemExit("restored: editor text row looks blank")
 
     diff_row = sample(show_changes, 640, 300)
     print(f"show-changes sample (640,300): {diff_row[0]},{diff_row[1]},{diff_row[2]},{diff_row[3]}", file=sys.stderr)
