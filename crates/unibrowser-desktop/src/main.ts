@@ -4197,9 +4197,12 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           const recShowChangesCapture =
             recCapture && demoLower.includes("rec-capture-show-changes");
           if (recShowChangesCapture) {
-            const { waitForDiffHighlightPainted } = await import("./diffEditor");
-            const diffReady = await waitForDiffHighlightPainted();
-            if (!diffReady) {
+            const diffHost = document.getElementById("diff-editor-host");
+            if (
+              !diffHost ||
+              diffHost.classList.contains("hidden") ||
+              diffHost.dataset.diffHighlightPainted !== "1"
+            ) {
               await invoke("abort_doc_capture", {
                 reason: "REC show-changes capture requires visible diff insert highlights",
               });
