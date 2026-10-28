@@ -25,11 +25,12 @@ test.describe("Document mode captures", () => {
   }
 
   async function expectModeFooter(page: import("@playwright/test").Page) {
-    await expect(page.locator("#document-mode-inline-host [data-doc-mode]")).toHaveCount(4, {
+    await expect(page.locator("#document-mode-inline-host [data-doc-mode]")).toHaveCount(5, {
       timeout: 30_000,
     });
     await expect(page.locator('[data-doc-mode="wysiwyg"]')).toBeVisible();
     await expect(page.locator('[data-doc-mode="source"]')).toBeVisible();
+    await expect(page.locator('[data-doc-mode="live"]')).toBeVisible();
     await expect(page.locator('[data-doc-mode="split"]')).toBeVisible();
     await expect(page.locator('[data-doc-mode="reading"]')).toBeVisible();
   }

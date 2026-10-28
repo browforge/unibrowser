@@ -649,6 +649,10 @@ export const textEditor = {
     return editor;
   },
 
+  getActiveTextContent(): string | null {
+    return getActiveTextContent();
+  },
+
   getLineText(lineNumber: number): string | null {
     const model = editor?.getModel();
     if (!model || lineNumber < 1 || lineNumber > model.getLineCount()) {
@@ -871,6 +875,36 @@ export function navigateToTextByteRange(startByte: number, endByte: number) {
     endLineNumber: end.lineNumber,
     endColumn: end.column,
   });
+}
+
+export async function syncMarkdownLiveEditorMode(enabled: boolean): Promise<void> {
+  if (!editor || !monacoApi) {
+    return;
+  }
+  const { attachMarkdownLiveEditor, detachMarkdownLiveEditor } = await import(
+    "./markdownLiveEditor",
+  );
+  if (enabled) {
+    attachMarkdownLiveEditor(monacoApi, editor);
+  } else {
+    detachMarkdownLiveEditor();
+  }
+}
+
+export function setMonacoDocumentOffset(offset: number): boolean {
+  if (!editor) {
+    return false;
+  }
+  const model = editor.getModel();
+  if (!model) {
+    return false;
+  }
+  const clamped = Math.min(Math.max(0, offset), model.getValueLength());
+  const pos = model.getPositionAt(clamped);
+  editor.setPosition(pos);
+  editor.revealPositionInCenter(pos);
+  editor.focus();
+  return true;
 }
 
 if (typeof window !== "undefined") {

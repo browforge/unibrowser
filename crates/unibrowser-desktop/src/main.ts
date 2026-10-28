@@ -4367,6 +4367,11 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               railFlyoutWidth,
               dom: collectDocumentFeatureCaptureDom(),
               ...(blockPickerMetrics ? { blockPicker: blockPickerMetrics } : {}),
+              ...(await (async () => {
+                const { collectLiveBlockCaptureMetrics } = await import("./markdownLiveCapture");
+                const live = collectLiveBlockCaptureMetrics(demoLower);
+                return live ? { liveBlock: live } : {};
+              })()),
             }),
           });
           await invoke("finish_doc_capture_and_exit", { editorRegion });
