@@ -489,7 +489,6 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         checks.push(() => document.querySelectorAll("#tab-strip .tab, .title-tabs .tab").length >= 1);
         checks.push(recCaptureRecoveryBannerVisible);
         checks.push(recCaptureMonacoReady);
-        checks.push(recCaptureSpellReady);
         checks.push(recCaptureStatusBarReady);
         break;
       case "rec-capture-restored":
@@ -500,7 +499,6 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         });
         checks.push(recCaptureRecoveryBannerHidden);
         checks.push(recCaptureMonacoReady);
-        checks.push(recCaptureSpellReady);
         checks.push(recCaptureStatusBarReady);
         break;
       case "rec-capture-show-changes":
