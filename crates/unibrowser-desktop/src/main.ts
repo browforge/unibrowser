@@ -3856,8 +3856,8 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               demoLowerRec.includes("rec-capture") &&
               !demoLowerRec.includes("rec-capture-show-changes")
             ) {
-              const { ensureProofingApplied } = await import("./textEditor");
-              await ensureProofingApplied();
+              const { textEditor } = await import("./textEditor");
+              await textEditor.ensureProofingApplied();
               await new Promise((resolve) => window.setTimeout(resolve, 200));
             }
           }
