@@ -753,6 +753,13 @@
   "spellHits": 0,
   "documentCardFooter": "",
   "diffChangeCount": 1,
+  "spellTehRegion": null,
+  "diffLine4Region": {
+    "x": 708,
+    "y": 194,
+    "width": 555,
+    "height": 19
+  },
   "railFlyoutWidth": 0,
   "dom": {
     "visibleDocumentCardCount": 0,

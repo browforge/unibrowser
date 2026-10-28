@@ -186,6 +186,8 @@
   "autosave.restoreLatest": "Restore latest autosave into active tab",
   "autosave.restoreDone": "Restored the latest autosave slot into the active tab.",
   "diff.title": "Comparing files",
+  "diff.sideSavedFile": "Saved file",
+  "diff.sideRecoveredChanges": "Recovered changes",
   "diff.close": "Close compare",
   "diff.unified": "Unified",
   "diff.sideBySide": "Side by side",

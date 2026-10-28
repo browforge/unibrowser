@@ -499,6 +499,10 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
           const lines = host?.querySelectorAll(".monaco-diff-editor .view-lines");
           return Boolean(lines && lines.length >= 2);
         });
+        checks.push(() => {
+          const host = document.getElementById("diff-editor-host");
+          return host?.dataset.diffHighlightPainted === "1";
+        });
         checks.push(recCaptureStatusBarReady);
         break;
       default:

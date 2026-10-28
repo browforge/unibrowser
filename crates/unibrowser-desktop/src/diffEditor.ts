@@ -8,6 +8,160 @@ let monacoApi: Monaco | null = null;
 let diffEditor: DiffEditor | null = null;
 let hostEl: HTMLElement | null = null;
 let sideBySide = true;
+let diffLineDecorationIds: { original: string[]; modified: string[] } = {
+  original: [],
+  modified: [],
+};
+
+function isRecoveryPreviewPath(path: string): boolean {
+  const lower = path.toLowerCase();
+  return lower.includes("edit-recovery") || lower.includes("preview");
+}
+
+function diffSideLabel(path: string, side: "left" | "right"): string {
+  if (side === "left" && !isRecoveryPreviewPath(path)) {
+    return t("diff.sideSavedFile");
+  }
+  if (side === "right" && isRecoveryPreviewPath(path)) {
+    return t("diff.sideRecoveredChanges");
+  }
+  const base = path.split(/[/\\]/).pop();
+  return base && base.length > 0 ? base : path;
+}
+
+export function diffInsertLineCaptureRegion(
+  lineNumber: number,
+): { x: number; y: number; width: number; height: number } | null {
+  if (!diffEditor || !hostEl) {
+    return null;
+  }
+  const modified = diffEditor.getModifiedEditor();
+  const domNode = modified.getDomNode();
+  if (!domNode) {
+    return null;
+  }
+  const model = modified.getModel();
+  if (!model || lineNumber < 1 || lineNumber > model.getLineCount()) {
+    return null;
+  }
+  const pos = modified.getScrolledVisiblePosition({
+    lineNumber,
+    column: 2,
+  });
+  if (!pos) {
+    return null;
+  }
+  const editorRect = domNode.getBoundingClientRect();
+  const x = editorRect.left + 48;
+  const y = editorRect.top + pos.top;
+  const width = Math.max(40, editorRect.width - 64);
+  const height = Math.max(14, pos.height || 18);
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.round(width),
+    height: Math.round(height),
+  };
+}
+
+export async function waitForDiffHighlightPainted(timeoutMs = 8_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const host = hostEl ?? document.getElementById("diff-editor-host");
+    const changeCount = Number(host?.dataset.diffChangeCount ?? "0");
+    const painted = Boolean(
+      host?.querySelector(
+        ".monaco-diff-editor .line-insert, .monaco-diff-editor .char-insert, .monaco-diff-editor .ub-diff-insert-line, .monaco-diff-editor .view-line.ub-diff-insert-line",
+      ),
+    );
+    const insertLineNodes =
+      host?.querySelectorAll(
+        ".monaco-diff-editor .ub-diff-insert-line, .monaco-diff-editor .view-line.ub-diff-insert-line",
+      ).length ?? 0;
+    if (insertLineNodes > 0 || (painted && changeCount > 0)) {
+      return true;
+    }
+    if (diffEditor) {
+      const api = monacoApi ?? (await getMonaco());
+      const left = diffEditor.getOriginalEditor().getModel()?.getValue() ?? "";
+      const right = diffEditor.getModifiedEditor().getModel()?.getValue() ?? "";
+      paintDiffLineDecorations(api, diffEditor, left, right);
+    }
+    diffEditor?.layout();
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
+  }
+  const host = hostEl ?? document.getElementById("diff-editor-host");
+  return Boolean(
+    host?.querySelector(
+      ".monaco-diff-editor .line-insert, .monaco-diff-editor .char-insert, .monaco-diff-editor .ub-diff-insert-line, .monaco-diff-editor .view-line.ub-diff-insert-line",
+    ),
+  );
+}
+
+function paintDiffLineDecorations(
+  api: Monaco,
+  editor: DiffEditor,
+  leftContent?: string,
+  rightContent?: string,
+): void {
+  const changes = editor.getLineChanges() ?? [];
+  const original = editor.getOriginalEditor();
+  const modified = editor.getModifiedEditor();
+  const origDecos: MonacoEditorNS.IModelDeltaDecoration[] = [];
+  const modDecos: MonacoEditorNS.IModelDeltaDecoration[] = [];
+  if (changes.length > 0) {
+    for (const ch of changes) {
+      if (ch.originalEndLineNumber >= ch.originalStartLineNumber) {
+        for (let ln = ch.originalStartLineNumber; ln <= ch.originalEndLineNumber; ln += 1) {
+          origDecos.push({
+            range: new api.Range(ln, 1, ln, 1),
+            options: { isWholeLine: true, className: "ub-diff-delete-line" },
+          });
+        }
+      }
+      if (ch.modifiedEndLineNumber >= ch.modifiedStartLineNumber) {
+        for (let ln = ch.modifiedStartLineNumber; ln <= ch.modifiedEndLineNumber; ln += 1) {
+          modDecos.push({
+            range: new api.Range(ln, 1, ln, 1),
+            options: { isWholeLine: true, className: "ub-diff-insert-line" },
+          });
+        }
+      }
+    }
+  } else if (leftContent !== undefined && rightContent !== undefined) {
+    const leftLines = leftContent.replace(/\r\n/g, "\n").split("\n");
+    const rightLines = rightContent.replace(/\r\n/g, "\n").split("\n");
+    for (let i = 0; i < Math.max(leftLines.length, rightLines.length); i += 1) {
+      const ln = i + 1;
+      if ((leftLines[i] ?? "") !== (rightLines[i] ?? "")) {
+        if (ln <= original.getModel()!.getLineCount()) {
+          origDecos.push({
+            range: new api.Range(ln, 1, ln, 1),
+            options: { isWholeLine: true, className: "ub-diff-delete-line" },
+          });
+        }
+        if (ln <= modified.getModel()!.getLineCount()) {
+          modDecos.push({
+            range: new api.Range(ln, 1, ln, 1),
+            options: { isWholeLine: true, className: "ub-diff-insert-line" },
+          });
+        }
+      }
+    }
+  }
+  diffLineDecorationIds.original = original.deltaDecorations(
+    diffLineDecorationIds.original,
+    origDecos,
+  );
+  diffLineDecorationIds.modified = modified.deltaDecorations(
+    diffLineDecorationIds.modified,
+    modDecos,
+  );
+}
 
 async function getMonaco(): Promise<Monaco> {
   if (!monacoApi) {
@@ -76,13 +230,41 @@ export const diffEditorView = {
         style.textContent = `
 .monaco-diff-editor .line-insert,
 .monaco-diff-editor .char-insert,
-.monaco-diff-editor .insert-sign {
-  background-color: rgba(88, 124, 14, 0.28) !important;
+.monaco-diff-editor .insert-sign,
+.monaco-diff-editor .view-line.line-insert {
+  background-color: rgba(88, 124, 14, 0.38) !important;
 }
 .monaco-diff-editor .line-delete,
 .monaco-diff-editor .char-delete,
-.monaco-diff-editor .delete-sign {
-  background-color: rgba(161, 38, 13, 0.22) !important;
+.monaco-diff-editor .delete-sign,
+.monaco-diff-editor .view-line.line-delete {
+  background-color: rgba(161, 38, 13, 0.28) !important;
+}
+body[data-ub-doc-capture="1"] .monaco-diff-editor .line-insert,
+body[data-ub-doc-capture="1"] .monaco-diff-editor .char-insert,
+body[data-ub-doc-capture="1"] .monaco-diff-editor .view-line.line-insert {
+  background-color: #d9e8b8 !important;
+}
+body[data-ub-doc-capture="1"] .monaco-diff-editor .line-delete,
+body[data-ub-doc-capture="1"] .monaco-diff-editor .char-delete,
+body[data-ub-doc-capture="1"] .monaco-diff-editor .view-line.line-delete,
+body[data-ub-doc-capture="1"] .monaco-diff-editor .ub-diff-delete-line {
+  background-color: #f0d2cc !important;
+}
+
+.monaco-diff-editor .ub-diff-insert-line,
+.monaco-diff-editor .view-line.ub-diff-insert-line {
+  background-color: rgba(88, 124, 14, 0.38) !important;
+}
+
+.monaco-diff-editor .ub-diff-delete-line,
+.monaco-diff-editor .view-line.ub-diff-delete-line {
+  background-color: rgba(161, 38, 13, 0.28) !important;
+}
+
+body[data-ub-doc-capture="1"] .monaco-diff-editor .ub-diff-insert-line,
+body[data-ub-doc-capture="1"] .monaco-diff-editor .view-line.ub-diff-insert-line {
+  background-color: #d9e8b8 !important;
 }
 `;
         document.head.appendChild(style);
@@ -117,6 +299,7 @@ export const diffEditorView = {
         hideUnchangedRegions: { enabled: false },
         diffAlgorithm: "advanced",
         useInlineViewWhenSpaceIsLimited: false,
+        experimentalGpuAcceleration: "off",
       });
     }
     const titleEl = host.querySelector(".diff-title");
@@ -125,7 +308,7 @@ export const diffEditorView = {
       ".diff-layout-toggle",
     ) as HTMLButtonElement | null;
     if (titleEl) {
-      titleEl.textContent = `${view.left_path} ↔ ${view.right_path}`;
+      titleEl.textContent = `${diffSideLabel(view.left_path, "left")} ↔ ${diffSideLabel(view.right_path, "right")}`;
     }
     if (closeBtn) {
       closeBtn.textContent = t("diff.close");
@@ -146,9 +329,16 @@ export const diffEditorView = {
     }
     diffEditor!.setModel({ original: left, modified: right });
     diffEditor!.layout();
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    host.dataset.diffChangeCount = String(changedRows);
+    paintDiffLineDecorations(api, diffEditor!, view.left_content, view.right_content);
+    await waitForDiffHighlightPainted();
     const monacoChanges = diffEditor!.getLineChanges()?.length ?? 0;
     host.dataset.diffChangeCount = String(Math.max(changedRows, monacoChanges));
+    host.dataset.diffHighlightPainted = host.querySelector(
+      ".monaco-diff-editor .line-insert, .monaco-diff-editor .char-insert, .monaco-diff-editor .ub-diff-insert-line, .monaco-diff-editor .view-line.ub-diff-insert-line",
+    )
+      ? "1"
+      : "0";
     window.requestAnimationFrame(() => {
       diffEditor?.layout();
       window.requestAnimationFrame(() => diffEditor?.layout());

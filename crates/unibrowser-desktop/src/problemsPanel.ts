@@ -191,8 +191,32 @@ export function toggleProblemsPanel() {
 }
 
 export function refreshProblemsPanel() {
+  void syncProblemsStatusBar();
   const pane = document.getElementById("bottom-panel-problems-pane");
   if (pane && !pane.classList.contains("hidden")) {
     void refresh();
   }
+}
+
+/** Keep status bar Problems count in sync even when the bottom panel is closed. */
+export async function syncProblemsStatusBar(): Promise<number> {
+  const list = await invoke<ProblemDto[]>("list_problems_panel", {
+    severity: severityFilter || null,
+    source: sourceFilter || null,
+  });
+  const problemsTab = document.getElementById("bottom-panel-tab-problems");
+  if (problemsTab) {
+    problemsTab.textContent = list.length ? `Problems ${list.length}` : "Problems";
+  }
+  const countEl = document.getElementById("status-problems-count");
+  if (countEl) {
+    if (list.length) {
+      countEl.textContent = `${list.length} Problems`;
+      countEl.classList.remove("hidden");
+    } else {
+      countEl.classList.add("hidden");
+    }
+  }
+  patchStatusItem("document-problems", `Problems ${list.length}`);
+  return list.length;
 }

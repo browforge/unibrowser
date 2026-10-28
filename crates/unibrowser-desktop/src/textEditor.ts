@@ -14,8 +14,8 @@ import {
   clearEditorMarkers,
   focusNextProofingProblem,
   focusPreviousProofingProblem,
+  getProofingWordCaptureRegion,
   isProofingEnabled,
-  runEditorProofing,
   scheduleEditorProofing,
 } from "./proofing";
 import { applyMonacoEditorTheme, resolveEditorThemeId } from "./monacoEditorTheme";
@@ -620,14 +620,10 @@ export const textEditor = {
       return;
     }
     const surface = proofingSurfaceForPath(loadedPath, model.getLanguageId());
-    await runEditorProofing(monacoApi, editor, surface, model.getLanguageId());
-    const { refreshProblemsPanel } = await import("./problemsPanel");
-    await refreshProblemsPanel();
-    await new Promise<void>((resolve) => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => resolve());
-      });
-    });
+    const { waitForProofingDecorationsPainted } = await import("./proofing");
+    await waitForProofingDecorationsPainted(editor, surface, model.getLanguageId());
+    const { syncProblemsStatusBar } = await import("./problemsPanel");
+    await syncProblemsStatusBar();
   },
 
   focusNextProofingInEditor() {
@@ -640,6 +636,17 @@ export const textEditor = {
     if (editor) {
       focusPreviousProofingProblem(editor);
     }
+  },
+
+  getProofingWordCaptureRegion(needle: string) {
+    if (!editor) {
+      return null;
+    }
+    return getProofingWordCaptureRegion(editor, needle);
+  },
+
+  getMonacoEditor() {
+    return editor;
   },
 
   getLineText(lineNumber: number): string | null {
