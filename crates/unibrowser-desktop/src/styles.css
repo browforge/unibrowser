@@ -262,6 +262,41 @@ body {
   position: relative;
 }
 
+/* Diff insert/delete line highlights (same in app and REC captures). */
+.monaco-diff-editor .line-insert,
+.monaco-diff-editor .char-insert,
+.monaco-diff-editor .insert-sign,
+.monaco-diff-editor .view-line.line-insert,
+.monaco-diff-editor .ub-diff-insert-line,
+.monaco-diff-editor .view-line.ub-diff-insert-line {
+  background-color: rgba(88, 124, 14, 0.38) !important;
+}
+
+.monaco-diff-editor .line-delete,
+.monaco-diff-editor .char-delete,
+.monaco-diff-editor .delete-sign,
+.monaco-diff-editor .view-line.line-delete,
+.monaco-diff-editor .ub-diff-delete-line,
+.monaco-diff-editor .view-line.ub-diff-delete-line {
+  background-color: rgba(161, 38, 13, 0.28) !important;
+}
+
+[data-theme="light"] .monaco-diff-editor .line-insert,
+[data-theme="light"] .monaco-diff-editor .char-insert,
+[data-theme="light"] .monaco-diff-editor .view-line.line-insert,
+[data-theme="light"] .monaco-diff-editor .ub-diff-insert-line,
+[data-theme="light"] .monaco-diff-editor .view-line.ub-diff-insert-line {
+  background-color: #d9e8b8 !important;
+}
+
+[data-theme="light"] .monaco-diff-editor .line-delete,
+[data-theme="light"] .monaco-diff-editor .char-delete,
+[data-theme="light"] .monaco-diff-editor .view-line.line-delete,
+[data-theme="light"] .monaco-diff-editor .ub-diff-delete-line,
+[data-theme="light"] .monaco-diff-editor .view-line.ub-diff-delete-line {
+  background-color: #f0d2cc !important;
+}
+
 .tab-strip {
   display: flex;
   gap: 0.25rem;

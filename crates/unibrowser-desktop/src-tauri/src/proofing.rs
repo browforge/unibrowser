@@ -1,5 +1,6 @@
 //! Offline diagnostics / proofing (ADR 0021 host + ADR 0022 mods).
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
@@ -120,34 +121,106 @@ fn problem_source_priority(source: &str) -> u8 {
     }
 }
 
-/// Drop lower-priority diagnostics that overlap a higher-priority hit on the same bytes
-/// (e.g. Harper grammar warnings on a misspelling already reported by the spell checker).
-fn dedupe_overlapping_problems(mut problems: Vec<Problem>) -> Vec<Problem> {
-    problems.sort_by_key(|p| {
-        let range = problem_byte_range(p).unwrap_or((u32::MAX, u32::MAX));
-        (problem_source_priority(&p.source), range.0, range.1, p.message.clone())
-    });
-    let mut kept: Vec<Problem> = Vec::new();
-    for p in problems {
-        let Some(range) = problem_byte_range(&p) else {
-            kept.push(p);
-            continue;
-        };
-        if kept.iter().any(|k| {
-            problem_byte_range(k)
-                .map(|kr| ranges_overlap(range, kr))
-                .unwrap_or(false)
-        }) {
-            continue;
-        }
-        kept.push(p);
+/// Merge overlapping diagnostics into one row (one squiggle / Problems count) while
+/// keeping every checker’s suggestions for quick-fix.
+fn merge_overlapping_problems(problems: Vec<Problem>) -> Vec<Problem> {
+    let n = problems.len();
+    if n <= 1 {
+        return problems;
     }
-    kept.sort_by(|a, b| {
-        let ka = problem_byte_range(a).unwrap_or((0, 0));
-        let kb = problem_byte_range(b).unwrap_or((0, 0));
-        ka.cmp(&kb)
+    let mut parent: Vec<usize> = (0..n).collect();
+    fn find(parent: &mut [usize], i: usize) -> usize {
+        if parent[i] != i {
+            let root = find(parent, parent[i]);
+            parent[i] = root;
+            root
+        } else {
+            i
+        }
+    }
+    fn union(parent: &mut [usize], a: usize, b: usize) {
+        let ra = find(parent, a);
+        let rb = find(parent, b);
+        if ra != rb {
+            parent[rb] = ra;
+        }
+    }
+    for i in 0..n {
+        for j in (i + 1)..n {
+            if let (Some(ai), Some(aj)) =
+                (problem_byte_range(&problems[i]), problem_byte_range(&problems[j]))
+            {
+                if ranges_overlap(ai, aj) {
+                    union(&mut parent, i, j);
+                }
+            }
+        }
+    }
+    let mut groups: std::collections::HashMap<usize, Vec<Problem>> =
+        std::collections::HashMap::new();
+    for (i, p) in problems.into_iter().enumerate() {
+        groups.entry(find(&mut parent, i)).or_default().push(p);
+    }
+    let mut merged: Vec<Problem> = groups
+        .into_values()
+        .map(|members| merge_problem_cluster(&members))
+        .collect();
+    merged.sort_by(|a, b| problem_byte_range(a).cmp(&problem_byte_range(b)));
+    merged
+}
+
+fn merge_problem_cluster(members: &[Problem]) -> Problem {
+    let mut ordered: Vec<&Problem> = members.iter().collect();
+    ordered.sort_by_key(|p| {
+        (
+            problem_source_priority(&p.source),
+            problem_byte_range(p).unwrap_or((0, 0)),
+        )
     });
-    kept
+    let primary = ordered[0];
+    let mut suggestions: Vec<String> = Vec::new();
+    let mut seen_suggestions: HashSet<String> = HashSet::new();
+    let mut by_source = ordered.clone();
+    by_source.sort_by_key(|p| problem_source_priority(&p.source));
+    for p in by_source {
+        for s in &p.suggestions {
+            let key = s.trim().to_ascii_lowercase();
+            if key.is_empty() || !seen_suggestions.insert(key) {
+                continue;
+            }
+            suggestions.push(s.clone());
+        }
+    }
+    let mut code_actions = primary.code_actions.clone();
+    for p in ordered.iter().skip(1) {
+        for action in &p.code_actions {
+            if !code_actions.iter().any(|a| a.title == action.title && a.kind == action.kind) {
+                code_actions.push(action.clone());
+            }
+        }
+    }
+    let severity = ordered
+        .iter()
+        .map(|p| p.severity)
+        .max_by_key(|s| match s {
+            Severity::Error => 3,
+            Severity::Warning => 2,
+            Severity::Information => 1,
+            Severity::Hint => 0,
+        })
+        .unwrap_or(primary.severity);
+    let mut sources: Vec<String> = ordered.iter().map(|p| p.source.clone()).collect();
+    sources.sort();
+    sources.dedup();
+    Problem {
+        id: primary.id.clone(),
+        source: sources.join(" · "),
+        severity,
+        message: primary.message.clone(),
+        locator: primary.locator.clone(),
+        suggestions,
+        code_actions,
+    }
 }
 
 fn dto(p: &Problem) -> Option<DiagnosticDto> {
@@ -159,10 +232,10 @@ fn dto(p: &Problem) -> Option<DiagnosticDto> {
         } => (*start_byte, *end_byte),
         _ => return None,
     };
-    let kind = if p.source.contains("grammar") || p.source.contains("harper") {
-        "grammar".into()
-    } else if p.source.contains("spell") {
+    let kind = if p.source.contains("spell") {
         "spelling".into()
+    } else if p.source.contains("grammar") || p.source.contains("harper") {
+        "grammar".into()
     } else {
         match p.severity {
             Severity::Error | Severity::Warning => "grammar".into(),
@@ -216,7 +289,7 @@ pub fn proofing_check(
             problems.extend(lsp_problems);
         }
     }
-    problems = dedupe_overlapping_problems(problems);
+    problems = merge_overlapping_problems(problems);
     crate::problems_store::set_problems_from_proofing(problems.clone());
     Ok(problems.iter().filter_map(dto).collect())
 }
@@ -429,7 +502,7 @@ mod rec_capture_proofing_tests {
     }
 
     #[test]
-    fn rec_capture_banner_dedupes_grammar_on_misspelling_to_one_problem() {
+    fn rec_capture_banner_merges_spell_and_grammar_overlap_with_all_suggestions() {
         let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../e2e/fixtures/spell-test.txt");
         let banner = std::fs::read_to_string(&fixture).expect("spell-test fixture");
@@ -447,15 +520,46 @@ mod rec_capture_proofing_tests {
             "expected spell + grammar overlap on 'teh', got {}",
             raw.len()
         );
-        let deduped = super::dedupe_overlapping_problems(raw);
+        let merged = super::merge_overlapping_problems(raw.clone());
         assert_eq!(
-            deduped.len(),
+            merged.len(),
             1,
             "expected one visible problem for banner text, got {:?}",
-            deduped
+            merged
                 .iter()
                 .map(|p| format!("{}: {}", p.source, p.message))
                 .collect::<Vec<_>>()
+        );
+        let grammar_suggestions: Vec<String> = raw
+            .iter()
+            .filter(|p| p.source.contains("harper") || p.source.contains("grammar"))
+            .flat_map(|p| p.suggestions.clone())
+            .collect();
+        let spell_suggestions: Vec<String> = raw
+            .iter()
+            .filter(|p| p.source.contains("spell"))
+            .flat_map(|p| p.suggestions.clone())
+            .collect();
+        assert!(
+            !grammar_suggestions.is_empty() && !spell_suggestions.is_empty(),
+            "fixture must expose grammar and spelling suggestions"
+        );
+        let merged_suggestions = &merged[0].suggestions;
+        for s in grammar_suggestions {
+            assert!(
+                merged_suggestions.iter().any(|m| m.eq_ignore_ascii_case(&s)),
+                "merged problem missing grammar suggestion {s:?}: {merged_suggestions:?}"
+            );
+        }
+        for s in spell_suggestions {
+            assert!(
+                merged_suggestions.iter().any(|m| m.eq_ignore_ascii_case(&s)),
+                "merged problem missing spelling suggestion {s:?}: {merged_suggestions:?}"
+            );
+        }
+        assert!(
+            merged_suggestions.iter().any(|s| s.eq_ignore_ascii_case("the")),
+            "expected definite-article fix among suggestions: {merged_suggestions:?}"
         );
     }
 }

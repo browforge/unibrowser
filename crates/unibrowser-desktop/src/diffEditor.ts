@@ -224,51 +224,6 @@ export const diffEditorView = {
       body.className = "diff-monaco-host";
       host.appendChild(toolbar);
       host.appendChild(body);
-      if (!document.getElementById("rec-diff-insert-style")) {
-        const style = document.createElement("style");
-        style.id = "rec-diff-insert-style";
-        style.textContent = `
-.monaco-diff-editor .line-insert,
-.monaco-diff-editor .char-insert,
-.monaco-diff-editor .insert-sign,
-.monaco-diff-editor .view-line.line-insert {
-  background-color: rgba(88, 124, 14, 0.38) !important;
-}
-.monaco-diff-editor .line-delete,
-.monaco-diff-editor .char-delete,
-.monaco-diff-editor .delete-sign,
-.monaco-diff-editor .view-line.line-delete {
-  background-color: rgba(161, 38, 13, 0.28) !important;
-}
-body[data-ub-doc-capture="1"] .monaco-diff-editor .line-insert,
-body[data-ub-doc-capture="1"] .monaco-diff-editor .char-insert,
-body[data-ub-doc-capture="1"] .monaco-diff-editor .view-line.line-insert {
-  background-color: #d9e8b8 !important;
-}
-body[data-ub-doc-capture="1"] .monaco-diff-editor .line-delete,
-body[data-ub-doc-capture="1"] .monaco-diff-editor .char-delete,
-body[data-ub-doc-capture="1"] .monaco-diff-editor .view-line.line-delete,
-body[data-ub-doc-capture="1"] .monaco-diff-editor .ub-diff-delete-line {
-  background-color: #f0d2cc !important;
-}
-
-.monaco-diff-editor .ub-diff-insert-line,
-.monaco-diff-editor .view-line.ub-diff-insert-line {
-  background-color: rgba(88, 124, 14, 0.38) !important;
-}
-
-.monaco-diff-editor .ub-diff-delete-line,
-.monaco-diff-editor .view-line.ub-diff-delete-line {
-  background-color: rgba(161, 38, 13, 0.28) !important;
-}
-
-body[data-ub-doc-capture="1"] .monaco-diff-editor .ub-diff-insert-line,
-body[data-ub-doc-capture="1"] .monaco-diff-editor .view-line.ub-diff-insert-line {
-  background-color: #d9e8b8 !important;
-}
-`;
-        document.head.appendChild(style);
-      }
       const theme =
         document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark";
       const diffThemeId = "unibrowser-rec-diff";
@@ -278,9 +233,11 @@ body[data-ub-doc-capture="1"] .monaco-diff-editor .view-line.ub-diff-insert-line
         rules: [],
         colors: {
           "diffEditor.insertedTextBackground": "#587c0e33",
-          "diffEditor.insertedLineBackground": "#587c0e40",
+          "diffEditor.insertedLineBackground":
+            theme === "vs" ? "#d9e8b8" : "#587c0e40",
           "diffEditor.removedTextBackground": "#a1260d33",
-          "diffEditor.removedLineBackground": "#a1260d40",
+          "diffEditor.removedLineBackground":
+            theme === "vs" ? "#f0d2cc" : "#a1260d40",
           "editor.background": theme === "vs" ? "#faf9f6" : "#1e1e24",
         },
       });
