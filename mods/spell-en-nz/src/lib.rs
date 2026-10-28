@@ -46,7 +46,8 @@ impl NativeDiagnosticsChecker for SpellEnNzChecker {
             if dict.should_suppress_spelling(&word.token) {
                 continue;
             }
-            if dict_mut.check(&word.token) {
+            let lower = word.token.to_lowercase();
+            if dict_mut.check(&word.token) || dict_mut.check(&lower) {
                 continue;
             }
             let mut suggestions = Vec::new();
@@ -70,6 +71,19 @@ struct WordSpan {
     start: u32,
     end: u32,
     token: String,
+}
+
+#[cfg(test)]
+mod bundled_dict_tests {
+    use super::*;
+
+    #[test]
+    fn bundled_dictionary_recognizes_common_words() {
+        let checker = SpellEnNzChecker::with_bundled().expect("bundled dictionary");
+        let mut dict = checker.dictionary.clone();
+        assert!(dict.check("quick"));
+        assert!(!dict.check("teh"));
+    }
 }
 
 fn split_words(text: &str) -> Vec<WordSpan> {

@@ -148,13 +148,15 @@ pub fn proofing_check(
     };
     let doc_uri = format!("unibrowser://proofing/{}", req.surface);
     let mut problems = h.check_text_document(&doc_uri, &req.text, &ctx);
-    if let Ok(lsp_problems) = crate::lsp_host::lsp_check_text_cached(
-        &state.cwd,
-        &doc_uri,
-        &ctx.language_id,
-        &req.text,
-    ) {
-        problems.extend(lsp_problems);
+    if req.surface == "code" {
+        if let Ok(lsp_problems) = crate::lsp_host::lsp_check_text_cached(
+            &state.cwd,
+            &doc_uri,
+            &ctx.language_id,
+            &req.text,
+        ) {
+            problems.extend(lsp_problems);
+        }
     }
     crate::problems_store::set_problems_from_proofing(problems.clone());
     Ok(problems.iter().filter_map(dto).collect())
@@ -324,4 +326,46 @@ fn sorted_set(set: &std::collections::HashSet<String>) -> Vec<String> {
     let mut v: Vec<String> = set.iter().cloned().collect();
     v.sort();
     v
+}
+
+#[cfg(test)]
+mod rec_capture_proofing_tests {
+    use super::*;
+
+    #[test]
+    fn spell_test_fixture_flags_only_teh() {
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../e2e/fixtures/spell-test.txt");
+        let text = std::fs::read_to_string(&fixture).expect("spell-test fixture");
+        let recovered = format!(
+            "{}\n\nRecovered unsaved paragraph for REC capture.\n",
+            text.trim_end()
+        );
+        let h = host().expect("host");
+        let mut h = h.lock().expect("lock");
+        h.set_dictionary(DictionarySnapshot::default());
+        let ctx = TextCheckContext {
+            language_id: "en-NZ".into(),
+            grammar_enabled: false,
+            code_mode: false,
+        };
+        let problems = h.check_text_document("doc", &recovered, &ctx);
+        let spell_hits: Vec<String> = problems
+            .iter()
+            .filter(|p| p.source.contains("spell"))
+            .filter_map(|p| {
+                if let Locator::TextRange { start_byte, end_byte, .. } = p.locator {
+                    Some(recovered[start_byte as usize..end_byte as usize].to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(
+            spell_hits,
+            vec!["teh".to_string()],
+            "unexpected spell hits: {:?}",
+            spell_hits
+        );
+    }
 }

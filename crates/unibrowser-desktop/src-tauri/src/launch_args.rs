@@ -163,6 +163,11 @@ pub fn resolve_capture_path(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn peek_launch_open_paths() -> Vec<String> {
+    launch_open_paths_snapshot()
+}
+
+#[tauri::command]
 pub fn take_launch_open_paths() -> Vec<String> {
     launch_open_paths()
         .lock()
@@ -317,23 +322,19 @@ pub fn finish_doc_capture_and_exit(
         .and_then(|d| d.clone())
         .ok_or("doc capture path not configured")?;
     eprintln!("[doc-capture] finish requested -> {}", path.display());
-    // IPC may run on the GTK main thread; never block it waiting for capture (deadlock). Defer like self-test.
     let app2 = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(80));
-        let app_main = app2.clone();
-        let _ = app2.run_on_main_thread(move || {
-            match write_doc_capture_png_inner(&app_main, &path, editor_region.as_ref()) {
-                Ok(()) => {
-                    eprintln!("[doc-capture] wrote {}", path.display());
-                    std::process::exit(0);
-                }
-                Err(e) => {
-                    eprintln!("[doc-capture] failed: {}", e);
-                    std::process::exit(3);
-                }
+        match write_doc_capture_png_inner(&app2, &path, editor_region.as_ref()) {
+            Ok(()) => {
+                eprintln!("[doc-capture] wrote {}", path.display());
+                std::process::exit(0);
             }
-        });
+            Err(e) => {
+                eprintln!("[doc-capture] failed: {}", e);
+                std::process::exit(3);
+            }
+        }
     });
     Ok(())
 }

@@ -59,6 +59,62 @@ export async function applyDeferredTextToolbarDemoTokens(raw: string): Promise<v
   }
 }
 
+/** Lightweight demo tokens for `--doc-capture` (session tabs are prepared in Rust). */
+export async function applyDocCaptureDemoTokens(raw: string): Promise<void> {
+  const tokens = raw
+    .split(/[,;]+/)
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+  for (const token of tokens) {
+    switch (token) {
+      case "capture-ready":
+        applyThemeFromDemoState(raw.toLowerCase());
+        break;
+      case "rail-collapsed": {
+        const { setRailMode } = await import("./ui/activityRail");
+        setRailMode("collapsed");
+        break;
+      }
+      case "rail-expanded": {
+        const { setRailMode } = await import("./ui/activityRail");
+        setRailMode("expanded");
+        break;
+      }
+      case "cm-collapsed":
+        document.body.classList.add("cm-collapsed");
+        break;
+      case "theme-light":
+        applyThemeOverride("light");
+        break;
+      case "theme-dark":
+        applyThemeOverride("dark");
+        break;
+      case "scale-100": {
+        const { applyUiScaleToDocument } = await import("./accessibility");
+        applyUiScaleToDocument(100);
+        break;
+      }
+      case "scale-150": {
+        const { applyUiScaleToDocument } = await import("./accessibility");
+        applyUiScaleToDocument(150);
+        break;
+      }
+      case "standard-contrast": {
+        const { applyHighContrastToDocument } = await import("./accessibility");
+        applyHighContrastToDocument(false);
+        break;
+      }
+      case "high-contrast": {
+        const { applyHighContrastToDocument } = await import("./accessibility");
+        applyHighContrastToDocument(true);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+}
+
 /** Hidden preset for docs screenshots (`UNIBROWSER_DEMO_STATE`, comma-separated). */
 export async function applyDemoState(raw: string) {
   const tokens = raw
@@ -513,7 +569,17 @@ export async function applyDemoState(raw: string) {
         break;
       }
       case "ntp":
-        await invoke("new_tab", {});
+        if (document.body.dataset.ubDocCapture === "1") {
+          const apply = (
+            window as unknown as { __unibrowserApplyState?: (data: unknown) => Promise<void> }
+          ).__unibrowserApplyState;
+          if (apply) {
+            const opened = await invoke("get_browser_state");
+            await apply(opened);
+          }
+        } else {
+          await invoke("new_tab", {});
+        }
         break;
       case "new-project-ntp":
       case "new-project-capture-ntp":
@@ -933,6 +999,10 @@ export async function applyDemoState(raw: string) {
       }
       case "capture-ready":
         await invoke("seed_demo_ntp_fixture_cmd").catch(() => undefined);
+        if (document.body.dataset.ubDocCapture === "1") {
+          applyThemeFromDemoState(demoRaw);
+          break;
+        }
         await invoke("clear_command_manager_context_pin").catch(() => undefined);
         for (const ctx of ["ntp", "pdf", "image"] as const) {
           try {

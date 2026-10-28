@@ -79,11 +79,7 @@ void invoke<string | null>("take_doc_capture_path").then((docCapture) => {
   void import("./docCaptureTrace").then(({ installDocCaptureConsoleForwarder }) => {
     installDocCaptureConsoleForwarder();
   });
-  const pushAudit = () => {
-    void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
-    window.setTimeout(pushAudit, 200);
-  };
-  pushAudit();
+  void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
 });
 
 import { commandManager, getStatusContextMode } from "./commandManager";
@@ -3523,39 +3519,58 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
       }
     }
     const runShellBootstrap = async () => {
-      await loadThemePreference();
-      mountActivityRail();
-      const launchPaths = await invoke<string[]>("take_launch_open_paths");
+      const { traceDocCaptureStep } = await import("./docCaptureTrace");
+      traceDocCaptureStep("bootstrap", "begin");
       const docCapturePath = await invoke<string | null>("take_doc_capture_path");
+      traceDocCaptureStep("bootstrap", `docCapturePath=${docCapturePath ?? "null"}`);
       if (docCapturePath) {
         document.body.dataset.ubDocCapture = "1";
+      } else {
+        await loadThemePreference();
       }
+      mountActivityRail();
+      traceDocCaptureStep("bootstrap", "activity-rail");
+      const launchPaths = docCapturePath
+        ? await invoke<string[]>("peek_launch_open_paths")
+        : await invoke<string[]>("take_launch_open_paths");
+      traceDocCaptureStep("bootstrap", `launchPaths=${launchPaths.length}`);
       const demo = await invoke<string | null>("get_demo_state");
+      traceDocCaptureStep("bootstrap", `demo=${demo?.slice(0, 40) ?? "null"}`);
       if (demo) {
         document.body.dataset.ubDemoTokens = demo.toLowerCase();
         applyThemeFromDemoState(demo);
-        if (demo.toLowerCase().includes("theme-light") || demo.toLowerCase().includes("theme-dark")) {
+        const demoLower = demo.toLowerCase();
+        const captureNeedsMonaco =
+          !docCapturePath &&
+          (launchPathsNeedEditor(launchPaths) || demoLower.includes("rec-capture"));
+        if (
+          captureNeedsMonaco &&
+          (demoLower.includes("theme-light") || demoLower.includes("theme-dark"))
+        ) {
           const { applyMonacoEditorTheme } = await import("./monacoEditorTheme");
           await applyMonacoEditorTheme("auto");
         }
       }
-      for (const p of launchPaths) {
-        try {
-          const resolved = await resolveCaptureOpenPath(p);
-          const opened = await invoke<TabContentDto>("open_path", {
-            path: resolved,
-            line: null,
-          });
-          if (opened) {
-            await applyState(opened);
+      if (!docCapturePath) {
+        for (const p of launchPaths) {
+          try {
+            const resolved = await resolveCaptureOpenPath(p);
+            const opened = await invoke<TabContentDto>("open_path", {
+              path: resolved,
+              line: null,
+            });
+            if (opened) {
+              await applyState(opened);
+            }
+          } catch {
+            /* argv open failures surface via toast on next interaction */
           }
-        } catch {
-          /* argv open failures surface via toast on next interaction */
         }
       }
       const demoForLaunch = demo?.toLowerCase() ?? "";
       if (
         launchPaths.length > 0 &&
+        !docCapturePath &&
         !(docCapturePath && demoForLaunch.includes("doc-visual-md-docx"))
       ) {
         await refreshState();
@@ -3579,7 +3594,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
           reportSubsystemError("web-demo-pack", err);
         }
       }
-      if (demo) {
+      if (demo && !docCapturePath) {
         try {
           const bootstrap = bootstrapDemoStateTokens(demo);
           if (bootstrap) {
@@ -3630,8 +3645,10 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
       }
       const docCapture = docCapturePath;
       if (docCapture) {
+        const { traceDocCaptureStep } = await import("./docCaptureTrace");
+        traceDocCaptureStep("bootstrap", "doc-capture-block");
         document.body.dataset.ubDocCapture = "1";
-        const demoAgain = await invoke<string | null>("get_demo_state");
+        const demoAgain = demo;
         if (demoAgain?.toLowerCase().includes("cmd-proving-detached")) {
           return;
         }
@@ -3640,9 +3657,12 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             const demoTokens = demoAgain.toLowerCase();
             const bootstrapDemo = bootstrapDemoStateTokens(demoAgain);
             if (bootstrapDemo) {
-              await applyDemoState(bootstrapDemo);
+              if (demoTokens.includes("cm-collapsed")) {
+                document.body.classList.add("cm-collapsed");
+              }
+              applyThemeFromDemoState(demoAgain);
               if (!demoTokens.includes("doc-visual-md-docx")) {
-                await refreshState();
+                await new Promise((resolve) => window.setTimeout(resolve, 4500));
               }
             }
             const proofControl = demoTokens.includes("cmd11-plain-proof")
@@ -4263,7 +4283,12 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
         void applyState(data as TabContentDto);
       });
     };
-    void refreshState().then(runShellBootstrap);
+    const docPathForBootstrap = await invoke<string | null>("take_doc_capture_path");
+    if (docPathForBootstrap) {
+      void runShellBootstrap();
+    } else {
+      void refreshState().then(runShellBootstrap);
+    }
   }
   if (toolbarOnly) {
     return;

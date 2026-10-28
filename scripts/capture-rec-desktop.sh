@@ -44,7 +44,9 @@ capture_rec() {
 
 capture_rec "rec-recovery-banner" "${BASE},rec-capture-banner"
 capture_rec "rec-restored-document" "${BASE},rec-capture-restored"
+capture_rec "rec-recovery-show-changes" "${BASE},rec-capture-show-changes"
 # pkg fast path handles rec-capture-* tokens (see pkgDocCapture.ts).
 cp "$OUT/rec-recovery-banner.png" "$ART/rec-recovery-banner.png" || true
 cp "$OUT/rec-restored-document.png" "$ART/rec-restored-document.png" || true
+cp "$OUT/rec-recovery-show-changes.png" "$ART/rec-recovery-show-changes.png" || true
 python3 "${ROOT}/scripts/check-rec-capture-pixels.py"

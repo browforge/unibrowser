@@ -201,28 +201,25 @@ pub fn self_test_finish(app: AppHandle, report: SelfTestReportDto) -> Result<(),
 pub fn schedule_run(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(8));
-        eprintln!("[self-test] scheduling scenarios on main thread");
+        eprintln!("[self-test] running scenarios");
         let app2 = app.clone();
-        let _ = app.run_on_main_thread(move || {
-            eprintln!("[self-test] on main thread");
-            let report = match run_all_scenarios(&app2) {
-                Ok(r) => r,
-                Err(e) => {
-                    eprintln!("[self-test] scenario error: {}", e);
-                    SelfTestReportDto {
-                        ok: false,
-                        scenarios: vec![ScenarioResultDto {
-                            id: "runner".into(),
-                            passed: false,
-                            message: Some(e),
-                            screenshot: None,
-                        }],
-                        at_ms: now_ms(),
-                    }
+        let report = match run_all_scenarios(&app2) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("[self-test] scenario error: {}", e);
+                SelfTestReportDto {
+                    ok: false,
+                    scenarios: vec![ScenarioResultDto {
+                        id: "runner".into(),
+                        passed: false,
+                        message: Some(e),
+                        screenshot: None,
+                    }],
+                    at_ms: now_ms(),
                 }
-            };
-            write_report_and_exit(app2, report);
-        });
+            }
+        };
+        write_report_and_exit(app2, report);
     });
 }
 

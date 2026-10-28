@@ -129,7 +129,7 @@ pub fn backup_id_for_path(path: &str) -> String {
 
 pub fn seed_capture_demo_for_path(path: &str, backend_id: &str, disk: &[u8]) -> Result<(), String> {
     let recovered = format!(
-        "{}\n# recovered unsaved paragraph for REC capture\n",
+        "{}\n\nRecovered unsaved paragraph for REC capture.\n",
         String::from_utf8_lossy(disk)
     );
     let dir = journal_dir().ok_or("config path unavailable")?;

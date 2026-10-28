@@ -49,9 +49,12 @@ use crate::webview::{
     reset_page_font_for_url, reset_page_zoom_for_url, sync_content_bounds,
     sync_content_webview_for_window,
 };
-/// Avoid main-thread deadlock: self-test runs `open_path` on the UI thread while JS `refreshState` would `invoke` back.
+/// Avoid main-thread deadlock: self-test and doc-capture run `open_path` on the UI thread while JS `refreshState` would `invoke` back.
 pub(crate) fn maybe_emit_browser_state_updated(app: &AppHandle) {
     if std::env::var("UNIBROWSER_SELF_TEST").as_deref() == Ok("1") {
+        return;
+    }
+    if crate::launch_args::is_doc_capture_mode() {
         return;
     }
     let _ = app.emit("browser-state-updated", ());
@@ -2254,52 +2257,32 @@ pub fn open_path(
     snapshot(&state, window.label())
 }
 
-/// Open launch `--open` paths for REC doc-capture before the shell webview runs JS `open_path`
-/// (which can block while the content webview is still starting).
-pub fn prime_rec_doc_capture_for_launch(app: &AppHandle, state: &AppState) -> Result<(), String> {
+const REC_CAPTURE_FIXTURE: &str = "e2e/fixtures/spell-test.txt";
+
+/// Build REC doc-capture session state (tabs, recovery bar, editor) without blocking on the content webview.
+#[tauri::command]
+pub fn rec_capture_sync_shell(
+    window: tauri::Window,
+    app: AppHandle,
+    state: State<AppState>,
+) -> Result<TabContentDto, String> {
     if !crate::launch_args::is_doc_capture_mode() {
-        return Ok(());
+        return snapshot(&state, window.label());
     }
     let wants_banner = crate::launch_args::demo_state_contains("rec-capture-banner");
     let wants_restored = crate::launch_args::demo_state_contains("rec-capture-restored");
-    if !wants_banner && !wants_restored {
-        return Ok(());
+    let wants_show = crate::launch_args::demo_state_contains("rec-capture-show-changes");
+    if !wants_banner && !wants_restored && !wants_show {
+        return snapshot(&state, window.label());
     }
-    let window = app.get_window("main").ok_or("main window missing")?;
-    let label = window.label();
-    for open in crate::launch_args::launch_open_paths_snapshot() {
-        let resolved = crate::launch_args::resolve_capture_path_str(&open).unwrap_or(open);
-        open_path_file_without_content_webview(app, state, label, &resolved)?;
-    }
+    let path = crate::launch_args::launch_open_paths_snapshot()
+        .first()
+        .cloned()
+        .map(|p| crate::launch_args::resolve_capture_path_str(&p).unwrap_or(p))
+        .unwrap_or_else(|| REC_CAPTURE_FIXTURE.to_string());
+    open_path_file_without_content_webview(&app, state.inner(), window.label(), &path)?;
     let _ = crate::launch_args::take_launch_open_paths();
-    Ok(())
-}
-
-#[tauri::command]
-pub fn rec_capture_restored_text_document(
-    path: String,
-    state: State<AppState>,
-) -> Result<TextDocumentDto, String> {
-    if !crate::launch_args::is_doc_capture_mode()
-        || !crate::launch_args::demo_state_contains("rec-capture-restored")
-    {
-        return Err("not a rec restored capture".into());
-    }
-    let file_path = resolve_open_path(&path, &state.cwd)?;
-    let disk = std::fs::read(&file_path).map_err(|e| e.to_string())?;
-    let content = format!(
-        "{}\n# recovered unsaved paragraph for REC capture\n",
-        String::from_utf8_lossy(&disk)
-    );
-    Ok(TextDocumentDto {
-        path,
-        content,
-        font_size_pt: 14.0,
-        language: "plaintext".into(),
-        dirty: true,
-        encoding: "utf-8".into(),
-        reveal_line: None,
-    })
+    snapshot(&state, window.label())
 }
 
 fn open_path_file_without_content_webview(
@@ -2338,7 +2321,8 @@ fn apply_rec_capture_demo_if_requested(
     }
     let wants_banner = crate::launch_args::demo_state_contains("rec-capture-banner");
     let wants_restored = crate::launch_args::demo_state_contains("rec-capture-restored");
-    if !wants_banner && !wants_restored {
+    let wants_show = crate::launch_args::demo_state_contains("rec-capture-show-changes");
+    if !wants_banner && !wants_restored && !wants_show {
         return Ok(());
     }
     let disk = std::fs::read(file_path).map_err(|e| e.to_string())?;
@@ -2358,9 +2342,18 @@ fn apply_rec_capture_demo_if_requested(
         base_text::BACKEND_ID
     };
     crate::edit_recovery::seed_capture_demo_for_path(&doc_path, backend_id, &disk)?;
+    let id = crate::edit_recovery::backup_id_for_path(&doc_path);
     if wants_restored {
-        let id = crate::edit_recovery::backup_id_for_path(&doc_path);
         crate::crash_launch::restore_recovery_item(state, window_label, app, &id)?;
+    } else if wants_show {
+        let preview = crate::edit_recovery::write_recovery_preview(&id)?;
+        let right = preview.to_string_lossy().into_owned();
+        let _sess_cmp = ws_label(state, window_label)?;
+        let mut cmp = _sess_cmp.file_compare.lock().map_err(|e| e.to_string())?;
+        *cmp = Some(FileCompareState {
+            left_path: doc_path,
+            right_path: right,
+        });
     }
     Ok(())
 }
@@ -6989,7 +6982,7 @@ pub fn edit_recovery_seed_capture_demo(
     let resolved = resolve_open_path(&doc_path, &state.cwd)?;
     let disk = std::fs::read(&resolved).map_err(|e| e.to_string())?;
     let recovered = format!(
-        "{}\n# recovered unsaved paragraph for REC capture\n",
+        "{}\n\nRecovered unsaved paragraph for REC capture.\n",
         String::from_utf8_lossy(&disk)
     );
     if let Some(dir) = crate::edit_recovery::journal_dir() {
@@ -7410,9 +7403,9 @@ pub fn record_diagnostic_error(message: String, details: Option<String>) {
 pub fn log_shell_ui_event(level: String, message: String, detail: Option<String>) {
     let tag = format!("[shell-ui:{}]", message.trim());
     let lvl = level.trim().to_ascii_lowercase();
-    if message.trim() == "doc-capture-diagnostics" {
+    if message.trim() == "doc-capture-diagnostics" || message.trim() == "doc-capture-trace" {
         if let Some(d) = &detail {
-            eprintln!("[doc-capture] diagnostics {}", d);
+            eprintln!("[doc-capture] {}", d);
         }
     }
     if lvl == "info" || lvl == "debug" {

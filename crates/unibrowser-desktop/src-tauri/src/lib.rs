@@ -161,13 +161,10 @@ pub fn run() {
             }
             if let Some(state) = app.try_state::<AppState>() {
                 if doc_capture {
-                    if launch_args::demo_state_contains("rec-capture-banner") {
-                        if let Err(error) =
-                            commands::prime_rec_doc_capture_for_launch(app.handle(), state.inner())
-                        {
-                            eprintln!("rec doc-capture prime: {}", error);
-                        }
+                    if let Err(error) = doc_capture::prepare_doc_capture_session(app.handle(), state.inner()) {
+                        eprintln!("doc capture session prep: {}", error);
                     }
+                    doc_capture::schedule_shell_state_sync(app.handle().clone());
                 }
                 if !e2e && !self_test && !doc_capture {
                     commands::restore_session_on_launch(state.inner(), app.handle())?;
@@ -242,7 +239,7 @@ pub fn run() {
             commands::restore_recovery_bar_item,
             commands::show_recovery_changes,
             commands::edit_recovery_seed_capture_demo,
-            commands::rec_capture_restored_text_document,
+            commands::rec_capture_sync_shell,
             commands::search_open_tabs,
             commands::activate_tab_in_window,
             commands::open_crash_logs_folder,
@@ -553,6 +550,7 @@ pub fn run() {
             commands::get_csv_preview,
             commands::search_open_vsx_catalog,
             rhai_host::describe_rhai_script,
+            launch_args::peek_launch_open_paths,
             launch_args::take_launch_open_paths,
             launch_args::resolve_capture_path,
             launch_args::get_demo_state,
