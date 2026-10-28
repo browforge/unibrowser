@@ -1,3 +1,5 @@
+import { liveCaptureCursorFromDemo, liveCaptureMarkersMatchDom } from "./markdownLiveBlock";
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -505,6 +507,15 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         });
         checks.push(recCaptureStatusBarReady);
         break;
+      case "live-cursor-outside":
+      case "live-cursor-in-heading":
+      case "live-cursor-in-bold":
+        checks.push(richTextDocumentReady);
+        checks.push(() => {
+          const kind = liveCaptureCursorFromDemo(demoRaw ?? "");
+          return kind !== null && liveCaptureMarkersMatchDom(kind);
+        });
+        break;
       default:
         break;
     }
@@ -533,7 +544,8 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
   } else if (
     tokens.includes("doc-mode-wysiwyg") ||
     tokens.includes("doc-mode-reading") ||
-    tokens.includes("doc-visual-md-docx")
+    tokens.includes("doc-visual-md-docx") ||
+    tokens.some((t) => t.startsWith("live-cursor-"))
   ) {
     checks.push(richTextDocumentReady);
   } else if (tokens.includes("doc-mode-split")) {

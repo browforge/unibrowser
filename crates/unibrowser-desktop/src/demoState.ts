@@ -7,7 +7,7 @@ import { isToolbarOnlyWindow } from "./toolbarOnly";
 
 /** Tokens that need editor/compact toolbar ready (also deferred in doc-capture). */
 export const DEFERRED_DEMO_TOKEN_RE =
-  /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$|doc-visual-md-docx$|doc-history-)/;
+  /^(content-kind-|cm-image-tab-pin$|cm-image-tab$|txt-block-picker-open$|txt-apply-h2$|txt-apply-h1$|txt-mod-toolbar-visible$|doc-visual-md-docx$|doc-history-|live-block-capture$|live-cursor-)/;
 
 export function bootstrapDemoStateTokens(raw: string): string {
   return raw
@@ -56,6 +56,27 @@ export async function applyDeferredTextToolbarDemoTokens(raw: string): Promise<v
       }
       await new Promise((resolve) => window.setTimeout(resolve, 50));
     }
+  }
+}
+
+/** Live block capture: mount markdown model on the text card, then place the caret. */
+export async function applyDeferredLiveBlockDemoTokens(
+  raw: string,
+  options?: { mountEditor?: boolean },
+): Promise<void> {
+  const demo = raw.toLowerCase();
+  if (!demo.includes("live-block-capture")) {
+    return;
+  }
+  if (options?.mountEditor !== false) {
+    await applyDemoState("live-block-capture");
+  }
+  const { liveCaptureCursorFromDemo, ensureLiveCaptureCursorPainted } = await import(
+    "./markdownLiveBlock"
+  );
+  const kind = liveCaptureCursorFromDemo(demo);
+  if (kind) {
+    await ensureLiveCaptureCursorPainted(kind);
   }
 }
 
@@ -224,6 +245,52 @@ export async function applyDemoState(raw: string) {
       case "doc-mode-reading": {
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("reading");
+        break;
+      }
+      case "live-cursor-outside":
+      case "live-cursor-in-heading":
+      case "live-cursor-in-bold": {
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg", false);
+        document.body.dataset.markdownLiveBlock = "1";
+        const kind =
+          token === "live-cursor-in-heading"
+            ? "heading"
+            : token === "live-cursor-in-bold"
+              ? "bold"
+              : "outside";
+        const { ensureLiveCaptureCursorPainted } = await import("./markdownLiveBlock");
+        await ensureLiveCaptureCursorPainted(kind);
+        break;
+      }
+      case "live-block-capture": {
+        const editorHost = document.getElementById("text-editor-host");
+        const path = document.body.dataset.activeDocumentPath ?? "";
+        const { getActiveTextContent } = await import("./textEditor");
+        let content = getActiveTextContent();
+        if (!content?.trim()) {
+          try {
+            const state = await invoke<{ text_document?: { content?: string } }>("get_browser_state");
+            content = state.text_document?.content ?? content;
+          } catch {
+            /* capture may still mount from Monaco shortly */
+          }
+        }
+        const { getActiveRichTextView } = await import("./richTextEditor");
+        const { getDocumentModelSession } = await import("./documentEditorHost");
+        const remountNeeded =
+          !getActiveRichTextView() ||
+          !getDocumentModelSession() ||
+          document.body.dataset.activeDocumentPath !== path;
+        if (editorHost && path && content !== null && remountNeeded) {
+          const { syncDocumentEditorForTextTab } = await import("./documentEditorHost");
+          await syncDocumentEditorForTextTab(editorHost, path, content);
+        }
+        const { setDocumentEditorMode } = await import("./documentEditorModes");
+        setDocumentEditorMode("wysiwyg", false);
+        document.body.dataset.markdownLiveBlock = "1";
+        const { syncTextDocumentCard } = await import("./ui/textDocumentCard");
+        syncTextDocumentCard(true, path.split(/[/\\]/).pop() ?? null);
         break;
       }
       case "doc-merge-banner": {

@@ -214,8 +214,13 @@ function docFeatureCardLabel(demoRaw: string): string | null {
     demo.includes("doc-history-") ||
     demo.includes("doc-visual-md-docx") ||
     demo.includes("doc-mode-") ||
-    demo.includes("doc-merge-banner")
+    demo.includes("doc-merge-banner") ||
+    demo.includes("live-cursor-")
   ) {
+    if (demo.includes("live-cursor-") || demo.includes("live-block-capture")) {
+      const activePath = document.body.dataset.activeDocumentPath ?? "";
+      return activePath.split(/[/\\]/).pop() ?? "live-block-sample.md";
+    }
     return "sample.md";
   }
   return null;
@@ -236,6 +241,13 @@ export async function ensureDocFeatureCaptureLayout(
   dismissDocCaptureChrome();
   const { setRailMode } = await import("./activityRail");
   setRailMode("collapsed");
+
+  if (demo.includes("live-block-capture")) {
+    const activePath = document.body.dataset.activeDocumentPath ?? "";
+    const label = activePath.split(/[/\\]/).pop() ?? "live-block-sample.md";
+    forceDocFeatureCaptureLayout(label);
+    return;
+  }
 
   const docxShot = demo.includes("doc-visual-md-docx");
   if (docxShot) {

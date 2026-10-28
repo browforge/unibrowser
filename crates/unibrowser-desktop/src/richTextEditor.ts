@@ -2,6 +2,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import type { DocumentModelDto } from "./documentModelBridge";
 import { isWebPlatform } from "./platform/isWeb";
 import { mountProseMirrorEditor, type RichTextEditorHandle } from "./richTextProseMirror";
+import { markdownLiveBlockPlugins } from "./markdownLiveBlock";
 
 type BlockDto = {
   type: string;
@@ -25,6 +26,7 @@ type InlineMarkDto = {
 export type MountRichTextOptions = {
   basePath?: string | null;
   onModelChange?: (model: DocumentModelDto, touchedBlockIds: string[]) => void;
+  markdownLiveBlock?: boolean;
 };
 
 let activeHandle: RichTextEditorHandle | null = null;
@@ -340,11 +342,13 @@ export async function mountRichTextEditor(
 ): Promise<HTMLElement> {
   let basePath: string | null | undefined = legacyBasePath;
   let onModelChange: MountRichTextOptions["onModelChange"];
+  let markdownLiveBlock = false;
   if (typeof options === "string" || options === null) {
     basePath = options;
   } else if (options) {
     basePath = options.basePath ?? basePath;
     onModelChange = options.onModelChange;
+    markdownLiveBlock = Boolean(options.markdownLiveBlock);
   }
 
   if (readonly || !onModelChange) {
@@ -354,9 +358,16 @@ export async function mountRichTextEditor(
   }
 
   activeHandle?.destroy();
-  activeHandle = mountProseMirrorEditor(host, model, readonly, (next, touched) => {
-    onModelChange?.(next, touched);
-  });
+  const liveEnabled = () => markdownLiveBlock && !readonly;
+  activeHandle = mountProseMirrorEditor(
+    host,
+    model,
+    readonly,
+    (next, touched) => {
+      onModelChange?.(next, touched);
+    },
+    { extraPlugins: markdownLiveBlock ? markdownLiveBlockPlugins(liveEnabled) : [] },
+  );
   if (basePath) {
     await resolveRichImages(host, basePath);
     await new Promise((r) => requestAnimationFrame(() => r(undefined)));
@@ -368,6 +379,10 @@ export async function mountRichTextEditor(
 export function destroyRichTextEditor() {
   activeHandle?.destroy();
   activeHandle = null;
+}
+
+export function getActiveRichTextView() {
+  return activeHandle?.view ?? null;
 }
 
 /** Wait until every image in the document card rich surface has decoded (naturalWidth > 0). */
