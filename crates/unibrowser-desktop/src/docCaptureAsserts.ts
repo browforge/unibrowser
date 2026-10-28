@@ -1147,7 +1147,7 @@ function footerUsesDocumentCardTokens(footerMain: HTMLElement | null): boolean {
 }
 
 function editorHostForMode(
-  mode: "wysiwyg" | "live" | "source" | "split" | "reading",
+  mode: "wysiwyg" | "source" | "split" | "reading",
 ): "monaco" | "rich" | "split" | "none" {
   const monacoHost = document.getElementById("text-editor-host");
   const richHost = document.getElementById("rich-text-editor-host");
@@ -1170,7 +1170,7 @@ function editorHostForMode(
   if (mode === "split") {
     return splitVisible && monacoVisible ? "split" : "none";
   }
-  if (mode === "source" || mode === "live") {
+  if (mode === "source") {
     return monacoVisible && !richVisible ? "monaco" : "none";
   }
   if (mode === "wysiwyg" || mode === "reading") {
@@ -1314,10 +1314,10 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     .join(" ");
   const activeMode = document.body.dataset.documentEditorMode ?? "";
   const visibleEditorHost = editorHostForMode(
-    (activeMode as "wysiwyg" | "live" | "source" | "split" | "reading") || "wysiwyg",
+    (activeMode as "wysiwyg" | "source" | "split" | "reading") || "wysiwyg",
   );
   const modeMatchesVisibleHost =
-    ((activeMode === "source" || activeMode === "live") && visibleEditorHost === "monaco") ||
+    (activeMode === "source" && visibleEditorHost === "monaco") ||
     (activeMode === "split" && visibleEditorHost === "split") ||
     ((activeMode === "wysiwyg" || activeMode === "reading") && visibleEditorHost === "rich");
   const bodyMount = document.getElementById("document-card-body-mount");

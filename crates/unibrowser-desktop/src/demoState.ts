@@ -226,45 +226,6 @@ export async function applyDemoState(raw: string) {
         setDocumentEditorMode("reading");
         break;
       }
-      case "doc-mode-live": {
-        const { setDocumentEditorMode } = await import("./documentEditorModes");
-        setDocumentEditorMode("live", false);
-        break;
-      }
-      case "live-caret-outside":
-      case "live-caret-heading":
-      case "live-caret-bold": {
-        const { setDocumentEditorMode } = await import("./documentEditorModes");
-        setDocumentEditorMode("live", false);
-        const { getActiveTextContent, setMonacoDocumentOffset, syncMarkdownLiveEditorMode } =
-          await import("./textEditor");
-        const { storeLiveCaptureCursorOffset } = await import("./markdownLiveCapture");
-        for (let attempt = 0; attempt < 120; attempt += 1) {
-          const content = getActiveTextContent();
-          if (!content) {
-            await new Promise((resolve) => window.setTimeout(resolve, 50));
-            continue;
-          }
-          let offset = 0;
-          if (token === "live-caret-outside") {
-            const gap = content.indexOf("\n\n");
-            offset = gap >= 0 ? gap + 1 : 0;
-          } else if (token === "live-caret-heading") {
-            const idx = content.indexOf("## Active");
-            offset = idx >= 0 ? idx + 3 : 0;
-          } else if (token === "live-caret-bold") {
-            const idx = content.indexOf("**bold**");
-            offset = idx >= 0 ? idx + 2 : 0;
-          }
-          if (setMonacoDocumentOffset(offset)) {
-            storeLiveCaptureCursorOffset(offset);
-            void syncMarkdownLiveEditorMode(true);
-            break;
-          }
-          await new Promise((resolve) => window.setTimeout(resolve, 50));
-        }
-        break;
-      }
       case "doc-merge-banner": {
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("split", false);

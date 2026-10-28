@@ -127,8 +127,7 @@ export function syncDocumentEditorSurfaceVisibility(): void {
 function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) {
   const reading = mode === "reading";
   const wysiwyg = mode === "wysiwyg" || reading;
-  const live = mode === "live";
-  const source = mode === "source" || mode === "split" || live;
+  const source = mode === "source" || mode === "split";
   const split = mode === "split";
   monacoHost?.classList.toggle("document-surface-source-hidden", !source);
   monacoHost?.classList.toggle("document-editor-split-layout", split);
@@ -169,8 +168,7 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
     richHost.style.zIndex = "2";
     monacoHost.appendChild(richHost);
   }
-  void import("./textEditor").then(({ relayoutTextEditor, syncMarkdownLiveEditorMode }) => {
-    void syncMarkdownLiveEditorMode(live);
+  void import("./textEditor").then(({ relayoutTextEditor }) => {
     window.requestAnimationFrame(() => relayoutTextEditor());
   });
 }
@@ -351,9 +349,6 @@ export async function syncDocumentEditorForTextTab(
   } else if (demo.includes("doc-mode-reading")) {
     const { setDocumentEditorMode } = await import("./documentEditorModes");
     setDocumentEditorMode("reading", false);
-  } else if (demo.includes("doc-mode-live") || demo.includes("live-caret-")) {
-    const { setDocumentEditorMode } = await import("./documentEditorModes");
-    setDocumentEditorMode("live", false);
   }
   const projectDocumentVisual =
     document.body.dataset.cmAutoContext === "office" &&
@@ -362,7 +357,6 @@ export async function syncDocumentEditorForTextTab(
     demo.includes("doc-mode-wysiwyg") ||
     demo.includes("doc-mode-reading") ||
     demo.includes("doc-mode-split") ||
-    demo.includes("doc-mode-live") ||
     demo.includes("doc-history-") ||
     demo.includes("doc-history-missing-plugin") ||
     demo.includes("doc-visual-md-docx") ||
@@ -395,10 +389,6 @@ export async function syncDocumentEditorForTextTab(
 export async function onMonacoMarkdownContentChanged(content: string) {
   if (!monacoHost?.parentElement) {
     return;
-  }
-  const mode = getDocumentEditorMode();
-  if (mode === "live") {
-    void syncDocumentModelFromMarkdown(content, documentPath);
   }
   const { checkSourceBuffer } = await import("./documentSourceMerge");
   await checkSourceBuffer(monacoHost.parentElement, content);
