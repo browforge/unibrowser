@@ -403,42 +403,44 @@ impl AppState {
             .lock()
             .expect("embedded_editor_document_path lock")
             .clone();
-        let tabs = sess.tabs.lock().expect("tabs lock");
-        let tab = tabs.active_tab();
-        let ctx = if let Some(tab) = tab {
-            if matches!(
-                &tab.location,
-                BrowserLocation::Internal { page } if page == "home"
-            ) {
-                unibrowser_mod_api::CommandContext::Start
+        let ctx = {
+            let tabs = sess.tabs.lock().expect("tabs lock");
+            let tab = tabs.active_tab();
+            if let Some(tab) = tab {
+                if matches!(
+                    &tab.location,
+                    BrowserLocation::Internal { page } if page == "home"
+                ) {
+                    unibrowser_mod_api::CommandContext::Start
+                } else {
+                    let tab_path = tab
+                        .document
+                        .as_ref()
+                        .map(|d| d.path.clone())
+                        .or_else(|| {
+                            if let BrowserLocation::File { path } = &tab.location {
+                                Some(path.to_string_lossy().to_string())
+                            } else {
+                                None
+                            }
+                        });
+                    let project_doc_path = embedded
+                        .as_ref()
+                        .filter(|p| p.contains("/assets/document.md"))
+                        .map(|p| p.to_string());
+                    let path = project_doc_path.clone().or(tab_path).or(embedded);
+                    let mode = tab.document.as_ref().map(|d| d.backend.mode());
+                    let is_directory = tab.is_directory && project_doc_path.is_none();
+                    infer_context(
+                        is_directory,
+                        matches!(tab.location, BrowserLocation::Http { .. }),
+                        path.as_deref(),
+                        mode,
+                    )
+                }
             } else {
-                let tab_path = tab
-                    .document
-                    .as_ref()
-                    .map(|d| d.path.clone())
-                    .or_else(|| {
-                        if let BrowserLocation::File { path } = &tab.location {
-                            Some(path.to_string_lossy().to_string())
-                        } else {
-                            None
-                        }
-                    });
-                let project_doc_path = embedded
-                    .as_ref()
-                    .filter(|p| p.contains("/assets/document.md"))
-                    .map(|p| p.to_string());
-                let path = project_doc_path.clone().or(tab_path).or(embedded);
-                let mode = tab.document.as_ref().map(|d| d.backend.mode());
-                let is_directory = tab.is_directory && project_doc_path.is_none();
-                infer_context(
-                    is_directory,
-                    matches!(tab.location, BrowserLocation::Http { .. }),
-                    path.as_deref(),
-                    mode,
-                )
+                unibrowser_mod_api::CommandContext::Start
             }
-        } else {
-            unibrowser_mod_api::CommandContext::Start
         };
         let mut cm = self.command_manager.lock().expect("command manager lock");
         cm.bump_context_revision();

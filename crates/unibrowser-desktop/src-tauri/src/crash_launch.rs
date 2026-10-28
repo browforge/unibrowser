@@ -26,9 +26,17 @@ pub fn recovery_bar_items_for_window(
     window_label: &str,
 ) -> Result<Vec<RecoveryBarItemDto>, String> {
     let _sess = ws_label(state, window_label)?;
+    let tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+    recovery_bar_items_with_tabs(state, &tabs)
+}
+
+pub fn recovery_bar_items_with_tabs(
+    state: &AppState,
+    tabs: &unibrowser_engine::TabManager,
+) -> Result<Vec<RecoveryBarItemDto>, String> {
     let mut items = Vec::new();
     for row in edit_recovery::list_pending() {
-        if !tab_open_for_path(state, window_label, &row.path)? {
+        if !tab_open_for_path_locked(tabs, state, &row.path)? {
             continue;
         }
         items.push(RecoveryBarItemDto {
@@ -38,7 +46,7 @@ pub fn recovery_bar_items_for_window(
         });
     }
     for row in crate::crash_recovery::list_backups() {
-        if !tab_open_for_path(state, window_label, &row.path)? {
+        if !tab_open_for_path_locked(tabs, state, &row.path)? {
             continue;
         }
         items.push(RecoveryBarItemDto {
@@ -96,34 +104,37 @@ fn apply_recovered_edit(
     let disk_text = String::from_utf8_lossy(&disk).into_owned();
     let file_path = crate::path_security::resolve_open_path(&rec.header.path, &state.cwd)?;
     let _sess = ws_label(state, window_label)?;
-    let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
-    let index = tabs.tabs().iter().position(|t| {
-        match &t.location {
-            BrowserLocation::File { path } => {
-                crate::path_security::resolve_open_path(&path.to_string_lossy(), &state.cwd).ok()
-                    == Some(file_path.clone())
+    let loc = {
+        let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+        let index = tabs.tabs().iter().position(|t| {
+            match &t.location {
+                BrowserLocation::File { path } => {
+                    crate::path_security::resolve_open_path(&path.to_string_lossy(), &state.cwd)
+                        .ok()
+                        == Some(file_path.clone())
+                }
+                _ => false,
             }
-            _ => false,
+        });
+        let Some(index) = index else {
+            return Err("document tab not open".into());
+        };
+        tabs.set_active(index);
+        let tab = tabs.active_tab_mut().ok_or("tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        if doc.path != rec.header.path {
+            return Err("path mismatch".into());
         }
-    });
-    let Some(index) = index else {
-        return Err("document tab not open".into());
+        let before = current_content_string(doc)?;
+        apply_saved_content(doc, &rec.header.backend_id, &content)?;
+        let mut stacks = _sess.undo_stacks.lock().map_err(|e| e.to_string())?;
+        if before != content {
+            stacks.record_change(&rec.header.path, before, &content);
+        } else if disk_text != content {
+            stacks.record_change(&rec.header.path, disk_text, &content);
+        }
+        tab.location.clone()
     };
-    tabs.set_active(index);
-    let tab = tabs.active_tab_mut().ok_or("tab")?;
-    let doc = tab.document.as_mut().ok_or("no document")?;
-    if doc.path != rec.header.path {
-        return Err("path mismatch".into());
-    }
-    let before = current_content_string(doc)?;
-    apply_saved_content(doc, &rec.header.backend_id, &content)?;
-    let mut stacks = _sess.undo_stacks.lock().map_err(|e| e.to_string())?;
-    if before != content {
-        stacks.record_change(&rec.header.path, before, &content);
-    } else if disk_text != content {
-        stacks.record_change(&rec.header.path, disk_text, &content);
-    }
-    let loc = tab.location.clone();
     update_content_webview(app, window_label, &loc)?;
     Ok(())
 }
@@ -136,36 +147,38 @@ fn apply_backup_record(
 ) -> Result<(), String> {
     let file_path = crate::path_security::resolve_open_path(&record.path, &state.cwd)?;
     let _sess = ws_label(state, window_label)?;
-    let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
-    let index = tabs.tabs().iter().position(|t| {
-        match &t.location {
-            BrowserLocation::File { path } => {
-                crate::path_security::resolve_open_path(&path.to_string_lossy(), &state.cwd).ok()
-                    == Some(file_path.clone())
+    let loc = {
+        let mut tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+        let index = tabs.tabs().iter().position(|t| {
+            match &t.location {
+                BrowserLocation::File { path } => {
+                    crate::path_security::resolve_open_path(&path.to_string_lossy(), &state.cwd).ok()
+                        == Some(file_path.clone())
+                }
+                _ => false,
             }
-            _ => false,
+        });
+        let Some(index) = index else {
+            return Err("document tab not open".into());
+        };
+        tabs.set_active(index);
+        let tab = tabs.active_tab_mut().ok_or("tab")?;
+        let doc = tab.document.as_mut().ok_or("no document")?;
+        if doc.path != record.path {
+            return Err("path mismatch".into());
         }
-    });
-    let Some(index) = index else {
-        return Err("document tab not open".into());
+        let disk = edit_recovery::read_disk_bytes(&record.path, &state.cwd)?;
+        let disk_text = String::from_utf8_lossy(&disk).into_owned();
+        let before = current_content_string(doc)?;
+        apply_saved_content(doc, &record.backend_id, &record.content)?;
+        let mut stacks = _sess.undo_stacks.lock().map_err(|e| e.to_string())?;
+        if before != record.content {
+            stacks.record_change(&record.path, before, &record.content);
+        } else if disk_text != record.content {
+            stacks.record_change(&record.path, disk_text, &record.content);
+        }
+        tab.location.clone()
     };
-    tabs.set_active(index);
-    let tab = tabs.active_tab_mut().ok_or("tab")?;
-    let doc = tab.document.as_mut().ok_or("no document")?;
-    if doc.path != record.path {
-        return Err("path mismatch".into());
-    }
-    let disk = edit_recovery::read_disk_bytes(&record.path, &state.cwd)?;
-    let disk_text = String::from_utf8_lossy(&disk).into_owned();
-    let before = current_content_string(doc)?;
-    apply_saved_content(doc, &record.backend_id, &record.content)?;
-    let mut stacks = _sess.undo_stacks.lock().map_err(|e| e.to_string())?;
-    if before != record.content {
-        stacks.record_change(&record.path, before, &record.content);
-    } else if disk_text != record.content {
-        stacks.record_change(&record.path, disk_text, &record.content);
-    }
-    let loc = tab.location.clone();
     update_content_webview(app, window_label, &loc)?;
     Ok(())
 }
@@ -191,14 +204,12 @@ fn current_content_string(
     }
 }
 
-fn tab_open_for_path(
+fn tab_open_for_path_locked(
+    tabs: &unibrowser_engine::TabManager,
     state: &AppState,
-    window_label: &str,
     doc_path: &str,
 ) -> Result<bool, String> {
     let file_path = crate::path_security::resolve_open_path(doc_path, &state.cwd)?;
-    let _sess = ws_label(state, window_label)?;
-    let tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
     Ok(tabs.tabs().iter().any(|t| {
         match &t.location {
             BrowserLocation::File { path } => {
@@ -208,6 +219,16 @@ fn tab_open_for_path(
             _ => false,
         }
     }))
+}
+
+fn tab_open_for_path(
+    state: &AppState,
+    window_label: &str,
+    doc_path: &str,
+) -> Result<bool, String> {
+    let _sess = ws_label(state, window_label)?;
+    let tabs = _sess.tabs.lock().map_err(|e| e.to_string())?;
+    tab_open_for_path_locked(&tabs, state, doc_path)
 }
 
 pub fn dismiss_recovery_item(backup_id: &str) -> Result<(), String> {

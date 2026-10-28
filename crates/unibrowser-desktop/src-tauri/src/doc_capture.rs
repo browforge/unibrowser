@@ -4,14 +4,8 @@ use std::path::PathBuf;
 
 use tauri::{AppHandle, Manager, State};
 
-use crate::commands;
-use crate::state::AppState;
-
 use crate::launch_args;
 use crate::self_test;
-use std::sync::atomic::{AtomicBool, Ordering};
-
-static DOC_CAPTURE_OPENED: AtomicBool = AtomicBool::new(false);
 
 /// Rust-side demo tokens when the shell webview has not finished booting (fallback only).
 pub fn apply_demo_state_rust(
@@ -136,7 +130,7 @@ pub fn apply_demo_state_rust(
 }
 
 /// Seed fixtures before the shell webview boots (tab opens stay on the JS capture path).
-pub fn prepare_doc_capture_session(_app: &AppHandle, _state: &AppState) -> Result<(), String> {
+pub fn prepare_doc_capture_session(_app: &AppHandle, _state: &crate::state::AppState) -> Result<(), String> {
     if !launch_args::is_doc_capture_mode() {
         return Ok(());
     }
@@ -146,59 +140,6 @@ pub fn prepare_doc_capture_session(_app: &AppHandle, _state: &AppState) -> Resul
     if demo.contains("capture-ready") {
         let _ = crate::demo_ntp::seed_demo_ntp_fixture();
     }
-    Ok(())
-}
-
-/// Push an initial `TabContentDto` into the shell without a webview `invoke` (avoids capture bootstrap deadlocks).
-pub fn schedule_shell_state_sync(app: AppHandle) {
-    if !launch_args::is_doc_capture_mode() {
-        return;
-    }
-    std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(1200));
-        for attempt in 0..120 {
-            if push_shell_state_once(&app).is_ok() {
-                eprintln!("[doc-capture] shell state sync ok (attempt {})", attempt + 1);
-                return;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(150));
-        }
-        eprintln!("[doc-capture] shell state sync gave up");
-    });
-}
-
-fn push_shell_state_once(app: &AppHandle) -> Result<(), String> {
-    let window = app.get_window("main").ok_or("main window missing")?;
-    let state = app.state::<AppState>();
-    if !DOC_CAPTURE_OPENED.swap(true, Ordering::SeqCst) {
-        let demo = launch_args::get_demo_state()
-            .map(|d| d.to_ascii_lowercase())
-            .unwrap_or_default();
-        let opened_paths = launch_args::take_launch_open_paths();
-        let had_open_paths = !opened_paths.is_empty();
-        for open in opened_paths {
-            let resolved = launch_args::resolve_capture_path_str(&open)?;
-            let _ = commands::open_path(
-                window.clone(),
-                resolved,
-                None,
-                app.clone(),
-                state.clone(),
-            )?;
-        }
-        if demo.contains("ntp") && !had_open_paths {
-            let _ = commands::new_tab(window.clone(), state.clone())?;
-        }
-    }
-    let dto = commands::get_browser_state(window, state)?;
-    let json = serde_json::to_string(&dto).map_err(|e| e.to_string())?;
-    let wv = app.get_webview("main").ok_or("main shell webview missing")?;
-    let json_literal = serde_json::to_string(&json).map_err(|e| e.to_string())?;
-    let script = format!(
-        "(function(){{try{{var d=JSON.parse({0});var a=window.__selfTestApplyState||window.__unibrowserApplyState;if(!a){{return false;}}void Promise.resolve(a(d));return true;}}catch(e){{return false;}}}})();",
-        json_literal
-    );
-    wv.eval(&script).map_err(|e| e.to_string())?;
     Ok(())
 }
 

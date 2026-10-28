@@ -145,3 +145,29 @@ pub fn write_recovery_preview(journal_id: &str) -> Result<std::path::PathBuf, St
     std::fs::write(&path, &rec.content).map_err(|e| e.to_string())?;
     Ok(path)
 }
+
+#[cfg(test)]
+mod shell_bootstrap_probe {
+    use super::*;
+    use base_text::BACKEND_ID;
+
+    /// Seeds a pending edit-recovery journal for `e2e/fixtures/spell-test.txt`.
+    /// Used by `scripts/probe-shell-bootstrap.sh` (normal startup deadlock guard).
+    #[test]
+    fn shell_bootstrap_probe_seed_journal() {
+        let root = std::env::var("UNIBROWSER_REPO_ROOT").expect("UNIBROWSER_REPO_ROOT");
+        let path = PathBuf::from(&root).join("e2e/fixtures/spell-test.txt");
+        let path_str = path
+            .canonicalize()
+            .unwrap_or(path)
+            .to_string_lossy()
+            .into_owned();
+        let disk = fs::read(&path_str).expect("spell-test fixture");
+        clear_for_path(&path_str);
+        seed_capture_demo_for_path(&path_str, BACKEND_ID, &disk).expect("seed journal");
+        assert!(
+            !list_pending().is_empty(),
+            "expected pending recovery journal for {path_str}"
+        );
+    }
+}

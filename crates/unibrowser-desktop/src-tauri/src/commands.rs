@@ -49,12 +49,9 @@ use crate::webview::{
     reset_page_font_for_url, reset_page_zoom_for_url, sync_content_bounds,
     sync_content_webview_for_window,
 };
-/// Avoid main-thread deadlock: self-test and doc-capture run `open_path` on the UI thread while JS `refreshState` would `invoke` back.
+/// Avoid main-thread deadlock: self-test runs `open_path` on the UI thread while JS `refreshState` would `invoke` back.
 pub(crate) fn maybe_emit_browser_state_updated(app: &AppHandle) {
     if std::env::var("UNIBROWSER_SELF_TEST").as_deref() == Ok("1") {
-        return;
-    }
-    if crate::launch_args::is_doc_capture_mode() {
         return;
     }
     let _ = app.emit("browser-state-updated", ());
@@ -1382,13 +1379,20 @@ pub(crate) fn snapshot(state: &AppState, window_label: &str) -> Result<TabConten
         .lock()
         .map(|s| s.peek_available())
         .unwrap_or(false);
-    let mut recovery_bar = crate::crash_launch::recovery_bar_items_for_window(state, window_label)
+    let mut recovery_bar = crate::crash_launch::recovery_bar_items_with_tabs(state, &tabs)
         .unwrap_or_else(|_| {
             sess.recovery_bar
                 .lock()
                 .map(|b| b.items.clone())
                 .unwrap_or_default()
         });
+    if recovery_bar.is_empty() {
+        if let Ok(bar) = sess.recovery_bar.lock() {
+            if !bar.items.is_empty() {
+                recovery_bar = bar.items.clone();
+            }
+        }
+    }
     if recovery_bar.is_empty()
         && crate::launch_args::is_doc_capture_mode()
         && crate::launch_args::demo_state_contains("rec-capture-banner")
@@ -1472,9 +1476,9 @@ pub(crate) fn snapshot(state: &AppState, window_label: &str) -> Result<TabConten
                 mod_names: c.mod_names.clone(),
             })
             .collect(),
-        package_storage: crate::package_storage_commands::active_package_storage_dto(
+        package_storage: crate::package_storage_commands::active_package_storage_dto_for_tabs(
             state,
-            window_label,
+            &tabs,
         ),
         unibrow_open_prompt: None,
     })
@@ -2280,7 +2284,17 @@ pub fn rec_capture_sync_shell(
         .cloned()
         .map(|p| crate::launch_args::resolve_capture_path_str(&p).unwrap_or(p))
         .unwrap_or_else(|| REC_CAPTURE_FIXTURE.to_string());
-    open_path_file_without_content_webview(&app, state.inner(), window.label(), &path)?;
+    let window_label = window.label().to_string();
+    open_path_file_without_content_webview(&app, state.inner(), &window_label, &path)?;
+    let loc = {
+        let sess = ws_label(state.inner(), &window_label)?;
+        let tabs = sess.tabs.lock().map_err(|e| e.to_string())?;
+        tabs
+            .active_tab()
+            .map(|t| t.location.clone())
+            .ok_or("no active tab after rec capture open")?
+    };
+    update_content_webview(&app, &window_label, &loc)?;
     let _ = crate::launch_args::take_launch_open_paths();
     snapshot(&state, window.label())
 }
@@ -2345,7 +2359,7 @@ fn apply_rec_capture_demo_if_requested(
     let id = crate::edit_recovery::backup_id_for_path(&doc_path);
     if wants_restored {
         crate::crash_launch::restore_recovery_item(state, window_label, app, &id)?;
-    } else if wants_show {
+    } else     if wants_show {
         let preview = crate::edit_recovery::write_recovery_preview(&id)?;
         let right = preview.to_string_lossy().into_owned();
         let _sess_cmp = ws_label(state, window_label)?;
@@ -2355,6 +2369,7 @@ fn apply_rec_capture_demo_if_requested(
             right_path: right,
         });
     }
+    let _ = crate::crash_launch::discover_recovery_bar_items(state, window_label)?;
     Ok(())
 }
 

@@ -175,6 +175,13 @@ pub fn active_package_storage_dto(
 ) -> Option<crate::package_storage_session::PackageStorageSessionDto> {
     let sess = crate::commands::ws_label(state, window_label).ok()?;
     let tabs = sess.tabs.lock().ok()?;
+    active_package_storage_dto_for_tabs(state, &tabs)
+}
+
+pub fn active_package_storage_dto_for_tabs(
+    state: &AppState,
+    tabs: &unibrowser_engine::TabManager,
+) -> Option<crate::package_storage_session::PackageStorageSessionDto> {
     let tab = tabs.active_tab()?;
     let path = match &tab.location {
         BrowserLocation::File { path } => path.to_string_lossy().into_owned(),
