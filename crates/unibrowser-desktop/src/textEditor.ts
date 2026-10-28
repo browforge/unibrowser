@@ -16,7 +16,6 @@ import {
   focusPreviousProofingProblem,
   getProofingWordCaptureRegion,
   isProofingEnabled,
-  runEditorProofing,
   scheduleEditorProofing,
 } from "./proofing";
 import { applyMonacoEditorTheme, resolveEditorThemeId } from "./monacoEditorTheme";

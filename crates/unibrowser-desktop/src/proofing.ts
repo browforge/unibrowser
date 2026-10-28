@@ -18,8 +18,6 @@ let lastDiagnostics: ProofingDiagnostic[] = [];
 let problemIndex = 0;
 let inlineDecorationIds: string[] = [];
 let decorationsPainted = false;
-let activeProofingEditor: import("monaco-editor").editor.IStandaloneCodeEditor | null =
-  null;
 
 export async function loadProofingPrefs(): Promise<void> {
   try {
@@ -165,7 +163,6 @@ export function clearEditorMarkers(
   lastDiagnostics = [];
   problemIndex = 0;
   decorationsPainted = false;
-  activeProofingEditor = null;
 }
 
 function applyInlineProofingDecorations(
@@ -197,7 +194,6 @@ function applyInlineProofingDecorations(
     };
   });
   inlineDecorationIds = editor.deltaDecorations(inlineDecorationIds, decorations);
-  activeProofingEditor = editor;
   decorationsPainted = decorations.length > 0;
   window.dispatchEvent(new CustomEvent("unibrowser-proofing-decorations-applied"));
 }
