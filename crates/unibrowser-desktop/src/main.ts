@@ -3860,28 +3860,15 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               await textEditor.ensureProofingApplied();
               const { proofingHasSpellingDiagnostic } = await import("./proofing");
               if (!proofingHasSpellingDiagnostic()) {
-                let proofDetail = "proofingHasSpellingDiagnostic=false";
-                try {
-                  const { getActiveTextContent } = await import("./textEditor");
-                  const sample = getActiveTextContent() ?? "";
-                  const diags = await invoke<{ kind: string }[]>("proofing_check", {
-                    req: {
-                      text: sample,
-                      surface: "plaintext",
-                      language: "en-NZ",
-                      grammar_enabled: null,
-                    },
-                  });
-                  proofDetail = `invokeHits=${diags.length} textLen=${sample.length} kinds=${diags.map((d) => d.kind).join(",")}`;
-                } catch (err) {
-                  proofDetail = `invokeError=${err instanceof Error ? err.message : String(err)}`;
-                }
                 await invoke("abort_doc_capture", {
-                  reason: `REC capture requires a spelling squiggle on 'teh'; ${proofDetail}`,
+                  reason: "REC capture requires a spelling squiggle on 'teh'",
                 });
                 return;
               }
-              await new Promise((resolve) => window.setTimeout(resolve, 200));
+              await (
+                window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+              ).__unibrowserRefreshStatusBarOnly?.();
+              await new Promise((resolve) => window.setTimeout(resolve, 300));
             }
           }
           if (!painted) {
@@ -3917,6 +3904,8 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             await new Promise((resolve) => window.setTimeout(resolve, 100));
           }
           const diag = collectDocCaptureDiagnostics();
+          const { getProofingSpellingCount } = await import("./proofing");
+          const spellHits = getProofingSpellingCount();
           const diagJson = formatDiagnosticsForLog(diag);
           console.error(`[doc-capture] diagnostics ${diagJson}`);
           void invoke("log_shell_ui_event", {
@@ -4335,6 +4324,14 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
                 controls: [],
               }),
               statusBar: collectStatusBarDiagnostics(),
+              problems: diag.problems,
+              spellHits,
+              documentCardFooter:
+                document.querySelector<HTMLElement>(".document-card-status-main")?.textContent?.trim() ??
+                "",
+              diffChangeCount: Number(
+                document.getElementById("diff-editor-host")?.dataset.diffChangeCount ?? "0",
+              ),
               viewportWidth: window.innerWidth,
               viewportHeight: window.innerHeight,
               railFlyoutWidth,

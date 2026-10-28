@@ -413,6 +413,7 @@ async function ensureEditor(host: HTMLElement) {
     fontSize: currentFontPt,
     fontFamily: '"Source Code Pro", "DejaVu Sans Mono", monospace',
     wordWrap: "on",
+    renderValidationDecorations: "on",
     experimentalGpuAcceleration: "off",
   });
   hostResizeObserver?.disconnect();
@@ -620,6 +621,8 @@ export const textEditor = {
     }
     const surface = proofingSurfaceForPath(loadedPath, model.getLanguageId());
     await runEditorProofing(monacoApi, editor, surface, model.getLanguageId());
+    const { refreshProblemsPanel } = await import("./problemsPanel");
+    await refreshProblemsPanel();
     await new Promise<void>((resolve) => {
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => resolve());

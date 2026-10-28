@@ -1,5 +1,3 @@
-import { proofingHasSpellingDiagnostic } from "./proofing";
-
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -495,6 +493,11 @@ function checksForDemo(demoRaw: string | null, launchPaths: string[]): Array<() 
         checks.push(() => {
           const host = document.getElementById("diff-editor-host");
           return Boolean(host && !host.classList.contains("hidden"));
+        });
+        checks.push(() => {
+          const host = document.getElementById("diff-editor-host");
+          const lines = host?.querySelectorAll(".monaco-diff-editor .view-lines");
+          return Boolean(lines && lines.length >= 2);
         });
         checks.push(recCaptureStatusBarReady);
         break;

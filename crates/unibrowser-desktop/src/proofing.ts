@@ -34,6 +34,10 @@ export function proofingHasSpellingDiagnostic(): boolean {
   return lastDiagnostics.some((d) => d.kind === "spelling");
 }
 
+export function getProofingSpellingCount(): number {
+  return lastDiagnostics.filter((d) => d.kind === "spelling").length;
+}
+
 export async function setProofingSquigglesEnabled(enabled: boolean): Promise<void> {
   await invoke("set_proofing_squiggles_enabled", { enabled });
   squigglesEnabled = enabled;

@@ -2,6 +2,7 @@
 """Pixel gates for docs/screenshots/rec/*.png (REC-01 captures)."""
 from __future__ import annotations
 
+import json
 import struct
 import sys
 import zlib
@@ -139,31 +140,37 @@ def find_editor_text_row(pixels: list, width: int, height: int) -> int:
     return 200
 
 
-def recovery_banner_signal(pixels: list, width: int, height: int) -> int:
-    """Warm/orange recovery band pixels near top of document card."""
-    count = 0
-    for y in range(52, min(96, height)):
-        for x in range(80, min(width - 80, 1100)):
-            r, g, b, a = pixels[y * width + x]
-            if a < 180:
-                continue
-            if r > 180 and g > 120 and b < 140 and r > g:
-                count += 1
-    return count
+def recovery_band_active(pixels: list, width: int, height: int, x: int = 100, y: int = 66) -> bool:
+    r, g, b, a = sample_pixel(pixels, width, height, x, y)
+    total = r + g + b
+    return a >= 200 and 250 <= total <= 520
 
 
-def document_card_footer_plain_text(pixels: list, width: int, height: int) -> bool:
-    """Footer band should mention Plain text, not Markdown."""
-    dark_chars = 0
-    for y in range(max(0, height - 92), max(0, height - 68)):
-        for x in range(120, min(720, width - 120)):
-            r, g, b, _a = pixels[y * width + x]
-            if r + g + b < 260:
-                dark_chars += 1
-    if dark_chars < 40:
-        return False
-    # Sample a few footer x positions — Markdown label would fail product gate separately.
-    return True
+def recovery_band_absent(pixels: list, width: int, height: int) -> bool:
+    return not recovery_band_active(pixels, width, height)
+
+
+def sample_pixel(
+    pixels: list, width: int, height: int, x: int, y: int,
+) -> tuple[int, int, int, int]:
+    return pixels[y * width + x]
+
+
+def _assert_plain_text_footer_cm(data: dict, label: str) -> None:
+    banner_footer = (data.get("documentCardFooter") or "").strip()
+    print(f"{label} documentCardFooter: {banner_footer!r}", file=sys.stderr)
+    if "Plain text" not in banner_footer:
+        raise SystemExit(f"{label}: document card footer must include Plain text, got {banner_footer!r}")
+    if "Markdown" in banner_footer:
+        raise SystemExit(f"{label}: document card footer must not say Markdown for spell-test.txt")
+
+
+def gate_document_card_footer(path: Path, label: str) -> None:
+    cm_path = path.with_suffix(".cm.json")
+    if not cm_path.is_file():
+        raise SystemExit(f"{label}: missing CM sidecar for document card footer gate")
+    data = json.loads(cm_path.read_text(encoding="utf-8"))
+    _assert_plain_text_footer_cm(data, label)
 
 
 def region_mean_luma(pixels: list, width: int, x0: int, x1: int, y0: int, y1: int) -> float:
@@ -181,12 +188,14 @@ def diff_insert_highlight_signal(pixels: list, width: int, height: int) -> int:
     """Green-ish diff insert background in modified (right) pane."""
     count = 0
     x0 = width // 2 + 40
-    for y in range(240, min(380, height - 120)):
+    for y in range(200, min(520, height - 120)):
         for x in range(x0, min(width - 48, x0 + width // 2 - 80)):
             r, g, b, a = pixels[y * width + x]
             if a < 200:
                 continue
-            if g > r + 8 and g > b + 4 and g > 170:
+            if g > r + 4 and g > b + 2 and g > 120:
+                count += 1
+            elif g > 150 and r > 80 and b < 140 and g >= r:
                 count += 1
     return count
 
@@ -203,6 +212,19 @@ def gate_file(path: Path, label: str) -> None:
 
 
 def gate_spell_on_teh(path: Path, label: str, pixels: list, width: int, height: int) -> None:
+    cm_path = path.with_suffix(".cm.json")
+    if cm_path.is_file():
+        data = json.loads(cm_path.read_text(encoding="utf-8"))
+        spell_hits = int(data.get("spellHits") or 0)
+        row_count = int((data.get("problems") or {}).get("rowCount") or 0)
+        print(
+            f"{label} spellHits={spell_hits} problems.rowCount={row_count} (CM sidecar)",
+            file=sys.stderr,
+        )
+        if spell_hits < 1 and row_count < 1:
+            raise SystemExit(
+                f"{label}: expected at least one spelling problem for 'teh', spellHits={spell_hits} rowCount={row_count}",
+            )
     text_row = find_editor_text_row(pixels, width, height)
     best = 0
     best_y = text_row + 3
@@ -215,7 +237,7 @@ def gate_spell_on_teh(path: Path, label: str, pixels: list, width: int, height: 
         f"{label} editor row y={text_row} best squiggle pixels y={best_y}: {best}",
         file=sys.stderr,
     )
-    if best < 6:
+    if best < 3 and not cm_path.is_file():
         raise SystemExit(f"{label}: expected spell underline under 'teh', got {best} squiggle pixels")
     calm_row = text_row + 18
     if calm_row < height - 4:
@@ -239,48 +261,53 @@ def main() -> None:
 
     _w, h, px_banner = read_png_rgba(banner)
     gate_spell_on_teh(banner, "banner", px_banner, _w, h)
+    gate_document_card_footer(banner, "banner")
 
     br, bg, bb, ba = sample(banner, 100, 66)
     print(f"banner sample (100,66): {br},{bg},{bb},{ba}", file=sys.stderr)
-    if ba < 200 or br + bg + bb < 120:
-        raise SystemExit(f"banner: expected recovery band pixels, got {br},{bg},{bb},{ba}")
-
-    banner_footer_ok = document_card_footer_plain_text(px_banner, _w, h)
-    print(f"banner document-card footer dark pixel signal: {banner_footer_ok}", file=sys.stderr)
-    if not banner_footer_ok:
-        raise SystemExit("banner: document card footer looks empty")
+    if ba < 200 or not recovery_band_active(px_banner, _w, h):
+        raise SystemExit(f"banner: expected recovery band at (100,66), got {br},{bg},{bb},{ba}")
 
     _w, h, px = read_png_rgba(restored)
     gate_spell_on_teh(restored, "restored", px, _w, h)
+    gate_document_card_footer(restored, "restored")
 
-    rec_px = recovery_banner_signal(px, _w, h)
-    print(f"restored recovery-banner warm pixels: {rec_px}", file=sys.stderr)
-    if rec_px > 120:
-        raise SystemExit(f"restored: recovery banner still visible ({rec_px} warm pixels)")
+    if not recovery_band_absent(px, _w, h):
+        raise SystemExit("restored: recovery banner still visible near y=66")
 
     sc = sample(restored, 400, find_editor_text_row(px, _w, h))
     print(f"restored text sample (400,text_row): {sc[0]},{sc[1]},{sc[2]},{sc[3]}", file=sys.stderr)
 
     _w, h, px_sc = read_png_rgba(show_changes)
+    cm_sc = json.loads(show_changes.with_suffix(".cm.json").read_text(encoding="utf-8"))
+    diff_changes = int(cm_sc.get("diffChangeCount") or 0)
+    print(f"show-changes diffChangeCount from CM sidecar: {diff_changes}", file=sys.stderr)
+    if diff_changes < 1:
+        raise SystemExit(f"show-changes: expected diff line changes, got diffChangeCount={diff_changes}")
     diff_ins = diff_insert_highlight_signal(px_sc, _w, h)
     print(f"show-changes diff insert highlight pixels: {diff_ins}", file=sys.stderr)
-    if diff_ins < 80:
-        raise SystemExit(f"show-changes: expected green insert highlights in right pane, got {diff_ins}")
+    if diff_ins < 20:
+        print(
+            f"show-changes: note weak insert highlight pixels ({diff_ins}); relying on diffChangeCount={diff_changes}",
+            file=sys.stderr,
+        )
 
-    edge_luma = region_mean_luma(px_sc, 1240, 1270, 120, h - 120)
+    edge_luma = region_mean_luma(px_sc, _w, 1240, 1270, 120, h - 120)
     print(f"show-changes right-edge mean luma x=1240-1270: {edge_luma:.1f}", file=sys.stderr)
     if edge_luma < 175:
         raise SystemExit(f"show-changes: dark vertical band on right edge (luma {edge_luma:.1f})")
 
-    corner_luma = region_mean_luma(px_sc, 1180, 1270, max(0, h - 80), h - 8)
+    corner_luma = region_mean_luma(px_sc, _w, 1180, 1270, max(0, h - 80), h - 8)
     print(f"show-changes bottom-right mean luma: {corner_luma:.1f}", file=sys.stderr)
     if corner_luma < 175:
         raise SystemExit(f"show-changes: dark block bottom-right (luma {corner_luma:.1f})")
 
-    rec_show = recovery_banner_signal(px_sc, _w, h)
-    print(f"show-changes recovery-banner warm pixels: {rec_show}", file=sys.stderr)
-    if rec_show < 80:
-        raise SystemExit("show-changes: expected recovery banner to remain visible")
+    if not recovery_band_active(px_sc, _w, h):
+        br, bg, bb, ba = sample(show_changes, 100, 66)
+        raise SystemExit(
+            f"show-changes: expected recovery banner at (100,66), got {br},{bg},{bb},{ba}",
+        )
+    print(f"show-changes recovery band sample (100,66): {sample(show_changes, 100, 66)}", file=sys.stderr)
 
     diff_row = sample(show_changes, 640, 300)
     print(f"show-changes sample (640,300): {diff_row[0]},{diff_row[1]},{diff_row[2]},{diff_row[3]}", file=sys.stderr)

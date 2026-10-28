@@ -600,13 +600,128 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 1,
+    "segmentCount": 6,
     "segments": [
+      {
+        "id": "",
+        "label": "Saved",
+        "bounds": {
+          "x": 12,
+          "y": 777.5,
+          "width": 40.75,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.732,
+        "pixelInkCount": 171,
+        "pixelBounds": {
+          "x": 12,
+          "y": 777,
+          "width": 41,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "plaintext",
+        "bounds": {
+          "x": 52.75,
+          "y": 777.5,
+          "width": 63.0625,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.038,
+        "pixelInkCount": 255,
+        "pixelBounds": {
+          "x": 52,
+          "y": 777,
+          "width": 64,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "Ln 1, Col 1",
+        "bounds": {
+          "x": 115.8125,
+          "y": 777.5,
+          "width": 69.59375,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.402,
+        "pixelInkCount": 211,
+        "pixelBounds": {
+          "x": 115,
+          "y": 777,
+          "width": 71,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "Problems 0",
+        "bounds": {
+          "x": 1128.53125,
+          "y": 777.5,
+          "width": 66.6875,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.038,
+        "pixelInkCount": 269,
+        "pixelBounds": {
+          "x": 1128,
+          "y": 777,
+          "width": 68,
+          "height": 18
+        }
+      },
+      {
+        "id": "",
+        "label": "UTF-8",
+        "bounds": {
+          "x": 1195.21875,
+          "y": 777.5,
+          "width": 38.796875,
+          "height": 17
+        },
+        "foreground": "rgb(48, 56, 60)",
+        "background": "rgb(231, 229, 223)",
+        "contrast": 9.490555643429884,
+        "opacity": "1",
+        "filter": "none",
+        "pixelContrast": 6.947,
+        "pixelInkCount": 127,
+        "pixelBounds": {
+          "x": 1195,
+          "y": 777,
+          "width": 40,
+          "height": 18
+        }
+      },
       {
         "id": "status-ai-visibility",
         "label": "AI",
         "bounds": {
-          "x": 1246,
+          "x": 1246.015625,
           "y": 775.203125,
           "width": 22,
           "height": 21.59375
@@ -621,12 +736,23 @@
         "pixelBounds": {
           "x": 1246,
           "y": 775,
-          "width": 22,
+          "width": 23,
           "height": 22
         }
       }
     ]
   },
+  "problems": {
+    "tabText": "Problems",
+    "rowCount": 0,
+    "visibleRowCount": 0,
+    "emptyVisible": false,
+    "panelHeight": 0,
+    "tableHeight": 0
+  },
+  "spellHits": 0,
+  "documentCardFooter": "",
+  "diffChangeCount": 1,
   "railFlyoutWidth": 0,
   "dom": {
     "visibleDocumentCardCount": 0,
@@ -640,7 +766,7 @@
     "documentCardFooterText": "",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "",
+    "statusBarDocumentLanguage": "Saved plaintext Ln 1, Col 1 Problems 0 UTF-8",
     "projectHomeCardHeight": null,
     "projectHomeCardTopRelative": null,
     "projectHomeCardCenterDeltaX": null,
