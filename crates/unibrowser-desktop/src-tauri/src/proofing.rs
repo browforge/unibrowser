@@ -92,6 +92,64 @@ pub struct DiagnosticDto {
     pub suggestions: Vec<String>,
 }
 
+fn problem_byte_range(p: &Problem) -> Option<(u32, u32)> {
+    match &p.locator {
+        Locator::TextRange {
+            start_byte,
+            end_byte,
+            ..
+        } => Some((*start_byte, *end_byte)),
+        _ => None,
+    }
+}
+
+fn ranges_overlap(a: (u32, u32), b: (u32, u32)) -> bool {
+    a.0 < b.1 && b.0 < a.1
+}
+
+fn problem_source_priority(source: &str) -> u8 {
+    let s = source.to_ascii_lowercase();
+    if s.contains("spell") {
+        0
+    } else if s.contains("lsp") || s.contains("typescript") || s.contains("eslint") {
+        1
+    } else if s.contains("harper") || s.contains("grammar") {
+        2
+    } else {
+        3
+    }
+}
+
+/// Drop lower-priority diagnostics that overlap a higher-priority hit on the same bytes
+/// (e.g. Harper grammar warnings on a misspelling already reported by the spell checker).
+fn dedupe_overlapping_problems(mut problems: Vec<Problem>) -> Vec<Problem> {
+    problems.sort_by_key(|p| {
+        let range = problem_byte_range(p).unwrap_or((u32::MAX, u32::MAX));
+        (problem_source_priority(&p.source), range.0, range.1, p.message.clone())
+    });
+    let mut kept: Vec<Problem> = Vec::new();
+    for p in problems {
+        let Some(range) = problem_byte_range(&p) else {
+            kept.push(p);
+            continue;
+        };
+        if kept.iter().any(|k| {
+            problem_byte_range(k)
+                .map(|kr| ranges_overlap(range, kr))
+                .unwrap_or(false)
+        }) {
+            continue;
+        }
+        kept.push(p);
+    }
+    kept.sort_by(|a, b| {
+        let ka = problem_byte_range(a).unwrap_or((0, 0));
+        let kb = problem_byte_range(b).unwrap_or((0, 0));
+        ka.cmp(&kb)
+    });
+    kept
+}
+
 fn dto(p: &Problem) -> Option<DiagnosticDto> {
     let (start, end) = match &p.locator {
         Locator::TextRange {
@@ -158,6 +216,7 @@ pub fn proofing_check(
             problems.extend(lsp_problems);
         }
     }
+    problems = dedupe_overlapping_problems(problems);
     crate::problems_store::set_problems_from_proofing(problems.clone());
     Ok(problems.iter().filter_map(dto).collect())
 }
@@ -366,6 +425,37 @@ mod rec_capture_proofing_tests {
             vec!["teh".to_string()],
             "unexpected spell hits: {:?}",
             spell_hits
+        );
+    }
+
+    #[test]
+    fn rec_capture_banner_dedupes_grammar_on_misspelling_to_one_problem() {
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../e2e/fixtures/spell-test.txt");
+        let banner = std::fs::read_to_string(&fixture).expect("spell-test fixture");
+        let h = host().expect("host");
+        let mut h = h.lock().expect("lock");
+        h.set_dictionary(DictionarySnapshot::default());
+        let ctx = TextCheckContext {
+            language_id: "en-NZ".into(),
+            grammar_enabled: true,
+            code_mode: false,
+        };
+        let raw = h.check_text_document("doc", &banner, &ctx);
+        assert!(
+            raw.len() >= 2,
+            "expected spell + grammar overlap on 'teh', got {}",
+            raw.len()
+        );
+        let deduped = super::dedupe_overlapping_problems(raw);
+        assert_eq!(
+            deduped.len(),
+            1,
+            "expected one visible problem for banner text, got {:?}",
+            deduped
+                .iter()
+                .map(|p| format!("{}: {}", p.source, p.message))
+                .collect::<Vec<_>>()
         );
     }
 }

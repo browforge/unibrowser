@@ -2772,27 +2772,31 @@ body.content-fullscreen::after {
 }
 
 .monaco-editor .ub-proofing-spell-squiggle,
-.monaco-editor .view-line span.ub-proofing-spell-squiggle {
-  box-shadow: inset 0 -2px 0 0 #c72e2e;
+.monaco-editor .view-line span.ub-proofing-spell-squiggle,
+.monaco-editor .squiggly-error {
   text-decoration: underline wavy #c72e2e;
   text-decoration-skip-ink: none;
+  background: none;
 }
 
 .monaco-editor .ub-proofing-grammar-squiggle,
-.monaco-editor .view-line span.ub-proofing-grammar-squiggle {
-  box-shadow: inset 0 -2px 0 0 #0078d4;
+.monaco-editor .view-line span.ub-proofing-grammar-squiggle,
+.monaco-editor .squiggly-warning {
   text-decoration: underline wavy #0078d4;
   text-decoration-skip-ink: none;
+  background: none;
 }
 
-body[data-ub-doc-capture="1"] .monaco-editor .squiggly-error {
-  text-decoration: underline wavy #c72e2e !important;
-  text-decoration-skip-ink: none !important;
-  background: none !important;
+[data-theme="light"] .monaco-editor .ub-proofing-spell-squiggle,
+[data-theme="light"] .monaco-editor .view-line span.ub-proofing-spell-squiggle,
+[data-theme="light"] .monaco-editor .squiggly-error {
+  text-decoration-color: #c72e2e;
 }
 
-body[data-ub-doc-capture="1"] .monaco-editor .ub-proofing-spell-squiggle {
-  box-shadow: inset 0 -3px 0 0 #c72e2e !important;
+[data-theme="light"] .monaco-editor .ub-proofing-grammar-squiggle,
+[data-theme="light"] .monaco-editor .view-line span.ub-proofing-grammar-squiggle,
+[data-theme="light"] .monaco-editor .squiggly-warning {
+  text-decoration-color: #0078d4;
 }
 
 .document-viewer-host {
