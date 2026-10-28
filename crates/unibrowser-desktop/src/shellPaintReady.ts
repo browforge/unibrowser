@@ -817,12 +817,23 @@ export async function waitForShellPaintReady(
   const checks = checksForDemo(demoRaw, launchPaths);
   const deadline = Date.now() + timeoutMs;
   const preferDocumentViewer = launchPathsNeedDocumentViewer(launchPaths);
+  const demoLower = (demoRaw ?? "").toLowerCase();
+  const recNeedsSpell =
+    demoLower.includes("rec-capture") && !demoLower.includes("rec-capture-show-changes");
   while (Date.now() < deadline) {
     await ensureDocumentTabActiveForCapture(launchPaths);
     if (!preferDocumentViewer) {
       await ensureTextTabActiveForCapture(launchPaths);
     }
     await nudgeEditorLayout();
+    if (recNeedsSpell) {
+      try {
+        const { textEditor } = await import("./textEditor");
+        await textEditor.ensureProofingApplied();
+      } catch {
+        /* editor not mounted yet */
+      }
+    }
     if (checks.every((fn) => fn())) {
       await nudgeEditorLayout();
       await sleep(200);

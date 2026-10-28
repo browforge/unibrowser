@@ -94,6 +94,7 @@ export async function runEditorProofing(
     const diags = await invoke<ProofingDiagnostic[]>("proofing_check", {
       text,
       surface,
+      language: "en-NZ",
       code_language: codeLanguage ?? model.getLanguageId(),
       grammar_enabled: null,
     });
