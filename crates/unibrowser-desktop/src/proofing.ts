@@ -95,8 +95,8 @@ export async function runEditorProofing(
       text,
       surface,
       language: "en-NZ",
-      code_language: codeLanguage ?? model.getLanguageId(),
-      grammar_enabled: null,
+      codeLanguage: codeLanguage ?? model.getLanguageId(),
+      grammarEnabled: null,
     });
     lastDiagnostics = diags;
     void import("./problemsPanel").then((m) => m.refreshProblemsPanel());
