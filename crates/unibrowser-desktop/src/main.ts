@@ -3860,8 +3860,24 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               await textEditor.ensureProofingApplied();
               const { proofingHasSpellingDiagnostic } = await import("./proofing");
               if (!proofingHasSpellingDiagnostic()) {
+                let proofDetail = "proofingHasSpellingDiagnostic=false";
+                try {
+                  const { getActiveTextContent } = await import("./textEditor");
+                  const sample = getActiveTextContent() ?? "";
+                  const diags = await invoke<{ kind: string }[]>("proofing_check", {
+                    req: {
+                      text: sample,
+                      surface: "plaintext",
+                      language: "en-NZ",
+                      grammar_enabled: null,
+                    },
+                  });
+                  proofDetail = `invokeHits=${diags.length} textLen=${sample.length} kinds=${diags.map((d) => d.kind).join(",")}`;
+                } catch (err) {
+                  proofDetail = `invokeError=${err instanceof Error ? err.message : String(err)}`;
+                }
                 await invoke("abort_doc_capture", {
-                  reason: "REC capture requires a spelling squiggle on 'teh'",
+                  reason: `REC capture requires a spelling squiggle on 'teh'; ${proofDetail}`,
                 });
                 return;
               }

@@ -92,11 +92,15 @@ export async function runEditorProofing(
   const text = model.getValue();
   try {
     const diags = await invoke<ProofingDiagnostic[]>("proofing_check", {
-      text,
-      surface,
-      language: "en-NZ",
-      codeLanguage: codeLanguage ?? model.getLanguageId(),
-      grammarEnabled: null,
+      req: {
+        text,
+        surface,
+        language: "en-NZ",
+        ...(surface === "code"
+          ? { code_language: codeLanguage ?? model.getLanguageId() }
+          : {}),
+        grammar_enabled: null,
+      },
     });
     lastDiagnostics = diags;
     void import("./problemsPanel").then((m) => m.refreshProblemsPanel());
