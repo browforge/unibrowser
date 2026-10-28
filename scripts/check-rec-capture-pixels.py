@@ -68,7 +68,7 @@ def main() -> None:
     if a < 200 or r + g + b < 120 or r + g + b > 720:
         raise SystemExit(f"banner: expected recovery band pixels, got {r},{g},{b},{a}")
     # Restored doc: Monaco surface (not empty chrome)
-    r2, g2, b2, a2 = sample(restored, 450, 300)
+    r2, g2, b2, a2 = sample(restored, 400, 50)
     if a2 < 200 or r2 + g2 + b2 < 80:
         raise SystemExit(f"restored: expected editor content pixels, got {r2},{g2},{b2},{a2}")
     print("rec capture pixel gates ok")
