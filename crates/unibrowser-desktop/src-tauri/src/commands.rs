@@ -8569,6 +8569,7 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let doc = tab.document.as_mut().ok_or("no document")?;
         let path = doc.path.clone();
         let markdown_history = path.ends_with(".md") || path.ends_with(".markdown");
+        let mut markdown_history_applied = false;
         if markdown_history {
             let mut redo = _sess_tabs
                 .document_history_redo
@@ -8578,10 +8579,11 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             if let Some(content) = crate::document_model_api::try_undo_markdown_history(&path, stack)? {
                 if let Some(backend) = try_text_backend(&mut *doc.backend) {
                     backend.set_content(content);
-                    return snapshot(&state, window.label());
+                    markdown_history_applied = true;
                 }
             }
         }
+        if !markdown_history_applied {
         let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.content.clone()
         } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {
@@ -8610,6 +8612,7 @@ pub fn document_undo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             crate::project_undo::write_manifest_json(&root, &prev)?;
             reload_unibrow_project_tab(state.inner(), window.label(), &project, path.clone())?;
         }
+        }
     }
     snapshot(&state, window.label())
 }
@@ -8623,6 +8626,7 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
         let doc = tab.document.as_mut().ok_or("no document")?;
         let path = doc.path.clone();
         let markdown_history = path.ends_with(".md") || path.ends_with(".markdown");
+        let mut markdown_history_applied = false;
         if markdown_history {
             let mut redo = _sess_tabs
                 .document_history_redo
@@ -8632,10 +8636,11 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             if let Some(content) = crate::document_model_api::try_redo_markdown_history(&path, stack)? {
                 if let Some(backend) = try_text_backend(&mut *doc.backend) {
                     backend.set_content(content);
-                    return snapshot(&state, window.label());
+                    markdown_history_applied = true;
                 }
             }
         }
+        if !markdown_history_applied {
         let current = if let Some(backend) = try_text_backend(&mut *doc.backend) {
             backend.content.clone()
         } else if let Some(backend) = base_js::try_js_backend(&mut *doc.backend) {
@@ -8663,6 +8668,7 @@ pub fn document_redo(window: tauri::Window, state: State<AppState>) -> Result<Ta
             let root = unibrow_package_root(&project)?;
             crate::project_undo::write_manifest_json(&root, &next)?;
             reload_unibrow_project_tab(state.inner(), window.label(), &project, path.clone())?;
+        }
         }
     }
     snapshot(&state, window.label())
