@@ -1,6 +1,7 @@
 /** Batch-3 shell invariants for self-test and doc capture guards. */
 
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { measureChromeHeights } from "./ui/chromeMetrics";
 
 export function runShellChromeAudit(): string[] {
@@ -126,6 +127,12 @@ export function runShellChromeAudit(): string[] {
 
 export function submitShellChromeAudit(): void {
   void invoke("self_test_submit_shell_chrome_audit", { errors: runShellChromeAudit() });
+}
+
+export function installSelfTestShellChromeAuditListener(): void {
+  void listen("unibrowser-self-test-shell-audit", () => {
+    submitShellChromeAudit();
+  });
 }
 
 export function exposeShellChromeAudit() {

@@ -11,7 +11,7 @@ pub fn finished() -> bool {
 }
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 pub const SCENARIO_LIVE_PREVIEW: &str = "live-preview";
 pub const SCENARIO_AI_SIDEBAR: &str = "ai-sidebar";
@@ -615,21 +615,10 @@ fn scenario_ai_sidebar(
         .get_webview("main")
         .ok_or("main shell webview missing")?;
     let _ = wv.eval(
-        r"(function(){try{var p=document.getElementById('ai-assistant-panel');var w=document.getElementById('work-area');if(p){p.classList.remove('hidden');}if(w){w.classList.add('ai-open');}document.documentElement.style.setProperty('--ub-ai-sidebar-width','320px');window.dispatchEvent(new Event('unibrowser-shell-layout-changed'));}catch(e){}})();",
+        r"(function(){try{var p=document.getElementById('ai-assistant-panel');var w=document.getElementById('work-area');if(p){p.classList.remove('hidden');}if(w){w.classList.add('ai-open');}document.documentElement.style.setProperty('--ub-ai-sidebar-width','320px');window.dispatchEvent(new Event('unibrowser-shell-layout-changed'));if(window.__unibrowserSubmitShellChromeAudit){window.__unibrowserSubmitShellChromeAudit();}}catch(e){}})();",
     );
-    std::thread::sleep(std::time::Duration::from_millis(300));
-    let _ = take_shell_chrome_audit();
-    for _ in 0..40 {
-        let _ = wv.eval(SHELL_CHROME_AUDIT_EVAL);
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        if let Some(errs) = take_shell_chrome_audit() {
-            if !errs.is_empty() {
-                return Err(format!("AI open shell audit: {}", errs.join("; ")));
-            }
-            return Ok(());
-        }
-    }
-    Err("AI sidebar shell audit not received".into())
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    scenario_shell_chrome_batch3(app)
 }
 
 fn scenario_problems_jump(

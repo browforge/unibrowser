@@ -69,6 +69,7 @@ function markUbReadyWhenDomChromePresent() {
 markUbReadyWhenDomChromePresent();
 syncOpenVsxNetworkDataset();
 exposeShellChromeAudit();
+installSelfTestShellChromeAuditListener();
 installTextCaptureHarness();
 exposeTextDocumentCard();
 exposeChromeMetrics();
@@ -247,7 +248,11 @@ import {
   waitForShellPaintReady,
 } from "./shellPaintReady";
 import { renderTitleBreadcrumb } from "./titleBreadcrumb";
-import { exposeShellChromeAudit, runShellChromeAudit } from "./shellChromeAudit";
+import {
+  exposeShellChromeAudit,
+  installSelfTestShellChromeAuditListener,
+  runShellChromeAudit,
+} from "./shellChromeAudit";
 import { installTextCaptureHarness } from "./textCompactToolbar";
 import { loadUiLocale } from "./i18n";
 import { openTemplateGallery } from "./templateGallery";
