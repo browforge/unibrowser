@@ -689,12 +689,13 @@ function statusItemsForContext(
     const integratedDoc = document.body.classList.contains("text-document-card");
     const docDirty = Boolean(active?.dirty && !active.is_directory);
     if (integratedDoc) {
+      const kindLabel = documentKindLabel();
       const kind =
-        languageLabel === "Word document"
-          ? "Word"
-          : documentKindLabel() === "Markdown"
+        officeDoc || languageLabel === "Word document" || kindLabel === "Word"
+          ? "Word document"
+          : kindLabel === "Markdown"
             ? "Markdown"
-            : documentKindLabel();
+            : kindLabel;
       left.push(
         item(
           "document-integrated",
@@ -3704,6 +3705,9 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             demoLowerInteractive.includes("doc-visual-md-docx") ||
             demoLowerInteractive.includes("live-block-capture");
           if (interactiveDocFeatureShot) {
+            if (demoLowerInteractive.includes("doc-history-")) {
+              await applyDeferredTextToolbarDemoTokens(demo);
+            }
             const { ensureDocFeatureCaptureLayout } = await import("./ui/textDocumentCard");
             await ensureDocFeatureCaptureLayout(demo, {
               refreshState,

@@ -513,3 +513,13 @@ export function teardownDocumentEditor() {
   hideSourceMergeBanner();
   session = null;
 }
+
+if (typeof window !== "undefined") {
+  (
+    window as unknown as { __unibrowserSyncMonacoSourceBuffer?: () => Promise<void> }
+  ).__unibrowserSyncMonacoSourceBuffer = async () => {
+    const { textEditor } = await import("./textEditor");
+    const value = textEditor.getMonacoEditor()?.getModel()?.getValue() ?? "";
+    await onMonacoMarkdownContentChanged(value);
+  };
+}

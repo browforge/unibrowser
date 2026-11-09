@@ -187,8 +187,12 @@ impl WebHost {
                 Ok(serde_json::to_value(parsed).map_err(|e| e.to_string())?)
             }
             "document_serialize_markdown" => {
+                let payload = args
+                    .get("request")
+                    .cloned()
+                    .unwrap_or_else(|| args.clone());
                 let req: crate::document_model::DocumentSerializeRequest =
-                    serde_json::from_value(args.clone()).map_err(|e| e.to_string())?;
+                    serde_json::from_value(payload).map_err(|e| e.to_string())?;
                 let text = crate::document_model::serialize_markdown_request(req)?;
                 Ok(serde_json::json!({ "content": text }))
             }

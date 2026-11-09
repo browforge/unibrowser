@@ -579,6 +579,11 @@ test.describe("Document feature captures", () => {
           }
         });
       }
+      if (shot.demo.includes("doc-history-panel")) {
+        await expect(page.locator("body")).toHaveAttribute("data-ub-history-capture-ready", "1", {
+          timeout: 90_000,
+        });
+      }
       if (shot.wait) {
         await page.locator(shot.wait).first().waitFor({ timeout: 90_000 });
       }
