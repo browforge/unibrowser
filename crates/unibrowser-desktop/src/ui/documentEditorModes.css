@@ -165,8 +165,25 @@ body.text-document-card.document-mode-reading .md-preview-shell {
   margin: 0.75rem 0;
   padding: 0.65rem 1rem;
   border-left: 3px solid var(--ub-accent, #79b1c9);
-  background: color-mix(in srgb, var(--ub-accent, #79b1c9) 14%, var(--ub-panel, #232526));
-  color: var(--ub-text-2, #c9cbc8);
+  background: color-mix(
+    in srgb,
+    var(--ub-accent, #79b1c9) 14%,
+    var(--ub-doc-card-paper, var(--ub-paper, var(--ub-canvas, #faf9f6)))
+  );
+  color: var(--ub-text-1, #202223);
+}
+
+.rich-text-doc blockquote :where(p, li) {
+  color: inherit;
+}
+
+:root[data-theme="dark"] .rich-text-doc blockquote {
+  background: color-mix(
+    in srgb,
+    var(--ub-accent, #79b1c9) 22%,
+    var(--ub-selected, var(--ub-control, #253e4c))
+  );
+  color: var(--ub-text-1, #f0efeb);
 }
 
 .rich-text-opaque-parse {

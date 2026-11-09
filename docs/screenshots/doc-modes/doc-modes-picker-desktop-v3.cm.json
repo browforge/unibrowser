@@ -502,15 +502,15 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 6,
+    "segmentCount": 3,
     "segments": [
       {
         "id": "",
-        "label": "Unsaved",
+        "label": "Markdown \u00b7 49 words \u00b7 Not saved",
         "bounds": {
           "x": 12,
           "y": 777.5,
-          "width": 54.75,
+          "width": 175.125,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -519,34 +519,11 @@
         "opacity": "1",
         "filter": "none",
         "pixelContrast": 6.732,
-        "pixelInkCount": 217,
+        "pixelInkCount": 694,
         "pixelBounds": {
           "x": 12,
           "y": 777,
-          "width": 55,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "markdown",
-        "bounds": {
-          "x": 66.75,
-          "y": 777.5,
-          "width": 74.34375,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 7.087,
-        "pixelInkCount": 270,
-        "pixelBounds": {
-          "x": 66,
-          "y": 777,
-          "width": 76,
+          "width": 176,
           "height": 18
         }
       },
@@ -554,7 +531,7 @@
         "id": "",
         "label": "Ln 1, Col 1",
         "bounds": {
-          "x": 141.09375,
+          "x": 187.125,
           "y": 777.5,
           "width": 69.59375,
           "height": 17
@@ -567,7 +544,7 @@
         "pixelContrast": 7.844,
         "pixelInkCount": 181,
         "pixelBounds": {
-          "x": 141,
+          "x": 187,
           "y": 777,
           "width": 70,
           "height": 18
@@ -575,11 +552,11 @@
       },
       {
         "id": "",
-        "label": "Problems 0",
+        "label": "12 pt",
         "bounds": {
-          "x": 1094.9375,
+          "x": 999.4375,
           "y": 777.5,
-          "width": 66.6875,
+          "width": 24.796875,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -587,96 +564,90 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.107,
-        "pixelInkCount": 270,
+        "pixelContrast": 6.133,
+        "pixelInkCount": 106,
         "pixelBounds": {
-          "x": 1094,
+          "x": 999,
           "y": 777,
-          "width": 68,
+          "width": 26,
           "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "UTF-8",
-        "bounds": {
-          "x": 1161.625,
-          "y": 777.5,
-          "width": 38.796875,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.309,
-        "pixelInkCount": 141,
-        "pixelBounds": {
-          "x": 1161,
-          "y": 777,
-          "width": 40,
-          "height": 18
-        }
-      },
-      {
-        "id": "status-ai-visibility",
-        "label": "AI",
-        "bounds": {
-          "x": 1212.421875,
-          "y": 775.203125,
-          "width": 22,
-          "height": 21.59375
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.128,
-        "pixelInkCount": 64,
-        "pixelBounds": {
-          "x": 1212,
-          "y": 775,
-          "width": 23,
-          "height": 22
         }
       }
     ]
+  },
+  "problems": {
+    "tabText": "Problems 7",
+    "rowCount": 0,
+    "visibleRowCount": 0,
+    "emptyVisible": false,
+    "panelHeight": 0,
+    "tableHeight": 0
+  },
+  "spellHits": 4,
+  "documentCardFooter": "Markdown \u00b7 49 words \u00b7 Not saved",
+  "diffChangeCount": 0,
+  "spellTehRegion": null,
+  "diffLine4Region": null,
+  "railFlyoutWidth": 0,
+  "dom": {
+    "visibleDocumentCardCount": 0,
+    "commandManagerVisible": false,
+    "footerUsesCardTokens": false,
+    "activeMode": "wysiwyg",
+    "visibleEditorHost": "rich",
+    "modeMatchesVisibleHost": true,
+    "outsideOverlapCount": 0,
+    "richEditorSubtreeViolations": 0,
+    "documentCardFooterText": "Markdown \u00b7 49 words \u00b7 Not saved",
+    "docxEmulationBadgeVisible": false,
+    "cardImageNaturalWidthOk": true,
+    "statusBarDocumentLanguage": "Markdown \u00b7 49 words \u00b7 Not saved Ln 1, Col 1 12 pt",
+    "projectHomeCardHeight": null,
+    "projectHomeCardTopRelative": null,
+    "projectHomeCardCenterDeltaX": null,
+    "horizontalOverflow": false,
+    "presentationToolbarThemed": true,
+    "relationshipConsentPanelHeight": null,
+    "relationshipConsentUsesListBullets": false,
+    "relationshipConsentSectionsScrollable": false,
+    "relationshipConsentPanelScrollable": false,
+    "relationshipConsentActionsInViewport": false,
+    "dialogPrimaryButtonMatchesAccent": false,
+    "firstSaveCancelButtonPresent": false
   },
   "blockPicker": {
     "viewportWidth": 1280,
     "viewportHeight": 800,
     "probe": {
-      "x": 219,
-      "y": 126,
+      "x": 6,
+      "y": 74.5,
       "width": 180,
       "height": 140
     },
     "trigger": {
-      "x": 219,
-      "y": 94,
-      "width": 96,
-      "height": 28
+      "x": 6,
+      "y": 40.5,
+      "width": 101,
+      "height": 30
     },
     "menu": {
-      "x": 219,
-      "y": 122,
+      "x": 6,
+      "y": 70.5,
       "width": 190,
       "height": 280
     },
     "label": {
-      "x": 225,
-      "y": 99,
+      "x": 14,
+      "y": 46.5,
       "width": 61,
       "height": 18
     },
     "badge": null,
     "closedFingerprint": {
-      "meanR": 243.00186507936507,
-      "meanG": 242.4100396825397,
-      "meanB": 239.88380952380953,
-      "inkPixels": 1191,
+      "meanR": 189.9854761904762,
+      "meanG": 194.90555555555557,
+      "meanB": 197.546626984127,
+      "inkPixels": 6010,
       "sampledPixels": 25200
     }
   }

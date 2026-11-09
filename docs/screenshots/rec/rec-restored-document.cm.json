@@ -600,15 +600,15 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 5,
+    "segmentCount": 3,
     "segments": [
       {
         "id": "",
-        "label": "Unsaved",
+        "label": "Plain text \u00b7 15 words \u00b7 Not saved",
         "bounds": {
           "x": 12,
           "y": 777.5,
-          "width": 54.75,
+          "width": 166.84375,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -616,35 +616,12 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.732,
-        "pixelInkCount": 217,
+        "pixelContrast": 7.087,
+        "pixelInkCount": 651,
         "pixelBounds": {
           "x": 12,
           "y": 777,
-          "width": 55,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "Plain text",
-        "bounds": {
-          "x": 66.75,
-          "y": 777.5,
-          "width": 65.0625,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.038,
-        "pixelInkCount": 250,
-        "pixelBounds": {
-          "x": 66,
-          "y": 777,
-          "width": 66,
+          "width": 167,
           "height": 18
         }
       },
@@ -652,7 +629,7 @@
         "id": "",
         "label": "Ln 1, Col 1",
         "bounds": {
-          "x": 131.8125,
+          "x": 178.84375,
           "y": 777.5,
           "width": 69.59375,
           "height": 17
@@ -662,10 +639,10 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.402,
-        "pixelInkCount": 211,
+        "pixelContrast": 6.038,
+        "pixelInkCount": 207,
         "pixelBounds": {
-          "x": 131,
+          "x": 178,
           "y": 777,
           "width": 71,
           "height": 18
@@ -673,11 +650,11 @@
       },
       {
         "id": "",
-        "label": "Problems 2",
+        "label": "12 pt",
         "bounds": {
-          "x": 918.75,
+          "x": 999.4375,
           "y": 777.5,
-          "width": 66.6875,
+          "width": 24.796875,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -685,35 +662,12 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.038,
-        "pixelInkCount": 269,
+        "pixelContrast": 6.133,
+        "pixelInkCount": 106,
         "pixelBounds": {
-          "x": 918,
+          "x": 999,
           "y": 777,
-          "width": 68,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "UTF-8",
-        "bounds": {
-          "x": 985.4375,
-          "y": 777.5,
-          "width": 38.796875,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.74,
-        "pixelInkCount": 122,
-        "pixelBounds": {
-          "x": 985,
-          "y": 777,
-          "width": 40,
+          "width": 26,
           "height": 18
         }
       }
@@ -750,7 +704,7 @@
     "documentCardFooterText": "Plain text \u00b7 15 words \u00b7 Not saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Unsaved Plain text Ln 1, Col 1 Problems 2 UTF-8",
+    "statusBarDocumentLanguage": "Plain text \u00b7 15 words \u00b7 Not saved Ln 1, Col 1 12 pt",
     "projectHomeCardHeight": null,
     "projectHomeCardTopRelative": null,
     "projectHomeCardCenterDeltaX": null,
