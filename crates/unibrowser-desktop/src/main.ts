@@ -15,7 +15,12 @@ import "./ui/compactChrome.css";
 import "./ui/textDocumentCard.css";
 import "./ui/documentEditorModes.css";
 import { exposeTextDocumentCard, syncDocumentCardDirtyFlag } from "./ui/textDocumentCard";
-import { setDocumentCardAutosaveAtMs } from "./ui/documentCardStatus";
+import {
+  documentKindLabel,
+  documentWordCount,
+  formatDocumentCardSaveStatus,
+  setDocumentCardAutosaveAtMs,
+} from "./ui/documentCardStatus";
 import "./ui/quietUtilityShell.css";
 import { initCommandPalette } from "./ui/commandPalette";
 import { initDockPanel } from "./ui/dockPanel";
@@ -769,15 +774,27 @@ function refreshStatusBar(
     enc.active
       ? t("status.encode", { percent: String(enc.percent), stage: enc.stage })
       : "";
+  const integratedDocument = document.body.classList.contains("text-document-card");
   let reading = "";
   if (showText && data.text_document) {
-    const text = getActiveTextContent() ?? data.text_document.content;
-    const stats = textReadingStats(text);
-    if (stats.words > 0) {
-      reading = t("status.reading", {
-        words: String(stats.words),
-        minutes: String(stats.minutes),
-      });
+    if (integratedDocument) {
+      const words = documentWordCount();
+      if (words > 0) {
+        const minutes = Math.max(1, Math.ceil(words / 200));
+        reading = t("status.reading", {
+          words: String(words),
+          minutes: String(minutes),
+        });
+      }
+    } else {
+      const text = getActiveTextContent() ?? data.text_document.content;
+      const stats = textReadingStats(text);
+      if (stats.words > 0) {
+        reading = t("status.reading", {
+          words: String(stats.words),
+          minutes: String(stats.minutes),
+        });
+      }
     }
   } else if (showViewer && viewerKind === "docx") {
     const text = documentViewer.getReadableText(documentViewerHost);
@@ -800,7 +817,9 @@ function refreshStatusBar(
   const compact = document.body.classList.contains("ub-status-compact");
   let saved =
     compact
-      ? autosave || (lastAutosaveAtMs > 0 ? `Saved ${formatAutosaveClock(lastAutosaveAtMs)}` : "Saved")
+      ? integratedDocument
+        ? formatDocumentCardSaveStatus(Boolean(active?.dirty && !active.is_directory))
+        : autosave || (lastAutosaveAtMs > 0 ? `Saved ${formatAutosaveClock(lastAutosaveAtMs)}` : "Saved")
       : undefined;
   if (compact && showViewer && viewerKind === "pdf" && lastPdfAnnotationCount > 0) {
     saved = "Annotations saved";
@@ -833,9 +852,17 @@ function refreshStatusBar(
     (demoVisualDocxCompact && document.body.classList.contains("text-document-card"));
   const language =
     compact && showText && (data.text_document || projectDocument)
-      ? compactOfficeDoc
-        ? "Word document"
-        : data.text_document?.language?.replace("typescript", "TypeScript") ?? "TypeScript"
+      ? integratedDocument
+        ? compactOfficeDoc
+          ? "Word document"
+          : documentKindLabel() === "Markdown"
+            ? "Markdown"
+            : documentKindLabel() === "Word"
+              ? "Word document"
+              : documentKindLabel()
+        : compactOfficeDoc
+          ? "Word document"
+          : data.text_document?.language?.replace("typescript", "TypeScript") ?? "TypeScript"
       : undefined;
   let zoomOut = compact ? zoom || lastViewerZoomLabel || "100%" : zoom;
   if (compact && showViewer && viewerKind === "pdf" && lastPdfAnnotationCount > 0) {
@@ -4349,7 +4376,9 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
             requirePickerOpen: demoLower.includes("txt-block-picker-open"),
             requireH2Selected:
               demoLower.includes("txt-apply-h2") &&
-              !demoLower.includes("doc-history-"),
+              !demoLower.includes("doc-history-") &&
+              (document.body.classList.contains("document-mode-source") ||
+                document.body.classList.contains("document-mode-split")),
             requireDocxEmulatedH1:
               demoLower.includes("txt-apply-h1") &&
               launchPaths.some((p) => /\.docx$/i.test(p)),
@@ -4395,6 +4424,7 @@ void initToolbarOnlyShell(refreshCommandManager).then(async (toolbarOnly) => {
               problems: diag.problems,
               spellHits,
               documentCardFooter:
+                document.querySelector<HTMLElement>("[data-integrated-doc-status]")?.textContent?.trim() ??
                 document.querySelector<HTMLElement>(".document-card-status-main")?.textContent?.trim() ??
                 "",
               diffChangeCount: Number(

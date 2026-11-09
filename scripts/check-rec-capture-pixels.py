@@ -87,14 +87,6 @@ def count_tab_strip_pixels(pixels: list, width: int, height: int) -> int:
             total = r + g + b
             if 150 <= total <= 520:
                 count += 1
-    for y in range(108, min(132, height)):
-        for x in range(80, min(width - 40, 900)):
-            r, g, b, a = pixels[y * width + x]
-            if a < 128:
-                continue
-            total = r + g + b
-            if 100 <= total <= 620:
-                count += 1
     return count
 
 
@@ -162,10 +154,15 @@ def region_stats(
     }
 
 
-def recovery_band_active(pixels: list, width: int, height: int, x: int = 100, y: int = 66) -> bool:
+def recovery_band_active(pixels: list, width: int, height: int, x: int = 100, y: int = 80) -> bool:
     r, g, b, a = sample_pixel(pixels, width, height, x, y)
     total = r + g + b
-    return a >= 200 and 250 <= total <= 520
+    luma = total / 3.0
+    if a < 200 or r > 248 and g > 248 and b > 248:
+        return False
+    return (250 <= total <= 520) or (
+        180 <= luma < 245 and r >= 160 and g >= 160 and b >= 160
+    )
 
 
 def recovery_band_absent(pixels: list, width: int, height: int) -> bool:
@@ -289,17 +286,17 @@ def main() -> None:
     gate_spell_teh_region(banner, "banner", px_banner, _w, h, banner_cm)
     gate_document_card_footer(banner, "banner")
 
-    br, bg, bb, ba = sample(banner, 100, 66)
-    print(f"banner sample (100,66): {br},{bg},{bb},{ba}", file=sys.stderr)
+    br, bg, bb, ba = sample(banner, 100, 80)
+    print(f"banner sample (100,80): {br},{bg},{bb},{ba}", file=sys.stderr)
     if ba < 200 or not recovery_band_active(px_banner, _w, h):
-        raise SystemExit(f"banner: expected recovery band at (100,66), got {br},{bg},{bb},{ba}")
+        raise SystemExit(f"banner: expected recovery band at (100,80), got {br},{bg},{bb},{ba}")
 
     _w, h, px = read_png_rgba(restored)
     gate_spell_teh_region(restored, "restored", px, _w, h, restored_cm)
     gate_document_card_footer(restored, "restored")
 
     if not recovery_band_absent(px, _w, h):
-        raise SystemExit("restored: recovery banner still visible near y=66")
+        raise SystemExit("restored: recovery banner still visible near y=80")
 
     _w, h, px_sc = read_png_rgba(show_changes)
     gate_diff_line4_region(show_changes, px_sc, _w, h, show_cm)
@@ -315,11 +312,11 @@ def main() -> None:
         raise SystemExit(f"show-changes: dark block bottom-right (luma {corner_luma:.1f})")
 
     if not recovery_band_active(px_sc, _w, h):
-        br, bg, bb, ba = sample(show_changes, 100, 66)
+        br, bg, bb, ba = sample(show_changes, 100, 80)
         raise SystemExit(
-            f"show-changes: expected recovery banner at (100,66), got {br},{bg},{bb},{ba}",
+            f"show-changes: expected recovery banner at (100,80), got {br},{bg},{bb},{ba}",
         )
-    print(f"show-changes recovery band sample (100,66): {sample(show_changes, 100, 66)}", file=sys.stderr)
+    print(f"show-changes recovery band sample (100,80): {sample(show_changes, 100, 80)}", file=sys.stderr)
 
     print("rec capture pixel gates ok")
 

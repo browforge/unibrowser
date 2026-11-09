@@ -4,7 +4,7 @@ import { textReadingStats } from "../textStats";
 import { getDocumentModelSession } from "../documentEditorHost";
 import { documentModelWordCount } from "../documentModelWordCount";
 
-const CARD_STATUS_ID = "document-card-status";
+const INTEGRATED_STATUS_ID = "integrated-document-status";
 
 let lastAutosaveAtMs = 0;
 
@@ -83,28 +83,17 @@ export function formatDocumentCardSaveStatus(dirty: boolean): string {
   return "Saved";
 }
 
-export function formatDocumentCardStatusLeft(kindLabel: string, dirty: boolean): string {
-  const words = documentWordCount();
-  const wordLabel = words === 1 ? "1 word" : `${words} words`;
-  const save = formatDocumentCardSaveStatus(dirty);
-  return `${kindLabel} · ${wordLabel} · ${save}`;
+function activeTabFileName(): string {
+  return (
+    document.querySelector<HTMLElement>(".title-tabs .tab.active .tab-label")?.textContent?.trim() ??
+    ""
+  );
 }
 
-export function refreshDocumentCardStatusFooter(dirty: boolean): void {
-  if (!document.body.classList.contains("text-document-card")) {
-    return;
-  }
-  const status = document.getElementById(CARD_STATUS_ID);
-  if (!status) {
-    return;
-  }
+export function documentKindLabel(): string {
   const ctx = document.body.dataset.cmAutoContext ?? "text";
   const activePath = (document.body.dataset.activeDocumentPath ?? "").toLowerCase();
-  const tabLabel =
-    document
-      .querySelector<HTMLElement>("#document-card-tab .document-card-tab-label")
-      ?.textContent?.trim()
-      .toLowerCase() ?? "";
+  const tabLabel = activeTabFileName().toLowerCase();
   const officeDoc =
     activePath.endsWith(".docx") ||
     activePath.endsWith(".doc") ||
@@ -113,33 +102,50 @@ export function refreshDocumentCardStatusFooter(dirty: boolean): void {
     tabLabel.endsWith(".docx") ||
     tabLabel.endsWith(".doc") ||
     tabLabel.endsWith(".odt");
-  const kind =
-    officeDoc || ctx === "office"
-      ? "Word"
-      : activePath.endsWith(".md") ||
-          activePath.endsWith(".markdown") ||
-          tabLabel.endsWith(".md") ||
-          tabLabel.endsWith(".markdown")
-        ? "Markdown"
-        : activePath.endsWith(".txt") || tabLabel.endsWith(".txt")
-          ? "Plain text"
-          : ctx === "text"
-            ? "Plain text"
-            : "Plain text";
-  const zoom =
-    document.querySelector<HTMLElement>(
-      '[data-control-id="unibrowser.control.editor.size"] .cm-cmd-label, [data-control-id="unibrowser.control.text.size"] .cm-cmd-label',
-    )?.textContent?.trim() ?? "100%";
-  const modeHost = document.getElementById("document-mode-inline-host");
-  status.replaceChildren();
-  const left = document.createElement("span");
-  left.className = "document-card-status-main";
-  left.textContent = formatDocumentCardStatusLeft(kind, dirty);
-  const zoomSpan = document.createElement("span");
-  zoomSpan.className = "document-card-status-zoom";
-  zoomSpan.textContent = zoom;
-  status.append(left, zoomSpan);
-  if (modeHost) {
-    status.append(modeHost);
+  if (officeDoc || ctx === "office") {
+    return "Word";
   }
+  if (
+    activePath.endsWith(".md") ||
+    activePath.endsWith(".markdown") ||
+    tabLabel.endsWith(".md") ||
+    tabLabel.endsWith(".markdown")
+  ) {
+    return "Markdown";
+  }
+  if (activePath.endsWith(".txt") || tabLabel.endsWith(".txt")) {
+    return "Plain text";
+  }
+  return ctx === "text" ? "Plain text" : "Plain text";
+}
+
+export function formatDocumentCardStatusLeft(kindLabel: string, dirty: boolean): string {
+  const words = documentWordCount();
+  const wordLabel = words === 1 ? "1 word" : `${words} words`;
+  const save = formatDocumentCardSaveStatus(dirty);
+  return `${kindLabel} · ${wordLabel} · ${save}`;
+}
+
+function ensureIntegratedStatusProbe(): HTMLElement {
+  let probe = document.getElementById(INTEGRATED_STATUS_ID);
+  if (!probe) {
+    probe = document.createElement("span");
+    probe.id = INTEGRATED_STATUS_ID;
+    probe.className = "document-card-status-main integrated-document-status";
+    probe.setAttribute("data-integrated-doc-status", "1");
+    probe.setAttribute("aria-hidden", "true");
+    document.getElementById("status-bar")?.appendChild(probe);
+  }
+  return probe;
+}
+
+export function refreshDocumentCardStatusFooter(dirty: boolean): void {
+  if (!document.body.classList.contains("text-document-card")) {
+    document.getElementById(INTEGRATED_STATUS_ID)?.remove();
+    return;
+  }
+  const kind = documentKindLabel();
+  const leftText = formatDocumentCardStatusLeft(kind, dirty);
+  const probe = ensureIntegratedStatusProbe();
+  probe.textContent = leftText;
 }

@@ -1,245 +1,56 @@
-/* Bear concept Render 1 — paper document card on dark navy frame */
+/* Integrated document workspace — editor in split-primary, toolbar in shell chrome */
 
 .document-card-shell.hidden {
   display: none !important;
 }
 
-body.text-document-card {
-  --ub-doc-card-paper: #faf9f6;
-  --ub-doc-card-ink: #1c2834;
-  --ub-doc-card-muted: #4b5c6b;
-  --ub-doc-card-quote-bg: #e8f1f8;
-  --ub-doc-card-quote-accent: #2d647d;
-  --ub-doc-card-frame: #0f1a24;
+body.text-document-card .document-card-shell {
+  display: none !important;
 }
 
 body.text-document-card #work-area,
 body.text-document-card .content-host {
-  background: var(--ub-doc-card-frame);
+  background: var(--ub-canvas, var(--ub-shell-workspace, #141617));
 }
 
 body.text-document-card #split-primary {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 12px 16px 16px;
+  padding: 0;
   min-height: 0;
   flex: 1;
 }
 
-body.text-document-card .document-card-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  max-width: 100%;
-  border-radius: 8px;
-  background: var(--ub-doc-card-paper);
-  color: var(--ub-doc-card-ink);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06),
-    0 12px 40px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-}
-
-body.text-document-card .document-card-shell.hidden {
-  display: none !important;
-}
-
-body.text-document-card .document-card-tabstrip {
-  display: flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 6px 12px 0;
-  gap: 8px;
-  background: var(--ub-doc-card-paper);
-}
-
-body.text-document-card .document-card-tab-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  font-size: 13px;
-  color: var(--ub-doc-card-ink);
-  border-radius: 6px 6px 0 0;
-  background: color-mix(in srgb, var(--ub-doc-card-paper) 92%, #dce9f2);
-  box-shadow: inset 0 -1px 0 rgba(28, 40, 52, 0.08);
-}
-
-body.text-document-card .document-card-tab-close {
-  margin-left: 4px;
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: var(--ub-doc-card-muted);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-body.text-document-card .document-card-toolbar-mount {
-  flex: 0 0 auto;
-  position: relative;
-  z-index: 2;
-  border-bottom: 1px solid rgba(28, 40, 52, 0.1);
-  background: var(--ub-doc-card-paper);
-}
-
-body.text-document-card .document-card-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-body.text-document-card .document-card-status .document-mode-strip--inline {
-  order: 2;
-  margin-left: auto;
-}
-
-body.text-document-card #onboarding-banner,
-body.text-document-card #onboarding-tour {
-  display: none !important;
-}
-
-body.text-document-card .document-card-toolbar-mount .text-compact-toolbar {
-  min-height: 36px;
-  max-height: 36px;
-  padding: 4px 14px;
-  gap: 6px;
-  color: var(--ub-doc-card-ink);
-  background: var(--ub-doc-card-paper);
-  border-bottom: 0;
-}
-
-body.text-document-card .document-card-toolbar-mount .text-compact-tools {
-  gap: 6px;
-}
-
-body.text-document-card .document-card-toolbar-mount .cm-divider {
-  height: 20px;
-  margin: 0 8px;
-  background: rgba(28, 40, 52, 0.18);
-}
-
-body.text-document-card .document-card-toolbar-mount .ui-command,
-body.text-document-card .document-card-toolbar-mount button.text-compact-btn {
-  height: 28px;
-  min-width: 28px;
-  padding: 0 6px;
-  color: var(--ub-doc-card-ink) !important;
-  border: 0 !important;
-  background: transparent !important;
-  border-radius: 4px;
-}
-
-body.text-document-card .document-card-toolbar-mount .ui-command:hover:not(:disabled):not(.unsupported),
-body.text-document-card .document-card-toolbar-mount button.text-compact-btn:hover:not(:disabled):not(
-    [aria-disabled="true"]
-  ) {
-  background: rgba(28, 40, 52, 0.06) !important;
-}
-
-body.text-document-card .document-card-toolbar-mount .ub-icon {
-  color: var(--ub-doc-card-ink) !important;
-  stroke: currentColor !important;
-  stroke-width: 1.75;
-}
-
-body.text-document-card .document-card-toolbar-mount .text-compact-block-trigger {
-  min-width: 108px;
-  justify-content: flex-start;
-  padding: 0 8px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-body.text-document-card .document-card-toolbar-mount .text-compact-block-label {
-  font-size: 13px;
-  color: var(--ub-doc-card-ink);
-}
-
-body.text-document-card .document-card-toolbar-mount .text-compact-chevron {
-  border-left-color: rgba(28, 40, 52, 0.15);
-}
-
-body.text-document-card .document-card-toolbar-mount .text-compact-block-trigger {
-  padding-right: 8px;
-}
-
-body.text-document-card .document-card-toolbar-mount .block-emulation-badge {
-  position: static;
-  transform: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  min-height: 20px;
-  padding: 0 4px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1;
-  color: #5c3d00;
-  background: #ffe8a3;
-  border: 1px solid #d4a72c;
-  box-shadow: 0 1px 2px rgba(28, 40, 52, 0.12);
-  pointer-events: auto;
-  cursor: help;
-}
-
-body.text-document-card #ub-block-picker-popover-host .text-compact-block-menu {
-  color: var(--ub-doc-card-ink);
-  background: #ffffff;
-  border: 1px solid rgba(28, 40, 52, 0.14);
-  box-shadow: 0 8px 24px rgba(28, 40, 52, 0.14);
-}
-
-body.text-document-card #ub-block-picker-popover-host .text-compact-block-item[aria-selected="true"] {
-  background: rgba(45, 100, 125, 0.12);
-}
-
-body.text-document-card .document-card-body-mount {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  background: var(--ub-doc-card-paper);
-}
-
-body.text-document-card .document-card-body-mount .text-editor-host,
-body.text-document-card .document-card-body-mount .document-viewer-host {
+body.text-document-card #text-editor-host,
+body.text-document-card #text-editor-host.text-editor-host {
   flex: 1;
   min-height: 0;
   border: 0;
-  background: var(--ub-doc-card-paper) !important;
+  background: var(--ub-canvas, transparent) !important;
 }
 
 body.text-document-card #text-editor-host .monaco-editor,
 body.text-document-card #text-editor-host .monaco-editor-background,
 body.text-document-card #text-editor-host .monaco-editor .view-lines {
-  background: var(--ub-doc-card-paper) !important;
+  background: var(--ub-canvas, transparent) !important;
 }
 
 body.text-document-card #text-editor-host .monaco-editor .view-lines {
   font-family: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, serif !important;
   font-size: 15px !important;
   line-height: 1.55 !important;
-  color: var(--ub-doc-card-ink) !important;
 }
 
 body.text-document-card .md-preview-body {
   font-family: "Source Serif 4", "Iowan Old Style", Georgia, serif;
   font-size: 15px;
   line-height: 1.55;
-  color: var(--ub-doc-card-ink);
 }
 
 body.text-document-card .md-preview-body h1,
 body.text-document-card .md-preview-body h2,
 body.text-document-card .md-preview-body h3 {
-  color: #152433;
   font-weight: 600;
 }
 
@@ -255,7 +66,7 @@ html.ub-capture-md-preview body.text-document-card .md-preview-shell {
   max-height: none;
   margin: 0;
   border: 0;
-  background: var(--ub-doc-card-paper);
+  background: var(--ub-canvas, transparent);
 }
 
 html.ub-capture-md-preview body.text-document-card .md-preview-toc {
@@ -265,47 +76,46 @@ html.ub-capture-md-preview body.text-document-card .md-preview-toc {
 body.text-document-card .md-preview-body blockquote {
   margin: 0.75rem 0;
   padding: 0.65rem 1rem;
-  border-left: 3px solid var(--ub-doc-card-quote-accent);
-  background: var(--ub-doc-card-quote-bg);
-  color: var(--ub-doc-card-muted);
-}
-
-body.text-document-card .document-card-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 28px;
-  padding: 4px 14px 8px;
-  font-size: 12px;
-  color: var(--ub-doc-card-muted);
-  border-top: 1px solid rgba(28, 40, 52, 0.08);
-  background: var(--ub-doc-card-paper);
-}
-
-body.text-document-card .document-card-status-zoom {
-  color: var(--ub-doc-card-muted);
-  font-variant-numeric: tabular-nums;
+  border-left: 3px solid var(--ub-accent, #5a9fd4);
+  background: var(--ub-accent-muted, rgba(90, 159, 212, 0.12));
 }
 
 body.text-document-card #command-manager.command-manager {
   display: none !important;
 }
 
-/* Render 1 rail: icon + label only — no hover side panel over the document card */
 body.text-document-card .rail-side-panel {
   display: none !important;
 }
 
-body.text-document-card #text-compact-toolbar-host.text-compact-toolbar:not(.document-card-toolbar-mount *),
-body.text-compact-visible #text-compact-toolbar-host.text-compact-toolbar:not(.document-card-toolbar-mount *) {
+body.text-document-card #onboarding-banner,
+body.text-document-card #onboarding-tour {
   display: none !important;
 }
 
-body.text-compact-visible #work-area,
-body.text-compact-visible .content-host {
-  background: var(--ub-doc-card-frame, #0f1a24);
+body.text-document-card #integrated-document-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
-body.text-compact-visible:not(.text-document-card) #command-manager.command-manager {
-  display: none !important;
+body.text-document-card #status-bar #document-mode-inline-host {
+  margin-left: auto;
+}
+
+body.text-document-card #status-bar .status-bar-spacer {
+  flex: 1 1 auto;
+}
+
+body.text-document-card #ub-block-picker-popover-host .text-compact-block-menu {
+  border: 1px solid var(--ub-border-subtle, #3a4d5c);
+  background: var(--ub-panel, #243442);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+body.text-document-card #ub-block-picker-popover-host .text-compact-block-item[aria-selected="true"] {
+  background: var(--ub-accent-muted, rgba(90, 160, 220, 0.2));
 }

@@ -529,11 +529,11 @@
       },
       {
         "id": "",
-        "label": "markdown",
+        "label": "Markdown",
         "bounds": {
           "x": 52.75,
           "y": 777.5,
-          "width": 74.34375,
+          "width": 73.34375,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -541,12 +541,12 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 7.087,
-        "pixelInkCount": 270,
+        "pixelContrast": 6.847,
+        "pixelInkCount": 286,
         "pixelBounds": {
           "x": 52,
           "y": 777,
-          "width": 76,
+          "width": 75,
           "height": 18
         }
       },
@@ -554,7 +554,7 @@
         "id": "",
         "label": "Ln 11, Col 4",
         "bounds": {
-          "x": 127.09375,
+          "x": 126.09375,
           "y": 777.5,
           "width": 75.59375,
           "height": 17
@@ -567,7 +567,7 @@
         "pixelContrast": 7.844,
         "pixelInkCount": 208,
         "pixelBounds": {
-          "x": 127,
+          "x": 126,
           "y": 777,
           "width": 76,
           "height": 18
@@ -577,7 +577,7 @@
         "id": "",
         "label": "Problems 1",
         "bounds": {
-          "x": 1162.53125,
+          "x": 918.75,
           "y": 777.5,
           "width": 66.6875,
           "height": 17
@@ -587,10 +587,10 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.038,
-        "pixelInkCount": 259,
+        "pixelContrast": 5.944,
+        "pixelInkCount": 261,
         "pixelBounds": {
-          "x": 1162,
+          "x": 918,
           "y": 777,
           "width": 68,
           "height": 18
@@ -600,7 +600,7 @@
         "id": "",
         "label": "UTF-8",
         "bounds": {
-          "x": 1229.21875,
+          "x": 985.4375,
           "y": 777.5,
           "width": 38.796875,
           "height": 17
@@ -610,10 +610,10 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.947,
-        "pixelInkCount": 127,
+        "pixelContrast": 6.74,
+        "pixelInkCount": 122,
         "pixelBounds": {
-          "x": 1229,
+          "x": 985,
           "y": 777,
           "width": 40,
           "height": 18
@@ -636,9 +636,9 @@
   "diffLine4Region": null,
   "railFlyoutWidth": 0,
   "dom": {
-    "visibleDocumentCardCount": 1,
+    "visibleDocumentCardCount": 0,
     "commandManagerVisible": false,
-    "footerUsesCardTokens": true,
+    "footerUsesCardTokens": false,
     "activeMode": "wysiwyg",
     "visibleEditorHost": "rich",
     "modeMatchesVisibleHost": true,
@@ -647,7 +647,7 @@
     "documentCardFooterText": "Markdown \u00b7 36 words \u00b7 Saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Saved markdown Ln 11, Col 4 Problems 1 UTF-8",
+    "statusBarDocumentLanguage": "Saved Markdown Ln 11, Col 4 Problems 1 UTF-8",
     "projectHomeCardHeight": null,
     "projectHomeCardTopRelative": null,
     "projectHomeCardCenterDeltaX": null,

@@ -166,13 +166,6 @@ export function resetBlockPickerPopoverHost(): void {
 }
 
 function compactWidthBudget(host: HTMLElement): number {
-  const cardMount = document.querySelector<HTMLElement>(".document-card-toolbar-mount");
-  if (document.body.classList.contains("text-document-card") && cardMount) {
-    const mountWidth = cardMount.clientWidth;
-    if (mountWidth > 120) {
-      return mountWidth - 28;
-    }
-  }
   const width = host.clientWidth || window.innerWidth;
   if (width < 400) {
     return Math.max(120, width - 48);
@@ -463,10 +456,6 @@ export function seedDocVisualCompactToolbarFallback(
   ) {
     return;
   }
-  const toolbarMount = document.getElementById("document-card-toolbar-mount");
-  if (toolbarMount && primaryHost.parentElement !== toolbarMount) {
-    toolbarMount.appendChild(primaryHost);
-  }
   const existingTrigger = primaryHost.querySelector<HTMLButtonElement>(
     ".text-compact-block-trigger",
   );
@@ -496,7 +485,6 @@ export function seedDocVisualCompactToolbarFallback(
   }
   if (force) {
     document.body.classList.add("text-document-card", "text-compact-visible", "cm-collapsed");
-    document.getElementById("document-card-shell")?.classList.remove("hidden");
   }
   primaryHost.classList.remove("hidden");
   document.body.classList.add("text-compact-visible");

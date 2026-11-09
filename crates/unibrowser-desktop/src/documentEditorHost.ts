@@ -99,14 +99,15 @@ export function ensureDocumentModeFooterMounted(): void {
 function mountModeControls(): void {
   const chromeStrip = document.getElementById("document-mode-strip-host");
   chromeStrip?.classList.add("hidden");
-  const cardFooter = document.getElementById("document-card-status");
+  const statusBar = document.getElementById("status-bar");
   let inlineHost = document.getElementById("document-mode-inline-host");
-  if (cardFooter && !inlineHost) {
+  if (!inlineHost && statusBar) {
     inlineHost = document.createElement("div");
     inlineHost.id = "document-mode-inline-host";
-    cardFooter.appendChild(inlineHost);
+    statusBar.appendChild(inlineHost);
   }
-  const mountTarget = inlineHost ?? cardFooter ?? chromeStrip;
+  document.getElementById("document-card-status")?.querySelector("#document-mode-inline-host")?.remove();
+  const mountTarget = inlineHost ?? chromeStrip;
   if (!mountTarget) {
     return;
   }

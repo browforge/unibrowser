@@ -44,8 +44,14 @@ test.describe("Document feature captures", () => {
         return "document feature capture requires text-document-card layout";
       }
       const shell = document.getElementById("document-card-shell");
-      if (!shell || shell.classList.contains("hidden")) {
-        return "document-card-shell hidden during doc feature capture";
+      if (shell && !shell.classList.contains("hidden")) {
+        return "nested document-card-shell must stay hidden during doc feature capture";
+      }
+      const nestedTab = document.querySelector<HTMLElement>(
+        "#document-card-tab .document-card-tab-label",
+      );
+      if (nestedTab && nestedTab.getBoundingClientRect().height > 2) {
+        return "duplicate in-card filename tab visible during doc feature capture";
       }
       const flyout = document.querySelector<HTMLElement>(".rail-side-panel:not(.hidden)");
       if (flyout && flyout.getBoundingClientRect().width > 8) {
@@ -76,10 +82,10 @@ test.describe("Document feature captures", () => {
         );
       };
       const cards = Array.from(
-        document.querySelectorAll<HTMLElement>(".document-card, .document-card-shell"),
+        document.querySelectorAll<HTMLElement>(".document-card-shell:not(.hidden)"),
       ).filter(visible);
-      if (cards.length !== 1) {
-        return `expected exactly one visible document card, found ${cards.length}`;
+      if (cards.length > 0) {
+        return `nested document-card-shell must stay hidden (found ${cards.length} visible)`;
       }
       const cm = document.getElementById("command-manager");
       if (
@@ -121,26 +127,15 @@ test.describe("Document feature captures", () => {
         }
         return a.trim().toLowerCase() === b.trim().toLowerCase();
       };
-      const footerMain = document.querySelector<HTMLElement>(".document-card-status-main");
-      const bodyStyle = getComputedStyle(document.body);
-      const mutedToken = bodyStyle.getPropertyValue("--ub-doc-card-muted").trim();
-      const inkToken = bodyStyle.getPropertyValue("--ub-doc-card-ink").trim();
-      const paperToken = bodyStyle.getPropertyValue("--ub-doc-card-paper").trim();
-      const statusHost = footerMain?.closest("#document-card-status");
-      const footerStyle = footerMain ? getComputedStyle(footerMain) : null;
-      const statusStyle =
-        statusHost instanceof HTMLElement ? getComputedStyle(statusHost) : null;
-      const footerOk = Boolean(
-        footerStyle &&
-          statusStyle &&
-          mutedToken &&
-          paperToken &&
-          (colorsMatch(footerStyle.color, mutedToken) || colorsMatch(footerStyle.color, inkToken)) &&
-          statusStyle.fontSize === "12px" &&
-          colorsMatch(statusStyle.backgroundColor, paperToken),
-      );
-      if (!footerOk) {
-        return "document card footer is not styled by card tokens";
+      const cardFooter = document.getElementById("document-card-status");
+      if (cardFooter && cardFooter.getBoundingClientRect().height > 4) {
+        return "nested document-card-status footer must stay hidden";
+      }
+      const footerMain =
+        document.querySelector<HTMLElement>("[data-integrated-doc-status]") ??
+        document.querySelector<HTMLElement>(".document-card-status-main");
+      if (!footerMain?.textContent?.match(/\bwords?\b/i)) {
+        return "integrated document status missing word count";
       }
       const mode = document.body.dataset.documentEditorMode ?? "";
       const monacoHost = document.getElementById("text-editor-host");
@@ -180,12 +175,13 @@ test.describe("Document feature captures", () => {
       if (!modeOk) {
         return `active mode ${mode} does not match visible editor host (${host})`;
       }
-      const bodyMount = document.getElementById("document-card-body-mount");
+      const bodyMount =
+        document.getElementById("text-editor-host") ?? document.getElementById("split-primary");
       const bodyRect = bodyMount?.getBoundingClientRect();
       const straySelector =
         ".monaco-editor, .view-lines, .view-line, .md-preview-body, .md-preview-shell, #document-split-preview-host";
       if (bodyMount && (mode === "wysiwyg" || mode === "reading") && richHost && !richHost.classList.contains("hidden")) {
-        const rect = bodyMount.getBoundingClientRect();
+        const rect = bodyRect ?? bodyMount.getBoundingClientRect();
         const xs = [rect.left + rect.width * 0.25, rect.left + rect.width / 2, rect.left + rect.width * 0.75];
         const ys = [rect.top + 16, rect.top + rect.height * 0.35, rect.top + rect.height * 0.65];
         for (const y of ys) {
@@ -207,24 +203,23 @@ test.describe("Document feature captures", () => {
               }
               if (
                 el.id === "text-editor-host" ||
-                el.id === "document-card-body-mount" ||
+                el.id === "split-primary" ||
                 el.classList.contains("document-monaco-slot") ||
                 el.classList.contains("rich-text-editor-shell")
               ) {
                 continue;
               }
               if (el.closest(straySelector)) {
-                return "card body hit-test must stay inside rich editor";
+                return "editor workspace hit-test must stay inside rich editor";
               }
             }
             if (!reachedRich) {
-              return "card body hit-test must stay inside rich editor";
+              return "editor workspace hit-test must stay inside rich editor";
             }
           }
         }
       }
       if (bodyRect && bodyRect.width > 40 && bodyRect.height > 40) {
-        const shell = document.getElementById("document-card-shell");
         const sampleYs = [
           bodyRect.top + 8,
           bodyRect.top + bodyRect.height * 0.35,
@@ -236,14 +231,14 @@ test.describe("Document feature captures", () => {
             if (!(el instanceof HTMLElement)) {
               continue;
             }
-            if (shell?.contains(el) || el === shell || el === bodyMount) {
+            if (bodyMount?.contains(el) || el === bodyMount) {
               break;
             }
             if (el.id === "command-manager" || el.closest("#command-manager")) {
-              return "outside chrome overlaps the document card body";
+              return "outside chrome overlaps the document workspace";
             }
             if (el.id === "document-viewer-host" && !el.classList.contains("hidden")) {
-              return "outside chrome overlaps the document card body";
+              return "outside chrome overlaps the document workspace";
             }
           }
         }
@@ -319,7 +314,7 @@ test.describe("Document feature captures", () => {
       });
       const groups = document.getElementById("command-manager-groups");
       const cards = Array.from(
-        document.querySelectorAll<HTMLElement>(".document-card, .document-card-shell"),
+        document.querySelectorAll<HTMLElement>(".document-card-shell:not(.hidden)"),
       ).filter(visible);
       const cmEl = document.getElementById("command-manager");
       const commandManagerVisible = Boolean(
@@ -359,15 +354,9 @@ test.describe("Document feature captures", () => {
         }
         return a.trim().toLowerCase() === b.trim().toLowerCase();
       };
-      const footerMain = document.querySelector<HTMLElement>(".document-card-status-main");
-      const bodyStyle = getComputedStyle(document.body);
-      const mutedToken = bodyStyle.getPropertyValue("--ub-doc-card-muted").trim();
-      const inkToken = bodyStyle.getPropertyValue("--ub-doc-card-ink").trim();
-      const paperToken = bodyStyle.getPropertyValue("--ub-doc-card-paper").trim();
-      const statusHost = footerMain?.closest("#document-card-status");
-      const footerStyle = footerMain ? getComputedStyle(footerMain) : null;
-      const statusStyle =
-        statusHost instanceof HTMLElement ? getComputedStyle(statusHost) : null;
+      const footerMain =
+        document.querySelector<HTMLElement>("[data-integrated-doc-status]") ??
+        document.querySelector<HTMLElement>(".document-card-status-main");
       const mode = document.body.dataset.documentEditorMode ?? "";
       const monacoHost = document.getElementById("text-editor-host");
       const richHost = document.getElementById("rich-text-editor-host");
@@ -403,7 +392,8 @@ test.describe("Document feature captures", () => {
         (mode === "source" && visibleEditorHost === "monaco") ||
         (mode === "split" && visibleEditorHost === "split") ||
         ((mode === "wysiwyg" || mode === "reading") && visibleEditorHost === "rich");
-      const bodyMount = document.getElementById("document-card-body-mount");
+      const bodyMount =
+        document.getElementById("text-editor-host") ?? document.getElementById("split-primary");
       const bodyRect = bodyMount?.getBoundingClientRect();
       const isVisibleEl = (el: HTMLElement) => {
         const rect = el.getBoundingClientRect();
@@ -446,7 +436,7 @@ test.describe("Document feature captures", () => {
               }
               if (
                 el.id === "text-editor-host" ||
-                el.id === "document-card-body-mount" ||
+                el.id === "split-primary" ||
                 el.classList.contains("document-monaco-slot") ||
                 el.classList.contains("rich-text-editor-shell")
               ) {
@@ -465,7 +455,6 @@ test.describe("Document feature captures", () => {
       }
       let outsideOverlapCount = 0;
       if (bodyRect && bodyRect.width > 40 && bodyRect.height > 40) {
-        const shell = document.getElementById("document-card-shell");
         const sampleYs = [
           bodyRect.top + 8,
           bodyRect.top + bodyRect.height * 0.35,
@@ -477,7 +466,7 @@ test.describe("Document feature captures", () => {
             if (!(el instanceof HTMLElement)) {
               continue;
             }
-            if (shell?.contains(el) || el === shell || el === bodyMount) {
+            if (bodyMount?.contains(el) || el === bodyMount) {
               break;
             }
             if (el.id === "command-manager" || el.closest("#command-manager")) {
@@ -516,16 +505,7 @@ test.describe("Document feature captures", () => {
         dom: {
           visibleDocumentCardCount: cards.length,
           commandManagerVisible,
-          footerUsesCardTokens: Boolean(
-            footerStyle &&
-              statusStyle &&
-              mutedToken &&
-              paperToken &&
-              (colorsMatch(footerStyle.color, mutedToken) ||
-                colorsMatch(footerStyle.color, inkToken)) &&
-              statusStyle.fontSize === "12px" &&
-              colorsMatch(statusStyle.backgroundColor, paperToken),
-          ),
+          footerUsesCardTokens: Boolean(footerMain?.textContent?.match(/\bwords?\b/i)),
           activeMode: mode,
           visibleEditorHost,
           modeMatchesVisibleHost,
@@ -580,7 +560,7 @@ test.describe("Document feature captures", () => {
       {
         name: "doc-visual-docx-web-v6.png",
         demo: "doc-visual-md-docx",
-        wait: "#document-card-tab .document-card-tab-label:text-is('sample.docx')",
+        wait: ".title-tabs .tab.active .tab-label:text-is('sample.docx')",
       },
     ];
     for (const shot of shots) {
