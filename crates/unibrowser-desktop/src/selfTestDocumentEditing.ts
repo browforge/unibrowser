@@ -3,11 +3,6 @@ import { TextSelection } from "prosemirror-state";
 import { getActiveRichTextView } from "./richTextEditor";
 import { appendActiveEditorText, getActiveTextContent } from "./textEditor";
 import { getDocumentEditorMode, setDocumentEditorMode } from "./documentEditorModes";
-import {
-  appendDocumentHistorySnapshot,
-  parseMarkdownDocument,
-  sourceProjectionDocument,
-} from "./documentModelBridge";
 import { richTextSchema } from "./richTextProseMirror";
 
 const TEXT_SAVE = "unibrowser.text.save";
@@ -143,8 +138,7 @@ async function boldVisualMarkerInProseMirror(): Promise<void> {
     .setSelection(TextSelection.create(view.state.doc, from, to))
     .addMark(from, to, bold.create());
   view.dispatch(markTr);
-  const { flushVisualEditsToHostDocument } = await import("./documentEditorHost");
-  await flushVisualEditsToHostDocument();
+  await sleep(400);
   await waitForHostIncludes(`**${VISUAL_MARKER}**`, 15_000).catch(async () => {
     const host = await hostContent();
     if (!host.includes("**") || !host.includes(VISUAL_MARKER)) {
@@ -209,6 +203,31 @@ async function assertWordCountVisible(): Promise<void> {
 async function closeActiveTabAndReopen(path: string): Promise<void> {
   const saved = await invoke<number[]>("read_document_bytes", { path });
   const savedText = new TextDecoder().decode(new Uint8Array(saved));
+  const plan = await invoke<{ demo_pack: string } | null>("get_self_test_plan");
+  const scratch = plan?.demo_pack ? `${plan.demo_pack}/sample.txt` : path;
+  const spare = await invoke<Record<string, unknown>>("open_path_in_new_tab", {
+    path: scratch,
+    line: null,
+  });
+  await applyShellState(spare);
+  const layout = await invoke<{
+    tabs: { file_path?: string | null }[];
+    active_index: number;
+  }>("get_browser_state");
+  const normalized = path.replace(/\\/g, "/");
+  const leaf = normalized.split("/").pop() ?? normalized;
+  const docIdx = layout.tabs.findIndex((tab) => {
+    const fp = (tab.file_path ?? "").replace(/\\/g, "/");
+    return fp === normalized || fp.endsWith(`/${leaf}`);
+  });
+  if (docIdx < 0 || layout.tabs.length < 2) {
+    throw new Error("document tab missing after opening spare tab");
+  }
+  const afterClose = await invoke<Record<string, unknown>>("close_tab", {
+    index: docIdx,
+    force: true,
+  });
+  await applyShellState(afterClose);
   const reopened = await invoke<Record<string, unknown>>("open_path", { path, line: null });
   await applyShellState(reopened);
   await ensureMarkdownVisualCard();
@@ -245,22 +264,6 @@ export async function runDocumentEditingEverydayPhase1(): Promise<void> {
   if (!monacoText.includes(VISUAL_MARKER) || !monacoText.includes(SOURCE_MARKER)) {
     throw new Error("source buffer missing markers after source edit");
   }
-  const path = document.body.dataset.activeDocumentPath;
-  if (!path) {
-    throw new Error("active document path missing after phase1");
-  }
-  const monacoSnapshot = getActiveTextContent() ?? "";
-  const parsed = await parseMarkdownDocument(monacoSnapshot);
-  const parsedProjection = await sourceProjectionDocument(parsed);
-  if (!parsedProjection.includes(SOURCE_MARKER) || !parsedProjection.includes(VISUAL_MARKER)) {
-    throw new Error("parsed monaco projection missing markers after phase1");
-  }
-  await invoke("document_history_reset", { path });
-  await appendDocumentHistorySnapshot(path, {
-    model: parsed.model,
-    source_map: parsed.source_map,
-    original_base64: parsed.original_base64,
-  });
   await invoke("self_test_ping", { phase: "doc-edit-phase1-done" }).catch(() => undefined);
 }
 
@@ -269,25 +272,35 @@ export async function runDocumentEditingEverydayPhase2(): Promise<void> {
   if (!content.includes(SOURCE_MARKER) || !content.includes(VISUAL_MARKER)) {
     throw new Error("host missing markers before undo/redo");
   }
-
-  const undoDto = await invoke<Record<string, unknown>>("document_undo");
-  await applyShellState(undoDto);
-  const afterUndo = await hostContent();
-  if (afterUndo.includes(SOURCE_MARKER) || afterUndo.includes(VISUAL_MARKER)) {
-    throw new Error("undo did not revert squashed document edit");
+  const undoSourceDto = await invoke<Record<string, unknown>>("document_undo");
+  await applyShellState(undoSourceDto);
+  const afterSourceUndo = await hostContent();
+  if (afterSourceUndo.includes(SOURCE_MARKER)) {
+    throw new Error("first undo left source marker in host");
+  }
+  if (!afterSourceUndo.includes(VISUAL_MARKER)) {
+    throw new Error("first undo removed visual marker");
   }
 
-  const redoDto = await invoke<{ text_document?: { content: string } }>("document_redo");
-  const redoneInDto = redoDto.text_document?.content ?? "";
-  if (!redoneInDto.includes(SOURCE_MARKER) || !redoneInDto.includes(VISUAL_MARKER)) {
-    throw new Error(
-      `document_redo missing markers (src=${redoneInDto.includes(SOURCE_MARKER)} vis=${redoneInDto.includes(VISUAL_MARKER)} tail=${JSON.stringify(redoneInDto.slice(-120))})`,
-    );
+  const undoVisualDto = await invoke<Record<string, unknown>>("document_undo");
+  await applyShellState(undoVisualDto);
+  const afterVisualUndo = await hostContent();
+  if (afterVisualUndo.includes(VISUAL_MARKER) || afterVisualUndo.includes(SOURCE_MARKER)) {
+    throw new Error("second undo did not remove visual/source markers");
   }
-  await applyShellState(redoDto);
+
+  const redoVisualDto = await invoke<Record<string, unknown>>("document_redo");
+  await applyShellState(redoVisualDto);
+  const afterVisualRedo = await hostContent();
+  if (!afterVisualRedo.includes(VISUAL_MARKER) || afterVisualRedo.includes(SOURCE_MARKER)) {
+    throw new Error("first redo did not restore visual-only edit");
+  }
+
+  const redoSourceDto = await invoke<Record<string, unknown>>("document_redo");
+  await applyShellState(redoSourceDto);
   const afterRedo = await hostContent();
   if (!afterRedo.includes(SOURCE_MARKER) || !afterRedo.includes(VISUAL_MARKER)) {
-    throw new Error("redo did not restore source and visual markers in host");
+    throw new Error("second redo did not restore source and visual markers");
   }
 
   await switchToVisual();

@@ -23,6 +23,8 @@ let monacoHost: HTMLElement | null = null;
 let richHost: HTMLElement | null = null;
 let splitPreviewHost: HTMLElement | null = null;
 let documentPath: string | null = null;
+/** Visual edits synced to the host but not yet recorded on the shared markdown history stack. */
+let visualHistoryPending = false;
 
 async function resolveDemoTokens(): Promise<string> {
   const fromUrl = new URLSearchParams(window.location.search).get("demo");
@@ -180,6 +182,7 @@ export async function flushVisualEditsToHostDocument(): Promise<void> {
   const view = getActiveRichTextView();
   const base = session;
   if (!view || !base || !documentPath) {
+    await appendVisualHistorySnapshotFromSession();
     return;
   }
   const { docToModel, diffTouchedBlocks } = await import("./richTextProseMirror");
@@ -196,7 +199,10 @@ export async function flushVisualEditsToHostDocument(): Promise<void> {
   const touched = diffTouchedBlocks(before as never, blocks as never);
   const allIds = blocks.map((b) => b.id ?? "").filter(Boolean);
   session = { ...base, model: normalized };
-  await commitModelToMarkdown(touched.length > 0 ? [...new Set([...touched, ...allIds])] : allIds);
+  await commitModelToMarkdown(
+    touched.length > 0 ? [...new Set([...touched, ...allIds])] : allIds,
+    { recordHistory: true },
+  );
 }
 
 /** Mirror host markdown into Monaco when leaving Visual for Source. */
@@ -211,10 +217,14 @@ export async function flushVisualModelToSourceBuffer(): Promise<void> {
   await textEditor.setContentFromHost(content);
 }
 
-async function commitModelToMarkdown(touchedBlockIds: string[]) {
+async function commitModelToMarkdown(
+  touchedBlockIds: string[],
+  options?: { recordHistory?: boolean },
+) {
   if (!session || !documentPath) {
     return;
   }
+  const recordHistory = options?.recordHistory ?? false;
   const dirty = Array.from(new Set([...touchedBlockIds]));
   const content = await serializeMarkdownDocument({
     model: session.model,
@@ -236,12 +246,63 @@ async function commitModelToMarkdown(touchedBlockIds: string[]) {
       selectionEnd: end,
     });
   }
+  if (recordHistory) {
+    visualHistoryPending = false;
+    const { appendDocumentHistorySnapshot } = await import("./documentModelBridge");
+    await appendDocumentHistorySnapshot(documentPath, {
+      model: session.model,
+      source_map: session.source_map,
+      original_base64: session.original_base64,
+    }).catch(() => undefined);
+  } else {
+    visualHistoryPending = true;
+  }
+}
+
+export async function ensureVisualEditsRecordedInHistory(): Promise<void> {
+  if (visualHistoryPending) {
+    await appendVisualHistorySnapshotFromSession();
+    return;
+  }
+  if (!session || !documentPath) {
+    return;
+  }
+  const { sourceProjectionDocument, appendDocumentHistorySnapshot } = await import(
+    "./documentModelBridge"
+  );
+  const { invoke } = await import("@tauri-apps/api/core");
+  const sessionProjection = await sourceProjectionDocument(session);
+  let headProjection = "";
+  try {
+    const head = await invoke<DocumentParseResponse>("document_history_head_session", {
+      path: documentPath,
+    });
+    headProjection = await sourceProjectionDocument(head);
+  } catch {
+    headProjection = "";
+  }
+  if (headProjection.trim() === sessionProjection.trim()) {
+    return;
+  }
+  await appendDocumentHistorySnapshot(documentPath, {
+    model: session.model,
+    source_map: session.source_map,
+    original_base64: session.original_base64,
+  });
+  visualHistoryPending = false;
+}
+
+async function appendVisualHistorySnapshotFromSession(): Promise<void> {
+  if (!visualHistoryPending || !session || !documentPath) {
+    return;
+  }
   const { appendDocumentHistorySnapshot } = await import("./documentModelBridge");
   await appendDocumentHistorySnapshot(documentPath, {
     model: session.model,
     source_map: session.source_map,
     original_base64: session.original_base64,
-  }).catch(() => undefined);
+  });
+  visualHistoryPending = false;
 }
 
 async function renderRich() {
@@ -375,6 +436,7 @@ export async function syncDocumentEditorForTextTab(
       node.style.pointerEvents = "";
     });
     session = null;
+    visualHistoryPending = false;
     documentPath = path;
     document.body.dataset.activeDocumentPath = path;
     applySurfaceVisibility(getDocumentEditorMode());
@@ -598,6 +660,7 @@ export function teardownDocumentEditor() {
   destroyRichTextEditor();
   hideSourceMergeBanner();
   session = null;
+  visualHistoryPending = false;
 }
 
 if (typeof window !== "undefined") {

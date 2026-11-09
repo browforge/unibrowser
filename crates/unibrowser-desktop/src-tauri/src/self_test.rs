@@ -75,14 +75,6 @@ fn reset_document_editing_wait() {
     }
 }
 
-fn take_document_editing_result_now() -> Option<Option<String>> {
-    document_editing_wait()
-        .result
-        .lock()
-        .ok()
-        .and_then(|mut g| g.take())
-}
-
 #[cfg(target_os = "linux")]
 fn pump_gtk_events() {
     while gtk::events_pending() {
@@ -94,17 +86,58 @@ fn pump_gtk_events() {
 #[cfg(not(target_os = "linux"))]
 fn pump_gtk_events() {}
 
+/// Waits for the in-webview document-editing harness.
+///
+/// A helper thread blocks on the condvar fed by `self_test_submit_document_editing_result` (no GTK).
+/// This thread must call `pump_gtk_events` until that helper completes: Tauri IPC and the Linux
+/// WebKit/GTK shell only deliver `self_test_submit_*` commands while the GTK main loop runs.
+enum DocumentEditingWaitOutcome {
+    Finished(Result<(), String>),
+    Timeout,
+}
+
 fn await_document_editing_harness(timeout: Duration) -> Result<(), String> {
+    let (tx, rx) = std::sync::mpsc::channel::<DocumentEditingWaitOutcome>();
+    let wait = document_editing_wait();
+    std::thread::spawn(move || {
+        let mut guard = wait.result.lock().expect("doc-edit wait mutex");
+        loop {
+            if guard.is_some() {
+                let message = guard.take().expect("doc-edit result");
+                let outcome = match message {
+                    None => Ok(()),
+                    Some(err) => Err(err),
+                };
+                let _ = tx.send(DocumentEditingWaitOutcome::Finished(outcome));
+                return;
+            }
+            let (next, timed_out) = wait
+                .cvar
+                .wait_timeout(guard, timeout)
+                .expect("doc-edit condvar");
+            guard = next;
+            if guard.is_some() {
+                continue;
+            }
+            if timed_out.timed_out() {
+                let _ = tx.send(DocumentEditingWaitOutcome::Timeout);
+                return;
+            }
+        }
+    });
     let deadline = Instant::now() + timeout;
     while Instant::now() < deadline {
         pump_gtk_events();
-        if let Some(message) = take_document_editing_result_now() {
-            return match message {
-                None => Ok(()),
-                Some(err) => Err(err),
-            };
+        match rx.try_recv() {
+            Ok(DocumentEditingWaitOutcome::Finished(outcome)) => return outcome,
+            Ok(DocumentEditingWaitOutcome::Timeout) => {
+                return Err("document editing self-test timed out".into());
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                return Err("document editing harness waiter exited early".into());
+            }
         }
-        std::thread::sleep(Duration::from_millis(12));
     }
     Err("document editing self-test timed out".into())
 }

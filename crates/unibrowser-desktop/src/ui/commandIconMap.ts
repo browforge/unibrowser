@@ -15,6 +15,7 @@ export const CONTROL_ICON_MAP: Record<string, LucideName> = {
   move: "move",
   pencil: "pen-line",
   archive: "package-open",
+  "package-open": "package-open",
   trash: "x",
   "arrow-up-down": "arrow-up-down",
   "arrow-down-up": "arrow-down-up",
