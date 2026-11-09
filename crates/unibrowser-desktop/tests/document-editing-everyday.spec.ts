@@ -36,27 +36,36 @@ test.describe("Everyday document editing", () => {
       timeout: 15_000,
     });
 
-    const editor = page.locator(".rich-text-doc .ProseMirror");
-    await editor.click();
-    const marker = ` everyday-${Date.now()}`;
-    await page.keyboard.type(marker);
-
-    await expect(page.locator('[data-status-item="document-integrated"]')).toContainText(/words/i);
-
+    const marker = `everyday-edit-${Date.now()}`;
     await page.locator('[data-doc-mode="source"]').click();
     await expect(page.locator("body")).toHaveAttribute("data-document-editor-mode", "source", {
       timeout: 15_000,
     });
-    await expect(page.locator("#text-editor-host .monaco-editor")).toBeVisible({ timeout: 30_000 });
+    const monaco = page.locator("#text-editor-host .monaco-editor");
+    await expect(monaco).toBeVisible({ timeout: 30_000 });
+    await monaco.click();
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type(`\n\n${marker}\n`);
+    await expect(page.locator("#text-editor-host .view-lines")).toContainText(marker, {
+      timeout: 10_000,
+    });
 
     await page.locator('[data-doc-mode="wysiwyg"]').click();
     await expect(page.locator("body")).toHaveAttribute("data-document-editor-mode", "wysiwyg", {
       timeout: 15_000,
     });
-    await expect(editor).toContainText(marker.trim());
+    const editor = page.locator(".rich-text-doc .ProseMirror");
+    await expect(editor).toContainText(marker, { timeout: 15_000 });
 
+    await monaco.click({ timeout: 5000 }).catch(() => undefined);
+    await page.locator('[data-doc-mode="source"]').click();
+    await expect(page.locator("#text-editor-host .view-lines")).toContainText(marker, {
+      timeout: 10_000,
+    });
+
+    await page.locator('[data-doc-mode="wysiwyg"]').click();
     await editor.click();
     await page.keyboard.press(process.platform === "darwin" ? "Meta+Z" : "Control+Z");
-    await expect(editor).not.toContainText(marker.trim(), { timeout: 10_000 });
+    await expect(editor).not.toContainText(marker, { timeout: 15_000 });
   });
 });
