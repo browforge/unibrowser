@@ -1,4 +1,8 @@
-import { mergeSourceDocument, sourceProjectionDocument } from "./documentModelBridge";
+import {
+  appendDocumentHistorySnapshot,
+  mergeSourceDocument,
+  sourceProjectionDocument,
+} from "./documentModelBridge";
 import { getDocumentModelSession } from "./documentEditorHost";
 import { getDocumentEditorMode } from "./documentEditorModes";
 
@@ -47,6 +51,14 @@ async function applyPendingMerge() {
       detail: merged,
     }),
   );
+  const path = document.body.dataset.activeDocumentPath;
+  if (path) {
+    await appendDocumentHistorySnapshot(path, {
+      model: merged.model,
+      source_map: merged.source_map,
+      original_base64: merged.original_base64,
+    }).catch(() => undefined);
+  }
   hideSourceMergeBanner();
   const { textEditor } = await import("./textEditor");
   await textEditor.setContentFromHost(merged.projectionContent ?? pendingSource);
@@ -73,11 +85,24 @@ export async function checkSourceBuffer(
     hideSourceMergeBanner();
     return;
   }
+  const { getActiveTextContent } = await import("./textEditor");
+  const hostMarkdown = getActiveTextContent();
+  if (monacoContent === hostMarkdown) {
+    hideSourceMergeBanner();
+    return;
+  }
+  const { refreshDocumentSessionFromHost } = await import("./documentEditorHost");
+  await refreshDocumentSessionFromHost();
   const session = getDocumentModelSession();
   if (!session) {
     return;
   }
-  const projection = await sourceProjectionDocument(session);
+  let projection = hostMarkdown;
+  try {
+    projection = await sourceProjectionDocument(session);
+  } catch {
+    projection = hostMarkdown;
+  }
   if (monacoContent === projection) {
     hideSourceMergeBanner();
     return;
@@ -87,6 +112,14 @@ export async function checkSourceBuffer(
     window.dispatchEvent(
       new CustomEvent("unibrowser-document-session-updated", { detail: merged }),
     );
+    const path = document.body.dataset.activeDocumentPath;
+    if (path) {
+      await appendDocumentHistorySnapshot(path, {
+        model: merged.model,
+        source_map: merged.source_map,
+        original_base64: merged.original_base64,
+      }).catch(() => undefined);
+    }
     hideSourceMergeBanner();
     return;
   }

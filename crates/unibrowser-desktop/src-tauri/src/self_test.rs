@@ -24,8 +24,10 @@ pub const SCENARIO_CM_GREY: &str = "cm-grey-tab-switch";
 pub const SCENARIO_UNIBROW_BLANK: &str = "unibrow-blank-save";
 pub const SCENARIO_PROBLEMS_JUMP: &str = "problems-jump";
 pub const SCENARIO_SHELL_CHROME_BATCH3: &str = "shell-chrome-batch3";
+pub const SCENARIO_DOCUMENT_EDITING_EVERYDAY: &str = "document-editing-everyday";
 
 static SHELL_CHROME_AUDIT: Mutex<Option<Vec<String>>> = Mutex::new(None);
+static DOCUMENT_EDITING_RESULT: Mutex<Option<Option<String>>> = Mutex::new(None);
 
 const SHELL_CHROME_AUDIT_EVAL: &str = r"(function(){try{if(window.__unibrowserSubmitShellChromeAudit){window.__unibrowserSubmitShellChromeAudit();return;}var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:fn()});}}catch(e){}})();";
 
@@ -38,6 +40,30 @@ pub fn self_test_submit_shell_chrome_audit(errors: Vec<String>) {
 
 fn take_shell_chrome_audit() -> Option<Vec<String>> {
     drain_shell_chrome_audit()
+}
+
+#[tauri::command]
+pub fn self_test_submit_document_editing_result(message: Option<String>) {
+    if let Ok(mut g) = DOCUMENT_EDITING_RESULT.lock() {
+        *g = Some(message);
+    }
+}
+
+fn take_document_editing_result() -> Option<Option<String>> {
+    DOCUMENT_EDITING_RESULT
+        .lock()
+        .ok()
+        .and_then(|mut g| g.take())
+}
+
+#[tauri::command]
+pub fn self_test_flush_edit_recovery_debounce() {
+    crate::edit_recovery::flush_pending_for_test();
+}
+
+#[tauri::command]
+pub fn edit_recovery_backup_id_for_path(path: String) -> Result<String, String> {
+    Ok(crate::edit_recovery::backup_id_for_path(&path))
 }
 
 pub fn drain_shell_chrome_audit() -> Option<Vec<String>> {
@@ -59,6 +85,7 @@ pub const ALL_SCENARIOS: &[&str] = &[
     SCENARIO_FONT_TEXT_SVG,
     SCENARIO_LIVE_PREVIEW,
     SCENARIO_AI_SIDEBAR,
+    SCENARIO_DOCUMENT_EDITING_EVERYDAY,
 ];
 
 #[derive(Clone)]
@@ -267,6 +294,9 @@ fn run_all_scenarios(app: &AppHandle) -> Result<SelfTestReportDto, String> {
             SCENARIO_LIVE_PREVIEW => scenario_live_preview(&window, app, &state, &projects),
             SCENARIO_AI_SIDEBAR => scenario_ai_sidebar(&window, app, &state),
             SCENARIO_SHELL_CHROME_BATCH3 => scenario_shell_chrome_batch3(app),
+            SCENARIO_DOCUMENT_EDITING_EVERYDAY => {
+                scenario_document_editing_everyday(&window, app, &state, &demo, &projects)
+            }
             other => Err(format!("unknown scenario: {other}")),
         };
         let (passed, message) = match run {
@@ -619,6 +649,85 @@ fn scenario_ai_sidebar(
     );
     std::thread::sleep(std::time::Duration::from_millis(500));
     scenario_shell_chrome_batch3(app)
+}
+
+const DOCUMENT_EDITING_SELF_TEST_EVAL: &str = r#"(function(){try{delete window.__ubDocEditTestResult;var run=window.__unibrowserRunDocumentEditingSelfTest;if(!run){window.__ubDocEditTestResult="document editing harness missing";return;}run();}catch(e){window.__ubDocEditTestResult=String(e);}})();"#;
+
+#[cfg(target_os = "linux")]
+fn pump_self_test_ui(ms_total: u64) {
+    let step_ms = 12u64;
+    let iterations = (ms_total / step_ms).max(1);
+    for _ in 0..iterations {
+        while gtk::events_pending() {
+            gtk::main_iteration();
+        }
+        std::thread::sleep(std::time::Duration::from_millis(step_ms));
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn pump_self_test_ui(ms_total: u64) {
+    std::thread::sleep(std::time::Duration::from_millis(ms_total));
+}
+
+fn push_shell_tab_state(
+    wv: &tauri::Webview,
+    dto: &crate::commands::TabContentDto,
+) -> Result<(), String> {
+    let json = serde_json::to_string(dto).map_err(|e| e.to_string())?;
+    let script = format!(
+        "(function(){{try{{var d={json};var f=window.__selfTestApplyState;if(f){{f(d);}}}}catch(e){{}}}})();"
+    );
+    wv.eval(&script).map_err(|e| e.to_string())
+}
+
+fn scenario_document_editing_everyday(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<crate::state::AppState>,
+    demo: &std::path::Path,
+    projects: &std::path::Path,
+) -> Result<(), String> {
+    let template = demo.join("sample.md");
+    if !template.is_file() {
+        return Err("demo sample.md missing".into());
+    }
+    let dest = projects.join(format!("self-test-everyday-{}.md", now_ms()));
+    std::fs::copy(&template, &dest).map_err(|e| e.to_string())?;
+    let opened = open_path(window, app, state, &dest)?;
+  let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    push_shell_tab_state(&wv, &opened)?;
+    std::thread::sleep(std::time::Duration::from_millis(1200));
+    for _ in 0..30 {
+        if let Ok(dto) = crate::commands::get_browser_state(window.clone(), state.clone()) {
+            if dto
+                .text_document
+                .as_ref()
+                .is_some_and(|d| d.content.contains("Demo markdown"))
+            {
+                let _ = push_shell_tab_state(&wv, &dto);
+                break;
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+    std::thread::sleep(std::time::Duration::from_millis(2000));
+    if let Ok(mut g) = DOCUMENT_EDITING_RESULT.lock() {
+        *g = None;
+    }
+    let _ = wv.eval(DOCUMENT_EDITING_SELF_TEST_EVAL);
+    for _ in 0..180 {
+        pump_self_test_ui(500);
+        if let Some(message) = take_document_editing_result() {
+            return match message {
+                None => Ok(()),
+                Some(err) => Err(err),
+            };
+        }
+    }
+    Err("document editing self-test did not report".into())
 }
 
 fn scenario_problems_jump(

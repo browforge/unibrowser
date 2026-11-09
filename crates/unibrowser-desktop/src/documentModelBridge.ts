@@ -68,7 +68,9 @@ function sessionRequest(session: DocumentSessionPayload) {
 }
 
 export async function sourceProjectionDocument(session: DocumentSessionPayload): Promise<string> {
-  const res = await invoke<{ content: string }>("document_source_projection", sessionRequest(session));
+  const res = await invoke<{ content: string }>("document_source_projection", {
+    request: sessionRequest(session),
+  });
   return res.content;
 }
 

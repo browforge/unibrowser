@@ -15,6 +15,7 @@ import "./ui/compactChrome.css";
 import "./ui/textDocumentCard.css";
 import "./ui/documentEditorModes.css";
 import { exposeTextDocumentCard, syncDocumentCardDirtyFlag } from "./ui/textDocumentCard";
+import { installDocumentEditingSelfTestHarness } from "./selfTestDocumentEditing";
 import {
   documentKindLabel,
   documentWordCount,
@@ -72,6 +73,7 @@ exposeShellChromeAudit();
 installSelfTestShellChromeAuditListener();
 installTextCaptureHarness();
 exposeTextDocumentCard();
+installDocumentEditingSelfTestHarness();
 exposeChromeMetrics();
 void invoke<{ scenarios: string[] } | null>("get_self_test_plan").then((plan) => {
   if (plan) {

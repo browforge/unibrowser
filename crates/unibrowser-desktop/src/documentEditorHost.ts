@@ -174,6 +174,18 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
   });
 }
 
+/** Mirror host markdown into Monaco when leaving Visual for Source. */
+export async function flushVisualModelToSourceBuffer(): Promise<void> {
+  const { textEditor } = await import("./textEditor");
+  const { invoke } = await import("@tauri-apps/api/core");
+  const dto = await invoke<{ text_document?: { content: string } }>("get_browser_state");
+  const content = dto.text_document?.content ?? "";
+  if (!content) {
+    return;
+  }
+  await textEditor.setContentFromHost(content);
+}
+
 async function commitModelToMarkdown(touchedBlockIds: string[]) {
   if (!session || !documentPath) {
     return;
@@ -401,6 +413,44 @@ export async function onMonacoMarkdownContentChanged(content: string) {
   await checkSourceBuffer(monacoHost.parentElement, content);
 }
 
+/** Before leaving Source/Split, merge Monaco into the shared document model for Visual/history. */
+export async function flushMarkdownSourceBeforeModeChange(): Promise<void> {
+  if (!monacoHost || !documentPath) {
+    return;
+  }
+  const mode = getDocumentEditorMode();
+  if (mode !== "source" && mode !== "split") {
+    return;
+  }
+  const { textEditor } = await import("./textEditor");
+  const content = textEditor.getMonacoEditor()?.getModel()?.getValue();
+  if (content === undefined) {
+    return;
+  }
+  const parent = monacoHost.parentElement ?? monacoHost;
+  const { checkSourceBuffer } = await import("./documentSourceMerge");
+  await checkSourceBuffer(parent, content);
+}
+
+export async function refreshDocumentSessionFromHost(): Promise<void> {
+  if (!documentPath) {
+    return;
+  }
+  const { getActiveTextContent } = await import("./textEditor");
+  const { parseMarkdownDocument } = await import("./documentModelBridge");
+  const content = getActiveTextContent() ?? "";
+  if (!content.trim()) {
+    return;
+  }
+  const parsed = await parseMarkdownDocument(content);
+  session = parsed;
+  window.dispatchEvent(
+    new CustomEvent("unibrowser-document-session-updated", {
+      detail: parsed,
+    }),
+  );
+}
+
 export function getDocumentModelSession(): {
   model: DocumentModelDto;
   source_map: SourceMapDto;
@@ -515,11 +565,18 @@ export function teardownDocumentEditor() {
 }
 
 if (typeof window !== "undefined") {
-  (
-    window as unknown as { __unibrowserSyncMonacoSourceBuffer?: () => Promise<void> }
-  ).__unibrowserSyncMonacoSourceBuffer = async () => {
+  const win = window as unknown as {
+    __unibrowserSyncMonacoSourceBuffer?: () => Promise<void>;
+    __unibrowserFlushMarkdownSource?: () => Promise<void>;
+    __unibrowserGetProseMirrorView?: () => import("prosemirror-view").EditorView | null;
+  };
+  win.__unibrowserSyncMonacoSourceBuffer = async () => {
     const { textEditor } = await import("./textEditor");
     const value = textEditor.getMonacoEditor()?.getModel()?.getValue() ?? "";
     await onMonacoMarkdownContentChanged(value);
   };
+  win.__unibrowserFlushMarkdownSource = flushMarkdownSourceBeforeModeChange;
+  void import("./richTextEditor").then(({ getActiveRichTextView }) => {
+    win.__unibrowserGetProseMirrorView = () => getActiveRichTextView();
+  });
 }
