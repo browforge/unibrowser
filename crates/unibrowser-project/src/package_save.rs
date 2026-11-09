@@ -338,18 +338,8 @@ pub fn save_archive_package(archive_path: &Path, bundle_root: &Path) -> Result<(
     }
     write_opc_zip_from_root(bundle_root, &part, false)?;
     maybe_fault(SaveFaultPoint::AfterArchiveTempWrite)?;
-
-    {
-        let mut f = File::open(&part)?;
-        f.sync_all()?;
-    }
     maybe_fault(SaveFaultPoint::BeforeArchiveRename)?;
-
-    if archive_path.is_file() {
-        fs::rename(&part, archive_path)?;
-    } else {
-        fs::rename(&part, archive_path)?;
-    }
+    fs::rename(&part, archive_path)?;
     Ok(())
 }
 

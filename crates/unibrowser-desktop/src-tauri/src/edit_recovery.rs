@@ -25,6 +25,36 @@ struct DebounceState {
 
 static DEBOUNCE_STATE: OnceLock<Mutex<DebounceState>> = OnceLock::new();
 
+/// Serializes mutations under the shared per-user `edit-recovery` journal directory so parallel
+/// `cargo test` workers cannot delete or append the same journal between begin and checkpoint.
+static CONFIG_JOURNAL_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
+
+fn config_journal_mutex() -> &'static Mutex<()> {
+    CONFIG_JOURNAL_MUTEX.get_or_init(|| Mutex::new(()))
+}
+
+fn config_journal_guard() -> std::sync::MutexGuard<'static, ()> {
+    match config_journal_mutex().lock() {
+        Ok(guard) => guard,
+        Err(err) => err.into_inner(),
+    }
+}
+
+/// Stable journal key so relative and canonical absolute paths refer to one on-disk journal.
+fn normalize_journal_path(path: &str) -> String {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return trimmed.to_string();
+    }
+    let p = Path::new(trimmed);
+    if p.is_absolute() {
+        if let Ok(canonical) = p.canonicalize() {
+            return canonical.to_string_lossy().into_owned();
+        }
+    }
+    trimmed.replace('\\', "/")
+}
+
 fn debounce() -> &'static Mutex<DebounceState> {
     DEBOUNCE_STATE.get_or_init(|| Mutex::new(DebounceState {
         pending: std::collections::HashMap::new(),
@@ -35,7 +65,7 @@ pub fn journal_dir() -> Option<PathBuf> {
     config_dir().map(|d| d.join("edit-recovery"))
 }
 
-fn flush_due() {
+fn flush_due_locked() {
     let dir = match journal_dir() {
         Some(d) => d,
         None => return,
@@ -63,17 +93,19 @@ fn journal_path_exists(dir: &Path, doc_path: &str) -> bool {
 
 /// Call when the buffer becomes dirty; ensures a journal exists and schedules a checkpoint.
 pub fn note_dirty_edit(path: &str, backend_id: &str, baseline_on_disk: &[u8], content: &str) {
+    let _journal_guard = config_journal_guard();
     let dir = match journal_dir() {
         Some(d) => d,
         None => return,
     };
-    flush_due();
-    if !journal_path_exists(&dir, path) {
-        let _ = begin_journal(&dir, path, backend_id, baseline_on_disk);
+    let path = normalize_journal_path(path);
+    flush_due_locked();
+    if !journal_path_exists(&dir, &path) {
+        let _ = begin_journal(&dir, &path, backend_id, baseline_on_disk);
     }
     let mut guard = debounce().lock().expect("edit recovery debounce");
     guard.pending.insert(
-        path.to_string(),
+        path,
         PendingCheckpoint {
             content: content.to_string(),
             due: Instant::now() + CHECKPOINT_DEBOUNCE,
@@ -82,6 +114,7 @@ pub fn note_dirty_edit(path: &str, backend_id: &str, baseline_on_disk: &[u8], co
 }
 
 pub fn flush_pending_for_test() {
+    let _journal_guard = config_journal_guard();
     let dir = match journal_dir() {
         Some(d) => d,
         None => return,
@@ -96,21 +129,32 @@ pub fn flush_pending_for_test() {
     }
 }
 
-pub fn clear_for_path(path: &str) {
+fn clear_for_path_locked(path: &str) {
+    let path = normalize_journal_path(path);
     if let Some(dir) = journal_dir() {
-        let _ = clear_journal(&dir, path);
+        let _ = clear_journal(&dir, &path);
     }
     let mut guard = debounce().lock().expect("edit recovery debounce");
-    guard.pending.remove(path);
+    guard.pending.remove(&path);
 }
 
-pub fn list_pending() -> Vec<PendingJournal> {
-    flush_due();
+pub fn clear_for_path(path: &str) {
+    let _journal_guard = config_journal_guard();
+    clear_for_path_locked(path);
+}
+
+fn list_pending_locked() -> Vec<PendingJournal> {
+    flush_due_locked();
     let dir = match journal_dir() {
         Some(d) => d,
         None => return Vec::new(),
     };
     list_pending_journals(&dir).unwrap_or_default()
+}
+
+pub fn list_pending() -> Vec<PendingJournal> {
+    let _journal_guard = config_journal_guard();
+    list_pending_locked()
 }
 
 pub fn load_recovered(journal_id: &str) -> Result<RecoveredEdit, String> {
@@ -127,15 +171,21 @@ pub fn backup_id_for_path(path: &str) -> String {
     journal_id_for_path(path)
 }
 
-pub fn seed_capture_demo_for_path(path: &str, backend_id: &str, disk: &[u8]) -> Result<(), String> {
+fn seed_capture_demo_for_path_locked(path: &str, backend_id: &str, disk: &[u8]) -> Result<(), String> {
+    let path = normalize_journal_path(path);
     let recovered = format!(
         "{}\n\nRecovered unsaved paragraph for REC capture.\n",
         String::from_utf8_lossy(disk)
     );
     let dir = journal_dir().ok_or("config path unavailable")?;
-    let _ = begin_journal(&dir, path, backend_id, disk);
-    let _ = append_checkpoint(&dir, path, recovered.as_bytes());
+    begin_journal(&dir, &path, backend_id, disk)?;
+    append_checkpoint(&dir, &path, recovered.as_bytes())?;
     Ok(())
+}
+
+pub fn seed_capture_demo_for_path(path: &str, backend_id: &str, disk: &[u8]) -> Result<(), String> {
+    let _journal_guard = config_journal_guard();
+    seed_capture_demo_for_path_locked(path, backend_id, disk)
 }
 
 pub fn write_recovery_preview(journal_id: &str) -> Result<std::path::PathBuf, String> {
@@ -160,11 +210,15 @@ mod shell_bootstrap_probe {
         let path = fixture.canonicalize().unwrap_or(fixture);
         let path_str = path.to_string_lossy().into_owned();
         let disk = fs::read(&path_str).expect("spell-test fixture");
-        clear_for_path(&path_str);
-        seed_capture_demo_for_path(&path_str, BACKEND_ID, &disk).expect("seed journal");
+        let journal_id = journal_id_for_path(&normalize_journal_path(&path_str));
+        let _guard = config_journal_guard();
+        clear_for_path_locked(&path_str);
+        seed_capture_demo_for_path_locked(&path_str, BACKEND_ID, &disk).expect("seed journal");
+        let pending = list_pending_locked();
         assert!(
-            !list_pending().is_empty(),
-            "expected pending recovery journal for {path_str}"
+            pending.iter().any(|row| row.journal_id == journal_id),
+            "expected pending recovery journal {journal_id} for {path_str}, saw {:?}",
+            pending
         );
     }
 }

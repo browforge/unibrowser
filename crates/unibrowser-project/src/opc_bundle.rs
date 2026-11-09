@@ -223,7 +223,11 @@ pub fn write_opc_zip_from_root(
         let method = compression_for_part(&key);
         write_zip_entry(&mut zip, &key, &parts[&key], method)?;
     }
-    zip.finish().map_err(|e| ProjectError::Msg(e.to_string()))?;
+    let mut file = zip
+        .finish()
+        .map_err(|e| ProjectError::Msg(e.to_string()))?;
+    file.sync_all()
+        .map_err(|e| ProjectError::Msg(e.to_string()))?;
     Ok(())
 }
 

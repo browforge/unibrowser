@@ -1,8 +1,10 @@
 //! In-process shell UI scenarios (no WebDriver). See `launch_args` and `docs/e2e.md`.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Condvar, Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 static FINISHED: AtomicBool = AtomicBool::new(false);
 
@@ -24,8 +26,26 @@ pub const SCENARIO_CM_GREY: &str = "cm-grey-tab-switch";
 pub const SCENARIO_UNIBROW_BLANK: &str = "unibrow-blank-save";
 pub const SCENARIO_PROBLEMS_JUMP: &str = "problems-jump";
 pub const SCENARIO_SHELL_CHROME_BATCH3: &str = "shell-chrome-batch3";
+pub const SCENARIO_DOCUMENT_EDITING_EVERYDAY: &str = "document-editing-everyday";
+pub const SCENARIO_DOCUMENT_EDITING_KILL_PREP: &str = "document-editing-everyday-kill-prep";
+pub const SCENARIO_DOCUMENT_EDITING_RELAUNCH: &str = "document-editing-everyday-relaunch";
+const VISUAL_MARKER_JS: &str = "SELF_TEST_VISUAL_MARKER";
+const SOURCE_MARKER_JS: &str = "SELF_TEST_SOURCE_MARKER";
 
 static SHELL_CHROME_AUDIT: Mutex<Option<Vec<String>>> = Mutex::new(None);
+
+struct DocumentEditingWait {
+    result: Mutex<Option<Option<String>>>,
+    cvar: Condvar,
+}
+
+fn document_editing_wait() -> &'static DocumentEditingWait {
+    static W: OnceLock<DocumentEditingWait> = OnceLock::new();
+    W.get_or_init(|| DocumentEditingWait {
+        result: Mutex::new(None),
+        cvar: Condvar::new(),
+    })
+}
 
 const SHELL_CHROME_AUDIT_EVAL: &str = r"(function(){try{if(window.__unibrowserSubmitShellChromeAudit){window.__unibrowserSubmitShellChromeAudit();return;}var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:fn()});}}catch(e){}})();";
 
@@ -38,6 +58,103 @@ pub fn self_test_submit_shell_chrome_audit(errors: Vec<String>) {
 
 fn take_shell_chrome_audit() -> Option<Vec<String>> {
     drain_shell_chrome_audit()
+}
+
+#[tauri::command]
+pub fn self_test_submit_document_editing_result(message: Option<String>) {
+    let w = document_editing_wait();
+    if let Ok(mut g) = w.result.lock() {
+        *g = Some(message);
+        w.cvar.notify_all();
+    }
+}
+
+fn reset_document_editing_wait() {
+    if let Ok(mut g) = document_editing_wait().result.lock() {
+        *g = None;
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn pump_gtk_events() {
+    while gtk::events_pending() {
+        gtk::main_iteration();
+    }
+    gtk::main_iteration();
+}
+
+#[cfg(not(target_os = "linux"))]
+fn pump_gtk_events() {}
+
+/// Waits for the in-webview document-editing harness.
+///
+/// A helper thread blocks on the condvar fed by `self_test_submit_document_editing_result` (no GTK).
+/// This thread must call `pump_gtk_events` until that helper completes: Tauri IPC and the Linux
+/// WebKit/GTK shell only deliver `self_test_submit_*` commands while the GTK main loop runs.
+enum DocumentEditingWaitOutcome {
+    Finished(Result<(), String>),
+    Timeout,
+}
+
+fn await_document_editing_harness(timeout: Duration) -> Result<(), String> {
+    let (tx, rx) = std::sync::mpsc::channel::<DocumentEditingWaitOutcome>();
+    let wait = document_editing_wait();
+    std::thread::spawn(move || {
+        let mut guard = wait.result.lock().expect("doc-edit wait mutex");
+        loop {
+            if guard.is_some() {
+                let message = guard.take().expect("doc-edit result");
+                let outcome = match message {
+                    None => Ok(()),
+                    Some(err) => Err(err),
+                };
+                let _ = tx.send(DocumentEditingWaitOutcome::Finished(outcome));
+                return;
+            }
+            let (next, timed_out) = wait
+                .cvar
+                .wait_timeout(guard, timeout)
+                .expect("doc-edit condvar");
+            guard = next;
+            if guard.is_some() {
+                continue;
+            }
+            if timed_out.timed_out() {
+                let _ = tx.send(DocumentEditingWaitOutcome::Timeout);
+                return;
+            }
+        }
+    });
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        pump_gtk_events();
+        match rx.try_recv() {
+            Ok(DocumentEditingWaitOutcome::Finished(outcome)) => return outcome,
+            Ok(DocumentEditingWaitOutcome::Timeout) => {
+                return Err("document editing self-test timed out".into());
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                return Err("document editing harness waiter exited early".into());
+            }
+        }
+    }
+    Err("document editing self-test timed out".into())
+}
+
+#[tauri::command]
+pub fn self_test_abort_for_recovery() {
+    std::process::abort();
+}
+
+#[tauri::command]
+pub fn self_test_flush_edit_recovery_debounce() {
+    crate::edit_recovery::flush_pending_for_test();
+}
+
+#[tauri::command]
+pub fn edit_recovery_backup_id_for_path(path: String) -> Result<String, String> {
+    Ok(crate::edit_recovery::backup_id_for_path(&path))
 }
 
 pub fn drain_shell_chrome_audit() -> Option<Vec<String>> {
@@ -59,6 +176,7 @@ pub const ALL_SCENARIOS: &[&str] = &[
     SCENARIO_FONT_TEXT_SVG,
     SCENARIO_LIVE_PREVIEW,
     SCENARIO_AI_SIDEBAR,
+    SCENARIO_DOCUMENT_EDITING_EVERYDAY,
 ];
 
 #[derive(Clone)]
@@ -204,10 +322,13 @@ pub fn schedule_run(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(8));
         eprintln!("[self-test] scheduling scenarios on main thread");
-        let app2 = app.clone();
-        let _ = app.run_on_main_thread(move || {
+        let app_runner = app.clone();
+        let app_main = app.clone();
+        let _ = app_main.run_on_main_thread(move || {
             eprintln!("[self-test] on main thread");
-            let report = match run_all_scenarios(&app2) {
+            let app_scenarios = app_runner.clone();
+            let app_for_exit = app_runner.clone();
+            let report = match run_all_scenarios(&app_scenarios) {
                 Ok(r) => r,
                 Err(e) => {
                     eprintln!("[self-test] scenario error: {}", e);
@@ -223,7 +344,7 @@ pub fn schedule_run(app: AppHandle) {
                     }
                 }
             };
-            write_report_and_exit(app2, report);
+            write_report_and_exit(app_for_exit, report);
         });
     });
 }
@@ -267,6 +388,15 @@ fn run_all_scenarios(app: &AppHandle) -> Result<SelfTestReportDto, String> {
             SCENARIO_LIVE_PREVIEW => scenario_live_preview(&window, app, &state, &projects),
             SCENARIO_AI_SIDEBAR => scenario_ai_sidebar(&window, app, &state),
             SCENARIO_SHELL_CHROME_BATCH3 => scenario_shell_chrome_batch3(app),
+            SCENARIO_DOCUMENT_EDITING_EVERYDAY => {
+                scenario_document_editing_everyday(&window, app, &state, &demo, &projects)
+            }
+            SCENARIO_DOCUMENT_EDITING_KILL_PREP => {
+                scenario_document_editing_kill_prep(&window, app, &state, &demo, &projects)
+            }
+            SCENARIO_DOCUMENT_EDITING_RELAUNCH => {
+                scenario_document_editing_relaunch(&window, app, &state, &demo, &projects)
+            }
             other => Err(format!("unknown scenario: {other}")),
         };
         let (passed, message) = match run {
@@ -619,6 +749,220 @@ fn scenario_ai_sidebar(
     );
     std::thread::sleep(std::time::Duration::from_millis(500));
     scenario_shell_chrome_batch3(app)
+}
+
+const DOCUMENT_EDITING_RUNNER_MAIN: &str = "__unibrowserRunDocumentEditingSelfTest";
+const DOCUMENT_EDITING_RUNNER_PHASE1: &str = "__unibrowserRunDocumentEditingEverydayPhase1";
+const DOCUMENT_EDITING_RUNNER_PHASE2: &str = "__unibrowserRunDocumentEditingEverydayPhase2";
+const DOCUMENT_EDITING_RUNNER_KILL_PREP: &str = "__unibrowserRunDocumentEditingKillPrepSelfTest";
+const DOCUMENT_EDITING_RUNNER_RELAUNCH: &str = "__unibrowserRunDocumentEditingRelaunchSelfTest";
+
+fn document_editing_harness_eval(runner_global: &str) -> String {
+    format!(
+        r#"(function(){{try{{var inv=window.__TAURI__?.core?.invoke;var run=window.{runner_global};if(!inv){{return;}}if(!run){{inv('self_test_submit_document_editing_result',{{message:'{runner_global} missing'}});return;}}Promise.resolve(run()).catch(function(e){{inv('self_test_submit_document_editing_result',{{message:String(e)}});}});}}catch(e){{window.__TAURI__?.core?.invoke('self_test_submit_document_editing_result',{{message:String(e)}});}}}})();"#
+    )
+}
+
+fn prepare_markdown_self_test_tab(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<crate::state::AppState>,
+    demo: &Path,
+    projects: &Path,
+) -> Result<PathBuf, String> {
+    let template = demo.join("sample.md");
+    if !template.is_file() {
+        return Err("demo sample.md missing".into());
+    }
+    let dest = projects.join(format!("self-test-everyday-{}.md", now_ms()));
+    std::fs::copy(&template, &dest).map_err(|e| e.to_string())?;
+    let opened = open_path(window, app, state, &dest)?;
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    push_shell_tab_state(&wv, &opened)?;
+    std::thread::sleep(std::time::Duration::from_millis(1200));
+    for _ in 0..30 {
+        if let Ok(dto) = crate::commands::get_browser_state(window.clone(), state.clone()) {
+            if dto
+                .text_document
+                .as_ref()
+                .is_some_and(|d| d.content.contains("Demo markdown"))
+            {
+                let _ = push_shell_tab_state(&wv, &dto);
+                break;
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+    std::thread::sleep(std::time::Duration::from_millis(1200));
+    Ok(dest)
+}
+
+fn run_document_editing_harness(
+    wv: &tauri::Webview,
+    runner_global: &str,
+    timeout: Duration,
+) -> Result<(), String> {
+    reset_document_editing_wait();
+    wv.eval(&document_editing_harness_eval(runner_global))
+        .map_err(|e| e.to_string())?;
+    await_document_editing_harness(timeout)
+}
+
+fn spawn_self_test_subprocess(
+    scenario: &str,
+    report: &Path,
+    extra_env: &[(&str, String)],
+) -> Result<std::process::ExitStatus, String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let root = repo_root();
+    let mut cmd = if std::env::var_os("DISPLAY").is_some() {
+        Command::new(&exe)
+    } else {
+        let mut wrap = Command::new("xvfb-run");
+        wrap.arg("-a")
+            .arg("-s")
+            .arg("-screen 0 1600x1000x24")
+            .arg(&exe);
+        wrap
+    };
+    cmd.env("UNIBROWSER_REPO_ROOT", root.to_string_lossy().as_ref())
+        .env("UNIBROWSER_SAFE_MODE", "1")
+        .env("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+        .env("UNIBROWSER_SELF_TEST_SKIP_SHOTS", "1");
+    for (key, value) in extra_env {
+        cmd.env(key, value);
+    }
+    cmd.arg("--self-test")
+        .arg(scenario)
+        .arg("--report")
+        .arg(report);
+    cmd.status().map_err(|e| e.to_string())
+}
+
+fn open_document_for_env_path(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<crate::state::AppState>,
+) -> Result<(), String> {
+    let path = std::env::var("UNIBROWSER_DOC_EDIT_PATH").map_err(|_| {
+        "UNIBROWSER_DOC_EDIT_PATH missing for document-editing relaunch/kill prep".to_string()
+    })?;
+    let opened = open_path(window, app, state, Path::new(&path))?;
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    push_shell_tab_state(&wv, &opened)?;
+    std::thread::sleep(std::time::Duration::from_millis(1500));
+    Ok(())
+}
+
+fn push_shell_tab_state(
+    wv: &tauri::Webview,
+    dto: &crate::commands::TabContentDto,
+) -> Result<(), String> {
+    let json = serde_json::to_string(dto).map_err(|e| e.to_string())?;
+    let script = format!(
+        "(function(){{try{{var d={json};var f=window.__selfTestApplyState;if(f){{f(d);}}}}catch(e){{}}}})();"
+    );
+    wv.eval(&script).map_err(|e| e.to_string())
+}
+
+fn scenario_document_editing_everyday(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<crate::state::AppState>,
+    demo: &std::path::Path,
+    projects: &std::path::Path,
+) -> Result<(), String> {
+    let dest = prepare_markdown_self_test_tab(window, app, state, demo, projects)?;
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    run_document_editing_harness(&wv, DOCUMENT_EDITING_RUNNER_PHASE1, Duration::from_secs(150))?;
+    eprintln!("[self-test] doc-edit phase1 harness ok");
+    run_document_editing_harness(&wv, DOCUMENT_EDITING_RUNNER_PHASE2, Duration::from_secs(180))?;
+    let path = dest.to_string_lossy().into_owned();
+    let prep_report = projects.join(format!("doc-edit-kill-prep-{}.json", now_ms()));
+    let kill_status = spawn_self_test_subprocess(
+        SCENARIO_DOCUMENT_EDITING_KILL_PREP,
+        &prep_report,
+        &[("UNIBROWSER_DOC_EDIT_PATH", path.clone())],
+    )?;
+    if kill_status.success() {
+        return Err("kill-prep subprocess exited cleanly; expected abrupt abort".into());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        let signal = kill_status.signal();
+        if !matches!(signal, Some(6) | Some(9) | Some(11)) {
+            return Err(format!(
+                "kill-prep subprocess unexpected exit (code={:?}, signal={signal:?})",
+                kill_status.code()
+            ));
+        }
+    }
+    let relaunch_report = projects.join(format!("doc-edit-relaunch-{}.json", now_ms()));
+    let relaunch_status = spawn_self_test_subprocess(
+        SCENARIO_DOCUMENT_EDITING_RELAUNCH,
+        &relaunch_report,
+        &[("UNIBROWSER_DOC_EDIT_PATH", path)],
+    )?;
+    if !relaunch_status.success() {
+        return Err(format!(
+            "relaunch subprocess failed (code={:?})",
+            relaunch_status.code()
+        ));
+    }
+  Ok(())
+}
+
+fn scenario_document_editing_kill_prep(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<crate::state::AppState>,
+    demo: &std::path::Path,
+    projects: &std::path::Path,
+) -> Result<(), String> {
+    let _ = (demo, projects);
+    open_document_for_env_path(window, app, state)?;
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    reset_document_editing_wait();
+    wv.eval(&document_editing_harness_eval(DOCUMENT_EDITING_RUNNER_KILL_PREP))
+        .map_err(|e| e.to_string())?;
+    for _ in 0..240 {
+        pump_gtk_events();
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    Err("kill prep subprocess survived without abort".into())
+}
+
+fn scenario_document_editing_relaunch(
+    window: &tauri::Window,
+    app: &AppHandle,
+    state: &State<crate::state::AppState>,
+    demo: &std::path::Path,
+    projects: &std::path::Path,
+) -> Result<(), String> {
+    let _ = (demo, projects);
+    open_document_for_env_path(window, app, state)?;
+    let _ = crate::crash_launch::discover_recovery_bar_items(state, &window.label());
+    let wv = app
+        .get_webview("main")
+        .ok_or("main shell webview missing")?;
+    if let Ok(dto) = crate::commands::get_browser_state(window.clone(), state.clone()) {
+        let _ = push_shell_tab_state(&wv, &dto);
+    }
+    std::thread::sleep(std::time::Duration::from_millis(800));
+    run_document_editing_harness(
+        &wv,
+        DOCUMENT_EDITING_RUNNER_RELAUNCH,
+        Duration::from_secs(90),
+    )
 }
 
 fn scenario_problems_jump(

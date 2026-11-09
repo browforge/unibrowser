@@ -153,7 +153,30 @@ export function mountDocumentModeStrip(
     btn.dataset.docMode = mode.id;
     btn.setAttribute("role", "button");
     btn.textContent = mode.label;
-    btn.onclick = () => setDocumentEditorMode(mode.id);
+    btn.onclick = () => {
+      const leavingSource =
+        (currentMode === "source" || currentMode === "split") && mode.id !== currentMode;
+      const leavingWysiwyg =
+        currentMode === "wysiwyg" && (mode.id === "source" || mode.id === "split");
+      const needsSourceFlush =
+        leavingSource && (mode.id === "wysiwyg" || mode.id === "reading" || mode.id === "split");
+      const needsVisualFlush = leavingWysiwyg;
+      if (needsVisualFlush || needsSourceFlush) {
+        void import("./documentEditorHost").then(
+          async ({ flushMarkdownSourceBeforeModeChange, flushVisualModelToSourceBuffer }) => {
+            if (needsSourceFlush) {
+              await flushMarkdownSourceBeforeModeChange();
+            }
+            if (needsVisualFlush) {
+              await flushVisualModelToSourceBuffer();
+            }
+            setDocumentEditorMode(mode.id);
+          },
+        );
+        return;
+      }
+      setDocumentEditorMode(mode.id);
+    };
     host.appendChild(btn);
   }
   notifyMode();

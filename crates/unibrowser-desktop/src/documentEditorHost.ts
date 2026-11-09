@@ -23,6 +23,8 @@ let monacoHost: HTMLElement | null = null;
 let richHost: HTMLElement | null = null;
 let splitPreviewHost: HTMLElement | null = null;
 let documentPath: string | null = null;
+/** Visual edits synced to the host but not yet recorded on the shared markdown history stack. */
+let visualHistoryPending = false;
 
 async function resolveDemoTokens(): Promise<string> {
   const fromUrl = new URLSearchParams(window.location.search).get("demo");
@@ -174,10 +176,55 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
   });
 }
 
-async function commitModelToMarkdown(touchedBlockIds: string[]) {
+/** Persist ProseMirror edits into the host markdown buffer and shared document history. */
+export async function flushVisualEditsToHostDocument(): Promise<void> {
+  const { getActiveRichTextView } = await import("./richTextEditor");
+  const view = getActiveRichTextView();
+  const base = session;
+  if (!view || !base || !documentPath) {
+    await appendVisualHistorySnapshotFromSession();
+    return;
+  }
+  const { docToModel, diffTouchedBlocks } = await import("./richTextProseMirror");
+  const before = base.model.blocks as { id?: string }[];
+  const nextModel = docToModel(view.state.doc, base.model);
+  const blocks = (nextModel.blocks as { id?: string }[]).map((block, index) => {
+    if (block.id?.trim()) {
+      return block;
+    }
+    const mapped = base.source_map.entries[index]?.block_id;
+    return { ...block, id: mapped ?? `block-${index + 1}` };
+  });
+  const normalized = { ...nextModel, blocks };
+  const touched = diffTouchedBlocks(before as never, blocks as never);
+  const allIds = blocks.map((b) => b.id ?? "").filter(Boolean);
+  session = { ...base, model: normalized };
+  await commitModelToMarkdown(
+    touched.length > 0 ? [...new Set([...touched, ...allIds])] : allIds,
+    { recordHistory: true },
+  );
+}
+
+/** Mirror host markdown into Monaco when leaving Visual for Source. */
+export async function flushVisualModelToSourceBuffer(): Promise<void> {
+  const { textEditor } = await import("./textEditor");
+  const { invoke } = await import("@tauri-apps/api/core");
+  const dto = await invoke<{ text_document?: { content: string } }>("get_browser_state");
+  const content = dto.text_document?.content ?? "";
+  if (!content) {
+    return;
+  }
+  await textEditor.setContentFromHost(content);
+}
+
+async function commitModelToMarkdown(
+  touchedBlockIds: string[],
+  options?: { recordHistory?: boolean },
+) {
   if (!session || !documentPath) {
     return;
   }
+  const recordHistory = options?.recordHistory ?? false;
   const dirty = Array.from(new Set([...touchedBlockIds]));
   const content = await serializeMarkdownDocument({
     model: session.model,
@@ -188,12 +235,74 @@ async function commitModelToMarkdown(touchedBlockIds: string[]) {
   });
   const { textEditor } = await import("./textEditor");
   await textEditor.setContentFromHost(content);
+  const model = textEditor.getMonacoEditor()?.getModel();
+  if (model) {
+    const value = model.getValue();
+    const end = value.length;
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("sync_text_document", {
+      content: value,
+      selectionStart: end,
+      selectionEnd: end,
+    });
+  }
+  if (recordHistory) {
+    visualHistoryPending = false;
+    const { appendDocumentHistorySnapshot } = await import("./documentModelBridge");
+    await appendDocumentHistorySnapshot(documentPath, {
+      model: session.model,
+      source_map: session.source_map,
+      original_base64: session.original_base64,
+    }).catch(() => undefined);
+  } else {
+    visualHistoryPending = true;
+  }
+}
+
+export async function ensureVisualEditsRecordedInHistory(): Promise<void> {
+  if (visualHistoryPending) {
+    await appendVisualHistorySnapshotFromSession();
+    return;
+  }
+  if (!session || !documentPath) {
+    return;
+  }
+  const { sourceProjectionDocument, appendDocumentHistorySnapshot } = await import(
+    "./documentModelBridge"
+  );
+  const { invoke } = await import("@tauri-apps/api/core");
+  const sessionProjection = await sourceProjectionDocument(session);
+  let headProjection = "";
+  try {
+    const head = await invoke<DocumentParseResponse>("document_history_head_session", {
+      path: documentPath,
+    });
+    headProjection = await sourceProjectionDocument(head);
+  } catch {
+    headProjection = "";
+  }
+  if (headProjection.trim() === sessionProjection.trim()) {
+    return;
+  }
+  await appendDocumentHistorySnapshot(documentPath, {
+    model: session.model,
+    source_map: session.source_map,
+    original_base64: session.original_base64,
+  });
+  visualHistoryPending = false;
+}
+
+async function appendVisualHistorySnapshotFromSession(): Promise<void> {
+  if (!visualHistoryPending || !session || !documentPath) {
+    return;
+  }
   const { appendDocumentHistorySnapshot } = await import("./documentModelBridge");
   await appendDocumentHistorySnapshot(documentPath, {
     model: session.model,
     source_map: session.source_map,
     original_base64: session.original_base64,
-  }).catch(() => undefined);
+  });
+  visualHistoryPending = false;
 }
 
 async function renderRich() {
@@ -327,6 +436,7 @@ export async function syncDocumentEditorForTextTab(
       node.style.pointerEvents = "";
     });
     session = null;
+    visualHistoryPending = false;
     documentPath = path;
     document.body.dataset.activeDocumentPath = path;
     applySurfaceVisibility(getDocumentEditorMode());
@@ -399,6 +509,44 @@ export async function onMonacoMarkdownContentChanged(content: string) {
   }
   const { checkSourceBuffer } = await import("./documentSourceMerge");
   await checkSourceBuffer(monacoHost.parentElement, content);
+}
+
+/** Before leaving Source/Split, merge Monaco into the shared document model for Visual/history. */
+export async function flushMarkdownSourceBeforeModeChange(): Promise<void> {
+  if (!monacoHost || !documentPath) {
+    return;
+  }
+  const mode = getDocumentEditorMode();
+  if (mode !== "source" && mode !== "split") {
+    return;
+  }
+  const { textEditor } = await import("./textEditor");
+  const content = textEditor.getMonacoEditor()?.getModel()?.getValue();
+  if (content === undefined) {
+    return;
+  }
+  const parent = monacoHost.parentElement ?? monacoHost;
+  const { checkSourceBuffer } = await import("./documentSourceMerge");
+  await checkSourceBuffer(parent, content);
+}
+
+export async function refreshDocumentSessionFromHost(): Promise<void> {
+  if (!documentPath) {
+    return;
+  }
+  const { getActiveTextContent } = await import("./textEditor");
+  const { parseMarkdownDocument } = await import("./documentModelBridge");
+  const content = getActiveTextContent() ?? "";
+  if (!content.trim()) {
+    return;
+  }
+  const parsed = await parseMarkdownDocument(content);
+  session = parsed;
+  window.dispatchEvent(
+    new CustomEvent("unibrowser-document-session-updated", {
+      detail: parsed,
+    }),
+  );
 }
 
 export function getDocumentModelSession(): {
@@ -512,14 +660,22 @@ export function teardownDocumentEditor() {
   destroyRichTextEditor();
   hideSourceMergeBanner();
   session = null;
+  visualHistoryPending = false;
 }
 
 if (typeof window !== "undefined") {
-  (
-    window as unknown as { __unibrowserSyncMonacoSourceBuffer?: () => Promise<void> }
-  ).__unibrowserSyncMonacoSourceBuffer = async () => {
+  const win = window as unknown as {
+    __unibrowserSyncMonacoSourceBuffer?: () => Promise<void>;
+    __unibrowserFlushMarkdownSource?: () => Promise<void>;
+    __unibrowserGetProseMirrorView?: () => import("prosemirror-view").EditorView | null;
+  };
+  win.__unibrowserSyncMonacoSourceBuffer = async () => {
     const { textEditor } = await import("./textEditor");
     const value = textEditor.getMonacoEditor()?.getModel()?.getValue() ?? "";
     await onMonacoMarkdownContentChanged(value);
   };
+  win.__unibrowserFlushMarkdownSource = flushMarkdownSourceBeforeModeChange;
+  void import("./richTextEditor").then(({ getActiveRichTextView }) => {
+    win.__unibrowserGetProseMirrorView = () => getActiveRichTextView();
+  });
 }

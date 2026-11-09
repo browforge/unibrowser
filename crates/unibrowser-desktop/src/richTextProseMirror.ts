@@ -247,10 +247,16 @@ function blockFromPm(node: PmNode): BlockDto {
 }
 
 function listItemsFromPm(node: PmNode) {
-  const items: { inlines: { text: string; marks?: { kind: string }[] }[] }[] = [];
+  const items: { id: string; inlines: { text: string; marks?: { kind: string }[] }[] }[] = [];
+  const parentId = String(node.attrs.blockId ?? "list");
+  let index = 0;
   node.forEach((child) => {
     const p = child.firstChild;
-    items.push({ inlines: p ? inlinesFromPm(p) : [{ text: "", marks: [] }] });
+    index += 1;
+    items.push({
+      id: `${parentId}-item-${index}`,
+      inlines: p ? inlinesFromPm(p) : [{ text: "", marks: [] }],
+    });
   });
   return items;
 }
@@ -420,7 +426,7 @@ export function mountProseMirrorEditor(
   };
 }
 
-function diffTouchedBlocks(before: BlockDto[], after: BlockDto[]): string[] {
+export function diffTouchedBlocks(before: BlockDto[], after: BlockDto[]): string[] {
   const touched: string[] = [];
   const afterById = new Map(after.map((b) => [b.id ?? "", b]));
   for (const block of before) {

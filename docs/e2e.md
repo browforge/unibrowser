@@ -29,7 +29,8 @@ target/release/unibrowser-desktop --self-test <scenario|all> --report out.json
 | `unibrow-blank-save` | Blank `.unibrow` autosave |
 | `live-preview` | Open demo `.unibrow`, enable live mode, assert `live_mode` |
 | `ai-sidebar` | Mock AI endpoint, grants prefs, `test_ai_connection`, panel configured |
-| `all` | All ten scenarios in order |
+| `document-editing-everyday` | Integrated markdown: Visual typing/formatting, Source↔Visual undo/redo (shared history), save to disk, edit-recovery restore |
+| `all` | All scenarios in order |
 
 `scripts/self-test.sh` runs `all` **3×** under xvfb (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). The Rust runner skips `browser-state-updated` events during self-test so file opens do not deadlock the UI thread. Tab mutex re-entrancy is rejected in debug builds; see [concurrency.md](concurrency.md).
 
