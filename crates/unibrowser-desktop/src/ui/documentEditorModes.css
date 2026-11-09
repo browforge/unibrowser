@@ -11,19 +11,24 @@
 .document-mode-strip--inline {
   flex: 0 0 auto;
   min-height: 24px;
-  padding: 0;
+  padding: 0 4px;
   border-bottom: 0;
   background: transparent;
-  color: var(--ub-doc-card-ink, #1c2834);
+  color: inherit;
 }
 
 .document-mode-strip--inline .document-mode-strip-btn {
-  color: var(--ub-doc-card-ink, #1c2834);
+  color: inherit;
 }
 
 .document-mode-strip--inline .document-mode-strip-btn.is-active,
 .document-mode-strip--inline .document-mode-strip-btn[aria-selected="true"] {
-  background: rgba(28, 40, 52, 0.08);
+  background: var(--ub-accent-muted, rgba(90, 160, 220, 0.22));
+}
+
+body.text-document-card #status-bar > #document-mode-inline-host {
+  order: 90;
+  margin-left: 8px;
 }
 
 .document-mode-strip.hidden {

@@ -287,8 +287,8 @@ body.cm-collapsed #text-compact-toolbar-host {
   display: none !important;
 }
 
-/* Render 1: formatting row lives on the paper card, not in collapsed chrome */
-body.cm-collapsed.text-document-card .document-card-toolbar-mount #text-compact-toolbar-host {
+/* Integrated document: formatting row stays in shell chrome when CM is collapsed */
+body.cm-collapsed.text-document-card.text-compact-visible #chrome #text-compact-toolbar-host {
   display: flex !important;
 }
 

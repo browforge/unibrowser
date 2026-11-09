@@ -1105,47 +1105,6 @@ export function collectDocCaptureDiagnostics(): DocCaptureDiagnostics {
   };
 }
 
-function rgbTripletMatches(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
-}
-
-function colorsMatchCss(a: string, b: string): boolean {
-  if (rgbTripletMatches(a, b)) {
-    return true;
-  }
-  const parsedA = parseRgb(a);
-  const parsedB = parseRgb(b);
-  if (!parsedA || !parsedB) {
-    return false;
-  }
-  return parsedA.r === parsedB.r && parsedA.g === parsedB.g && parsedA.b === parsedB.b;
-}
-
-function footerUsesDocumentCardTokens(footerMain: HTMLElement | null): boolean {
-  if (!footerMain || !document.body.classList.contains("text-document-card")) {
-    return false;
-  }
-  const statusHost = footerMain.closest("#document-card-status");
-  if (!(statusHost instanceof HTMLElement)) {
-    return false;
-  }
-  const footerStyle = getComputedStyle(footerMain);
-  const statusStyle = getComputedStyle(statusHost);
-  const bodyStyle = getComputedStyle(document.body);
-  const mutedToken = bodyStyle.getPropertyValue("--ub-doc-card-muted").trim();
-  const inkToken = bodyStyle.getPropertyValue("--ub-doc-card-ink").trim();
-  const color = footerStyle.color || statusStyle.color;
-  const colorOk =
-    color !== "rgb(0, 0, 0)" &&
-    Boolean(
-      mutedToken &&
-        (colorsMatchCss(color, mutedToken) || colorsMatchCss(color, inkToken)),
-    );
-  const fontOk = statusStyle.fontSize === "12px";
-  const textOk = /\bwords?\b/i.test(footerMain.textContent ?? "");
-  return colorOk && fontOk && textOk;
-}
-
 function editorHostForMode(
   mode: "wysiwyg" | "source" | "split" | "reading",
 ): "monaco" | "rich" | "split" | "none" {
@@ -1227,7 +1186,7 @@ function richEditorSubtreeViolationCount(
         }
         if (
           el.id === "text-editor-host" ||
-          el.id === "document-card-body-mount" ||
+          el.id === "split-primary" ||
           el.classList.contains("document-monaco-slot") ||
           el.classList.contains("rich-text-editor-shell")
         ) {
@@ -1280,7 +1239,7 @@ export interface DocumentFeatureCaptureDomDiagnostics {
 
 export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDiagnostics {
   const cards = Array.from(
-    document.querySelectorAll<HTMLElement>(".document-card, .document-card-shell"),
+    document.querySelectorAll<HTMLElement>(".document-card-shell:not(.hidden)"),
   ).filter(visibleElement);
   const cm = document.getElementById("command-manager");
   const commandManagerVisible = Boolean(
@@ -1290,8 +1249,10 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
       cm.getBoundingClientRect().height > 44 &&
       cm.getBoundingClientRect().width > 200,
   );
-  const footerMain = document.querySelector<HTMLElement>(".document-card-status-main");
-  const footerUsesCardTokens = footerUsesDocumentCardTokens(footerMain);
+  const footerMain =
+    document.querySelector<HTMLElement>("[data-integrated-doc-status]") ??
+    document.querySelector<HTMLElement>(".document-card-status-main");
+  const footerUsesCardTokens = false;
   const documentCardFooterText = footerMain?.textContent?.trim() ?? "";
   const approxBadge = document.querySelector<HTMLElement>(
     ".block-emulation-badge, .cm-emulation-mark",
@@ -1320,14 +1281,14 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
     (activeMode === "source" && visibleEditorHost === "monaco") ||
     (activeMode === "split" && visibleEditorHost === "split") ||
     ((activeMode === "wysiwyg" || activeMode === "reading") && visibleEditorHost === "rich");
-  const bodyMount = document.getElementById("document-card-body-mount");
-  const bodyRect = bodyMount?.getBoundingClientRect();
-  const richEditorSubtreeViolations = bodyMount
-    ? richEditorSubtreeViolationCount(bodyMount, activeMode)
+  const editorMount =
+    document.getElementById("text-editor-host") ?? document.getElementById("split-primary");
+  const bodyRect = editorMount?.getBoundingClientRect();
+  const richEditorSubtreeViolations = editorMount
+    ? richEditorSubtreeViolationCount(editorMount, activeMode)
     : 0;
   let outsideOverlapCount = 0;
   if (bodyRect && bodyRect.width > 40 && bodyRect.height > 40) {
-    const shell = document.getElementById("document-card-shell");
     const sampleYs = [
       bodyRect.top + 8,
       bodyRect.top + bodyRect.height * 0.35,
@@ -1339,7 +1300,7 @@ export function collectDocumentFeatureCaptureDom(): DocumentFeatureCaptureDomDia
         if (!(el instanceof HTMLElement)) {
           continue;
         }
-        if (shell?.contains(el) || el === shell || el === bodyMount) {
+        if (editorMount?.contains(el) || el === editorMount) {
           break;
         }
         if (el.id === "command-manager" || el.closest("#command-manager")) {
@@ -1498,23 +1459,23 @@ export function validateDocumentFeatureCaptureDom(): string | null {
     return null;
   }
   const dom = collectDocumentFeatureCaptureDom();
-  if (dom.visibleDocumentCardCount !== 1) {
-    return `expected exactly one visible document card, found ${dom.visibleDocumentCardCount}`;
+  if (dom.visibleDocumentCardCount > 0) {
+    return `nested document-card-shell must stay hidden (found ${dom.visibleDocumentCardCount} visible)`;
   }
   if (dom.commandManagerVisible) {
     return "command manager row visible during doc feature capture";
   }
-  if (!dom.footerUsesCardTokens) {
-    return "document card footer is not styled by card tokens";
+  if (!dom.documentCardFooterText.match(/\bwords?\b/i)) {
+    return "integrated document status missing word count";
   }
   if (!dom.modeMatchesVisibleHost) {
     return `active mode ${dom.activeMode} does not match visible editor host (${dom.visibleEditorHost})`;
   }
   if (dom.outsideOverlapCount > 0) {
-    return `outside chrome overlaps the document card body (${dom.outsideOverlapCount} hits)`;
+    return `outside chrome overlaps the document workspace (${dom.outsideOverlapCount} hits)`;
   }
   if (dom.richEditorSubtreeViolations > 0) {
-    return `card body hit-test must stay inside rich editor (${dom.richEditorSubtreeViolations} violations)`;
+    return `editor workspace hit-test must stay inside rich editor (${dom.richEditorSubtreeViolations} violations)`;
   }
   if (demo.includes("doc-visual-md-docx")) {
     const footerMain = document.querySelector<HTMLElement>(".document-card-status-main");
@@ -1571,8 +1532,14 @@ export function validateDocumentFeatureCaptureChrome(): string | null {
     return "document feature capture requires text-document-card layout";
   }
   const shell = document.getElementById("document-card-shell");
-  if (!shell || shell.classList.contains("hidden")) {
-    return "document-card-shell hidden during doc feature capture";
+  if (shell && !shell.classList.contains("hidden")) {
+    return "nested document-card-shell must stay hidden during doc feature capture";
+  }
+  const nestedTab = document.querySelector<HTMLElement>(
+    "#document-card-tab .document-card-tab-label",
+  );
+  if (nestedTab && nestedTab.getBoundingClientRect().height > 2) {
+    return "duplicate in-card filename tab visible during doc feature capture";
   }
   const flyout = document.querySelector<HTMLElement>(".rail-side-panel:not(.hidden)");
   if (flyout && flyout.getBoundingClientRect().width > 8) {
@@ -2152,9 +2119,7 @@ export interface TextCompactToolbarCaptureOptions {
 /** Quiet Utility: compact row shares CM chrome tokens; no light tiles on controls. */
 function compactToolbarQuietUtilityMismatch(host: HTMLElement): string | null {
   const onCard = document.body.classList.contains("text-document-card");
-  const reference = onCard
-    ? document.querySelector<HTMLElement>(".document-card-toolbar-mount")
-    : document.getElementById("command-manager");
+  const reference = document.getElementById("chrome") ?? document.getElementById("command-manager");
   if (!reference) {
     return null;
   }
@@ -2162,12 +2127,12 @@ function compactToolbarQuietUtilityMismatch(host: HTMLElement): string | null {
   const refBg = getComputedStyle(reference).backgroundColor;
   if (onCard) {
     const hostLumCard = parseRgbLuminance(hostBg);
-    const paperLum = parseRgbLuminance(refBg);
+    const refLum = parseRgbLuminance(refBg);
     if (
       hostLumCard !== null &&
-      paperLum !== null &&
+      refLum !== null &&
       hostBg !== "rgba(0, 0, 0, 0)" &&
-      Math.abs(hostLumCard - paperLum) > 0.12
+      Math.abs(hostLumCard - refLum) > 0.12
     ) {
       return `in-card toolbar background ${hostBg} must sit on paper card ${refBg}`;
     }
@@ -2391,7 +2356,13 @@ export function validateDocumentCardFooterForCapture(): string | null {
   if (!document.body.classList.contains("text-document-card")) {
     return null;
   }
-  const main = document.querySelector<HTMLElement>(".document-card-status-main");
+  const cardFooter = document.getElementById("document-card-status");
+  if (cardFooter && cardFooter.getBoundingClientRect().height > 4) {
+    return "nested document-card-status footer must stay hidden";
+  }
+  const main =
+    document.querySelector<HTMLElement>("[data-integrated-doc-status]") ??
+    document.querySelector<HTMLElement>(".document-card-status-main");
   const text = main?.textContent?.trim() ?? "";
   if (!text) {
     return "document card footer missing status text";
@@ -2583,9 +2554,7 @@ export function validateNewProjectCapturePixels(demoTokens: string): string | nu
   }
 
   if (needsOfficeToolbar) {
-    const host =
-      document.querySelector("#document-card-toolbar-mount") ??
-      document.getElementById("text-compact-toolbar-host");
+    const host = document.getElementById("text-compact-toolbar-host");
     const count = host
       ? host.querySelectorAll<HTMLElement>(
           ".text-compact-btn[data-control-id], .text-compact-block-trigger[data-control-id]",
@@ -2674,8 +2643,8 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
       return "office project capture requires text-document-card stylesheet";
     }
     const shell = document.getElementById("document-card-shell");
-    if (!shell || shell.classList.contains("hidden")) {
-      return "office project capture requires visible document-card-shell";
+    if (shell && !shell.classList.contains("hidden")) {
+      return "office project capture must not show nested document-card-shell";
     }
     const rich = document.querySelector(
       "#rich-text-editor-host:not(.hidden) .rich-text-doc, #document-split-preview-host:not(.hidden) .rich-text-doc",
@@ -2683,9 +2652,7 @@ export function validateNewProjectCaptureDom(demoTokens: string): string | null 
     if (!rich) {
       return "office project capture requires visual rich-text document surface";
     }
-    const toolbarHost =
-      document.querySelector("#document-card-toolbar-mount #text-compact-toolbar-host") ??
-      document.getElementById("text-compact-toolbar-host");
+    const toolbarHost = document.getElementById("text-compact-toolbar-host");
     const controlCount = toolbarHost
       ? toolbarHost.querySelectorAll<HTMLElement>(
           ".text-compact-btn[data-control-id], .text-compact-block-trigger[data-control-id]",

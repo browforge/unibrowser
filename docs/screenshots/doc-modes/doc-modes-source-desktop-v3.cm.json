@@ -502,7 +502,7 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 6,
+    "segmentCount": 5,
     "segments": [
       {
         "id": "",
@@ -529,11 +529,11 @@
       },
       {
         "id": "",
-        "label": "markdown",
+        "label": "Markdown",
         "bounds": {
           "x": 66.75,
           "y": 777.5,
-          "width": 74.34375,
+          "width": 73.34375,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -541,20 +541,20 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 7.087,
-        "pixelInkCount": 270,
+        "pixelContrast": 6.847,
+        "pixelInkCount": 286,
         "pixelBounds": {
           "x": 66,
           "y": 777,
-          "width": 76,
+          "width": 75,
           "height": 18
         }
       },
       {
         "id": "",
-        "label": "Ln 1, Col 1",
+        "label": "Ln 3, Col 1",
         "bounds": {
-          "x": 141.09375,
+          "x": 140.09375,
           "y": 777.5,
           "width": 69.59375,
           "height": 17
@@ -565,9 +565,9 @@
         "opacity": "1",
         "filter": "none",
         "pixelContrast": 7.844,
-        "pixelInkCount": 181,
+        "pixelInkCount": 192,
         "pixelBounds": {
-          "x": 141,
+          "x": 140,
           "y": 777,
           "width": 70,
           "height": 18
@@ -575,9 +575,9 @@
       },
       {
         "id": "",
-        "label": "Problems 0",
+        "label": "Problems 7",
         "bounds": {
-          "x": 1094.9375,
+          "x": 918.75,
           "y": 777.5,
           "width": 66.6875,
           "height": 17
@@ -587,10 +587,10 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.107,
-        "pixelInkCount": 270,
+        "pixelContrast": 5.944,
+        "pixelInkCount": 263,
         "pixelBounds": {
-          "x": 1094,
+          "x": 918,
           "y": 777,
           "width": 68,
           "height": 18
@@ -600,7 +600,7 @@
         "id": "",
         "label": "UTF-8",
         "bounds": {
-          "x": 1161.625,
+          "x": 985.4375,
           "y": 777.5,
           "width": 38.796875,
           "height": 17
@@ -610,38 +610,55 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 6.309,
-        "pixelInkCount": 141,
+        "pixelContrast": 6.74,
+        "pixelInkCount": 122,
         "pixelBounds": {
-          "x": 1161,
+          "x": 985,
           "y": 777,
           "width": 40,
           "height": 18
         }
-      },
-      {
-        "id": "status-ai-visibility",
-        "label": "AI",
-        "bounds": {
-          "x": 1212.421875,
-          "y": 775.203125,
-          "width": 22,
-          "height": 21.59375
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 8.128,
-        "pixelInkCount": 64,
-        "pixelBounds": {
-          "x": 1212,
-          "y": 775,
-          "width": 23,
-          "height": 22
-        }
       }
     ]
+  },
+  "problems": {
+    "tabText": "Problems 7",
+    "rowCount": 0,
+    "visibleRowCount": 0,
+    "emptyVisible": false,
+    "panelHeight": 0,
+    "tableHeight": 0
+  },
+  "spellHits": 4,
+  "documentCardFooter": "Markdown \u00b7 49 words \u00b7 Not saved",
+  "diffChangeCount": 0,
+  "spellTehRegion": null,
+  "diffLine4Region": null,
+  "railFlyoutWidth": 0,
+  "dom": {
+    "visibleDocumentCardCount": 0,
+    "commandManagerVisible": false,
+    "footerUsesCardTokens": false,
+    "activeMode": "source",
+    "visibleEditorHost": "monaco",
+    "modeMatchesVisibleHost": true,
+    "outsideOverlapCount": 0,
+    "richEditorSubtreeViolations": 0,
+    "documentCardFooterText": "Markdown \u00b7 49 words \u00b7 Not saved",
+    "docxEmulationBadgeVisible": false,
+    "cardImageNaturalWidthOk": true,
+    "statusBarDocumentLanguage": "Unsaved Markdown Ln 3, Col 1 Problems 7 UTF-8",
+    "projectHomeCardHeight": null,
+    "projectHomeCardTopRelative": null,
+    "projectHomeCardCenterDeltaX": null,
+    "horizontalOverflow": false,
+    "presentationToolbarThemed": true,
+    "relationshipConsentPanelHeight": null,
+    "relationshipConsentUsesListBullets": false,
+    "relationshipConsentSectionsScrollable": false,
+    "relationshipConsentPanelScrollable": false,
+    "relationshipConsentActionsInViewport": false,
+    "dialogPrimaryButtonMatchesAccent": false,
+    "firstSaveCancelButtonPresent": false
   }
 }

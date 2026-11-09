@@ -1,4 +1,4 @@
-/** Bear concept Render 1: light paper document card with in-card formatting toolbar. */
+/** Integrated document workspace: compact toolbar in shell chrome, editor in split-primary. */
 
 import { renderTitleBreadcrumb } from "../titleBreadcrumb";
 import { refreshDocumentCardStatusFooter } from "./documentCardStatus";
@@ -6,7 +6,6 @@ import { refreshDocumentCardStatusFooter } from "./documentCardStatus";
 const CARD_SHELL_ID = "document-card-shell";
 const CARD_TOOLBAR_MOUNT_ID = "document-card-toolbar-mount";
 const CARD_BODY_MOUNT_ID = "document-card-body-mount";
-const CARD_TAB_ID = "document-card-tab";
 const COMPACT_TOOLBAR_ID = "text-compact-toolbar-host";
 
 function activeDocumentPane(): HTMLElement | null {
@@ -48,66 +47,54 @@ function restoreToolbarToChrome(toolbar: HTMLElement) {
   }
 }
 
-export function syncTextDocumentCard(active: boolean, fileLabel?: string | null): void {
+function requestShellStatusRefresh(): void {
+  const refreshStatusBarOnly = (
+    window as unknown as { __unibrowserRefreshStatusBarOnly?: () => Promise<void> }
+  ).__unibrowserRefreshStatusBarOnly;
+  if (refreshStatusBarOnly) {
+    void refreshStatusBarOnly();
+  }
+}
+
+export function syncTextDocumentCard(active: boolean, _fileLabel?: string | null): void {
   const shell = document.getElementById(CARD_SHELL_ID);
-  const toolbarMount = document.getElementById(CARD_TOOLBAR_MOUNT_ID);
-  const bodyMount = document.getElementById(CARD_BODY_MOUNT_ID);
   const toolbar = document.getElementById(COMPACT_TOOLBAR_ID);
-  const tab = document.getElementById(CARD_TAB_ID);
   const pane = activeDocumentPane();
 
-  const useCard =
+  const useIntegrated =
     active &&
     !document.body.classList.contains("text-document-card-disabled") &&
-    Boolean(pane && toolbar && shell && toolbarMount && bodyMount);
+    Boolean(pane && toolbar);
 
-  document.body.classList.toggle("text-document-card", useCard);
-  shell?.classList.toggle("hidden", !useCard);
+  document.body.classList.toggle("text-document-card", useIntegrated);
+  document.body.classList.toggle("ub-status-compact", useIntegrated);
+  shell?.classList.add("hidden");
 
-  if (!useCard) {
-    if (pane) {
-      restorePaneToSplit(pane);
-    }
-    if (toolbar) {
-      restoreToolbarToChrome(toolbar);
-    }
+  if (pane) {
+    restorePaneToSplit(pane);
+  }
+  if (toolbar) {
+    restoreToolbarToChrome(toolbar);
+  }
+
+  if (!useIntegrated) {
+    document.getElementById("document-card-tab")?.replaceChildren();
+    document.getElementById("document-card-status")?.replaceChildren();
     return;
   }
 
-  if (pane && bodyMount && pane.parentElement !== bodyMount) {
-    bodyMount.appendChild(pane);
-    void import("../documentEditorHost").then(({ relocateDocumentEditorSurfaces }) => {
-      relocateDocumentEditorSurfaces(pane);
-    });
-  }
-  if (toolbar && toolbarMount && toolbar.parentElement !== toolbarMount) {
-    toolbarMount.appendChild(toolbar);
-    window.requestAnimationFrame(() => {
-      window.dispatchEvent(new Event("resize"));
-      window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
-    });
-  }
-
-  const name = (fileLabel?.trim() || "Untitled").replace(/\s+\*+\s*$/u, "");
-  if (tab) {
-    tab.innerHTML = "";
-    const label = document.createElement("span");
-    label.className = "document-card-tab-label";
-    label.textContent = name;
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "document-card-tab-close";
-    close.setAttribute("aria-label", `Close ${name}`);
-    close.textContent = "×";
-    tab.append(label, close);
-  }
-
+  document.body.classList.add("cm-collapsed", "text-compact-visible");
+  void import("../documentEditorHost").then(({ ensureDocumentModeFooterMounted }) => {
+    ensureDocumentModeFooterMounted();
+  });
   refreshDocumentCardStatusFooter(Boolean(document.body.dataset.documentCardDirty === "1"));
+  requestShellStatusRefresh();
 }
 
 export function syncDocumentCardDirtyFlag(dirty: boolean): void {
   document.body.dataset.documentCardDirty = dirty ? "1" : "0";
   refreshDocumentCardStatusFooter(dirty);
+  requestShellStatusRefresh();
 }
 
 export function exposeTextDocumentCard() {
@@ -125,10 +112,10 @@ function officeCompactToolbarControlCount(): number {
   ).length;
 }
 
-/** Memory-project office template: mount paper card + compact toolbar (same as Visual DOCX). */
+/** Memory-project office template: integrated shell + compact toolbar (same as Visual DOCX). */
 export async function ensureProjectOfficeDocumentCard(fileLabel: string): Promise<void> {
   document.body.dataset.cmAutoContext = "office";
-  document.body.classList.add("cm-collapsed", "text-document-card");
+  document.body.classList.add("cm-collapsed", "text-document-card", "text-compact-visible");
   const { invoke } = await import("@tauri-apps/api/core");
   const docPath = document.body.dataset.activeDocumentPath;
   if (docPath) {
@@ -226,7 +213,7 @@ function docFeatureCardLabel(demoRaw: string): string | null {
   return null;
 }
 
-/** Mount paper card + compact toolbar after CM context is Text (doc-feature captures). */
+/** Mount integrated layout after CM context is Text (doc-feature captures). */
 export async function ensureDocFeatureCaptureLayout(
   demoRaw: string,
   deps: {
@@ -251,16 +238,12 @@ export async function ensureDocFeatureCaptureLayout(
 
   const docxShot = demo.includes("doc-visual-md-docx");
   if (docxShot) {
-    const cardReady = () => {
-      const tabLabel =
-        document.querySelector<HTMLElement>(".document-card-tab-label")?.textContent?.trim() ?? "";
+    const layoutReady = () => {
       const footer =
-        document.querySelector<HTMLElement>(".document-card-status-main")?.textContent ?? "";
+        document.querySelector<HTMLElement>("[data-integrated-doc-status]")?.textContent ?? "";
       return (
-        tabLabel === "sample.docx" &&
         footer.includes("Word") &&
         document.body.classList.contains("text-document-card") &&
-        !document.getElementById(CARD_SHELL_ID)?.classList.contains("hidden") &&
         Boolean(
           document.querySelector(
             "#rich-text-editor-host:not(.hidden) .rich-text-doc, #document-split-preview-host:not(.hidden) .rich-text-doc",
@@ -269,7 +252,7 @@ export async function ensureDocFeatureCaptureLayout(
         !document.querySelector<HTMLElement>("#document-viewer-host:not(.hidden)")
       );
     };
-    if (!cardReady() && !deps.skipDemoApply) {
+    if (!layoutReady() && !deps.skipDemoApply) {
       await deps.applyDemoToken("doc-visual-md-docx");
       await deps.refreshState();
     }
@@ -282,7 +265,7 @@ export async function ensureDocFeatureCaptureLayout(
       await invoke("select_command_manager_tab", { tabId: "text" }).catch(() => undefined);
       window.dispatchEvent(new Event("unibrowser-demo-cm-refresh"));
       const toolbarOk = deps.skipDemoApply || compactToolbarReady();
-      if (cardReady() && toolbarOk) {
+      if (layoutReady() && toolbarOk) {
         forceDocFeatureCaptureLayout("sample.docx");
         dismissDocCaptureChrome();
         return;
@@ -436,7 +419,7 @@ async function syncDocxTabAndBreadcrumb(savedPath: string): Promise<void> {
   patchDocxTabChromeForCapture(savedPath);
 }
 
-/** After Save As DOCX, keep the Render 1 paper card in Visual mode (not the browse DOCX viewer). */
+/** After Save As DOCX, keep integrated layout in Visual mode (not the browse DOCX viewer). */
 export async function finalizeVisualDocxAfterSave(savedPath: string): Promise<void> {
   const { dismissDocCaptureChrome } = await import("../docCaptureDismiss");
   const { setDocumentEditorMode, bindDocumentPath } = await import("../documentEditorModes");
@@ -504,15 +487,13 @@ export function forceDocFeatureCaptureLayout(fileLabel: string | null): void {
   if (compactToolbarReady()) {
     document.body.classList.add("text-compact-visible");
   }
-  const shell = document.getElementById(CARD_SHELL_ID);
-  const bodyMount = document.getElementById(CARD_BODY_MOUNT_ID);
-  shell?.classList.remove("hidden");
+  document.getElementById(CARD_SHELL_ID)?.classList.add("hidden");
   const pane = activeDocumentPane();
-  if (pane && bodyMount && pane.parentElement !== bodyMount) {
-    bodyMount.appendChild(pane);
+  const split = document.getElementById("split-primary");
+  if (pane && split && pane.parentElement !== split) {
+    split.appendChild(pane);
   }
   syncTextDocumentCard(true, fileLabel);
-  shell?.classList.remove("hidden");
   if (document.body.classList.contains("text-document-card")) {
     document.body.classList.add("text-compact-visible");
   }
