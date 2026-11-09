@@ -9,8 +9,10 @@ ART="${ART:-/opt/cursor/artifacts}"
 mkdir -p "$OUT" "$ART"
 
 BASE_DEMO="theme-light,text-card-render1,title-breadcrumb,ai,ai-mockup-composer,rail-expanded,txt-apply-h2"
+BASE_DEMO_DARK="theme-dark,text-card-render1,title-breadcrumb,ai,ai-mockup-composer,rail-expanded,txt-apply-h2"
 
 capture_vqa "$OUT" "doc-modes-wysiwyg-desktop-v3" "${BASE_DEMO},doc-mode-wysiwyg" "examples/demo-pack/sample.md"
+capture_vqa "$OUT" "doc-modes-wysiwyg-desktop-dark-v3" "${BASE_DEMO_DARK},doc-mode-wysiwyg" "examples/demo-pack/sample.md"
 capture_vqa "$OUT" "doc-modes-source-desktop-v3" "${BASE_DEMO},doc-mode-source" "examples/demo-pack/sample.md"
 capture_vqa "$OUT" "doc-modes-split-desktop-v3" "${BASE_DEMO},doc-mode-split" "examples/demo-pack/sample.md"
 capture_vqa "$OUT" "doc-modes-picker-desktop-v3" "${BASE_DEMO},doc-mode-wysiwyg,txt-block-picker-open" "examples/demo-pack/sample.md"
@@ -27,6 +29,7 @@ for name in \
   doc-modes-source-desktop-v3.png \
   doc-modes-split-desktop-v3.png \
   doc-modes-picker-desktop-v3.png \
+  doc-modes-wysiwyg-desktop-dark-v3.png \
   doc-modes-wysiwyg-web-v3.png \
   doc-modes-source-web-v3.png \
   doc-modes-split-web-v3.png \

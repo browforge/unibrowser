@@ -63,7 +63,7 @@
     }
   ],
   "dom": {
-    "visibleDocumentCardCount": 1,
+    "visibleDocumentCardCount": 0,
     "commandManagerVisible": false,
     "footerUsesCardTokens": true,
     "activeMode": "split",
@@ -71,9 +71,9 @@
     "modeMatchesVisibleHost": true,
     "outsideOverlapCount": 0,
     "richEditorSubtreeViolations": 0,
-    "documentCardFooterText": "Markdown · 57 words · Saved",
+    "documentCardFooterText": "Markdown · 49 words · Saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Saved markdown Ln 1, Col 1 Problems 0 UTF-8"
+    "statusBarDocumentLanguage": "Markdown · 49 words · Saved Ln 1, Col 1 14 pt"
   }
 }

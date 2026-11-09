@@ -187,8 +187,12 @@ impl WebHost {
                 Ok(serde_json::to_value(parsed).map_err(|e| e.to_string())?)
             }
             "document_serialize_markdown" => {
+                let payload = args
+                    .get("request")
+                    .cloned()
+                    .unwrap_or_else(|| args.clone());
                 let req: crate::document_model::DocumentSerializeRequest =
-                    serde_json::from_value(args.clone()).map_err(|e| e.to_string())?;
+                    serde_json::from_value(payload).map_err(|e| e.to_string())?;
                 let text = crate::document_model::serialize_markdown_request(req)?;
                 Ok(serde_json::json!({ "content": text }))
             }
@@ -222,6 +226,50 @@ impl WebHost {
                 let entry = crate::document_model::history_entry_from_op(op, seq)?;
                 list.push(entry);
                 self.document_history_redo.remove(path);
+                Ok(Value::Null)
+            }
+            "document_history_seed_capture_demo" => {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or("path required")?;
+                let entries = crate::history_capture::build_history_capture_demo_entries()?;
+                self.document_history.insert(path.to_string(), entries);
+                self.document_history_redo.remove(path);
+                Ok(serde_json::json!(1u64))
+            }
+            "document_history_head_session" => {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or("path required")?;
+                let entries = self
+                    .document_history
+                    .get(path)
+                    .cloned()
+                    .unwrap_or_default();
+                let resp = crate::history_capture::history_head_from_entries(&entries)?;
+                Ok(serde_json::to_value(resp).map_err(|e| e.to_string())?)
+            }
+            "document_history_mark_saved_for_capture" => {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or("path required")?;
+                let normalized = path.replace('\\', "/");
+                if let Some(tab) = self.tabs.active_tab_mut() {
+                    if let Some(doc) = tab.document.as_mut() {
+                        let doc_path = doc.path.replace('\\', "/");
+                        if doc_path == normalized
+                            || doc_path.ends_with(&normalized)
+                            || normalized.ends_with(&doc_path)
+                        {
+                            if let Some(tb) = base_text::try_text_backend(&mut *doc.backend) {
+                                tb.dirty = false;
+                            }
+                        }
+                    }
+                }
                 Ok(Value::Null)
             }
             "document_history_append_snapshot" => {

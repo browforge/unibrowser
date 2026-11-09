@@ -164,9 +164,26 @@ body.text-document-card.document-mode-reading .md-preview-shell {
 .rich-text-doc blockquote {
   margin: 0.75rem 0;
   padding: 0.65rem 1rem;
-  border-left: 3px solid var(--ub-doc-card-quote-accent, #5a9fd4);
-  background: var(--ub-doc-card-quote-bg, rgba(90, 159, 212, 0.12));
-  color: var(--ub-doc-card-muted, #3a4d5c);
+  border-left: 3px solid var(--ub-accent, #79b1c9);
+  background: color-mix(
+    in srgb,
+    var(--ub-accent, #79b1c9) 14%,
+    var(--ub-doc-card-paper, var(--ub-paper, var(--ub-canvas, #faf9f6)))
+  );
+  color: var(--ub-text-1, #202223);
+}
+
+.rich-text-doc blockquote :where(p, li) {
+  color: inherit;
+}
+
+:root[data-theme="dark"] .rich-text-doc blockquote {
+  background: color-mix(
+    in srgb,
+    var(--ub-accent, #79b1c9) 22%,
+    var(--ub-selected, var(--ub-control, #253e4c))
+  );
+  color: var(--ub-text-1, #f0efeb);
 }
 
 .rich-text-opaque-parse {

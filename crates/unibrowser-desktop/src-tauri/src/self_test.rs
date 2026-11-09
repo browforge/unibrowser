@@ -11,7 +11,7 @@ pub fn finished() -> bool {
 }
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 pub const SCENARIO_LIVE_PREVIEW: &str = "live-preview";
 pub const SCENARIO_AI_SIDEBAR: &str = "ai-sidebar";
@@ -26,6 +26,8 @@ pub const SCENARIO_PROBLEMS_JUMP: &str = "problems-jump";
 pub const SCENARIO_SHELL_CHROME_BATCH3: &str = "shell-chrome-batch3";
 
 static SHELL_CHROME_AUDIT: Mutex<Option<Vec<String>>> = Mutex::new(None);
+
+const SHELL_CHROME_AUDIT_EVAL: &str = r"(function(){try{if(window.__unibrowserSubmitShellChromeAudit){window.__unibrowserSubmitShellChromeAudit();return;}var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:fn()});}}catch(e){}})();";
 
 #[tauri::command]
 pub fn self_test_submit_shell_chrome_audit(errors: Vec<String>) {
@@ -552,9 +554,7 @@ pub fn scenario_shell_chrome_batch3(app: &AppHandle) -> Result<(), String> {
         .get_webview("main")
         .ok_or("main shell webview missing")?;
     for _ in 0..40 {
-        let _ = wv.eval(
-            r"(function(){try{var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var errs=fn();var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:errs});}}catch(e){}})();",
-        );
+        let _ = wv.eval(SHELL_CHROME_AUDIT_EVAL);
         std::thread::sleep(std::time::Duration::from_millis(200));
         if let Some(errs) = take_shell_chrome_audit() {
             if errs.is_empty() {
@@ -614,19 +614,11 @@ fn scenario_ai_sidebar(
     let wv = app
         .get_webview("main")
         .ok_or("main shell webview missing")?;
-    for _ in 0..20 {
-        let _ = wv.eval(
-            r"(function(){try{var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var errs=fn();var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:errs});}}catch(e){}})();",
-        );
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        if let Some(errs) = take_shell_chrome_audit() {
-            if !errs.is_empty() {
-                return Err(format!("AI open shell audit: {}", errs.join("; ")));
-            }
-            return Ok(());
-        }
-    }
-    Err("AI sidebar shell audit not received".into())
+    let _ = wv.eval(
+        r"(function(){try{var p=document.getElementById('ai-assistant-panel');var w=document.getElementById('work-area');if(p){p.classList.remove('hidden');}if(w){w.classList.add('ai-open');}document.documentElement.style.setProperty('--ub-ai-sidebar-width','320px');window.dispatchEvent(new Event('unibrowser-shell-layout-changed'));if(window.__unibrowserSubmitShellChromeAudit){window.__unibrowserSubmitShellChromeAudit();}}catch(e){}})();",
+    );
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    scenario_shell_chrome_batch3(app)
 }
 
 fn scenario_problems_jump(

@@ -502,15 +502,15 @@
     }
   ],
   "statusBar": {
-    "segmentCount": 5,
+    "segmentCount": 3,
     "segments": [
       {
         "id": "",
-        "label": "Unsaved",
+        "label": "Markdown \u00b7 49 words \u00b7 Not saved",
         "bounds": {
           "x": 12,
           "y": 777.5,
-          "width": 54.75,
+          "width": 175.125,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -519,34 +519,11 @@
         "opacity": "1",
         "filter": "none",
         "pixelContrast": 6.732,
-        "pixelInkCount": 217,
+        "pixelInkCount": 694,
         "pixelBounds": {
           "x": 12,
           "y": 777,
-          "width": 55,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "Markdown",
-        "bounds": {
-          "x": 66.75,
-          "y": 777.5,
-          "width": 73.34375,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.847,
-        "pixelInkCount": 286,
-        "pixelBounds": {
-          "x": 66,
-          "y": 777,
-          "width": 75,
+          "width": 176,
           "height": 18
         }
       },
@@ -554,7 +531,7 @@
         "id": "",
         "label": "Ln 1, Col 1",
         "bounds": {
-          "x": 140.09375,
+          "x": 187.125,
           "y": 777.5,
           "width": 69.59375,
           "height": 17
@@ -567,7 +544,7 @@
         "pixelContrast": 7.844,
         "pixelInkCount": 181,
         "pixelBounds": {
-          "x": 140,
+          "x": 187,
           "y": 777,
           "width": 70,
           "height": 18
@@ -575,11 +552,11 @@
       },
       {
         "id": "",
-        "label": "Problems 7",
+        "label": "12 pt",
         "bounds": {
-          "x": 918.75,
+          "x": 999.4375,
           "y": 777.5,
-          "width": 66.6875,
+          "width": 24.796875,
           "height": 17
         },
         "foreground": "rgb(48, 56, 60)",
@@ -587,35 +564,12 @@
         "contrast": 9.490555643429884,
         "opacity": "1",
         "filter": "none",
-        "pixelContrast": 5.944,
-        "pixelInkCount": 263,
+        "pixelContrast": 6.133,
+        "pixelInkCount": 106,
         "pixelBounds": {
-          "x": 918,
+          "x": 999,
           "y": 777,
-          "width": 68,
-          "height": 18
-        }
-      },
-      {
-        "id": "",
-        "label": "UTF-8",
-        "bounds": {
-          "x": 985.4375,
-          "y": 777.5,
-          "width": 38.796875,
-          "height": 17
-        },
-        "foreground": "rgb(48, 56, 60)",
-        "background": "rgb(231, 229, 223)",
-        "contrast": 9.490555643429884,
-        "opacity": "1",
-        "filter": "none",
-        "pixelContrast": 6.74,
-        "pixelInkCount": 122,
-        "pixelBounds": {
-          "x": 985,
-          "y": 777,
-          "width": 40,
+          "width": 26,
           "height": 18
         }
       }
@@ -647,7 +601,7 @@
     "documentCardFooterText": "Markdown \u00b7 49 words \u00b7 Not saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Unsaved Markdown Ln 1, Col 1 Problems 7 UTF-8",
+    "statusBarDocumentLanguage": "Markdown \u00b7 49 words \u00b7 Not saved Ln 1, Col 1 12 pt",
     "projectHomeCardHeight": null,
     "projectHomeCardTopRelative": null,
     "projectHomeCardCenterDeltaX": null,

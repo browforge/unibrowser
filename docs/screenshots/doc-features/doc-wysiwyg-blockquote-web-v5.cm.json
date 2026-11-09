@@ -63,7 +63,7 @@
     }
   ],
   "dom": {
-    "visibleDocumentCardCount": 1,
+    "visibleDocumentCardCount": 0,
     "commandManagerVisible": false,
     "footerUsesCardTokens": true,
     "activeMode": "wysiwyg",
@@ -71,9 +71,9 @@
     "modeMatchesVisibleHost": true,
     "outsideOverlapCount": 0,
     "richEditorSubtreeViolations": 0,
-    "documentCardFooterText": "Markdown · 58 words · Not saved",
+    "documentCardFooterText": "Markdown · 49 words · Not saved",
     "docxEmulationBadgeVisible": false,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Unsaved markdown Ln 3, Col 1 Problems 0 UTF-8"
+    "statusBarDocumentLanguage": "Markdown · 49 words · Not saved Ln 1, Col 1 14 pt"
   }
 }

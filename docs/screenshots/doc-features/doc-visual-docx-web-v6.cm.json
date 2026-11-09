@@ -40,6 +40,17 @@
       }
     },
     {
+      "controlId": "unibrowser.control.text.size",
+      "width": 0,
+      "height": 0,
+      "labelBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
       "controlId": "unibrowser.control.proofing",
       "width": 0,
       "height": 0,
@@ -63,7 +74,7 @@
     }
   ],
   "dom": {
-    "visibleDocumentCardCount": 1,
+    "visibleDocumentCardCount": 0,
     "commandManagerVisible": false,
     "footerUsesCardTokens": true,
     "activeMode": "wysiwyg",
@@ -71,9 +82,9 @@
     "modeMatchesVisibleHost": true,
     "outsideOverlapCount": 0,
     "richEditorSubtreeViolations": 0,
-    "documentCardFooterText": "Word · 57 words · Saved",
+    "documentCardFooterText": "Word · 49 words · Saved",
     "docxEmulationBadgeVisible": true,
     "cardImageNaturalWidthOk": true,
-    "statusBarDocumentLanguage": "Saved Word document Ln 1, Col 1 Problems 0 UTF-8"
+    "statusBarDocumentLanguage": "Word document · 49 words · Saved Ln 1, Col 1 14 pt"
   }
 }

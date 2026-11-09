@@ -342,7 +342,19 @@ export async function applyDemoState(raw: string) {
       case "doc-history-panel":
       case "doc-history-jump": {
         if (document.body.dataset.ubDocCapture !== "1") {
-          await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
+          const { isWebPlatform } = await import("./platform/isWeb");
+          if (isWebPlatform()) {
+            const { DEMO_PACK_SAMPLE_MD_REL, fetchDemoPackSampleMarkdownWeb } = await import(
+              "./demoPackSample"
+            );
+            const md = await fetchDemoPackSampleMarkdownWeb();
+            await invoke("open_text_with_content", {
+              path: DEMO_PACK_SAMPLE_MD_REL,
+              content: md,
+            });
+          } else {
+            await invoke("open_path", { path: "demo-pack/sample.md" }).catch(() => undefined);
+          }
         }
         const { setDocumentEditorMode } = await import("./documentEditorModes");
         setDocumentEditorMode("wysiwyg", false);

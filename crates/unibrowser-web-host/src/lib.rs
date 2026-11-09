@@ -2,6 +2,7 @@
 
 mod ai_prefs;
 mod document_model;
+mod history_capture;
 mod host;
 mod prefs;
 mod snapshot;
@@ -183,6 +184,32 @@ mod tests {
             viewer.is_none() || viewer.is_some_and(|v| v.is_null()),
             "virtual DOCX must stay on the visual text tab, not document_viewer: {snap}"
         );
+    }
+
+    #[test]
+    fn history_capture_demo_seeds_panel_head() {
+        host_init();
+        let path = "examples/demo-pack/sample.md";
+        let seed_raw = host_invoke(
+            "document_history_seed_capture_demo",
+            &serde_json::json!({ "path": path }).to_string(),
+        );
+        assert!(seed_raw.contains("\"ok\":true"), "{seed_raw}");
+        let head_raw = host_invoke(
+            "document_history_head_session",
+            &serde_json::json!({ "path": path }).to_string(),
+        );
+        assert!(head_raw.contains("\"ok\":true"), "{head_raw}");
+        assert!(
+            head_raw.contains("Edited heading"),
+            "expected edited capture head in session"
+        );
+        let list_raw = host_invoke(
+            "document_history_list",
+            &serde_json::json!({ "path": path }).to_string(),
+        );
+        assert!(list_raw.contains("\"ok\":true"), "{list_raw}");
+        assert!(list_raw.contains("\"seq\":"), "{list_raw}");
     }
 
     #[test]
