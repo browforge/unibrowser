@@ -19,6 +19,7 @@ import {
   documentKindLabel,
   documentWordCount,
   formatDocumentCardSaveStatus,
+  formatDocumentCardStatusLeft,
   setDocumentCardAutosaveAtMs,
 } from "./ui/documentCardStatus";
 import "./ui/quietUtilityShell.css";
@@ -536,6 +537,7 @@ function statusItemsForContext(
     autosave: string;
     encode: string;
     statusHint: string;
+    font?: string;
   },
 ): { context: string; items: StatusItem[] } {
   const viewer = showViewer ? data.document_viewer?.viewer ?? "" : "";
@@ -684,11 +686,37 @@ function statusItemsForContext(
         data.text_document?.language ||
         data.diff_view?.language ||
         "Text";
-    left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
-    left.push(item("document-language", "left", languageLabel, 80));
-    left.push(item("document-caret", "left", values.cursor, 80));
-    right.push(item("document-problems", "right", `Problems ${problemsCount}`, 70));
-    right.push(item("document-encoding", "right", values.encoding || "UTF-8", 60));
+    const integratedDoc = document.body.classList.contains("text-document-card");
+    const docDirty = Boolean(active?.dirty && !active.is_directory);
+    if (integratedDoc) {
+      const kind =
+        languageLabel === "Word document"
+          ? "Word"
+          : documentKindLabel() === "Markdown"
+            ? "Markdown"
+            : documentKindLabel();
+      left.push(
+        item(
+          "document-integrated",
+          "left",
+          formatDocumentCardStatusLeft(kind, docDirty),
+          100,
+        ),
+      );
+      if (values.cursor) {
+        left.push(item("document-caret", "left", values.cursor, 70));
+      }
+      const zoomLabel = values.font || values.zoom;
+      if (zoomLabel) {
+        right.push(item("document-zoom", "right", zoomLabel, 85, "Editor zoom"));
+      }
+    } else {
+      left.push(item("document-save", "left", values.dirty || values.autosave || "Saved", 100));
+      left.push(item("document-language", "left", languageLabel, 80));
+      left.push(item("document-caret", "left", values.cursor, 80));
+      right.push(item("document-problems", "right", `Problems ${problemsCount}`, 70));
+      right.push(item("document-encoding", "right", values.encoding || "UTF-8", 60));
+    }
     if (values.encode) {
       right.push(item("document-encode", "right", values.encode, 110));
     }
@@ -916,6 +944,7 @@ function refreshStatusBar(
       autosave,
       encode,
       statusHint,
+      font,
     },
   );
   updateStatusBar({

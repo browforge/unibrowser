@@ -27,6 +27,8 @@ pub const SCENARIO_SHELL_CHROME_BATCH3: &str = "shell-chrome-batch3";
 
 static SHELL_CHROME_AUDIT: Mutex<Option<Vec<String>>> = Mutex::new(None);
 
+const SHELL_CHROME_AUDIT_EVAL: &str = r"(function(){try{if(window.__unibrowserSubmitShellChromeAudit){window.__unibrowserSubmitShellChromeAudit();return;}var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:fn()});}}catch(e){}})();";
+
 #[tauri::command]
 pub fn self_test_submit_shell_chrome_audit(errors: Vec<String>) {
     if let Ok(mut g) = SHELL_CHROME_AUDIT.lock() {
@@ -552,9 +554,7 @@ pub fn scenario_shell_chrome_batch3(app: &AppHandle) -> Result<(), String> {
         .get_webview("main")
         .ok_or("main shell webview missing")?;
     for _ in 0..40 {
-        let _ = wv.eval(
-            r"(function(){try{var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var errs=fn();var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:errs});}}catch(e){}})();",
-        );
+        let _ = wv.eval(SHELL_CHROME_AUDIT_EVAL);
         std::thread::sleep(std::time::Duration::from_millis(200));
         if let Some(errs) = take_shell_chrome_audit() {
             if errs.is_empty() {
@@ -614,10 +614,13 @@ fn scenario_ai_sidebar(
     let wv = app
         .get_webview("main")
         .ok_or("main shell webview missing")?;
-    for _ in 0..20 {
-        let _ = wv.eval(
-            r"(function(){try{var fn=window.__unibrowserRunShellChromeAudit;if(!fn){return;}var errs=fn();var inv=window.__TAURI__?.core?.invoke;if(inv){inv('self_test_submit_shell_chrome_audit',{errors:errs});}}catch(e){}})();",
-        );
+    let _ = wv.eval(
+        r"(function(){try{var p=document.getElementById('ai-assistant-panel');var w=document.getElementById('work-area');if(p){p.classList.remove('hidden');}if(w){w.classList.add('ai-open');}document.documentElement.style.setProperty('--ub-ai-sidebar-width','320px');window.dispatchEvent(new Event('unibrowser-shell-layout-changed'));}catch(e){}})();",
+    );
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    let _ = take_shell_chrome_audit();
+    for _ in 0..40 {
+        let _ = wv.eval(SHELL_CHROME_AUDIT_EVAL);
         std::thread::sleep(std::time::Duration::from_millis(200));
         if let Some(errs) = take_shell_chrome_audit() {
             if !errs.is_empty() {
