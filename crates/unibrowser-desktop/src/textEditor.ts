@@ -158,7 +158,7 @@ export function inferSemanticBlockStyleAtCursor(): { commandId: string; label: s
 }
 
 /** Self-test / automation: append text at end of active Monaco document. */
-export function appendActiveEditorText(chunk: string): boolean {
+export async function appendActiveEditorText(chunk: string): Promise<boolean> {
   if (!editor || !monacoApi) {
     return false;
   }
@@ -169,7 +169,7 @@ export function appendActiveEditorText(chunk: string): boolean {
   const end = model.getFullModelRange().getEndPosition();
   const range = new monacoApi.Range(end.lineNumber, end.column, end.lineNumber, end.column);
   editor.executeEdits("self-test", [{ range, text: chunk, forceMoveMarkers: true }]);
-  void pushToHost();
+  await pushToHost();
   return true;
 }
 

@@ -96,9 +96,11 @@ export async function mergeSourceDocument(
     dirty_block_ids: string[];
     touched_block_ids: string[];
   }>("document_merge_source", {
-    ...sessionRequest(session),
-    new_content: newContent,
-  } as Record<string, unknown>);
+    request: {
+      ...sessionRequest(session),
+      new_content: newContent,
+    },
+  });
   const projection = merged.clean
     ? await sourceProjectionDocument({
         model: merged.model,

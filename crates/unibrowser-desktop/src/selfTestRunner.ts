@@ -99,7 +99,7 @@ async function runCloseUndo(plan: SelfTestPlan) {
   await openPath(txt);
   await sleep(600);
   const marker = `self-test-undo-${Date.now()}`;
-  if (!appendActiveEditorText(`\n${marker}`)) {
+  if (!(await appendActiveEditorText(`\n${marker}`))) {
     throw new Error("could not append to text editor");
   }
   await sleep(400);

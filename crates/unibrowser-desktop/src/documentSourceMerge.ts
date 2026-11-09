@@ -1,6 +1,7 @@
 import {
   appendDocumentHistorySnapshot,
   mergeSourceDocument,
+  parseMarkdownDocument,
   sourceProjectionDocument,
 } from "./documentModelBridge";
 import { getDocumentModelSession } from "./documentEditorHost";
@@ -85,23 +86,16 @@ export async function checkSourceBuffer(
     hideSourceMergeBanner();
     return;
   }
-  const { getActiveTextContent } = await import("./textEditor");
-  const hostMarkdown = getActiveTextContent();
-  if (monacoContent === hostMarkdown) {
-    hideSourceMergeBanner();
-    return;
-  }
-  const { refreshDocumentSessionFromHost } = await import("./documentEditorHost");
-  await refreshDocumentSessionFromHost();
   const session = getDocumentModelSession();
   if (!session) {
     return;
   }
-  let projection = hostMarkdown;
+  const { getActiveTextContent } = await import("./textEditor");
+  let projection = getActiveTextContent() ?? "";
   try {
     projection = await sourceProjectionDocument(session);
   } catch {
-    projection = hostMarkdown;
+    projection = getActiveTextContent() ?? "";
   }
   if (monacoContent === projection) {
     hideSourceMergeBanner();
@@ -114,11 +108,12 @@ export async function checkSourceBuffer(
     );
     const path = document.body.dataset.activeDocumentPath;
     if (path) {
+      const parsed = await parseMarkdownDocument(monacoContent);
       await appendDocumentHistorySnapshot(path, {
-        model: merged.model,
-        source_map: merged.source_map,
-        original_base64: merged.original_base64,
-      }).catch(() => undefined);
+        model: parsed.model,
+        source_map: parsed.source_map,
+        original_base64: parsed.original_base64,
+      });
     }
     hideSourceMergeBanner();
     return;

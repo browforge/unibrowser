@@ -174,6 +174,31 @@ function applySurfaceVisibility(mode: ReturnType<typeof getDocumentEditorMode>) 
   });
 }
 
+/** Persist ProseMirror edits into the host markdown buffer and shared document history. */
+export async function flushVisualEditsToHostDocument(): Promise<void> {
+  const { getActiveRichTextView } = await import("./richTextEditor");
+  const view = getActiveRichTextView();
+  const base = session;
+  if (!view || !base || !documentPath) {
+    return;
+  }
+  const { docToModel, diffTouchedBlocks } = await import("./richTextProseMirror");
+  const before = base.model.blocks as { id?: string }[];
+  const nextModel = docToModel(view.state.doc, base.model);
+  const blocks = (nextModel.blocks as { id?: string }[]).map((block, index) => {
+    if (block.id?.trim()) {
+      return block;
+    }
+    const mapped = base.source_map.entries[index]?.block_id;
+    return { ...block, id: mapped ?? `block-${index + 1}` };
+  });
+  const normalized = { ...nextModel, blocks };
+  const touched = diffTouchedBlocks(before as never, blocks as never);
+  const allIds = blocks.map((b) => b.id ?? "").filter(Boolean);
+  session = { ...base, model: normalized };
+  await commitModelToMarkdown(touched.length > 0 ? [...new Set([...touched, ...allIds])] : allIds);
+}
+
 /** Mirror host markdown into Monaco when leaving Visual for Source. */
 export async function flushVisualModelToSourceBuffer(): Promise<void> {
   const { textEditor } = await import("./textEditor");
@@ -200,6 +225,17 @@ async function commitModelToMarkdown(touchedBlockIds: string[]) {
   });
   const { textEditor } = await import("./textEditor");
   await textEditor.setContentFromHost(content);
+  const model = textEditor.getMonacoEditor()?.getModel();
+  if (model) {
+    const value = model.getValue();
+    const end = value.length;
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("sync_text_document", {
+      content: value,
+      selectionStart: end,
+      selectionEnd: end,
+    });
+  }
   const { appendDocumentHistorySnapshot } = await import("./documentModelBridge");
   await appendDocumentHistorySnapshot(documentPath, {
     model: session.model,
