@@ -564,6 +564,7 @@ pub fn run() {
             demo_ntp::seed_demo_ntp_fixture_cmd,
             self_test::self_test_submit_shell_chrome_audit,
             self_test::self_test_submit_document_editing_result,
+            self_test::self_test_abort_for_recovery,
             self_test::self_test_flush_edit_recovery_debounce,
             self_test::edit_recovery_backup_id_for_path,
             self_test::self_test_ping,
